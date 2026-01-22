@@ -1238,6 +1238,34 @@ async function processSync(
                     console.error('Error inserting ad:', adError)
                   } else {
                     console.log('Ad saved:', ad.name)
+                    
+                    // Register URL in client_urls table if link_url exists
+                    if (adData.link_url && adData.link_url.trim() !== '') {
+                      try {
+                        const fullUrl = adData.link_url.trim()
+                        // Remove UTM parameters for cleaner URL storage
+                        const urlWithoutParams = fullUrl.split('?')[0]
+                        const urlObj = new URL(fullUrl)
+                        const domain = urlObj.hostname.replace(/^www\./, '')
+                        
+                        // Use upsert to avoid duplicates and update last_seen_at
+                        const { error: urlError } = await supabase.rpc('upsert_client_url', {
+                          p_client_id: clientId,
+                          p_company_id: client.company_id,
+                          p_url: urlWithoutParams,
+                          p_domain: domain,
+                          p_source: 'meta_sync'
+                        })
+                        
+                        if (urlError) {
+                          console.log('Error saving URL to client_urls:', urlError.message)
+                        } else {
+                          console.log('URL registered for client:', domain)
+                        }
+                      } catch (urlParseError) {
+                        console.log('Error parsing URL:', urlParseError)
+                      }
+                    }
                   }
                 }
               } else {

@@ -2285,6 +2285,69 @@ export type Database = {
           },
         ]
       }
+      client_urls: {
+        Row: {
+          campaign_count: number | null
+          client_id: string
+          company_id: string
+          created_at: string | null
+          domain: string
+          first_seen_at: string | null
+          id: string
+          is_active: boolean | null
+          label: string | null
+          last_seen_at: string | null
+          source: string
+          updated_at: string | null
+          url: string
+        }
+        Insert: {
+          campaign_count?: number | null
+          client_id: string
+          company_id: string
+          created_at?: string | null
+          domain: string
+          first_seen_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          label?: string | null
+          last_seen_at?: string | null
+          source?: string
+          updated_at?: string | null
+          url: string
+        }
+        Update: {
+          campaign_count?: number | null
+          client_id?: string
+          company_id?: string
+          created_at?: string | null
+          domain?: string
+          first_seen_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          label?: string | null
+          last_seen_at?: string | null
+          source?: string
+          updated_at?: string | null
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_urls_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_urls_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           active_campaigns: number
@@ -10742,6 +10805,16 @@ export type Database = {
           total_conversions: number
           total_spend: number
         }[]
+      }
+      upsert_client_url: {
+        Args: {
+          p_client_id: string
+          p_company_id: string
+          p_domain: string
+          p_source?: string
+          p_url: string
+        }
+        Returns: undefined
       }
     }
     Enums: {
