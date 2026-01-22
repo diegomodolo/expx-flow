@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MoreHorizontal, CheckCircle2, ChevronRight } from "lucide-react";
+import { MoreHorizontal, CheckCircle2, ChevronRight, Plus, Settings } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import {
   Dialog,
@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/dialog";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useTaskBoardColumns, TaskBoardColumn } from "@/hooks/useTaskBoardColumns";
+import { ColumnSettingsDialog } from "./ColumnSettingsDialog";
 
 interface Task {
   id: string;
@@ -45,25 +47,38 @@ interface TaskKanbanProps {
   onDeleteTask: (taskId: string) => void;
 }
 
+// Default columns as fallback
+const DEFAULT_COLUMNS: TaskBoardColumn[] = [
+  { id: 'default-todo', name: 'Pendente', status: 'todo', color: '#6B7280', order_index: 0, user_id: '', company_id: '', created_at: '', updated_at: '' },
+  { id: 'default-progress', name: 'Em Andamento', status: 'progress', color: '#3B82F6', order_index: 1, user_id: '', company_id: '', created_at: '', updated_at: '' },
+  { id: 'default-review', name: 'Em Revisão', status: 'review', color: '#8B5CF6', order_index: 2, user_id: '', company_id: '', created_at: '', updated_at: '' },
+  { id: 'default-done', name: 'Concluída', status: 'done', color: '#22C55E', order_index: 3, user_id: '', company_id: '', created_at: '', updated_at: '' },
+];
+
 export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask }: TaskKanbanProps) {
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
-
   const [completedTasksModalOpen, setCompletedTasksModalOpen] = useState(false);
+  const [columnDialogOpen, setColumnDialogOpen] = useState(false);
+  const [selectedColumn, setSelectedColumn] = useState<TaskBoardColumn | null>(null);
 
-  const columns = [
-    { id: 'todo', title: 'Pendente', color: 'bg-muted/60', headerColor: 'text-muted-foreground', accentColor: 'border-l-gray-400' },
-    { id: 'progress', title: 'Em Andamento', color: 'bg-google-blue-50 dark:bg-google-blue-700/20', headerColor: 'text-google-blue-700 dark:text-google-blue-300', accentColor: 'border-l-google-blue-500' },
-    { id: 'review', title: 'Em Revisão', color: 'bg-purple-50 dark:bg-purple-900/20', headerColor: 'text-purple-700 dark:text-purple-300', accentColor: 'border-l-purple-500' },
-    { id: 'done', title: 'Concluída', color: 'bg-google-green-50 dark:bg-google-green-600/20', headerColor: 'text-google-green-600 dark:text-google-green-400', accentColor: 'border-l-google-green-500' },
-  ];
+  const { 
+    columns: userColumns, 
+    isLoading: columnsLoading,
+    createColumn,
+    updateColumn,
+    deleteColumn,
+  } = useTaskBoardColumns();
+
+  // Use user columns if available, otherwise fall back to defaults
+  const columns = userColumns.length > 0 ? userColumns : DEFAULT_COLUMNS;
 
   const completedTasks = tasks.filter(task => task.status === 'done');
 
   const priorityColors = {
-    low: '#10B981', // green
-    medium: '#F59E0B', // yellow/orange
-    high: '#EF4444', // red
+    low: '#10B981',
+    medium: '#F59E0B',
+    high: '#EF4444',
   };
 
   const isOverdue = (dueDate: string | undefined) => {
@@ -112,7 +127,6 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
   };
 
   const handleDragLeave = (e: React.DragEvent) => {
-    // Only clear dragOverColumn if leaving the column container, not child elements
     if (e.currentTarget.contains(e.relatedTarget as Node)) return;
     setDragOverColumn(null);
   };
@@ -128,8 +142,31 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
     setDragOverColumn(null);
   };
 
-  // Render task card (reusable for both kanban and modal)
-  const renderTaskCard = (task: Task, inModal = false) => (
+  const handleOpenColumnDialog = (column?: TaskBoardColumn) => {
+    setSelectedColumn(column || null);
+    setColumnDialogOpen(true);
+  };
+
+  const handleSaveColumn = (data: { name: string; status: 'todo' | 'progress' | 'review' | 'done'; color: string }) => {
+    if (selectedColumn && selectedColumn.id && !selectedColumn.id.startsWith('default-')) {
+      updateColumn({ columnId: selectedColumn.id, updates: data });
+    } else {
+      createColumn(data);
+    }
+    setColumnDialogOpen(false);
+    setSelectedColumn(null);
+  };
+
+  const handleDeleteColumn = () => {
+    if (selectedColumn && selectedColumn.id && !selectedColumn.id.startsWith('default-')) {
+      deleteColumn(selectedColumn.id);
+      setColumnDialogOpen(false);
+      setSelectedColumn(null);
+    }
+  };
+
+  // Render task card
+  const renderTaskCard = (task: Task, columnColor: string, inModal = false) => (
     <Card 
       key={task.id} 
       className={`p-4 shadow-google-sm hover:shadow-google-md transition-all ${inModal ? 'cursor-pointer' : 'cursor-move'} border-l-4 bg-card ${
@@ -144,45 +181,39 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
       <CardContent className="p-0">
         <div className="flex items-start justify-between">
           <div className="flex items-start gap-3 flex-1">
-            {/* Ponto colorido da prioridade */}
             <div 
               className="w-3 h-3 rounded-full mt-1 flex-shrink-0"
               style={{ backgroundColor: priorityColors[task.priority] }}
             />
             
             <div className="flex-1 min-w-0">
-              {/* Título */}
               <h4 className="font-medium text-foreground text-sm leading-tight mb-2 line-clamp-2">
                 {task.title}
               </h4>
 
-              {/* Cliente e Campanha */}
               {(task.client?.name || task.campaign?.name) && (
                 <div className="flex flex-wrap gap-1 mb-2">
                   {task.client?.name && (
-                    <span className="text-xs bg-google-blue-100 dark:bg-google-blue-700/30 text-google-blue-700 dark:text-google-blue-300 px-2 py-0.5 rounded-full">
+                    <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">
                       👤 {task.client.name}
                     </span>
                   )}
                   {task.campaign?.name && (
-                    <span className="text-xs bg-google-green-100 dark:bg-google-green-600/30 text-google-green-600 dark:text-google-green-400 px-2 py-0.5 rounded-full">
+                    <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">
                       📊 {task.campaign.name}
                     </span>
                   )}
                 </div>
               )}
               
-              {/* Descrição simplificada */}
               {task.description && (
                 <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
                   {task.description}
                 </p>
               )}
               
-              {/* Data relativa com responsável */}
               {task.due_date && (
                 <div className="flex items-center gap-2">
-                   {/* Avatar e nome do responsável */}
                    <div className="flex items-center gap-1">
                      <Avatar className="h-4 w-4">
                        <AvatarImage 
@@ -199,7 +230,6 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
                     </span>
                   </div>
                   
-                  {/* Data relativa */}
                   <p className={`text-xs font-medium ${
                     isOverdue(task.due_date) ? 'text-destructive' : 'text-muted-foreground'
                   }`}>
@@ -210,7 +240,6 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
             </div>
           </div>
           
-          {/* Menu de ações */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button 
@@ -234,7 +263,7 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
               )}
               <DropdownMenuItem 
                 onClick={(e) => { e.stopPropagation(); onDeleteTask(task.id); }}
-                className="text-red-600"
+                className="text-destructive"
               >
                 Excluir
               </DropdownMenuItem>
@@ -247,20 +276,34 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
 
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 h-full">
+      <div className="flex gap-6 h-full overflow-x-auto pb-4">
         {columns.map((column) => {
-          const columnTasks = tasks.filter(task => task.status === column.id);
+          const columnTasks = tasks.filter(task => task.status === column.status);
           const isDropTarget = dragOverColumn === column.id;
-          const canDrop = draggedTask && draggedTask.status !== column.id;
-          const isDoneColumn = column.id === 'done';
+          const canDrop = draggedTask && draggedTask.status !== column.status;
+          const isDoneColumn = column.status === 'done';
+          const isDefaultColumn = column.id.startsWith('default-');
           
           return (
-            <div key={column.id} className="flex flex-col">
-              <div className={`${column.color} p-4 rounded-t-lg border-b border-border`}>
-                <h3 className={`font-semibold ${column.headerColor} flex items-center justify-between`}>
-                  {column.title}
+            <div key={column.id} className="flex flex-col min-w-[280px] flex-1">
+              <div 
+                className="p-4 rounded-t-lg border-b border-border flex items-center justify-between"
+                style={{ backgroundColor: `${column.color}20` }}
+              >
+                <h3 className="font-semibold flex items-center gap-2" style={{ color: column.color }}>
+                  {column.name}
                   <Badge variant="secondary" className="bg-background/80">{columnTasks.length}</Badge>
                 </h3>
+                {!isDefaultColumn && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 opacity-60 hover:opacity-100"
+                    onClick={() => handleOpenColumnDialog(column)}
+                  >
+                    <Settings className="h-3.5 w-3.5" />
+                  </Button>
+                )}
               </div>
               
               <div 
@@ -270,30 +313,36 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
                 onDragOver={handleDragOver}
                 onDragEnter={() => handleDragEnter(column.id)}
                 onDragLeave={handleDragLeave}
-                onDrop={(e) => handleDrop(e, column.id)}
+                onDrop={(e) => handleDrop(e, column.status)}
               >
-                {/* Coluna "Concluída" - mostrar card resumo */}
                 {isDoneColumn ? (
                   <>
                     {columnTasks.length > 0 ? (
                       <Card 
-                        className="p-6 bg-gradient-to-br from-google-green-50 to-google-green-100 dark:from-google-green-900/30 dark:to-google-green-800/20 border-google-green-200 dark:border-google-green-700/50 cursor-pointer hover:shadow-google-md transition-all group"
+                        className="p-6 border cursor-pointer hover:shadow-google-md transition-all group"
+                        style={{ 
+                          background: `linear-gradient(135deg, ${column.color}10, ${column.color}20)`,
+                          borderColor: `${column.color}40`
+                        }}
                         onClick={() => setCompletedTasksModalOpen(true)}
                       >
                         <CardContent className="p-0 text-center">
                           <div className="flex flex-col items-center gap-3">
-                            <div className="w-16 h-16 rounded-full bg-google-green-500/20 flex items-center justify-center">
-                              <CheckCircle2 className="w-8 h-8 text-google-green-600 dark:text-google-green-400" />
+                            <div 
+                              className="w-16 h-16 rounded-full flex items-center justify-center"
+                              style={{ backgroundColor: `${column.color}30` }}
+                            >
+                              <CheckCircle2 className="w-8 h-8" style={{ color: column.color }} />
                             </div>
                             <div>
-                              <p className="text-3xl font-bold text-google-green-700 dark:text-google-green-300">
+                              <p className="text-3xl font-bold" style={{ color: column.color }}>
                                 {columnTasks.length}
                               </p>
-                              <p className="text-sm text-google-green-600 dark:text-google-green-400">
+                              <p className="text-sm" style={{ color: column.color }}>
                                 {columnTasks.length === 1 ? 'tarefa concluída' : 'tarefas concluídas'}
                               </p>
                             </div>
-                            <div className="flex items-center gap-1 text-xs text-google-green-600 dark:text-google-green-400 group-hover:translate-x-1 transition-transform">
+                            <div className="flex items-center gap-1 text-xs group-hover:translate-x-1 transition-transform" style={{ color: column.color }}>
                               <span>Ver tarefas</span>
                               <ChevronRight className="w-4 h-4" />
                             </div>
@@ -318,7 +367,6 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
                       </div>
                     )}
                     
-                    {/* Drop zone indicator */}
                     {columnTasks.length > 0 && isDropTarget && canDrop && (
                       <div className="border-2 border-dashed border-primary bg-primary/10 rounded-lg p-4 text-center">
                         <p className="text-sm font-medium text-primary">Solte aqui para mover</p>
@@ -327,10 +375,8 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
                   </>
                 ) : (
                   <>
-                    {/* Colunas normais - mostrar cards de tarefas */}
-                    {columnTasks.map((task) => renderTaskCard(task))}
+                    {columnTasks.map((task) => renderTaskCard(task, column.color))}
                     
-                    {/* Drop zone indicator when column is empty */}
                     {columnTasks.length === 0 && (
                       <div className={`text-center text-muted-foreground py-8 rounded-lg border-2 border-dashed transition-colors ${
                         isDropTarget && canDrop ? 'border-primary bg-primary/10 text-primary' : 'border-border'
@@ -349,7 +395,6 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
                       </div>
                     )}
                     
-                    {/* Drop zone indicator when dragging over non-empty column */}
                     {columnTasks.length > 0 && isDropTarget && canDrop && (
                       <div className="border-2 border-dashed border-primary bg-primary/10 rounded-lg p-4 text-center">
                         <p className="text-sm font-medium text-primary">Solte aqui para mover</p>
@@ -361,6 +406,18 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
             </div>
           );
         })}
+        
+        {/* Add Column Button */}
+        <div className="flex flex-col min-w-[200px]">
+          <Button
+            variant="outline"
+            className="h-14 border-dashed flex items-center gap-2 text-muted-foreground hover:text-foreground"
+            onClick={() => handleOpenColumnDialog()}
+          >
+            <Plus className="h-4 w-4" />
+            Nova Coluna
+          </Button>
+        </div>
       </div>
 
       {/* Modal de tarefas concluídas */}
@@ -368,7 +425,7 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
         <DialogContent className="max-w-2xl max-h-[80vh]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-google-green-600" />
+              <CheckCircle2 className="w-5 h-5" style={{ color: '#22C55E' }} />
               Tarefas Concluídas ({completedTasks.length})
             </DialogTitle>
           </DialogHeader>
@@ -380,12 +437,22 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
                   <p>Nenhuma tarefa concluída ainda</p>
                 </div>
               ) : (
-                completedTasks.map((task) => renderTaskCard(task, true))
+                completedTasks.map((task) => renderTaskCard(task, '#22C55E', true))
               )}
             </div>
           </ScrollArea>
         </DialogContent>
       </Dialog>
+
+      {/* Column Settings Dialog */}
+      <ColumnSettingsDialog
+        open={columnDialogOpen}
+        onOpenChange={setColumnDialogOpen}
+        column={selectedColumn}
+        onSave={handleSaveColumn}
+        onDelete={handleDeleteColumn}
+        isEditing={!!selectedColumn && !selectedColumn.id.startsWith('default-')}
+      />
     </>
   );
 }
