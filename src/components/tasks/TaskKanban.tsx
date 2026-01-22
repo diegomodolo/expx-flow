@@ -19,12 +19,14 @@ import { ColumnSettingsDialog } from "./ColumnSettingsDialog";
 import { TemplateSelector } from "./TemplateSelector";
 import { KanbanTemplate } from "@/data/kanbanTemplates";
 
+type TaskStatus = 'todo' | 'progress' | 'review' | 'done' | 'waiting_approval' | 'cancelled' | 'blocked' | 'paused';
+
 interface Task {
   id: string;
   user_id?: string;
   title: string;
   description: string;
-  status: 'todo' | 'progress' | 'review' | 'done';
+  status: TaskStatus;
   priority: 'low' | 'medium' | 'high';
   responsible_name: string;
   responsible_avatar?: string;
@@ -158,7 +160,7 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
     setColumnDialogOpen(true);
   };
 
-  const handleSaveColumn = (data: { name: string; status: 'todo' | 'progress' | 'review' | 'done'; color: string }) => {
+  const handleSaveColumn = (data: { name: string; status: TaskStatus; color: string }) => {
     if (selectedColumn && selectedColumn.id && !selectedColumn.id.startsWith('default-')) {
       // Editing existing custom column
       updateColumn({ columnId: selectedColumn.id, updates: data });

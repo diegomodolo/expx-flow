@@ -10785,7 +10785,15 @@ export type Database = {
       routine_frequency: "daily" | "weekly" | "monthly"
       task_origin: "dashboard" | "manual" | "automation"
       task_priority: "high" | "medium" | "low"
-      task_status: "todo" | "progress" | "review" | "done"
+      task_status:
+        | "todo"
+        | "progress"
+        | "review"
+        | "done"
+        | "waiting_approval"
+        | "cancelled"
+        | "blocked"
+        | "paused"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -10956,7 +10964,16 @@ export const Constants = {
       routine_frequency: ["daily", "weekly", "monthly"],
       task_origin: ["dashboard", "manual", "automation"],
       task_priority: ["high", "medium", "low"],
-      task_status: ["todo", "progress", "review", "done"],
+      task_status: [
+        "todo",
+        "progress",
+        "review",
+        "done",
+        "waiting_approval",
+        "cancelled",
+        "blocked",
+        "paused",
+      ],
     },
   },
 } as const

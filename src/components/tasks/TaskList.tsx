@@ -9,11 +9,13 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuIte
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
+type TaskStatus = 'todo' | 'progress' | 'review' | 'done' | 'waiting_approval' | 'cancelled' | 'blocked' | 'paused';
+
 interface Task {
   id: string;
   title: string;
   description: string;
-  status: 'todo' | 'progress' | 'review' | 'done';
+  status: TaskStatus;
   priority: 'low' | 'medium' | 'high';
   responsible_name: string;
   responsible_avatar?: string;
