@@ -26,6 +26,68 @@ interface SyncSchedule {
   next_execution_at: string | null;
 }
 
+// Classificador de erros do Google Ads
+function classifyGoogleAdsError(errorMessage: string): {
+  code: string;
+  userFriendlyMessage: string;
+  actionRequired: 'internal' | 'client' | 'none';
+} {
+  if (errorMessage.includes('USER_PERMISSION_DENIED')) {
+    return {
+      code: 'USER_PERMISSION_DENIED',
+      userFriendlyMessage: 'Conta MCC não tem permissão para acessar este cliente. O cliente precisa conceder acesso à conta MCC no Google Ads.',
+      actionRequired: 'client',
+    };
+  }
+  if (errorMessage.includes('CUSTOMER_NOT_ENABLED')) {
+    return {
+      code: 'CUSTOMER_NOT_ENABLED',
+      userFriendlyMessage: 'Conta do Google Ads está desativada ou pausada. O cliente precisa reativar a conta.',
+      actionRequired: 'client',
+    };
+  }
+  if (errorMessage.includes('OAUTH_TOKEN_REVOKED') || errorMessage.includes('invalid_grant')) {
+    return {
+      code: 'OAUTH_TOKEN_REVOKED',
+      userFriendlyMessage: 'Token de acesso revogado. Reconecte o Google Ads nas configurações.',
+      actionRequired: 'internal',
+    };
+  }
+  if (errorMessage.includes('Token refresh failed')) {
+    return {
+      code: 'TOKEN_REFRESH_FAILED',
+      userFriendlyMessage: 'Falha ao renovar credenciais. Reconecte o Google Ads.',
+      actionRequired: 'internal',
+    };
+  }
+  if (errorMessage.includes('Client does not have a Google Ads account configured')) {
+    return {
+      code: 'NO_GOOGLE_ACCOUNT',
+      userFriendlyMessage: 'Cliente não tem conta Google Ads configurada.',
+      actionRequired: 'internal',
+    };
+  }
+  if (errorMessage.includes('Google Ads integration is not active')) {
+    return {
+      code: 'INTEGRATION_INACTIVE',
+      userFriendlyMessage: 'Integração do Google Ads não está ativa.',
+      actionRequired: 'internal',
+    };
+  }
+  if (errorMessage.includes('Google Ads account not found')) {
+    return {
+      code: 'ACCOUNT_NOT_FOUND',
+      userFriendlyMessage: 'Conta do Google Ads não encontrada.',
+      actionRequired: 'internal',
+    };
+  }
+  return {
+    code: 'UNKNOWN',
+    userFriendlyMessage: errorMessage,
+    actionRequired: 'internal',
+  };
+}
+
 function shouldExecuteNow(schedule: SyncSchedule): boolean {
   if (!schedule.next_execution_at) return true;
   
@@ -229,7 +291,7 @@ serve(async (req) => {
         try {
           console.log(`Syncing client ${client.name} (${client.id})`);
 
-          const { error: syncError } = await supabase.functions.invoke('sync-google-ads-campaigns', {
+          const { data: syncData, error: syncError } = await supabase.functions.invoke('sync-google-ads-campaigns', {
             headers: {
               'Authorization': `Bearer ${supabaseServiceKey}`,
             },
@@ -247,12 +309,28 @@ serve(async (req) => {
 
           if (syncError) {
             console.error(`Error syncing client ${client.name}:`, syncError);
+            const classification = classifyGoogleAdsError(syncError.message || '');
             failedClients++;
             clientResults.push({
               client_id: client.id,
               client_name: client.name,
               status: 'error',
-              error: syncError.message,
+              error_code: classification.code,
+              error_message: classification.userFriendlyMessage,
+              action_required: classification.actionRequired,
+            });
+          } else if (syncData?.error) {
+            // Edge function returned an error in the body
+            console.error(`Error syncing client ${client.name}:`, syncData.error);
+            const classification = classifyGoogleAdsError(syncData.error || '');
+            failedClients++;
+            clientResults.push({
+              client_id: client.id,
+              client_name: client.name,
+              status: 'error',
+              error_code: classification.code,
+              error_message: classification.userFriendlyMessage,
+              action_required: classification.actionRequired,
             });
           } else {
             console.log(`Successfully synced client ${client.name}`);
@@ -261,6 +339,9 @@ serve(async (req) => {
               client_id: client.id,
               client_name: client.name,
               status: 'success',
+              campaigns_synced: syncData?.synced?.campaigns || 0,
+              ad_groups_synced: syncData?.synced?.adGroups || 0,
+              ads_synced: syncData?.synced?.ads || 0,
             });
           }
 
@@ -273,12 +354,15 @@ serve(async (req) => {
           }
         } catch (error) {
           console.error(`Exception syncing client ${client.name}:`, error);
+          const classification = classifyGoogleAdsError(error.message || '');
           failedClients++;
           clientResults.push({
             client_id: client.id,
             client_name: client.name,
             status: 'error',
-            error: error.message,
+            error_code: classification.code,
+            error_message: classification.userFriendlyMessage,
+            action_required: classification.actionRequired,
           });
         }
       }
@@ -299,8 +383,11 @@ serve(async (req) => {
             status: finalStatus,
             clients_processed: clientsProcessed,
             completed_at: new Date().toISOString(),
-            execution_details: { clients: clientResults },
-            error_message: failedClients > 0 ? `${failedClients} client(s) failed to sync` : null,
+            execution_details: { 
+              trigger: 'scheduled',
+              clients: clientResults 
+            },
+            error_message: failedClients > 0 ? `${failedClients} cliente(s) com erro` : null,
           })
           .eq('id', executionLog.id);
       }
