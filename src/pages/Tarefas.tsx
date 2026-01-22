@@ -48,7 +48,9 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
-  Repeat
+  Repeat,
+  Minimize2,
+  Maximize2
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -80,6 +82,16 @@ export default function Tarefas() {
   const [selectedBoardUserId, setSelectedBoardUserId] = useState<string | null | "all">(null);
   // Estado para modal de templates
   const [templateSelectorOpen, setTemplateSelectorOpen] = useState(false);
+  // Estado para modo compacto (persistido no localStorage)
+  const [isCompactMode, setIsCompactMode] = useState(() => {
+    return localStorage.getItem('tasks-compact-mode') === 'true';
+  });
+
+  const toggleCompactMode = () => {
+    const newValue = !isCompactMode;
+    setIsCompactMode(newValue);
+    localStorage.setItem('tasks-compact-mode', newValue.toString());
+  };
 
   const { tasks, loading, createTask, updateTask, deleteTask } = useTasks();
   const { data: taskStats } = useTaskStats();
@@ -261,25 +273,52 @@ export default function Tarefas() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 p-6">
+      <div className={cn(
+        "transition-all",
+        isCompactMode ? "space-y-2 p-3" : "space-y-6 p-6"
+      )}>
         {/* Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+        <div className={cn(
+          "flex flex-col lg:flex-row lg:items-center lg:justify-between",
+          isCompactMode && "gap-2"
+        )}>
           <div>
-            <h1 className="text-headline-lg text-foreground">Tarefas Inteligentes</h1>
-            <p className="text-muted-foreground mt-2">
-              Gerencie tarefas automáticas e manuais do seu sistema de tráfego
-            </p>
+            <h1 className={cn(
+              "text-foreground",
+              isCompactMode ? "text-lg font-semibold" : "text-headline-lg"
+            )}>Tarefas Inteligentes</h1>
+            {!isCompactMode && (
+              <p className="text-muted-foreground mt-2">
+                Gerencie tarefas automáticas e manuais do seu sistema de tráfego
+              </p>
+            )}
           </div>
           
-          <div className="flex items-center gap-3 mt-4 lg:mt-0">
+          <div className={cn(
+            "flex items-center mt-4 lg:mt-0",
+            isCompactMode ? "gap-2" : "gap-3"
+          )}>
+            {/* Botão Toggle Modo Compacto */}
+            <Button 
+              variant="outline"
+              size={isCompactMode ? "sm" : "default"}
+              onClick={toggleCompactMode}
+              title={isCompactMode ? "Modo Normal" : "Modo Compacto"}
+              className="flex items-center gap-2"
+            >
+              {isCompactMode ? <Maximize2 className="w-4 h-4" /> : <Minimize2 className="w-4 h-4" />}
+              {!isCompactMode && <span className="hidden xl:inline">Compactar</span>}
+            </Button>
+
             {/* Botão de Templates */}
             <Button 
               variant="outline"
+              size={isCompactMode ? "sm" : "default"}
               className="flex items-center gap-2"
               onClick={() => setTemplateSelectorOpen(true)}
             >
               <Layout className="w-4 h-4" />
-              Templates
+              {!isCompactMode && <span className="hidden xl:inline">Templates</span>}
             </Button>
 
             {/* Botão de Alertas */}
@@ -712,8 +751,8 @@ export default function Tarefas() {
           </div>
         </div>
 
-        {/* Estatísticas */}
-        {taskStats && (
+        {/* Estatísticas - Ocultar no modo compacto */}
+        {taskStats && !isCompactMode && (
           <div className="grid grid-cols-6 gap-4">
             <Card>
               <CardContent className="p-4">
@@ -805,9 +844,15 @@ export default function Tarefas() {
 
 
         {/* Filtros e Visualizações */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div className={cn(
+          "flex flex-col lg:flex-row lg:items-center lg:justify-between",
+          isCompactMode ? "gap-2" : "gap-4"
+        )}>
           {/* Filtros */}
-          <div className="flex flex-wrap items-center gap-3">
+          <div className={cn(
+            "flex flex-wrap items-center",
+            isCompactMode ? "gap-2" : "gap-3"
+          )}>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
               <Input
@@ -965,6 +1010,7 @@ export default function Tarefas() {
                 onEditTask={handleEditTask}
                 onUpdateTaskStatus={handleUpdateTaskStatus}
                 onDeleteTask={handleDeleteTask}
+                isCompactMode={isCompactMode}
               />
             )}
             
