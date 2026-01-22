@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { useRadarUrls, ValidationStatus } from "@/hooks/useRadarUrls";
 import { UrlsKPIHeader } from "@/components/radar/UrlsKPIHeader";
 import { ProblematicUrlsCard } from "@/components/radar/ProblematicUrlsCard";
@@ -10,6 +12,7 @@ import { UrlsTable } from "@/components/radar/UrlsTable";
 
 const RadarUrlsDashboard = () => {
   const [filters, setFilters] = useState<{ status?: ValidationStatus | 'all'; search?: string }>({});
+  const [onlyActiveCampaigns, setOnlyActiveCampaigns] = useState(true);
   
   const { 
     urls, 
@@ -23,7 +26,7 @@ const RadarUrlsDashboard = () => {
     validateAll,
     validateProblematic,
     isValidating
-  } = useRadarUrls();
+  } = useRadarUrls({ onlyActiveCampaigns });
 
   // Filter URLs based on table filters
   const getFilteredUrls = () => {
@@ -62,6 +65,23 @@ const RadarUrlsDashboard = () => {
           </p>
         </div>
         <div className="flex items-center gap-1.5">
+          {/* Campaign filter toggle */}
+          <div className="flex items-center gap-2 mr-2 px-2 py-1 rounded-md bg-muted/50">
+            <Switch
+              id="active-campaigns"
+              checked={onlyActiveCampaigns}
+              onCheckedChange={setOnlyActiveCampaigns}
+              className="scale-75"
+            />
+            <Label 
+              htmlFor="active-campaigns" 
+              className="text-xs text-muted-foreground cursor-pointer whitespace-nowrap"
+            >
+              <span className="hidden sm:inline">Só campanhas ativas</span>
+              <span className="sm:hidden">Ativas</span>
+            </Label>
+          </div>
+          
           <Button 
             variant="outline" 
             size="sm" 

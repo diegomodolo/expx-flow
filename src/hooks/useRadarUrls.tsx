@@ -25,6 +25,10 @@ export interface RadarUrl {
   created_at: string;
   client_name: string;
   client_is_canceled: boolean;
+  // Campaign status fields
+  has_active_campaign?: boolean;
+  active_campaign_count?: number;
+  total_campaign_count?: number;
 }
 
 export interface UrlFilters {
@@ -32,6 +36,7 @@ export interface UrlFilters {
   status?: ValidationStatus | 'all';
   onlyActive?: boolean;
   onlyProblematic?: boolean;
+  onlyActiveCampaigns?: boolean;
 }
 
 export interface UrlStats {
@@ -44,13 +49,40 @@ export interface UrlStats {
   slow: number;
 }
 
+interface CampaignStatusData {
+  url_id: string;
+  has_active_campaign: boolean;
+  active_campaign_count: number;
+  total_campaign_count: number;
+}
+
 export function useRadarUrls(filters: UrlFilters = {}) {
   const { activeCompany } = useCompany();
   const queryClient = useQueryClient();
   const companyId = activeCompany?.company_id;
 
-  const { data: urls = [], isLoading, refetch } = useQuery({
-    queryKey: ['radar-urls', companyId, filters],
+  // Fetch campaign status data
+  const { data: campaignStatusData = [] } = useQuery({
+    queryKey: ['radar-urls-campaign-status', companyId],
+    queryFn: async () => {
+      if (!companyId) return [];
+      
+      const { data, error } = await supabase
+        .rpc('get_urls_with_campaign_status', { p_company_id: companyId });
+      
+      if (error) {
+        console.error('Error fetching campaign status:', error);
+        return [];
+      }
+      
+      return (data || []) as CampaignStatusData[];
+    },
+    enabled: !!companyId,
+    staleTime: 60000,
+  });
+
+  const { data: rawUrls = [], isLoading, refetch } = useQuery({
+    queryKey: ['radar-urls', companyId, filters.clientId, filters.status, filters.onlyActive, filters.onlyProblematic],
     queryFn: async () => {
       if (!companyId) return [];
 
@@ -96,6 +128,22 @@ export function useRadarUrls(filters: UrlFilters = {}) {
     enabled: !!companyId,
     staleTime: 30000,
   });
+
+  // Merge URLs with campaign status data
+  const urlsWithCampaignStatus = rawUrls.map(url => {
+    const campaignStatus = campaignStatusData.find(cs => cs.url_id === url.id);
+    return {
+      ...url,
+      has_active_campaign: campaignStatus?.has_active_campaign ?? false,
+      active_campaign_count: campaignStatus?.active_campaign_count ?? 0,
+      total_campaign_count: campaignStatus?.total_campaign_count ?? 0,
+    };
+  });
+
+  // Apply campaign filter
+  const urls = filters.onlyActiveCampaigns !== false
+    ? urlsWithCampaignStatus.filter(url => url.has_active_campaign)
+    : urlsWithCampaignStatus;
 
   // Calculate stats
   const stats: UrlStats = {

@@ -160,6 +160,7 @@ export function UrlsTable({ urls, onValidate, isValidating, onFilterChange }: Ur
                   <TableHead className="text-xs py-2 w-[70px]">Status</TableHead>
                   <TableHead className="text-xs py-2 w-[50px]">Cód</TableHead>
                   <TableHead className="text-xs py-2 w-[60px]">Tempo</TableHead>
+                  <TableHead className="text-xs py-2 w-[50px]">Camp.</TableHead>
                   <TableHead className="text-xs py-2 w-[90px]">Validação</TableHead>
                   <TableHead className="text-xs py-2 w-[60px]">Ações</TableHead>
                 </TableRow>
@@ -167,7 +168,7 @@ export function UrlsTable({ urls, onValidate, isValidating, onFilterChange }: Ur
               <TableBody>
                 {filteredUrls.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-6 text-xs text-muted-foreground">
+                    <TableCell colSpan={8} className="text-center py-6 text-xs text-muted-foreground">
                       Nenhuma URL encontrada
                     </TableCell>
                   </TableRow>
@@ -197,6 +198,18 @@ export function UrlsTable({ urls, onValidate, isValidating, onFilterChange }: Ur
                             : ''
                         }`}>
                           {formatResponseTime(url.validation_load_time_ms)}
+                        </span>
+                      </TableCell>
+                      <TableCell className="py-1.5">
+                        <span 
+                          className={`text-xs font-mono ${
+                            url.active_campaign_count && url.active_campaign_count > 0 
+                              ? 'text-green-600 dark:text-green-500' 
+                              : 'text-muted-foreground'
+                          }`}
+                          title={`${url.active_campaign_count ?? 0} campanhas ativas de ${url.total_campaign_count ?? 0} total`}
+                        >
+                          {url.active_campaign_count ?? 0}/{url.total_campaign_count ?? 0}
                         </span>
                       </TableCell>
                       <TableCell className="py-1.5">
