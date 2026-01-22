@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { forceRefreshGoogleAdsToken } from "../_shared/googleAdsTokenRefresh.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -125,6 +126,54 @@ serve(async (req) => {
       };
 
       console.log(`Sync options for company ${schedule.company_id}:`, syncOptions);
+
+      // ========== FORÇA RENOVAÇÃO DO TOKEN ANTES DE QUALQUER SYNC ==========
+      console.log(`🔄 Renovando token para company ${schedule.company_id} antes do sync...`);
+      
+      const { data: integration, error: integrationError } = await supabase
+        .from('google_ads_integrations')
+        .select('*')
+        .eq('company_id', schedule.company_id)
+        .eq('is_active', true)
+        .single();
+
+      if (integrationError || !integration) {
+        console.error(`❌ No active Google Ads integration for company ${schedule.company_id}:`, integrationError);
+        // Criar log de falha
+        await supabase
+          .from('google_ads_sync_execution_logs')
+          .insert({
+            company_id: schedule.company_id,
+            schedule_id: schedule.id,
+            status: 'failed',
+            clients_processed: 0,
+            clients_total: 0,
+            error_message: 'No active Google Ads integration found',
+            completed_at: new Date().toISOString(),
+          });
+        continue;
+      }
+
+      try {
+        const { accessToken, newExpiresAt } = await forceRefreshGoogleAdsToken(supabase, integration);
+        console.log(`✅ Token renovado para company ${schedule.company_id}, expira em: ${newExpiresAt}`);
+      } catch (tokenError) {
+        console.error(`❌ Falha ao renovar token para company ${schedule.company_id}:`, tokenError);
+        // Criar log de falha
+        await supabase
+          .from('google_ads_sync_execution_logs')
+          .insert({
+            company_id: schedule.company_id,
+            schedule_id: schedule.id,
+            status: 'failed',
+            clients_processed: 0,
+            clients_total: 0,
+            error_message: `Token refresh failed: ${tokenError.message}`,
+            completed_at: new Date().toISOString(),
+          });
+        continue;
+      }
+      // ========== FIM DA RENOVAÇÃO DO TOKEN ==========
 
       // Build client query based on includeInactive option
       let clientQuery = supabase
