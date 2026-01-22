@@ -14,9 +14,6 @@ import { Label } from "@/components/ui/label";
 
 type ModelType = "flash" | "pro";
 
-// Batch size for parallel generation
-const BATCH_SIZE = 3;
-
 export function CreativeVariationGenerator() {
   // Form state
   const [baseImage, setBaseImage] = useState<string | null>(null);
@@ -170,68 +167,58 @@ export function CreativeVariationGenerator() {
     }
 
     try {
-      // Generate in batches for parallel processing
-      for (let batchStart = 0; batchStart < placeholders.length; batchStart += BATCH_SIZE) {
-        const batch = placeholders.slice(batchStart, batchStart + BATCH_SIZE);
-        
-        // Process batch in parallel
-        await Promise.all(
-          batch.map(async (placeholder) => {
-            // Update status to generating
-            setVariations((prev) =>
-              prev.map((v) =>
-                v.id === placeholder.id ? { ...v, status: "generating" as const } : v
-              )
+      // Generate ALL variations in parallel (no batch limit for maximum speed)
+      await Promise.all(
+        placeholders.map(async (placeholder) => {
+          // Update status to generating
+          setVariations((prev) =>
+            prev.map((v) =>
+              v.id === placeholder.id ? { ...v, status: "generating" as const } : v
+            )
+          );
+
+          try {
+            const { data, error } = await supabase.functions.invoke(
+              "generate-creative-variations",
+              {
+                body: {
+                  baseImage,
+                  personImage: personImage || undefined,
+                  text: textOverlay,
+                  designGuidance,
+                  variationOptions,
+                  format: placeholder.format,
+                  variationIndex: placeholder.variationIndex,
+                  modelType,
+                },
+              }
             );
 
-            try {
-              const { data, error } = await supabase.functions.invoke(
-                "generate-creative-variations",
-                {
-                  body: {
-                    baseImage,
-                    personImage: personImage || undefined,
-                    text: textOverlay,
-                    designGuidance,
-                    variationOptions,
-                    format: placeholder.format,
-                    variationIndex: placeholder.variationIndex,
-                    modelType,
-                  },
-                }
-              );
+            if (error) throw error;
 
-              if (error) throw error;
-
-              if (data?.imageUrl) {
-                setVariations((prev) =>
-                  prev.map((v) =>
-                    v.id === placeholder.id
-                      ? { ...v, imageUrl: data.imageUrl, status: "success" as const }
-                      : v
-                  )
-                );
-              } else {
-                throw new Error(data?.error || "Nenhuma imagem gerada");
-              }
-            } catch (err: any) {
-              console.error(`Error generating variation ${placeholder.id}:`, err);
+            if (data?.imageUrl) {
               setVariations((prev) =>
                 prev.map((v) =>
                   v.id === placeholder.id
-                    ? { ...v, status: "error" as const, error: err.message }
+                    ? { ...v, imageUrl: data.imageUrl, status: "success" as const }
                     : v
                 )
               );
+            } else {
+              throw new Error(data?.error || "Nenhuma imagem gerada");
             }
-          })
-        );
-
-        // Small delay between batches to avoid overwhelming the API
-        if (batchStart + BATCH_SIZE < placeholders.length) {
-          await new Promise((resolve) => setTimeout(resolve, 300));
-        }
-      }
+          } catch (err: any) {
+            console.error(`Error generating variation ${placeholder.id}:`, err);
+            setVariations((prev) =>
+              prev.map((v) =>
+                v.id === placeholder.id
+                  ? { ...v, status: "error" as const, error: err.message }
+                  : v
+              )
+            );
+          }
+        })
+      );
 
       toast.success("Variações geradas com sucesso!");
     } catch (error: any) {
