@@ -2297,9 +2297,15 @@ export type Database = {
           is_active: boolean | null
           label: string | null
           last_seen_at: string | null
+          last_validated_at: string | null
           source: string
           updated_at: string | null
           url: string
+          validation_error: string | null
+          validation_final_url: string | null
+          validation_load_time_ms: number | null
+          validation_status: string | null
+          validation_status_code: number | null
         }
         Insert: {
           campaign_count?: number | null
@@ -2312,9 +2318,15 @@ export type Database = {
           is_active?: boolean | null
           label?: string | null
           last_seen_at?: string | null
+          last_validated_at?: string | null
           source?: string
           updated_at?: string | null
           url: string
+          validation_error?: string | null
+          validation_final_url?: string | null
+          validation_load_time_ms?: number | null
+          validation_status?: string | null
+          validation_status_code?: number | null
         }
         Update: {
           campaign_count?: number | null
@@ -2327,9 +2339,15 @@ export type Database = {
           is_active?: boolean | null
           label?: string | null
           last_seen_at?: string | null
+          last_validated_at?: string | null
           source?: string
           updated_at?: string | null
           url?: string
+          validation_error?: string | null
+          validation_final_url?: string | null
+          validation_load_time_ms?: number | null
+          validation_status?: string | null
+          validation_status_code?: number | null
         }
         Relationships: [
           {
