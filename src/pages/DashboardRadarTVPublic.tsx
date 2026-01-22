@@ -10,6 +10,7 @@ import { RadarTVOpportunitiesList } from "@/components/radar-tv-dashboard/RadarT
 import { RadarTVRiskDistribution } from "@/components/radar-tv-dashboard/RadarTVRiskDistribution";
 import { RadarTVControls } from "@/components/radar-tv-dashboard/RadarTVControls";
 import { RadarTVRestrictedAccounts } from "@/components/radar-tv-dashboard/RadarTVRestrictedAccounts";
+import { RadarTVProblematicUrls } from "@/components/radar-tv-dashboard/RadarTVProblematicUrls";
 import { supabasePublic } from "@/integrations/supabase/publicClient";
 
 interface RadarTVDashboardData {
@@ -59,6 +60,15 @@ interface RadarTVDashboardData {
     avatar: string | null;
     accountStatus: number;
     reason: string;
+  }>;
+  problematicUrls: Array<{
+    id: string;
+    url: string;
+    clientName: string;
+    clientAvatar: string | null;
+    status: 'error' | 'timeout';
+    statusCode: number | null;
+    activeCampaigns: number;
   }>;
 }
 
@@ -194,6 +204,10 @@ export default function DashboardRadarTVPublic() {
         />
 
         <RadarTVMetricsGrid metrics={data.metrics} />
+
+        {data.problematicUrls && data.problematicUrls.length > 0 && (
+          <RadarTVProblematicUrls urls={data.problematicUrls} />
+        )}
 
         {data.restrictedAccounts && data.restrictedAccounts.length > 0 && (
           <RadarTVRestrictedAccounts accounts={data.restrictedAccounts} />
