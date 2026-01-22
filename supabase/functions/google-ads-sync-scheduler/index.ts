@@ -430,6 +430,27 @@ serve(async (req) => {
       });
 
       console.log(`Updated schedule - next execution at ${nextExecution.toISOString()}`);
+
+      // ========== VALIDAR URLs APÓS SINCRONIZAÇÃO ==========
+      console.log(`🔗 Starting URL validation for company ${schedule.company_id}`);
+      try {
+        const { data: urlValidationResult, error: urlValidationError } = await supabase.functions.invoke(
+          'validate-client-urls',
+          {
+            headers: { 'Authorization': `Bearer ${supabaseServiceKey}` },
+            body: { company_id: schedule.company_id }
+          }
+        );
+        
+        if (urlValidationError) {
+          console.error(`❌ URL validation failed for company ${schedule.company_id}:`, urlValidationError.message);
+        } else {
+          console.log(`✅ URL validation completed for company ${schedule.company_id}:`, urlValidationResult?.summary || urlValidationResult?.message);
+        }
+      } catch (urlError) {
+        console.error(`❌ URL validation error for company ${schedule.company_id}:`, urlError.message);
+      }
+      // ========== FIM DA VALIDAÇÃO DE URLs ==========
     }
 
     console.log(`Scheduler completed: ${executionCount} schedules executed`);

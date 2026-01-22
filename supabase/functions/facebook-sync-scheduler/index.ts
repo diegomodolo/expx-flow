@@ -193,6 +193,26 @@ Deno.serve(async (req) => {
         console.log(`   Success: ${successCount}, Failed: ${failedCount}`);
         console.log(`   Next execution: ${nextExecution.toISOString()}`);
 
+        // ========== VALIDAR URLs APÓS SINCRONIZAÇÃO ==========
+        console.log(`🔗 Starting URL validation for company ${schedule.company_id}`);
+        try {
+          const { data: urlValidationResult, error: urlValidationError } = await supabaseAdmin.functions.invoke(
+            'validate-client-urls',
+            {
+              body: { company_id: schedule.company_id }
+            }
+          );
+          
+          if (urlValidationError) {
+            console.error(`❌ URL validation failed for company ${schedule.company_id}:`, urlValidationError.message);
+          } else {
+            console.log(`✅ URL validation completed for company ${schedule.company_id}:`, urlValidationResult?.summary || urlValidationResult?.message);
+          }
+        } catch (urlError) {
+          console.error(`❌ URL validation error for company ${schedule.company_id}:`, urlError.message);
+        }
+        // ========== FIM DA VALIDAÇÃO DE URLs ==========
+
         results.push({
           company_id: schedule.company_id,
           status: finalStatus,

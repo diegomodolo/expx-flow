@@ -191,6 +191,23 @@ export function useGoogleAdsCampaignSync() {
     }
   };
 
+  const validateCompanyUrls = async (companyId: string) => {
+    try {
+      console.log('[validateCompanyUrls] Starting URL validation for company:', companyId);
+      const { data, error } = await supabase.functions.invoke('validate-client-urls', {
+        body: { company_id: companyId }
+      });
+      
+      if (error) {
+        console.error('[validateCompanyUrls] URL validation failed:', error.message);
+      } else {
+        console.log('[validateCompanyUrls] URL validation completed:', data?.summary || data?.message);
+      }
+    } catch (urlError: any) {
+      console.error('[validateCompanyUrls] URL validation error:', urlError.message);
+    }
+  };
+
   const syncAllClients = async (
     companyId: string,
     options: {
@@ -318,6 +335,10 @@ export function useGoogleAdsCampaignSync() {
       } else {
         console.log('[syncAllClients] Execution log created successfully');
       }
+
+      // ========== VALIDAR URLs APÓS SINCRONIZAÇÃO ==========
+      await validateCompanyUrls(companyId);
+      // ========== FIM DA VALIDAÇÃO DE URLs ==========
 
       toast.success(
         `Sincronização concluída! ${successCount} clientes sincronizados${errorCount > 0 ? `, ${errorCount} com erro` : ''}`
