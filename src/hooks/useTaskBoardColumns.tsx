@@ -1,0 +1,170 @@
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useCompany } from "@/contexts/CompanyContext";
+import { toast } from "sonner";
+
+export interface TaskBoardColumn {
+  id: string;
+  user_id: string;
+  company_id: string;
+  name: string;
+  status: 'todo' | 'progress' | 'review' | 'done';
+  color: string;
+  order_index: number;
+  created_at: string;
+  updated_at: string;
+}
+
+interface CreateColumnData {
+  name: string;
+  status: 'todo' | 'progress' | 'review' | 'done';
+  color: string;
+}
+
+interface UpdateColumnData {
+  name?: string;
+  color?: string;
+  order_index?: number;
+}
+
+export function useTaskBoardColumns() {
+  const { activeCompany } = useCompany();
+  const queryClient = useQueryClient();
+  const companyId = activeCompany?.company_id;
+
+  const { data: columns = [], isLoading } = useQuery({
+    queryKey: ['task-board-columns', companyId],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || !companyId) return [];
+
+      const { data, error } = await supabase
+        .from('task_board_columns' as any)
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('company_id', companyId)
+        .order('order_index', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching task board columns:', error);
+        throw error;
+      }
+
+      return (data || []) as unknown as TaskBoardColumn[];
+    },
+    enabled: !!companyId,
+  });
+
+  const createColumnMutation = useMutation({
+    mutationFn: async (columnData: CreateColumnData) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || !companyId) throw new Error('User or company not found');
+
+      // Get the max order_index for the current user
+      const maxOrderIndex = columns.length > 0 
+        ? Math.max(...columns.map(c => c.order_index)) 
+        : -1;
+
+      const { data, error } = await supabase
+        .from('task_board_columns' as any)
+        .insert({
+          user_id: user.id,
+          company_id: companyId,
+          name: columnData.name,
+          status: columnData.status,
+          color: columnData.color,
+          order_index: maxOrderIndex + 1,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['task-board-columns'] });
+      toast.success('Coluna criada com sucesso!');
+    },
+    onError: (error) => {
+      console.error('Error creating column:', error);
+      toast.error('Erro ao criar coluna');
+    },
+  });
+
+  const updateColumnMutation = useMutation({
+    mutationFn: async ({ columnId, updates }: { columnId: string; updates: UpdateColumnData }) => {
+      const { data, error } = await supabase
+        .from('task_board_columns' as any)
+        .update(updates)
+        .eq('id', columnId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['task-board-columns'] });
+      toast.success('Coluna atualizada com sucesso!');
+    },
+    onError: (error) => {
+      console.error('Error updating column:', error);
+      toast.error('Erro ao atualizar coluna');
+    },
+  });
+
+  const deleteColumnMutation = useMutation({
+    mutationFn: async (columnId: string) => {
+      const { error } = await supabase
+        .from('task_board_columns' as any)
+        .delete()
+        .eq('id', columnId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['task-board-columns'] });
+      toast.success('Coluna excluída com sucesso!');
+    },
+    onError: (error) => {
+      console.error('Error deleting column:', error);
+      toast.error('Erro ao excluir coluna');
+    },
+  });
+
+  const reorderColumnsMutation = useMutation({
+    mutationFn: async (orderedColumnIds: string[]) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not found');
+
+      // Update each column with its new order_index
+      const updates = orderedColumnIds.map((columnId, index) => 
+        supabase
+          .from('task_board_columns' as any)
+          .update({ order_index: index })
+          .eq('id', columnId)
+      );
+
+      await Promise.all(updates);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['task-board-columns'] });
+    },
+    onError: (error) => {
+      console.error('Error reordering columns:', error);
+      toast.error('Erro ao reordenar colunas');
+    },
+  });
+
+  return {
+    columns,
+    isLoading,
+    createColumn: createColumnMutation.mutate,
+    updateColumn: updateColumnMutation.mutate,
+    deleteColumn: deleteColumnMutation.mutate,
+    reorderColumns: reorderColumnsMutation.mutate,
+    isCreating: createColumnMutation.isPending,
+    isUpdating: updateColumnMutation.isPending,
+    isDeleting: deleteColumnMutation.isPending,
+  };
+}
