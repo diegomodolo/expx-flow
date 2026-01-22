@@ -10772,6 +10772,19 @@ export type Database = {
         Args: { p_board_id: string }
         Returns: string
       }
+      get_problematic_urls_for_tv: {
+        Args: { p_company_id: string }
+        Returns: {
+          active_campaign_count: number
+          client_avatar: string
+          client_id: string
+          client_name: string
+          url: string
+          url_id: string
+          validation_status: string
+          validation_status_code: number
+        }[]
+      }
       get_urls_with_campaign_status: {
         Args: { p_company_id: string }
         Returns: {

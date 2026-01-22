@@ -126,6 +126,7 @@ serve(async (req) => {
       syncInfoResult,
       benchmarksResult,
       companySettingsResult,
+      problematicUrlsResult,
     ] = await Promise.all([
       // All active clients (excluding canceled AND paused)
       supabase
@@ -174,6 +175,9 @@ serve(async (req) => {
         .select('default_target_cpa, default_target_cpl, default_target_ctr, default_target_cpc, default_target_cpm, default_target_roas, default_target_frequency')
         .eq('company_id', company.id)
         .maybeSingle(),
+
+      // Problematic URLs with active campaigns
+      supabase.rpc('get_problematic_urls_for_tv', { p_company_id: company.id }),
     ]);
 
     // Log any query errors for debugging
@@ -193,6 +197,24 @@ serve(async (req) => {
     const syncInfo = syncInfoResult.data?.[0] || null;
     const benchmarks = (benchmarksResult.data || []) as ClientBenchmark[];
     const companySettings = companySettingsResult.data;
+    const problematicUrlsRaw = problematicUrlsResult.data || [];
+
+    // Process problematic URLs into the expected format
+    const problematicUrls = problematicUrlsRaw.map((url: any) => ({
+      id: url.url_id,
+      url: url.url,
+      clientName: url.client_name,
+      clientAvatar: url.client_avatar,
+      status: url.validation_status as 'error' | 'timeout',
+      statusCode: url.validation_status_code,
+      activeCampaigns: url.active_campaign_count,
+    }));
+
+    if (problematicUrlsResult.error) {
+      console.error('[radar-tv] Problematic URLs query error:', JSON.stringify(problematicUrlsResult.error));
+    } else {
+      console.log(`[radar-tv] Found ${problematicUrls.length} problematic URLs with active campaigns`);
+    }
 
     // Log campaign counts with spend totals for debugging
     const metaSpendTotal = metaCampaigns.reduce((sum, c) => sum + (Number(c.spend) || 0), 0);
@@ -643,7 +665,8 @@ serve(async (req) => {
         risks: sortedRisks,
         opportunities: sortedOpportunities,
         riskDistribution,
-        restrictedAccounts
+        restrictedAccounts,
+        problematicUrls
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
