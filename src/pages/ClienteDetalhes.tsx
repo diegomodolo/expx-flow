@@ -31,6 +31,7 @@ import { ClienteKeywordPlanner } from "./cliente/ClienteKeywordPlanner";
 import ClienteFabricaAnuncios from "./clientes/ClienteFabricaAnuncios";
 import ClienteFabricaCriativos from "./clientes/ClienteFabricaCriativos";
 import ClienteFabricaCarrosseis from "./clientes/ClienteFabricaCarrosseis";
+import ClienteUrls from "./cliente/ClienteUrls";
 import { useClientDetails } from "@/hooks/useClientDetails";
 import { useUnifiedCampaigns, useUnifiedMetrics } from "@/hooks/useUnifiedCampaigns";
 import { Loader2 } from "lucide-react";
@@ -268,6 +269,7 @@ const ClienteDetalhes = () => {
             <Route path="fabrica-anuncios" element={<ClienteFabricaAnuncios />} />
             <Route path="fabrica-criativos" element={<ClienteFabricaCriativos />} />
             <Route path="fabrica-carrosseis" element={<ClienteFabricaCarrosseis />} />
+            <Route path="urls" element={<ClienteUrls />} />
             <Route path="*" element={<Navigate to="" replace />} />
           </Routes>
         </ClientDetailsLayout>
