@@ -277,6 +277,10 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId }
     progress: 'bg-blue-100 text-blue-800',
     review: 'bg-purple-100 text-purple-800',
     done: 'bg-green-100 text-green-800',
+    waiting_approval: 'bg-amber-100 text-amber-800',
+    blocked: 'bg-red-100 text-red-800',
+    paused: 'bg-orange-100 text-orange-800',
+    cancelled: 'bg-slate-100 text-slate-800',
   };
 
   return (
@@ -333,8 +337,20 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId }
                   <SelectItem value="review">
                     <Badge className={statusColors.review}>Em Revisão</Badge>
                   </SelectItem>
+                  <SelectItem value="waiting_approval">
+                    <Badge className={statusColors.waiting_approval}>Aguardando Aprovação</Badge>
+                  </SelectItem>
+                  <SelectItem value="blocked">
+                    <Badge className={statusColors.blocked}>Bloqueada</Badge>
+                  </SelectItem>
+                  <SelectItem value="paused">
+                    <Badge className={statusColors.paused}>Pausada</Badge>
+                  </SelectItem>
                   <SelectItem value="done">
                     <Badge className={statusColors.done}>Concluída</Badge>
+                  </SelectItem>
+                  <SelectItem value="cancelled">
+                    <Badge className={statusColors.cancelled}>Cancelada</Badge>
                   </SelectItem>
                 </SelectContent>
               </Select>

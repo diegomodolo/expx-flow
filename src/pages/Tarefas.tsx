@@ -134,7 +134,16 @@ export default function Tarefas() {
           valueB = priorityOrder[b.priority as keyof typeof priorityOrder];
           break;
         case 'status':
-          const statusOrder = { todo: 1, progress: 2, review: 3, done: 4 };
+          const statusOrder = {
+            todo: 1,
+            progress: 2,
+            review: 3,
+            waiting_approval: 4,
+            blocked: 5,
+            paused: 6,
+            done: 7,
+            cancelled: 8,
+          };
           valueA = statusOrder[a.status as keyof typeof statusOrder];
           valueB = statusOrder[b.status as keyof typeof statusOrder];
           break;
@@ -198,8 +207,8 @@ export default function Tarefas() {
     setTaskDialogOpen(true);
   };
 
-  const handleUpdateTaskStatus = async (taskId: string, status: "todo" | "progress" | "review" | "done") => {
-    await updateTask(taskId, { status });
+  const handleUpdateTaskStatus = async (taskId: string, status: string) => {
+    await updateTask(taskId, { status: status as any });
   };
 
   const handleDeleteTask = async (taskId: string) => {
@@ -818,7 +827,11 @@ export default function Tarefas() {
                 <SelectItem value="todo">Pendente</SelectItem>
                 <SelectItem value="progress">Em Andamento</SelectItem>
                 <SelectItem value="review">Em Revisão</SelectItem>
+                <SelectItem value="waiting_approval">Aguardando Aprovação</SelectItem>
+                <SelectItem value="blocked">Bloqueada</SelectItem>
+                <SelectItem value="paused">Pausada</SelectItem>
                 <SelectItem value="done">Concluída</SelectItem>
+                <SelectItem value="cancelled">Cancelada</SelectItem>
               </SelectContent>
             </Select>
 

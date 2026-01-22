@@ -34,7 +34,11 @@ const STATUS_OPTIONS = [
   { value: 'todo', label: 'Pendente (todo)' },
   { value: 'progress', label: 'Em Andamento (progress)' },
   { value: 'review', label: 'Em Revisão (review)' },
+  { value: 'waiting_approval', label: 'Aguardando Aprovação (waiting_approval)' },
+  { value: 'blocked', label: 'Bloqueada (blocked)' },
+  { value: 'paused', label: 'Pausada (paused)' },
   { value: 'done', label: 'Concluída (done)' },
+  { value: 'cancelled', label: 'Cancelada (cancelled)' },
 ];
 
 interface ColumnSettingsDialogProps {
