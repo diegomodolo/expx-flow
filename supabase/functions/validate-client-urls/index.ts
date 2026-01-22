@@ -88,22 +88,55 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const { url_ids, client_id } = await req.json()
+    const { url_ids, client_id, company_id } = await req.json()
 
-    if (!url_ids && !client_id) {
+    if (!url_ids && !client_id && !company_id) {
       return new Response(
-        JSON.stringify({ error: 'url_ids ou client_id é obrigatório' }),
+        JSON.stringify({ error: 'url_ids, client_id ou company_id é obrigatório' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
     // Fetch URLs to validate
-    let query = supabaseClient.from('client_urls').select('id, url')
+    let query = supabaseClient.from('client_urls').select('id, url, client_id')
     
     if (url_ids && url_ids.length > 0) {
+      // Specific URL IDs
       query = query.in('id', url_ids)
     } else if (client_id) {
+      // All active URLs for a specific client
       query = query.eq('client_id', client_id).eq('is_active', true)
+    } else if (company_id) {
+      // All active URLs for all non-canceled clients of a company
+      console.log(`Fetching URLs for all clients in company: ${company_id}`)
+      
+      // First, get all active client IDs for this company
+      const { data: clients, error: clientsError } = await supabaseClient
+        .from('clients')
+        .select('id')
+        .eq('company_id', company_id)
+        .eq('is_canceled', false)
+      
+      if (clientsError) {
+        console.error('Error fetching clients:', clientsError)
+        return new Response(
+          JSON.stringify({ error: 'Erro ao buscar clientes da empresa' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+      
+      if (!clients || clients.length === 0) {
+        console.log('No active clients found for company')
+        return new Response(
+          JSON.stringify({ message: 'Nenhum cliente ativo encontrado', results: [] }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+      
+      const clientIds = clients.map(c => c.id)
+      console.log(`Found ${clientIds.length} active clients`)
+      
+      query = query.in('client_id', clientIds).eq('is_active', true)
     }
 
     const { data: urls, error: fetchError } = await query
@@ -135,6 +168,11 @@ Deno.serve(async (req) => {
         batch.map(urlRecord => validateUrl(urlRecord.url, urlRecord.id))
       )
       results.push(...batchResults)
+      
+      // Log progress for long operations
+      if (urls.length > 10) {
+        console.log(`Validated ${Math.min(i + batchSize, urls.length)}/${urls.length} URLs`)
+      }
     }
 
     // Update database with results
@@ -156,11 +194,21 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`Validation complete. Results:`, JSON.stringify(results))
+    // Summary statistics
+    const summary = {
+      total: results.length,
+      ok: results.filter(r => r.status === 'ok').length,
+      error: results.filter(r => r.status === 'error').length,
+      timeout: results.filter(r => r.status === 'timeout').length,
+      redirect: results.filter(r => r.status === 'redirect').length,
+    }
+
+    console.log(`Validation complete. Summary:`, JSON.stringify(summary))
 
     return new Response(
       JSON.stringify({ 
         message: `${results.length} URLs validadas`,
+        summary,
         results 
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

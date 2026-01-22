@@ -61,7 +61,24 @@ export const useFacebookCampaignSync = () => {
     }
   };
 
-  const syncAllClients = async (options: SyncOptions) => {
+  const validateCompanyUrls = async (companyId: string) => {
+    try {
+      console.log('[validateCompanyUrls] Starting URL validation for company:', companyId);
+      const { data, error } = await supabase.functions.invoke('validate-client-urls', {
+        body: { company_id: companyId }
+      });
+      
+      if (error) {
+        console.error('[validateCompanyUrls] URL validation failed:', error.message);
+      } else {
+        console.log('[validateCompanyUrls] URL validation completed:', data?.summary || data?.message);
+      }
+    } catch (urlError: any) {
+      console.error('[validateCompanyUrls] URL validation error:', urlError.message);
+    }
+  };
+
+  const syncAllClients = async (options: SyncOptions, companyId?: string) => {
     setSyncing(true);
     setProgress({ current: 0, total: 0, clientName: '' });
     
@@ -69,7 +86,7 @@ export const useFacebookCampaignSync = () => {
       // Get all clients with ad accounts
       let query = supabase
         .from('clients')
-        .select('id, name, ad_account_id, status')
+        .select('id, name, ad_account_id, status, company_id')
         .not('ad_account_id', 'is', null)
         .eq('is_canceled', false);
 
@@ -86,6 +103,9 @@ export const useFacebookCampaignSync = () => {
       const totalClients = clients?.length || 0;
       setProgress({ current: 0, total: totalClients, clientName: '' });
 
+      // Get company_id from first client if not provided
+      const targetCompanyId = companyId || (clients && clients.length > 0 ? clients[0].company_id : null);
+
       let successCount = 0;
       for (let i = 0; i < (clients?.length || 0); i++) {
         const client = clients![i];
@@ -98,6 +118,12 @@ export const useFacebookCampaignSync = () => {
         }, true, options.includeInactive); // silent mode for bulk sync, pass includeInactive
         if (result) successCount++;
       }
+
+      // ========== VALIDAR URLs APÓS SINCRONIZAÇÃO ==========
+      if (targetCompanyId) {
+        await validateCompanyUrls(targetCompanyId);
+      }
+      // ========== FIM DA VALIDAÇÃO DE URLs ==========
 
       const periodLabel = options.period === 'lifetime' ? 'máximo' : `${options.period} dias`;
       const syncTypes = [];
@@ -145,8 +171,8 @@ export const useFacebookCampaignSync = () => {
     }
   };
 
-  const syncAllClientsWrapper = async (options: SyncOptions): Promise<string | null> => {
-    await syncAllClients(options);
+  const syncAllClientsWrapper = async (options: SyncOptions, companyId?: string): Promise<string | null> => {
+    await syncAllClients(options, companyId);
     return null; // TODO: Implement job tracking for bulk sync
   };
 
