@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useClientUrls, ClientUrl } from '@/hooks/useClientUrls';
+import { useClientUrls, ClientUrl, ValidationStatus } from '@/hooks/useClientUrls';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,6 +9,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { 
   Plus, 
   Link2, 
@@ -24,9 +25,16 @@ import {
   ToggleLeft,
   ToggleRight,
   Check,
-  Download
+  Download,
+  RefreshCw,
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+  Clock,
+  ArrowRight,
+  Loader2
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -40,6 +48,44 @@ const sourceLabels: Record<string, { label: string; color: string }> = {
   'meta_sync': { label: 'Meta', color: 'bg-primary/10 text-primary' },
   'google_sync': { label: 'Google', color: 'bg-accent text-accent-foreground' },
   'manual': { label: 'Manual', color: 'bg-muted text-muted-foreground' },
+};
+
+const validationStatusConfig: Record<string, { 
+  label: string; 
+  icon: React.ElementType; 
+  color: string;
+  bgColor: string;
+}> = {
+  'ok': { 
+    label: 'OK', 
+    icon: CheckCircle2, 
+    color: 'text-green-600 dark:text-green-400',
+    bgColor: 'bg-green-100 dark:bg-green-900/30'
+  },
+  'error': { 
+    label: 'Erro', 
+    icon: XCircle, 
+    color: 'text-destructive',
+    bgColor: 'bg-destructive/10'
+  },
+  'timeout': { 
+    label: 'Timeout', 
+    icon: Clock, 
+    color: 'text-orange-600 dark:text-orange-400',
+    bgColor: 'bg-orange-100 dark:bg-orange-900/30'
+  },
+  'redirect': { 
+    label: 'Redirect', 
+    icon: ArrowRight, 
+    color: 'text-blue-600 dark:text-blue-400',
+    bgColor: 'bg-blue-100 dark:bg-blue-900/30'
+  },
+  'pending': { 
+    label: 'Pendente', 
+    icon: AlertTriangle, 
+    color: 'text-muted-foreground',
+    bgColor: 'bg-muted'
+  },
 };
 
 function AddUrlDialog({ onAdd, isAdding }: { onAdd: (url: string, label?: string) => Promise<unknown>; isAdding: boolean }) {
@@ -172,16 +218,64 @@ function EditLabelDialog({ url, onUpdate }: { url: ClientUrl; onUpdate: (id: str
   );
 }
 
+function ValidationStatusBadge({ url }: { url: ClientUrl }) {
+  if (!url.validation_status) {
+    return (
+      <Badge variant="outline" className="text-xs gap-1 bg-muted text-muted-foreground">
+        <AlertTriangle className="w-3 h-3" />
+        Não validada
+      </Badge>
+    );
+  }
+
+  const config = validationStatusConfig[url.validation_status] || validationStatusConfig.pending;
+  const Icon = config.icon;
+
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Badge variant="outline" className={cn("text-xs gap-1", config.bgColor, config.color)}>
+            <Icon className="w-3 h-3" />
+            {config.label}
+            {url.validation_status_code && ` (${url.validation_status_code})`}
+          </Badge>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-xs">
+          <div className="space-y-1 text-xs">
+            {url.last_validated_at && (
+              <p>Validado: {formatDistanceToNow(new Date(url.last_validated_at), { addSuffix: true, locale: ptBR })}</p>
+            )}
+            {url.validation_load_time_ms && (
+              <p>Tempo: {url.validation_load_time_ms}ms</p>
+            )}
+            {url.validation_error && (
+              <p className="text-destructive">Erro: {url.validation_error}</p>
+            )}
+            {url.validation_final_url && (
+              <p className="break-all">Redireciona para: {url.validation_final_url}</p>
+            )}
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
 function UrlCard({ 
   url, 
   onUpdate, 
   onDelete, 
-  onToggleActive 
+  onToggleActive,
+  onValidate,
+  isValidating
 }: { 
   url: ClientUrl;
   onUpdate: (id: string, data: Partial<ClientUrl>) => Promise<unknown>;
   onDelete: (id: string) => Promise<unknown>;
   onToggleActive: (id: string) => Promise<unknown>;
+  onValidate: (id: string) => Promise<unknown>;
+  isValidating: boolean;
 }) {
   const [copied, setCopied] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -228,6 +322,7 @@ function UrlCard({
             <Badge variant="secondary" className={cn("text-xs", source.color)}>
               {source.label}
             </Badge>
+            <ValidationStatusBadge url={url} />
             {!url.is_active && (
               <Badge variant="outline" className="text-xs text-muted-foreground">
                 Inativa
@@ -244,6 +339,12 @@ function UrlCard({
               <Hash className="w-3 h-3" />
               {url.campaign_count} campanhas
             </span>
+            {url.validation_load_time_ms && (
+              <span className="flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                {url.validation_load_time_ms}ms
+              </span>
+            )}
           </div>
         </div>
         
@@ -256,6 +357,26 @@ function UrlCard({
           >
             {copied ? <Check className="w-3.5 h-3.5 text-primary" /> : <Copy className="w-3.5 h-3.5" />}
           </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-7 w-7"
+                  onClick={() => onValidate(url.id)}
+                  disabled={isValidating}
+                >
+                  {isValidating ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-3.5 h-3.5" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Validar URL</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           <Button 
             variant="ghost" 
             size="icon" 
@@ -316,13 +437,17 @@ function DomainGroup({
   urls, 
   onUpdate, 
   onDelete, 
-  onToggleActive 
+  onToggleActive,
+  onValidate,
+  isValidating
 }: { 
   domain: string; 
   urls: ClientUrl[]; 
   onUpdate: (id: string, data: Partial<ClientUrl>) => Promise<unknown>;
   onDelete: (id: string) => Promise<unknown>;
   onToggleActive: (id: string) => Promise<unknown>;
+  onValidate: (id: string) => Promise<unknown>;
+  isValidating: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(true);
 
@@ -348,6 +473,8 @@ function DomainGroup({
             onUpdate={onUpdate}
             onDelete={onDelete}
             onToggleActive={onToggleActive}
+            onValidate={onValidate}
+            isValidating={isValidating}
           />
         ))}
       </CollapsibleContent>
@@ -365,7 +492,10 @@ export function ClientUrlsTab({ clientId, companyId }: ClientUrlsTabProps) {
     deleteUrl, 
     toggleActive,
     importExistingUrls,
-    isAdding 
+    validateUrl,
+    validateAllUrls,
+    isAdding,
+    isValidating
   } = useClientUrls({ clientId, companyId });
   
   const [isImporting, setIsImporting] = useState(false);
@@ -376,6 +506,14 @@ export function ClientUrlsTab({ clientId, companyId }: ClientUrlsTabProps) {
       await importExistingUrls();
     } finally {
       setIsImporting(false);
+    }
+  };
+
+  const handleValidateAll = async () => {
+    try {
+      await validateAllUrls();
+    } catch (error) {
+      console.error('Validation error:', error);
     }
   };
 
@@ -397,13 +535,29 @@ export function ClientUrlsTab({ clientId, companyId }: ClientUrlsTabProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <Link2 className="w-5 h-5 text-muted-foreground" />
           <h3 className="text-lg font-medium">URLs do Cliente</h3>
           <Badge variant="secondary">{urls.length}</Badge>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {urls.length > 0 && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="gap-2"
+              onClick={handleValidateAll}
+              disabled={isValidating}
+            >
+              {isValidating ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4" />
+              )}
+              {isValidating ? 'Validando...' : 'Validar Todas'}
+            </Button>
+          )}
           <Button 
             variant="outline" 
             size="sm" 
@@ -450,6 +604,8 @@ export function ClientUrlsTab({ clientId, companyId }: ClientUrlsTabProps) {
               onUpdate={updateUrl}
               onDelete={deleteUrl}
               onToggleActive={toggleActive}
+              onValidate={validateUrl}
+              isValidating={isValidating}
             />
           ))}
         </div>
