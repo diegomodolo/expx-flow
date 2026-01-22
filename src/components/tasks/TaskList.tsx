@@ -47,18 +47,26 @@ export function TaskList({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask }
     high: 'bg-red-100 text-red-800',
   };
 
-  const statusColors = {
+  const statusColors: Record<TaskStatus, string> = {
     todo: 'bg-gray-100 text-gray-800',
     progress: 'bg-blue-100 text-blue-800',
     review: 'bg-purple-100 text-purple-800',
     done: 'bg-green-100 text-green-800',
+    waiting_approval: 'bg-amber-100 text-amber-800',
+    blocked: 'bg-red-100 text-red-800',
+    paused: 'bg-orange-100 text-orange-800',
+    cancelled: 'bg-slate-100 text-slate-800',
   };
 
-  const statusLabels = {
+  const statusLabels: Record<TaskStatus, string> = {
     todo: 'Pendente',
     progress: 'Em Andamento',
     review: 'Em Revisão',
     done: 'Concluída',
+    waiting_approval: 'Aguardando Aprovação',
+    blocked: 'Bloqueada',
+    paused: 'Pausada',
+    cancelled: 'Cancelada',
   };
 
   const originIcons = {
@@ -172,12 +180,7 @@ export function TaskList({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask }
                 
                 <Badge 
                   variant={task.status === 'done' ? 'default' : 'secondary'}
-                  className={`text-xs font-medium ${
-                    task.status === 'done' ? 'bg-green-100 text-green-700' :
-                    task.status === 'progress' ? 'bg-blue-100 text-blue-700' :
-                    task.status === 'review' ? 'bg-orange-100 text-orange-700' :
-                    'bg-gray-100 text-gray-700'
-                  }`}
+                  className={`text-xs font-medium ${statusColors[task.status]}`}
                 >
                   {statusLabels[task.status]}
                 </Badge>

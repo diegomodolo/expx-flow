@@ -13,7 +13,7 @@ export interface Task {
   description: string;
   responsible_name: string;
   responsible_avatar: string;
-  status: "todo" | "progress" | "review" | "done";
+  status: "todo" | "progress" | "review" | "done" | "waiting_approval" | "cancelled" | "blocked" | "paused";
   priority: "high" | "medium" | "low";
   deadline: string;
   due_date?: string;
