@@ -68,10 +68,10 @@ export function ProblematicUrlsCard({
                       {url.validation_status === 'error' ? (
                         <Badge variant="destructive" className="text-[10px] h-4 px-1">
                           <XCircle className="h-2.5 w-2.5 mr-0.5" />
-                          {url.validation_http_code || 'Erro'}
+                          {url.validation_status_code || 'Erro'}
                         </Badge>
                       ) : (
-                        <Badge variant="outline" className="text-[10px] h-4 px-1 text-orange-600 border-orange-600">
+                        <Badge variant="outline" className="text-[10px] h-4 px-1 text-orange-600 dark:text-orange-500 border-orange-600">
                           <Clock className="h-2.5 w-2.5 mr-0.5" />
                           Timeout
                         </Badge>

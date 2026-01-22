@@ -12,7 +12,7 @@ interface SlowUrlsCardProps {
 export function SlowUrlsCard({ urls }: SlowUrlsCardProps) {
   // Sort by response time descending
   const sortedUrls = [...urls].sort((a, b) => 
-    (b.validation_response_time_ms || 0) - (a.validation_response_time_ms || 0)
+    (b.validation_load_time_ms || 0) - (a.validation_load_time_ms || 0)
   );
 
   const formatResponseTime = (ms: number | null) => {
@@ -63,9 +63,9 @@ export function SlowUrlsCard({ urls }: SlowUrlsCardProps) {
                       </span>
                       <Badge 
                         variant="outline" 
-                        className={`text-[10px] h-4 px-1 ${getSpeedColor(url.validation_response_time_ms)}`}
+                        className={`text-[10px] h-4 px-1 ${getSpeedColor(url.validation_load_time_ms)}`}
                       >
-                        {formatResponseTime(url.validation_response_time_ms)}
+                        {formatResponseTime(url.validation_load_time_ms)}
                       </Badge>
                     </div>
                     <p className="text-[10px] text-muted-foreground truncate">

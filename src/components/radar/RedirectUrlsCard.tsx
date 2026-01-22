@@ -41,9 +41,9 @@ export function RedirectUrlsCard({ urls }: RedirectUrlsCardProps) {
                       <span className="font-medium text-xs truncate">
                         {url.client_name}
                       </span>
-                      {url.validation_http_code && (
+                      {url.validation_status_code && (
                         <Badge variant="outline" className="text-[10px] h-4 px-1 text-blue-600 dark:text-blue-500 border-blue-600">
-                          {url.validation_http_code}
+                          {url.validation_status_code}
                         </Badge>
                       )}
                     </div>
