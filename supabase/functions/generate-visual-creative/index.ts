@@ -427,7 +427,19 @@ Generate the image now.`;
         throw new Error(`Gemini API error: ${geminiResponse.status}`);
       }
 
-      const geminiData = await geminiResponse.json();
+      // Safely parse JSON response
+      let geminiData: any;
+      try {
+        const responseText = await geminiResponse.text();
+        if (!responseText || responseText.trim() === '') {
+          console.error('Empty response from Gemini API');
+          throw new Error('Empty response from Gemini API');
+        }
+        geminiData = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('Failed to parse Gemini response:', parseError);
+        throw new Error('Failed to parse Gemini response - the model may have returned an invalid response');
+      }
       const getBase64Url = (d: any) => d?.choices?.[0]?.message?.images?.[0]?.image_url?.url as string | undefined;
       let base64Url = getBase64Url(geminiData);
 
@@ -461,7 +473,18 @@ Generate the image now.`;
           throw new Error(`Gemini retry failed: ${retryResponse.status}`);
         }
 
-        const retryData = await retryResponse.json();
+        // Safely parse retry JSON response
+        let retryData: any;
+        try {
+          const retryText = await retryResponse.text();
+          if (!retryText || retryText.trim() === '') {
+            throw new Error('Empty retry response from Gemini API');
+          }
+          retryData = JSON.parse(retryText);
+        } catch (retryParseError) {
+          console.error('Failed to parse Gemini retry response:', retryParseError);
+          throw new Error('Failed to generate image - the model returned an invalid response');
+        }
         base64Url = getBase64Url(retryData);
 
         if (!base64Url) {
