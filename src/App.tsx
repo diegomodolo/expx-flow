@@ -96,6 +96,8 @@ import CnaeLeadsView from "./pages/CnaeLeadsView";
 import GoogleProspectingPage from "./pages/GoogleProspectingPage";
 import InstagramProspectingPage from "./pages/InstagramProspectingPage";
 import RadarSaude from "./pages/RadarSaude";
+import RadarSaudeDashboard from "./pages/radar/RadarSaudeDashboard";
+import RadarUrlsDashboard from "./pages/radar/RadarUrlsDashboard";
 import Rotinas from "./pages/Rotinas";
 import AutomatizadoresHub from "./pages/AutomatizadoresHub";
 import AutomatizadoresInstagram from "./pages/AutomatizadoresInstagram";
@@ -161,7 +163,10 @@ const App = () => {
                  <ProtectedRoute>
                    <RadarSaude />
                  </ProtectedRoute>
-               } />
+               }>
+                 <Route index element={<RadarSaudeDashboard />} />
+                 <Route path="urls" element={<RadarUrlsDashboard />} />
+               </Route>
                <Route path="/dashboard-trafego" element={
                  <ProtectedRoute>
                    <DashboardTrafego />
