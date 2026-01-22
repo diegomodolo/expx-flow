@@ -58,7 +58,7 @@ export default function AuthPage() {
           </Link>
           <div className="flex items-center justify-center space-x-4 mb-4">
             <img 
-              src="/logo-full.png" 
+              src="/lovable-uploads/0f70dd7b-b5bf-435e-b784-8d6110fb199b.png" 
               alt="Expx Flow" 
               className="h-10 w-auto"
             />
