@@ -364,7 +364,10 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
   return (
     <>
 
-      <div className={cn("flex h-full overflow-x-auto", isCompactMode ? "gap-3 pb-2" : "gap-6 pb-4")}>
+      <div className={cn(
+        "flex overflow-x-auto overflow-y-hidden",
+        isCompactMode ? "gap-3 pb-2 h-[calc(100vh-200px)]" : "gap-6 pb-4 h-[calc(100vh-420px)]"
+      )}>
         {/* Track which tasks have been assigned to prevent duplicates */}
         {(() => {
           const assignedTaskIds = new Set<string>();
@@ -445,8 +448,8 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
               
               <div 
                 className={cn(
-                  "flex-1 bg-muted/30 rounded-b-lg border border-t-0 border-border transition-colors",
-                  isCompactMode ? "p-2 space-y-2 min-h-[250px]" : "p-4 space-y-3 min-h-[500px]",
+                  "flex-1 bg-muted/30 rounded-b-lg border border-t-0 border-border transition-colors overflow-y-auto",
+                  isCompactMode ? "p-2 space-y-2" : "p-4 space-y-3",
                   isDropTarget && canDrop && 'bg-primary/10 border-2 border-primary border-dashed'
                 )}
                 onDragOver={handleDragOver}
