@@ -17,12 +17,15 @@ import { PlannerTimeline } from "@/components/planner/PlannerTimeline";
 import { BoardSelector } from "@/components/tasks/BoardSelector";
 import { RecurringTasksManager } from "@/components/tasks/RecurringTasksManager";
 import { RecurringTaskDialog } from "@/components/tasks/RecurringTaskDialog";
+import { TemplateSelector } from "@/components/tasks/TemplateSelector";
 import { useTasks } from "@/hooks/useTasks";
 import { useTaskStats } from "@/hooks/useTaskStats";
 import { useTaskAutomation } from "@/hooks/useTaskAutomation";
+import { useTaskBoardColumns } from "@/hooks/useTaskBoardColumns";
 import { useDashboardAlerts } from "@/hooks/useDashboardAlerts";
 import { useClients } from "@/hooks/useClients";
 import { useEmployeeBoard } from "@/hooks/useEmployeeBoard";
+import { KanbanTemplate } from "@/data/kanbanTemplates";
 import { 
   Plus, 
   Search, 
@@ -31,6 +34,7 @@ import {
   Calendar as CalendarIcon, 
   List, 
   Kanban,
+  Layout,
   AlertTriangle,
   CheckCircle,
   Clock,
@@ -74,10 +78,17 @@ export default function Tarefas() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   // Estado para seleção de quadro do colaborador
   const [selectedBoardUserId, setSelectedBoardUserId] = useState<string | null | "all">(null);
+  // Estado para modal de templates
+  const [templateSelectorOpen, setTemplateSelectorOpen] = useState(false);
 
   const { tasks, loading, createTask, updateTask, deleteTask } = useTasks();
   const { data: taskStats } = useTaskStats();
   const { convertAlertToTask } = useTaskAutomation();
+  const { 
+    columns: userColumns, 
+    applyTemplate, 
+    isApplyingTemplate 
+  } = useTaskBoardColumns();
   const { alerts, generateAlerts, loading: alertsLoading } = useDashboardAlerts();
   const { clients } = useClients();
   
@@ -252,6 +263,16 @@ export default function Tarefas() {
           </div>
           
           <div className="flex items-center gap-3 mt-4 lg:mt-0">
+            {/* Botão de Templates */}
+            <Button 
+              variant="outline"
+              className="flex items-center gap-2"
+              onClick={() => setTemplateSelectorOpen(true)}
+            >
+              <Layout className="w-4 h-4" />
+              Templates
+            </Button>
+
             {/* Botão de Alertas */}
             <Dialog open={alertsModalOpen} onOpenChange={setAlertsModalOpen}>
               <DialogTrigger asChild>
@@ -1018,6 +1039,15 @@ export default function Tarefas() {
         <RecurringTaskDialog
           open={recurringDialogOpen}
           onOpenChange={setRecurringDialogOpen}
+        />
+
+        {/* Template Selector Dialog */}
+        <TemplateSelector
+          open={templateSelectorOpen}
+          onOpenChange={setTemplateSelectorOpen}
+          onApplyTemplate={(template: KanbanTemplate) => applyTemplate(template)}
+          isApplying={isApplyingTemplate}
+          hasExistingColumns={userColumns.length > 0}
         />
       </div>
     </DashboardLayout>

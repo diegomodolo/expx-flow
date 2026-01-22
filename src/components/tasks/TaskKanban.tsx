@@ -349,18 +349,6 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
 
   return (
     <>
-      {/* Template Button Header */}
-      <div className="flex justify-end mb-4">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setTemplateSelectorOpen(true)}
-          className="gap-2"
-        >
-          <Layout className="h-4 w-4" />
-          Templates
-        </Button>
-      </div>
 
       <div className="flex gap-6 h-full overflow-x-auto pb-4">
         {/* Track which tasks have been assigned to prevent duplicates */}
