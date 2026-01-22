@@ -61,6 +61,10 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
   const [completedTasksModalOpen, setCompletedTasksModalOpen] = useState(false);
   const [columnDialogOpen, setColumnDialogOpen] = useState(false);
   const [selectedColumn, setSelectedColumn] = useState<TaskBoardColumn | null>(null);
+  
+  // Column reordering state
+  const [draggedColumn, setDraggedColumn] = useState<TaskBoardColumn | null>(null);
+  const [dragOverColumnId, setDragOverColumnId] = useState<string | null>(null);
 
   const { 
     columns: userColumns, 
@@ -68,10 +72,12 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
     createColumn,
     updateColumn,
     deleteColumn,
+    reorderColumns,
   } = useTaskBoardColumns();
 
   // Use user columns if available, otherwise fall back to defaults
   const columns = userColumns.length > 0 ? userColumns : DEFAULT_COLUMNS;
+  const isUsingDefaults = userColumns.length === 0;
 
   const completedTasks = tasks.filter(task => task.status === 'done');
 
@@ -165,6 +171,62 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
     }
     setColumnDialogOpen(false);
     setSelectedColumn(null);
+  };
+
+  // Column reordering handlers
+  const handleColumnDragStart = (e: React.DragEvent, column: TaskBoardColumn) => {
+    if (isUsingDefaults) return; // Can't reorder default columns
+    setDraggedColumn(column);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', 'column'); // Mark as column drag
+  };
+
+  const handleColumnDragEnd = () => {
+    setDraggedColumn(null);
+    setDragOverColumnId(null);
+  };
+
+  const handleColumnDragOver = (e: React.DragEvent) => {
+    if (!draggedColumn) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleColumnDragEnter = (columnId: string) => {
+    if (!draggedColumn) return;
+    setDragOverColumnId(columnId);
+  };
+
+  const handleColumnDragLeave = (e: React.DragEvent) => {
+    if (!draggedColumn) return;
+    if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+    setDragOverColumnId(null);
+  };
+
+  const handleColumnDrop = (e: React.DragEvent, targetColumn: TaskBoardColumn) => {
+    e.preventDefault();
+    
+    if (!draggedColumn || draggedColumn.id === targetColumn.id || isUsingDefaults) {
+      setDraggedColumn(null);
+      setDragOverColumnId(null);
+      return;
+    }
+
+    // Calculate new order
+    const currentColumns = [...columns];
+    const draggedIndex = currentColumns.findIndex(c => c.id === draggedColumn.id);
+    const targetIndex = currentColumns.findIndex(c => c.id === targetColumn.id);
+
+    // Remove dragged column and insert at target position
+    const [removed] = currentColumns.splice(draggedIndex, 1);
+    currentColumns.splice(targetIndex, 0, removed);
+
+    // Get the new order of column IDs
+    const newOrder = currentColumns.map(c => c.id);
+    reorderColumns(newOrder);
+
+    setDraggedColumn(null);
+    setDragOverColumnId(null);
   };
 
   // Render task card
@@ -285,14 +347,38 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
           const canDrop = draggedTask && draggedTask.status !== column.status;
           const isDoneColumn = column.status === 'done';
           const isDefaultColumn = column.id.startsWith('default-');
+          const isColumnDragTarget = dragOverColumnId === column.id && draggedColumn?.id !== column.id;
+          const isBeingDragged = draggedColumn?.id === column.id;
           
           return (
-            <div key={column.id} className="flex flex-col min-w-[280px] flex-1">
+            <div 
+              key={column.id} 
+              className={`flex flex-col min-w-[280px] flex-1 transition-all ${
+                isBeingDragged ? 'opacity-50 scale-95' : ''
+              } ${isColumnDragTarget ? 'ring-2 ring-primary ring-offset-2 rounded-lg' : ''}`}
+              onDragOver={handleColumnDragOver}
+              onDragEnter={() => handleColumnDragEnter(column.id)}
+              onDragLeave={handleColumnDragLeave}
+              onDrop={(e) => {
+                // Only handle column drop if we're dragging a column
+                if (draggedColumn) {
+                  handleColumnDrop(e, column);
+                }
+              }}
+            >
               <div 
-                className="p-4 rounded-t-lg border-b border-border flex items-center justify-between"
+                className={`p-4 rounded-t-lg border-b border-border flex items-center justify-between ${
+                  !isUsingDefaults ? 'cursor-grab active:cursor-grabbing' : ''
+                }`}
                 style={{ backgroundColor: `${column.color}20` }}
+                draggable={!isUsingDefaults}
+                onDragStart={(e) => handleColumnDragStart(e, column)}
+                onDragEnd={handleColumnDragEnd}
               >
                 <h3 className="font-semibold flex items-center gap-2" style={{ color: column.color }}>
+                  {!isUsingDefaults && (
+                    <span className="opacity-40 mr-1">⋮⋮</span>
+                  )}
                   {column.name}
                   <Badge variant="secondary" className="bg-background/80">{columnTasks.length}</Badge>
                 </h3>
