@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+export type ValidationStatus = 'ok' | 'error' | 'timeout' | 'redirect' | 'pending' | null;
+
 export interface ClientUrl {
   id: string;
   client_id: string;
@@ -17,6 +19,13 @@ export interface ClientUrl {
   campaign_count: number;
   created_at: string;
   updated_at: string;
+  // Validation fields
+  last_validated_at: string | null;
+  validation_status: ValidationStatus;
+  validation_status_code: number | null;
+  validation_load_time_ms: number | null;
+  validation_error: string | null;
+  validation_final_url: string | null;
 }
 
 interface UseClientUrlsOptions {
@@ -233,6 +242,39 @@ export function useClientUrls({ clientId, companyId }: UseClientUrlsOptions) {
     return acc;
   }, {} as Record<string, ClientUrl[]>);
 
+  // Validate URLs mutation
+  const validateUrlsMutation = useMutation({
+    mutationFn: async (urlIds?: string[]) => {
+      const payload = urlIds ? { url_ids: urlIds } : { client_id: clientId };
+      
+      const { data, error } = await supabase.functions.invoke('validate-client-urls', {
+        body: payload
+      });
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey });
+      const count = data?.results?.length || 0;
+      toast.success(`${count} URL(s) validada(s)`);
+    },
+    onError: (error: any) => {
+      console.error('Validation error:', error);
+      toast.error('Erro ao validar URLs');
+    },
+  });
+
+  // Validate single URL
+  const validateUrl = useCallback(async (urlId: string) => {
+    return validateUrlsMutation.mutateAsync([urlId]);
+  }, [validateUrlsMutation]);
+
+  // Validate all active URLs
+  const validateAllUrls = useCallback(async () => {
+    return validateUrlsMutation.mutateAsync(undefined);
+  }, [validateUrlsMutation]);
+
   return {
     urls,
     urlsByDomain,
@@ -242,9 +284,12 @@ export function useClientUrls({ clientId, companyId }: UseClientUrlsOptions) {
     deleteUrl: (id: string) => deleteUrlMutation.mutateAsync(id),
     toggleActive,
     importExistingUrls,
+    validateUrl,
+    validateAllUrls,
     refetch,
     isAdding: addUrlMutation.isPending,
     isUpdating: updateUrlMutation.isPending,
     isDeleting: deleteUrlMutation.isPending,
+    isValidating: validateUrlsMutation.isPending,
   };
 }
