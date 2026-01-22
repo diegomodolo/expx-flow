@@ -48,26 +48,26 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-green-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center text-purple-600 hover:text-purple-800 mb-4">
+          <Link to="/" className="inline-flex items-center text-green-600 hover:text-green-800 mb-4">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Voltar ao site
           </Link>
           <div className="flex items-center justify-center space-x-4 mb-4">
             <img 
               src="/lovable-uploads/0f70dd7b-b5bf-435e-b784-8d6110fb199b.png" 
-              alt="Controle de Tráfego" 
+              alt="Expx Flow" 
               className="h-10 w-auto"
             />
-            <h1 className="text-2xl font-bold text-gray-900">Controle de Tráfego</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Expx Flow</h1>
           </div>
           <p className="text-gray-600">Acesse sua conta</p>
         </div>
 
-        <Card className="shadow-lg border-purple-100">
+        <Card className="shadow-lg border-green-100">
           <CardHeader className="space-y-1 pb-4">
             <CardTitle className="text-2xl text-center">Entrar no Sistema</CardTitle>
             <CardDescription className="text-center">
@@ -111,7 +111,7 @@ export default function AuthPage() {
               </div>
               <Button
                 type="submit"
-                className="w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800"
+                className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800"
                 disabled={loading}
               >
                 {loading ? "Entrando..." : "Entrar no Sistema"}

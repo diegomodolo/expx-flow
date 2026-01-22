@@ -176,7 +176,7 @@ const handler = async (req: Request): Promise<Response> => {
     const emails = participants.map(p => p.email);
     
     const emailResponse = await resend.emails.send({
-      from: "Controle de Tráfego <noreply@controledetrafego.com.br>",
+      from: "Expx Flow <noreply@expxflow.com.br>",
       to: emails,
       subject: `Resumo da Reunião: ${presentationName} - ${clientName}`,
       html: htmlContent,

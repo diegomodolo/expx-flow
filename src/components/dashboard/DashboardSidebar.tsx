@@ -218,7 +218,7 @@ export function DashboardSidebar() {
           />
           {open && (
             <span className="ml-4 text-base font-medium text-foreground tracking-tight whitespace-nowrap">
-              Controle de Trafego
+              Expx Flow
             </span>
           )}
         </div>

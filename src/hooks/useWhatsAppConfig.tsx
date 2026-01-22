@@ -264,7 +264,7 @@ export function useWhatsAppConfig(companyId: string | undefined) {
         body: {
           company_id: companyId,
           recipient_phone: phone,
-          message: "✅ *Teste de Conexão*\n\nSua integração com WhatsApp está funcionando corretamente!\n\n_Enviado pelo Sistema de Controle de Tráfego_",
+          message: "✅ *Teste de Conexão*\n\nSua integração com WhatsApp está funcionando corretamente!\n\n_Enviado pelo Expx Flow_",
           notification_type: "test",
         },
       });
