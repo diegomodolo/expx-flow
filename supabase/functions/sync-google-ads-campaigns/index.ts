@@ -132,6 +132,51 @@ class GoogleAdsApiError extends Error {
   }
 }
 
+function getGoogleAdsAuthorizationErrorCodes(err: GoogleAdsApiError): string[] {
+  const out: string[] = [];
+  const details = err.parsed?.error?.details;
+  if (!Array.isArray(details)) return out;
+
+  for (const d of details) {
+    const errors = d?.errors;
+    if (!Array.isArray(errors)) continue;
+    for (const e of errors) {
+      const code = e?.errorCode?.authorizationError;
+      if (typeof code === 'string' && code) out.push(code);
+    }
+  }
+
+  return out;
+}
+
+function classifyGoogleAdsAuthzErrorCode(code: string): {
+  code: string;
+  userFriendlyMessage: string;
+  actionRequired: 'internal' | 'client' | 'none';
+} {
+  if (code === 'USER_PERMISSION_DENIED') {
+    return {
+      code,
+      userFriendlyMessage:
+        "User doesn't have permission to access customer. O cliente precisa conceder acesso à conta MCC correta (login-customer-id).",
+      actionRequired: 'client',
+    };
+  }
+  if (code === 'CUSTOMER_NOT_ENABLED') {
+    return {
+      code,
+      userFriendlyMessage:
+        'A conta do Google Ads está desativada ou ainda não foi habilitada. O cliente precisa habilitar/reativar a conta.',
+      actionRequired: 'client',
+    };
+  }
+  return {
+    code,
+    userFriendlyMessage: code,
+    actionRequired: 'internal',
+  };
+}
+
 function isUserPermissionDenied(err: unknown): boolean {
   if (!(err instanceof GoogleAdsApiError)) return false;
   if (err.status !== 403) return false;
@@ -834,6 +879,32 @@ serve(async (req) => {
     );
   } catch (error: any) {
     console.error('💥 Error in sync-google-ads-campaigns:', error);
+
+    // For expected Google Ads permission/state errors, return 200 with a structured payload
+    // so supabase.functions.invoke does not surface it as a transport-level error.
+    if (error instanceof GoogleAdsApiError && error.status === 403) {
+      const codes = getGoogleAdsAuthorizationErrorCodes(error);
+      const primary = codes.find((c) => c === 'USER_PERMISSION_DENIED' || c === 'CUSTOMER_NOT_ENABLED');
+
+      if (primary) {
+        const classification = classifyGoogleAdsAuthzErrorCode(primary);
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error_code: classification.code,
+            action_required: classification.actionRequired,
+            user_friendly_message: classification.userFriendlyMessage,
+            // keep the raw error string for debugging / UI fallback
+            error: error.message,
+          }),
+          {
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+    }
+
     return new Response(
       JSON.stringify({
         error: error.message,
