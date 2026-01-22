@@ -21,6 +21,65 @@ interface VariationRequest {
   variationIndex: number;
 }
 
+async function generateImage(
+  apiKey: string,
+  prompt: string,
+  contentArray: any[]
+): Promise<string | null> {
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-3-pro-image-preview",
+      messages: [
+        {
+          role: "user",
+          content: contentArray,
+        },
+      ],
+      modalities: ["image", "text"],
+    }),
+  });
+
+  const responseText = await response.text();
+
+  if (!response.ok) {
+    console.error("Gemini API error:", responseText);
+    return null;
+  }
+
+  if (!responseText || responseText.trim() === '') {
+    console.error("Gemini API returned empty response");
+    return null;
+  }
+
+  let data;
+  try {
+    data = JSON.parse(responseText);
+  } catch (parseError) {
+    console.error("Failed to parse Gemini response:", responseText.substring(0, 500));
+    return null;
+  }
+
+  // Check for refusal or non-image finish reasons
+  const finishReason = data.choices?.[0]?.finish_reason || data.choices?.[0]?.native_finish_reason;
+  if (finishReason === "IMAGE_OTHER" || finishReason === "content_filter" || finishReason === "safety") {
+    console.log("Model refused to generate image, finish_reason:", finishReason);
+    return null;
+  }
+
+  // Extract the generated image - check multiple possible locations
+  const generatedImageBase64 = 
+    data.choices?.[0]?.message?.images?.[0]?.image_url?.url ||
+    data.choices?.[0]?.message?.content?.[0]?.image_url?.url ||
+    data.images?.[0]?.url;
+
+  return generatedImageBase64 || null;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -52,79 +111,33 @@ serve(async (req) => {
       dimensions = { width: 1080, height: 1080 };
     }
 
-    // Build variation instructions based on options
-    const variationInstructions: string[] = [];
-    
-    if (variationOptions.changePoseExpression) {
-      variationInstructions.push("- Create a DIFFERENT pose and facial expression (but keep the person's identity EXACTLY the same)");
-    } else {
-      variationInstructions.push("- Maintain the EXACT same pose and expression as the reference");
-    }
-    
-    if (variationOptions.varyComposition) {
-      variationInstructions.push("- Vary the layout and composition of design elements");
-    }
-    
-    if (variationOptions.alterColorPalette) {
-      variationInstructions.push("- Use a different but harmonious color palette");
-    } else {
-      variationInstructions.push("- Keep similar colors to maintain brand consistency");
-    }
-    
-    if (variationOptions.varyBackground) {
-      variationInstructions.push("- Create a different, creative background");
-    } else {
-      variationInstructions.push("- Keep a similar background style");
-    }
+    // Build simple variation instructions
+    const variationNotes: string[] = [];
+    if (variationOptions.changePoseExpression) variationNotes.push("different pose");
+    if (variationOptions.varyComposition) variationNotes.push("varied layout");
+    if (variationOptions.alterColorPalette) variationNotes.push("alternative colors");
+    if (variationOptions.varyBackground) variationNotes.push("different background");
 
-    // Build identity reference instruction if person image is provided
-    const identityInstruction = personImage 
-      ? `
-=== PERSON IDENTITY REFERENCE (CRITICAL) ===
-A separate reference photo of the person has been provided as the SECOND image.
-Use this clean reference photo as the ABSOLUTE source of truth for the person's identity.
-The first image is the creative design reference, the second image is the person identity reference.
-NEVER deviate from the facial features, skin tone, and physical characteristics shown in the person reference photo.
-`
-      : '';
+    // Build simplified prompt - less complex = higher success rate
+    const simplePrompt = `Create a professional ${format.replace('_', ' ')} marketing image (${aspectRatio} ratio).
 
-    // Build the prompt for image generation
-    const prompt = `
-CREATIVE VARIATION MODE - CRITICAL INSTRUCTIONS:
+Based on the reference image(s), create variation #${variationIndex + 1}.
 
-You are creating variation #${variationIndex + 1} of a marketing creative based on the reference image(s) provided.
-${personImage ? 'TWO IMAGES PROVIDED: First = Creative Design Reference, Second = Person Identity Reference' : 'ONE IMAGE PROVIDED: Creative Design Reference'}
+${personImage ? 'IMPORTANT: Two images provided. First is the design reference. Second is the person - keep their exact appearance.' : ''}
 
-=== ABSOLUTE REQUIREMENTS (NEVER VIOLATE) ===
-1. The person ${personImage ? 'shown in the SECOND reference image' : 'in the reference image'} MUST be 100% recognizable in the output
-2. Maintain EXACT facial features, skin tone, hair color, and overall physical appearance
-3. This is NOT a new person - it's the SAME person from the reference in a new creative
-${identityInstruction}
-=== VARIATION INSTRUCTIONS ===
-${variationInstructions.join("\n")}
-
-=== DESIGN CONTEXT ===
-Text to display on the image: "${text || 'No text overlay'}"
-User's design guidance: "${designGuidance || 'Professional marketing style'}"
-Format: ${format} (${aspectRatio} aspect ratio, ${dimensions.width}x${dimensions.height}px)
-
-=== OUTPUT REQUIREMENTS ===
+Requirements:
 - Professional marketing/advertising quality
-- If text is provided, make it clearly readable with good contrast
-- Modern, clean aesthetic suitable for social media
-- The person should be the main focus
-- This is variation ${variationIndex + 1}, so make it visually distinct from other variations while maintaining the same person and brand identity
+- ${variationNotes.length > 0 ? variationNotes.join(', ') : 'Similar style to reference'}
+${text ? `- Include text: "${text}"` : '- No text needed'}
+${designGuidance ? `- Style guidance: ${designGuidance}` : ''}
 
-Generate a high-quality marketing creative that maintains the person's identity perfectly.
-`.trim();
-
-    console.log("Calling Gemini API for image generation...");
+Create a high-quality social media marketing image.`;
 
     // Build content array with images
     const contentArray: any[] = [
       {
         type: "text",
-        text: prompt,
+        text: simplePrompt,
       },
       {
         type: "image_url",
@@ -145,57 +158,76 @@ Generate a high-quality marketing creative that maintains the person's identity 
       });
     }
 
-    // Call the Gemini API for image generation with the base image as reference
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-pro-image-preview",
-        messages: [
-          {
-            role: "user",
-            content: contentArray,
+    console.log("Calling Gemini API for image generation (attempt 1)...");
+    
+    // First attempt with simplified prompt
+    let generatedImageBase64 = await generateImage(LOVABLE_API_KEY, simplePrompt, contentArray);
+
+    // If first attempt fails, try with even simpler prompt (no text requirement)
+    if (!generatedImageBase64) {
+      console.log("First attempt failed, trying with simpler prompt (attempt 2)...");
+      
+      const fallbackPrompt = `Create a professional ${format.replace('_', ' ')} marketing image in ${aspectRatio} aspect ratio.
+
+Use the provided image(s) as reference. Create a visually appealing marketing creative suitable for social media.
+
+${personImage ? 'Keep the person from the second reference image recognizable.' : ''}
+
+Style: Modern, clean, professional marketing aesthetic.
+NO TEXT in the image.`;
+
+      const fallbackContentArray: any[] = [
+        {
+          type: "text",
+          text: fallbackPrompt,
+        },
+        {
+          type: "image_url",
+          image_url: {
+            url: baseImage,
           },
-        ],
-        modalities: ["image", "text"],
-      }),
-    });
+        },
+      ];
 
-    const responseText = await response.text();
-    
-    if (!response.ok) {
-      console.error("Gemini API error:", responseText);
-      throw new Error(`Gemini API error: ${response.status} - ${responseText}`);
+      if (personImage) {
+        fallbackContentArray.push({
+          type: "image_url",
+          image_url: {
+            url: personImage,
+          },
+        });
+      }
+
+      generatedImageBase64 = await generateImage(LOVABLE_API_KEY, fallbackPrompt, fallbackContentArray);
     }
 
-    if (!responseText || responseText.trim() === '') {
-      console.error("Gemini API returned empty response");
-      throw new Error("Gemini API returned empty response - the model may have refused to generate the image");
-    }
+    // If still no image, try one more time with minimal prompt
+    if (!generatedImageBase64) {
+      console.log("Second attempt failed, trying minimal prompt (attempt 3)...");
+      
+      const minimalPrompt = `Generate a professional marketing image for social media. ${aspectRatio} aspect ratio. Modern and clean design.`;
+      
+      const minimalContentArray: any[] = [
+        {
+          type: "text",
+          text: minimalPrompt,
+        },
+        {
+          type: "image_url",
+          image_url: {
+            url: baseImage,
+          },
+        },
+      ];
 
-    let data;
-    try {
-      data = JSON.parse(responseText);
-    } catch (parseError) {
-      console.error("Failed to parse Gemini response:", responseText.substring(0, 500));
-      throw new Error(`Failed to parse API response: ${parseError.message}`);
+      generatedImageBase64 = await generateImage(LOVABLE_API_KEY, minimalPrompt, minimalContentArray);
     }
-    
-    console.log("Gemini response received");
-
-    // Extract the generated image - check multiple possible locations
-    const generatedImageBase64 = 
-      data.choices?.[0]?.message?.images?.[0]?.image_url?.url ||
-      data.choices?.[0]?.message?.content?.[0]?.image_url?.url ||
-      data.images?.[0]?.url;
 
     if (!generatedImageBase64) {
-      console.error("No image in response structure:", JSON.stringify(data).substring(0, 1000));
-      throw new Error("No image generated by the API - the model may have refused or failed to create an image");
+      throw new Error("Failed to generate image after multiple attempts. The AI model may be temporarily unavailable or the reference image may not be suitable for variation generation. Please try again with a different image.");
     }
+
+    console.log("Image generated successfully");
 
     // Upload the image to Supabase Storage
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
