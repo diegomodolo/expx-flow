@@ -39,6 +39,7 @@ import {
   Factory,
   Palette,
   ExternalLink,
+  Link2,
 } from "lucide-react";
 
 interface ClientDetailsLayoutProps {
@@ -272,6 +273,12 @@ export function ClientDetailsLayout({ children, clientId, clientName, dashboardT
       href: `/clientes/${clientId}/fabrica-carrosseis`,
       icon: Layers,
       description: "Geração automática de carrosseis para Instagram"
+    },
+    {
+      title: "URLs",
+      href: `/clientes/${clientId}/urls`,
+      icon: Link2,
+      description: "URLs de destino e validação"
     }
   ];
 
