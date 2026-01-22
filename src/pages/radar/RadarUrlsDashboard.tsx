@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Loader2, AlertTriangle, RefreshCw } from "lucide-react";
+import { Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRadarUrls, ValidationStatus } from "@/hooks/useRadarUrls";
 import { UrlsKPIHeader } from "@/components/radar/UrlsKPIHeader";
@@ -44,49 +44,51 @@ const RadarUrlsDashboard = () => {
     return (
       <div className="flex items-center justify-center h-[60vh]">
         <div className="text-center">
-          <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-lg text-muted-foreground">Carregando URLs...</p>
+          <Loader2 className="w-10 h-10 animate-spin text-primary mx-auto mb-3" />
+          <p className="text-sm text-muted-foreground">Carregando URLs...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Radar de URLs</h1>
-          <p className="text-sm text-muted-foreground">
-            Monitoramento da saúde das URLs de destino dos clientes
+    <div className="space-y-3">
+      {/* Header - Compact */}
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="min-w-0">
+          <h1 className="text-lg lg:text-xl font-bold text-foreground truncate">Radar de URLs</h1>
+          <p className="text-xs text-muted-foreground hidden sm:block">
+            Monitoramento da saúde das URLs de destino
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           <Button 
             variant="outline" 
             size="sm" 
             onClick={() => refetch()}
             disabled={isValidating}
+            className="h-8 px-2 lg:px-3"
           >
-            <RefreshCw className={`w-4 h-4 mr-2 ${isValidating ? 'animate-spin' : ''}`} />
-            Atualizar
+            <RefreshCw className={`w-3.5 h-3.5 ${isValidating ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline ml-1.5">Atualizar</span>
           </Button>
           <Button 
             size="sm" 
             onClick={() => validateAll()}
             disabled={isValidating}
+            className="h-8 px-2 lg:px-3"
           >
-            <RefreshCw className={`w-4 h-4 mr-2 ${isValidating ? 'animate-spin' : ''}`} />
-            Validar Todas
+            <RefreshCw className={`w-3.5 h-3.5 ${isValidating ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline ml-1.5">Validar Todas</span>
           </Button>
         </div>
       </div>
 
-      {/* KPIs */}
+      {/* KPIs - Compact */}
       <UrlsKPIHeader stats={stats} />
 
-      {/* Cards Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      {/* Cards Row - 2 columns on medium, 3 on large */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
         <ProblematicUrlsCard 
           urls={problematicUrls}
           onValidate={validateUrl}
