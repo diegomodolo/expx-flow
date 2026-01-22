@@ -15,7 +15,7 @@ const Index = () => {
             <div className="space-y-8">
               <div className="flex items-center space-x-4 mb-6">
                 <img 
-                  src="/logo-full.png" 
+                  src="https://i.imgur.com/EVjvxxM.png" 
                   alt="Expx Flow" 
                   className="h-16 w-auto"
                 />
@@ -394,7 +394,7 @@ const Index = () => {
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center space-x-4 mb-4 md:mb-0">
               <img 
-                src="/logo-full.png" 
+                src="https://i.imgur.com/EVjvxxM.png" 
                 alt="Expx Flow" 
                 className="h-8 w-auto brightness-0 invert"
               />
