@@ -65,7 +65,8 @@ Deno.serve(async (req) => {
       approvedText,
       extraPrompt,
       isCarousel = false,
-      slides = []
+      slides = [],
+      additionalImageToMerge
     } = await req.json();
 
     console.log('Request data received:', {
@@ -79,7 +80,8 @@ Deno.serve(async (req) => {
       hasApprovedText: !!approvedText,
       hasExtraPrompt: !!extraPrompt,
       isCarousel,
-      slidesCount: slides?.length || 0
+      slidesCount: slides?.length || 0,
+      hasAdditionalImageToMerge: !!additionalImageToMerge
     });
 
     // Validar dados obrigatórios
@@ -249,20 +251,59 @@ Deno.serve(async (req) => {
 
     console.log(`Successfully converted ${messageContent.length} images to base64`);
 
+    // Processar imagem adicional para mesclagem (se fornecida)
+    let additionalImageBase64: string | null = null;
+    if (additionalImageToMerge) {
+      console.log('Converting additional merge image to base64...');
+      if (additionalImageToMerge.startsWith('data:image/')) {
+        additionalImageBase64 = additionalImageToMerge;
+      } else if (additionalImageToMerge.startsWith('http')) {
+        additionalImageBase64 = await urlToBase64(additionalImageToMerge);
+      }
+      if (additionalImageBase64) {
+        console.log('Additional merge image converted successfully');
+      } else {
+        console.warn('Failed to convert additional merge image');
+      }
+    }
+
     // Função para gerar uma única imagem
     const generateSingleImage = async (slidePrompt: string, slideNumber?: number): Promise<string> => {
       const slideMessageContent: any[] = [...messageContent]; // Copia referências
 
+      // Adicionar imagem adicional para mesclagem se existir
+      if (additionalImageBase64) {
+        slideMessageContent.push({
+          type: 'image_url',
+          image_url: { url: additionalImageBase64 }
+        });
+      }
+
     // Verifica se é modo de edição de imagem existente
     const isEditingExisting = context?.contextOnly?.isEditingExisting === true;
+    const hasMergeImage = context?.contextOnly?.hasMergeImage === true || !!additionalImageBase64;
+
+    // Prompt para mesclagem de imagem adicional
+    const mergeInstructions = hasMergeImage ? `
+IMAGE MERGE/INCORPORATION MODE:
+- An ADDITIONAL IMAGE has been provided that MUST be incorporated into the final creative
+- This additional image appears LAST in the provided images
+- The user's instructions describe HOW to use this additional image
+- Follow the user's instructions EXACTLY for placement and integration
+- Integrate this image seamlessly into the composition
+- Common operations: place inside screens/tablets/monitors, use as background, overlay, insert as product, etc.
+
+USER INSTRUCTIONS FOR MERGE:
+${extraPrompt || 'Incorporate the additional image naturally into the composition.'}
+` : '';
 
     const fullPrompt = isEditingExisting 
       ? `EDIT the provided reference image with the following modifications:
 
-${extraPrompt ? `REQUESTED CHANGES:
+${hasMergeImage ? mergeInstructions : (extraPrompt ? `REQUESTED CHANGES:
 ${extraPrompt}
 
-Apply ONLY these specific changes to the image. Keep everything else EXACTLY as it is in the original image.` : 'Keep the image style but regenerate with slight improvements.'}
+Apply ONLY these specific changes to the image. Keep everything else EXACTLY as it is in the original image.` : 'Keep the image style but regenerate with slight improvements.')}
 
 CRITICAL RULES FOR EDITING:
 - This is an EDIT operation, not a new generation
@@ -273,6 +314,7 @@ CRITICAL RULES FOR EDITING:
 ${targetSize ? `- Output size: ${targetSize.width}x${targetSize.height} pixels` : ''}
 - Keep the same visual language, colors, and design approach unless specifically asked to change them
 - If text changes are requested, spell the new text EXACTLY as provided
+${hasMergeImage ? '- INTEGRATE the additional image as described by the user' : ''}
 
 Generate the edited image now.`
       
@@ -313,7 +355,18 @@ CAROUSEL SLIDE CONSISTENCY (HIGHEST PRIORITY):
 - Replicate the visual approach, layout style, and aesthetic of this reference as closely as possible.`}` : `- Study the reference images carefully and match their visual style
 - Follow the same color palette, typography style, and design language`}
 ${clientData.avatar ? '- The first image is the client LOGO - incorporate it subtly if appropriate' : ''}
+${additionalImageBase64 ? '- The LAST image in the provided images is an ADDITIONAL IMAGE TO MERGE - integrate it as described in the user instructions' : ''}
 - The generated image should look like it belongs to the same brand family` : ''}
+
+${hasMergeImage ? `
+ADDITIONAL IMAGE MERGE/INCORPORATION (CRITICAL):
+- An ADDITIONAL IMAGE has been provided (the LAST image in the list)
+- This image MUST be incorporated into the final creative as described below
+- Integrate it seamlessly into the composition
+
+${extraPrompt ? `USER INSTRUCTIONS FOR MERGING:
+${extraPrompt}` : 'Incorporate the additional image naturally into the composition.'}
+` : ''}
 
 STYLE REQUIREMENTS:
 - Ultra-professional marketing quality
@@ -322,7 +375,7 @@ STYLE REQUIREMENTS:
 - Colors and aesthetic aligned with ${sectorContext} industry standards
 - Visually appealing for ${audienceContext}
 
-${extraPrompt ? `USER ADDITIONAL INSTRUCTIONS:
+${extraPrompt && !hasMergeImage ? `USER ADDITIONAL INSTRUCTIONS:
 ${extraPrompt}
 - Follow these additional instructions from the user carefully
 - Integrate these requirements into the final image` : ''}
@@ -332,6 +385,7 @@ CRITICAL RULES:
 - Text should be in the SAME language as provided (Portuguese if the text is in Portuguese)
 - NO random English words unless specifically in the provided text
 - Professional, polished final result suitable for real marketing campaigns
+${hasMergeImage ? '- INTEGRATE the additional image exactly as the user described' : ''}
 
 Generate the image now.`;
 
