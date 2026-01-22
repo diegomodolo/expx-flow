@@ -327,6 +327,9 @@ serve(async (req) => {
     // Check if this is a service role call (from scheduler) or a user call
     const isServiceRoleCall = token === supabaseServiceKey;
     
+    // Declare userId at scope level so it's available throughout the function
+    let userId: string | null = null;
+    
     if (isServiceRoleCall) {
       console.log('🔐 Service role call (from scheduler)');
     } else {
@@ -337,7 +340,8 @@ serve(async (req) => {
         throw new Error('Unauthorized');
       }
 
-      console.log(`👤 User authenticated: ${user.id}`);
+      userId = user.id;
+      console.log(`👤 User authenticated: ${userId}`);
     }
 
     const options: SyncOptions = await req.json();
@@ -558,7 +562,7 @@ serve(async (req) => {
                 google_account_id: googleAccount.id,
                 client_id: clientId,
                 company_id: effectiveCompanyId,
-                user_id: user.id,
+                user_id: userId,
                 name: campaign.name,
                 status: mapGoogleStatus(campaign.status),
                 campaign_type: campaign.advertisingChannelType,
@@ -657,7 +661,7 @@ serve(async (req) => {
                   google_account_id: googleAccount.id,
                   client_id: clientId,
                   company_id: effectiveCompanyId,
-                  user_id: user.id,
+                  user_id: userId,
                   name: adGroup.name,
                   status: mapGoogleStatus(adGroup.status),
                   spend,
@@ -769,7 +773,7 @@ serve(async (req) => {
                   google_account_id: googleAccount.id,
                   client_id: clientId,
                   company_id: effectiveCompanyId,
-                  user_id: user.id,
+                  user_id: userId,
                   name: ad.name || `Ad ${ad.id}`,
                   status: mapGoogleStatus(adGroupAd.status),
                   ad_type: ad.type,

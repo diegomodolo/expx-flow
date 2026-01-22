@@ -5,15 +5,16 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { RefreshCw, Clock, CheckCircle2, XCircle, AlertCircle, PlayCircle, Loader2 } from 'lucide-react';
-import { useGoogleAdsSyncSchedule, GoogleSyncOptions } from '@/hooks/useGoogleAdsSyncSchedule';
+import { RefreshCw, Clock, CheckCircle2, XCircle, AlertCircle, PlayCircle, Loader2, ChevronDown, ChevronUp, User, Timer } from 'lucide-react';
+import { useGoogleAdsSyncSchedule, GoogleSyncOptions, GoogleExecutionLog } from '@/hooks/useGoogleAdsSyncSchedule';
 import { useGoogleAdsCampaignSync } from '@/hooks/useGoogleAdsCampaignSync';
 import { useCompany } from '@/contexts/CompanyContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 const periodOptions = [
   { value: 'last_7_days', label: '7 dias', description: 'Última semana' },
@@ -349,36 +350,194 @@ export function GoogleAdsSyncSettings() {
           ) : (
             <div className="space-y-3">
               {executionLogs.map((log) => (
-                <div
-                  key={log.id}
-                  className="flex items-center justify-between p-4 border rounded-lg bg-card"
-                >
-                  <div className="flex items-center gap-3">
-                    {getStatusIcon(log.status)}
-                    <div>
-                      <div className="flex items-center gap-2">
-                        {getStatusBadge(log.status)}
-                        <span className="text-sm text-muted-foreground">
-                          {formatDistanceToNow(new Date(log.started_at), {
-                            addSuffix: true,
-                            locale: ptBR,
-                          })}
-                        </span>
-                      </div>
-                      <p className="text-sm mt-1">
-                        {log.clients_processed} de {log.clients_total} clientes sincronizados
-                      </p>
-                      {log.error_message && (
-                        <p className="text-xs text-destructive mt-1">{log.error_message}</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                <ExecutionLogItem key={log.id} log={log} />
               ))}
             </div>
           )}
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+// Componente para exibir cada item do histórico com detalhes expandíveis
+function ExecutionLogItem({ log }: { log: GoogleExecutionLog }) {
+  const [isOpen, setIsOpen] = useState(false);
+  
+  const executionDetails = log.execution_details as {
+    trigger?: 'manual' | 'scheduled';
+    clients?: Array<{
+      client_id: string;
+      client_name: string;
+      status: 'success' | 'error';
+      error_code?: string;
+      error_message?: string;
+      action_required?: 'internal' | 'client' | 'none';
+      campaigns_synced?: number;
+      ad_groups_synced?: number;
+      ads_synced?: number;
+    }>;
+  } | null;
+
+  const clients = executionDetails?.clients || [];
+  const trigger = executionDetails?.trigger || 'scheduled';
+  const hasDetails = clients.length > 0;
+  
+  const successClients = clients.filter(c => c.status === 'success');
+  const errorClients = clients.filter(c => c.status === 'error');
+  const clientActionRequired = errorClients.filter(c => c.action_required === 'client');
+  const internalActionRequired = errorClients.filter(c => c.action_required === 'internal');
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return <CheckCircle2 className="h-5 w-5 text-green-500" />;
+      case 'failed':
+        return <XCircle className="h-5 w-5 text-destructive" />;
+      case 'partial':
+        return <AlertCircle className="h-5 w-5 text-yellow-500" />;
+      case 'running':
+        return <Loader2 className="h-5 w-5 text-blue-500 animate-spin" />;
+      default:
+        return <Clock className="h-5 w-5 text-muted-foreground" />;
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return <Badge variant="default" className="bg-green-500/10 text-green-600 border-green-500/20">Concluído</Badge>;
+      case 'failed':
+        return <Badge variant="destructive">Falhou</Badge>;
+      case 'partial':
+        return <Badge variant="default" className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20">Parcial</Badge>;
+      case 'running':
+        return <Badge variant="default" className="bg-blue-500/10 text-blue-600 border-blue-500/20">Executando</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  const getActionBadge = (actionRequired: string) => {
+    switch (actionRequired) {
+      case 'client':
+        return <Badge variant="outline" className="text-orange-600 border-orange-300 bg-orange-50 text-xs">Ação do cliente</Badge>;
+      case 'internal':
+        return <Badge variant="outline" className="text-red-600 border-red-300 bg-red-50 text-xs">Ação interna</Badge>;
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <div className="border rounded-lg bg-card overflow-hidden">
+        <CollapsibleTrigger asChild>
+          <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/50 transition-colors">
+            <div className="flex items-center gap-3">
+              {getStatusIcon(log.status)}
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {getStatusBadge(log.status)}
+                  <Badge variant="outline" className="text-xs">
+                    {trigger === 'manual' ? (
+                      <>
+                        <User className="h-3 w-3 mr-1" />
+                        Manual
+                      </>
+                    ) : (
+                      <>
+                        <Timer className="h-3 w-3 mr-1" />
+                        Agendado
+                      </>
+                    )}
+                  </Badge>
+                  <span className="text-sm text-muted-foreground">
+                    {formatDistanceToNow(new Date(log.started_at), {
+                      addSuffix: true,
+                      locale: ptBR,
+                    })}
+                  </span>
+                </div>
+                <p className="text-sm mt-1">
+                  {log.clients_processed} de {log.clients_total} clientes sincronizados
+                  {errorClients.length > 0 && (
+                    <span className="text-destructive ml-2">
+                      ({errorClients.length} com erro)
+                    </span>
+                  )}
+                </p>
+                {log.error_message && !hasDetails && (
+                  <p className="text-xs text-destructive mt-1">{log.error_message}</p>
+                )}
+              </div>
+            </div>
+            {hasDetails && (
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
+            )}
+          </div>
+        </CollapsibleTrigger>
+        
+        {hasDetails && (
+          <CollapsibleContent>
+            <div className="border-t px-4 py-3 bg-muted/30 space-y-2">
+              <div className="flex gap-4 text-xs text-muted-foreground mb-3">
+                <span>Início: {format(new Date(log.started_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</span>
+                {log.completed_at && (
+                  <span>Fim: {format(new Date(log.completed_at), "HH:mm", { locale: ptBR })}</span>
+                )}
+              </div>
+              
+              {/* Resumo de erros por tipo */}
+              {(clientActionRequired.length > 0 || internalActionRequired.length > 0) && (
+                <div className="flex gap-2 mb-3">
+                  {clientActionRequired.length > 0 && (
+                    <Badge variant="outline" className="text-orange-600 border-orange-300 bg-orange-50">
+                      {clientActionRequired.length} requerem ação do cliente
+                    </Badge>
+                  )}
+                  {internalActionRequired.length > 0 && (
+                    <Badge variant="outline" className="text-red-600 border-red-300 bg-red-50">
+                      {internalActionRequired.length} requerem ação interna
+                    </Badge>
+                  )}
+                </div>
+              )}
+              
+              {/* Lista de clientes */}
+              <div className="space-y-1.5 max-h-64 overflow-y-auto">
+                {clients.map((client, idx) => (
+                  <div key={idx} className="flex items-start gap-2 text-sm py-1.5 px-2 rounded bg-background">
+                    {client.status === 'success' ? (
+                      <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                    ) : (
+                      <XCircle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium truncate">{client.client_name}</span>
+                        {client.action_required && client.action_required !== 'none' && getActionBadge(client.action_required)}
+                      </div>
+                      {client.status === 'success' && (client.campaigns_synced || 0) > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          {client.campaigns_synced} campanhas
+                          {(client.ad_groups_synced || 0) > 0 && `, ${client.ad_groups_synced} grupos`}
+                          {(client.ads_synced || 0) > 0 && `, ${client.ads_synced} anúncios`}
+                        </p>
+                      )}
+                      {client.status === 'error' && client.error_message && (
+                        <p className="text-xs text-destructive">{client.error_message}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CollapsibleContent>
+        )}
+      </div>
+    </Collapsible>
   );
 }
