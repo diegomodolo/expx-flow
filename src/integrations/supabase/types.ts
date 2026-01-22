@@ -10772,6 +10772,15 @@ export type Database = {
         Args: { p_board_id: string }
         Returns: string
       }
+      get_urls_with_campaign_status: {
+        Args: { p_company_id: string }
+        Returns: {
+          active_campaign_count: number
+          has_active_campaign: boolean
+          total_campaign_count: number
+          url_id: string
+        }[]
+      }
       get_user_company_ids: {
         Args: { _user_id: string }
         Returns: {
