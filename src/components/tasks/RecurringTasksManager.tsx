@@ -38,6 +38,28 @@ interface RecurringTasksManagerProps {
   clientId?: string;
 }
 
+// Format active days of week for display
+const DAY_ABBREVIATIONS: Record<number, string> = {
+  0: 'Dom',
+  1: 'Seg',
+  2: 'Ter',
+  3: 'Qua',
+  4: 'Qui',
+  5: 'Sex',
+  6: 'Sáb',
+};
+
+function formatActiveDays(days: number[]): string {
+  // Sort days starting from Monday (1) to Sunday (0)
+  const sortedDays = [...days].sort((a, b) => {
+    // Move Sunday (0) to the end
+    if (a === 0) return 1;
+    if (b === 0) return -1;
+    return a - b;
+  });
+  return sortedDays.map(d => DAY_ABBREVIATIONS[d]).join(', ');
+}
+
 export function RecurringTasksManager({ clientId }: RecurringTasksManagerProps) {
   const { templates, loading, deleteTemplate, toggleTemplateActive, fetchTemplates } = useRecurringTasks(clientId);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -196,6 +218,11 @@ export function RecurringTasksManager({ clientId }: RecurringTasksManagerProps) 
                             <Repeat className="h-3 w-3" />
                             {recurrenceLabels[template.recurrence_type]}
                             {template.recurrence_interval > 1 && ` (a cada ${template.recurrence_interval})`}
+                            {template.recurrence_type === 'daily' && template.active_days_of_week && template.active_days_of_week.length < 7 && (
+                              <span className="ml-1 text-primary">
+                                ({formatActiveDays(template.active_days_of_week)})
+                              </span>
+                            )}
                           </span>
 
                           {template.assigned_employee && (

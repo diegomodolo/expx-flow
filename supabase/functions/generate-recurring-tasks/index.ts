@@ -21,6 +21,7 @@ interface RecurringTaskTemplate {
   day_of_week: number | null;
   day_of_month: number | null;
   month_of_year: number | null;
+  active_days_of_week: number[] | null; // For daily: which days to generate
   next_generation_date: string;
   is_active: boolean;
 }
@@ -31,13 +32,24 @@ function calculateNextGenerationDate(
   recurrenceInterval: number,
   dayOfWeek: number | null,
   dayOfMonth: number | null,
-  monthOfYear: number | null
+  monthOfYear: number | null,
+  activeDaysOfWeek: number[] | null
 ): Date {
   const nextDate = new Date(currentDate);
   
   switch (recurrenceType) {
     case 'daily':
+      // For daily recurrence, advance by interval and then find next valid day
       nextDate.setDate(nextDate.getDate() + recurrenceInterval);
+      
+      // If active_days_of_week is set, find the next allowed day
+      if (activeDaysOfWeek && activeDaysOfWeek.length > 0 && activeDaysOfWeek.length < 7) {
+        let safety = 0;
+        while (!activeDaysOfWeek.includes(nextDate.getDay()) && safety < 7) {
+          nextDate.setDate(nextDate.getDate() + 1);
+          safety++;
+        }
+      }
       break;
     case 'weekly':
       // Move forward by the interval weeks
@@ -76,6 +88,23 @@ function calculateNextGenerationDate(
   }
   
   return nextDate;
+}
+
+// Check if today is a valid generation day for daily tasks
+function isTodayValidForGeneration(
+  template: RecurringTaskTemplate,
+  today: Date
+): boolean {
+  if (template.recurrence_type !== 'daily') {
+    return true; // Non-daily tasks are always valid
+  }
+  
+  const activeDays = template.active_days_of_week;
+  if (!activeDays || activeDays.length === 0 || activeDays.length === 7) {
+    return true; // All days allowed
+  }
+  
+  return activeDays.includes(today.getDay());
 }
 
 serve(async (req) => {
@@ -182,9 +211,44 @@ serve(async (req) => {
       console.log(`  - recurrence_interval: ${template.recurrence_interval}`);
       console.log(`  - next_generation_date: ${template.next_generation_date}`);
       console.log(`  - assigned_to: ${template.assigned_to || 'not assigned'}`);
+      console.log(`  - active_days_of_week: ${JSON.stringify(template.active_days_of_week)}`);
       results.processed++;
 
       try {
+        // For daily tasks, check if today is a valid generation day
+        if (!isTodayValidForGeneration(template, today)) {
+          console.log(`  SKIPPED - Today (${today.getDay()}) not in active days: ${JSON.stringify(template.active_days_of_week)}`);
+          
+          // Calculate next valid generation date
+          const nextGenDate = calculateNextGenerationDate(
+            new Date(template.next_generation_date),
+            template.recurrence_type,
+            1, // Move by 1 day at a time to find next valid day
+            template.day_of_week,
+            template.day_of_month,
+            template.month_of_year,
+            template.active_days_of_week
+          );
+          
+          console.log(`  - Updating next_generation_date to: ${nextGenDate.toISOString().split('T')[0]}`);
+          
+          // Update template with next valid date
+          await supabase
+            .from('recurring_task_templates')
+            .update({
+              next_generation_date: nextGenDate.toISOString().split('T')[0],
+            })
+            .eq('id', template.id);
+          
+          results.details.push({
+            templateId: template.id,
+            title: template.title,
+            status: 'skipped',
+            error: `Today not in active days (${today.getDay()})`
+          });
+          continue;
+        }
+
         // Calculate visibility date and deadline
         const generationDate = new Date(template.next_generation_date);
         
@@ -296,7 +360,8 @@ serve(async (req) => {
           template.recurrence_interval,
           template.day_of_week,
           template.day_of_month,
-          template.month_of_year
+          template.month_of_year,
+          template.active_days_of_week
         );
 
         console.log(`  - Next generation date calculated: ${nextGenDate.toISOString().split('T')[0]}`);

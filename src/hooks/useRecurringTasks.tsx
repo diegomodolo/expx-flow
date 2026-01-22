@@ -20,6 +20,7 @@ export interface RecurringTaskTemplate {
   day_of_week: number | null; // 0=Sunday, 1=Monday, ..., 6=Saturday
   day_of_month: number | null; // 1-31
   month_of_year: number | null; // 1-12
+  active_days_of_week: number[] | null; // For daily recurrence: which days to generate [0,1,2,3,4,5,6]
   next_generation_date: string;
   last_generated_at: string | null;
   is_active: boolean;
@@ -52,6 +53,7 @@ export interface CreateRecurringTaskData {
   day_of_week?: number | null;
   day_of_month?: number | null;
   month_of_year?: number | null;
+  active_days_of_week?: number[] | null; // For daily: which days to generate
 }
 
 export function useRecurringTasks(clientId?: string) {

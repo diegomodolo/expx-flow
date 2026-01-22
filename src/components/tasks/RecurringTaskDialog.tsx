@@ -30,6 +30,19 @@ const DAYS_OF_WEEK = [
   { value: 6, label: 'Sábado' },
 ];
 
+// Short labels for day toggle buttons
+const DAYS_OF_WEEK_SHORT = [
+  { value: 1, label: 'Seg' },
+  { value: 2, label: 'Ter' },
+  { value: 3, label: 'Qua' },
+  { value: 4, label: 'Qui' },
+  { value: 5, label: 'Sex' },
+  { value: 6, label: 'Sáb' },
+  { value: 0, label: 'Dom' },
+];
+
+const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6]; // All days of week enabled by default
+
 const MONTHS = [
   { value: 1, label: 'Janeiro' },
   { value: 2, label: 'Fevereiro' },
@@ -75,6 +88,7 @@ export function RecurringTaskDialog({
     day_of_week: 1, // Segunda-feira por padrão
     day_of_month: 1, // Dia 1 por padrão
     month_of_year: 1, // Janeiro por padrão
+    active_days_of_week: ALL_DAYS, // Todos os dias por padrão
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -95,6 +109,7 @@ export function RecurringTaskDialog({
         day_of_week: editTemplate.day_of_week ?? 1,
         day_of_month: editTemplate.day_of_month ?? 1,
         month_of_year: editTemplate.month_of_year ?? 1,
+        active_days_of_week: editTemplate.active_days_of_week ?? ALL_DAYS,
       });
     } else {
       setFormData({
@@ -110,6 +125,7 @@ export function RecurringTaskDialog({
         day_of_week: 1,
         day_of_month: 1,
         month_of_year: 1,
+        active_days_of_week: ALL_DAYS,
       });
     }
   }, [editTemplate, clientId, open]);
@@ -341,6 +357,45 @@ export function RecurringTaskDialog({
                 </div>
               </div>
             </div>
+
+            {/* Seletor de dias da semana - para recorrência diária */}
+            {formData.recurrence_type === 'daily' && (
+              <div className="space-y-2">
+                <Label>Dias da semana</Label>
+                <p className="text-xs text-muted-foreground">Selecione em quais dias a tarefa deve ser gerada</p>
+                <div className="flex flex-wrap gap-2">
+                  {DAYS_OF_WEEK_SHORT.map((day) => {
+                    const isActive = (formData.active_days_of_week ?? ALL_DAYS).includes(day.value);
+                    return (
+                      <button
+                        key={day.value}
+                        type="button"
+                        onClick={() => {
+                          const currentDays = formData.active_days_of_week ?? ALL_DAYS;
+                          let newDays: number[];
+                          if (isActive) {
+                            // Don't allow removing the last day
+                            if (currentDays.length <= 1) return;
+                            newDays = currentDays.filter(d => d !== day.value);
+                          } else {
+                            newDays = [...currentDays, day.value].sort((a, b) => a - b);
+                          }
+                          setFormData({ ...formData, active_days_of_week: newDays });
+                        }}
+                        className={cn(
+                          "px-3 py-1.5 text-sm rounded-md border transition-colors font-medium",
+                          isActive
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-background text-muted-foreground border-border hover:border-primary/50"
+                        )}
+                      >
+                        {day.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Seletor de dia da semana - apenas para recorrência semanal */}
             {formData.recurrence_type === 'weekly' && (
