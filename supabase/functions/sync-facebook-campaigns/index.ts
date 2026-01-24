@@ -1146,6 +1146,14 @@ async function processSync(
               console.log('Ad set conversions saved:', adSet.name, adSetLeads)
             }
 
+            // Extract pixel_id and conversion_event from promoted_object
+            const promotedObject = adSet.promoted_object || {}
+            const adSetPixelId = promotedObject.pixel_id || null
+            const adSetConversionEvent = promotedObject.custom_event_type || null
+            
+            console.log('Ad set promoted_object:', JSON.stringify(promotedObject))
+            console.log('Extracted pixel_id:', adSetPixelId, 'conversion_event:', adSetConversionEvent)
+            
             // Save ad set to database
             const adSetData = {
               facebook_id: adSet.id,
@@ -1160,6 +1168,8 @@ async function processSync(
               bid_strategy: adSet.bid_strategy || '',
               optimization_goal: adSet.optimization_goal || '',
               targeting: JSON.stringify(adSet.targeting || {}),
+              pixel_id: adSetPixelId,
+              conversion_event: adSetConversionEvent,
               cpm: adSetCpm,
               ctr: adSetCtr,
               cpc: adSetCpc,
@@ -1422,6 +1432,21 @@ async function processSync(
                       console.log('Final link URL empty - baseDestinationUrl:', baseDestinationUrl, 'urlTags:', urlTags)
                     }
                     
+                    // Extract pixel_id from tracking_specs
+                    let adPixelId = null
+                    if (ad.tracking_specs && Array.isArray(ad.tracking_specs)) {
+                      const pixelSpec = ad.tracking_specs.find(
+                        (spec: any) => spec['action.type'] === 'offsite_conversion' && spec.fb_pixel
+                      )
+                      if (pixelSpec?.fb_pixel) {
+                        adPixelId = Array.isArray(pixelSpec.fb_pixel) 
+                          ? pixelSpec.fb_pixel[0] 
+                          : pixelSpec.fb_pixel
+                      }
+                    }
+                    console.log('Ad tracking_specs:', JSON.stringify(ad.tracking_specs))
+                    console.log('Extracted ad pixel_id:', adPixelId)
+                    
                     // Save ad to database with complete data
                     const adData = {
                       facebook_id: ad.id,
@@ -1440,6 +1465,7 @@ async function processSync(
                       video_url: videoUrl,
                      link_url: finalLinkUrl,
                      call_to_action: JSON.stringify(callToActionValue),
+                     pixel_id: adPixelId,
                      ctr: adCtr,
                      cpc: adCpc,
                      cpm: adCpm,

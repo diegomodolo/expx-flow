@@ -78,6 +78,7 @@ interface AdEditModalProps {
   isOpen: boolean;
   onClose: () => void;
   node: TreeNode | null;
+  parentNode?: TreeNode | null; // Ad Set parent node for inherited pixel
   clientId: string;
   companyId?: string;
   onSuccess?: () => void;
@@ -87,6 +88,7 @@ export function AdEditModal({
   isOpen,
   onClose,
   node,
+  parentNode,
   clientId,
   companyId,
   onSuccess,
@@ -321,6 +323,9 @@ export function AdEditModal({
 
       // For Meta ads with creative changes, we need to create a new creative
       if (platform === 'meta' && facebookId) {
+        // Check if pixel changed
+        const pixelChanged = pixelId !== (node as any).pixelId;
+        
         const { data, error } = await supabase.functions.invoke('update-meta-ad', {
           body: {
             clientId,
@@ -340,6 +345,7 @@ export function AdEditModal({
                 link_url: finalUrl,
                 call_to_action: callToAction,
               } : undefined,
+              pixel_id: pixelChanged ? pixelId : undefined,
             },
           },
         });
@@ -376,14 +382,6 @@ export function AdEditModal({
 
         toast.success('Anúncio atualizado localmente');
       }
-      
-      // Always update pixel_id locally if changed
-      if (pixelId !== (node as any).pixelId) {
-        await supabase
-          .from('ads')
-          .update({ pixel_id: pixelId || null })
-          .eq('id', node.id);
-      }
 
       setHasChanges(false);
       setCreativeChanged(false);
@@ -395,7 +393,7 @@ export function AdEditModal({
     } finally {
       setIsSaving(false);
     }
-  }, [clientId, node, editName, editStatus, creativeType, mediaUrls, body, title, description, linkUrl, callToAction, utmSource, utmMedium, utmCampaign, utmContent, utmTerm, originalValues, creativeChanged, onSuccess, onClose]);
+  }, [clientId, node, editName, editStatus, creativeType, mediaUrls, body, title, description, linkUrl, callToAction, utmSource, utmMedium, utmCampaign, utmContent, utmTerm, pixelId, originalValues, creativeChanged, onSuccess, onClose]);
 
   if (!node || node.type !== 'ad') return null;
 
@@ -611,13 +609,37 @@ export function AdEditModal({
                       </Select>
                     </div>
 
-                    {/* Pixel Tracking */}
-                    <PixelSelector
-                      clientId={clientId}
-                      companyId={companyId || ''}
-                      value={pixelId}
-                      onChange={setPixelId}
-                    />
+                    {/* Pixel Tracking - Show both inherited and ad-specific */}
+                    <div className="space-y-3">
+                      {/* Inherited Pixel from Ad Set (read-only) */}
+                      {parentNode?.pixelId && (
+                        <div className="space-y-2">
+                          <Label className="text-muted-foreground">Pixel do Conjunto (herdado)</Label>
+                          <Input
+                            value={parentNode.pixelId}
+                            disabled
+                            className="bg-muted/50 text-muted-foreground"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Configurado no Conjunto de Anúncios
+                          </p>
+                        </div>
+                      )}
+                      
+                      {/* Ad-specific Pixel (editable) */}
+                      <PixelSelector
+                        clientId={clientId}
+                        companyId={companyId || ''}
+                        value={pixelId}
+                        onChange={setPixelId}
+                        label={parentNode?.pixelId ? "Pixel do Anúncio (sobrescreve)" : "Pixel de Conversão"}
+                      />
+                      {parentNode?.pixelId && pixelId && (
+                        <p className="text-xs text-warning">
+                          Este pixel sobrescreve o pixel herdado do Conjunto
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
