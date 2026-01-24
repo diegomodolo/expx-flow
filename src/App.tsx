@@ -66,6 +66,7 @@ import TemasFabricaCarrosseis from "./pages/geradores/TemasFabricaCarrosseis";
 import HistoricoGeracoesCarrosseis from "./pages/geradores/HistoricoGeracoesCarrosseis";
 import CarrosseisPublicados from "./pages/geradores/CarrosseisPublicados";
 import PlanejamentoConteudo from "./pages/PlanejamentoConteudo";
+import GeradorCarrosseis from "./pages/GeradorCarrosseis";
 import AgentesIA from "./pages/AgentesIA";
 import AgentChat from "./pages/AgentChat";
 import AgentEdit from "./pages/AgentEdit";
@@ -357,6 +358,11 @@ const App = () => {
                  <Route path="/geradores/criativos" element={
                   <PermissionProtectedRoute requiredPermission="gerador-criativos">
                     <GeradorCriativos />
+                  </PermissionProtectedRoute>
+                } />
+                 <Route path="/geradores/carrosseis" element={
+                  <PermissionProtectedRoute requiredPermission="geradores">
+                    <GeradorCarrosseis />
                   </PermissionProtectedRoute>
                 } />
                  <Route path="/geradores/apresentacoes" element={
