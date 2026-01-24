@@ -84,22 +84,22 @@ export function ClientDetailsLayout({ children, clientId, clientName, dashboardT
   // Find the current client from the clients list
   const currentClient = clients.find(c => c.id === clientId);
 
-  // Navigation groups
+  // Navigation groups - Visão Geral first, then alphabetical order
   const navGroups: NavGroup[] = useMemo(() => [
     {
       title: "Visão Geral",
       icon: Eye,
       items: [
-        { title: "Dashboard", href: `/clientes/${clientId}`, icon: LayoutDashboard },
         { title: "Alertas & Sugestões", href: `/clientes/${clientId}/alertas`, icon: AlertTriangle },
+        { title: "Dashboard", href: `/clientes/${clientId}`, icon: LayoutDashboard },
       ]
     },
     {
       title: "Análises & Relatórios",
       icon: BarChart3,
       items: [
-        { title: "Análise Completa", href: `/clientes/${clientId}/analise`, icon: BarChart3 },
         { title: "Análise Competitiva", href: `/clientes/${clientId}/competitiva`, icon: Users },
+        { title: "Análise Completa", href: `/clientes/${clientId}/analise`, icon: BarChart3 },
         { title: "Comparação de Períodos", href: `/clientes/${clientId}/comparacao`, icon: GitCompare },
         { title: "Relatório Semanal", href: `/clientes/${clientId}/relatorio`, icon: FileText },
         { title: "Tendências", href: `/clientes/${clientId}/tendencias`, icon: TrendingUp },
@@ -109,22 +109,30 @@ export function ClientDetailsLayout({ children, clientId, clientName, dashboardT
       title: "Campanhas & Anúncios",
       icon: Megaphone,
       items: [
+        { title: "Automações", href: `/clientes/${clientId}/automacoes`, icon: Zap },
         { title: "Campanhas", href: `/clientes/${clientId}/campanhas`, icon: Megaphone },
         { title: "Conjuntos de Anúncios", href: `/clientes/${clientId}/conjuntos`, icon: Layers },
         { title: "Criativos", href: `/clientes/${clientId}/criativos`, icon: Image },
         { title: "Funil de Conversão", href: `/clientes/${clientId}/funil`, icon: TrendingUp },
-        { title: "Automações", href: `/clientes/${clientId}/automacoes`, icon: Zap },
       ]
     },
     {
-      title: "Meta & Rastreamento",
-      icon: Target,
+      title: "Configurações & Dados",
+      icon: Settings,
       items: [
-        { title: "Pixels Meta", href: `/clientes/${clientId}/pixels`, icon: Activity },
-        { title: "Públicos Meta", href: `/clientes/${clientId}/publicos`, icon: UsersRound },
-        { title: "Conversões Offline", href: `/clientes/${clientId}/conversoes`, icon: DollarSign },
-        { title: "URLs", href: `/clientes/${clientId}/urls`, icon: Link2 },
-        { title: "Keyword Planner", href: `/clientes/${clientId}/keyword-planner`, icon: Sparkles },
+        { title: "Anotações", href: `/clientes/${clientId}/anotacoes`, icon: StickyNote },
+        { title: "Contato & Dados", href: `/clientes/${clientId}/contato`, icon: User },
+        { title: "Histórico", href: `/clientes/${clientId}/historico`, icon: Clock },
+      ]
+    },
+    {
+      title: "Criação de Conteúdo",
+      icon: PenTool,
+      items: [
+        { title: "Fábrica de Anúncios", href: `/clientes/${clientId}/fabrica-anuncios`, icon: Factory },
+        { title: "Fábrica de Carrosseis", href: `/clientes/${clientId}/fabrica-carrosseis`, icon: Layers },
+        { title: "Fábrica de Criativos", href: `/clientes/${clientId}/fabrica-criativos`, icon: Palette },
+        { title: "Redes Sociais", href: `/clientes/${clientId}/redes-sociais`, icon: Share2 },
       ]
     },
     {
@@ -136,30 +144,22 @@ export function ClientDetailsLayout({ children, clientId, clientName, dashboardT
       ]
     },
     {
-      title: "Criação de Conteúdo",
-      icon: PenTool,
+      title: "Meta & Rastreamento",
+      icon: Target,
       items: [
-        { title: "Fábrica de Anúncios", href: `/clientes/${clientId}/fabrica-anuncios`, icon: Factory },
-        { title: "Fábrica de Criativos", href: `/clientes/${clientId}/fabrica-criativos`, icon: Palette },
-        { title: "Fábrica de Carrosseis", href: `/clientes/${clientId}/fabrica-carrosseis`, icon: Layers },
-        { title: "Redes Sociais", href: `/clientes/${clientId}/redes-sociais`, icon: Share2 },
+        { title: "Conversões Offline", href: `/clientes/${clientId}/conversoes`, icon: DollarSign },
+        { title: "Keyword Planner", href: `/clientes/${clientId}/keyword-planner`, icon: Sparkles },
+        { title: "Pixels Meta", href: `/clientes/${clientId}/pixels`, icon: Activity },
+        { title: "Públicos Meta", href: `/clientes/${clientId}/publicos`, icon: UsersRound },
+        { title: "URLs", href: `/clientes/${clientId}/urls`, icon: Link2 },
       ]
     },
     {
-      title: "Apresentações & Planejamento",
+      title: "Planejamento",
       icon: Presentation,
       items: [
         { title: "Apresentações", href: `/clientes/${clientId}/apresentacoes`, icon: TrendingUp },
         { title: "Tarefas", href: `/clientes/${clientId}/tarefas`, icon: ListTodo },
-      ]
-    },
-    {
-      title: "Configurações & Dados",
-      icon: Settings,
-      items: [
-        { title: "Contato & Dados", href: `/clientes/${clientId}/contato`, icon: User },
-        { title: "Anotações", href: `/clientes/${clientId}/anotacoes`, icon: StickyNote },
-        { title: "Histórico", href: `/clientes/${clientId}/historico`, icon: Clock },
       ]
     },
   ], [clientId]);
