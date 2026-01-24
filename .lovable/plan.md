@@ -1,104 +1,118 @@
 
-# Plano: Sincronizar Conversões de Ad Sets e Ads do Meta
+# Plano: Adicionar Edição de Campanhas, Conjuntos e Criativos no Editor
 
-## Problema Identificado
+## Situação Atual
 
-A sincronização atual com o Meta está **intencionalmente zerando** as conversões dos conjuntos de anúncios e criativos para evitar duplicação nos totais dos dashboards. O código atual faz:
-
-```typescript
-// Ad Sets (linha 1142)
-adSetLeads = 0  // Salva 0 mesmo tendo contado conversões
-
-// Ads (linha 1303)
-adLeads = 0  // Não conta nem salva conversões
-```
-
-Isso impede que você veja quais conjuntos e criativos estão performando melhor na tela do Tree Grid.
+O `InspectorPanel` é um painel lateral read-only que exibe informações quando você clica em um item (campanha, conjunto ou criativo). Para transformar a tela do Editor em uma ferramenta completa de gestão, precisamos permitir edições diretamente desse painel.
 
 ---
 
 ## Solução Proposta
 
-Salvar as conversões reais nos ad sets e ads **sem alterar nenhum dashboard existente**. Os dashboards continuarão usando conversões de campanhas como fonte de verdade para totais.
+Transformar o `InspectorPanel` em um painel de edição completo com tabs para organizar as funcionalidades:
+- **Tab Métricas** - Visão atual de performance (read-only)
+- **Tab Configurações** - Campos editáveis (nome, status, orçamento, etc.)
+
+O painel detectará o tipo do item (`campaign`, `adset`, `ad`) e mostrará campos específicos para cada um.
 
 ---
 
-## Alterações na Edge Function
-
-**Arquivo:** `supabase/functions/sync-facebook-campaigns/index.ts`
-
-### 1. Ad Sets - Salvar conversões reais
-
-**De (linha ~1138-1143):**
-```typescript
-const adSetCounted = countConversionsFromActions(adSetCombinedMetrics, campaign.objective, ...)
-campaignChildLeads += adSetCounted
-adSetLeads = 0  // ❌ Zera as conversões
-```
-
-**Para:**
-```typescript
-const adSetCounted = countConversionsFromActions(adSetCombinedMetrics, campaign.objective, ...)
-campaignChildLeads += adSetCounted
-adSetLeads = adSetCounted  // ✅ Salva as conversões reais
-```
-
-### 2. Ads - Contar e salvar conversões
-
-**De (linha ~1301-1304):**
-```typescript
-adLeads = 0
-console.log('Ad conversions set to 0 (counted at campaign level)', ad.name)
-```
-
-**Para:**
-```typescript
-// Contar conversões do ad
-const adCombinedMetrics = [
-  ...(Array.isArray(adInsights.actions) ? adInsights.actions : []),
-  ...(Array.isArray((adInsights as any).conversions) ? (adInsights as any).conversions : [])
-]
-adLeads = countConversionsFromActions(adCombinedMetrics, campaign.objective, `${campaign.name} → ${adSet.name} → ${ad.name}`)
-console.log('Ad conversions counted:', ad.name, adLeads)
-```
-
----
-
-## O Que NÃO Será Alterado
-
-| Componente | Status |
-|------------|--------|
-| Dashboard principal de clientes | Sem alteração (usa conversões de campanha) |
-| Alertas de CPA | Sem alteração (usa conversões de campanha) |
-| Relatórios WhatsApp | Sem alteração (usa conversões de campanha) |
-| Cálculo de totais | Sem alteração (soma de campanhas) |
-| KPIs agregados | Sem alteração |
-
----
-
-## Resultado Esperado
-
-Após a sincronização, a tela do Tree Grid mostrará:
+## Arquitetura
 
 ```text
-▼ Campanha Principal    | Conv: 157 | CPA: R$ 8,91  ← Total da campanha
-  ▼ Ad Set 1            | Conv: 125 | CPA: R$ 4,10  ← Conversões do conjunto
-    ○ Anúncio A         | Conv: 80  | CPA: R$ 3,50  ← Conversões do criativo
-    ○ Anúncio B         | Conv: 45  | CPA: R$ 5,20  ← Conversões do criativo
-  ▼ Ad Set 2            | Conv: 11  | CPA: R$ 27,53 ← Conversões do conjunto
-    ○ Anúncio C         | Conv: 11  | CPA: R$ 27,53
+InspectorPanel (Sheet)
+├── Header (nome, status badge, tipo)
+├── Tabs
+│   ├── [Métricas] - Dados de performance
+│   └── [Configurações] - Campos editáveis
+│       ├── Campanha: nome, status, orçamento
+│       ├── Conjunto: nome, status, orçamento diário
+│       └── Criativo: nome, status
+└── Footer (botão Salvar)
 ```
 
 ---
 
-## Nota Importante
+## Campos Editáveis por Tipo
 
-A **soma das conversões dos ads** pode ser ligeiramente diferente da campanha devido a:
-- Janelas de atribuição diferentes
-- Conversões cross-device
-- Modelos de atribuição do Meta
+### Campanha (`campaign`)
+| Campo | API Meta | Edição Local |
+|-------|----------|--------------|
+| Nome | Sim (rename) | Sim |
+| Status | Sim (toggle) | Sim |
+| Orçamento diário | Sim (budget) | Sim |
 
-Isso é normal e esperado. A campanha é sempre a fonte de verdade para totais.
+### Conjunto de Anúncios (`adset`)
+| Campo | API Meta | Edição Local |
+|-------|----------|--------------|
+| Nome | Sim (rename) | Sim |
+| Status | Sim (toggle) | Sim |
+| Orçamento diário | Sim (budget) | Sim |
+
+### Anúncio/Criativo (`ad`)
+| Campo | API Meta | Edição Local |
+|-------|----------|--------------|
+| Nome | Sim (rename) | Sim |
+| Status | Sim (toggle) | Sim |
+
+Nota: Campanhas Google terão edição apenas local (sem API)
+
+---
+
+## Componentes a Modificar/Criar
+
+### 1. Modificar InspectorPanel.tsx
+Adicionar:
+- Sistema de tabs (Métricas / Configurações)
+- Estado local para campos editáveis
+- Inputs para nome, status toggle, budget
+- Botão de salvar com loading state
+- Integração com `useInlineEdit` hook
+
+### 2. Modificar CampaignEditorPage.tsx
+Passar props adicionais ao InspectorPanel:
+- `clientId` para chamadas de API
+- `onUpdate` callback para invalidar queries após edição
+
+### 3. Utilizar hook existente: useInlineEdit
+O hook já possui:
+- `updateStatus(type, id, clientId, facebookId, newStatus, platform)`
+- `updateBudget(type, id, clientId, facebookId, newBudget, budgetType, platform)`
+- `updateName(type, id, clientId, facebookId, newName, platform)`
+
+---
+
+## Fluxo de Edição
+
+```text
+1. Usuário clica em item na árvore
+2. InspectorPanel abre com dados do item
+3. Usuário muda para tab "Configurações"
+4. Usuário edita campos desejados
+5. Usuário clica "Salvar Alterações"
+6. Sistema:
+   a. Se Meta: chama API do Facebook via Edge Function
+   b. Atualiza banco local
+   c. Mostra toast de sucesso
+   d. Invalida queries para atualizar a árvore
+7. Painel atualiza com novos dados
+```
+
+---
+
+## Interface Visual do Painel
+
+Tab Métricas (atual):
+- Cards de métricas (spend, impressions, CTR, CPA, etc.)
+- Seção de orçamento (read-only)
+- Preview do criativo (para ads)
+
+Tab Configurações (nova):
+- Input para nome com validação
+- Switch para ativar/pausar
+- Input numérico para orçamento (quando aplicável)
+- Informações da plataforma (Meta/Google)
+- Alerta visual se Google (sem edição via API)
 
 ---
 
@@ -106,14 +120,25 @@ Isso é normal e esperado. A campanha é sempre a fonte de verdade para totais.
 
 | Arquivo | Alteração |
 |---------|-----------|
-| `supabase/functions/sync-facebook-campaigns/index.ts` | Salvar conversões reais em ad sets e ads |
+| `src/components/campaign-editor/InspectorPanel.tsx` | Adicionar tabs, campos editáveis, integração com useInlineEdit |
+| `src/pages/cliente/CampaignEditorPage.tsx` | Passar clientId e callback de atualização ao InspectorPanel |
 
 ---
 
-## Ordem de Implementação
+## Validações
 
-1. Modificar lógica de ad sets para salvar `adSetCounted` ao invés de 0
-2. Adicionar contagem de conversões para ads usando `countConversionsFromActions`
-3. Atualizar CPA dos ads com base nas conversões reais
-4. Deploy da edge function
-5. Testar sincronização de uma campanha específica
+1. Nome não pode ser vazio
+2. Orçamento mínimo R$ 1,00
+3. Desabilitar edição de orçamento para ads (não têm budget próprio)
+4. Mostrar aviso visual para campanhas Google (edição apenas local)
+5. Prevenir submit durante loading
+
+---
+
+## Notas de UX
+
+- Tab "Configurações" só aparece se o item for editável
+- Campos com alterações não salvas mostram indicador visual
+- Botão salvar desabilitado se não houver alterações
+- Após salvar, voltar automaticamente para tab Métricas
+- Toast de feedback para sucesso/erro
