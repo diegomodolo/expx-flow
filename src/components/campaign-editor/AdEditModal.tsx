@@ -200,6 +200,9 @@ export function AdEditModal({
       // CTA is now already parsed from JSON in useCampaignTree
       setCallToAction(nodeAny.callToAction || 'LEARN_MORE');
       
+      // Set pixel ID from node
+      setPixelId(nodeAny.pixelId || '');
+      
       // Parse UTM from link URL if present
       if (nodeAny.linkUrl) {
         try {
@@ -364,6 +367,7 @@ export function AdEditModal({
             call_to_action: callToAction,
             image_url: creativeType !== 'VIDEO' ? mediaUrls[0] : null,
             video_url: creativeType === 'VIDEO' ? mediaUrls[0] : null,
+            pixel_id: pixelId || null,
             updated_at: new Date().toISOString(),
           })
           .eq('id', node.id);
@@ -371,6 +375,14 @@ export function AdEditModal({
         if (updateError) throw updateError;
 
         toast.success('Anúncio atualizado localmente');
+      }
+      
+      // Always update pixel_id locally if changed
+      if (pixelId !== (node as any).pixelId) {
+        await supabase
+          .from('ads')
+          .update({ pixel_id: pixelId || null })
+          .eq('id', node.id);
       }
 
       setHasChanges(false);

@@ -43,6 +43,7 @@ export interface TreeNode {
   creativeType?: string;
   callToAction?: string;
   linkUrl?: string;
+  pixelId?: string;
   children?: TreeNode[];
   parentId?: string;
 }
@@ -292,6 +293,7 @@ export function useCampaignTree(options: UseCampaignTreeOptions) {
               }
             })(),
             linkUrl: ad.link_url,
+            pixelId: (ad as any).pixel_id || undefined,
             metrics: {
               spend: Number(ad.spend) || 0,
               impressions: Number(ad.impressions) || 0,
