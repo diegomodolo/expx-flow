@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Button } from "@/components/ui/button";
@@ -42,6 +42,9 @@ export function CarouselGenerationProgressModal({
 }) {
   const { isGenerating, start, cancel } = useCarouselGenerationStream();
 
+  // Ref para prevenir re-execução da geração quando props mudam durante o processo
+  const hasStartedRef = useRef(false);
+
   const [carouselId, setCarouselId] = useState<string | null>(null);
   const [pickedType, setPickedType] = useState<CarouselType | null>(null);
   const [slidesTotal, setSlidesTotal] = useState(0);
@@ -57,6 +60,8 @@ export function CarouselGenerationProgressModal({
 
   useEffect(() => {
     if (!open) {
+      // Reset completo quando fecha
+      hasStartedRef.current = false;
       cancel();
       setCarouselId(null);
       setPickedType(null);
@@ -66,6 +71,15 @@ export function CarouselGenerationProgressModal({
       setIsDone(false);
       return;
     }
+
+    // GUARD: Se já iniciou, não inicia novamente (previne re-execução por mudança de props)
+    if (hasStartedRef.current) {
+      console.log("[CarouselGenerationProgressModal] Already started, skipping re-execution...");
+      return;
+    }
+
+    // Marca como iniciado ANTES de chamar start
+    hasStartedRef.current = true;
 
     // Debug log to verify props being passed
     console.log("[CarouselGenerationProgressModal] Starting with:", {
