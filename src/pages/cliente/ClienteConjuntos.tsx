@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Layers, RefreshCw, Eye, DollarSign, Target, TrendingUp } from "lucide-react";
+import { Layers, RefreshCw, Eye, DollarSign, Target, TrendingUp, Plus } from "lucide-react";
 import { useUnifiedAdGroupsMetrics, Platform } from "@/hooks/useUnifiedAdGroups";
 import { useUnifiedCampaigns } from "@/hooks/useUnifiedCampaigns";
 import { useClientContext } from "./ClienteContext";
@@ -25,6 +25,7 @@ import { useCompany } from "@/contexts/CompanyContext";
 import { AdSetMetricsModal } from "@/components/adsets/AdSetMetricsModal";
 import { PlatformFilter } from "@/components/campaigns/PlatformFilter";
 import { PlatformBadge } from "@/components/campaigns/PlatformBadge";
+import { AdSetBuilderModal } from "@/components/campaigns/AdSetBuilderModal";
 
 export function ClienteConjuntos() {
   const { client, selectedCampaignId, setSelectedCampaignId } = useClientContext();
@@ -33,6 +34,7 @@ export function ClienteConjuntos() {
   const [platformFilter, setPlatformFilter] = useState<Platform>('all');
   const [selectedAdSet, setSelectedAdSet] = useState<any>(null);
   const [showModal, setShowModal] = useState(false);
+  const [showAdSetModal, setShowAdSetModal] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("spend");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
@@ -160,6 +162,12 @@ export function ClienteConjuntos() {
               <Button variant="outline" size="sm" onClick={() => refetch()}>
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Atualizar
+              </Button>
+
+              {/* New Ad Set button */}
+              <Button size="sm" onClick={() => setShowAdSetModal(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Novo Conjunto
               </Button>
             </div>
           </div>
@@ -342,6 +350,15 @@ export function ClienteConjuntos() {
           setShowModal(false);
           setSelectedAdSet(null);
         }}
+      />
+
+      {/* Ad Set Builder Modal */}
+      <AdSetBuilderModal
+        isOpen={showAdSetModal}
+        onClose={() => setShowAdSetModal(false)}
+        clientId={client.id}
+        companyId={activeCompany?.company_id || ''}
+        onSuccess={() => refetch()}
       />
     </div>
   );

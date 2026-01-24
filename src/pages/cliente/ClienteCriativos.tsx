@@ -30,7 +30,8 @@ import {
   Play,
   Film,
   TrendingUp,
-  FileText
+  FileText,
+  Plus
 } from "lucide-react";
 import { useUnifiedAdsMetrics, Platform } from "@/hooks/useUnifiedAds";
 import { useUnifiedCampaigns } from "@/hooks/useUnifiedCampaigns";
@@ -40,6 +41,7 @@ import { useCompany } from "@/contexts/CompanyContext";
 import { AdCreativeMetricsModal } from "@/components/ads/AdCreativeMetricsModal";
 import { PlatformFilter } from "@/components/campaigns/PlatformFilter";
 import { PlatformBadge } from "@/components/campaigns/PlatformBadge";
+import { CreativeBuilderModal } from "@/components/campaigns/CreativeBuilderModal";
 
 // Function to determine creative type priority
 const getCreativeTypePriority = (creativeType?: string): number => {
@@ -59,9 +61,10 @@ export function ClienteCriativos() {
   const [platformFilter, setPlatformFilter] = useState<Platform>('all');
   const [selectedAd, setSelectedAd] = useState<any>(null);
   const [showModal, setShowModal] = useState(false);
+  const [showCreativeModal, setShowCreativeModal] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
-  const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
+  const [viewMode, setViewMode] = useState<"grid" | "table">("table");
   const [sortBy, setSortBy] = useState<string>("conversions");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
@@ -272,6 +275,12 @@ export function ClienteCriativos() {
               <Button variant="outline" size="sm" onClick={() => refetch()}>
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Atualizar
+              </Button>
+
+              {/* New Creative button */}
+              <Button size="sm" onClick={() => setShowCreativeModal(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Novo Criativo
               </Button>
             </div>
           </div>
