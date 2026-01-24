@@ -12,7 +12,14 @@ export const useFacebookCampaignSync = () => {
   const syncCampaigns = async (
     clientId: string, 
     period: string = '30', 
-    options?: { campaigns?: boolean; adsets?: boolean; ads?: boolean }, 
+    options?: { 
+      campaigns?: boolean; 
+      adsets?: boolean; 
+      ads?: boolean;
+      campaignFacebookId?: string; // Optional: sync only specific campaign
+      startDate?: string; // Optional: custom period start (YYYY-MM-DD)
+      endDate?: string; // Optional: custom period end (YYYY-MM-DD)
+    }, 
     silent: boolean = false, 
     includeInactive: boolean = false
   ): Promise<string | null> => {
@@ -26,7 +33,10 @@ export const useFacebookCampaignSync = () => {
           syncCampaigns: options?.campaigns !== false,
           syncAdSets: options?.adsets !== false, 
           syncAds: options?.ads !== false,
-          includeInactive
+          includeInactive,
+          campaignFacebookId: options?.campaignFacebookId || null,
+          startDate: options?.startDate || null,
+          endDate: options?.endDate || null
         }
       });
 

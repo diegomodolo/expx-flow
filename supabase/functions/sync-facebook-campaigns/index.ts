@@ -86,7 +86,10 @@ Deno.serve(async (req) => {
       syncCampaigns = true, 
       syncAdSets = false, 
       syncAds = false,
-      includeInactive = false
+      includeInactive = false,
+      campaignFacebookId = null, // Optional: sync only a specific campaign
+      startDate = null, // Optional: custom period start (YYYY-MM-DD)
+      endDate = null // Optional: custom period end (YYYY-MM-DD)
     } = requestBody
 
     if (!clientId) {
@@ -103,7 +106,7 @@ Deno.serve(async (req) => {
       )
     }
 
-    console.log('Processing sync for client ID:', clientId, 'Sync options:', { syncCampaigns, syncAdSets, syncAds, includeInactive })
+    console.log('Processing sync for client ID:', clientId, 'Sync options:', { syncCampaigns, syncAdSets, syncAds, includeInactive, campaignFacebookId, startDate, endDate })
 
     // Get client info for company_id
     console.log('Fetching client data...')
@@ -150,7 +153,7 @@ Deno.serve(async (req) => {
     )
 
     // Continue processing in background
-    processSync(supabase, job.id, clientId, period, syncCampaigns, syncAdSets, syncAds, includeInactive)
+    processSync(supabase, job.id, clientId, period, syncCampaigns, syncAdSets, syncAds, includeInactive, campaignFacebookId, startDate, endDate)
       .catch(error => console.error('Background sync error:', error))
 
     return response
@@ -171,7 +174,10 @@ async function processSync(
   syncCampaigns: boolean,
   syncAdSets: boolean,
   syncAds: boolean,
-  includeInactive: boolean
+  includeInactive: boolean,
+  campaignFacebookId: string | null = null,
+  startDate: string | null = null,
+  endDate: string | null = null
 ) {
   try {
     // Update job to processing
@@ -504,32 +510,64 @@ async function processSync(
     }
 
     console.log('Fetching campaigns from Facebook for account:', accountId)
-    console.log('Using period:', period)
+    console.log('Using period:', period, 'Custom range:', startDate, '-', endDate)
+    console.log('Campaign filter (if any):', campaignFacebookId)
     
     // Map period to Facebook API parameters
     let dateParam = '';
-    switch (period) {
-      case '7':
-        dateParam = '.date_preset(last_7d)';
-        break;
-      case '15':
-        // For 15 days, we need to use time_range with specific dates
-        const fifteenDaysAgo = new Date();
-        fifteenDaysAgo.setDate(fifteenDaysAgo.getDate() - 15);
-        const today = new Date();
-        dateParam = `.time_range({"since":"${fifteenDaysAgo.toISOString().split('T')[0]}","until":"${today.toISOString().split('T')[0]}"})`;
-        break;
-      case '30':
-        dateParam = '.date_preset(last_30d)';
-        break;
-      case '90':
-        dateParam = '.date_preset(last_90d)';
-        break;
-      case 'lifetime':
-        dateParam = '.date_preset(maximum)'; // Using 'maximum' instead of 'lifetime' as per Facebook API v10.0+
-        break;
-      default:
-        dateParam = '.date_preset(last_30d)'; // Default to 30 days
+    
+    // Check if custom date range is provided
+    if (startDate && endDate) {
+      dateParam = `.time_range({"since":"${startDate}","until":"${endDate}"})`;
+      console.log('Using custom date range:', startDate, 'to', endDate);
+    } else {
+      // Standard period presets
+      switch (period) {
+        case '1':
+          dateParam = '.date_preset(today)';
+          break;
+        case '3':
+          const threeDaysAgo = new Date();
+          threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+          const todayFor3 = new Date();
+          dateParam = `.time_range({"since":"${threeDaysAgo.toISOString().split('T')[0]}","until":"${todayFor3.toISOString().split('T')[0]}"})`;
+          break;
+        case '5':
+          const fiveDaysAgo = new Date();
+          fiveDaysAgo.setDate(fiveDaysAgo.getDate() - 5);
+          const todayFor5 = new Date();
+          dateParam = `.time_range({"since":"${fiveDaysAgo.toISOString().split('T')[0]}","until":"${todayFor5.toISOString().split('T')[0]}"})`;
+          break;
+        case '7':
+          dateParam = '.date_preset(last_7d)';
+          break;
+        case '14':
+          dateParam = '.date_preset(last_14d)';
+          break;
+        case '15':
+          const fifteenDaysAgo = new Date();
+          fifteenDaysAgo.setDate(fifteenDaysAgo.getDate() - 15);
+          const today = new Date();
+          dateParam = `.time_range({"since":"${fifteenDaysAgo.toISOString().split('T')[0]}","until":"${today.toISOString().split('T')[0]}"})`;
+          break;
+        case '30':
+          dateParam = '.date_preset(last_30d)';
+          break;
+        case '60':
+          const sixtyDaysAgo = new Date();
+          sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+          const todayFor60 = new Date();
+          dateParam = `.time_range({"since":"${sixtyDaysAgo.toISOString().split('T')[0]}","until":"${todayFor60.toISOString().split('T')[0]}"})`;
+          break;
+        case '90':
+          dateParam = '.date_preset(last_90d)';
+          break;
+        case 'lifetime':
+          dateParam = '.date_preset(maximum)';
+          break;
+        default:
+          dateParam = '.date_preset(last_30d)';
+      }
     }
 
     // Helper to sum conversions based on campaign objective and action types
@@ -687,75 +725,89 @@ async function processSync(
 
     // Fetch campaigns from Facebook API with enhanced insights - using 7d_click + 1d_view attribution windows
     console.log('Using attribution windows: 7d_click + 1d_view')
-    const baseCampaignsUrl = `https://graph.facebook.com/v20.0/${accountId}/campaigns?fields=id,name,status,objective,daily_budget,lifetime_budget,insights${dateParam}.action_report_time(conversion).action_attribution_windows(["7d_click","1d_view"])` +
-      `{impressions,clicks,spend,actions,conversions,conversion_values,action_values,reach,frequency,quality_ranking,engagement_rate_ranking,conversion_rate_ranking}&effective_status=["ACTIVE","PAUSED"]&limit=100&access_token=${accessToken}`
-    console.log('Facebook API URL (without token):', baseCampaignsUrl.replace(accessToken, '[REDACTED]'))
-
+    
     let campaigns: any[] = []
-    let pageUrl: string | null = baseCampaignsUrl
-
-    while (pageUrl) {
-      console.log('Fetching campaigns page:', pageUrl.replace(accessToken, '[REDACTED]'))
+    
+    // Check if we're fetching a specific campaign or all campaigns
+    if (campaignFacebookId) {
+      // Fetch specific campaign by Facebook ID
+      console.log('Fetching SPECIFIC campaign:', campaignFacebookId)
+      const singleCampaignUrl = `https://graph.facebook.com/v20.0/${campaignFacebookId}?fields=id,name,status,objective,daily_budget,lifetime_budget,insights${dateParam}.action_report_time(conversion).action_attribution_windows(["7d_click","1d_view"])` +
+        `{impressions,clicks,spend,actions,conversions,conversion_values,action_values,reach,frequency,quality_ranking,engagement_rate_ranking,conversion_rate_ranking}&access_token=${accessToken}`
+      console.log('Facebook API URL (single campaign, without token):', singleCampaignUrl.replace(accessToken, '[REDACTED]'))
       
-      let response;
       try {
-        response = await fetch(pageUrl)
-      } catch (fetchError) {
-        console.error('Network error fetching campaigns:', fetchError)
-        return new Response(
-          JSON.stringify({ 
-            success: false, 
-            error: `Network error connecting to Facebook: ${fetchError.message}` 
-          }),
-          { 
-            status: 500, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-          }
-        )
+        const response = await fetch(singleCampaignUrl)
+        console.log('Facebook API response status:', response.status)
+        
+        if (!response.ok) {
+          const errorText = await response.text()
+          console.error('Facebook API error response:', errorText)
+          await completeJob(supabase, jobId, false, `Failed to fetch campaign from Facebook: ${errorText}`)
+          return
+        }
+        
+        const campaignData = await response.json()
+        if (campaignData.error) {
+          console.error('Facebook API error:', campaignData.error)
+          await completeJob(supabase, jobId, false, campaignData.error.message || 'Facebook API error')
+          return
+        }
+        
+        campaigns = [campaignData]
+        console.log('Single campaign fetched:', campaignData.name)
+      } catch (fetchError: any) {
+        console.error('Network error fetching campaign:', fetchError)
+        await completeJob(supabase, jobId, false, `Network error: ${fetchError.message}`)
+        return
       }
-      
-      console.log('Facebook API response status:', response.status)
+    } else {
+      // Fetch all campaigns
+      const baseCampaignsUrl = `https://graph.facebook.com/v20.0/${accountId}/campaigns?fields=id,name,status,objective,daily_budget,lifetime_budget,insights${dateParam}.action_report_time(conversion).action_attribution_windows(["7d_click","1d_view"])` +
+        `{impressions,clicks,spend,actions,conversions,conversion_values,action_values,reach,frequency,quality_ranking,engagement_rate_ranking,conversion_rate_ranking}&effective_status=["ACTIVE","PAUSED"]&limit=100&access_token=${accessToken}`
+      console.log('Facebook API URL (without token):', baseCampaignsUrl.replace(accessToken, '[REDACTED]'))
 
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error('Facebook API error response:', errorText)
-        console.error('Facebook API status:', response.status)
-        console.error('Facebook API statusText:', response.statusText)
-        console.error('Period used:', period)
-        console.error('Date param used:', dateParam)
-        return new Response(
-          JSON.stringify({ 
-            success: false, 
-            error: `Failed to fetch campaigns from Facebook. Status: ${response.status}. Error: ${errorText}` 
-          }),
-          { 
-            status: 400, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-          }
-        )
-      }
+      let pageUrl: string | null = baseCampaignsUrl
 
-      const pageData = await response.json()
-      console.log('Facebook campaigns page data count:', (pageData.data || []).length)
+      while (pageUrl) {
+        console.log('Fetching campaigns page:', pageUrl.replace(accessToken, '[REDACTED]'))
+        
+        let response;
+        try {
+          response = await fetch(pageUrl)
+        } catch (fetchError: any) {
+          console.error('Network error fetching campaigns:', fetchError)
+          await completeJob(supabase, jobId, false, `Network error: ${fetchError.message}`)
+          return
+        }
+        
+        console.log('Facebook API response status:', response.status)
 
-      if (pageData.error) {
-        console.error('Facebook API error in page response:', pageData.error)
-        return new Response(
-          JSON.stringify({ 
-            success: false, 
-            error: pageData.error.message || 'Facebook API error' 
-          }),
-          { 
-            status: 400, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-          }
-        )
-      }
+        if (!response.ok) {
+          const errorText = await response.text()
+          console.error('Facebook API error response:', errorText)
+          console.error('Facebook API status:', response.status)
+          console.error('Facebook API statusText:', response.statusText)
+          console.error('Period used:', period)
+          console.error('Date param used:', dateParam)
+          await completeJob(supabase, jobId, false, `Failed to fetch campaigns: ${errorText}`)
+          return
+        }
 
-      campaigns = campaigns.concat(pageData.data || [])
-      pageUrl = pageData.paging?.next || null
-      if (pageUrl) {
-        console.log('Next page detected, continuing pagination...')
+        const pageData = await response.json()
+        console.log('Facebook campaigns page data count:', (pageData.data || []).length)
+
+        if (pageData.error) {
+          console.error('Facebook API error in page response:', pageData.error)
+          await completeJob(supabase, jobId, false, pageData.error.message || 'Facebook API error')
+          return
+        }
+
+        campaigns = campaigns.concat(pageData.data || [])
+        pageUrl = pageData.paging?.next || null
+        if (pageUrl) {
+          console.log('Next page detected, continuing pagination...')
+        }
       }
     }
 
@@ -768,42 +820,105 @@ async function processSync(
     let totalClicks = 0
 
     // Clear existing data based on sync options
+    // If syncing a specific campaign, only delete that campaign's data
     if (syncCampaigns) {
-      const { error: deleteCampaignsError } = await supabase
-        .from('campaigns')
-        .delete()
-        .eq('client_id', clientId)
-      
-      if (deleteCampaignsError) {
-        console.error('Error deleting existing campaigns:', deleteCampaignsError)
+      if (campaignFacebookId) {
+        // Delete only the specific campaign
+        const { error: deleteCampaignError } = await supabase
+          .from('campaigns')
+          .delete()
+          .eq('client_id', clientId)
+          .eq('facebook_id', campaignFacebookId)
+        
+        if (deleteCampaignError) {
+          console.error('Error deleting specific campaign:', deleteCampaignError)
+        } else {
+          console.log('Cleared specific campaign for update:', campaignFacebookId)
+        }
       } else {
-        console.log('Cleared existing campaigns for client')
+        // Delete all campaigns for the client
+        const { error: deleteCampaignsError } = await supabase
+          .from('campaigns')
+          .delete()
+          .eq('client_id', clientId)
+        
+        if (deleteCampaignsError) {
+          console.error('Error deleting existing campaigns:', deleteCampaignsError)
+        } else {
+          console.log('Cleared existing campaigns for client')
+        }
       }
     }
 
     if (syncAdSets) {
-      const { error: deleteAdSetsError } = await supabase
-        .from('ad_sets')
-        .delete()
-        .eq('client_id', clientId)
-      
-      if (deleteAdSetsError) {
-        console.error('Error deleting existing ad sets:', deleteAdSetsError)
+      if (campaignFacebookId) {
+        // First get the internal campaign ID
+        const { data: campaignRecord } = await supabase
+          .from('campaigns')
+          .select('id')
+          .eq('facebook_id', campaignFacebookId)
+          .eq('client_id', clientId)
+          .single()
+        
+        if (campaignRecord) {
+          const { error: deleteAdSetsError } = await supabase
+            .from('ad_sets')
+            .delete()
+            .eq('campaign_id', campaignRecord.id)
+          
+          if (deleteAdSetsError) {
+            console.error('Error deleting ad sets for campaign:', deleteAdSetsError)
+          } else {
+            console.log('Cleared ad sets for specific campaign')
+          }
+        }
       } else {
-        console.log('Cleared existing ad sets for client')
+        const { error: deleteAdSetsError } = await supabase
+          .from('ad_sets')
+          .delete()
+          .eq('client_id', clientId)
+        
+        if (deleteAdSetsError) {
+          console.error('Error deleting existing ad sets:', deleteAdSetsError)
+        } else {
+          console.log('Cleared existing ad sets for client')
+        }
       }
     }
 
     if (syncAds) {
-      const { error: deleteAdsError } = await supabase
-        .from('ads')
-        .delete()
-        .eq('client_id', clientId)
-      
-      if (deleteAdsError) {
-        console.error('Error deleting existing ads:', deleteAdsError)
+      if (campaignFacebookId) {
+        // First get the internal campaign ID
+        const { data: campaignRecord } = await supabase
+          .from('campaigns')
+          .select('id')
+          .eq('facebook_id', campaignFacebookId)
+          .eq('client_id', clientId)
+          .single()
+        
+        if (campaignRecord) {
+          const { error: deleteAdsError } = await supabase
+            .from('ads')
+            .delete()
+            .eq('campaign_id', campaignRecord.id)
+          
+          if (deleteAdsError) {
+            console.error('Error deleting ads for campaign:', deleteAdsError)
+          } else {
+            console.log('Cleared ads for specific campaign')
+          }
+        }
       } else {
-        console.log('Cleared existing ads for client')
+        const { error: deleteAdsError } = await supabase
+          .from('ads')
+          .delete()
+          .eq('client_id', clientId)
+        
+        if (deleteAdsError) {
+          console.error('Error deleting existing ads:', deleteAdsError)
+        } else {
+          console.log('Cleared existing ads for client')
+        }
       }
     }
 
