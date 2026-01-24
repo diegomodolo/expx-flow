@@ -832,23 +832,13 @@ async function processSync(
     let totalClicks = 0
 
     // Clear existing data based on sync options
-    // If syncing a specific campaign, only delete that campaign's data
+    // IMPORTANT: when syncing a specific campaign, do NOT delete the campaign row.
+    // Deleting it changes the internal UUID used by the UI route and breaks the editor URL.
     if (syncCampaigns) {
       if (campaignFacebookId) {
-        // Delete only the specific campaign
-        const { error: deleteCampaignError } = await supabase
-          .from('campaigns')
-          .delete()
-          .eq('client_id', clientId)
-          .eq('facebook_id', campaignFacebookId)
-        
-        if (deleteCampaignError) {
-          console.error('Error deleting specific campaign:', deleteCampaignError)
-        } else {
-          console.log('Cleared specific campaign for update:', campaignFacebookId)
-        }
+        console.log('Specific campaign sync: skipping campaign deletion to preserve internal campaign UUID:', campaignFacebookId)
       } else {
-        // Delete all campaigns for the client
+        // Delete all campaigns for the client (legacy full resync behavior)
         const { error: deleteCampaignsError } = await supabase
           .from('campaigns')
           .delete()
@@ -1185,17 +1175,20 @@ async function processSync(
               is_active: adSet.status === 'ACTIVE'
             }
 
-            const { data: savedAdSet, error: adSetError } = await supabase
+            // Upsert by facebook_id to avoid duplicate key errors when resyncing.
+            // This also guarantees the ad set gets linked to the current campaign_id.
+            const { data: upsertedAdSets, error: adSetError } = await supabase
               .from('ad_sets')
-              .insert(adSetData)
+              .upsert(adSetData, { onConflict: 'facebook_id' })
               .select()
-              .single()
 
-            if (adSetError) {
-              console.error('Error inserting ad set:', adSetError)
+            const savedAdSet = Array.isArray(upsertedAdSets) ? upsertedAdSets[0] : upsertedAdSets
+
+            if (adSetError || !savedAdSet) {
+              console.error('Error upserting ad set:', adSetError)
               continue
             } else {
-              console.log('Ad set saved:', adSet.name)
+              console.log('Ad set saved (upsert):', adSet.name)
             }
 
             // Fetch ads for this ad set if enabled
@@ -1360,9 +1353,10 @@ async function processSync(
                      is_active: ad.status === 'ACTIVE'
                    }
 
+                  // Upsert by facebook_id to avoid duplicate key errors when resyncing.
                   const { error: adError } = await supabase
                     .from('ads')
-                    .insert(adData)
+                    .upsert(adData, { onConflict: 'facebook_id' })
 
                   if (adError) {
                     console.error('Error inserting ad:', adError)
