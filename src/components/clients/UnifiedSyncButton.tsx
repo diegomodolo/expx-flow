@@ -21,6 +21,8 @@ interface UnifiedSyncButtonProps {
   hasMetaAccount: boolean;
   hasGoogleAccount: boolean;
   onSyncComplete?: () => void;
+  isPaused?: boolean;
+  isCanceled?: boolean;
 }
 
 export function UnifiedSyncButton({
@@ -29,6 +31,8 @@ export function UnifiedSyncButton({
   hasMetaAccount,
   hasGoogleAccount,
   onSyncComplete,
+  isPaused = false,
+  isCanceled = false,
 }: UnifiedSyncButtonProps) {
   const [showMetaPeriodDialog, setShowMetaPeriodDialog] = useState(false);
   const { syncing: metaSyncing, syncCampaigns: syncMeta } = useFacebookCampaignSync();
@@ -92,11 +96,38 @@ export function UnifiedSyncButton({
     }
   };
 
+  // Handle blocked sync for paused/canceled clients
+  const handleBlockedSync = () => {
+    if (isPaused) {
+      toast.error("Cliente pausado", {
+        description: "Não é possível sincronizar dados de um cliente pausado. Reative o cliente para continuar."
+      });
+      return;
+    }
+    if (isCanceled) {
+      toast.error("Cliente cancelado", {
+        description: "Não é possível sincronizar dados de um cliente cancelado."
+      });
+      return;
+    }
+  };
+
+  const isBlocked = isPaused || isCanceled;
+
   if (!hasMetaAccount && !hasGoogleAccount) {
     return (
       <Button disabled variant="outline">
         <RefreshCw className="mr-2 h-4 w-4" />
         Nenhuma conta conectada
+      </Button>
+    );
+  }
+
+  if (isBlocked) {
+    return (
+      <Button onClick={handleBlockedSync} variant="outline" className="opacity-70">
+        <RefreshCw className="mr-2 h-4 w-4" />
+        Sincronizar {isPaused ? "(Pausado)" : "(Cancelado)"}
       </Button>
     );
   }
