@@ -107,13 +107,16 @@ export function SlideImageEditModal({
       // Call generate-visual-creative edge function
       const { data, error } = await supabase.functions.invoke("generate-visual-creative", {
         body: {
+          creativeType: "instagram_feed",
           clientId,
           companyId,
           references,
           additionalImageToMerge: additionalImageUrl,
           extraPrompt: prompt,
-          aspectRatio: "4:5",
-          outputFormat: "png",
+          context: {
+            title: "",
+            description: prompt,
+          },
         },
       });
 
