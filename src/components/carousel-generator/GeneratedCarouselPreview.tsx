@@ -3,8 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
-import { CheckCircle2, ChevronLeft, ChevronRight, ExternalLink, X, Heart, MessageCircle, Send, Bookmark } from "lucide-react";
+import { CheckCircle2, ChevronLeft, ChevronRight, X, Heart, MessageCircle, Send, Bookmark, CalendarPlus, FileText, Presentation } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import { GeneratedSlideEditCard } from "./GeneratedSlideEditCard";
 import { SlideImageEditModal } from "./SlideImageEditModal";
 
@@ -29,7 +30,9 @@ interface GeneratedCarouselPreviewProps {
   clientId: string;
   companyId: string;
   onClose: () => void;
-  onViewDetails: () => void;
+  onScheduleClick?: () => void;
+  onSendToContentPlan?: () => void;
+  onSendToPresentation?: () => void;
 }
 
 export function GeneratedCarouselPreview({
@@ -37,7 +40,9 @@ export function GeneratedCarouselPreview({
   clientId,
   companyId,
   onClose,
-  onViewDetails,
+  onScheduleClick,
+  onSendToContentPlan,
+  onSendToPresentation,
 }: GeneratedCarouselPreviewProps) {
   const [carousel, setCarousel] = useState<GeneratedCarousel | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -256,16 +261,55 @@ export function GeneratedCarouselPreview({
           </div>
         </div>
 
-        {/* Action button */}
-        <Button 
-          onClick={onViewDetails} 
-          className="w-full"
-          variant="outline"
-          size="sm"
-        >
-          <ExternalLink className="w-3.5 h-3.5 mr-2" />
-          Ver Detalhes e Editar
-        </Button>
+        {/* Action Buttons */}
+        <div className="flex flex-col gap-2">
+          <Button 
+            onClick={() => {
+              if (onScheduleClick) {
+                onScheduleClick();
+              } else {
+                toast.info("Agendar publicação - em breve!");
+              }
+            }}
+            className="w-full"
+            size="sm"
+          >
+            <CalendarPlus className="w-3.5 h-3.5 mr-2" />
+            Agendar Publicação
+          </Button>
+          
+          <div className="grid grid-cols-2 gap-2">
+            <Button 
+              onClick={() => {
+                if (onSendToContentPlan) {
+                  onSendToContentPlan();
+                } else {
+                  toast.info("Enviar para planejamento - em breve!");
+                }
+              }}
+              variant="outline"
+              size="sm"
+            >
+              <FileText className="w-3.5 h-3.5 mr-2" />
+              Planejamento
+            </Button>
+            
+            <Button 
+              onClick={() => {
+                if (onSendToPresentation) {
+                  onSendToPresentation();
+                } else {
+                  toast.info("Enviar para apresentação - em breve!");
+                }
+              }}
+              variant="outline"
+              size="sm"
+            >
+              <Presentation className="w-3.5 h-3.5 mr-2" />
+              Apresentação
+            </Button>
+          </div>
+        </div>
 
         {/* Slide Edit Modal */}
         <SlideImageEditModal
