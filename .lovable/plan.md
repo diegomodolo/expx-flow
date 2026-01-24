@@ -1,207 +1,226 @@
 
-# Plano: Corrigir Re-início da Geração do Carrossel
+# Plano: Melhorias no Gerador de Carrosséis
 
-## Problema Identificado
+## Resumo dos Problemas
 
-O modal de geração está **reiniciando a geração** após completar todas as imagens porque o `useEffect` que controla a geração tem dependências que são **objetos/arrays recriados a cada render**.
-
-### Causa Raiz
-
-No `CarouselGenerationProgressModal.tsx` (linha 152):
-
-```typescript
-useEffect(() => {
-  // ... lógica de geração
-}, [open, cancel, start, clientId, companyId, userId, carouselType, 
-    referenceCarouselImages, preGeneratedSlides, visualVariations, onFinished]);
-```
-
-E no `GeradorCarrosseis.tsx` (linhas 576-585):
-
-```typescript
-preGeneratedSlides={
-  generationMode === "fromExample" && generatedSlideContents && generatedSlideContents.length > 0
-    ? generatedSlideContents.map(s => ({ ... }))  // ← NOVO ARRAY A CADA RENDER!
-    : undefined
-}
-```
-
-Quando a geração termina e chama `onFinished()`, isso pode causar um re-render do componente pai, que recria esses arrays, disparando o `useEffect` novamente.
+1. **Variações visuais alterando cor de fundo indevidamente** - Mesmo marcando apenas "alterar personagens", a IA mudou a cor de fundo
+2. **Preview de referência não está em 4:5** - As imagens do carrossel de referência aparecem em aspect ratio quadrado
+3. **Falta edição individual de slides gerados** - Após gerar, não há como editar cada imagem individualmente
 
 ---
 
-## Solução
+## 1. Correção das Variações Visuais
 
-Usar **refs** para armazenar os parâmetros de geração e controlar se já iniciou, evitando re-execuções indesejadas.
+### Problema
+A função `buildVisualVariationInstructions` no edge function precisa ser mais explícita sobre o que NÃO alterar quando apenas uma opção está marcada.
 
-### Alterações no CarouselGenerationProgressModal.tsx
+### Solução
+Atualizar a edge function `daily-carousel-generator-stream` para incluir instruções mais fortes sobre manter elementos não selecionados:
 
 ```typescript
-// Adicionar refs para controlar a geração
-const hasStartedRef = useRef(false);
-const paramsRef = useRef<{...} | null>(null);
-
-useEffect(() => {
-  if (!open) {
-    // Reset quando fecha
-    hasStartedRef.current = false;
-    paramsRef.current = null;
-    cancel();
-    // ... reset states
-    return;
-  }
-
-  // Se já iniciou, não inicia novamente
-  if (hasStartedRef.current) {
-    return;
-  }
-
-  // Marca como iniciado ANTES de chamar start()
-  hasStartedRef.current = true;
-  
-  // Armazena os parâmetros para debug
-  paramsRef.current = {
-    clientId,
-    companyId,
-    userId,
-    carouselType,
-    referenceCarouselImages,
-    preGeneratedSlides,
-    visualVariations,
-  };
-
-  console.log("[CarouselGenerationProgressModal] Starting with:", paramsRef.current);
-
-  start({ ... });
-}, [open]); // ← APENAS 'open' como dependência!
+// Quando alterCharacters = true MAS alterColorPalette = false e alterBackground = false
+instructions += `
+- SUBSTITUA OS PERSONAGENS/PESSOAS: coloque pessoas diferentes
+- MANTENHA ABSOLUTAMENTE INALTERADAS: cores de fundo, paleta de cores, elementos decorativos`;
 ```
-
----
-
-## Fluxo Corrigido
-
-```text
-1. Modal abre (open = true)
-2. hasStartedRef.current = false → entra no if
-3. hasStartedRef.current = true ← marca antes de iniciar
-4. Chama start() e começa geração
-5. Durante geração, qualquer re-render acontece
-6. useEffect dispara novamente
-7. hasStartedRef.current = true → return (não reinicia!)
-8. Geração completa, chama onFinished()
-9. onFinished pode causar re-render
-10. hasStartedRef.current = true → return (não reinicia!)
-11. Usuário fecha modal (open = false)
-12. hasStartedRef.current = false ← reset
-13. Próxima abertura funciona normalmente
-```
-
----
-
-## Arquivos a Modificar
 
 | Arquivo | Alteração |
 |---------|-----------|
-| `src/components/generators/CarouselGenerationProgressModal.tsx` | Adicionar ref para prevenir re-execução |
+| `supabase/functions/daily-carousel-generator-stream/index.ts` | Reforçar instruções de preservação na função `buildVisualVariationInstructions` |
 
 ---
 
-## Código Detalhado
+## 2. Preview de Referência em 4:5
+
+### Problema
+No `SelectedCarouselPreview.tsx`, as imagens usam `aspect-square` (1:1) ao invés de `aspect-[4/5]`.
+
+### Solução
+Alterar o aspect ratio de `aspect-square` para `aspect-[4/5]` em todas as renderizações de slides.
+
+| Arquivo | Alteração |
+|---------|-----------|
+| `src/components/carousel-generator/SelectedCarouselPreview.tsx` | Mudar `aspect-square` para `aspect-[4/5]` nas linhas 64 e 76 |
+| `src/components/carousel-generator/SlideContentCard.tsx` | Mudar `aspect-square` para `aspect-[4/5]` na linha 76 |
+
+---
+
+## 3. Edição Individual de Slides Gerados
+
+### Visão Geral
+Adicionar uma seção abaixo do mockup do Instagram mostrando cada slide gerado com opção de editar individualmente, usando o mesmo modal de edição do Planejador de Conteúdo.
+
+### Componentes Necessários
+
+#### 3.1 Novo Componente: `GeneratedSlideEditCard`
+Um card para cada slide com:
+- Thumbnail da imagem (4:5)
+- Botão "Editar" que abre modal
+- Indicador de slide número
+
+#### 3.2 Novo Modal: `SlideImageEditModal`
+Reutilizando a lógica do ContentPlanPostCard:
+- Switch "Usar imagem atual como referência"
+- Upload de "Imagem para incorporar" (opcional)
+- Textarea para prompt de edição
+- Botões Cancelar/Editar Imagem
+
+#### 3.3 Atualização do `GeneratedCarouselPreview`
+- Adicionar grid de slides editáveis abaixo do mockup
+- Cada slide com botão de edição
+- Chamar edge function `generate-visual-creative` para edição
+- Atualizar imagem no banco após edição
+
+### Estrutura Visual
+
+```text
+┌─────────────────────────────────────┐
+│  Carrossel Gerado!                  │
+│  5 slides • tutorial                │
+├─────────────────────────────────────┤
+│                                     │
+│   ┌──────────────────────────┐      │
+│   │   Instagram Mockup       │      │
+│   │   (navegável)            │      │
+│   │   [4:5 aspect ratio]     │      │
+│   └──────────────────────────┘      │
+│                                     │
+├─────────────────────────────────────┤
+│  Editar Slides Individuais          │
+│                                     │
+│  ┌────┐ ┌────┐ ┌────┐ ┌────┐ ┌────┐ │
+│  │ 1  │ │ 2  │ │ 3  │ │ 4  │ │ 5  │ │
+│  │[4:5]│ │[4:5]│ │[4:5]│ │[4:5]│ │[4:5]││
+│  │Editar│ │Editar│ │Editar│ │Editar│ │Editar││
+│  └────┘ └────┘ └────┘ └────┘ └────┘ │
+├─────────────────────────────────────┤
+│  [Ver Detalhes e Editar]            │
+└─────────────────────────────────────┘
+```
+
+### Fluxo de Edição
+
+1. Usuário clica "Editar" em um slide
+2. Abre modal com:
+   - Switch para usar imagem atual como referência (pré-marcado)
+   - Área de upload para imagem adicional
+   - Campo de texto para instruções
+3. Usuário descreve alteração desejada
+4. Sistema chama `generate-visual-creative` com:
+   - `references: [url_imagem_atual]`
+   - `additionalImageToMerge: url_imagem_extra` (se houver)
+   - `extraPrompt: instrucoes_usuario`
+5. Nova imagem substituí a anterior no banco
+6. Preview atualiza automaticamente
+
+### Arquivos a Criar/Modificar
+
+| Arquivo | Ação | Descrição |
+|---------|------|-----------|
+| `src/components/carousel-generator/SlideImageEditModal.tsx` | Criar | Modal de edição reutilizável |
+| `src/components/carousel-generator/GeneratedSlideEditCard.tsx` | Criar | Card de slide com botão editar |
+| `src/components/carousel-generator/GeneratedCarouselPreview.tsx` | Modificar | Adicionar grid de slides editáveis |
+
+---
+
+## Detalhes Técnicos
+
+### SlideImageEditModal.tsx
 
 ```typescript
-import { useEffect, useMemo, useRef, useState } from "react";
+interface SlideImageEditModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  slideNumber: number;
+  currentImageUrl: string;
+  carouselId: string;
+  clientId: string;
+  companyId: string;
+  onImageUpdated: (newImageUrl: string) => void;
+}
 
-// ... dentro do componente
+// Lógica interna:
+// - useState para useAsReference, additionalImage, prompt, isGenerating
+// - Ref para input de upload da imagem adicional
+// - Handler para upload de imagem adicional ao storage
+// - Handler para chamar generate-visual-creative
+// - Atualizar carousel_generation_queue.slides após sucesso
+```
 
-const { isGenerating, start, cancel } = useCarouselGenerationStream();
+### GeneratedSlideEditCard.tsx
 
-// Ref para prevenir re-execução da geração
-const hasStartedRef = useRef(false);
+```typescript
+interface GeneratedSlideEditCardProps {
+  slide: CarouselSlide;
+  onEditClick: () => void;
+  isEditing?: boolean;
+}
 
-// ... outros estados
+// Renderiza:
+// - Imagem 4:5
+// - Badge com número do slide
+// - Botão "Editar" com ícone Pencil
+// - Overlay de loading quando isEditing
+```
 
-useEffect(() => {
-  if (!open) {
-    // Reset completo quando fecha
-    hasStartedRef.current = false;
-    cancel();
-    setCarouselId(null);
-    setPickedType(null);
-    setSlidesTotal(0);
-    setSlides([]);
-    setActiveIndex(0);
-    setIsDone(false);
-    return;
-  }
+### Atualização do GeneratedCarouselPreview
 
-  // GUARD: Se já iniciou, não inicia novamente
-  if (hasStartedRef.current) {
-    console.log("[CarouselGenerationProgressModal] Already started, skipping...");
-    return;
-  }
+```typescript
+// Novos estados:
+const [editingSlideIndex, setEditingSlideIndex] = useState<number | null>(null);
+const [isSlideEditModalOpen, setIsSlideEditModalOpen] = useState(false);
 
-  // Marca como iniciado ANTES de chamar start
-  hasStartedRef.current = true;
+// Nova seção após o mockup:
+<div className="space-y-2">
+  <p className="text-xs font-medium text-muted-foreground">
+    Editar Slides Individuais
+  </p>
+  <div className="grid grid-cols-5 gap-2">
+    {carousel.slides.map((slide, idx) => (
+      <GeneratedSlideEditCard
+        key={idx}
+        slide={slide}
+        onEditClick={() => {
+          setEditingSlideIndex(idx);
+          setIsSlideEditModalOpen(true);
+        }}
+        isEditing={editingSlideIndex === idx}
+      />
+    ))}
+  </div>
+</div>
 
-  // Debug log
-  console.log("[CarouselGenerationProgressModal] Starting with:", {
-    clientId,
-    companyId,
-    carouselType: carouselType || "NOT PROVIDED",
-    referenceCarouselImages: referenceCarouselImages?.length || 0,
-    preGeneratedSlides: preGeneratedSlides?.length || 0,
-    visualVariations: visualVariations || "NOT PROVIDED",
-  });
-
-  // Start generation
-  start({
-    clientId,
-    companyId,
-    userId,
-    carouselType,
-    referenceCarouselImages,
-    preGeneratedSlides,
-    visualVariations,
-    onEvent: (ev) => {
-      // ... event handlers (sem mudanças)
-    },
-  }).catch((e: any) => {
-    console.error(e);
-    toast.error(e?.message || "Erro ao gerar carrossel");
-    setIsDone(true);
-  });
-}, [open, cancel, start, clientId, companyId, userId, carouselType, 
-    referenceCarouselImages, preGeneratedSlides, visualVariations, onFinished]);
+<SlideImageEditModal
+  open={isSlideEditModalOpen}
+  onOpenChange={setIsSlideEditModalOpen}
+  slideNumber={editingSlideIndex !== null ? editingSlideIndex + 1 : 1}
+  currentImageUrl={editingSlideIndex !== null ? carousel.slides[editingSlideIndex]?.image_url : ''}
+  carouselId={carouselId}
+  clientId={clientId}
+  companyId={companyId}
+  onImageUpdated={(newUrl) => {
+    // Atualizar estado local e refetch
+  }}
+/>
 ```
 
 ---
 
-## Alternativa: Memoizar no Componente Pai
+## Resumo de Alterações
 
-Opcionalmente, também podemos memoizar os arrays no `GeradorCarrosseis.tsx` para evitar recriação:
-
-```typescript
-const memoizedPreGeneratedSlides = useMemo(() => {
-  if (generationMode !== "fromExample" || !generatedSlideContents?.length) {
-    return undefined;
-  }
-  return generatedSlideContents.map(s => ({
-    slideNumber: s.slideNumber,
-    type: s.type,
-    headline: s.headline,
-    bodyText: s.bodyText,
-    visualDescription: s.visualDescription,
-  }));
-}, [generationMode, generatedSlideContents]);
-```
-
-Mas a solução com `useRef` é mais robusta e resolve o problema na raiz.
+| # | Arquivo | Tipo | Descrição |
+|---|---------|------|-----------|
+| 1 | `supabase/functions/daily-carousel-generator-stream/index.ts` | Modificar | Reforçar instruções de variações visuais |
+| 2 | `src/components/carousel-generator/SelectedCarouselPreview.tsx` | Modificar | Aspect ratio 4:5 |
+| 3 | `src/components/carousel-generator/SlideContentCard.tsx` | Modificar | Aspect ratio 4:5 |
+| 4 | `src/components/carousel-generator/SlideImageEditModal.tsx` | Criar | Modal de edição de slide |
+| 5 | `src/components/carousel-generator/GeneratedSlideEditCard.tsx` | Criar | Card de slide editável |
+| 6 | `src/components/carousel-generator/GeneratedCarouselPreview.tsx` | Modificar | Adicionar grid de edição + passar clientId/companyId |
 
 ---
 
-## Benefícios
+## Dependências
 
-- **Previne re-execução**: A geração só inicia uma vez por abertura do modal
-- **Robusto**: Funciona mesmo se props mudarem durante a geração
-- **Simples**: Mudança mínima no código
-- **Debug fácil**: Log indica quando tentou reiniciar mas foi bloqueado
+- O `GeneratedCarouselPreview` precisará receber `clientId` e `companyId` como props adicionais
+- A edge function `generate-visual-creative` já existe e será reutilizada
+- Após edição, o sistema atualizará o array `slides` na tabela `carousel_generation_queue`
