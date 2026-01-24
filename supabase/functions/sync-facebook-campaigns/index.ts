@@ -1195,8 +1195,8 @@ async function processSync(
             if (syncAds) {
               try {
                 console.log('Fetching ads for ad set:', adSet.id)
-                // Add actions and quality fields back
-                const adsUrl = `https://graph.facebook.com/v20.0/${adSet.id}/ads?fields=id,name,status,creative{title,body,image_url,video_id,object_story_spec},insights${dateParam}.action_report_time(conversion).action_attribution_windows([\"7d_click\",\"1d_view\"])` +
+                // Expanded creative fields to capture CTA, description, and tracking_specs for UTM parameters
+                const adsUrl = `https://graph.facebook.com/v20.0/${adSet.id}/ads?fields=id,name,status,tracking_specs,creative{id,title,body,image_url,video_id,thumbnail_url,object_story_spec,call_to_action_type,effective_object_story_id},insights${dateParam}.action_report_time(conversion).action_attribution_windows([\"7d_click\",\"1d_view\"])` +
                   `{impressions,clicks,spend,cpm,ctr,cpc,reach,frequency,actions,quality_ranking,engagement_rate_ranking,conversion_rate_ranking}&access_token=${accessToken}`
                 console.log('Ads API URL (without token):', adsUrl.replace(accessToken, '[REDACTED]'))
                 const adsResponse = await fetch(adsUrl)
@@ -1312,6 +1312,23 @@ async function processSync(
                      console.log('Ad conversions saved:', ad.name, adLeads)
                   }
                    
+                    // Extract call_to_action - can come from multiple places
+                    const ctaFromLinkData = linkData.call_to_action
+                    const ctaTypeFromCreative = creative.call_to_action_type
+                    let callToActionValue: any = {}
+                    
+                    if (ctaFromLinkData && typeof ctaFromLinkData === 'object' && Object.keys(ctaFromLinkData).length > 0) {
+                      callToActionValue = ctaFromLinkData
+                    } else if (ctaTypeFromCreative) {
+                      callToActionValue = { type: ctaTypeFromCreative }
+                    }
+                    
+                    console.log('CTA extraction - linkData.call_to_action:', ctaFromLinkData, 'creative.call_to_action_type:', ctaTypeFromCreative, 'final:', callToActionValue)
+                    
+                    // Extract description - can come from multiple places
+                    const descriptionValue = linkData.description || objectStory.video_data?.message || creative.body || ''
+                    console.log('Description extraction - linkData.description:', linkData.description, 'final:', descriptionValue)
+                    
                     // Save ad to database with complete data
                     const adData = {
                       facebook_id: ad.id,
@@ -1325,11 +1342,11 @@ async function processSync(
                       creative_type: creativeType,
                       creative_body: linkData.message || creative.body || '',
                       creative_title: linkData.name || creative.title || '',
-                      creative_description: linkData.description || '',
+                      creative_description: descriptionValue,
                       image_url: imageUrl,
                       video_url: videoUrl,
                      link_url: linkData.link || '',
-                     call_to_action: JSON.stringify(linkData.call_to_action || {}),
+                     call_to_action: JSON.stringify(callToActionValue),
                      ctr: adCtr,
                      cpc: adCpc,
                      cpm: adCpm,

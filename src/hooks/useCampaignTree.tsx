@@ -36,6 +36,7 @@ export interface TreeNode {
   creativeUrl?: string;
   creativeBody?: string;
   creativeTitle?: string;
+  creativeDescription?: string;
   creativeType?: string;
   callToAction?: string;
   linkUrl?: string;
@@ -263,8 +264,20 @@ export function useCampaignTree(options: UseCampaignTreeOptions) {
             creativeUrl: ad.image_url || ad.video_url,
             creativeBody: ad.creative_body,
             creativeTitle: ad.creative_title,
+            creativeDescription: ad.creative_description,
             creativeType: ad.creative_type,
-            callToAction: ad.call_to_action,
+            // Parse call_to_action from JSON string to extract type
+            callToAction: (() => {
+              if (!ad.call_to_action) return undefined;
+              try {
+                const ctaObj = typeof ad.call_to_action === 'string' 
+                  ? JSON.parse(ad.call_to_action) 
+                  : ad.call_to_action;
+                return ctaObj?.type || undefined;
+              } catch {
+                return ad.call_to_action; // fallback to raw value if not JSON
+              }
+            })(),
             linkUrl: ad.link_url,
             metrics: {
               spend: Number(ad.spend) || 0,
