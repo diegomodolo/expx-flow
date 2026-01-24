@@ -19,6 +19,9 @@ import { CarouselType } from "@/hooks/useCarouselGenerationStream";
 import { CarouselHistoryList } from "@/components/carousel-generator/CarouselHistoryList";
 import { InstagramCarouselSelector, SelectedCarousel } from "@/components/carousel-generator/InstagramCarouselSelector";
 import { SelectedCarouselPreview } from "@/components/carousel-generator/SelectedCarouselPreview";
+import { ThemeSelectorModal } from "@/components/carousel-generator/ThemeSelectorModal";
+import { SlideContent } from "@/components/carousel-generator/SlideContentCard";
+import { supabase } from "@/integrations/supabase/client";
 
 type GenerationMode = "scratch" | "fromExample";
 
@@ -69,10 +72,16 @@ export default function GeradorCarrosseis() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [historyKey, setHistoryKey] = useState(0);
   
-  // New states for generation mode
+  // States for generation mode
   const [generationMode, setGenerationMode] = useState<GenerationMode>("scratch");
   const [selectedCarousel, setSelectedCarousel] = useState<SelectedCarousel | null>(null);
   const [isCarouselSelectorOpen, setIsCarouselSelectorOpen] = useState(false);
+
+  // States for AI content generation
+  const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [themeSuggestions, setThemeSuggestions] = useState<string[]>([]);
+  const [generatedSlideContents, setGeneratedSlideContents] = useState<SlideContent[] | null>(null);
 
   const { clients, loading: isLoadingClients } = useClients();
 
@@ -87,8 +96,9 @@ export default function GeradorCarrosseis() {
     [clients, selectedClientId]
   );
 
+  // Determine if we can generate - require content when using example mode
   const canGenerate = !!selectedClientId && !!companyId && !!user?.id &&
-    (generationMode === "scratch" || (generationMode === "fromExample" && selectedCarousel));
+    (generationMode === "scratch" || (generationMode === "fromExample" && selectedCarousel && generatedSlideContents && generatedSlideContents.length > 0));
 
   // Extract reference images from selected carousel
   const referenceCarouselImages = useMemo(() => {
@@ -100,8 +110,12 @@ export default function GeradorCarrosseis() {
 
   const handleGenerate = () => {
     if (!canGenerate) {
-      if (generationMode === "fromExample" && !selectedCarousel) {
-        toast.error("Selecione um carrossel de referência para continuar");
+      if (generationMode === "fromExample") {
+        if (!selectedCarousel) {
+          toast.error("Selecione um carrossel de referência para continuar");
+        } else if (!generatedSlideContents || generatedSlideContents.length === 0) {
+          toast.error("Gere o conteúdo com IA antes de criar o carrossel");
+        }
       } else {
         toast.error("Selecione um cliente para continuar");
       }
@@ -117,17 +131,92 @@ export default function GeradorCarrosseis() {
 
   const handleClientChange = (id: string) => {
     setSelectedClientId(id);
-    // Reset selected carousel when client changes
+    // Reset selected carousel and content when client changes
     setSelectedCarousel(null);
+    setGeneratedSlideContents(null);
+    setThemeSuggestions([]);
   };
 
   const handleGenerationModeChange = (mode: GenerationMode) => {
     setGenerationMode(mode);
     if (mode === "scratch") {
       setSelectedCarousel(null);
+      setGeneratedSlideContents(null);
+      setThemeSuggestions([]);
     }
   };
 
+  const handleCarouselSelect = (carousel: SelectedCarousel) => {
+    setSelectedCarousel(carousel);
+    // Reset generated content when carousel changes
+    setGeneratedSlideContents(null);
+    setThemeSuggestions([]);
+  };
+
+  const handleGenerateContentClick = async () => {
+    if (!selectedCarousel || !selectedClientId) return;
+
+    setIsAnalyzing(true);
+    setIsThemeModalOpen(true);
+
+    try {
+      // Get image URLs from carousel children
+      const images = selectedCarousel.children
+        .filter((c) => c.media_type === "IMAGE" || c.thumbnail_url)
+        .map((c) => c.media_type === "IMAGE" ? c.media_url : c.thumbnail_url!);
+
+      // Call the analyze-carousel-slides function to get theme suggestions
+      const { data, error } = await supabase.functions.invoke("analyze-carousel-slides", {
+        body: { clientId: selectedClientId, images },
+      });
+
+      if (error) throw new Error(error.message);
+      if (!data?.success) throw new Error(data?.error || "Falha ao analisar slides");
+
+      setThemeSuggestions(data.themeSuggestions || []);
+    } catch (err: any) {
+      console.error("Error analyzing slides:", err);
+      toast.error(err?.message || "Erro ao analisar imagens");
+      setIsThemeModalOpen(false);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleThemeSelect = async (selectedTheme: string) => {
+    if (!selectedCarousel || !selectedClientId) return;
+
+    setIsAnalyzing(true);
+
+    try {
+      const images = selectedCarousel.children
+        .filter((c) => c.media_type === "IMAGE" || c.thumbnail_url)
+        .map((c) => c.media_type === "IMAGE" ? c.media_url : c.thumbnail_url!);
+
+      const { data, error } = await supabase.functions.invoke("analyze-carousel-slides", {
+        body: { clientId: selectedClientId, images, selectedTheme },
+      });
+
+      if (error) throw new Error(error.message);
+      if (!data?.success) throw new Error(data?.error || "Falha ao gerar conteúdo");
+
+      setGeneratedSlideContents(data.slideContents || []);
+      setIsThemeModalOpen(false);
+      toast.success("Conteúdo gerado com sucesso!");
+    } catch (err: any) {
+      console.error("Error generating content:", err);
+      toast.error(err?.message || "Erro ao gerar conteúdo");
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleSlideContentChange = (index: number, content: SlideContent) => {
+    if (!generatedSlideContents) return;
+    const updated = [...generatedSlideContents];
+    updated[index] = content;
+    setGeneratedSlideContents(updated);
+  };
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -302,7 +391,14 @@ export default function GeradorCarrosseis() {
                         <SelectedCarouselPreview
                           carousel={selectedCarousel}
                           onChangeClick={() => setIsCarouselSelectorOpen(true)}
-                          onRemove={() => setSelectedCarousel(null)}
+                          onRemove={() => {
+                            setSelectedCarousel(null);
+                            setGeneratedSlideContents(null);
+                          }}
+                          slideContents={generatedSlideContents}
+                          onSlideContentChange={handleSlideContentChange}
+                          onGenerateContentClick={handleGenerateContentClick}
+                          isAnalyzing={isAnalyzing}
                         />
                       ) : (
                         <Button
@@ -318,26 +414,28 @@ export default function GeradorCarrosseis() {
                     </div>
                   )}
 
-                  {/* Slides Count */}
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <Label>Número de Slides</Label>
-                      <span className="text-sm font-medium text-primary">
-                        {slidesCount} slides
-                      </span>
+                  {/* Slides Count - HIDDEN when using example mode */}
+                  {generationMode === "scratch" && (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label>Número de Slides</Label>
+                        <span className="text-sm font-medium text-primary">
+                          {slidesCount} slides
+                        </span>
+                      </div>
+                      <Slider
+                        value={[slidesCount]}
+                        onValueChange={([v]) => setSlidesCount(v)}
+                        min={3}
+                        max={10}
+                        step={1}
+                        className="w-full"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Recomendado: 6-8 slides para melhor engajamento
+                      </p>
                     </div>
-                    <Slider
-                      value={[slidesCount]}
-                      onValueChange={([v]) => setSlidesCount(v)}
-                      min={3}
-                      max={10}
-                      step={1}
-                      className="w-full"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Recomendado: 6-8 slides para melhor engajamento
-                    </p>
-                  </div>
+                  )}
 
                   {/* Theme/Orientation */}
                   <div className="space-y-2">
@@ -456,6 +554,13 @@ export default function GeradorCarrosseis() {
             userId={user.id}
             carouselType={carouselType}
             referenceCarouselImages={referenceCarouselImages}
+            preGeneratedSlides={generatedSlideContents?.map(s => ({
+              slideNumber: s.slideNumber,
+              type: s.type,
+              headline: s.headline,
+              bodyText: s.bodyText,
+              visualDescription: s.visualDescription,
+            }))}
             onFinished={handleGenerationFinished}
           />
         )}
@@ -467,9 +572,18 @@ export default function GeradorCarrosseis() {
             onOpenChange={setIsCarouselSelectorOpen}
             clientId={selectedClientId}
             instagramId={selectedClient.instagram_account.instagram_id}
-            onSelect={(carousel) => setSelectedCarousel(carousel)}
+            onSelect={handleCarouselSelect}
           />
         )}
+
+        {/* Theme Selector Modal */}
+        <ThemeSelectorModal
+          open={isThemeModalOpen}
+          onOpenChange={setIsThemeModalOpen}
+          themeSuggestions={themeSuggestions}
+          isLoading={isAnalyzing}
+          onSelectTheme={handleThemeSelect}
+        />
       </div>
     </DashboardLayout>
   );
