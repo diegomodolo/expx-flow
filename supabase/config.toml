@@ -331,3 +331,9 @@ verify_jwt = true
 
 [functions.analyze-carousel-slides]
 verify_jwt = true
+
+[functions.create-meta-adset]
+verify_jwt = true
+
+[functions.create-meta-ad]
+verify_jwt = true
