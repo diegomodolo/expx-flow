@@ -1,341 +1,310 @@
 
-# Plano: Adicionar Criação de Conjuntos e Criativos em Campanhas/Ad Sets Existentes
+# Plano: Tela de Edição de Campanha - Tree Grid (Visão Hierárquica)
 
-## Visão Geral
+## Objetivo
 
-Implementar botões para criar **novos conjuntos de anúncios dentro de campanhas existentes** e **novos criativos dentro de ad sets existentes**, além de alterar o modo de visualização padrão dos criativos de grid para lista/tabela.
+Criar uma tela de gestão de campanhas avançada que exibe a hierarquia completa **Campanha > Conjunto > Anúncio** em uma única visualização, permitindo edições rápidas inline, painel lateral de detalhes, e indicadores visuais de saúde (semáforos).
 
 ---
 
-## Alterações Resumidas
+## Arquitetura da Tela
 
-| Arquivo | Ação | Descrição |
-|---------|------|-----------|
-| `src/pages/cliente/ClienteCriativos.tsx` | Modificar | Default de viewMode para "table" + botão "Novo Criativo" |
-| `src/pages/cliente/ClienteConjuntos.tsx` | Modificar | Adicionar botão "Novo Conjunto" |
-| `src/components/campaigns/AdSetBuilderModal.tsx` | Criar | Modal para criar ad set em campanha existente |
-| `src/components/campaigns/CreativeBuilderModal.tsx` | Criar | Modal para criar criativo em ad set existente |
-| `src/hooks/useAdSetBuilder.tsx` | Criar | Hook para gerenciar estado/submissão de ad set |
-| `src/hooks/useCreativeBuilder.tsx` | Criar | Hook para gerenciar estado/submissão de criativo |
-| `supabase/functions/create-meta-adset/index.ts` | Criar | Edge function para criar ad set no Meta |
-| `supabase/functions/create-meta-ad/index.ts` | Criar | Edge function para criar criativo/anúncio no Meta |
+```text
++--------------------------------------------------------------------------------+
+| [< Voltar]  Campanha: "Nome da Campanha"   [Filtro Data] [Filtro Status]       |
++--------------------------------------------------------------------------------+
+|  KPIs TOPO: Gasto Total | Conv. | CPA | CTR | ROAS                             |
++--------------------------------------------------------------------------------+
+|                                                                                 |
+|  TREE GRID (Tabela Hierárquica)                    | PAINEL INSPETOR (Sheet)   |
+|  ──────────────────────────────────────────────    |                           |
+|  ▼ CAMPANHA A          | ON  | R$100 | ROAS 3.5 🟢 |  [Detalhes do item        |
+|    ▼ AD SET 1          | ON  | R$50  | CPA R$4 🟢  |   selecionado]            |
+|       ○ Ad 01 [thumb]  | ON  |       | CTR 1.5% 🟢 |                           |
+|       ○ Ad 02 [thumb]  | OFF |       | CTR 0.8% 🔴 |  - Orçamento              |
+|    ▶ AD SET 2          | ON  | R$50  | CPA R$7 🟡  |  - Segmentação            |
+|                                                     |  - Públicos               |
+|  ▶ CAMPANHA B          | ON  | R$200 | ROAS 2.0 🟡 |  - Pixel/Eventos          |
+|                                                     |                           |
++--------------------------------------------------------------------------------+
+```
+
+---
+
+## Componentes a Serem Criados
+
+| Componente | Descrição |
+|------------|-----------|
+| `CampaignEditorPage.tsx` | Nova página principal para edição (rota: `/clientes/:id/campanhas/:campaignId/editar`) |
+| `TreeGridTable.tsx` | Componente de tabela expansível hierárquica |
+| `TreeGridRow.tsx` | Linha individual com suporte a expansão e níveis visuais |
+| `InlineStatusToggle.tsx` | Switch de status inline (ON/OFF) com chamada API |
+| `InlineBudgetInput.tsx` | Input editável de orçamento com Enter para salvar |
+| `MetricCell.tsx` | Célula de métrica com cor de semáforo (verde/amarelo/vermelho) |
+| `CreativeThumbnail.tsx` | Miniatura com HoverCard para preview completo |
+| `InspectorPanel.tsx` | Painel lateral (Sheet) com detalhes do item selecionado |
+| `CampaignInspector.tsx` | Conteúdo do painel para Campanhas |
+| `AdSetInspector.tsx` | Conteúdo do painel para Conjuntos |
+| `AdInspector.tsx` | Conteúdo do painel para Anúncios |
+| `KPISummaryBar.tsx` | Barra de KPIs agregados no topo |
+| `BudgetProgressCell.tsx` | Barra de progresso de orçamento gasto |
+
+---
+
+## Fluxo de Navegação
+
+1. Usuário está em `/clientes/:id/campanhas`
+2. Clica no botão "Editar" ou ícone de uma campanha
+3. Navega para `/clientes/:id/campanhas/:campaignId/editar`
+4. Vê a campanha expandida com todos ad sets e ads em tree grid
+5. Pode editar inline ou abrir painel lateral para edições complexas
 
 ---
 
 ## Detalhes de Implementação
 
-### 1. Alterar Visualização Padrão dos Criativos
+### 1. Nova Rota e Página
 
-No arquivo `src/pages/cliente/ClienteCriativos.tsx`, linha 64:
+**Arquivo:** `src/pages/cliente/CampaignEditorPage.tsx`
 
-```typescript
-// Antes
-const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
+- Recebe `campaignId` via params
+- Busca campanha + ad sets + ads usando hooks existentes
+- Layout: `ResizablePanelGroup` com tree grid à esquerda e inspetor à direita
 
-// Depois
-const [viewMode, setViewMode] = useState<"grid" | "table">("table");
-```
-
----
-
-### 2. Botão "Novo Conjunto" na Página de Conjuntos
-
-No `ClienteConjuntos.tsx`, adicionar:
-- Estado para controlar modal: `const [showAdSetModal, setShowAdSetModal] = useState(false)`
-- Botão junto aos filtros existentes:
+### 2. Tree Grid - Estrutura de Dados
 
 ```typescript
-<Button
-  variant="default"
-  size="sm"
-  onClick={() => setShowAdSetModal(true)}
->
-  <Plus className="w-4 h-4 mr-1" />
-  Novo Conjunto
-</Button>
-```
-
-- Importar e renderizar `AdSetBuilderModal`
-
----
-
-### 3. Botão "Novo Criativo" na Página de Criativos
-
-No `ClienteCriativos.tsx`, adicionar:
-- Estado para controlar modal: `const [showCreativeModal, setShowCreativeModal] = useState(false)`
-- Botão junto aos filtros existentes:
-
-```typescript
-<Button
-  variant="default"
-  size="sm"
-  onClick={() => setShowCreativeModal(true)}
->
-  <Plus className="w-4 h-4 mr-1" />
-  Novo Criativo
-</Button>
-```
-
-- Importar e renderizar `CreativeBuilderModal`
-
----
-
-### 4. AdSetBuilderModal - Novo Componente
-
-Modal que permite criar um conjunto de anúncios dentro de uma campanha existente.
-
-```text
-┌──────────────────────────────────────────────────┐
-│  Novo Conjunto de Anúncios                    X  │
-├──────────────────────────────────────────────────┤
-│                                                  │
-│  Campanha *                                      │
-│  [▼ Selecionar campanha existente...]           │
-│                                                  │
-│  Nome do Conjunto *                              │
-│  [_________________________________]             │
-│                                                  │
-│  ─── Segmentação ───                            │
-│  Públicos de inclusão: [Multi-select]           │
-│  Públicos de exclusão: [Multi-select]           │
-│                                                  │
-│  ─── Demografia ───                             │
-│  Idade: [18] ─────○───── [65]                   │
-│  Gênero: [▼ Todos]                              │
-│                                                  │
-│  ─── Conversão (opcional) ───                   │
-│  Pixel: [▼ Selecionar...]                       │
-│  Evento: [▼ Selecionar...]                      │
-│                                                  │
-├──────────────────────────────────────────────────┤
-│                    [Cancelar]  [Criar Conjunto]  │
-└──────────────────────────────────────────────────┘
-```
-
-**Props:**
-- `isOpen: boolean`
-- `onClose: () => void`
-- `clientId: string`
-- `companyId: string`
-- `preSelectedCampaignId?: string` (opcional, para pré-selecionar)
-- `onSuccess?: () => void`
-
-**Comportamento:**
-- Dropdown lista campanhas ativas do cliente (usando `useUnifiedCampaigns`)
-- Reutiliza componentes existentes: `AudienceMultiSelect`, `PixelSelector`, `ConversionEventSelector`, `Slider`
-- Chama edge function `create-meta-adset` ao submeter
-
----
-
-### 5. CreativeBuilderModal - Novo Componente
-
-Modal que permite criar um criativo/anúncio dentro de um ad set existente.
-
-```text
-┌──────────────────────────────────────────────────┐
-│  Novo Criativo                                X  │
-├──────────────────────────────────────────────────┤
-│                                                  │
-│  Campanha *                                      │
-│  [▼ Selecionar campanha...]                     │
-│                                                  │
-│  Conjunto de Anúncios *                          │
-│  [▼ Selecionar conjunto...] (filtra por camp.)  │
-│                                                  │
-│  ─── Criativo ───                               │
-│  Tipo: [Imagem] [Vídeo] [Carrossel]             │
-│                                                  │
-│  Mídia: [Upload / URL]                          │
-│                                                  │
-│  Texto principal *                               │
-│  [_________________________________]             │
-│                                                  │
-│  Título                                          │
-│  [_________________________________]             │
-│                                                  │
-│  URL de destino *                                │
-│  [_________________________________]             │
-│                                                  │
-│  Call to Action: [▼ Saiba mais]                 │
-│                                                  │
-│  ─── Preview ───                                │
-│  [Mockup do criativo no feed]                   │
-│                                                  │
-├──────────────────────────────────────────────────┤
-│                    [Cancelar]  [Criar Criativo]  │
-└──────────────────────────────────────────────────┘
-```
-
-**Props:**
-- `isOpen: boolean`
-- `onClose: () => void`
-- `clientId: string`
-- `companyId: string`
-- `clientName?: string`
-- `preSelectedCampaignId?: string`
-- `preSelectedAdSetId?: string`
-- `onSuccess?: () => void`
-
-**Comportamento:**
-- Dropdown de campanha lista campanhas ativas
-- Dropdown de ad set filtra por campanha selecionada (usando `useUnifiedAdGroups`)
-- Reutiliza o componente `CreativeEditor` existente para edição do criativo
-- Chama edge function `create-meta-ad` ao submeter
-
----
-
-### 6. Hook useAdSetBuilder
-
-Gerencia o estado e submissão do ad set:
-
-```typescript
-interface AdSetBuilderState {
-  campaignId: string;
+interface TreeNode {
+  id: string;
+  type: 'campaign' | 'adset' | 'ad';
+  level: number; // 0 = campanha, 1 = adset, 2 = ad
   name: string;
-  includedAudiences: string[];
-  excludedAudiences: string[];
-  ageMin: number;
-  ageMax: number;
-  genders: number[];
-  pixelId?: string;
-  conversionEvent?: string;
-  isSubmitting: boolean;
+  status: 'active' | 'paused';
+  isExpanded: boolean;
+  platform: 'meta' | 'google';
+  metrics: {
+    spend: number;
+    impressions: number;
+    clicks: number;
+    conversions: number;
+    ctr: number;
+    cpc: number;
+    cpa: number;
+    roas?: number;
+  };
+  budget?: {
+    type: 'daily' | 'lifetime';
+    amount: number;
+    spent: number; // para barra de progresso
+  };
+  // Campos específicos por tipo
+  facebookId?: string;
+  targeting?: object;
+  creativeUrl?: string;
 }
 ```
 
----
+### 3. Indicadores de Semáforo (Traffic Lights)
 
-### 7. Hook useCreativeBuilder
+Utiliza metas do cliente já existentes no banco:
+- `target_cpa` - Meta de CPA
+- `target_ctr` - Meta de CTR  
+- `target_roas` - Meta de ROAS
 
-Gerencia o estado e submissão do criativo:
+**Lógica de cores:**
+```typescript
+const getHealthColor = (metric: string, value: number, targets: ClientTargets) => {
+  switch(metric) {
+    case 'cpa':
+      if (value <= targets.target_cpa) return 'green';
+      if (value <= targets.target_cpa * 1.3) return 'yellow';
+      return 'red';
+    case 'ctr':
+      if (value >= targets.target_ctr) return 'green';
+      if (value >= targets.target_ctr * 0.7) return 'yellow';
+      return 'red';
+    case 'roas':
+      if (value >= targets.target_roas) return 'green';
+      if (value >= targets.target_roas * 0.8) return 'yellow';
+      return 'red';
+  }
+};
+```
+
+### 4. Edição Inline - Status Toggle
+
+**Componente:** `InlineStatusToggle.tsx`
 
 ```typescript
-interface CreativeBuilderState {
-  campaignId: string;
-  adSetId: string;
+interface InlineStatusToggleProps {
+  id: string;
+  type: 'campaign' | 'adset' | 'ad';
+  clientId: string;
+  currentStatus: 'active' | 'paused';
+  platform: 'meta' | 'google';
+  onSuccess: () => void;
+}
+```
+
+- Usa `Switch` do Radix
+- Chama `manage-facebook-campaign` para Meta
+- Mostra loading spinner durante request
+- Toast de sucesso/erro
+
+### 5. Edição Inline - Orçamento
+
+**Componente:** `InlineBudgetInput.tsx`
+
+```typescript
+interface InlineBudgetInputProps {
+  id: string;
+  type: 'campaign' | 'adset';
+  clientId: string;
+  currentBudget: number;
+  budgetType: 'daily' | 'lifetime';
+  platform: 'meta' | 'google';
+  onSuccess: () => void;
+}
+```
+
+- Input transparente que parece texto
+- Foco ativa modo edição (borda aparece)
+- Enter salva, Escape cancela
+- Chama API para atualizar
+
+### 6. Thumbnail com Hover Preview
+
+**Componente:** `CreativeThumbnail.tsx`
+
+```typescript
+interface CreativeThumbnailProps {
+  imageUrl?: string;
+  videoUrl?: string;
+  title?: string;
+  body?: string;
   type: 'IMAGE' | 'VIDEO' | 'CAROUSEL';
-  mediaUrls: string[];
-  body: string;
-  title: string;
-  description: string;
-  linkUrl: string;
-  callToAction: string;
-  urlParameters: UrlParameters;
-  isSubmitting: boolean;
 }
 ```
 
----
+- Thumbnail 40x40px na tabela
+- `HoverCard` mostra:
+  - Imagem/vídeo em tamanho maior (300px)
+  - Título do criativo
+  - Primeiras linhas do copy
+  - Badge do tipo
 
-### 8. Edge Function create-meta-adset
+### 7. Painel Inspetor (Sheet)
 
-Nova função que cria apenas um ad set dentro de uma campanha existente no Meta:
+**Componente:** `InspectorPanel.tsx`
 
-**Endpoint:** `create-meta-adset`
+- Abre da direita via `Sheet`
+- Largura: 400px
+- Conteúdo dinâmico baseado no tipo selecionado
+- Seções colapsáveis:
+  - **Campanha:** Objetivo, orçamento total, período
+  - **Ad Set:** Segmentação (idade, gênero, interesses), públicos, pixel, evento
+  - **Ad:** Criativo completo, copy, URL, CTA, métricas de engajamento
 
-**Request Body:**
+### 8. Barra de Progresso de Orçamento
+
+**Componente:** `BudgetProgressCell.tsx`
+
 ```typescript
-{
-  clientId: string;
-  campaignId: string;        // ID local da campanha
-  metaCampaignId: string;    // ID no Meta (facebook_id)
-  adSet: {
-    name: string;
-    pixel_id?: string;
-    conversion_event?: string;
-    targeting: {
-      custom_audiences?: string[];
-      excluded_audiences?: string[];
-      age_min?: number;
-      age_max?: number;
-      genders?: number[];
-    };
-  };
+interface BudgetProgressCellProps {
+  spent: number;
+  budget: number;
+  budgetType: 'daily' | 'lifetime';
 }
 ```
 
-**Lógica:**
-1. Buscar cliente e access token do Facebook
-2. Determinar optimization_goal baseado no objetivo da campanha
-3. Criar ad set via Meta Graph API (`/act_xxx/adsets`)
-4. Salvar no banco de dados local (tabela `ad_sets`)
-5. Retornar IDs criados
+- Barra visual usando `Progress` do Radix
+- Cores:
+  - Verde: < 70% gasto
+  - Amarelo: 70-90% gasto
+  - Vermelho: > 90% gasto
+- Tooltip mostra valores exatos
 
 ---
 
-### 9. Edge Function create-meta-ad
+## Hooks Necessários
 
-Nova função que cria um criativo + anúncio dentro de um ad set existente:
+### useCampaignTree
 
-**Endpoint:** `create-meta-ad`
+Novo hook que combina dados de campanhas, ad sets e ads em estrutura hierárquica:
 
-**Request Body:**
 ```typescript
-{
-  clientId: string;
-  adSetId: string;           // ID local do ad set
-  metaAdSetId: string;       // ID no Meta (facebook_id)
-  creative: {
-    type: 'IMAGE' | 'VIDEO' | 'CAROUSEL';
-    media_urls: string[];
-    body: string;
-    title: string;
-    description?: string;
-    link_url: string;
-    call_to_action: string;
-    url_parameters?: UrlParameters;
-  };
-}
+const useCampaignTree = (campaignId: string, clientId: string) => {
+  // Busca campanha específica
+  // Busca ad sets da campanha
+  // Busca ads de cada ad set
+  // Retorna estrutura TreeNode[]
+};
 ```
 
-**Lógica:**
-1. Buscar cliente, ad set e access token
-2. Criar ad creative via Meta Graph API
-3. Criar ad vinculado ao ad set
-4. Salvar no banco local (tabela `ads`)
-5. Retornar IDs criados
+### useInlineEdit
+
+Hook para gerenciar edições inline:
+
+```typescript
+const useInlineEdit = () => {
+  const updateStatus = async (type, id, status) => {...};
+  const updateBudget = async (type, id, budget) => {...};
+  const updateName = async (type, id, name) => {...};
+};
+```
 
 ---
 
-## Fluxo de Uso
+## Arquivos a Modificar
 
-### Criar Conjunto em Campanha Existente:
-1. Usuário acessa "Conjuntos de Anúncios"
-2. Clica em "Novo Conjunto"
-3. Modal abre, seleciona campanha no dropdown
-4. Preenche nome, segmentação, demographics
-5. Clica "Criar Conjunto"
-6. Sistema cria no Meta e salva localmente
-7. Lista atualiza automaticamente
-
-### Criar Criativo em Ad Set Existente:
-1. Usuário acessa "Criativos"
-2. Clica em "Novo Criativo"
-3. Modal abre, seleciona campanha e depois ad set
-4. Preenche mídia, textos, URL, CTA
-5. Visualiza preview
-6. Clica "Criar Criativo"
-7. Sistema cria no Meta e salva localmente
-8. Lista atualiza automaticamente
+| Arquivo | Alteração |
+|---------|-----------|
+| `src/App.tsx` | Adicionar rota `/clientes/:id/campanhas/:campaignId/editar` |
+| `src/pages/cliente/ClienteCampanhas.tsx` | Adicionar botão "Editar" que navega para a nova página |
 
 ---
 
-## Reutilização de Componentes
+## Arquivos a Criar
 
-Componentes existentes que serão reutilizados:
-- `AudienceMultiSelect` - Seleção de públicos
-- `PixelSelector` - Seleção de pixel
-- `ConversionEventSelector` - Seleção de evento
-- `CreativeEditor` - Editor completo do criativo
-- `MediaUploader` - Upload de mídia
-- `FeedPreview` - Preview do anúncio
+| Arquivo | Descrição |
+|---------|-----------|
+| `src/pages/cliente/CampaignEditorPage.tsx` | Página principal |
+| `src/components/campaign-editor/TreeGridTable.tsx` | Tabela hierárquica |
+| `src/components/campaign-editor/TreeGridRow.tsx` | Linha da tabela |
+| `src/components/campaign-editor/InlineStatusToggle.tsx` | Toggle de status |
+| `src/components/campaign-editor/InlineBudgetInput.tsx` | Input de orçamento |
+| `src/components/campaign-editor/MetricCell.tsx` | Célula com semáforo |
+| `src/components/campaign-editor/CreativeThumbnail.tsx` | Miniatura com hover |
+| `src/components/campaign-editor/BudgetProgressCell.tsx` | Barra de progresso |
+| `src/components/campaign-editor/InspectorPanel.tsx` | Painel lateral |
+| `src/components/campaign-editor/CampaignInspector.tsx` | Detalhes campanha |
+| `src/components/campaign-editor/AdSetInspector.tsx` | Detalhes ad set |
+| `src/components/campaign-editor/AdInspector.tsx` | Detalhes anúncio |
+| `src/components/campaign-editor/KPISummaryBar.tsx` | KPIs do topo |
+| `src/hooks/useCampaignTree.tsx` | Hook de dados hierárquicos |
+| `src/hooks/useInlineEdit.tsx` | Hook de edição inline |
 
 ---
 
 ## Ordem de Implementação
 
-1. **Alteração simples:** Default de viewMode para "table" em `ClienteCriativos.tsx`
-2. **Edge functions:** `create-meta-adset` e `create-meta-ad`
-3. **Hooks:** `useAdSetBuilder` e `useCreativeBuilder`
-4. **Modals:** `AdSetBuilderModal` e `CreativeBuilderModal`
-5. **Integração:** Adicionar botões e modals nas páginas
+1. **Estrutura base:** Criar página e rota
+2. **Hooks:** `useCampaignTree` para montar hierarquia
+3. **TreeGrid:** Tabela expansível básica
+4. **Inline Status:** Toggle de ativar/pausar
+5. **Semáforos:** Células coloridas por métricas
+6. **Thumbnails:** Preview de criativos
+7. **Inline Budget:** Edição de orçamento
+8. **Inspetor:** Painel lateral com detalhes
+9. **Barra de progresso:** Orçamento consumido
+10. **KPIs do topo:** Agregados da campanha
+
+---
+
+## Considerações Técnicas
+
+- **Performance:** Usar `useMemo` para estrutura de árvore
+- **Otimistic Updates:** Atualizar UI antes da resposta da API
+- **Debounce:** Edição de orçamento com debounce de 500ms
+- **Persistência de estado:** Manter expansão de nós no localStorage
+- **Google Ads:** Edição inline apenas para Meta inicialmente (Google é read-only por limitações da API)
