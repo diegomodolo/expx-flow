@@ -92,6 +92,18 @@ Deno.serve(async (req) => {
       endDate = null // Optional: custom period end (YYYY-MM-DD)
     } = requestBody
 
+    // Log received sync options for debugging
+    console.log('=== Sync Options ===')
+    console.log('clientId:', clientId)
+    console.log('syncCampaigns:', syncCampaigns)
+    console.log('syncAdSets:', syncAdSets)
+    console.log('syncAds:', syncAds)
+    console.log('campaignFacebookId:', campaignFacebookId)
+    console.log('period:', period)
+    console.log('startDate:', startDate)
+    console.log('endDate:', endDate)
+    console.log('====================')
+
     if (!clientId) {
       console.error('Client ID missing from request:', requestBody)
       return new Response(
