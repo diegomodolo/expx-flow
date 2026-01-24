@@ -215,12 +215,16 @@ export function AdEditModal({
         }
       }
       
-      // Store original values for comparison
+      // Store original values for comparison (use the same logic we used to set mediaUrls above)
+      const origMediaUrls = isVideo && nodeAny.videoUrl 
+        ? [nodeAny.videoUrl] 
+        : (nodeAny.imageUrl ? [nodeAny.imageUrl] : (nodeAny.creativeUrl ? [nodeAny.creativeUrl] : []));
+      
       setOriginalValues({
         name: node.name,
         status: node.status,
         creativeType: nodeCreativeType,
-        mediaUrls: nodeAny.creativeUrl ? [nodeAny.creativeUrl] : [],
+        mediaUrls: origMediaUrls,
         body: nodeAny.creativeBody || '',
         title: nodeAny.creativeTitle || '',
         description: nodeAny.creativeDescription || '',
@@ -424,14 +428,7 @@ export function AdEditModal({
               </Alert>
             )}
 
-            {creativeChanged && !isGoogle && (
-              <Alert className="mb-4 border-primary/50 bg-primary/5">
-                <Info className="h-4 w-4 text-primary" />
-                <AlertDescription>
-                  Alterações no criativo exigem a criação de um novo creative no Meta.
-                </AlertDescription>
-              </Alert>
-            )}
+            {/* Alert removido - as alterações são enviadas diretamente ao Meta */}
 
             {/* Metrics Cards at Top */}
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2 mb-6">
