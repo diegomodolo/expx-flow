@@ -360,6 +360,7 @@ const App = () => {
                     <GeradorCriativos />
                   </PermissionProtectedRoute>
                 } />
+                 {/* Gerador de Carrossel - Standalone */}
                  <Route path="/geradores/carrosseis" element={
                   <PermissionProtectedRoute requiredPermission="geradores">
                     <GeradorCarrosseis />
