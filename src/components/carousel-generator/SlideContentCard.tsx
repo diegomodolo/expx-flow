@@ -71,7 +71,7 @@ export function SlideContentCard({
   const typeColor = TYPE_COLORS[content.type] || "bg-muted text-muted-foreground";
 
   return (
-    <div className="flex flex-col gap-2 min-w-[140px] max-w-[140px]">
+    <div className="flex flex-col gap-2 w-full">
       {/* Image */}
       <div className="relative w-full aspect-square rounded-md overflow-hidden border bg-muted">
         {mediaType === "VIDEO" ? (
