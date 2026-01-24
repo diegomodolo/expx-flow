@@ -334,6 +334,8 @@ export default function CampaignEditorPage() {
         node={selectedNode}
         isOpen={inspectorOpen}
         onClose={() => setInspectorOpen(false)}
+        clientId={client?.id}
+        onUpdate={invalidateQueries}
       />
     </div>
   );
