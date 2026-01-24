@@ -611,6 +611,13 @@ export function AdEditModal({
                       </Select>
                     </div>
 
+                    {/* Pixel Tracking */}
+                    <PixelSelector
+                      clientId={clientId}
+                      companyId={companyId || ''}
+                      value={pixelId}
+                      onChange={setPixelId}
+                    />
                   </div>
                 </div>
               </div>
@@ -742,16 +749,6 @@ export function AdEditModal({
                     </div>
                   </CollapsibleContent>
                 </Collapsible>
-
-                {/* Pixel Tracking */}
-                <div className="border-t pt-4">
-                  <PixelSelector
-                    clientId={clientId}
-                    companyId={companyId || ''}
-                    value={pixelId}
-                    onChange={setPixelId}
-                  />
-                </div>
               </div>
             </div>
           </div>
