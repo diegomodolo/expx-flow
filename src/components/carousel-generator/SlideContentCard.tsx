@@ -73,7 +73,7 @@ export function SlideContentCard({
   return (
     <div className="flex flex-col gap-2 w-full">
       {/* Image */}
-      <div className="relative w-full aspect-square rounded-md overflow-hidden border bg-muted">
+      <div className="relative w-full aspect-[4/5] rounded-md overflow-hidden border bg-muted">
         {mediaType === "VIDEO" ? (
           <div className="relative w-full h-full">
             <img

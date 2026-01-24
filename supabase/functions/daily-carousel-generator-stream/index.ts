@@ -489,41 +489,51 @@ MODO CÓPIA EXATA (OBRIGATÓRIO):
   }
   
   // Build instructions based on selected variations
-  let instructions = `VARIAÇÕES VISUAIS SOLICITADAS (baseie-se na imagem de referência anexada):
+  // Identify which elements should NOT be changed - be VERY explicit
+  const elementsToPreserve: string[] = [];
+  const elementsToChange: string[] = [];
+  
+  if (!variations.alterColorPalette) {
+    elementsToPreserve.push("CORES DE FUNDO", "PALETA DE CORES", "tons e matizes", "cores dos textos e elementos");
+  } else {
+    elementsToChange.push("ALTERE A PALETA DE CORES: inverta/troque as cores principais (ex: onde tem azul, coloque vermelho)");
+  }
+  
+  if (!variations.alterCharacters) {
+    elementsToPreserve.push("PERSONAGENS/PESSOAS (aparência, gênero, etnia, roupa)");
+  } else {
+    elementsToChange.push("SUBSTITUA OS PERSONAGENS/PESSOAS: coloque pessoas diferentes (aparência, gênero, etnia, estilo diferentes)");
+  }
+  
+  if (!variations.alterBackground) {
+    elementsToPreserve.push("ELEMENTOS DE FUNDO (ícones, formas, padrões decorativos, cenário)");
+  } else {
+    elementsToChange.push("TROQUE OS ELEMENTOS DE FUNDO: substitua ícones, formas, padrões decorativos por outros diferentes");
+  }
+  
+  if (!variations.alterLayout) {
+    elementsToPreserve.push("DISPOSIÇÃO/LAYOUT (posição dos textos, alinhamentos, blocos visuais)");
+  } else {
+    elementsToChange.push("ALTERE A DISPOSIÇÃO DOS ELEMENTOS: reposicione textos, mude alinhamentos, reorganize blocos visuais");
+  }
+  
+  let instructions = `VARIAÇÕES VISUAIS (baseie-se na imagem de referência anexada):
 - REPRODUZA o logotipo/marca IDÊNTICO ao da referência (mesma fonte, cores, posição)
-- MANTENHA o estilo geral e profissionalismo da referência`;
-  
-  if (variations.alterColorPalette) {
+- MANTENHA o estilo geral e profissionalismo da referência
+
+⚠️ ELEMENTOS A PRESERVAR ABSOLUTAMENTE (NÃO ALTERE DE FORMA ALGUMA):
+${elementsToPreserve.map(e => `- ${e}`).join('\n')}`;
+
+  if (elementsToChange.length > 0) {
     instructions += `
-- ALTERE A PALETA DE CORES: inverta/troque as cores principais (ex: onde tem azul, coloque vermelho; onde tem vermelho, coloque azul)`;
-  } else {
-    instructions += `
-- MANTENHA a paleta de cores da referência`;
+
+✅ ELEMENTOS A ALTERAR (APENAS ESTES):
+${elementsToChange.map(e => `- ${e}`).join('\n')}`;
   }
   
-  if (variations.alterCharacters) {
-    instructions += `
-- SUBSTITUA OS PERSONAGENS/PESSOAS: coloque pessoas diferentes (aparência, gênero, etnia, estilo diferentes)`;
-  } else {
-    instructions += `
-- MANTENHA os personagens/pessoas similares à referência`;
-  }
-  
-  if (variations.alterBackground) {
-    instructions += `
-- TROQUE OS ELEMENTOS DE FUNDO: substitua ícones, formas, padrões decorativos por outros diferentes`;
-  } else {
-    instructions += `
-- MANTENHA os elementos de fundo similares à referência`;
-  }
-  
-  if (variations.alterLayout) {
-    instructions += `
-- ALTERE A DISPOSIÇÃO DOS ELEMENTOS: reposicione textos, mude alinhamentos, reorganize blocos visuais`;
-  } else {
-    instructions += `
-- MANTENHA a disposição/layout similar à referência`;
-  }
+  instructions += `
+
+REGRA CRÍTICA: Se um elemento está na lista "A PRESERVAR", ele deve ser IDÊNTICO à referência. Não faça nenhuma alteração, nem sutil.`;
   
   return instructions;
 }
