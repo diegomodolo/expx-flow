@@ -609,6 +609,7 @@ export default function GeradorCarrosseis() {
                     headline: s.headline,
                     bodyText: s.bodyText,
                     visualDescription: s.visualDescription,
+                    suggestedElement: s.suggestedElement,
                   }))
                 : undefined
             }
