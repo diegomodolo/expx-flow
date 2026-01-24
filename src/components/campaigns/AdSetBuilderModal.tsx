@@ -25,6 +25,7 @@ import { useQuery } from '@tanstack/react-query';
 import { AudienceMultiSelect } from '@/components/campaigns/builder/AudienceMultiSelect';
 import { PixelSelector } from '@/components/campaigns/builder/PixelSelector';
 import { ConversionEventSelector } from '@/components/campaigns/builder/ConversionEventSelector';
+import { InterestSelector, Interest } from '@/components/campaigns/builder/InterestSelector';
 
 interface MetaCampaign {
   id: string;
@@ -184,6 +185,15 @@ export function AdSetBuilderModal({
               onChange={(ids) => updateField('excludedAudiences', ids)}
               label="Públicos de Exclusão"
               placeholder="Excluir públicos..."
+            />
+
+            {/* Interests */}
+            <InterestSelector
+              clientId={clientId}
+              selectedInterests={state.interests}
+              onChange={(interests) => updateField('interests', interests)}
+              label="Interesses"
+              placeholder="Buscar interesses..."
             />
           </div>
 
