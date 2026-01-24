@@ -4,6 +4,7 @@ import { useCampaignTree, TreeNode } from "@/hooks/useCampaignTree";
 import { useClientContext } from "./ClienteContext";
 import { TreeGridTable } from "@/components/campaign-editor/TreeGridTable";
 import { InspectorPanel } from "@/components/campaign-editor/InspectorPanel";
+import { AdSetEditModal } from "@/components/campaign-editor/AdSetEditModal";
 import { KPISummaryBar } from "@/components/campaign-editor/KPISummaryBar";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -34,6 +35,7 @@ export default function CampaignEditorPage() {
 
   const [selectedNode, setSelectedNode] = useState<TreeNode | null>(null);
   const [inspectorOpen, setInspectorOpen] = useState(false);
+  const [adSetModalOpen, setAdSetModalOpen] = useState(false);
   const [syncPeriod, setSyncPeriod] = useState<string>(() => {
     return localStorage.getItem('campaignEditorSyncPeriod') || '30';
   });
@@ -43,7 +45,12 @@ export default function CampaignEditorPage() {
 
   const handleSelectNode = useCallback((node: TreeNode) => {
     setSelectedNode(node);
-    setInspectorOpen(true);
+    // For adsets, open the dedicated modal; for campaigns and ads, use inspector panel
+    if (node.type === 'adset') {
+      setAdSetModalOpen(true);
+    } else {
+      setInspectorOpen(true);
+    }
   }, []);
 
   const handlePeriodChange = (value: string) => {
@@ -329,13 +336,22 @@ export default function CampaignEditorPage() {
         onRefresh={invalidateQueries}
       />
 
-      {/* Inspector Panel */}
+      {/* Inspector Panel (for campaigns and ads) */}
       <InspectorPanel
         node={selectedNode}
         isOpen={inspectorOpen}
         onClose={() => setInspectorOpen(false)}
         clientId={client?.id}
         onUpdate={invalidateQueries}
+      />
+
+      {/* AdSet Edit Modal (for ad sets) */}
+      <AdSetEditModal
+        isOpen={adSetModalOpen}
+        onClose={() => setAdSetModalOpen(false)}
+        node={selectedNode}
+        clientId={client?.id || ''}
+        onSuccess={invalidateQueries}
       />
     </div>
   );
