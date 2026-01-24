@@ -337,3 +337,6 @@ verify_jwt = true
 
 [functions.create-meta-ad]
 verify_jwt = true
+
+[functions.search-meta-interests]
+verify_jwt = true

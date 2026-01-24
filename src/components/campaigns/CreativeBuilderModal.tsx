@@ -247,7 +247,7 @@ export function CreativeBuilderModal({
             <MediaUploader
               mediaUrls={state.mediaUrls}
               onChange={(urls) => updateField('mediaUrls', urls)}
-              type={state.type === 'VIDEO' ? 'video' : state.type === 'CAROUSEL' ? 'carousel' : 'image'}
+              type={state.type}
               maxFiles={maxFiles}
               clientId={clientId}
             />

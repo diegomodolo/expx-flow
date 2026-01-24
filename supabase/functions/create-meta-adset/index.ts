@@ -6,6 +6,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+interface Interest {
+  id: string;
+  name: string;
+}
+
 interface AdSetRequest {
   clientId: string;
   campaignId: string;        // ID local da campanha
@@ -18,6 +23,7 @@ interface AdSetRequest {
     targeting: {
       custom_audiences?: string[];
       excluded_audiences?: string[];
+      interests?: Interest[];
       age_min?: number;
       age_max?: number;
       genders?: number[];
@@ -122,6 +128,12 @@ serve(async (req) => {
     }
     if (adSet.targeting.excluded_audiences?.length) {
       targeting.excluded_custom_audiences = adSet.targeting.excluded_audiences.map(id => ({ id }));
+    }
+    if (adSet.targeting.interests?.length) {
+      targeting.interests = adSet.targeting.interests.map(interest => ({
+        id: interest.id,
+        name: interest.name,
+      }));
     }
 
     // Determine optimization goal

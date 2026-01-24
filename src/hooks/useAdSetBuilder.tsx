@@ -2,12 +2,18 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+export interface Interest {
+  id: string;
+  name: string;
+}
+
 export interface AdSetBuilderState {
   campaignId: string;
   metaCampaignId: string;
   name: string;
   includedAudiences: string[];
   excludedAudiences: string[];
+  interests: Interest[];
   ageMin: number;
   ageMax: number;
   genders: number[];
@@ -22,6 +28,7 @@ const initialState: AdSetBuilderState = {
   name: '',
   includedAudiences: [],
   excludedAudiences: [],
+  interests: [],
   ageMin: 18,
   ageMax: 65,
   genders: [],
@@ -67,6 +74,7 @@ export function useAdSetBuilder(clientId: string, companyId: string) {
             targeting: {
               custom_audiences: state.includedAudiences.length > 0 ? state.includedAudiences : undefined,
               excluded_audiences: state.excludedAudiences.length > 0 ? state.excludedAudiences : undefined,
+              interests: state.interests.length > 0 ? state.interests : undefined,
               age_min: state.ageMin,
               age_max: state.ageMax,
               genders: state.genders.length > 0 ? state.genders : undefined,
