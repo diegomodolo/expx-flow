@@ -9,6 +9,7 @@ export interface PreGeneratedSlide {
   headline: string;
   bodyText: string;
   visualDescription: string;
+  suggestedElement?: string;
 }
 
 export interface VisualVariations {
