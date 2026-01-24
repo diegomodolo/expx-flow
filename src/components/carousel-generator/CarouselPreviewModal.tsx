@@ -31,7 +31,7 @@ type CarouselData = {
   client: {
     id: string;
     name: string;
-    avatar_url: string | null;
+    avatar?: string | null;
   } | null;
 };
 
