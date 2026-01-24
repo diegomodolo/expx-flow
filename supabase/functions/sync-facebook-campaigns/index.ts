@@ -1198,7 +1198,7 @@ async function processSync(
                 console.log('Fetching ads for ad set:', adSet.id)
                 // Expanded creative fields to capture CTA, description, url_tags and tracking_specs for UTM parameters
                 // url_tags is where Meta stores the UTM parameters at the creative level
-                const adsUrl = `https://graph.facebook.com/v20.0/${adSet.id}/ads?fields=id,name,status,tracking_specs,creative{id,title,body,image_url,video_id,thumbnail_url,object_story_spec,call_to_action_type,effective_object_story_id,url_tags},insights${dateParam}.action_report_time(conversion).action_attribution_windows([\"7d_click\",\"1d_view\"])` +
+                const adsUrl = `https://graph.facebook.com/v20.0/${adSet.id}/ads?fields=id,name,status,tracking_specs,creative{id,title,body,image_url,video_id,thumbnail_url,object_story_spec,call_to_action_type,effective_object_story_id,url_tags,object_url},insights${dateParam}.action_report_time(conversion).action_attribution_windows([\"7d_click\",\"1d_view\"])` +
                   `{impressions,clicks,spend,cpm,ctr,cpc,reach,frequency,actions,quality_ranking,engagement_rate_ranking,conversion_rate_ranking}&access_token=${accessToken}`
                 console.log('Ads API URL (without token):', adsUrl.replace(accessToken, '[REDACTED]'))
                 const adsResponse = await fetch(adsUrl)
@@ -1373,6 +1373,30 @@ async function processSync(
                     const descriptionValue = linkData.description || objectStory.video_data?.message || creative.body || ''
                     console.log('Description extraction - linkData.description:', linkData.description, 'final:', descriptionValue)
                     
+                    const pickFirstNonEmptyString = (...candidates: any[]): string => {
+                      for (const c of candidates) {
+                        if (typeof c === 'string' && c.trim().length > 0) return c.trim()
+                      }
+                      return ''
+                    }
+
+                    const appendUrlTags = (baseUrl: string, tags: string): string => {
+                      const cleanTags = (tags || '').trim().replace(/^\?/, '')
+                      if (!baseUrl || !cleanTags) return baseUrl
+
+                      // Avoid duplicating params if base URL already contains any of the same keys
+                      const tagKeys = cleanTags
+                        .split('&')
+                        .map(p => p.split('=')[0]?.trim())
+                        .filter(Boolean) as string[]
+
+                      const alreadyHasAnyKey = tagKeys.some((k) => baseUrl.includes(`${k}=`))
+                      if (alreadyHasAnyKey) return baseUrl
+
+                      const separator = baseUrl.includes('?') ? '&' : '?'
+                      return `${baseUrl}${separator}${cleanTags}`
+                    }
+
                     // Get URL tags from multiple sources (priority: creative.url_tags > adSet.url_tags)
                     // url_tags is where Meta stores the UTM parameters
                     const creativeUrlTags = creative.url_tags || ''
@@ -1380,13 +1404,22 @@ async function processSync(
                     const urlTags = creativeUrlTags || adSetUrlTags
                     console.log('URL Tags - creative.url_tags:', creativeUrlTags, 'adSet.url_tags:', adSetUrlTags, 'final:', urlTags)
                     
-                    // Build final link_url with url_tags if present
-                    let finalLinkUrl = linkData.link || ''
-                    if (finalLinkUrl && urlTags && !finalLinkUrl.includes('utm_')) {
-                      // Only append url_tags if the link doesn't already have UTM params
-                      const separator = finalLinkUrl.includes('?') ? '&' : '?'
-                      finalLinkUrl = `${finalLinkUrl}${separator}${urlTags}`
-                      console.log('Final link URL with UTM params:', finalLinkUrl)
+                    // Build final link_url (video creatives often store it under video_data.call_to_action.value.link)
+                    const baseDestinationUrl = pickFirstNonEmptyString(
+                      linkData.link,
+                      linkData.call_to_action?.value?.link,
+                      objectStory.video_data?.call_to_action?.value?.link,
+                      objectStory.video_data?.call_to_action?.value?.link_url,
+                      (creative as any).object_url,
+                      callToActionValue?.value?.link
+                    )
+                    let finalLinkUrl = baseDestinationUrl
+
+                    if (finalLinkUrl && urlTags) {
+                      finalLinkUrl = appendUrlTags(finalLinkUrl, urlTags)
+                      console.log('Final link URL (with url_tags if present):', finalLinkUrl)
+                    } else {
+                      console.log('Final link URL empty - baseDestinationUrl:', baseDestinationUrl, 'urlTags:', urlTags)
                     }
                     
                     // Save ad to database with complete data
