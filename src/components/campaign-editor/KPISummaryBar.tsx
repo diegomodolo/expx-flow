@@ -13,7 +13,7 @@ export function KPISummaryBar({ campaign, targets }: KPISummaryBarProps) {
   const { metrics } = campaign;
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 p-4 bg-muted/30 rounded-lg border">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 p-4 bg-card rounded-lg border">
       {/* Spend */}
       <div className="space-y-1">
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">

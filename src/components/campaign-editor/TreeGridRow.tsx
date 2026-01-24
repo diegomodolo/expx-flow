@@ -39,13 +39,13 @@ export function TreeGridRow({
   const getLevelStyles = () => {
     switch (node.type) {
       case "campaign":
-        return "bg-muted/80 dark:bg-muted/40";
+        return "bg-muted/50";
       case "adset":
-        return "bg-muted/40 dark:bg-muted/20";
+        return "bg-card";
       case "ad":
-        return "bg-background";
+        return "bg-card";
       default:
-        return "";
+        return "bg-card";
     }
   };
 

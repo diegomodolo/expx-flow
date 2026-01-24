@@ -112,7 +112,7 @@ export function TreeGridTable({
   };
 
   return (
-    <div className="border rounded-lg overflow-hidden">
+    <div className="border rounded-lg overflow-hidden bg-card">
       {/* Header */}
       <div className="grid grid-cols-12 gap-2 px-4 py-3 bg-muted/50 border-b text-xs font-medium text-muted-foreground uppercase">
         <div className="col-span-4">Nome</div>
