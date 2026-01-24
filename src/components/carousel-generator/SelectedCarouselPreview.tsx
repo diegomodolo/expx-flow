@@ -37,8 +37,9 @@ export function SelectedCarouselPreview({
       </div>
 
       {/* Horizontal slides preview with content cards below each */}
-      <ScrollArea className="w-full whitespace-nowrap">
-        <div className="flex gap-3 pb-2">
+      {/* Grid layout - 3 columns for better visibility */}
+      <div className="w-full">
+        <div className="grid grid-cols-3 gap-4">
           {carousel.children.map((child, index) => {
             const content = slideContents?.[index];
             
@@ -55,11 +56,11 @@ export function SelectedCarouselPreview({
               );
             }
 
-            // Original image-only view (larger images - 120px)
+            // Original image-only view (full width in grid)
             return (
               <div
                 key={child.id}
-                className="relative flex-shrink-0 w-[120px] h-[120px] rounded-md overflow-hidden border"
+                className="relative w-full aspect-square rounded-md overflow-hidden border"
               >
                 {child.media_type === "VIDEO" ? (
                   <div className="relative w-full h-full">
@@ -87,8 +88,7 @@ export function SelectedCarouselPreview({
             );
           })}
         </div>
-        <ScrollBar orientation="horizontal" />
-      </ScrollArea>
+      </div>
 
       {/* Caption preview */}
       {carousel.caption && (
