@@ -54,7 +54,7 @@ export function TreeGridRow({
       case "campaign":
         return <Target className="w-4 h-4 text-primary" />;
       case "adset":
-        return <Layers className="w-4 h-4 text-blue-500" />;
+        return <Layers className="w-4 h-4 text-muted-foreground" />;
       case "ad":
         return null; // Show thumbnail instead
       default:
@@ -62,67 +62,70 @@ export function TreeGridRow({
     }
   };
 
-  const paddingLeft = `${depth * 16 + 12}px`;
+  const paddingLeft = `${depth * 20 + 12}px`;
 
   return (
-    <div
+    <tr
       className={cn(
-        "grid grid-cols-12 gap-2 px-4 py-3 items-center cursor-pointer transition-colors",
+        "cursor-pointer transition-colors",
         getLevelStyles(),
         isSelected && "ring-2 ring-primary ring-inset",
-        "hover:bg-muted/60"
+        "hover:bg-muted/50"
       )}
       onClick={onSelect}
     >
       {/* Name column */}
-      <div className="col-span-4 flex items-center gap-2" style={{ paddingLeft }}>
-        {/* Expand/Collapse button */}
-        {hasChildren ? (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleExpand();
-            }}
-            className="p-0.5 hover:bg-muted rounded transition-colors"
-          >
-            <ChevronRight
-              className={cn(
-                "w-4 h-4 transition-transform",
-                isExpanded && "rotate-90"
-              )}
-            />
-          </button>
-        ) : (
-          <div className="w-5" />
-        )}
-
-        {/* Icon or Thumbnail */}
-        {node.type === "ad" ? (
-          <CreativeThumbnail
-            imageUrl={node.creativeUrl}
-            title={node.creativeTitle}
-            body={node.creativeBody}
-            type={node.creativeType}
-          />
-        ) : (
-          getIcon()
-        )}
-
-        {/* Name */}
-        <span
-          className={cn(
-            "truncate",
-            node.type === "campaign" && "font-semibold",
-            node.type === "adset" && "font-medium"
+      <td className="px-3 py-3">
+        <div className="flex items-center gap-2" style={{ paddingLeft }}>
+          {/* Expand/Collapse button */}
+          {hasChildren ? (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleExpand();
+              }}
+              className="p-0.5 hover:bg-muted rounded transition-colors"
+            >
+              <ChevronRight
+                className={cn(
+                  "w-4 h-4 transition-transform text-muted-foreground",
+                  isExpanded && "rotate-90"
+                )}
+              />
+            </button>
+          ) : (
+            <div className="w-5" />
           )}
-          title={node.name}
-        >
-          {node.name}
-        </span>
-      </div>
+
+          {/* Icon or Thumbnail */}
+          {node.type === "ad" ? (
+            <CreativeThumbnail
+              imageUrl={node.creativeUrl}
+              title={node.creativeTitle}
+              body={node.creativeBody}
+              type={node.creativeType}
+            />
+          ) : (
+            getIcon()
+          )}
+
+          {/* Name */}
+          <span
+            className={cn(
+              "truncate text-sm",
+              node.type === "campaign" && "font-medium text-foreground",
+              node.type === "adset" && "font-normal text-foreground",
+              node.type === "ad" && "font-normal text-foreground"
+            )}
+            title={node.name}
+          >
+            {node.name}
+          </span>
+        </div>
+      </td>
 
       {/* Status column */}
-      <div className="col-span-1" onClick={(e) => e.stopPropagation()}>
+      <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
         <InlineStatusToggle
           id={node.id}
           isActive={node.status === "active"}
@@ -130,10 +133,10 @@ export function TreeGridRow({
           disabled={node.platform === "google"}
           onToggle={onToggleStatus}
         />
-      </div>
+      </td>
 
       {/* Budget column */}
-      <div className="col-span-2" onClick={(e) => e.stopPropagation()}>
+      <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
         {node.budget ? (
           node.type !== "ad" ? (
             <InlineBudgetInput
@@ -150,10 +153,10 @@ export function TreeGridRow({
         ) : (
           <span className="text-sm text-muted-foreground">-</span>
         )}
-      </div>
+      </td>
 
       {/* CTR column */}
-      <div className="col-span-1">
+      <td className="px-3 py-3">
         <MetricCell
           metric="ctr"
           value={node.metrics.ctr}
@@ -161,10 +164,10 @@ export function TreeGridRow({
           suffix="%"
           decimals={2}
         />
-      </div>
+      </td>
 
       {/* CPA column */}
-      <div className="col-span-1">
+      <td className="px-3 py-3">
         <MetricCell
           metric="cpa"
           value={node.metrics.cpa}
@@ -172,15 +175,15 @@ export function TreeGridRow({
           prefix="R$"
           decimals={0}
         />
-      </div>
+      </td>
 
       {/* Conversions column */}
-      <div className="col-span-1">
+      <td className="px-3 py-3">
         <span className="text-sm font-medium">{node.metrics.conversions}</span>
-      </div>
+      </td>
 
       {/* Spend column */}
-      <div className="col-span-2">
+      <td className="px-3 py-3">
         {node.budget ? (
           <BudgetProgressCell
             spent={node.metrics.spend}
@@ -192,7 +195,7 @@ export function TreeGridRow({
             R$ {node.metrics.spend.toFixed(2)}
           </span>
         )}
-      </div>
-    </div>
+      </td>
+    </tr>
   );
 }

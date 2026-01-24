@@ -113,21 +113,37 @@ export function TreeGridTable({
 
   return (
     <div className="border rounded-lg overflow-hidden bg-card">
-      {/* Header */}
-      <div className="grid grid-cols-12 gap-2 px-4 py-3 bg-muted/50 border-b text-xs font-medium text-muted-foreground uppercase">
-        <div className="col-span-4">Nome</div>
-        <div className="col-span-1">Status</div>
-        <div className="col-span-2">Orçamento</div>
-        <div className="col-span-1">CTR</div>
-        <div className="col-span-1">CPA</div>
-        <div className="col-span-1">Conv.</div>
-        <div className="col-span-2">Investido</div>
-      </div>
-
-      {/* Rows */}
-      <div className="divide-y divide-border">
-        {renderNode(campaign)}
-      </div>
+      {/* Header - matching Campanhas.tsx table header style */}
+      <table className="w-full">
+        <thead className="bg-muted/50">
+          <tr>
+            <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-[35%]">
+              Nome
+            </th>
+            <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-[8%]">
+              Status
+            </th>
+            <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-[15%]">
+              Orçamento
+            </th>
+            <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-[8%]">
+              CTR
+            </th>
+            <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-[10%]">
+              CPA
+            </th>
+            <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-[8%]">
+              Conv.
+            </th>
+            <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-[16%]">
+              Investido
+            </th>
+          </tr>
+        </thead>
+        <tbody className="bg-card divide-y divide-border">
+          {renderNode(campaign)}
+        </tbody>
+      </table>
     </div>
   );
 }
