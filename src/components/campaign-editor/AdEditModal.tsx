@@ -144,6 +144,7 @@ export function AdEditModal({
       setTitle(nodeAny.creativeTitle || '');
       setDescription(nodeAny.creativeDescription || '');
       setLinkUrl(nodeAny.linkUrl || '');
+      // CTA is now already parsed from JSON in useCampaignTree
       setCallToAction(nodeAny.callToAction || 'LEARN_MORE');
       
       // Parse UTM from link URL if present
