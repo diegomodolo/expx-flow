@@ -39,6 +39,14 @@ export default function Geradores() {
       path: "/geradores/fabrica-carrosseis",
     },
     {
+      id: "gerador-carrosseis",
+      title: "Gerador de Carrossel",
+      description: "Crie carrosseis para Instagram com IA de forma rápida e simplificada",
+      icon: Layers,
+      color: "teal",
+      path: "/geradores/carrosseis",
+    },
+    {
       id: "planejamento",
       title: "Planejador de Conteúdo",
       description: "Planeje suas postagens mensais com ajuda da IA integrada",
