@@ -1,181 +1,201 @@
 
-# Plano: Sincronizar Pixel e Evento de Conversão do Meta
+# Plano: Modal de Edição de Campanha
 
 ## Objetivo
-Implementar a sincronização correta do **Pixel ID** e **Evento de Conversão** tanto para Conjuntos de Anúncios quanto para Criativos, permitindo visualização e edição dessas configurações na interface.
+Criar um modal de edição de campanha (`CampaignEditModal`) seguindo o mesmo padrão visual dos modais existentes de Conjunto de Anúncios (`AdSetEditModal`) e Criativo (`AdEditModal`), substituindo o painel lateral (`InspectorPanel`) que atualmente abre ao clicar em uma campanha.
 
 ---
 
-## Análise do Problema
+## Análise Atual
 
-### Situação Atual
-- O sistema já busca o campo `promoted_object` do Meta para Ad Sets, mas **não extrai** o `pixel_id` e `custom_event_type` dele
-- O sistema já busca `tracking_specs` para Ads, mas **não extrai** o pixel configurado
-- As tabelas `ad_sets` e `ads` já têm a coluna `pixel_id`, mas não é populada durante a sincronização
-- Falta a coluna `conversion_event` na tabela `ad_sets`
+### Comportamento Existente
+- Ao clicar em uma **campanha** no TreeGrid → abre `InspectorPanel` (Sheet lateral)
+- Ao clicar em um **conjunto de anúncios** → abre `AdSetEditModal` (Dialog modal)
+- Ao clicar em um **criativo** → abre `AdEditModal` (Dialog modal)
 
-### Como o Meta Organiza os Dados
-1. **Ad Set (Conjunto de Anúncios)**:
-   - Campo `promoted_object` → contém `pixel_id` e `custom_event_type`
-   - Exemplo: `{"pixel_id": "123456", "custom_event_type": "PURCHASE"}`
-
-2. **Ad (Criativo)**:
-   - Campo `tracking_specs` → array com configuração de rastreamento
-   - Exemplo: `[{"action.type": "offsite_conversion", "fb_pixel": ["123456"]}]`
+### Infraestrutura Disponível
+- Edge function `manage-facebook-campaign` já suporta: toggle status, rename, budget, duplicate
+- Tabela `campaigns` contém: name, status, objective, daily_budget, lifetime_budget, facebook_id, métricas
 
 ---
 
 ## Implementação
 
-### 1. Migração de Banco de Dados
-Adicionar coluna `conversion_event` na tabela `ad_sets`:
+### 1. Criar Componente `CampaignEditModal`
 
-```sql
-ALTER TABLE ad_sets ADD COLUMN conversion_event TEXT;
+**Arquivo**: `src/components/campaign-editor/CampaignEditModal.tsx`
+
+**Estrutura do Modal** (seguindo o padrão existente):
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+│  [Target Icon] Editar Campanha         [Status: Ativo] [ON] │
+│  [META]                                                     │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌──────┬──────┬──────┬──────┬──────┬──────┬──────┐        │
+│  │Invest│Impres│ CTR  │Conv. │Conj. │Ativos│Pausad│        │
+│  │R$XXX │ XXX  │X.XX% │ XXX  │  XX  │  XX  │  XX  │        │
+│  └──────┴──────┴──────┴──────┴──────┴──────┴──────┘        │
+│                                                             │
+│  ┌─────────────────────┐  ┌─────────────────────┐          │
+│  │ CONFIGURAÇÕES       │  │ ORÇAMENTO           │          │
+│  │                     │  │                     │          │
+│  │ Nome da Campanha *  │  │ Tipo: [Diário ▼]    │          │
+│  │ [_______________]   │  │                     │          │
+│  │                     │  │ Valor (R$)          │          │
+│  │ Objetivo            │  │ [____________]      │          │
+│  │ [Conversões ▼]      │  │                     │          │
+│  │ (somente leitura)   │  │                     │          │
+│  └─────────────────────┘  └─────────────────────┘          │
+│                                                             │
+├─────────────────────────────────────────────────────────────┤
+│                                   [Cancelar] [💾 Salvar]    │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-### 2. Atualizar Sincronização de Ad Sets
-Modificar `supabase/functions/sync-facebook-campaigns/index.ts`:
+**Campos Editáveis**:
+- **Nome**: Input text, obrigatório
+- **Status**: Switch no header (Ativo/Pausado)
+- **Orçamento**: Tipo (diário/vitalício) + Valor
 
-**Antes** (linha ~1150-1176):
-```javascript
-const adSetData = {
-  facebook_id: adSet.id,
-  // ... outros campos
-  optimization_goal: adSet.optimization_goal || '',
-  targeting: JSON.stringify(adSet.targeting || {}),
-  // ...
-}
-```
+**Campos Somente Leitura**:
+- **Objetivo**: Exibido mas não editável (não pode ser alterado no Meta após criação)
 
-**Depois**:
-```javascript
-// Extrair pixel e evento do promoted_object
-const promotedObject = adSet.promoted_object || {};
-const pixelId = promotedObject.pixel_id || null;
-const conversionEvent = promotedObject.custom_event_type || null;
+**Métricas** (cards no topo):
+- Investimento, Impressões, CTR, Conversões
+- Quantidade de Conjuntos de Anúncios, Ativos, Pausados
 
-const adSetData = {
-  facebook_id: adSet.id,
-  // ... outros campos
-  optimization_goal: adSet.optimization_goal || '',
-  targeting: JSON.stringify(adSet.targeting || {}),
-  pixel_id: pixelId,
-  conversion_event: conversionEvent,
-  // ...
-}
-```
+### 2. Atualizar `CampaignEditorPage`
 
-### 3. Atualizar Sincronização de Ads
-Modificar a mesma função para extrair pixel do `tracking_specs`:
+**Arquivo**: `src/pages/cliente/CampaignEditorPage.tsx`
 
-```javascript
-// Extrair pixel do tracking_specs
-let adPixelId = null;
-if (ad.tracking_specs && Array.isArray(ad.tracking_specs)) {
-  const pixelSpec = ad.tracking_specs.find(
-    spec => spec['action.type'] === 'offsite_conversion' && spec.fb_pixel
-  );
-  if (pixelSpec?.fb_pixel) {
-    adPixelId = Array.isArray(pixelSpec.fb_pixel) 
-      ? pixelSpec.fb_pixel[0] 
-      : pixelSpec.fb_pixel;
+**Mudanças**:
+1. Adicionar state para o modal de campanha:
+   ```typescript
+   const [campaignModalOpen, setCampaignModalOpen] = useState(false);
+   ```
+
+2. Modificar `handleSelectNode` para abrir o modal correto:
+   ```typescript
+   if (node.type === 'campaign') {
+     setCampaignModalOpen(true);  // Ao invés de setInspectorOpen(true)
+   } else if (node.type === 'adset') {
+     setAdSetModalOpen(true);
+   } else if (node.type === 'ad') {
+     setAdModalOpen(true);
+   }
+   ```
+
+3. Adicionar o componente `CampaignEditModal` no JSX
+
+4. Remover ou manter o `InspectorPanel` apenas para uso futuro (opcional)
+
+### 3. Lógica de Salvamento
+
+**Reutilizar edge function existente**: `manage-facebook-campaign`
+
+```typescript
+const handleSave = async () => {
+  // Atualizar nome
+  if (editName !== node.name) {
+    await supabase.functions.invoke('manage-facebook-campaign', {
+      body: {
+        campaignId: node.id,
+        clientId,
+        action: 'rename',
+        name: editName
+      }
+    });
   }
-}
 
-const adData = {
-  // ... outros campos
-  pixel_id: adPixelId,
-}
+  // Atualizar status
+  if (editStatus !== currentStatus) {
+    await supabase.functions.invoke('manage-facebook-campaign', {
+      body: {
+        campaignId: node.id,
+        clientId,
+        action: 'toggle',
+        status: editStatus
+      }
+    });
+  }
+
+  // Atualizar orçamento
+  if (budgetChanged) {
+    await supabase.functions.invoke('manage-facebook-campaign', {
+      body: {
+        campaignId: node.id,
+        clientId,
+        action: 'budget',
+        budgetType,
+        amount: parseFloat(editBudget) * 100 // Em centavos
+      }
+    });
+  }
+};
 ```
 
-### 4. Atualizar Hook useCampaignTree
-Modificar `src/hooks/useCampaignTree.tsx` para incluir os novos campos no TreeNode:
-
-- Adicionar `conversionEvent?: string` na interface `TreeNode`
-- Mapear `pixel_id` e `conversion_event` do Ad Set para o TreeNode
-
-### 5. Atualizar Modal de Edição de Ad Set
-Modificar `src/components/campaign-editor/AdSetEditModal.tsx`:
-
-- Inicializar `pixelId` e `conversionEvent` a partir dos dados do node (carregados do banco)
-- Remover valores hardcoded vazios e usar os valores sincronizados
-
-### 6. Atualizar Modal de Edição de Ad (Criativo)
-Modificar `src/components/campaign-editor/AdEditModal.tsx`:
-
-- Mostrar dois campos de Pixel:
-  - **Pixel do Conjunto**: Somente leitura, mostrando o pixel herdado do Ad Set
-  - **Pixel do Anúncio**: Editável, para configurar pixel específico no criativo
-- Inicializar `pixelId` a partir dos dados sincronizados do banco
-
-### 7. Atualizar Edge Function de Atualização de Ad
-Modificar `supabase/functions/update-meta-ad/index.ts`:
-
-- Ao salvar pixel do anúncio, atualizar o `tracking_specs` no Meta
-- Formato: `tracking_specs=[{"action.type":"offsite_conversion","fb_pixel":["PIXEL_ID"]}]`
-
 ---
 
-## Arquivos a Modificar
+## Arquivos a Modificar/Criar
 
-| Arquivo | Alteração |
-|---------|-----------|
-| Nova migração SQL | Adicionar coluna `conversion_event` em `ad_sets` |
-| `supabase/functions/sync-facebook-campaigns/index.ts` | Extrair `pixel_id`/`conversion_event` de `promoted_object` e `tracking_specs` |
-| `src/integrations/supabase/types.ts` | Adicionar tipagem para `conversion_event` |
-| `src/hooks/useCampaignTree.tsx` | Adicionar `conversionEvent` e `pixelId` para Ad Sets |
-| `src/components/campaign-editor/AdSetEditModal.tsx` | Inicializar campos com dados sincronizados |
-| `src/components/campaign-editor/AdEditModal.tsx` | Mostrar pixel do conjunto + pixel do anúncio |
-| `supabase/functions/update-meta-ad/index.ts` | Enviar `tracking_specs` ao Meta ao salvar pixel |
-
----
-
-## Comportamento Final
-
-### No Modal de Conjunto de Anúncios
-- **Pixel de Conversão**: Carrega o valor sincronizado do Meta; ao editar, atualiza o `promoted_object.pixel_id`
-- **Evento de Conversão**: Carrega o valor sincronizado do Meta; ao editar, atualiza o `promoted_object.custom_event_type`
-
-### No Modal de Criativo (Anúncio)
-- **Pixel do Conjunto** (somente leitura): Mostra o pixel herdado do Ad Set pai
-- **Pixel do Anúncio** (editável): Mostra o pixel específico do anúncio; ao editar, atualiza apenas o `tracking_specs` do anúncio
+| Arquivo | Ação | Descrição |
+|---------|------|-----------|
+| `src/components/campaign-editor/CampaignEditModal.tsx` | **Criar** | Novo componente modal para edição de campanhas |
+| `src/pages/cliente/CampaignEditorPage.tsx` | **Modificar** | Adicionar state e lógica para abrir o novo modal |
 
 ---
 
 ## Detalhes Técnicos
 
-### Campos da API do Meta Utilizados
-
-**Para Ad Sets:**
-```
-fields=id,name,status,...,promoted_object
-```
-- `promoted_object.pixel_id` → salvar em `ad_sets.pixel_id`
-- `promoted_object.custom_event_type` → salvar em `ad_sets.conversion_event`
-
-**Para Ads:**
-```
-fields=id,name,status,...,tracking_specs
-```
-- `tracking_specs[].fb_pixel` → salvar em `ads.pixel_id`
-
-### Atualização via API (POST)
-
-**Ad Set (promoted_object):**
-```javascript
-promoted_object: JSON.stringify({
-  pixel_id: "123456",
-  custom_event_type: "LEAD"
-})
+### Props do CampaignEditModal
+```typescript
+interface CampaignEditModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  node: TreeNode | null;
+  clientId: string;
+  companyId?: string;
+  onSuccess?: () => void;
+}
 ```
 
-**Ad (tracking_specs):**
-```javascript
-tracking_specs: JSON.stringify([
-  {
-    "action.type": "offsite_conversion",
-    "fb_pixel": ["123456"]
-  }
-])
-```
+### Campos do Node (Campanha)
+Baseado no `TreeNode` e tabela `campaigns`:
+- `id`: UUID da campanha
+- `name`: Nome da campanha
+- `status`: 'active' | 'paused' | 'finished'
+- `objective`: Objetivo (CONVERSIONS, TRAFFIC, etc.)
+- `budget.type`: 'daily' | 'lifetime'
+- `budget.amount`: Valor do orçamento
+- `budget.spent`: Gasto atual
+- `metrics`: Métricas de performance
+- `facebookId`: ID no Meta
+- `children`: Array de conjuntos de anúncios
+
+### Objetivo (Somente Leitura)
+O objetivo da campanha não pode ser alterado no Meta após a criação. Será exibido como um Select desabilitado com os valores:
+- CONVERSIONS → "Conversões"
+- TRAFFIC → "Tráfego"
+- LEAD_GENERATION → "Geração de Leads"
+- MESSAGES → "Mensagens"
+- ENGAGEMENT → "Engajamento"
+- APP_INSTALLS → "Instalações de App"
+
+---
+
+## Comportamento Final
+
+### Antes
+1. Usuário clica em campanha
+2. Abre painel lateral (Sheet) com tabs Métricas/Configurações
+3. Edição limitada, experiência diferente dos outros níveis
+
+### Depois
+1. Usuário clica em campanha
+2. Abre modal centralizado (Dialog) similar ao de Conjuntos e Criativos
+3. Métricas em cards no topo
+4. Layout duas colunas: Configurações | Orçamento
+5. Status no header com Switch
+6. Experiência consistente em toda a hierarquia
