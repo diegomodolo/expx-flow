@@ -175,12 +175,32 @@ serve(async (req) => {
         );
         creativeData = await response.json();
       } else if (creative.type === 'VIDEO') {
+        // Extract video ID from URL or use raw ID
+        // The media_urls[0] might be a URL like https://www.facebook.com/123456789
+        // or a direct video ID like "123456789"
+        let videoId = creative.media_urls[0];
+        
+        // If it's a Facebook URL, extract the numeric ID from the path
+        if (videoId.includes('facebook.com/') || videoId.includes('fb.com/')) {
+          const match = videoId.match(/(?:facebook\.com|fb\.com)\/(\d+)/);
+          if (match && match[1]) {
+            videoId = match[1];
+          }
+        }
+        // If it's a full video URL (mp4), we cannot use it as video_id
+        // In that case, we need to throw an error or skip video creative update
+        if (videoId.startsWith('http') && !videoId.includes('facebook.com') && !videoId.includes('fb.com')) {
+          throw new Error("Para atualizar criativos de vídeo, é necessário fazer upload de um novo vídeo ou manter o vídeo atual.");
+        }
+
+        console.log("Extracted video_id:", videoId);
+
         const creativeParams = new URLSearchParams({
           name: `Creative - ${creative.title || Date.now()}`,
           object_story_spec: JSON.stringify({
             page_id: metaPageId,
             video_data: {
-              video_id: creative.media_urls[0],
+              video_id: videoId,
               message: creative.body,
               title: creative.title || '',
               link_description: creative.description || '',
