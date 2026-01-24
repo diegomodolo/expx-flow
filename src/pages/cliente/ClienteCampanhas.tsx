@@ -1,9 +1,10 @@
 import { useState, useMemo, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useClientContext } from "./ClienteContext";
 import { useCompany } from "@/contexts/CompanyContext";
-import { ChevronDown, BarChart3, RefreshCw, Plus } from "lucide-react";
+import { ChevronDown, BarChart3, RefreshCw, Plus, Pencil } from "lucide-react";
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { CampaignMetricsModal } from "@/components/campaigns/CampaignMetricsModal";
 import { CampaignActionsDropdown } from "@/components/campaigns/CampaignActionsDropdown";
@@ -18,6 +19,7 @@ import { useUnifiedCampaigns, Platform } from "@/hooks/useUnifiedCampaigns";
 import { useToast } from "@/hooks/use-toast";
 
 export function ClienteCampanhas() {
+  const navigate = useNavigate();
   const { client, refetchClient } = useClientContext();
   const { activeCompany } = useCompany();
   const { toast } = useToast();
@@ -550,6 +552,27 @@ export function ClienteCampanhas() {
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm">
                     <div className="flex items-center gap-1">
+                      <TooltipProvider>
+                        <UITooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/clientes/${client?.id}/campanhas/${campaign.id}/editar`);
+                              }}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Pencil className="w-3 h-3" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Editar Campanha (Tree Grid)</p>
+                          </TooltipContent>
+                        </UITooltip>
+                      </TooltipProvider>
+                      
                       <TooltipProvider>
                         <UITooltip>
                           <TooltipTrigger asChild>

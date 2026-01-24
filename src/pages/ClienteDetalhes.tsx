@@ -26,6 +26,7 @@ import { ClienteApresentacoes } from "./cliente/ClienteApresentacoes";
 import ClientePixels from "./ClientePixels";
 import InstagramAutoPostsPage from "./clients/InstagramAutoPostsPage";
 import { ClienteTarefas } from "./cliente/ClienteTarefas";
+import CampaignEditorPage from "./cliente/CampaignEditorPage";
 import { ClienteTendencias } from "./cliente/ClienteTendencias";
 import { ClienteKeywordPlanner } from "./cliente/ClienteKeywordPlanner";
 import ClienteFabricaAnuncios from "./clientes/ClienteFabricaAnuncios";
@@ -245,6 +246,7 @@ const ClienteDetalhes = () => {
               } 
             />
             <Route path="campanhas" element={<ClienteCampanhas />} />
+            <Route path="campanhas/:campaignId/editar" element={<CampaignEditorPage />} />
             <Route path="conjuntos" element={<ClienteConjuntos />} />
             <Route path="criativos" element={<ClienteCriativos />} />
             <Route path="funil" element={<ClienteFunil />} />
