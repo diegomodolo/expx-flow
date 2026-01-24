@@ -140,7 +140,7 @@ serve(async (req) => {
     });
   }
 
-  const { client_id, company_id, user_id, carousel_type } = body ?? {};
+  const { client_id, company_id, user_id, carousel_type, reference_carousel_images } = body ?? {};
   if (!client_id || !company_id || !user_id) {
     return new Response(JSON.stringify({ error: "Missing required fields" }), {
       status: 400,
@@ -148,7 +148,7 @@ serve(async (req) => {
     });
   }
 
-  console.log("[daily-carousel-generator-stream] Start", { client_id, company_id, user_id, carousel_type });
+  console.log("[daily-carousel-generator-stream] Start", { client_id, company_id, user_id, carousel_type, reference_carousel_images_count: reference_carousel_images?.length || 0 });
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -225,16 +225,23 @@ serve(async (req) => {
         }
 
         const styleContext = buildImageStylePrompt(schedule, client);
-        const referenceImages = getReferenceImages(schedule);
+        const scheduleReferenceImages = getReferenceImages(schedule);
         
-        console.log("[daily-carousel-generator-stream] Found reference images:", referenceImages.length);
+        // Combine schedule references with user-provided carousel references
+        const allReferenceImages = [
+          ...(reference_carousel_images || []),
+          ...scheduleReferenceImages,
+        ].filter(Boolean);
+        
+        console.log("[daily-carousel-generator-stream] Found reference images:", allReferenceImages.length, { fromCarousel: reference_carousel_images?.length || 0, fromSchedule: scheduleReferenceImages.length });
 
         for (let i = 0; i < carousel.slides.length; i++) {
           send({ type: "slide_start", index: i + 1, total: carousel.slides.length });
 
           const slide = carousel.slides[i];
           try {
-            const hasReferences = referenceImages.length > 0;
+            const hasReferences = allReferenceImages.length > 0;
+
             const imagePrompt = `Crie uma imagem profissional para carrossel do Instagram no formato VERTICAL 3:4 (1080x1440 pixels).
 ${styleContext}
 
@@ -256,7 +263,7 @@ ${hasReferences ? `- MUITO IMPORTANTE: Siga EXATAMENTE o estilo visual das image
 - COPIE o estilo de layout, tipografia e composição` : ''}
 - Ultra high resolution`;
 
-            const dataUrl = await generateImageWithNanoBanana(imagePrompt, LOVABLE_API_KEY, referenceImages);
+            const dataUrl = await generateImageWithNanoBanana(imagePrompt, LOVABLE_API_KEY, allReferenceImages);
             if (!dataUrl) throw new Error("No image returned");
 
             const publicUrl = await uploadDataUrlToStorage({

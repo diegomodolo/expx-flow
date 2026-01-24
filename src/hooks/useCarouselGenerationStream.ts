@@ -38,12 +38,14 @@ export function useCarouselGenerationStream() {
       companyId,
       userId,
       carouselType,
+      referenceCarouselImages,
       onEvent,
     }: {
       clientId: string;
       companyId: string;
       userId: string;
       carouselType?: CarouselType;
+      referenceCarouselImages?: string[];
       onEvent: (ev: StreamEvent) => void;
     }) => {
       setIsGenerating(true);
@@ -62,6 +64,7 @@ export function useCarouselGenerationStream() {
             company_id: companyId,
             user_id: userId,
             carousel_type: carouselType,
+            reference_carousel_images: referenceCarouselImages,
           }),
           signal: controller.signal,
         });

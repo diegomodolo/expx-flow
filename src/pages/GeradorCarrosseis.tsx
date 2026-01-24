@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Layers, Sparkles, History, Home, BookOpen, Scale, Camera, ListChecks } from "lucide-react";
+import { Layers, Sparkles, History, Home, BookOpen, Scale, Camera, ListChecks, Instagram, Wand2, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { useCompany } from "@/contexts/CompanyContext";
 import { useAuth } from "@/hooks/useAuth";
@@ -17,6 +17,10 @@ import { ClientSearchCombobox } from "@/components/generators/ClientSearchCombob
 import { CarouselGenerationProgressModal } from "@/components/generators/CarouselGenerationProgressModal";
 import { CarouselType } from "@/hooks/useCarouselGenerationStream";
 import { CarouselHistoryList } from "@/components/carousel-generator/CarouselHistoryList";
+import { InstagramCarouselSelector, SelectedCarousel } from "@/components/carousel-generator/InstagramCarouselSelector";
+import { SelectedCarouselPreview } from "@/components/carousel-generator/SelectedCarouselPreview";
+
+type GenerationMode = "scratch" | "fromExample";
 
 const CAROUSEL_TYPES: Array<{
   value: CarouselType;
@@ -64,6 +68,11 @@ export default function GeradorCarrosseis() {
   const [theme, setTheme] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [historyKey, setHistoryKey] = useState(0);
+  
+  // New states for generation mode
+  const [generationMode, setGenerationMode] = useState<GenerationMode>("scratch");
+  const [selectedCarousel, setSelectedCarousel] = useState<SelectedCarousel | null>(null);
+  const [isCarouselSelectorOpen, setIsCarouselSelectorOpen] = useState(false);
 
   const { clients, loading: isLoadingClients } = useClients();
 
@@ -72,11 +81,30 @@ export default function GeradorCarrosseis() {
     [clients]
   );
 
-  const canGenerate = !!selectedClientId && !!companyId && !!user?.id;
+  // Get the selected client to access instagram_id
+  const selectedClient = useMemo(
+    () => clients.find((c) => c.id === selectedClientId),
+    [clients, selectedClientId]
+  );
+
+  const canGenerate = !!selectedClientId && !!companyId && !!user?.id &&
+    (generationMode === "scratch" || (generationMode === "fromExample" && selectedCarousel));
+
+  // Extract reference images from selected carousel
+  const referenceCarouselImages = useMemo(() => {
+    if (!selectedCarousel || generationMode !== "fromExample") return undefined;
+    return selectedCarousel.children
+      .filter((c) => c.media_type === "IMAGE")
+      .map((c) => c.media_url);
+  }, [selectedCarousel, generationMode]);
 
   const handleGenerate = () => {
     if (!canGenerate) {
-      toast.error("Selecione um cliente para continuar");
+      if (generationMode === "fromExample" && !selectedCarousel) {
+        toast.error("Selecione um carrossel de referência para continuar");
+      } else {
+        toast.error("Selecione um cliente para continuar");
+      }
       return;
     }
     setIsModalOpen(true);
@@ -85,6 +113,19 @@ export default function GeradorCarrosseis() {
   const handleGenerationFinished = () => {
     // Refresh history when generation completes
     setHistoryKey((prev) => prev + 1);
+  };
+
+  const handleClientChange = (id: string) => {
+    setSelectedClientId(id);
+    // Reset selected carousel when client changes
+    setSelectedCarousel(null);
+  };
+
+  const handleGenerationModeChange = (mode: GenerationMode) => {
+    setGenerationMode(mode);
+    if (mode === "scratch") {
+      setSelectedCarousel(null);
+    }
   };
 
   return (
@@ -146,7 +187,7 @@ export default function GeradorCarrosseis() {
                     <ClientSearchCombobox
                       clients={clientsForCombobox}
                       value={selectedClientId}
-                      onValueChange={setSelectedClientId}
+                      onValueChange={handleClientChange}
                       placeholder="Selecione um cliente..."
                       className={isLoadingClients ? "opacity-50 pointer-events-none" : ""}
                     />
@@ -191,6 +232,91 @@ export default function GeradorCarrosseis() {
                       })}
                     </RadioGroup>
                   </div>
+
+                  {/* Generation Mode - NEW */}
+                  <div className="space-y-3">
+                    <Label>Modo de Geração</Label>
+                    <RadioGroup
+                      value={generationMode}
+                      onValueChange={(v) => handleGenerationModeChange(v as GenerationMode)}
+                      className="grid grid-cols-1 sm:grid-cols-2 gap-3"
+                    >
+                      <Label
+                        htmlFor="mode-scratch"
+                        className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                          generationMode === "scratch"
+                            ? "border-primary bg-primary/5"
+                            : "border-border hover:bg-muted"
+                        }`}
+                      >
+                        <RadioGroupItem
+                          value="scratch"
+                          id="mode-scratch"
+                          className="mt-0.5"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <Wand2 className="w-4 h-4 text-muted-foreground" />
+                            <span className="font-medium text-sm">Gerar do Zero</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Crie um carrossel totalmente novo com IA
+                          </p>
+                        </div>
+                      </Label>
+
+                      <Label
+                        htmlFor="mode-fromExample"
+                        className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                          generationMode === "fromExample"
+                            ? "border-primary bg-primary/5"
+                            : "border-border hover:bg-muted"
+                        } ${!selectedClient?.instagram_account?.instagram_id ? "opacity-50 cursor-not-allowed" : ""}`}
+                      >
+                        <RadioGroupItem
+                          value="fromExample"
+                          id="mode-fromExample"
+                          className="mt-0.5"
+                          disabled={!selectedClient?.instagram_account?.instagram_id}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <Copy className="w-4 h-4 text-muted-foreground" />
+                            <span className="font-medium text-sm">Gerar a Partir de Exemplo</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {selectedClient?.instagram_account?.instagram_id 
+                              ? "Use um carrossel existente do Instagram como referência"
+                              : "Cliente sem Instagram configurado"}
+                          </p>
+                        </div>
+                      </Label>
+                    </RadioGroup>
+                  </div>
+
+                  {/* Instagram Carousel Selector - Shows when mode is fromExample */}
+                  {generationMode === "fromExample" && selectedClient?.instagram_account?.instagram_id && (
+                    <div className="space-y-2">
+                      <Label>Carrossel de Referência *</Label>
+                      {selectedCarousel ? (
+                        <SelectedCarouselPreview
+                          carousel={selectedCarousel}
+                          onChangeClick={() => setIsCarouselSelectorOpen(true)}
+                          onRemove={() => setSelectedCarousel(null)}
+                        />
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="w-full justify-start gap-2 h-auto py-3"
+                          onClick={() => setIsCarouselSelectorOpen(true)}
+                        >
+                          <Instagram className="w-4 h-4" />
+                          Selecionar Carrossel do Instagram
+                        </Button>
+                      )}
+                    </div>
+                  )}
 
                   {/* Slides Count */}
                   <div className="space-y-3">
@@ -329,7 +455,19 @@ export default function GeradorCarrosseis() {
             companyId={companyId}
             userId={user.id}
             carouselType={carouselType}
+            referenceCarouselImages={referenceCarouselImages}
             onFinished={handleGenerationFinished}
+          />
+        )}
+
+        {/* Instagram Carousel Selector Modal */}
+        {selectedClient?.instagram_account?.instagram_id && (
+          <InstagramCarouselSelector
+            open={isCarouselSelectorOpen}
+            onOpenChange={setIsCarouselSelectorOpen}
+            clientId={selectedClientId}
+            instagramId={selectedClient.instagram_account.instagram_id}
+            onSelect={(carousel) => setSelectedCarousel(carousel)}
           />
         )}
       </div>
