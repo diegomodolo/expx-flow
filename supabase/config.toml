@@ -343,3 +343,6 @@ verify_jwt = true
 
 [functions.update-meta-adset]
 verify_jwt = true
+
+[functions.update-meta-ad]
+verify_jwt = true
