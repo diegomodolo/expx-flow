@@ -273,7 +273,7 @@ export function AdSetEditModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0">
+      <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col p-0">
         <DialogHeader className="p-6 pb-4">
           <div className="flex items-center gap-3">
             <Layers className="w-6 h-6 text-primary" />
@@ -292,10 +292,10 @@ export function AdSetEditModal({
         <Separator />
 
         <ScrollArea className="flex-1 px-6">
-          <div className="space-y-6 py-6">
+          <div className="py-6">
             {/* Google Alert */}
             {isGoogle && (
-              <Alert>
+              <Alert className="mb-6">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>
                   Google Ads: alterações serão salvas apenas localmente.
@@ -303,203 +303,229 @@ export function AdSetEditModal({
               </Alert>
             )}
 
-            {/* Name Field */}
-            <div className="space-y-2">
-              <Label>Nome do Conjunto *</Label>
-              <Input
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-                placeholder="Ex: Público Lookalike - 18-35"
-              />
-              {editName.trim() === '' && (
-                <p className="text-xs text-destructive">O nome não pode estar vazio</p>
-              )}
-            </div>
+            {/* Two Column Layout */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* Left Column - Basic Settings & Demographics */}
+              <div className="space-y-6">
+                {/* Basic Settings Section */}
+                <div className="space-y-4">
+                  <h4 className="font-medium text-sm flex items-center gap-2 text-muted-foreground uppercase tracking-wider">
+                    <Settings className="w-4 h-4" />
+                    Configurações Básicas
+                  </h4>
 
-            {/* Status Field */}
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm">
-                    {editStatus === 'active' ? 'Ativo' : 'Pausado'}
-                  </span>
-                  <Badge variant={editStatus === 'active' ? 'default' : 'secondary'}>
-                    {editStatus === 'active' ? 'ON' : 'OFF'}
-                  </Badge>
+                  {/* Name Field */}
+                  <div className="space-y-2">
+                    <Label>Nome do Conjunto *</Label>
+                    <Input
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      placeholder="Ex: Público Lookalike - 18-35"
+                    />
+                    {editName.trim() === '' && (
+                      <p className="text-xs text-destructive">O nome não pode estar vazio</p>
+                    )}
+                  </div>
+
+                  {/* Status Field */}
+                  <div className="space-y-2">
+                    <Label>Status</Label>
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm">
+                          {editStatus === 'active' ? 'Ativo' : 'Pausado'}
+                        </span>
+                        <Badge variant={editStatus === 'active' ? 'default' : 'secondary'}>
+                          {editStatus === 'active' ? 'ON' : 'OFF'}
+                        </Badge>
+                      </div>
+                      <Switch
+                        checked={editStatus === 'active'}
+                        onCheckedChange={(checked) => setEditStatus(checked ? 'active' : 'paused')}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Daily Budget */}
+                  <div className="space-y-2">
+                    <Label>Orçamento Diário (R$)</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={editBudget}
+                      onChange={(e) => setEditBudget(e.target.value)}
+                      placeholder="50"
+                    />
+                    {parseFloat(editBudget) < 1 && editBudget !== '' && (
+                      <p className="text-xs text-destructive">O orçamento mínimo é R$ 1,00</p>
+                    )}
+                  </div>
                 </div>
-                <Switch
-                  checked={editStatus === 'active'}
-                  onCheckedChange={(checked) => setEditStatus(checked ? 'active' : 'paused')}
-                />
-              </div>
-            </div>
 
-            {/* Daily Budget */}
-            <div className="space-y-2">
-              <Label>Orçamento Diário (R$)</Label>
-              <Input
-                type="number"
-                min={1}
-                value={editBudget}
-                onChange={(e) => setEditBudget(e.target.value)}
-                placeholder="50"
-              />
-              {parseFloat(editBudget) < 1 && editBudget !== '' && (
-                <p className="text-xs text-destructive">O orçamento mínimo é R$ 1,00</p>
-              )}
-            </div>
+                {/* Demographics Section */}
+                <div className="space-y-4 border-t pt-4">
+                  <h4 className="font-medium text-sm flex items-center gap-2 text-muted-foreground uppercase tracking-wider">
+                    <Users className="w-4 h-4" />
+                    Demografia
+                  </h4>
 
-            {/* Targeting Section */}
-            <div className="space-y-4 border-t pt-4">
-              <h4 className="font-medium text-sm">Segmentação</h4>
+                  {/* Age Range */}
+                  <div className="space-y-3">
+                    <Label>Faixa Etária: {ageMin} - {ageMax} anos</Label>
+                    <div className="px-2">
+                      <Slider
+                        min={18}
+                        max={65}
+                        step={1}
+                        value={[ageMin, ageMax]}
+                        onValueChange={([min, max]) => {
+                          setAgeMin(min);
+                          setAgeMax(max);
+                        }}
+                      />
+                    </div>
+                  </div>
 
-              {/* Included Audiences */}
-              <AudienceMultiSelect
-                clientId={clientId}
-                selectedIds={includedAudiences}
-                onChange={setIncludedAudiences}
-                label="Públicos de Inclusão"
-                placeholder="Selecionar públicos..."
-              />
+                  {/* Gender */}
+                  <div className="space-y-2">
+                    <Label>Gênero</Label>
+                    <Select
+                      value={genders.length === 0 ? 'all' : genders[0].toString()}
+                      onValueChange={(v) => {
+                        if (v === 'all') {
+                          setGenders([]);
+                        } else {
+                          setGenders([Number(v)]);
+                        }
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        <SelectItem value="1">Masculino</SelectItem>
+                        <SelectItem value="2">Feminino</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
 
-              {/* Excluded Audiences */}
-              <AudienceMultiSelect
-                clientId={clientId}
-                selectedIds={excludedAudiences}
-                onChange={setExcludedAudiences}
-                label="Públicos de Exclusão"
-                placeholder="Excluir públicos..."
-              />
+                {/* Conversion Section */}
+                <div className="space-y-4 border-t pt-4">
+                  <h4 className="font-medium text-sm flex items-center gap-2 text-muted-foreground uppercase tracking-wider">
+                    <Target className="w-4 h-4" />
+                    Conversão (opcional)
+                  </h4>
 
-              {/* Interests */}
-              <InterestSelector
-                clientId={clientId}
-                selectedInterests={interests}
-                onChange={setInterests}
-                label="Interesses"
-                placeholder="Buscar interesses..."
-              />
-            </div>
+                  <PixelSelector
+                    clientId={clientId}
+                    companyId={companyId || ''}
+                    value={pixelId}
+                    onChange={setPixelId}
+                  />
 
-            {/* Demographics Section */}
-            <div className="space-y-4 border-t pt-4">
-              <h4 className="font-medium text-sm">Demografia</h4>
-
-              {/* Age Range */}
-              <div className="space-y-3">
-                <Label>Faixa Etária: {ageMin} - {ageMax} anos</Label>
-                <div className="px-2">
-                  <Slider
-                    min={18}
-                    max={65}
-                    step={1}
-                    value={[ageMin, ageMax]}
-                    onValueChange={([min, max]) => {
-                      setAgeMin(min);
-                      setAgeMax(max);
-                    }}
+                  <ConversionEventSelector
+                    value={conversionEvent}
+                    onChange={setConversionEvent}
+                    disabled={!pixelId}
+                    campaignObjective="OUTCOME_LEADS"
                   />
                 </div>
               </div>
 
-              {/* Gender */}
-              <div className="space-y-2">
-                <Label>Gênero</Label>
-                <Select
-                  value={genders.length === 0 ? 'all' : genders[0].toString()}
-                  onValueChange={(v) => {
-                    if (v === 'all') {
-                      setGenders([]);
-                    } else {
-                      setGenders([Number(v)]);
-                    }
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos</SelectItem>
-                    <SelectItem value="1">Masculino</SelectItem>
-                    <SelectItem value="2">Feminino</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+              {/* Right Column - Targeting & Metrics */}
+              <div className="space-y-6">
+                {/* Targeting Section */}
+                <div className="space-y-4">
+                  <h4 className="font-medium text-sm flex items-center gap-2 text-muted-foreground uppercase tracking-wider">
+                    <Users className="w-4 h-4" />
+                    Segmentação
+                  </h4>
 
-            {/* Conversion Section */}
-            <div className="space-y-4 border-t pt-4">
-              <h4 className="font-medium text-sm">Conversão (opcional)</h4>
+                  {/* Included Audiences */}
+                  <AudienceMultiSelect
+                    clientId={clientId}
+                    selectedIds={includedAudiences}
+                    onChange={setIncludedAudiences}
+                    label="Públicos de Inclusão"
+                    placeholder="Selecionar públicos..."
+                  />
 
-              <PixelSelector
-                clientId={clientId}
-                companyId={companyId || ''}
-                value={pixelId}
-                onChange={setPixelId}
-              />
+                  {/* Excluded Audiences */}
+                  <AudienceMultiSelect
+                    clientId={clientId}
+                    selectedIds={excludedAudiences}
+                    onChange={setExcludedAudiences}
+                    label="Públicos de Exclusão"
+                    placeholder="Excluir públicos..."
+                  />
 
-              <ConversionEventSelector
-                value={conversionEvent}
-                onChange={setConversionEvent}
-                disabled={!pixelId}
-                campaignObjective="OUTCOME_LEADS" // Show selector by default for editing
-              />
-            </div>
-
-            {/* Metrics Summary */}
-            <div className="space-y-4 border-t pt-4">
-              <h4 className="font-medium text-sm flex items-center gap-2">
-                <TrendingUp className="w-4 h-4" />
-                Métricas Atuais
-              </h4>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="p-3 rounded-lg bg-muted/50 text-center">
-                  <p className="text-xs text-muted-foreground">Investido</p>
-                  <p className="text-lg font-bold">{formatCurrency(node.metrics.spend)}</p>
+                  {/* Interests */}
+                  <InterestSelector
+                    clientId={clientId}
+                    selectedInterests={interests}
+                    onChange={setInterests}
+                    label="Interesses"
+                    placeholder="Buscar interesses..."
+                  />
                 </div>
-                <div className="p-3 rounded-lg bg-muted/50 text-center">
-                  <p className="text-xs text-muted-foreground">Impressões</p>
-                  <p className="text-lg font-bold">{formatNumber(node.metrics.impressions)}</p>
-                </div>
-                <div className="p-3 rounded-lg bg-muted/50 text-center">
-                  <p className="text-xs text-muted-foreground">CTR</p>
-                  <p className="text-lg font-bold">{formatPercent(node.metrics.ctr)}</p>
-                </div>
-                <div className="p-3 rounded-lg bg-muted/50 text-center">
-                  <p className="text-xs text-muted-foreground">Conversões</p>
-                  <p className="text-lg font-bold">{formatNumber(node.metrics.conversions)}</p>
-                </div>
-              </div>
-            </div>
 
-            {/* Children Summary */}
-            {node.children && node.children.length > 0 && (
-              <div className="space-y-4 border-t pt-4">
-                <h4 className="font-medium text-sm flex items-center gap-2">
-                  <Layers className="w-4 h-4" />
-                  Anúncios neste Conjunto
-                </h4>
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="text-center p-3 rounded-lg bg-muted/50">
-                    <p className="text-xl font-bold">{node.children.length}</p>
-                    <p className="text-xs text-muted-foreground">Total</p>
-                  </div>
-                  <div className="text-center p-3 rounded-lg bg-muted/50">
-                    <p className="text-xl font-bold text-primary">
-                      {node.children.filter((c) => c.status === 'active').length}
-                    </p>
-                    <p className="text-xs text-muted-foreground">Ativos</p>
-                  </div>
-                  <div className="text-center p-3 rounded-lg bg-muted/50">
-                    <p className="text-xl font-bold text-muted-foreground">
-                      {node.children.filter((c) => c.status === 'paused').length}
-                    </p>
-                    <p className="text-xs text-muted-foreground">Pausados</p>
+                {/* Metrics Summary */}
+                <div className="space-y-4 border-t pt-4">
+                  <h4 className="font-medium text-sm flex items-center gap-2 text-muted-foreground uppercase tracking-wider">
+                    <TrendingUp className="w-4 h-4" />
+                    Métricas Atuais
+                  </h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3 rounded-lg bg-muted/50 text-center">
+                      <p className="text-xs text-muted-foreground">Investido</p>
+                      <p className="text-lg font-bold">{formatCurrency(node.metrics.spend)}</p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-muted/50 text-center">
+                      <p className="text-xs text-muted-foreground">Impressões</p>
+                      <p className="text-lg font-bold">{formatNumber(node.metrics.impressions)}</p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-muted/50 text-center">
+                      <p className="text-xs text-muted-foreground">CTR</p>
+                      <p className="text-lg font-bold">{formatPercent(node.metrics.ctr)}</p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-muted/50 text-center">
+                      <p className="text-xs text-muted-foreground">Conversões</p>
+                      <p className="text-lg font-bold">{formatNumber(node.metrics.conversions)}</p>
+                    </div>
                   </div>
                 </div>
+
+                {/* Children Summary */}
+                {node.children && node.children.length > 0 && (
+                  <div className="space-y-4 border-t pt-4">
+                    <h4 className="font-medium text-sm flex items-center gap-2 text-muted-foreground uppercase tracking-wider">
+                      <Layers className="w-4 h-4" />
+                      Anúncios neste Conjunto
+                    </h4>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="text-center p-3 rounded-lg bg-muted/50">
+                        <p className="text-xl font-bold">{node.children.length}</p>
+                        <p className="text-xs text-muted-foreground">Total</p>
+                      </div>
+                      <div className="text-center p-3 rounded-lg bg-muted/50">
+                        <p className="text-xl font-bold text-primary">
+                          {node.children.filter((c) => c.status === 'active').length}
+                        </p>
+                        <p className="text-xs text-muted-foreground">Ativos</p>
+                      </div>
+                      <div className="text-center p-3 rounded-lg bg-muted/50">
+                        <p className="text-xl font-bold text-muted-foreground">
+                          {node.children.filter((c) => c.status === 'paused').length}
+                        </p>
+                        <p className="text-xs text-muted-foreground">Pausados</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
         </ScrollArea>
 
