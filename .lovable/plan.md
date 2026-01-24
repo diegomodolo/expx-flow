@@ -1,144 +1,166 @@
 
-# Plano: Adicionar Edição de Campanhas, Conjuntos e Criativos no Editor
+# Plano: Modal de Edição Completa para Criativos (Ads)
 
 ## Situação Atual
 
-O `InspectorPanel` é um painel lateral read-only que exibe informações quando você clica em um item (campanha, conjunto ou criativo). Para transformar a tela do Editor em uma ferramenta completa de gestão, precisamos permitir edições diretamente desse painel.
+Atualmente, quando você clica em um criativo/anúncio no Editor de Campanhas, abre apenas o `InspectorPanel` (painel lateral) que mostra informações de métricas, mas não permite edição completa. Você solicitou um modal completo igual ao do Conjunto de Anúncios (`AdSetEditModal`), com todos os campos editáveis.
 
 ---
 
 ## Solução Proposta
 
-Transformar o `InspectorPanel` em um painel de edição completo com tabs para organizar as funcionalidades:
-- **Tab Métricas** - Visão atual de performance (read-only)
-- **Tab Configurações** - Campos editáveis (nome, status, orçamento, etc.)
-
-O painel detectará o tipo do item (`campaign`, `adset`, `ad`) e mostrará campos específicos para cada um.
+Criar um novo componente `AdEditModal` similar ao `AdSetEditModal`, permitindo edição completa do criativo:
+- Nome do anúncio
+- Status (ativo/pausado)
+- Tipo de criativo (Imagem/Vídeo/Carrossel)
+- Mídia (upload de imagem/vídeo, importar do Instagram, gerar com IA)
+- Texto principal (body)
+- Título e descrição
+- URL de destino
+- Call to Action
+- Parâmetros UTM
 
 ---
 
 ## Arquitetura
 
 ```text
-InspectorPanel (Sheet)
-├── Header (nome, status badge, tipo)
-├── Tabs
-│   ├── [Métricas] - Dados de performance
-│   └── [Configurações] - Campos editáveis
-│       ├── Campanha: nome, status, orçamento
-│       ├── Conjunto: nome, status, orçamento diário
-│       └── Criativo: nome, status
-└── Footer (botão Salvar)
+AdEditModal (Dialog)
+├── Header (nome, status badge, plataforma)
+├── ScrollArea
+│   ├── Nome do Anúncio
+│   ├── Status (Switch ativo/pausado)
+│   ├── Tipo de Criativo (ToggleGroup)
+│   ├── MediaUploader (upload/Instagram/IA)
+│   ├── Textos (body, title, description)
+│   ├── URL de Destino
+│   ├── Call to Action (Select)
+│   ├── Parâmetros UTM (opcional)
+│   └── Métricas Atuais (read-only)
+└── Footer (Cancelar / Salvar)
 ```
 
 ---
 
-## Campos Editáveis por Tipo
+## Campos Editáveis
 
-### Campanha (`campaign`)
-| Campo | API Meta | Edição Local |
-|-------|----------|--------------|
-| Nome | Sim (rename) | Sim |
-| Status | Sim (toggle) | Sim |
-| Orçamento diário | Sim (budget) | Sim |
+| Campo | Editável Local | Editável Meta |
+|-------|----------------|---------------|
+| Nome | Sim | Sim (rename) |
+| Status | Sim | Sim (toggle) |
+| Tipo Criativo | Sim | Requer novo criativo |
+| Mídia | Sim | Requer novo criativo |
+| Texto Principal | Sim | Requer novo criativo |
+| Título | Sim | Requer novo criativo |
+| Descrição | Sim | Requer novo criativo |
+| URL de Destino | Sim | Requer novo criativo |
+| Call to Action | Sim | Requer novo criativo |
+| UTMs | Sim | Requer novo criativo |
 
-### Conjunto de Anúncios (`adset`)
-| Campo | API Meta | Edição Local |
-|-------|----------|--------------|
-| Nome | Sim (rename) | Sim |
-| Status | Sim (toggle) | Sim |
-| Orçamento diário | Sim (budget) | Sim |
-
-### Anúncio/Criativo (`ad`)
-| Campo | API Meta | Edição Local |
-|-------|----------|--------------|
-| Nome | Sim (rename) | Sim |
-| Status | Sim (toggle) | Sim |
-
-Nota: Campanhas Google terão edição apenas local (sem API)
+Nota: No Meta, apenas nome e status podem ser atualizados diretamente. Para alterar o criativo (mídia, textos, URL), é necessário criar um novo ad creative. O modal permitirá edição local imediata, mas mostrará um aviso quando campos do criativo forem alterados.
 
 ---
 
-## Componentes a Modificar/Criar
+## Edge Function para Atualização
 
-### 1. Modificar InspectorPanel.tsx
-Adicionar:
-- Sistema de tabs (Métricas / Configurações)
-- Estado local para campos editáveis
-- Inputs para nome, status toggle, budget
+Criar `update-meta-ad` para:
+1. Atualizar nome e status diretamente via API Meta
+2. Quando o criativo mudar, criar novo ad creative e atualizar o anúncio para usá-lo
+3. Sincronizar alterações no banco local
+
+### Campos na tabela `ads`
+
+A tabela já possui todos os campos necessários:
+- `name`, `status`, `is_active`
+- `creative_type`, `creative_body`, `creative_title`, `creative_description`
+- `image_url`, `video_url`, `link_url`, `call_to_action`
+
+---
+
+## Componentes a Criar/Modificar
+
+### 1. Criar AdEditModal.tsx
+
+Novo componente com:
+- Estado local para todos os campos editáveis
+- Integração com `MediaUploader` existente
+- Seletor de CTA (opções já definidas em `CreativeBuilderModal`)
+- Campos de UTM (utm_source, utm_medium, utm_campaign)
+- Seção de métricas (read-only)
+- Lógica de detecção de mudanças no criativo vs nome/status
 - Botão de salvar com loading state
-- Integração com `useInlineEdit` hook
 
-### 2. Modificar CampaignEditorPage.tsx
-Passar props adicionais ao InspectorPanel:
-- `clientId` para chamadas de API
-- `onUpdate` callback para invalidar queries após edição
+### 2. Criar Edge Function update-meta-ad
 
-### 3. Utilizar hook existente: useInlineEdit
-O hook já possui:
-- `updateStatus(type, id, clientId, facebookId, newStatus, platform)`
-- `updateBudget(type, id, clientId, facebookId, newBudget, budgetType, platform)`
-- `updateName(type, id, clientId, facebookId, newName, platform)`
+- Recebe: `adId`, `facebookId`, `clientId`, `updates`
+- Se apenas nome/status mudou: PATCH direto na API Meta
+- Se criativo mudou: Criar novo `adcreative` e atualizar o ad
+- Atualizar registro local na tabela `ads`
+
+### 3. Modificar CampaignEditorPage.tsx
+
+- Adicionar estado `adModalOpen`
+- Modificar `handleSelectNode` para abrir `AdEditModal` quando tipo é 'ad'
+- Passar props necessárias ao modal
 
 ---
 
 ## Fluxo de Edição
 
 ```text
-1. Usuário clica em item na árvore
-2. InspectorPanel abre com dados do item
-3. Usuário muda para tab "Configurações"
-4. Usuário edita campos desejados
-5. Usuário clica "Salvar Alterações"
-6. Sistema:
-   a. Se Meta: chama API do Facebook via Edge Function
-   b. Atualiza banco local
-   c. Mostra toast de sucesso
-   d. Invalida queries para atualizar a árvore
-7. Painel atualiza com novos dados
+1. Usuário clica em criativo na árvore
+2. AdEditModal abre com dados do criativo
+3. Usuário edita campos desejados
+4. Usuário clica "Salvar Alterações"
+5. Sistema detecta tipo de alteração:
+   a. Apenas nome/status → PATCH simples no Meta
+   b. Criativo mudou → Cria novo ad creative + atualiza ad
+6. Atualiza banco local
+7. Mostra toast de sucesso
+8. Invalida queries para atualizar a árvore
+9. Fecha modal
 ```
 
 ---
 
-## Interface Visual do Painel
+## Interface Visual do Modal
 
-Tab Métricas (atual):
-- Cards de métricas (spend, impressions, CTR, CPA, etc.)
-- Seção de orçamento (read-only)
-- Preview do criativo (para ads)
-
-Tab Configurações (nova):
-- Input para nome com validação
-- Switch para ativar/pausar
-- Input numérico para orçamento (quando aplicável)
-- Informações da plataforma (Meta/Google)
-- Alerta visual se Google (sem edição via API)
+- Header com ícone, nome atual, badges de status e plataforma
+- Campos organizados em seções claras:
+  - Identificação (nome, status)
+  - Criativo (tipo, mídia, textos)
+  - Destino (URL, CTA, UTMs)
+  - Métricas (read-only)
+- Aviso quando alterações no criativo exigem recriação
+- Botão salvar desabilitado se não houver alterações
 
 ---
 
-## Arquivos a Modificar
+## Arquivos a Criar/Modificar
 
-| Arquivo | Alteração |
-|---------|-----------|
-| `src/components/campaign-editor/InspectorPanel.tsx` | Adicionar tabs, campos editáveis, integração com useInlineEdit |
-| `src/pages/cliente/CampaignEditorPage.tsx` | Passar clientId e callback de atualização ao InspectorPanel |
+| Arquivo | Ação |
+|---------|------|
+| `src/components/campaign-editor/AdEditModal.tsx` | Criar (novo modal de edição) |
+| `supabase/functions/update-meta-ad/index.ts` | Criar (edge function para atualização) |
+| `supabase/config.toml` | Adicionar função update-meta-ad |
+| `src/pages/cliente/CampaignEditorPage.tsx` | Modificar (integrar AdEditModal) |
 
 ---
 
 ## Validações
 
 1. Nome não pode ser vazio
-2. Orçamento mínimo R$ 1,00
-3. Desabilitar edição de orçamento para ads (não têm budget próprio)
-4. Mostrar aviso visual para campanhas Google (edição apenas local)
-5. Prevenir submit durante loading
+2. Pelo menos uma mídia é obrigatória
+3. URL de destino deve ser válida (começar com http/https)
+4. Texto principal (body) é obrigatório
+5. Mostrar aviso visual para campanhas Google (edição apenas local)
+6. Indicar quando alterações no criativo exigirão recriação no Meta
 
 ---
 
-## Notas de UX
+## Notas Técnicas
 
-- Tab "Configurações" só aparece se o item for editável
-- Campos com alterações não salvas mostram indicador visual
-- Botão salvar desabilitado se não houver alterações
-- Após salvar, voltar automaticamente para tab Métricas
-- Toast de feedback para sucesso/erro
+- Reutilizar `MediaUploader` existente (suporta upload, Instagram, IA)
+- Reutilizar `CTA_OPTIONS` do `CreativeBuilderModal`
+- O `TreeNode` já possui: `creativeUrl`, `creativeBody`, `creativeTitle`, `creativeType`, `callToAction`, `linkUrl`
+- A lógica de criação de ad creative já existe em `create-meta-ad/index.ts` e pode ser reutilizada
