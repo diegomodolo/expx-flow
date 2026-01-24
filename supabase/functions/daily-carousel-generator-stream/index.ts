@@ -167,10 +167,11 @@ serve(async (req) => {
     client_id, 
     company_id, 
     user_id, 
-    carousel_type, 
+    carousel_type: carousel_type || "NOT PROVIDED (will pick from schedule)", 
     reference_carousel_images_count: reference_carousel_images?.length || 0,
     pre_generated_slides_count: pre_generated_slides?.length || 0,
-    visual_variations: visual_variations || null
+    pre_generated_slides_provided: !!pre_generated_slides && Array.isArray(pre_generated_slides) && pre_generated_slides.length > 0,
+    visual_variations: visual_variations || "NOT PROVIDED"
   });
 
   const stream = new ReadableStream({

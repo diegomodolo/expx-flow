@@ -569,15 +569,21 @@ export default function GeradorCarrosseis() {
             clientId={selectedClientId}
             companyId={companyId}
             userId={user.id}
-            carouselType={carouselType}
-            referenceCarouselImages={referenceCarouselImages}
-            preGeneratedSlides={generatedSlideContents?.map(s => ({
-              slideNumber: s.slideNumber,
-              type: s.type,
-              headline: s.headline,
-              bodyText: s.bodyText,
-              visualDescription: s.visualDescription,
-            }))}
+            // Only pass carouselType when generating from scratch
+            carouselType={generationMode === "scratch" ? carouselType : undefined}
+            // Only pass references and pre-generated slides when generating from example
+            referenceCarouselImages={generationMode === "fromExample" ? referenceCarouselImages : undefined}
+            preGeneratedSlides={
+              generationMode === "fromExample" && generatedSlideContents && generatedSlideContents.length > 0
+                ? generatedSlideContents.map(s => ({
+                    slideNumber: s.slideNumber,
+                    type: s.type,
+                    headline: s.headline,
+                    bodyText: s.bodyText,
+                    visualDescription: s.visualDescription,
+                  }))
+                : undefined
+            }
             visualVariations={generationMode === "fromExample" ? visualVariations : undefined}
             onFinished={handleGenerationFinished}
           />
