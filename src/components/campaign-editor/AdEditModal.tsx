@@ -123,6 +123,7 @@ export function AdEditModal({
   
   // Pixel tracking
   const [pixelId, setPixelId] = useState('');
+  const [parentPixelName, setParentPixelName] = useState<string | null>(null);
 
   // Build full UTM string from individual fields
   const buildUtmString = () => {
@@ -245,6 +246,36 @@ export function AdEditModal({
       setCreativeChanged(false);
     }
   }, [node?.id, isOpen]);
+
+  // Fetch parent pixel name from meta_pixels table
+  useEffect(() => {
+    const fetchParentPixelName = async () => {
+      if (!parentNode?.pixelId || !clientId) {
+        setParentPixelName(null);
+        return;
+      }
+      
+      try {
+        const { data, error } = await supabase
+          .from('meta_pixels')
+          .select('pixel_name')
+          .eq('client_id', clientId)
+          .eq('pixel_id', parentNode.pixelId)
+          .maybeSingle();
+        
+        if (!error && data) {
+          setParentPixelName(data.pixel_name);
+        } else {
+          setParentPixelName(null);
+        }
+      } catch (err) {
+        console.error('Error fetching pixel name:', err);
+        setParentPixelName(null);
+      }
+    };
+    
+    fetchParentPixelName();
+  }, [parentNode?.pixelId, clientId]);
 
   // Track changes
   useEffect(() => {
@@ -616,7 +647,9 @@ export function AdEditModal({
                         <div className="space-y-2">
                           <Label className="text-muted-foreground">Pixel do Conjunto (herdado)</Label>
                           <Input
-                            value={parentNode.pixelId}
+                            value={parentPixelName 
+                              ? `${parentPixelName} (${parentNode.pixelId})` 
+                              : parentNode.pixelId}
                             disabled
                             className="bg-muted/50 text-muted-foreground"
                           />
