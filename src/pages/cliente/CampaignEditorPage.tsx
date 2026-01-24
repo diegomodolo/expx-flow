@@ -5,6 +5,7 @@ import { useClientContext } from "./ClienteContext";
 import { TreeGridTable } from "@/components/campaign-editor/TreeGridTable";
 import { InspectorPanel } from "@/components/campaign-editor/InspectorPanel";
 import { AdSetEditModal } from "@/components/campaign-editor/AdSetEditModal";
+import { AdEditModal } from "@/components/campaign-editor/AdEditModal";
 import { KPISummaryBar } from "@/components/campaign-editor/KPISummaryBar";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -36,6 +37,7 @@ export default function CampaignEditorPage() {
   const [selectedNode, setSelectedNode] = useState<TreeNode | null>(null);
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [adSetModalOpen, setAdSetModalOpen] = useState(false);
+  const [adModalOpen, setAdModalOpen] = useState(false);
   const [syncPeriod, setSyncPeriod] = useState<string>(() => {
     return localStorage.getItem('campaignEditorSyncPeriod') || '30';
   });
@@ -45,9 +47,11 @@ export default function CampaignEditorPage() {
 
   const handleSelectNode = useCallback((node: TreeNode) => {
     setSelectedNode(node);
-    // For adsets, open the dedicated modal; for campaigns and ads, use inspector panel
+    // For adsets, open the dedicated modal; for ads, open ad modal; for campaigns, use inspector panel
     if (node.type === 'adset') {
       setAdSetModalOpen(true);
+    } else if (node.type === 'ad') {
+      setAdModalOpen(true);
     } else {
       setInspectorOpen(true);
     }
@@ -349,6 +353,16 @@ export default function CampaignEditorPage() {
       <AdSetEditModal
         isOpen={adSetModalOpen}
         onClose={() => setAdSetModalOpen(false)}
+        node={selectedNode}
+        clientId={client?.id || ''}
+        companyId={(client as any)?.company_id}
+        onSuccess={invalidateQueries}
+      />
+
+      {/* Ad Edit Modal (for ads/creatives) */}
+      <AdEditModal
+        isOpen={adModalOpen}
+        onClose={() => setAdModalOpen(false)}
         node={selectedNode}
         clientId={client?.id || ''}
         companyId={(client as any)?.company_id}
