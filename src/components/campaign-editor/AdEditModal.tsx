@@ -517,6 +517,55 @@ export function AdEditModal({
                     </div>
                   </div>
                 </div>
+              </div>
+
+              {/* Right Column - Creative/Media */}
+              <div className="space-y-6">
+                <div>
+                  <h4 className="font-medium text-sm mb-4 flex items-center gap-2">
+                    <ImageIcon className="w-4 h-4" />
+                    Criativo
+                  </h4>
+
+                  {/* Creative Type */}
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Tipo de Criativo</Label>
+                      <ToggleGroup
+                        type="single"
+                        value={creativeType}
+                        onValueChange={(value) => value && setCreativeType(value as 'IMAGE' | 'VIDEO' | 'CAROUSEL')}
+                        className="justify-start"
+                      >
+                        <ToggleGroupItem value="IMAGE" aria-label="Imagem" className="gap-2">
+                          <Image className="h-4 w-4" />
+                          Imagem
+                        </ToggleGroupItem>
+                        <ToggleGroupItem value="VIDEO" aria-label="Vídeo" className="gap-2">
+                          <Film className="h-4 w-4" />
+                          Vídeo
+                        </ToggleGroupItem>
+                        <ToggleGroupItem value="CAROUSEL" aria-label="Carrossel" className="gap-2">
+                          <Layers className="h-4 w-4" />
+                          Carrossel
+                        </ToggleGroupItem>
+                      </ToggleGroup>
+                    </div>
+
+                    {/* Media Uploader */}
+                    <div className="space-y-2">
+                      <Label>Mídia *</Label>
+                      <MediaUploader
+                        mediaUrls={mediaUrls}
+                        onChange={setMediaUrls}
+                        type={creativeType}
+                        maxFiles={creativeType === 'CAROUSEL' ? 10 : 1}
+                        clientId={clientId}
+                        creativeContext={{ title, body, description }}
+                      />
+                    </div>
+                  </div>
+                </div>
 
                 {/* Destination Section */}
                 <div className="border-t pt-4">
@@ -616,56 +665,6 @@ export function AdEditModal({
                     </Collapsible>
                   </div>
                 </div>
-              </div>
-
-              {/* Right Column - Creative/Media */}
-              <div className="space-y-6">
-                <div>
-                  <h4 className="font-medium text-sm mb-4 flex items-center gap-2">
-                    <ImageIcon className="w-4 h-4" />
-                    Criativo
-                  </h4>
-
-                  {/* Creative Type */}
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label>Tipo de Criativo</Label>
-                      <ToggleGroup
-                        type="single"
-                        value={creativeType}
-                        onValueChange={(value) => value && setCreativeType(value as 'IMAGE' | 'VIDEO' | 'CAROUSEL')}
-                        className="justify-start"
-                      >
-                        <ToggleGroupItem value="IMAGE" aria-label="Imagem" className="gap-2">
-                          <Image className="h-4 w-4" />
-                          Imagem
-                        </ToggleGroupItem>
-                        <ToggleGroupItem value="VIDEO" aria-label="Vídeo" className="gap-2">
-                          <Film className="h-4 w-4" />
-                          Vídeo
-                        </ToggleGroupItem>
-                        <ToggleGroupItem value="CAROUSEL" aria-label="Carrossel" className="gap-2">
-                          <Layers className="h-4 w-4" />
-                          Carrossel
-                        </ToggleGroupItem>
-                      </ToggleGroup>
-                    </div>
-
-                    {/* Media Uploader */}
-                    <div className="space-y-2">
-                      <Label>Mídia *</Label>
-                      <MediaUploader
-                        mediaUrls={mediaUrls}
-                        onChange={setMediaUrls}
-                        type={creativeType}
-                        maxFiles={creativeType === 'CAROUSEL' ? 10 : 1}
-                        clientId={clientId}
-                        creativeContext={{ title, body, description }}
-                      />
-                    </div>
-                  </div>
-                </div>
-
               </div>
             </div>
           </div>
