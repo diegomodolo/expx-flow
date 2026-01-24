@@ -4,7 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, List, Plus, ChevronLeft, ChevronRight, Clock, AlertCircle, CheckCircle2, XCircle, Loader2, Filter } from 'lucide-react';
+import { Calendar, List, Plus, ChevronLeft, ChevronRight, Clock, AlertCircle, CheckCircle2, XCircle, Loader2, Filter, CalendarDays } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
 import { useScheduledPosts, ScheduledPost } from '@/hooks/useScheduledPosts';
 import { useFacebookPages } from '@/hooks/useFacebookPages';
 import { useClients } from '@/hooks/useClients';
@@ -36,6 +39,8 @@ const Agendamento = () => {
   // Filters
   const [clientFilter, setClientFilter] = useState<string>('');
   const [squadFilter, setSquadFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [dateRangeFilter, setDateRangeFilter] = useState<{ from?: Date; to?: Date }>({});
 
   const { posts, loading, fetchPosts, deletePost, cancelPost, reschedulePost, publishNow } = useScheduledPosts();
   const { pages, instagramAccounts } = useFacebookPages();
@@ -66,10 +71,30 @@ const Agendamento = () => {
           return false;
         }
       }
+
+      // Status filter
+      if (statusFilter !== 'all' && post.status !== statusFilter) {
+        return false;
+      }
+
+      // Date range filter (only for list view)
+      if (dateRangeFilter.from || dateRangeFilter.to) {
+        const postDate = new Date(post.scheduled_at);
+        if (dateRangeFilter.from && postDate < dateRangeFilter.from) {
+          return false;
+        }
+        if (dateRangeFilter.to) {
+          const endOfDay = new Date(dateRangeFilter.to);
+          endOfDay.setHours(23, 59, 59, 999);
+          if (postDate > endOfDay) {
+            return false;
+          }
+        }
+      }
       
       return true;
     });
-  }, [posts, clientFilter, squadFilter, clientTeamMap]);
+  }, [posts, clientFilter, squadFilter, clientTeamMap, statusFilter, dateRangeFilter]);
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
@@ -126,9 +151,15 @@ const Agendamento = () => {
   const clearFilters = () => {
     setClientFilter('');
     setSquadFilter('all');
+    setStatusFilter('all');
+    setDateRangeFilter({});
   };
 
-  const hasActiveFilters = clientFilter || squadFilter !== 'all';
+  const hasActiveFilters = clientFilter || squadFilter !== 'all' || statusFilter !== 'all' || dateRangeFilter.from || dateRangeFilter.to;
+
+  const handleStatusFilterClick = (status: string) => {
+    setStatusFilter(prev => prev === status ? 'all' : status);
+  };
 
   return (
     <DashboardLayout>
@@ -190,30 +221,66 @@ const Agendamento = () => {
           </CardContent>
         </Card>
 
-        {/* Stats */}
+        {/* Stats - Clickable Filters */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card>
+          <Card 
+            className={cn(
+              "cursor-pointer transition-all hover:border-primary/50",
+              statusFilter === 'scheduled' && "ring-2 ring-primary border-primary"
+            )}
+            onClick={() => handleStatusFilterClick('scheduled')}
+          >
             <CardContent className="pt-4">
               <div className="text-2xl font-bold text-foreground">{stats.scheduled}</div>
-              <div className="text-sm text-muted-foreground">Agendados</div>
+              <div className="text-sm text-muted-foreground flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                Agendados
+              </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card 
+            className={cn(
+              "cursor-pointer transition-all hover:border-green-500/50",
+              statusFilter === 'published' && "ring-2 ring-green-500 border-green-500"
+            )}
+            onClick={() => handleStatusFilterClick('published')}
+          >
             <CardContent className="pt-4">
               <div className="text-2xl font-bold text-green-500">{stats.published}</div>
-              <div className="text-sm text-muted-foreground">Publicados</div>
+              <div className="text-sm text-muted-foreground flex items-center gap-1">
+                <CheckCircle2 className="h-3 w-3" />
+                Publicados
+              </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card 
+            className={cn(
+              "cursor-pointer transition-all hover:border-destructive/50",
+              statusFilter === 'failed' && "ring-2 ring-destructive border-destructive"
+            )}
+            onClick={() => handleStatusFilterClick('failed')}
+          >
             <CardContent className="pt-4">
               <div className="text-2xl font-bold text-destructive">{stats.failed}</div>
-              <div className="text-sm text-muted-foreground">Falharam</div>
+              <div className="text-sm text-muted-foreground flex items-center gap-1">
+                <AlertCircle className="h-3 w-3" />
+                Falharam
+              </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card 
+            className={cn(
+              "cursor-pointer transition-all hover:border-primary/50",
+              statusFilter === 'all' && "ring-2 ring-primary border-primary"
+            )}
+            onClick={() => setStatusFilter('all')}
+          >
             <CardContent className="pt-4">
               <div className="text-2xl font-bold text-foreground">{stats.total}</div>
-              <div className="text-sm text-muted-foreground">Total</div>
+              <div className="text-sm text-muted-foreground flex items-center gap-1">
+                <List className="h-3 w-3" />
+                Total
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -369,8 +436,52 @@ const Agendamento = () => {
 
           <TabsContent value="list" className="mt-4">
             <Card>
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                 <CardTitle>Todos os Posts</CardTitle>
+                <div className="flex items-center gap-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm" className="gap-2">
+                        <CalendarDays className="h-4 w-4" />
+                        {dateRangeFilter.from ? (
+                          dateRangeFilter.to ? (
+                            <>
+                              {format(dateRangeFilter.from, "dd/MM/yy", { locale: ptBR })} - {format(dateRangeFilter.to, "dd/MM/yy", { locale: ptBR })}
+                            </>
+                          ) : (
+                            format(dateRangeFilter.from, "dd/MM/yyyy", { locale: ptBR })
+                          )
+                        ) : (
+                          "Filtrar por data"
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="end">
+                      <div className="p-3 border-b">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">Período</span>
+                          {(dateRangeFilter.from || dateRangeFilter.to) && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => setDateRangeFilter({})}
+                              className="h-auto py-1 px-2 text-xs"
+                            >
+                              Limpar
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                      <CalendarComponent
+                        mode="range"
+                        selected={{ from: dateRangeFilter.from, to: dateRangeFilter.to }}
+                        onSelect={(range) => setDateRangeFilter({ from: range?.from, to: range?.to })}
+                        numberOfMonths={2}
+                        locale={ptBR}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
               </CardHeader>
               <CardContent>
                 {loading ? (
