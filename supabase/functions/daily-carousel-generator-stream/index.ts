@@ -57,6 +57,14 @@ interface CarouselSlide {
   image_url?: string;
 }
 
+interface PreGeneratedSlide {
+  slideNumber: number;
+  type: string;
+  headline: string;
+  bodyText: string;
+  visualDescription: string;
+}
+
 interface GeneratedCarousel {
   carousel_type: string;
   theme: string;
@@ -140,7 +148,7 @@ serve(async (req) => {
     });
   }
 
-  const { client_id, company_id, user_id, carousel_type, reference_carousel_images } = body ?? {};
+  const { client_id, company_id, user_id, carousel_type, reference_carousel_images, pre_generated_slides } = body ?? {};
   if (!client_id || !company_id || !user_id) {
     return new Response(JSON.stringify({ error: "Missing required fields" }), {
       status: 400,
@@ -148,7 +156,14 @@ serve(async (req) => {
     });
   }
 
-  console.log("[daily-carousel-generator-stream] Start", { client_id, company_id, user_id, carousel_type, reference_carousel_images_count: reference_carousel_images?.length || 0 });
+  console.log("[daily-carousel-generator-stream] Start", { 
+    client_id, 
+    company_id, 
+    user_id, 
+    carousel_type, 
+    reference_carousel_images_count: reference_carousel_images?.length || 0,
+    pre_generated_slides_count: pre_generated_slides?.length || 0 
+  });
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -171,11 +186,20 @@ serve(async (req) => {
           .eq("client_id", client_id)
           .single();
 
-        const slidesPerCarousel = schedule?.slides_per_carousel || 8;
+        // Use pre-generated slides count if available, otherwise use schedule or default
+        const slidesPerCarousel = pre_generated_slides?.length || schedule?.slides_per_carousel || 8;
         const pickedType = (carousel_type as CarouselType | undefined) || pickTypeFromSchedule(schedule);
 
-        const carousel = await generateCarousel(supabase, client, schedule, pickedType, slidesPerCarousel);
-        if (!carousel) throw new Error("Failed to generate carousel");
+        // If pre-generated slides are provided, use them instead of generating new content
+        let carousel: GeneratedCarousel;
+        if (pre_generated_slides && pre_generated_slides.length > 0) {
+          carousel = buildCarouselFromPreGenerated(pre_generated_slides, pickedType, client);
+          console.log("[daily-carousel-generator-stream] Using pre-generated slides:", pre_generated_slides.length);
+        } else {
+          const generated = await generateCarousel(supabase, client, schedule, pickedType, slidesPerCarousel);
+          if (!generated) throw new Error("Failed to generate carousel");
+          carousel = generated;
+        }
 
         // Create DB stub first (so the UI can fetch it even if the stream closes)
         const generatedAt = new Date().toISOString();
@@ -535,6 +559,32 @@ function getReferenceImages(schedule: CarouselSchedule | null): string[] {
   if (schedule.reference_image_10) refs.push(schedule.reference_image_10);
   
   return refs;
+}
+
+function buildCarouselFromPreGenerated(
+  preSlides: PreGeneratedSlide[],
+  carouselType: CarouselType,
+  client: ClientData
+): GeneratedCarousel {
+  const slides: CarouselSlide[] = preSlides.map((s, idx) => ({
+    slide_number: s.slideNumber || idx + 1,
+    headline: s.headline,
+    body_text: s.bodyText,
+    visual_description: s.visualDescription,
+    cta: idx === preSlides.length - 1 ? "Salve este post!" : undefined,
+  }));
+
+  const firstSlide = slides[0];
+  
+  return {
+    carousel_type: carouselType,
+    theme: firstSlide?.headline || "Carrossel personalizado",
+    cover_headline: firstSlide?.headline || "",
+    slides,
+    caption: `${firstSlide?.headline || ""}\n\n${slides.map(s => `✅ ${s.headline}`).join("\n")}\n\n📌 Salve este post para consultar depois!\n\n#${client.sector?.replace(/\s+/g, "") || "conteudo"} #dicas #carrossel`,
+    hashtags: `#${client.sector?.replace(/\s+/g, "") || "conteudo"} #marketing #dicas #estrategia #negocios #empreendedorismo`,
+    cta_text: "Salve este post!",
+  };
 }
 
 async function generateCarousel(

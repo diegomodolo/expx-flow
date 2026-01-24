@@ -3,6 +3,14 @@ import { toast } from "sonner";
 
 export type CarouselType = "tutorial" | "comparison" | "behind_scenes" | "curated_list";
 
+export interface PreGeneratedSlide {
+  slideNumber: number;
+  type: string;
+  headline: string;
+  bodyText: string;
+  visualDescription: string;
+}
+
 type StreamEvent =
   | {
       type: "started";
@@ -39,6 +47,7 @@ export function useCarouselGenerationStream() {
       userId,
       carouselType,
       referenceCarouselImages,
+      preGeneratedSlides,
       onEvent,
     }: {
       clientId: string;
@@ -46,6 +55,7 @@ export function useCarouselGenerationStream() {
       userId: string;
       carouselType?: CarouselType;
       referenceCarouselImages?: string[];
+      preGeneratedSlides?: PreGeneratedSlide[];
       onEvent: (ev: StreamEvent) => void;
     }) => {
       setIsGenerating(true);
@@ -65,6 +75,7 @@ export function useCarouselGenerationStream() {
             user_id: userId,
             carousel_type: carouselType,
             reference_carousel_images: referenceCarouselImages,
+            pre_generated_slides: preGeneratedSlides,
           }),
           signal: controller.signal,
         });
