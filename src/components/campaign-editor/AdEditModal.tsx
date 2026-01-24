@@ -331,8 +331,8 @@ export function AdEditModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0">
-        <DialogHeader className="p-6 pb-4">
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
+        <DialogHeader className="p-6 pb-4 flex-shrink-0">
           <div className="flex items-center gap-3">
             <ImageIcon className="w-6 h-6 text-primary" />
             <div className="flex-1">
@@ -347,9 +347,9 @@ export function AdEditModal({
           </div>
         </DialogHeader>
 
-        <Separator />
+        <Separator className="flex-shrink-0" />
 
-        <ScrollArea className="flex-1 px-6">
+        <ScrollArea className="flex-1 min-h-0 px-6">
           <div className="space-y-6 py-6">
             {/* Google Alert */}
             {isGoogle && (
@@ -619,9 +619,9 @@ export function AdEditModal({
           </div>
         </ScrollArea>
 
-        <Separator />
+        <Separator className="flex-shrink-0" />
 
-        <DialogFooter className="p-6 pt-4">
+        <DialogFooter className="p-6 pt-4 flex-shrink-0">
           <Button variant="outline" onClick={onClose} disabled={isSaving}>
             Cancelar
           </Button>
