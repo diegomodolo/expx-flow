@@ -394,7 +394,7 @@ export function AdEditModal({
         <Separator className="flex-shrink-0" />
 
         <ScrollArea className="flex-1 min-h-0">
-          <div className="p-6 pt-4">
+          <div className="p-6 pt-4 pb-24">
             {/* Alerts */}
             {isGoogle && (
               <Alert className="mb-4">
