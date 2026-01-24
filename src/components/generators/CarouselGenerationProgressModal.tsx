@@ -67,6 +67,16 @@ export function CarouselGenerationProgressModal({
       return;
     }
 
+    // Debug log to verify props being passed
+    console.log("[CarouselGenerationProgressModal] Starting with:", {
+      clientId,
+      companyId,
+      carouselType: carouselType || "NOT PROVIDED",
+      referenceCarouselImages: referenceCarouselImages?.length || 0,
+      preGeneratedSlides: preGeneratedSlides?.length || 0,
+      visualVariations: visualVariations || "NOT PROVIDED",
+    });
+
     // Start on open
     start({
       clientId,
