@@ -577,6 +577,7 @@ export type Database = {
           lifetime_budget: number | null
           name: string
           optimization_goal: string | null
+          pixel_id: string | null
           quality_ranking: string | null
           reach: number | null
           spend: number | null
@@ -608,6 +609,7 @@ export type Database = {
           lifetime_budget?: number | null
           name: string
           optimization_goal?: string | null
+          pixel_id?: string | null
           quality_ranking?: string | null
           reach?: number | null
           spend?: number | null
@@ -639,6 +641,7 @@ export type Database = {
           lifetime_budget?: number | null
           name?: string
           optimization_goal?: string | null
+          pixel_id?: string | null
           quality_ranking?: string | null
           reach?: number | null
           spend?: number | null
@@ -680,6 +683,7 @@ export type Database = {
           link_url: string | null
           name: string
           negative_feedback: number | null
+          pixel_id: string | null
           quality_ranking: string | null
           reach: number | null
           shares: number | null
@@ -722,6 +726,7 @@ export type Database = {
           link_url?: string | null
           name: string
           negative_feedback?: number | null
+          pixel_id?: string | null
           quality_ranking?: string | null
           reach?: number | null
           shares?: number | null
@@ -764,6 +769,7 @@ export type Database = {
           link_url?: string | null
           name?: string
           negative_feedback?: number | null
+          pixel_id?: string | null
           quality_ranking?: string | null
           reach?: number | null
           shares?: number | null
