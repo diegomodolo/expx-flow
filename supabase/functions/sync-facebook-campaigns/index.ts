@@ -1258,24 +1258,66 @@ async function processSync(
                     return 'text'
                   }
                   
-                  // Helper function to extract media URLs
-                  const extractMediaUrls = (creative: any, objectStory: any) => {
+                  // Helper function to fetch real video source URL from Meta API
+                  const fetchVideoSourceUrl = async (videoId: string): Promise<{ sourceUrl: string; thumbnailUrl: string }> => {
+                    try {
+                      const url = `https://graph.facebook.com/v20.0/${videoId}?fields=source,picture&access_token=${accessToken}`
+                      console.log(`Fetching video source URL for video_id: ${videoId}`)
+                      const response = await fetch(url)
+                      
+                      if (!response.ok) {
+                        console.log(`Failed to fetch video source for ${videoId}: status ${response.status}`)
+                        return { sourceUrl: '', thumbnailUrl: '' }
+                      }
+                      
+                      const data = await response.json()
+                      console.log(`Video source response for ${videoId}:`, JSON.stringify(data))
+                      return {
+                        sourceUrl: data.source || '',
+                        thumbnailUrl: data.picture || ''
+                      }
+                    } catch (error) {
+                      console.error(`Error fetching video source for ${videoId}:`, error)
+                      return { sourceUrl: '', thumbnailUrl: '' }
+                    }
+                  }
+                  
+                  // Helper function to extract media URLs (async for video source fetching)
+                  const extractMediaUrls = async (creative: any, objectStory: any) => {
                     const imageUrl = creative.image_url || 
                                    linkData.picture || 
                                    linkData.image_url || 
                                    creative.thumbnail_url || 
                                    ''
                     
-                    const videoUrl = creative.video_id 
-                      ? `https://www.facebook.com/${creative.video_id}` 
-                      : (linkData.video_id ? `https://www.facebook.com/${linkData.video_id}` : '')
+                    let videoUrl = ''
+                    let videoThumbnail = ''
                     
-                    console.log('Extracted URLs - Image:', imageUrl, 'Video:', videoUrl)
-                    return { imageUrl, videoUrl }
+                    // Get video_id from multiple possible locations
+                    const videoId = creative.video_id || linkData.video_id || objectStory.video_data?.video_id
+                    
+                    if (videoId) {
+                      // Fetch the real playable video URL from Meta API
+                      const videoData = await fetchVideoSourceUrl(videoId)
+                      videoUrl = videoData.sourceUrl
+                      videoThumbnail = videoData.thumbnailUrl
+                      
+                      // Fallback to Facebook page URL if source not available
+                      if (!videoUrl) {
+                        console.log(`No source URL for video ${videoId}, using fallback`)
+                        videoUrl = `https://www.facebook.com/${videoId}`
+                      }
+                    }
+                    
+                    // Use video thumbnail as image if no image available
+                    const finalImageUrl = imageUrl || videoThumbnail
+                    
+                    console.log('Extracted URLs - Image:', finalImageUrl, 'Video:', videoUrl)
+                    return { imageUrl: finalImageUrl, videoUrl }
                   }
                   
                   const creativeType = determineCreativeType(creative, objectStory)
-                  const { imageUrl, videoUrl } = extractMediaUrls(creative, objectStory)
+                  const { imageUrl, videoUrl } = await extractMediaUrls(creative, objectStory)
                   
                   // Extract insights data
                   const adInsights = ad.insights?.data?.[0]
