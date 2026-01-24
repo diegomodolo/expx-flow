@@ -5,6 +5,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { CheckCircle2, ChevronLeft, ChevronRight, ExternalLink, X, Heart, MessageCircle, Send, Bookmark } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { GeneratedSlideEditCard } from "./GeneratedSlideEditCard";
+import { SlideImageEditModal } from "./SlideImageEditModal";
 
 interface CarouselSlide {
   slide_number: number;
@@ -24,18 +26,24 @@ interface GeneratedCarousel {
 
 interface GeneratedCarouselPreviewProps {
   carouselId: string;
+  clientId: string;
+  companyId: string;
   onClose: () => void;
   onViewDetails: () => void;
 }
 
 export function GeneratedCarouselPreview({
   carouselId,
+  clientId,
+  companyId,
   onClose,
   onViewDetails,
 }: GeneratedCarouselPreviewProps) {
   const [carousel, setCarousel] = useState<GeneratedCarousel | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
+  const [editingSlideIndex, setEditingSlideIndex] = useState<number | null>(null);
+  const [isSlideEditModalOpen, setIsSlideEditModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchCarousel = async () => {
@@ -228,6 +236,26 @@ export function GeneratedCarouselPreview({
           </div>
         </div>
 
+        {/* Individual Slide Editing Section */}
+        <div className="space-y-2">
+          <p className="text-xs font-medium text-muted-foreground">
+            Editar Slides Individuais
+          </p>
+          <div className="grid grid-cols-5 gap-2">
+            {carousel.slides.map((slide, idx) => (
+              <GeneratedSlideEditCard
+                key={idx}
+                slide={slide}
+                onEditClick={() => {
+                  setEditingSlideIndex(idx);
+                  setIsSlideEditModalOpen(true);
+                }}
+                isEditing={editingSlideIndex === idx && isSlideEditModalOpen}
+              />
+            ))}
+          </div>
+        </div>
+
         {/* Action button */}
         <Button 
           onClick={onViewDetails} 
@@ -238,6 +266,29 @@ export function GeneratedCarouselPreview({
           <ExternalLink className="w-3.5 h-3.5 mr-2" />
           Ver Detalhes e Editar
         </Button>
+
+        {/* Slide Edit Modal */}
+        <SlideImageEditModal
+          open={isSlideEditModalOpen}
+          onOpenChange={setIsSlideEditModalOpen}
+          slideNumber={editingSlideIndex !== null ? editingSlideIndex + 1 : 1}
+          currentImageUrl={editingSlideIndex !== null ? carousel.slides[editingSlideIndex]?.image_url || "" : ""}
+          carouselId={carouselId}
+          clientId={clientId}
+          companyId={companyId}
+          onImageUpdated={(newUrl) => {
+            // Update carousel state locally
+            if (editingSlideIndex !== null) {
+              const updatedSlides = [...carousel.slides];
+              updatedSlides[editingSlideIndex] = {
+                ...updatedSlides[editingSlideIndex],
+                image_url: newUrl,
+              };
+              setCarousel({ ...carousel, slides: updatedSlides });
+            }
+            setEditingSlideIndex(null);
+          }}
+        />
       </CardContent>
     </Card>
   );

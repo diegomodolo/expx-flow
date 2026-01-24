@@ -60,7 +60,7 @@ export function SelectedCarouselPreview({
             return (
               <div
                 key={child.id}
-                className="relative w-full aspect-square rounded-md overflow-hidden border"
+                className="relative w-full aspect-[4/5] rounded-md overflow-hidden border"
               >
                 {child.media_type === "VIDEO" ? (
                   <div className="relative w-full h-full">
