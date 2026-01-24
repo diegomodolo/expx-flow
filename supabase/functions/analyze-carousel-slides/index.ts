@@ -20,6 +20,7 @@ interface SlideContent {
   headline: string;
   bodyText: string;
   visualDescription: string;
+  suggestedElement: string;
 }
 
 serve(async (req) => {
@@ -171,6 +172,7 @@ REGRAS IMPORTANTES:
 3. Textos 100% em português do Brasil
 4. Headlines curtas e impactantes (máx 8 palavras)
 5. Body text conciso e escaneável
+6. Para cada slide, SUGIRA UM ELEMENTO VISUAL (objeto, símbolo, item) que poderia ser adicionado ou substituído na imagem para enriquecer a mensagem (ex: telefone, livro, computador, planta, café, medalha, etc.)
 
 TIPOS DE SLIDES COMUNS:
 - cover: Slide de abertura com título impactante
@@ -200,7 +202,8 @@ Responda APENAS em JSON válido:
       "type": "cover",
       "headline": "Headline curta e impactante",
       "bodyText": "Texto complementar se houver",
-      "visualDescription": "Descrição do que manter/adaptar visualmente"
+      "visualDescription": "Descrição do que manter/adaptar visualmente",
+      "suggestedElement": "Um objeto ou símbolo sugerido para esta imagem (ex: laptop, livro, troféu)"
     }
   ]
 }`;

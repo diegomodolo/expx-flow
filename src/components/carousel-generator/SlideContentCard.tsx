@@ -11,6 +11,7 @@ export interface SlideContent {
   headline: string;
   bodyText: string;
   visualDescription: string;
+  suggestedElement?: string;
 }
 
 interface SlideContentCardProps {
@@ -116,8 +117,14 @@ export function SlideContentCard({
             <Textarea
               value={editedContent.bodyText}
               onChange={(e) => setEditedContent({ ...editedContent, bodyText: e.target.value })}
-              className="min-h-[80px] text-xs resize-y"
+              className="min-h-[60px] text-xs resize-y"
               placeholder="Texto complementar"
+            />
+            <Input
+              value={editedContent.suggestedElement || ""}
+              onChange={(e) => setEditedContent({ ...editedContent, suggestedElement: e.target.value })}
+              className="h-7 text-xs"
+              placeholder="Elemento sugerido (ex: laptop, livro)"
             />
             <div className="flex gap-1">
               <Button
@@ -146,6 +153,11 @@ export function SlideContentCard({
             {content.bodyText && (
               <p className="text-[10px] text-muted-foreground line-clamp-2">
                 {content.bodyText}
+              </p>
+            )}
+            {content.suggestedElement && (
+              <p className="text-[10px] text-primary/80 line-clamp-1">
+                🎯 {content.suggestedElement}
               </p>
             )}
             <Button

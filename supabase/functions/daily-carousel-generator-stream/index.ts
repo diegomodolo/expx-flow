@@ -63,6 +63,7 @@ interface PreGeneratedSlide {
   headline: string;
   bodyText: string;
   visualDescription: string;
+  suggestedElement?: string;
 }
 
 interface VisualVariations {
@@ -281,11 +282,16 @@ serve(async (req) => {
             // For this slide, use ONLY its specific reference if available
             const slideReferences = hasSpecificReference ? [slideReferenceImage] : allReferenceImages;
             
+            // Get suggested element from pre-generated slides if available
+            const preGenSlide = pre_generated_slides?.[i] as PreGeneratedSlide | undefined;
+            const suggestedElement = preGenSlide?.suggestedElement;
+            
             // Build visual variation instructions
             const variationInstructions = buildVisualVariationInstructions(
               visual_variations as VisualVariations | undefined, 
               hasAnyReferences,
-              hasSpecificReference
+              hasSpecificReference,
+              suggestedElement
             );
 
             console.log("[daily-carousel-generator-stream] Generating slide", {
@@ -451,7 +457,8 @@ function pickTypeFromSchedule(schedule: CarouselSchedule | null): CarouselType {
 function buildVisualVariationInstructions(
   variations: VisualVariations | undefined, 
   hasReferences: boolean,
-  hasSpecificReference: boolean = false
+  hasSpecificReference: boolean = false,
+  suggestedElement?: string
 ): string {
   if (!hasReferences) {
     return '';
@@ -508,7 +515,12 @@ MODO CÓPIA EXATA (OBRIGATÓRIO):
   if (!variations.alterBackground) {
     elementsToPreserve.push("ELEMENTOS DE FUNDO (ícones, formas, padrões decorativos, cenário)");
   } else {
-    elementsToChange.push("TROQUE OS ELEMENTOS DE FUNDO: substitua ícones, formas, padrões decorativos por outros diferentes");
+    // Use suggested element if provided
+    if (suggestedElement) {
+      elementsToChange.push(`SUBSTITUA ELEMENTOS DE FUNDO: troque ícones, objetos ou elementos decorativos por "${suggestedElement}" (mantenha cores e estilo visual)`);
+    } else {
+      elementsToChange.push("TROQUE OS ELEMENTOS DE FUNDO: substitua ícones, formas, padrões decorativos por outros diferentes");
+    }
   }
   
   if (!variations.alterLayout) {
