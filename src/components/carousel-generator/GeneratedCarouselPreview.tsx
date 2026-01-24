@@ -4,11 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { CheckCircle2, ChevronLeft, ChevronRight, X, Heart, MessageCircle, Send, Bookmark, CalendarPlus, FileText, Presentation, ZoomIn } from "lucide-react";
+import { CheckCircle2, ChevronLeft, ChevronRight, X, Heart, MessageCircle, Send, Bookmark, CalendarPlus, FileText, Presentation } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
 import { GeneratedSlideEditCard } from "./GeneratedSlideEditCard";
 import { SlideImageEditModal } from "./SlideImageEditModal";
+import { SendCarouselToScheduleModal } from "./SendCarouselToScheduleModal";
+import { SendCarouselToPlanModal } from "./SendCarouselToPlanModal";
+import { SendCarouselToPresentationModal } from "./SendCarouselToPresentationModal";
 
 interface CarouselSlide {
   slide_number: number;
@@ -31,9 +33,6 @@ interface GeneratedCarouselPreviewProps {
   clientId: string;
   companyId: string;
   onClose: () => void;
-  onScheduleClick?: () => void;
-  onSendToContentPlan?: () => void;
-  onSendToPresentation?: () => void;
 }
 
 export function GeneratedCarouselPreview({
@@ -41,9 +40,6 @@ export function GeneratedCarouselPreview({
   clientId,
   companyId,
   onClose,
-  onScheduleClick,
-  onSendToContentPlan,
-  onSendToPresentation,
 }: GeneratedCarouselPreviewProps) {
   const [carousel, setCarousel] = useState<GeneratedCarousel | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -51,6 +47,11 @@ export function GeneratedCarouselPreview({
   const [editingSlideIndex, setEditingSlideIndex] = useState<number | null>(null);
   const [isSlideEditModalOpen, setIsSlideEditModalOpen] = useState(false);
   const [previewImageIndex, setPreviewImageIndex] = useState<number | null>(null);
+  
+  // Modal states
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [showPlanModal, setShowPlanModal] = useState(false);
+  const [showPresentationModal, setShowPresentationModal] = useState(false);
 
   useEffect(() => {
     const fetchCarousel = async () => {
@@ -310,55 +311,61 @@ export function GeneratedCarouselPreview({
           </DialogContent>
         </Dialog>
 
-        {/* Action Buttons */}
-        <div className="flex flex-col gap-2">
+        {/* Action Buttons - 3 in a row */}
+        <div className="grid grid-cols-3 gap-2">
           <Button 
-            onClick={() => {
-              if (onScheduleClick) {
-                onScheduleClick();
-              } else {
-                toast.info("Agendar publicação - em breve!");
-              }
-            }}
-            className="w-full"
+            onClick={() => setShowScheduleModal(true)}
             size="sm"
           >
-            <CalendarPlus className="w-3.5 h-3.5 mr-2" />
-            Agendar Publicação
+            <CalendarPlus className="w-3.5 h-3.5 mr-1.5" />
+            Agendar
           </Button>
           
-          <div className="grid grid-cols-2 gap-2">
-            <Button 
-              onClick={() => {
-                if (onSendToContentPlan) {
-                  onSendToContentPlan();
-                } else {
-                  toast.info("Enviar para planejamento - em breve!");
-                }
-              }}
-              variant="outline"
-              size="sm"
-            >
-              <FileText className="w-3.5 h-3.5 mr-2" />
-              Planejamento
-            </Button>
-            
-            <Button 
-              onClick={() => {
-                if (onSendToPresentation) {
-                  onSendToPresentation();
-                } else {
-                  toast.info("Enviar para apresentação - em breve!");
-                }
-              }}
-              variant="outline"
-              size="sm"
-            >
-              <Presentation className="w-3.5 h-3.5 mr-2" />
-              Apresentação
-            </Button>
-          </div>
+          <Button 
+            onClick={() => setShowPlanModal(true)}
+            variant="outline"
+            size="sm"
+          >
+            <FileText className="w-3.5 h-3.5 mr-1.5" />
+            Planejamento
+          </Button>
+          
+          <Button 
+            onClick={() => setShowPresentationModal(true)}
+            variant="outline"
+            size="sm"
+          >
+            <Presentation className="w-3.5 h-3.5 mr-1.5" />
+            Apresentação
+          </Button>
         </div>
+
+        {/* Modals */}
+        {carousel && (
+          <>
+            <SendCarouselToScheduleModal
+              carousel={carousel}
+              clientId={clientId}
+              companyId={companyId}
+              open={showScheduleModal}
+              onOpenChange={setShowScheduleModal}
+            />
+            <SendCarouselToPlanModal
+              carousel={carousel}
+              clientId={clientId}
+              companyId={companyId}
+              open={showPlanModal}
+              onOpenChange={setShowPlanModal}
+            />
+            <SendCarouselToPresentationModal
+              carousel={carousel}
+              clientId={clientId}
+              companyId={companyId}
+              open={showPresentationModal}
+              onOpenChange={setShowPresentationModal}
+            />
+          </>
+        )}
 
         {/* Slide Edit Modal */}
         <SlideImageEditModal
