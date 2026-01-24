@@ -351,6 +351,7 @@ export default function CampaignEditorPage() {
         onClose={() => setAdSetModalOpen(false)}
         node={selectedNode}
         clientId={client?.id || ''}
+        companyId={(client as any)?.company_id}
         onSuccess={invalidateQueries}
       />
     </div>
