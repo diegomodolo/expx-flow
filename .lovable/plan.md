@@ -1,254 +1,176 @@
 
 
-# Plano: Opções de Variação Visual para Geração a Partir de Exemplo
+# Plano: Corrigir Passagem de Dados para Geração "A Partir de Exemplo"
 
-## Objetivo
-Após validar os conteúdos gerados por IA, adicionar uma etapa de **configuração visual** que permite ao usuário escolher quais elementos variar nas imagens geradas. Se nenhuma opção for marcada, a IA deve reproduzir a imagem de referência exatamente igual, apenas trocando o texto.
+## Problema Identificado
+
+Analisando os logs da edge function, identifiquei que:
+
+1. **O sistema recebe as imagens de referência** (`reference_carousel_images_count: 5`)
+2. **Mas NÃO recebe os slides pré-gerados** (`pre_generated_slides_count` não aparece no log)
+3. **A edge function cai no branch de "gerar do zero"** (log "Calling AI for carousel generation")
+4. **Resultado**: Usa `slides_per_carousel` do schedule (8 slides) em vez dos 6 do exemplo
+
+A causa raiz está em como os dados são passados e/ou como a condição para passar `preGeneratedSlides` funciona.
 
 ---
 
-## Arquitetura do Novo Fluxo
+## Análise do Fluxo Atual
 
 ```text
-┌──────────────────────────────────────────────────────────────────────────┐
-│                    GERAR A PARTIR DE EXEMPLO                              │
-├──────────────────────────────────────────────────────────────────────────┤
-│                                                                          │
-│  1. Selecionar Carrossel do Instagram                                    │
-│                                                                          │
-│  2. Preview com Imagens (3 por linha)                                    │
-│     + Conteúdo gerado por IA (editável)                                  │
-│                                                                          │
-│  3. NOVO: Configurações Visuais (aparece após conteúdo gerado)           │
-│     ┌────────────────────────────────────────────────────────────────┐  │
-│     │  🎨 Configurações de Variação Visual                           │  │
-│     │                                                                │  │
-│     │  ☐ Alterar paleta de cores                                     │  │
-│     │    Inverte/troca as cores principais das imagens               │  │
-│     │                                                                │  │
-│     │  ☐ Alterar personagens/pessoas                                 │  │
-│     │    Substitui as pessoas por outras diferentes                  │  │
-│     │                                                                │  │
-│     │  ☐ Alterar elementos de fundo                                  │  │
-│     │    Troca os elementos decorativos e de fundo                   │  │
-│     │                                                                │  │
-│     │  ☐ Alterar disposição dos elementos                            │  │
-│     │    Reposiciona textos e elementos visuais                      │  │
-│     │                                                                │  │
-│     │  💡 Se nenhuma opção marcada, a imagem será reproduzida        │  │
-│     │     exatamente igual à referência, apenas com o texto novo.    │  │
-│     └────────────────────────────────────────────────────────────────┘  │
-│                                                                          │
-│  4. [🎨 Gerar Carrossel]                                                 │
-│                                                                          │
-└──────────────────────────────────────────────────────────────────────────┘
+GeradorCarrosseis.tsx (linha 574-580)
+    ↓ preGeneratedSlides={generatedSlideContents?.map(...)}
+CarouselGenerationProgressModal (linha 39)
+    ↓ preGeneratedSlides?: PreGeneratedSlide[]
+useCarouselGenerationStream.start() (linha 87)
+    ↓ pre_generated_slides: preGeneratedSlides
+Edge Function (linha 158)
+    ↓ pre_generated_slides (CHEGANDO VAZIO!)
 ```
 
----
-
-## Opções de Variação Visual
-
-| Opção | Descrição | Instrução para IA |
-|-------|-----------|-------------------|
-| **Alterar Paleta de Cores** | Inverte/troca as cores principais | "Inverta a paleta de cores: onde tem azul, coloque vermelho; onde tem vermelho, coloque azul" |
-| **Alterar Personagens** | Substitui pessoas por outras | "Substitua a pessoa/personagem por uma pessoa diferente (gênero, etnia, estilo diferentes)" |
-| **Alterar Elementos de Fundo** | Troca elementos decorativos | "Substitua os elementos de fundo (ícones, formas, padrões) por outros diferentes" |
-| **Alterar Disposição** | Reposiciona elementos | "Altere a disposição dos elementos: mova textos, mude alinhamentos, reposicione blocos" |
-
-Se **NENHUMA opção marcada**:
-> "REPRODUZA EXATAMENTE a imagem de referência anexada. Mantenha idêntico: cores, layout, personagens, fundo, posicionamento. APENAS SUBSTITUA o texto pelo novo texto fornecido."
+O problema está em que o `preGeneratedSlides` está sendo passado **condicionalmente** mas sem verificar se o `generationMode === "fromExample"`.
 
 ---
 
-## Componentes
+## Correções Necessárias
 
-### Criar Novo Componente
+### 1. GeradorCarrosseis.tsx - Passar dados apenas no modo correto
 
-| Arquivo | Descrição |
+Atualmente:
+```typescript
+preGeneratedSlides={generatedSlideContents?.map(s => ({...}))}
+```
+
+O problema é que `generatedSlideContents` pode estar null se houve algum problema. Precisamos garantir que:
+- Só passe quando `generationMode === "fromExample"` E `generatedSlideContents` existe
+
+### 2. Adicionar logs de debug no frontend
+
+Para entender melhor o que está sendo passado, adicionar console.log antes de abrir o modal.
+
+### 3. Edge Function - Melhorar log inicial
+
+Garantir que o log mostra claramente se `pre_generated_slides` está definido e seu tamanho.
+
+---
+
+## Arquivos a Modificar
+
+| Arquivo | Alteração |
 |---------|-----------|
-| `src/components/carousel-generator/VisualVariationOptions.tsx` | Card com as 4 opções de variação visual |
-
-### Modificar Componentes Existentes
-
-| Arquivo | Modificação |
-|---------|-------------|
-| `src/pages/GeradorCarrosseis.tsx` | Adicionar estado para variações visuais, exibir card após conteúdo gerado |
-| `src/hooks/useCarouselGenerationStream.ts` | Adicionar parâmetro `visualVariations` |
-| `src/components/generators/CarouselGenerationProgressModal.tsx` | Passar `visualVariations` para o hook |
-| `supabase/functions/daily-carousel-generator-stream/index.ts` | Receber `visual_variations` e ajustar prompt de imagem |
+| `src/pages/GeradorCarrosseis.tsx` | Ajustar condição para passar `preGeneratedSlides` e adicionar log de debug |
+| `src/components/generators/CarouselGenerationProgressModal.tsx` | Adicionar log para verificar props recebidas |
+| `supabase/functions/daily-carousel-generator-stream/index.ts` | Melhorar log inicial para mostrar todos os parâmetros recebidos |
 
 ---
 
-## Detalhes Técnicos
+## Alterações Detalhadas
 
-### 1. Interface das Opções de Variação
+### 1. GeradorCarrosseis.tsx
 
-```typescript
-// src/components/carousel-generator/VisualVariationOptions.tsx
-
-export interface VisualVariationOptions {
-  alterColorPalette: boolean;      // Alterar paleta de cores
-  alterCharacters: boolean;        // Alterar personagens/pessoas
-  alterBackground: boolean;        // Alterar elementos de fundo
-  alterLayout: boolean;            // Alterar disposição dos elementos
-}
-
-// Valores padrão: todos false (reproduzir exatamente igual)
-const defaultVariations: VisualVariationOptions = {
-  alterColorPalette: false,
-  alterCharacters: false,
-  alterBackground: false,
-  alterLayout: false,
-};
-```
-
-### 2. Componente VisualVariationOptions
-
-Um card simples com 4 checkboxes:
-
-```text
-┌─────────────────────────────────────────────────────────────────────┐
-│  🎨 Configurações de Variação Visual                                │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│  ☐ Alterar paleta de cores                                          │
-│     Inverte/troca as cores principais da imagem                     │
-│                                                                     │
-│  ☐ Alterar personagens/pessoas                                      │
-│     Substitui pessoas que aparecem nas imagens                      │
-│                                                                     │
-│  ☐ Alterar elementos de fundo                                       │
-│     Troca ícones, formas e elementos decorativos                    │
-│                                                                     │
-│  ☐ Alterar disposição dos elementos                                 │
-│     Reposiciona textos e blocos visuais                             │
-│                                                                     │
-│  ───────────────────────────────────────────────────────────────    │
-│  💡 Se nenhuma opção estiver marcada, a imagem será reproduzida     │
-│     fielmente à referência, apenas com o novo texto.                │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
-### 3. Lógica do Prompt de Imagem
-
-Na edge function `daily-carousel-generator-stream`, o prompt será construído dinamicamente:
+Modificar a passagem de props para o modal (linhas 566-584):
 
 ```typescript
-// Se nenhuma variação selecionada = modo "cópia fiel"
-const noVariations = !visual_variations || 
-  (!visual_variations.alterColorPalette && 
-   !visual_variations.alterCharacters && 
-   !visual_variations.alterBackground && 
-   !visual_variations.alterLayout);
-
-if (noVariations) {
-  // Prompt para CÓPIA EXATA
-  prompt += `
-MODO CÓPIA FIEL:
-- REPRODUZA EXATAMENTE a imagem de referência anexada
-- MANTENHA IDÊNTICO: cores, layout, personagens, elementos de fundo, posicionamento
-- APENAS SUBSTITUA o texto pelo novo texto abaixo
-- O resultado deve ser visualmente IDÊNTICO à referência, só mudando o conteúdo textual`;
-} else {
-  // Prompt com variações selecionadas
-  if (visual_variations.alterColorPalette) {
-    prompt += "\n- INVERTA A PALETA DE CORES: onde tem uma cor, coloque outra (ex: azul↔vermelho)";
-  }
-  if (visual_variations.alterCharacters) {
-    prompt += "\n- SUBSTITUA OS PERSONAGENS/PESSOAS por pessoas diferentes (aparência, gênero, estilo)";
-  }
-  if (visual_variations.alterBackground) {
-    prompt += "\n- TROQUE OS ELEMENTOS DE FUNDO por outros diferentes (ícones, formas, padrões)";
-  }
-  if (visual_variations.alterLayout) {
-    prompt += "\n- ALTERE A DISPOSIÇÃO DOS ELEMENTOS: reposicione textos, mude alinhamentos";
-  }
-}
+{selectedClientId && companyId && user?.id && (
+  <CarouselGenerationProgressModal
+    open={isModalOpen}
+    onOpenChange={setIsModalOpen}
+    clientId={selectedClientId}
+    companyId={companyId}
+    userId={user.id}
+    // Só passa carouselType no modo "scratch"
+    carouselType={generationMode === "scratch" ? carouselType : undefined}
+    // Só passa referências e slides pré-gerados no modo "fromExample"
+    referenceCarouselImages={generationMode === "fromExample" ? referenceCarouselImages : undefined}
+    preGeneratedSlides={
+      generationMode === "fromExample" && generatedSlideContents && generatedSlideContents.length > 0
+        ? generatedSlideContents.map(s => ({
+            slideNumber: s.slideNumber,
+            type: s.type,
+            headline: s.headline,
+            bodyText: s.bodyText,
+            visualDescription: s.visualDescription,
+          }))
+        : undefined
+    }
+    visualVariations={generationMode === "fromExample" ? visualVariations : undefined}
+    onFinished={handleGenerationFinished}
+  />
+)}
 ```
 
-### 4. Estados no GeradorCarrosseis
+### 2. CarouselGenerationProgressModal.tsx
+
+Adicionar log na abertura:
 
 ```typescript
-// Novo estado para variações visuais
-const [visualVariations, setVisualVariations] = useState<VisualVariationOptions>({
-  alterColorPalette: false,
-  alterCharacters: false,
-  alterBackground: false,
-  alterLayout: false,
+useEffect(() => {
+  if (!open) {
+    // ... reset code
+    return;
+  }
+
+  // Log para debug
+  console.log("[CarouselGenerationProgressModal] Starting with:", {
+    clientId,
+    companyId,
+    carouselType,
+    referenceCarouselImages: referenceCarouselImages?.length || 0,
+    preGeneratedSlides: preGeneratedSlides?.length || 0,
+    visualVariations,
+  });
+
+  start({
+    // ... rest of code
+  });
+}, [...]);
+```
+
+### 3. daily-carousel-generator-stream/index.ts
+
+Melhorar log inicial para garantir visibilidade:
+
+```typescript
+console.log("[daily-carousel-generator-stream] Start", { 
+  client_id, 
+  company_id, 
+  user_id, 
+  carousel_type: carousel_type || "NOT PROVIDED", 
+  reference_carousel_images_count: reference_carousel_images?.length || 0,
+  pre_generated_slides_count: pre_generated_slides?.length || 0,
+  pre_generated_slides_provided: !!pre_generated_slides,
+  visual_variations: visual_variations || "NOT PROVIDED"
 });
 ```
 
-O card de variações visuais só aparece quando:
-- `generationMode === "fromExample"`
-- `generatedSlideContents !== null && generatedSlideContents.length > 0`
+---
 
-### 5. Passagem de Dados
+## Fluxo Corrigido
+
+Após as correções:
 
 ```text
-GeradorCarrosseis
-    ↓ visualVariations
-CarouselGenerationProgressModal
-    ↓ visualVariations
-useCarouselGenerationStream.start()
-    ↓ visual_variations (JSON body)
-daily-carousel-generator-stream (Edge Function)
-    ↓ Constrói prompt baseado nas opções
-generateImageWithNanoBanana()
+Modo "fromExample":
+├── carouselType = undefined (IA detecta do tipo dos slides)
+├── referenceCarouselImages = [5 URLs]
+├── preGeneratedSlides = [6 objetos com headline, bodyText, etc]
+└── visualVariations = { alterColorPalette: true, ... }
+
+Modo "scratch":
+├── carouselType = "tutorial" (selecionado pelo usuário)
+├── referenceCarouselImages = undefined
+├── preGeneratedSlides = undefined
+└── visualVariations = undefined
 ```
 
 ---
 
-## Fluxo Completo do Usuário
+## Resultado Esperado
 
-1. Seleciona cliente
-2. Escolhe "Gerar a Partir de Exemplo"
-3. Seleciona carrossel do Instagram
-4. Clica em "Gerar Conteúdo com IA"
-5. Escolhe tema e IA gera conteúdos para cada slide
-6. Edita os conteúdos se necessário
-7. **NOVO: Configura variações visuais (ou deixa tudo desmarcado para cópia fiel)**
-8. Clica em "Gerar Carrossel"
-9. IA gera imagens baseadas nas referências + opções de variação
-
----
-
-## Resumo das Alterações
-
-### Arquivo a Criar
-
-1. **`src/components/carousel-generator/VisualVariationOptions.tsx`**
-   - Card com 4 checkboxes para opções de variação
-   - Texto explicativo sobre cada opção
-   - Nota sobre comportamento quando nada selecionado
-
-### Arquivos a Modificar
-
-2. **`src/pages/GeradorCarrosseis.tsx`**
-   - Adicionar estado `visualVariations`
-   - Importar e renderizar `VisualVariationOptions` após conteúdo gerado
-   - Resetar variações quando carrossel/modo mudar
-   - Passar `visualVariations` para o modal
-
-3. **`src/hooks/useCarouselGenerationStream.ts`**
-   - Adicionar `visualVariations?: VisualVariationOptions` nos parâmetros
-   - Passar para o body da requisição como `visual_variations`
-
-4. **`src/components/generators/CarouselGenerationProgressModal.tsx`**
-   - Receber prop `visualVariations`
-   - Passar para `start()` do hook
-
-5. **`supabase/functions/daily-carousel-generator-stream/index.ts`**
-   - Receber `visual_variations` do body
-   - Construir prompt de imagem baseado nas opções:
-     - Se nenhuma marcada → modo "cópia fiel"
-     - Se alguma marcada → incluir instruções específicas
-
----
-
-## Benefícios
-
-- **Controle Total**: Usuário decide exatamente o que variar
-- **Cópia Fiel**: Possibilidade de replicar o carrossel original com texto novo
-- **Flexibilidade**: Combinar variações conforme necessidade
-- **Consistência**: Manter elementos importantes (cores, pessoas) enquanto varia outros
+Após implementar essas correções:
+- Quando usar "Gerar a Partir de Exemplo" com 6 imagens
+- A edge function receberá `pre_generated_slides` com 6 slides
+- O log mostrará: `pre_generated_slides_count: 6`
+- O sistema usará `buildCarouselFromPreGenerated()` em vez de `generateCarousel()`
+- Serão geradas exatamente 6 imagens, respeitando o exemplo
 
