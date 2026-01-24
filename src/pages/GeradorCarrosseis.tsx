@@ -282,47 +282,7 @@ export default function GeradorCarrosseis() {
                     />
                   </div>
 
-                  {/* Carousel Type */}
-                  <div className="space-y-3">
-                    <Label>Tipo de Carrossel</Label>
-                    <RadioGroup
-                      value={carouselType}
-                      onValueChange={(v) => setCarouselType(v as CarouselType)}
-                      className="grid grid-cols-1 sm:grid-cols-2 gap-3"
-                    >
-                      {CAROUSEL_TYPES.map((type) => {
-                        const Icon = type.icon;
-                        return (
-                          <Label
-                            key={type.value}
-                            htmlFor={type.value}
-                            className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
-                              carouselType === type.value
-                                ? "border-primary bg-primary/5"
-                                : "border-border hover:bg-muted"
-                            }`}
-                          >
-                            <RadioGroupItem
-                              value={type.value}
-                              id={type.value}
-                              className="mt-0.5"
-                            />
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <Icon className="w-4 h-4 text-muted-foreground" />
-                                <span className="font-medium text-sm">{type.label}</span>
-                              </div>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                {type.description}
-                              </p>
-                            </div>
-                          </Label>
-                        );
-                      })}
-                    </RadioGroup>
-                  </div>
-
-                  {/* Generation Mode - NEW */}
+                  {/* Generation Mode - FIRST after client selector */}
                   <div className="space-y-3">
                     <Label>Modo de Geração</Label>
                     <RadioGroup
@@ -382,6 +342,48 @@ export default function GeradorCarrosseis() {
                       </Label>
                     </RadioGroup>
                   </div>
+
+                  {/* Carousel Type - ONLY shows when "Gerar do Zero" */}
+                  {generationMode === "scratch" && (
+                    <div className="space-y-3">
+                      <Label>Tipo de Carrossel</Label>
+                      <RadioGroup
+                        value={carouselType}
+                        onValueChange={(v) => setCarouselType(v as CarouselType)}
+                        className="grid grid-cols-1 sm:grid-cols-2 gap-3"
+                      >
+                        {CAROUSEL_TYPES.map((type) => {
+                          const Icon = type.icon;
+                          return (
+                            <Label
+                              key={type.value}
+                              htmlFor={type.value}
+                              className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                                carouselType === type.value
+                                  ? "border-primary bg-primary/5"
+                                  : "border-border hover:bg-muted"
+                              }`}
+                            >
+                              <RadioGroupItem
+                                value={type.value}
+                                id={type.value}
+                                className="mt-0.5"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <Icon className="w-4 h-4 text-muted-foreground" />
+                                  <span className="font-medium text-sm">{type.label}</span>
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {type.description}
+                                </p>
+                              </div>
+                            </Label>
+                          );
+                        })}
+                      </RadioGroup>
+                    </div>
+                  )}
 
                   {/* Instagram Carousel Selector - Shows when mode is fromExample */}
                   {generationMode === "fromExample" && selectedClient?.instagram_account?.instagram_id && (
