@@ -24,7 +24,7 @@ type CarouselItem = {
   client: {
     id: string;
     name: string;
-    avatar_url: string | null;
+    avatar: string | null;
   } | null;
 };
 
@@ -55,7 +55,7 @@ export function CarouselHistoryList() {
           created_at,
           slides,
           caption,
-          clients:client_id (id, name, avatar_url)
+          clients:client_id (id, name, avatar)
         `,
           { count: "exact" }
         )
