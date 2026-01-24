@@ -8,12 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Layers, Sparkles, History, Home, Loader2, BookOpen, Scale, Camera, ListChecks } from "lucide-react";
+import { Layers, Sparkles, History, Home, BookOpen, Scale, Camera, ListChecks } from "lucide-react";
 import { toast } from "sonner";
 import { useCompany } from "@/contexts/CompanyContext";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useClients } from "@/hooks/useClients";
 import { ClientSearchCombobox } from "@/components/generators/ClientSearchCombobox";
 import { CarouselGenerationProgressModal } from "@/components/generators/CarouselGenerationProgressModal";
 import { CarouselType } from "@/hooks/useCarouselGenerationStream";
@@ -56,6 +55,8 @@ export default function GeradorCarrosseis() {
   const { activeCompany } = useCompany();
   const { user } = useAuth();
 
+  const companyId = activeCompany?.company_id;
+
   const [activeTab, setActiveTab] = useState("generate");
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [carouselType, setCarouselType] = useState<CarouselType>("tutorial");
@@ -64,31 +65,14 @@ export default function GeradorCarrosseis() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [historyKey, setHistoryKey] = useState(0);
 
-  // Fetch clients
-  const { data: clients = [], isLoading: isLoadingClients } = useQuery<Array<{ id: string; name: string }>>({
-    queryKey: ["clients-for-carousel", activeCompany?.id],
-    queryFn: async () => {
-      if (!activeCompany?.id) return [];
-      const { data, error } = await (supabase as any)
-        .from("clients")
-        .select("id, name")
-        .eq("company_id", activeCompany.id)
-        .eq("status", "active")
-        .order("name");
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!activeCompany?.id,
-  });
+  const { clients, loading: isLoadingClients } = useClients();
 
-  const clientsForCombobox = useMemo(() => {
-    return clients.map((c) => ({
-      id: c.id,
-      name: c.name,
-    }));
-  }, [clients]);
+  const clientsForCombobox = useMemo(
+    () => clients.map((c) => ({ id: c.id, name: c.name })),
+    [clients]
+  );
 
-  const canGenerate = !!selectedClientId && !!activeCompany?.id && !!user?.id;
+  const canGenerate = !!selectedClientId && !!companyId && !!user?.id;
 
   const handleGenerate = () => {
     if (!canGenerate) {
@@ -337,12 +321,12 @@ export default function GeradorCarrosseis() {
         </Tabs>
 
         {/* Generation Modal */}
-        {selectedClientId && activeCompany?.id && user?.id && (
+        {selectedClientId && companyId && user?.id && (
           <CarouselGenerationProgressModal
             open={isModalOpen}
             onOpenChange={setIsModalOpen}
             clientId={selectedClientId}
-            companyId={activeCompany.id}
+            companyId={companyId}
             userId={user.id}
             carouselType={carouselType}
             onFinished={handleGenerationFinished}

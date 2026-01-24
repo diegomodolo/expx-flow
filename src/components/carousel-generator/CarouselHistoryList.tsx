@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/CompanyContext";
+import { useClients } from "@/hooks/useClients";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,33 +30,19 @@ type CarouselItem = {
 
 export function CarouselHistoryList() {
   const { activeCompany } = useCompany();
+  const companyId = activeCompany?.company_id;
+
+  const { clients, loading: isLoadingClients } = useClients();
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [page, setPage] = useState(0);
   const [previewCarousel, setPreviewCarousel] = useState<CarouselItem | null>(null);
   const pageSize = 12;
 
-  // Fetch clients for filter
-  const { data: clients = [] } = useQuery<Array<{ id: string; name: string }>>({
-    queryKey: ["clients-for-carousel-history", activeCompany?.id],
-    queryFn: async () => {
-      if (!activeCompany?.id) return [];
-      const { data, error } = await (supabase as any)
-        .from("clients")
-        .select("id, name")
-        .eq("company_id", activeCompany.id)
-        .eq("status", "active")
-        .order("name");
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!activeCompany?.id,
-  });
-
   // Fetch carousels
   const { data, isLoading } = useQuery({
-    queryKey: ["carousel-history", activeCompany?.id, selectedClientId, page],
+    queryKey: ["carousel-history", companyId, selectedClientId, page],
     queryFn: async () => {
-      if (!activeCompany?.id) return { items: [], total: 0 };
+      if (!companyId) return { items: [], total: 0 };
 
       let query = supabase
         .from("carousel_generation_queue")
@@ -72,7 +59,7 @@ export function CarouselHistoryList() {
         `,
           { count: "exact" }
         )
-        .eq("company_id", activeCompany.id)
+        .eq("company_id", companyId)
         .order("created_at", { ascending: false })
         .range(page * pageSize, (page + 1) * pageSize - 1);
 
@@ -91,7 +78,7 @@ export function CarouselHistoryList() {
         total: count || 0,
       };
     },
-    enabled: !!activeCompany?.id,
+    enabled: !!companyId,
   });
 
   const carousels = data?.items || [];
@@ -127,7 +114,7 @@ export function CarouselHistoryList() {
     return first?.image_url || first?.imageUrl || null;
   };
 
-  if (isLoading) {
+  if (isLoading || isLoadingClients) {
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-4">
@@ -148,7 +135,7 @@ export function CarouselHistoryList() {
       <div className="flex items-center gap-4">
         <div className="w-64">
           <ClientSearchCombobox
-            clients={clients}
+            clients={clients.map((c) => ({ id: c.id, name: c.name }))}
             value={selectedClientId}
             onValueChange={(v) => {
               setSelectedClientId(v === "all" ? "" : v);
