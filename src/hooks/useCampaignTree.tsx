@@ -34,6 +34,8 @@ export interface TreeNode {
   facebookId?: string;
   targeting?: object;
   creativeUrl?: string;
+  imageUrl?: string;
+  videoUrl?: string;
   creativeBody?: string;
   creativeTitle?: string;
   creativeDescription?: string;
@@ -262,6 +264,8 @@ export function useCampaignTree(options: UseCampaignTreeOptions) {
             facebookId: ad.facebook_id,
             parentId: adset.id,
             creativeUrl: ad.image_url || ad.video_url,
+            imageUrl: ad.image_url || undefined,
+            videoUrl: ad.video_url || undefined,
             creativeBody: ad.creative_body,
             creativeTitle: ad.creative_title,
             creativeDescription: ad.creative_description,

@@ -101,6 +101,8 @@ export function AdEditModal({
   // Creative fields
   const [creativeType, setCreativeType] = useState<'IMAGE' | 'VIDEO' | 'CAROUSEL'>('IMAGE');
   const [mediaUrls, setMediaUrls] = useState<string[]>([]);
+  const [videoThumbnailUrl, setVideoThumbnailUrl] = useState<string>('');
+  const [externalVideoUrl, setExternalVideoUrl] = useState<string>('');
   const [body, setBody] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -160,13 +162,30 @@ export function AdEditModal({
       const nodeCreativeType = nodeAny.creativeType?.toUpperCase() || 'IMAGE';
       setCreativeType(nodeCreativeType as 'IMAGE' | 'VIDEO' | 'CAROUSEL');
       
-      // Set media URLs
-      if (nodeAny.creativeUrl) {
+      // Set media URLs - for videos, use videoUrl; for images, use imageUrl
+      const isVideo = nodeCreativeType === 'VIDEO';
+      if (isVideo && nodeAny.videoUrl) {
+        setMediaUrls([nodeAny.videoUrl]);
+        // Set thumbnail (imageUrl) for video preview
+        setVideoThumbnailUrl(nodeAny.imageUrl || '');
+        // Check if it's a Facebook link (non-playable)
+        if (nodeAny.videoUrl.includes('facebook.com/') || nodeAny.videoUrl.includes('fb.com/')) {
+          setExternalVideoUrl(nodeAny.videoUrl);
+        } else {
+          setExternalVideoUrl('');
+        }
+      } else if (nodeAny.imageUrl) {
+        setMediaUrls([nodeAny.imageUrl]);
+        setVideoThumbnailUrl('');
+        setExternalVideoUrl('');
+      } else if (nodeAny.creativeUrl) {
         setMediaUrls([nodeAny.creativeUrl]);
-      } else if (node.metrics && (node as any).imageUrl) {
-        setMediaUrls([(node as any).imageUrl]);
+        setVideoThumbnailUrl('');
+        setExternalVideoUrl('');
       } else {
         setMediaUrls([]);
+        setVideoThumbnailUrl('');
+        setExternalVideoUrl('');
       }
       
       // Set text fields
@@ -703,6 +722,8 @@ export function AdEditModal({
                         maxFiles={creativeType === 'CAROUSEL' ? 10 : 1}
                         clientId={clientId}
                         creativeContext={{ title, body, description }}
+                        thumbnailUrl={creativeType === 'VIDEO' ? videoThumbnailUrl : undefined}
+                        externalVideoUrl={creativeType === 'VIDEO' ? externalVideoUrl : undefined}
                       />
                     </div>
                   </div>

@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Upload, X, Image, Film, Loader2, Sparkles, RefreshCw, Instagram } from 'lucide-react';
+import { Upload, X, Image, Film, Loader2, Sparkles, RefreshCw, Instagram, Play, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -17,6 +17,8 @@ interface MediaUploaderProps {
     description?: string;
     body?: string;
   };
+  thumbnailUrl?: string; // Optional thumbnail for video fallback
+  externalVideoUrl?: string; // Optional external link for non-playable videos
 }
 
 export function MediaUploader({
@@ -26,6 +28,8 @@ export function MediaUploader({
   maxFiles = type === 'CAROUSEL' ? 10 : 1,
   clientId,
   creativeContext,
+  thumbnailUrl,
+  externalVideoUrl,
 }: MediaUploaderProps) {
   const [uploading, setUploading] = useState(false);
   const [generatingAI, setGeneratingAI] = useState(false);
@@ -36,6 +40,19 @@ export function MediaUploader({
   const acceptTypes = type === 'VIDEO' 
     ? 'video/mp4,video/mov,video/avi'
     : 'image/jpeg,image/png,image/webp,image/gif';
+
+  // Check if a video URL is a non-playable Facebook link
+  const isFacebookVideoLink = (url: string) => {
+    return url && (url.includes('facebook.com/') || url.includes('fb.com/'));
+  };
+
+  // Get the external video URL (Facebook page link)
+  const getExternalVideoLink = (url: string) => {
+    if (isFacebookVideoLink(url)) {
+      return url;
+    }
+    return externalVideoUrl || null;
+  };
 
   const handleGenerateAIImage = useCallback(async () => {
     if (!clientId) {
@@ -183,37 +200,78 @@ export function MediaUploader({
           'grid gap-2',
           type === 'CAROUSEL' ? 'grid-cols-5' : 'grid-cols-1'
         )}>
-          {mediaUrls.map((url, index) => (
-            <div
-              key={url}
-              className="relative aspect-square rounded-lg overflow-hidden border bg-muted group"
-            >
-              {type === 'VIDEO' ? (
-                <video
-                  src={url}
-                  className="w-full h-full object-cover"
-                  muted
-                />
-              ) : (
-                <img
-                  src={url}
-                  alt={`Media ${index + 1}`}
-                  className="w-full h-full object-cover"
-                />
-              )}
-              <button
-                onClick={() => removeMedia(index)}
-                className="absolute top-1 right-1 p-1 rounded-full bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+          {mediaUrls.map((url, index) => {
+            const isNonPlayableVideo = type === 'VIDEO' && isFacebookVideoLink(url);
+            const externalLink = getExternalVideoLink(url);
+            const displayThumbnail = isNonPlayableVideo && thumbnailUrl;
+            
+            return (
+              <div
+                key={url}
+                className="relative aspect-square rounded-lg overflow-hidden border bg-muted group"
               >
-                <X className="h-3 w-3" />
-              </button>
-              {type === 'CAROUSEL' && (
-                <div className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded text-xs bg-black/60 text-white">
-                  {index + 1}
-                </div>
-              )}
-            </div>
-          ))}
+                {type === 'VIDEO' ? (
+                  isNonPlayableVideo ? (
+                    // Non-playable Facebook video - show thumbnail with play overlay
+                    <div className="relative w-full h-full">
+                      {displayThumbnail ? (
+                        <img
+                          src={thumbnailUrl}
+                          alt="Video thumbnail"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-muted">
+                          <Film className="w-12 h-12 text-muted-foreground" />
+                        </div>
+                      )}
+                      {/* Play overlay */}
+                      <button
+                        onClick={() => externalLink && window.open(externalLink, '_blank')}
+                        className="absolute inset-0 flex items-center justify-center bg-black/40 hover:bg-black/50 transition-colors cursor-pointer"
+                        title="Clique para ver o vídeo no Facebook"
+                      >
+                        <div className="flex flex-col items-center gap-2">
+                          <div className="w-14 h-14 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
+                            <Play className="w-7 h-7 text-primary fill-primary ml-1" />
+                          </div>
+                          <span className="text-white text-xs flex items-center gap-1">
+                            <ExternalLink className="w-3 h-3" />
+                            Ver no Facebook
+                          </span>
+                        </div>
+                      </button>
+                    </div>
+                  ) : (
+                    // Playable video
+                    <video
+                      src={url}
+                      className="w-full h-full object-cover"
+                      muted
+                      controls
+                    />
+                  )
+                ) : (
+                  <img
+                    src={url}
+                    alt={`Media ${index + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                )}
+                <button
+                  onClick={() => removeMedia(index)}
+                  className="absolute top-1 right-1 p-1 rounded-full bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+                {type === 'CAROUSEL' && (
+                  <div className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded text-xs bg-black/60 text-white">
+                    {index + 1}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
