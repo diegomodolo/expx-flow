@@ -36,7 +36,12 @@ import {
   MousePointer, 
   Target, 
   Users, 
-  AlertTriangle 
+  AlertTriangle,
+  Percent,
+  Receipt,
+  ImageIcon,
+  PlayCircle,
+  PauseCircle,
 } from 'lucide-react';
 import { useInlineEdit } from '@/hooks/useInlineEdit';
 import { TreeNode } from '@/hooks/useCampaignTree';
@@ -280,11 +285,19 @@ export function AdSetEditModal({
             <div className="flex-1">
               <DialogTitle className="text-xl">Editar Conjunto de Anúncios</DialogTitle>
               <DialogDescription className="flex items-center gap-2 mt-1">
-                <Badge variant={node.status === 'active' ? 'default' : 'secondary'}>
-                  {node.status === 'active' ? 'Ativo' : 'Pausado'}
-                </Badge>
                 <Badge variant="outline">{node.platform.toUpperCase()}</Badge>
               </DialogDescription>
+            </div>
+            {/* Status Toggle in Header */}
+            <div className="flex items-center gap-3 pr-8">
+              <span className="text-sm text-muted-foreground">
+                {editStatus === 'active' ? 'Ativo' : 'Pausado'}
+              </span>
+              <Switch
+                checked={editStatus === 'active'}
+                onCheckedChange={(checked) => setEditStatus(checked ? 'active' : 'paused')}
+                className="data-[state=checked]:bg-green-500"
+              />
             </div>
           </div>
         </DialogHeader>
@@ -302,6 +315,68 @@ export function AdSetEditModal({
                 </AlertDescription>
               </Alert>
             )}
+
+            {/* Metrics & Ads Summary Cards at Top */}
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2 mb-6">
+              <div className="p-2 rounded-lg bg-muted/50 flex flex-col items-center">
+                <div className="flex items-center gap-1 text-muted-foreground mb-1">
+                  <DollarSign className="w-3 h-3" />
+                  <span className="text-xs">Investido</span>
+                </div>
+                <p className="text-sm font-bold">{formatCurrency(node.metrics.spend)}</p>
+              </div>
+              <div className="p-2 rounded-lg bg-muted/50 flex flex-col items-center">
+                <div className="flex items-center gap-1 text-muted-foreground mb-1">
+                  <Eye className="w-3 h-3" />
+                  <span className="text-xs">Impressões</span>
+                </div>
+                <p className="text-sm font-bold">{formatNumber(node.metrics.impressions)}</p>
+              </div>
+              <div className="p-2 rounded-lg bg-muted/50 flex flex-col items-center">
+                <div className="flex items-center gap-1 text-muted-foreground mb-1">
+                  <Percent className="w-3 h-3" />
+                  <span className="text-xs">CTR</span>
+                </div>
+                <p className="text-sm font-bold">{formatPercent(node.metrics.ctr)}</p>
+              </div>
+              <div className="p-2 rounded-lg bg-muted/50 flex flex-col items-center">
+                <div className="flex items-center gap-1 text-muted-foreground mb-1">
+                  <Target className="w-3 h-3" />
+                  <span className="text-xs">Conversões</span>
+                </div>
+                <p className="text-sm font-bold">{formatNumber(node.metrics.conversions)}</p>
+              </div>
+              {/* Ads Summary */}
+              {node.children && node.children.length > 0 && (
+                <>
+                  <div className="p-2 rounded-lg bg-muted/50 flex flex-col items-center">
+                    <div className="flex items-center gap-1 text-muted-foreground mb-1">
+                      <ImageIcon className="w-3 h-3" />
+                      <span className="text-xs">Anúncios</span>
+                    </div>
+                    <p className="text-sm font-bold">{node.children.length}</p>
+                  </div>
+                  <div className="p-2 rounded-lg bg-muted/50 flex flex-col items-center">
+                    <div className="flex items-center gap-1 text-muted-foreground mb-1">
+                      <PlayCircle className="w-3 h-3" />
+                      <span className="text-xs">Ativos</span>
+                    </div>
+                    <p className="text-sm font-bold text-primary">
+                      {node.children.filter((c) => c.status === 'active').length}
+                    </p>
+                  </div>
+                  <div className="p-2 rounded-lg bg-muted/50 flex flex-col items-center">
+                    <div className="flex items-center gap-1 text-muted-foreground mb-1">
+                      <PauseCircle className="w-3 h-3" />
+                      <span className="text-xs">Pausados</span>
+                    </div>
+                    <p className="text-sm font-bold text-muted-foreground">
+                      {node.children.filter((c) => c.status === 'paused').length}
+                    </p>
+                  </div>
+                </>
+              )}
+            </div>
 
             {/* Two Column Layout */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -325,25 +400,6 @@ export function AdSetEditModal({
                     {editName.trim() === '' && (
                       <p className="text-xs text-destructive">O nome não pode estar vazio</p>
                     )}
-                  </div>
-
-                  {/* Status Field */}
-                  <div className="space-y-2">
-                    <Label>Status</Label>
-                    <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm">
-                          {editStatus === 'active' ? 'Ativo' : 'Pausado'}
-                        </span>
-                        <Badge variant={editStatus === 'active' ? 'default' : 'secondary'}>
-                          {editStatus === 'active' ? 'ON' : 'OFF'}
-                        </Badge>
-                      </div>
-                      <Switch
-                        checked={editStatus === 'active'}
-                        onCheckedChange={(checked) => setEditStatus(checked ? 'active' : 'paused')}
-                      />
-                    </div>
                   </div>
 
                   {/* Daily Budget */}
@@ -434,7 +490,7 @@ export function AdSetEditModal({
                 </div>
               </div>
 
-              {/* Right Column - Targeting & Metrics */}
+              {/* Right Column - Targeting */}
               <div className="space-y-6">
                 {/* Targeting Section */}
                 <div className="space-y-4">
@@ -470,60 +526,6 @@ export function AdSetEditModal({
                     placeholder="Buscar interesses..."
                   />
                 </div>
-
-                {/* Metrics Summary */}
-                <div className="space-y-4 border-t pt-4">
-                  <h4 className="font-medium text-sm flex items-center gap-2 text-muted-foreground uppercase tracking-wider">
-                    <TrendingUp className="w-4 h-4" />
-                    Métricas Atuais
-                  </h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="p-3 rounded-lg bg-muted/50 text-center">
-                      <p className="text-xs text-muted-foreground">Investido</p>
-                      <p className="text-lg font-bold">{formatCurrency(node.metrics.spend)}</p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-muted/50 text-center">
-                      <p className="text-xs text-muted-foreground">Impressões</p>
-                      <p className="text-lg font-bold">{formatNumber(node.metrics.impressions)}</p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-muted/50 text-center">
-                      <p className="text-xs text-muted-foreground">CTR</p>
-                      <p className="text-lg font-bold">{formatPercent(node.metrics.ctr)}</p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-muted/50 text-center">
-                      <p className="text-xs text-muted-foreground">Conversões</p>
-                      <p className="text-lg font-bold">{formatNumber(node.metrics.conversions)}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Children Summary */}
-                {node.children && node.children.length > 0 && (
-                  <div className="space-y-4 border-t pt-4">
-                    <h4 className="font-medium text-sm flex items-center gap-2 text-muted-foreground uppercase tracking-wider">
-                      <Layers className="w-4 h-4" />
-                      Anúncios neste Conjunto
-                    </h4>
-                    <div className="grid grid-cols-3 gap-3">
-                      <div className="text-center p-3 rounded-lg bg-muted/50">
-                        <p className="text-xl font-bold">{node.children.length}</p>
-                        <p className="text-xs text-muted-foreground">Total</p>
-                      </div>
-                      <div className="text-center p-3 rounded-lg bg-muted/50">
-                        <p className="text-xl font-bold text-primary">
-                          {node.children.filter((c) => c.status === 'active').length}
-                        </p>
-                        <p className="text-xs text-muted-foreground">Ativos</p>
-                      </div>
-                      <div className="text-center p-3 rounded-lg bg-muted/50">
-                        <p className="text-xl font-bold text-muted-foreground">
-                          {node.children.filter((c) => c.status === 'paused').length}
-                        </p>
-                        <p className="text-xs text-muted-foreground">Pausados</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
           </div>
