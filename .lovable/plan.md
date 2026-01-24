@@ -1,145 +1,139 @@
 
+# Plano: Corrigir Geração de Carrossel "A Partir de Exemplo"
 
-# Plano: Corrigir Passagem de Dados para Geração "A Partir de Exemplo"
+## Problemas Identificados
 
-## Problema Identificado
+Analisando os logs, identifiquei 3 problemas críticos:
 
-Analisando os logs da edge function, identifiquei que:
-
-1. **O sistema recebe as imagens de referência** (`reference_carousel_images_count: 5`)
-2. **Mas NÃO recebe os slides pré-gerados** (`pre_generated_slides_count` não aparece no log)
-3. **A edge function cai no branch de "gerar do zero"** (log "Calling AI for carousel generation")
-4. **Resultado**: Usa `slides_per_carousel` do schedule (8 slides) em vez dos 6 do exemplo
-
-A causa raiz está em como os dados são passados e/ou como a condição para passar `preGeneratedSlides` funciona.
-
----
-
-## Análise do Fluxo Atual
-
-```text
-GeradorCarrosseis.tsx (linha 574-580)
-    ↓ preGeneratedSlides={generatedSlideContents?.map(...)}
-CarouselGenerationProgressModal (linha 39)
-    ↓ preGeneratedSlides?: PreGeneratedSlide[]
-useCarouselGenerationStream.start() (linha 87)
-    ↓ pre_generated_slides: preGeneratedSlides
-Edge Function (linha 158)
-    ↓ pre_generated_slides (CHEGANDO VAZIO!)
+### Problema 1: Edge function usando versão antiga
+Os logs mostram:
+```
+reference_carousel_images_count: 5
+// NÃO mostra pre_generated_slides_count!
 ```
 
-O problema está em que o `preGeneratedSlides` está sendo passado **condicionalmente** mas sem verificar se o `generationMode === "fromExample"`.
+Mas o log atualizado deveria mostrar:
+```
+pre_generated_slides_count: 5
+pre_generated_slides_provided: true
+```
 
----
+Isso indica que a edge function precisa ser redeployada com as mudanças mais recentes.
 
-## Correções Necessárias
-
-### 1. GeradorCarrosseis.tsx - Passar dados apenas no modo correto
-
-Atualmente:
+### Problema 2: Passando TODAS as referências para CADA slide
+Atualmente, a função `generateImageWithNanoBanana` recebe TODAS as 5 imagens de referência para cada slide:
 ```typescript
-preGeneratedSlides={generatedSlideContents?.map(s => ({...}))}
+// PROBLEMA: passa todas as referências para cada slide
+const dataUrl = await generateImageWithNanoBanana(imagePrompt, LOVABLE_API_KEY, allReferenceImages);
 ```
 
-O problema é que `generatedSlideContents` pode estar null se houve algum problema. Precisamos garantir que:
-- Só passe quando `generationMode === "fromExample"` E `generatedSlideContents` existe
+O correto seria passar apenas a imagem de referência CORRESPONDENTE ao slide atual:
+```typescript
+// CORRETO: passa apenas a referência do slide específico
+const slideReferenceImage = allReferenceImages[i] || null;
+```
 
-### 2. Adicionar logs de debug no frontend
-
-Para entender melhor o que está sendo passado, adicionar console.log antes de abrir o modal.
-
-### 3. Edge Function - Melhorar log inicial
-
-Garantir que o log mostra claramente se `pre_generated_slides` está definido e seu tamanho.
+### Problema 3: Prompt não instrui a copiar a imagem específica
+O prompt de imagem precisa instruir a IA a:
+- Usar a imagem de referência ESPECÍFICA do slide como base
+- Reproduzir o layout/composição exata
+- Apenas trocar o texto
 
 ---
 
-## Arquivos a Modificar
+## Solução
+
+### Arquivos a Modificar
 
 | Arquivo | Alteração |
 |---------|-----------|
-| `src/pages/GeradorCarrosseis.tsx` | Ajustar condição para passar `preGeneratedSlides` e adicionar log de debug |
-| `src/components/generators/CarouselGenerationProgressModal.tsx` | Adicionar log para verificar props recebidas |
-| `supabase/functions/daily-carousel-generator-stream/index.ts` | Melhorar log inicial para mostrar todos os parâmetros recebidos |
+| `supabase/functions/daily-carousel-generator-stream/index.ts` | Corrigir lógica de geração por slide |
 
----
+### Alterações Detalhadas
 
-## Alterações Detalhadas
+#### 1. Passar imagem de referência ESPECÍFICA por slide
 
-### 1. GeradorCarrosseis.tsx
-
-Modificar a passagem de props para o modal (linhas 566-584):
+No loop de geração (linhas 271-338), modificar para passar apenas a referência correspondente:
 
 ```typescript
-{selectedClientId && companyId && user?.id && (
-  <CarouselGenerationProgressModal
-    open={isModalOpen}
-    onOpenChange={setIsModalOpen}
-    clientId={selectedClientId}
-    companyId={companyId}
-    userId={user.id}
-    // Só passa carouselType no modo "scratch"
-    carouselType={generationMode === "scratch" ? carouselType : undefined}
-    // Só passa referências e slides pré-gerados no modo "fromExample"
-    referenceCarouselImages={generationMode === "fromExample" ? referenceCarouselImages : undefined}
-    preGeneratedSlides={
-      generationMode === "fromExample" && generatedSlideContents && generatedSlideContents.length > 0
-        ? generatedSlideContents.map(s => ({
-            slideNumber: s.slideNumber,
-            type: s.type,
-            headline: s.headline,
-            bodyText: s.bodyText,
-            visualDescription: s.visualDescription,
-          }))
-        : undefined
-    }
-    visualVariations={generationMode === "fromExample" ? visualVariations : undefined}
-    onFinished={handleGenerationFinished}
-  />
-)}
+for (let i = 0; i < carousel.slides.length; i++) {
+  // ...
+  
+  // Pega apenas a imagem de referência CORRESPONDENTE a este slide
+  const slideReferenceImage = reference_carousel_images?.[i] || null;
+  
+  // Se tem imagem de referência específica para este slide, usa ela
+  const slideReferences = slideReferenceImage ? [slideReferenceImage] : allReferenceImages;
+  
+  // ...
+  const dataUrl = await generateImageWithNanoBanana(
+    imagePrompt, 
+    LOVABLE_API_KEY, 
+    slideReferences
+  );
+}
 ```
 
-### 2. CarouselGenerationProgressModal.tsx
+#### 2. Melhorar o prompt para modo "fromExample"
 
-Adicionar log na abertura:
+Quando há uma imagem de referência ESPECÍFICA, o prompt deve ser muito mais direto:
 
 ```typescript
-useEffect(() => {
-  if (!open) {
-    // ... reset code
-    return;
-  }
+// Se tem referência específica do slide, usar prompt de "cópia com edição"
+const specificReferenceMode = slideReferenceImage !== null;
 
-  // Log para debug
-  console.log("[CarouselGenerationProgressModal] Starting with:", {
-    clientId,
-    companyId,
-    carouselType,
-    referenceCarouselImages: referenceCarouselImages?.length || 0,
-    preGeneratedSlides: preGeneratedSlides?.length || 0,
-    visualVariations,
-  });
+if (specificReferenceMode) {
+  imagePrompt = `EDITE a imagem de referência anexada (imagem número 1).
 
-  start({
-    // ... rest of code
-  });
-}, [...]);
+TAREFA: Reproduzir EXATAMENTE a imagem de referência, APENAS substituindo o texto.
+
+NOVO CONTEÚDO DE TEXTO:
+Headline: ${slide.headline}
+Texto secundário: ${slide.body_text}
+
+REGRAS ABSOLUTAS:
+- COPIE EXATAMENTE o layout, composição, cores, elementos visuais da referência
+- MANTENHA IDÊNTICOS: posição dos elementos, paleta de cores, tipografia, fundo
+- REPRODUZA o logotipo/marca IDÊNTICO (mesma fonte, cor, posição)
+- APENAS SUBSTITUA o texto pelo novo texto acima
+- O resultado deve ser visualmente IDÊNTICO à referência
+- Formato VERTICAL 3:4 (1080x1440 pixels)
+- Texto em português brasileiro sem erros
+
+${variationInstructions}`;
+} else {
+  // Prompt original para quando não há referência específica
+  imagePrompt = `Crie uma imagem profissional para carrossel do Instagram...`;
+}
 ```
 
-### 3. daily-carousel-generator-stream/index.ts
+#### 3. Ajustar buildVisualVariationInstructions
 
-Melhorar log inicial para garantir visibilidade:
+Quando há referência específica e modo cópia fiel, as instruções devem ser mais enfáticas:
 
 ```typescript
-console.log("[daily-carousel-generator-stream] Start", { 
-  client_id, 
-  company_id, 
-  user_id, 
-  carousel_type: carousel_type || "NOT PROVIDED", 
-  reference_carousel_images_count: reference_carousel_images?.length || 0,
-  pre_generated_slides_count: pre_generated_slides?.length || 0,
-  pre_generated_slides_provided: !!pre_generated_slides,
-  visual_variations: visual_variations || "NOT PROVIDED"
+if (noVariations && hasSpecificReference) {
+  return `
+MODO CÓPIA EXATA:
+- Esta é uma operação de EDIÇÃO, não de criação
+- A imagem anexada é o TEMPLATE que deve ser copiado
+- REPRODUZA pixel por pixel o layout e design
+- APENAS mude o texto pelos novos valores fornecidos
+- Resultado deve ser indistinguível da original (exceto texto)`;
+}
+```
+
+#### 4. Log detalhado para debug
+
+Adicionar log antes de gerar cada slide:
+
+```typescript
+console.log("[daily-carousel-generator-stream] Generating slide", {
+  slideNumber: i + 1,
+  hasSpecificReference: !!slideReferenceImage,
+  referenceUrl: slideReferenceImage?.substring(0, 50) + "...",
+  headline: slide.headline.substring(0, 30) + "...",
+  variationsApplied: visual_variations,
 });
 ```
 
@@ -147,30 +141,38 @@ console.log("[daily-carousel-generator-stream] Start", {
 
 ## Fluxo Corrigido
 
-Após as correções:
-
 ```text
-Modo "fromExample":
-├── carouselType = undefined (IA detecta do tipo dos slides)
-├── referenceCarouselImages = [5 URLs]
-├── preGeneratedSlides = [6 objetos com headline, bodyText, etc]
-└── visualVariations = { alterColorPalette: true, ... }
+Modo "fromExample" com 5 slides:
 
-Modo "scratch":
-├── carouselType = "tutorial" (selecionado pelo usuário)
-├── referenceCarouselImages = undefined
-├── preGeneratedSlides = undefined
-└── visualVariations = undefined
+Slide 1:
+├── Referência: reference_carousel_images[0]  ← imagem específica
+├── Headline: "Novo texto 1"
+├── Prompt: "EDITE a imagem de referência..."
+└── Resultado: Cópia fiel com texto novo
+
+Slide 2:
+├── Referência: reference_carousel_images[1]  ← imagem específica
+├── Headline: "Novo texto 2"
+├── Prompt: "EDITE a imagem de referência..."
+└── Resultado: Cópia fiel com texto novo
+
+... (continua para cada slide)
 ```
 
 ---
 
-## Resultado Esperado
+## Benefícios
 
-Após implementar essas correções:
-- Quando usar "Gerar a Partir de Exemplo" com 6 imagens
-- A edge function receberá `pre_generated_slides` com 6 slides
-- O log mostrará: `pre_generated_slides_count: 6`
-- O sistema usará `buildCarouselFromPreGenerated()` em vez de `generateCarousel()`
-- Serão geradas exatamente 6 imagens, respeitando o exemplo
+1. **Fidelidade visual**: Cada slide será baseado EXATAMENTE na imagem de referência correspondente
+2. **Textos corretos**: Usará os textos pré-gerados e editados pelo usuário
+3. **Variações controladas**: Aplica variações apenas quando solicitado
+4. **Quantidade correta**: Gera exatamente N slides (onde N = número de referências)
 
+---
+
+## Resumo das Mudanças
+
+1. **No loop de geração**: Passar `reference_carousel_images[i]` para cada slide específico
+2. **No prompt de imagem**: Quando tem referência específica, usar prompt de "EDIÇÃO" em vez de "criação"
+3. **Na função buildVisualVariationInstructions**: Adicionar modo "hasSpecificReference" para instruções mais diretas
+4. **Logs**: Adicionar logs detalhados para cada slide sendo gerado
