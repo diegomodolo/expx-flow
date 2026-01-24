@@ -507,11 +507,6 @@ export default function GeradorCarrosseis() {
                   clientId={selectedClientId}
                   companyId={companyId || ""}
                   onClose={() => setLastGeneratedCarouselId(null)}
-                  onViewDetails={() => {
-                    // Navigate to the history tab to see details
-                    setActiveTab("history");
-                    setLastGeneratedCarouselId(null);
-                  }}
                 />
               ) : (
                 <Card>
