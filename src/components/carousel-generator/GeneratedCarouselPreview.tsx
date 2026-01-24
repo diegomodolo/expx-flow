@@ -90,7 +90,7 @@ export function GeneratedCarouselPreview({
           <Skeleton className="h-4 w-28 mt-1" />
         </CardHeader>
         <CardContent>
-          <Skeleton className="aspect-square w-full max-w-[280px] mx-auto rounded-lg" />
+          <Skeleton className="aspect-[4/5] w-full max-w-[340px] mx-auto rounded-lg" />
         </CardContent>
       </Card>
     );
@@ -125,21 +125,21 @@ export function GeneratedCarouselPreview({
 
       <CardContent className="space-y-3">
         {/* Instagram Mockup */}
-        <div className="max-w-[300px] mx-auto">
+        <div className="max-w-[340px] mx-auto">
           <div className="bg-white dark:bg-zinc-900 rounded-xl border border-border shadow-sm overflow-hidden">
             {/* Instagram Header */}
-            <div className="flex items-center gap-2 p-2.5 border-b border-border/50">
-              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-500 via-pink-500 to-orange-400 p-[2px]">
+            <div className="flex items-center gap-2.5 p-3 border-b border-border/50">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 via-pink-500 to-orange-400 p-[2px]">
                 <div className="w-full h-full rounded-full bg-white dark:bg-zinc-900 flex items-center justify-center">
-                  <span className="text-[8px] font-semibold">IG</span>
+                  <span className="text-[9px] font-semibold">IG</span>
                 </div>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold truncate">sua_marca</p>
-                <p className="text-[10px] text-muted-foreground">Patrocinado</p>
+                <p className="text-sm font-semibold truncate">sua_marca</p>
+                <p className="text-[11px] text-muted-foreground">Patrocinado</p>
               </div>
               <button className="text-muted-foreground">
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                   <circle cx="12" cy="6" r="1.5" />
                   <circle cx="12" cy="12" r="1.5" />
                   <circle cx="12" cy="18" r="1.5" />
@@ -147,8 +147,8 @@ export function GeneratedCarouselPreview({
               </button>
             </div>
 
-            {/* Image Container */}
-            <div className="relative aspect-square bg-muted">
+            {/* Image Container - 4:5 aspect ratio */}
+            <div className="relative aspect-[4/5] bg-muted">
               {activeSlide?.image_url ? (
                 <img
                   src={activeSlide.image_url}
