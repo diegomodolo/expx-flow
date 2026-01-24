@@ -300,14 +300,40 @@ serve(async (req) => {
               referenceUrl: slideReferenceImage ? slideReferenceImage.substring(0, 80) + "..." : "none",
               headline: slide.headline.substring(0, 40) + "...",
               variationsApplied: visual_variations,
+              suggestedElement: suggestedElement || "none",
               totalRefsForThisSlide: slideReferences.length,
             });
 
             let imagePrompt: string;
 
             if (hasSpecificReference) {
-              // MODE: DIRECT EDIT - Use specific reference as base, only swap text
-              imagePrompt = `EDITE a imagem de referência anexada.
+              // Check if any variations are enabled
+              const hasVariations = visual_variations && (
+                visual_variations.alterColorPalette || 
+                visual_variations.alterCharacters || 
+                visual_variations.alterBackground || 
+                visual_variations.alterLayout
+              );
+              
+              if (hasVariations) {
+                // MODE: EDIT WITH VARIATIONS - Apply selected changes while keeping structure
+                imagePrompt = `EDITE a imagem de referência anexada aplicando VARIAÇÕES ESPECÍFICAS.
+
+NOVO CONTEÚDO DE TEXTO (OBRIGATÓRIO):
+Headline: ${slide.headline}
+Texto secundário: ${slide.body_text}
+
+BASE VISUAL:
+- Use a imagem de referência como BASE para composição e layout
+- SUBSTITUA o texto pelo novo texto acima
+- Formato VERTICAL 3:4 (1080x1440 pixels)
+- Texto em português brasileiro sem erros ortográficos
+- Texto legível com alto contraste
+
+${variationInstructions}`;
+              } else {
+                // MODE: DIRECT COPY - Use specific reference as base, only swap text
+                imagePrompt = `EDITE a imagem de referência anexada.
 
 TAREFA: Reproduzir EXATAMENTE a imagem de referência, APENAS substituindo o texto.
 
@@ -326,6 +352,7 @@ REGRAS ABSOLUTAS:
 - Texto legível com alto contraste
 
 ${variationInstructions}`;
+              }
             } else {
               // MODE: CREATE NEW - No specific reference, create from scratch
               imagePrompt = `Crie uma imagem profissional para carrossel do Instagram no formato VERTICAL 3:4 (1080x1440 pixels).
