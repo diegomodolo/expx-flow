@@ -1,226 +1,179 @@
 
-# Plano: Melhorias no Gerador de Carrosséis
+# Plano: Correção do Elemento Sugerido + Nova Opção de Variação
 
-## Resumo dos Problemas
+## Diagnóstico do Problema
 
-1. **Variações visuais alterando cor de fundo indevidamente** - Mesmo marcando apenas "alterar personagens", a IA mudou a cor de fundo
-2. **Preview de referência não está em 4:5** - As imagens do carrossel de referência aparecem em aspect ratio quadrado
-3. **Falta edição individual de slides gerados** - Após gerar, não há como editar cada imagem individualmente
-
----
-
-## 1. Correção das Variações Visuais
-
-### Problema
-A função `buildVisualVariationInstructions` no edge function precisa ser mais explícita sobre o que NÃO alterar quando apenas uma opção está marcada.
-
-### Solução
-Atualizar a edge function `daily-carousel-generator-stream` para incluir instruções mais fortes sobre manter elementos não selecionados:
+### Bug Principal Identificado
+No arquivo `GeradorCarrosseis.tsx` (linhas 604-612), ao montar os `preGeneratedSlides` para enviar ao modal de geração, o campo **`suggestedElement` está sendo omitido** do mapeamento:
 
 ```typescript
-// Quando alterCharacters = true MAS alterColorPalette = false e alterBackground = false
-instructions += `
-- SUBSTITUA OS PERSONAGENS/PESSOAS: coloque pessoas diferentes
-- MANTENHA ABSOLUTAMENTE INALTERADAS: cores de fundo, paleta de cores, elementos decorativos`;
+preGeneratedSlides={
+  generatedSlideContents.map(s => ({
+    slideNumber: s.slideNumber,
+    type: s.type,
+    headline: s.headline,
+    bodyText: s.bodyText,
+    visualDescription: s.visualDescription,
+    // ❌ FALTA: suggestedElement: s.suggestedElement
+  }))
+}
 ```
 
-| Arquivo | Alteração |
-|---------|-----------|
-| `supabase/functions/daily-carousel-generator-stream/index.ts` | Reforçar instruções de preservação na função `buildVisualVariationInstructions` |
+Isso explica os logs mostrando `suggestedElement: "none"` — o valor nunca chega à edge function!
+
+### Problema Secundário
+A opção "Alterar elementos de fundo" está tentando fazer duas coisas ao mesmo tempo:
+1. Trocar ícones decorativos do fundo
+2. Substituir o elemento principal pelo sugerido
+
+Você prefere separá-las para ter controle granular.
 
 ---
 
-## 2. Preview de Referência em 4:5
+## Alterações Planejadas
 
-### Problema
-No `SelectedCarouselPreview.tsx`, as imagens usam `aspect-square` (1:1) ao invés de `aspect-[4/5]`.
-
-### Solução
-Alterar o aspect ratio de `aspect-square` para `aspect-[4/5]` em todas as renderizações de slides.
+### 1. Corrigir Passagem do `suggestedElement` (Bug Principal)
 
 | Arquivo | Alteração |
 |---------|-----------|
-| `src/components/carousel-generator/SelectedCarouselPreview.tsx` | Mudar `aspect-square` para `aspect-[4/5]` nas linhas 64 e 76 |
-| `src/components/carousel-generator/SlideContentCard.tsx` | Mudar `aspect-square` para `aspect-[4/5]` na linha 76 |
+| `src/pages/GeradorCarrosseis.tsx` | Adicionar `suggestedElement: s.suggestedElement` no mapeamento (linha ~611) |
 
----
+### 2. Criar Nova Opção de Variação Visual
 
-## 3. Edição Individual de Slides Gerados
+Adicionar uma quinta opção: **"Substituir elemento principal"**
 
-### Visão Geral
-Adicionar uma seção abaixo do mockup do Instagram mostrando cada slide gerado com opção de editar individualmente, usando o mesmo modal de edição do Planejador de Conteúdo.
+| Arquivo | Alteração |
+|---------|-----------|
+| `src/components/carousel-generator/VisualVariationOptions.tsx` | Adicionar checkbox "Substituir elemento principal" com ícone apropriado |
+| `src/hooks/useCarouselGenerationStream.ts` | Adicionar `replaceMainElement: boolean` à interface `VisualVariations` |
+| `supabase/functions/daily-carousel-generator-stream/index.ts` | Atualizar interface e lógica de instruções |
 
-### Componentes Necessários
+### 3. Atualizar Instruções da Edge Function
 
-#### 3.1 Novo Componente: `GeneratedSlideEditCard`
-Um card para cada slide com:
-- Thumbnail da imagem (4:5)
-- Botão "Editar" que abre modal
-- Indicador de slide número
+Separar as instruções:
+- **"Alterar elementos de fundo"** = trocar apenas ícones/decorações do fundo
+- **"Substituir elemento principal"** = trocar o objeto/ícone mais destacado pelo elemento sugerido
 
-#### 3.2 Novo Modal: `SlideImageEditModal`
-Reutilizando a lógica do ContentPlanPostCard:
-- Switch "Usar imagem atual como referência"
-- Upload de "Imagem para incorporar" (opcional)
-- Textarea para prompt de edição
-- Botões Cancelar/Editar Imagem
+### 4. Implementar Auto-Retry
 
-#### 3.3 Atualização do `GeneratedCarouselPreview`
-- Adicionar grid de slides editáveis abaixo do mockup
-- Cada slide com botão de edição
-- Chamar edge function `generate-visual-creative` para edição
-- Atualizar imagem no banco após edição
-
-### Estrutura Visual
-
-```text
-┌─────────────────────────────────────┐
-│  Carrossel Gerado!                  │
-│  5 slides • tutorial                │
-├─────────────────────────────────────┤
-│                                     │
-│   ┌──────────────────────────┐      │
-│   │   Instagram Mockup       │      │
-│   │   (navegável)            │      │
-│   │   [4:5 aspect ratio]     │      │
-│   └──────────────────────────┘      │
-│                                     │
-├─────────────────────────────────────┤
-│  Editar Slides Individuais          │
-│                                     │
-│  ┌────┐ ┌────┐ ┌────┐ ┌────┐ ┌────┐ │
-│  │ 1  │ │ 2  │ │ 3  │ │ 4  │ │ 5  │ │
-│  │[4:5]│ │[4:5]│ │[4:5]│ │[4:5]│ │[4:5]││
-│  │Editar│ │Editar│ │Editar│ │Editar│ │Editar││
-│  └────┘ └────┘ └────┘ └────┘ └────┘ │
-├─────────────────────────────────────┤
-│  [Ver Detalhes e Editar]            │
-└─────────────────────────────────────┘
-```
-
-### Fluxo de Edição
-
-1. Usuário clica "Editar" em um slide
-2. Abre modal com:
-   - Switch para usar imagem atual como referência (pré-marcado)
-   - Área de upload para imagem adicional
-   - Campo de texto para instruções
-3. Usuário descreve alteração desejada
-4. Sistema chama `generate-visual-creative` com:
-   - `references: [url_imagem_atual]`
-   - `additionalImageToMerge: url_imagem_extra` (se houver)
-   - `extraPrompt: instrucoes_usuario`
-5. Nova imagem substituí a anterior no banco
-6. Preview atualiza automaticamente
-
-### Arquivos a Criar/Modificar
-
-| Arquivo | Ação | Descrição |
-|---------|------|-----------|
-| `src/components/carousel-generator/SlideImageEditModal.tsx` | Criar | Modal de edição reutilizável |
-| `src/components/carousel-generator/GeneratedSlideEditCard.tsx` | Criar | Card de slide com botão editar |
-| `src/components/carousel-generator/GeneratedCarouselPreview.tsx` | Modificar | Adicionar grid de slides editáveis |
+Quando `replaceMainElement` estiver ativado e houver `suggestedElement`, a edge function tentará até 2 vezes se a primeira geração não mencionar o elemento no retorno.
 
 ---
 
 ## Detalhes Técnicos
 
-### SlideImageEditModal.tsx
+### Nova Interface VisualVariations
 
 ```typescript
-interface SlideImageEditModalProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  slideNumber: number;
-  currentImageUrl: string;
-  carouselId: string;
-  clientId: string;
-  companyId: string;
-  onImageUpdated: (newImageUrl: string) => void;
+export interface VisualVariations {
+  alterColorPalette: boolean;
+  alterCharacters: boolean;
+  alterBackground: boolean;      // Agora = apenas decorativos
+  replaceMainElement: boolean;   // NOVO = substitui elemento principal
+  alterLayout: boolean;
 }
 
-// Lógica interna:
-// - useState para useAsReference, additionalImage, prompt, isGenerating
-// - Ref para input de upload da imagem adicional
-// - Handler para upload de imagem adicional ao storage
-// - Handler para chamar generate-visual-creative
-// - Atualizar carousel_generation_queue.slides após sucesso
+export const defaultVisualVariations: VisualVariations = {
+  alterColorPalette: false,
+  alterCharacters: false,
+  alterBackground: false,
+  replaceMainElement: false,
+  alterLayout: false,
+};
 ```
 
-### GeneratedSlideEditCard.tsx
+### Nova Opção no Card de Variações
+
+```text
+┌─────────────────────────────────────────────────┐
+│ ☑ Alterar paleta de cores                       │
+│ ☑ Alterar personagens/pessoas                   │
+│ ☑ Alterar elementos de fundo                    │
+│   (decorativos, ícones de fundo)                │
+│ ☑ Substituir elemento principal pelo sugerido   │  ← NOVA
+│   (ex: trocar computador por ampulheta)         │
+│ ☑ Alterar disposição dos elementos              │
+└─────────────────────────────────────────────────┘
+```
+
+### Lógica de Instruções na Edge Function
 
 ```typescript
-interface GeneratedSlideEditCardProps {
-  slide: CarouselSlide;
-  onEditClick: () => void;
-  isEditing?: boolean;
+// Quando replaceMainElement = true E suggestedElement existe
+if (variations.replaceMainElement && suggestedElement) {
+  elementsToChange.push(
+    `SUBSTITUA O ELEMENTO PRINCIPAL DA IMAGEM: ` +
+    `Identifique o objeto/ícone mais destacado (ex: computador, dado, roleta) ` +
+    `e TROQUE-O por "${suggestedElement}". ` +
+    `MANTENHA a mesma posição, escala e integração visual.`
+  );
 }
 
-// Renderiza:
-// - Imagem 4:5
-// - Badge com número do slide
-// - Botão "Editar" com ícone Pencil
-// - Overlay de loading quando isEditing
+// Quando alterBackground = true (agora só para decorativos)
+if (variations.alterBackground) {
+  elementsToChange.push(
+    `TROQUE ELEMENTOS DECORATIVOS DE FUNDO: ` +
+    `Substitua ícones pequenos, formas geométricas ou padrões decorativos ` +
+    `(NÃO o elemento principal).`
+  );
+}
 ```
 
-### Atualização do GeneratedCarouselPreview
+### Auto-Retry para Elemento Sugerido
 
 ```typescript
-// Novos estados:
-const [editingSlideIndex, setEditingSlideIndex] = useState<number | null>(null);
-const [isSlideEditModalOpen, setIsSlideEditModalOpen] = useState(false);
+const MAX_RETRIES = 2;
+let attempts = 0;
+let imageDataUrl: string | null = null;
 
-// Nova seção após o mockup:
-<div className="space-y-2">
-  <p className="text-xs font-medium text-muted-foreground">
-    Editar Slides Individuais
-  </p>
-  <div className="grid grid-cols-5 gap-2">
-    {carousel.slides.map((slide, idx) => (
-      <GeneratedSlideEditCard
-        key={idx}
-        slide={slide}
-        onEditClick={() => {
-          setEditingSlideIndex(idx);
-          setIsSlideEditModalOpen(true);
-        }}
-        isEditing={editingSlideIndex === idx}
-      />
-    ))}
-  </div>
-</div>
-
-<SlideImageEditModal
-  open={isSlideEditModalOpen}
-  onOpenChange={setIsSlideEditModalOpen}
-  slideNumber={editingSlideIndex !== null ? editingSlideIndex + 1 : 1}
-  currentImageUrl={editingSlideIndex !== null ? carousel.slides[editingSlideIndex]?.image_url : ''}
-  carouselId={carouselId}
-  clientId={clientId}
-  companyId={companyId}
-  onImageUpdated={(newUrl) => {
-    // Atualizar estado local e refetch
-  }}
-/>
+while (attempts < MAX_RETRIES && !imageDataUrl) {
+  attempts++;
+  
+  try {
+    imageDataUrl = await generateImageWithNanoBanana(
+      attempts === 1 ? imagePrompt : 
+        `${imagePrompt}\n\n⚠️ CRÍTICO: Você DEVE incluir "${suggestedElement}" como elemento principal. Esta é a segunda tentativa.`,
+      LOVABLE_API_KEY,
+      slideReferences
+    );
+  } catch (e) {
+    console.log(`[Retry ${attempts}] Failed:`, e.message);
+  }
+}
 ```
 
 ---
 
-## Resumo de Alterações
+## Resumo de Arquivos
 
-| # | Arquivo | Tipo | Descrição |
+| # | Arquivo | Ação | Descrição |
 |---|---------|------|-----------|
-| 1 | `supabase/functions/daily-carousel-generator-stream/index.ts` | Modificar | Reforçar instruções de variações visuais |
-| 2 | `src/components/carousel-generator/SelectedCarouselPreview.tsx` | Modificar | Aspect ratio 4:5 |
-| 3 | `src/components/carousel-generator/SlideContentCard.tsx` | Modificar | Aspect ratio 4:5 |
-| 4 | `src/components/carousel-generator/SlideImageEditModal.tsx` | Criar | Modal de edição de slide |
-| 5 | `src/components/carousel-generator/GeneratedSlideEditCard.tsx` | Criar | Card de slide editável |
-| 6 | `src/components/carousel-generator/GeneratedCarouselPreview.tsx` | Modificar | Adicionar grid de edição + passar clientId/companyId |
+| 1 | `src/pages/GeradorCarrosseis.tsx` | Modificar | Adicionar `suggestedElement` no mapeamento |
+| 2 | `src/components/carousel-generator/VisualVariationOptions.tsx` | Modificar | Adicionar checkbox "Substituir elemento principal" |
+| 3 | `src/hooks/useCarouselGenerationStream.ts` | Modificar | Adicionar `replaceMainElement` à interface |
+| 4 | `supabase/functions/daily-carousel-generator-stream/index.ts` | Modificar | Atualizar interface, instruções e adicionar auto-retry |
 
 ---
 
-## Dependências
+## Fluxo Visual do Usuário
 
-- O `GeneratedCarouselPreview` precisará receber `clientId` e `companyId` como props adicionais
-- A edge function `generate-visual-creative` já existe e será reutilizada
-- Após edição, o sistema atualizará o array `slides` na tabela `carousel_generation_queue`
+```text
+Usuário seleciona carrossel de referência
+          ↓
+IA analisa e sugere elementos (ampulheta, gráfico, placa)
+          ↓
+Usuário edita os textos e elementos sugeridos
+          ↓
+Usuário marca [✓] "Substituir elemento principal pelo sugerido"
+          ↓
+Sistema envia:
+  - Imagem de referência
+  - Novo texto
+  - Instrução: "Troque o objeto principal por AMPULHETA"
+          ↓
+IA gera imagem mantendo layout, cores, mas com ampulheta
+          ↓
+Se não aparecer ampulheta → auto-retry com prompt reforçado
+          ↓
+Imagem final com o elemento correto
+```
