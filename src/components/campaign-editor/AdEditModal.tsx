@@ -599,93 +599,6 @@ export function AdEditModal({
                       </Select>
                     </div>
 
-                    {/* UTM Parameters */}
-                    <Collapsible open={showUtmFields} onOpenChange={setShowUtmFields}>
-                      <CollapsibleTrigger asChild>
-                        <Button variant="ghost" size="sm" className="gap-2 h-8 text-xs">
-                          <ChevronDown className={`h-3 w-3 transition-transform ${showUtmFields ? 'rotate-180' : ''}`} />
-                          Parâmetros UTM
-                          {utmFullString && <Badge variant="secondary" className="ml-2 text-xs">Configurado</Badge>}
-                        </Button>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent className="space-y-4 pt-3">
-                        {/* Full UTM String Field */}
-                        <div className="space-y-2">
-                          <Label className="text-xs font-medium">String Completa (como no Meta)</Label>
-                          <Input
-                            value={utmFullString}
-                            onChange={(e) => {
-                              setUtmFullString(e.target.value);
-                              parseUtmString(e.target.value);
-                            }}
-                            placeholder="utm_source={{site_source_name}}&utm_medium={{ad.name}}&utm_campaign={{campaign.name}}"
-                            className="h-9 text-sm font-mono"
-                          />
-                          <p className="text-xs text-muted-foreground">
-                            Cole aqui a string completa de parâmetros ou edite os campos individuais abaixo
-                          </p>
-                        </div>
-                        
-                        {/* Individual Fields */}
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="space-y-1">
-                            <Label className="text-xs">utm_source</Label>
-                            <Input
-                              value={utmSource}
-                              onChange={(e) => setUtmSource(e.target.value)}
-                              placeholder="facebook"
-                              className="h-8 text-sm"
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <Label className="text-xs">utm_medium</Label>
-                            <Input
-                              value={utmMedium}
-                              onChange={(e) => setUtmMedium(e.target.value)}
-                              placeholder="cpc"
-                              className="h-8 text-sm"
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <Label className="text-xs">utm_campaign</Label>
-                            <Input
-                              value={utmCampaign}
-                              onChange={(e) => setUtmCampaign(e.target.value)}
-                              placeholder="{{campaign.name}}"
-                              className="h-8 text-sm"
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <Label className="text-xs">utm_content</Label>
-                            <Input
-                              value={utmContent}
-                              onChange={(e) => setUtmContent(e.target.value)}
-                              placeholder="{{ad.name}}"
-                              className="h-8 text-sm"
-                            />
-                          </div>
-                          <div className="space-y-1 col-span-2">
-                            <Label className="text-xs">utm_term</Label>
-                            <Input
-                              value={utmTerm}
-                              onChange={(e) => setUtmTerm(e.target.value)}
-                              placeholder="{{adset.name}}"
-                              className="h-8 text-sm"
-                            />
-                          </div>
-                        </div>
-                      </CollapsibleContent>
-                    </Collapsible>
-
-                    {/* Pixel Tracking */}
-                    <div className="border-t pt-4">
-                      <PixelSelector
-                        clientId={clientId}
-                        companyId={companyId || ''}
-                        value={pixelId}
-                        onChange={setPixelId}
-                      />
-                    </div>
                   </div>
                 </div>
               </div>
@@ -740,6 +653,93 @@ export function AdEditModal({
                   </div>
                 </div>
 
+                {/* UTM Parameters */}
+                <Collapsible open={showUtmFields} onOpenChange={setShowUtmFields}>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" size="sm" className="gap-2 h-8 text-xs">
+                      <ChevronDown className={`h-3 w-3 transition-transform ${showUtmFields ? 'rotate-180' : ''}`} />
+                      Parâmetros UTM
+                      {utmFullString && <Badge variant="secondary" className="ml-2 text-xs">Configurado</Badge>}
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="space-y-4 pt-3">
+                    {/* Full UTM String Field */}
+                    <div className="space-y-2">
+                      <Label className="text-xs font-medium">String Completa (como no Meta)</Label>
+                      <Input
+                        value={utmFullString}
+                        onChange={(e) => {
+                          setUtmFullString(e.target.value);
+                          parseUtmString(e.target.value);
+                        }}
+                        placeholder="utm_source={{site_source_name}}&utm_medium={{ad.name}}&utm_campaign={{campaign.name}}"
+                        className="h-9 text-sm font-mono"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Cole aqui a string completa de parâmetros ou edite os campos individuais abaixo
+                      </p>
+                    </div>
+                    
+                    {/* Individual Fields */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs">utm_source</Label>
+                        <Input
+                          value={utmSource}
+                          onChange={(e) => setUtmSource(e.target.value)}
+                          placeholder="facebook"
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">utm_medium</Label>
+                        <Input
+                          value={utmMedium}
+                          onChange={(e) => setUtmMedium(e.target.value)}
+                          placeholder="cpc"
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">utm_campaign</Label>
+                        <Input
+                          value={utmCampaign}
+                          onChange={(e) => setUtmCampaign(e.target.value)}
+                          placeholder="{{campaign.name}}"
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">utm_content</Label>
+                        <Input
+                          value={utmContent}
+                          onChange={(e) => setUtmContent(e.target.value)}
+                          placeholder="{{ad.name}}"
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                      <div className="space-y-1 col-span-2">
+                        <Label className="text-xs">utm_term</Label>
+                        <Input
+                          value={utmTerm}
+                          onChange={(e) => setUtmTerm(e.target.value)}
+                          placeholder="{{adset.name}}"
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+
+                {/* Pixel Tracking */}
+                <div className="border-t pt-4">
+                  <PixelSelector
+                    clientId={clientId}
+                    companyId={companyId || ''}
+                    value={pixelId}
+                    onChange={setPixelId}
+                  />
+                </div>
               </div>
             </div>
           </div>
