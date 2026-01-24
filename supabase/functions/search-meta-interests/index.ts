@@ -29,7 +29,7 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get client's Facebook access token
+    // Get client info
     const { data: client, error: clientError } = await supabase
       .from('clients')
       .select('ad_account_id, company_id')
@@ -44,14 +44,14 @@ serve(async (req) => {
       );
     }
 
-    // Get Facebook access token from company
-    const { data: company, error: companyError } = await supabase
-      .from('companies')
-      .select('facebook_access_token')
-      .eq('id', client.company_id)
+    // Get Facebook access token from facebook_integrations table
+    const { data: integration, error: integrationError } = await supabase
+      .from('facebook_integrations')
+      .select('access_token')
+      .eq('company_id', client.company_id)
       .single();
 
-    if (companyError || !company?.facebook_access_token) {
+    if (integrationError || !integration?.access_token) {
       console.error('No Facebook access token found');
       return new Response(
         JSON.stringify({ error: 'Facebook access token not configured' }),
@@ -59,7 +59,7 @@ serve(async (req) => {
       );
     }
 
-    const accessToken = company.facebook_access_token;
+    const accessToken = integration.access_token;
 
     // Search interests via Meta Marketing API
     const searchUrl = new URL('https://graph.facebook.com/v21.0/search');
