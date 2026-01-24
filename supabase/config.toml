@@ -325,3 +325,6 @@ verify_jwt = true
 
 [functions.validate-client-urls]
 verify_jwt = true
+
+[functions.fetch-instagram-carousel-children]
+verify_jwt = true

@@ -24,6 +24,7 @@ export function CarouselGenerationProgressModal({
   companyId,
   userId,
   carouselType,
+  referenceCarouselImages,
   onFinished,
 }: {
   open: boolean;
@@ -32,6 +33,7 @@ export function CarouselGenerationProgressModal({
   companyId: string;
   userId: string;
   carouselType?: CarouselType;
+  referenceCarouselImages?: string[];
   onFinished: () => void;
 }) {
   const { isGenerating, start, cancel } = useCarouselGenerationStream();
@@ -67,6 +69,7 @@ export function CarouselGenerationProgressModal({
       companyId,
       userId,
       carouselType,
+      referenceCarouselImages,
       onEvent: (ev) => {
         if (ev.type === "started") {
           setCarouselId(ev.carousel_id);
@@ -130,7 +133,7 @@ export function CarouselGenerationProgressModal({
       toast.error(e?.message || "Erro ao gerar carrossel");
       setIsDone(true);
     });
-  }, [open, cancel, start, clientId, companyId, userId, carouselType, onFinished]);
+  }, [open, cancel, start, clientId, companyId, userId, carouselType, referenceCarouselImages, onFinished]);
 
   const activeSlide = slides[activeIndex];
 
