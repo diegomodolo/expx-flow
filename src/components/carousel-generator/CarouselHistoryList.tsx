@@ -43,7 +43,7 @@ export function CarouselHistoryList() {
         .from("clients")
         .select("id, name")
         .eq("company_id", activeCompany.id)
-        .eq("is_active", true)
+        .eq("status", "active")
         .order("name");
       if (error) throw error;
       return data || [];
