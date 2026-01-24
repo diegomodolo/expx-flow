@@ -243,11 +243,110 @@ export function useInlineEdit(options: UseInlineEditOptions = {}) {
     [toast, onSuccess]
   );
 
+  const bulkUpdateStatus = useCallback(
+    async (
+      nodes: Array<{
+        type: EntityType;
+        id: string;
+        facebookId?: string;
+        platform: Platform;
+      }>,
+      newStatus: "active" | "paused"
+    ) => {
+      setLoading(true);
+      setCurrentAction("bulk-status");
+
+      const clientIdToUse = nodes[0]?.id ? nodes[0].id.split("-")[0] : "";
+
+      try {
+        // Group by platform
+        const metaNodes = nodes.filter((n) => n.platform === "meta" && n.facebookId);
+        const googleNodes = nodes.filter((n) => n.platform === "google");
+
+        // Process Meta nodes in parallel
+        if (metaNodes.length > 0) {
+          await Promise.all(
+            metaNodes.map(async (node) => {
+              try {
+                await supabase.functions.invoke("manage-facebook-campaign", {
+                  body: {
+                    action: "toggle",
+                    client_id: clientIdToUse,
+                    facebook_id: node.facebookId,
+                    entity_type: node.type === "adset" ? "adset" : node.type === "ad" ? "ad" : "campaign",
+                    status: newStatus === "active" ? "ACTIVE" : "PAUSED",
+                  },
+                });
+
+                // Update local DB
+                const table = node.type === "campaign" ? "campaigns" : node.type === "adset" ? "ad_sets" : "ads";
+                await supabase
+                  .from(table)
+                  .update({
+                    is_active: newStatus === "active",
+                    status: newStatus,
+                    updated_at: new Date().toISOString(),
+                  })
+                  .eq("id", node.id);
+              } catch (error) {
+                console.error(`Error updating ${node.type} ${node.id}:`, error);
+              }
+            })
+          );
+        }
+
+        // Process Google nodes (local DB only)
+        if (googleNodes.length > 0) {
+          await Promise.all(
+            googleNodes.map(async (node) => {
+              const table =
+                node.type === "campaign"
+                  ? "google_campaigns"
+                  : node.type === "adset"
+                  ? "google_ad_groups"
+                  : "google_ads";
+
+              await supabase
+                .from(table)
+                .update({
+                  is_active: newStatus === "active",
+                  status: newStatus,
+                  updated_at: new Date().toISOString(),
+                })
+                .eq("id", node.id);
+            })
+          );
+        }
+
+        toast({
+          title: "Status atualizado em massa",
+          description: `${nodes.length} ${nodes.length === 1 ? "item" : "itens"} ${
+            newStatus === "active" ? "ativado(s)" : "pausado(s)"
+          } com sucesso.`,
+        });
+
+        onSuccess?.();
+      } catch (error: any) {
+        console.error("Error in bulk update:", error);
+        toast({
+          title: "Erro ao atualizar em massa",
+          description: error.message || "Alguns itens podem não ter sido atualizados.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+        setCurrentAction(null);
+      }
+    },
+    [toast, onSuccess]
+  );
+
   return {
     loading,
     currentAction,
     updateStatus,
     updateBudget,
     updateName,
+    bulkUpdateStatus,
   };
 }
