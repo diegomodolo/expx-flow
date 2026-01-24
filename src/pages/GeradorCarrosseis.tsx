@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -63,6 +64,7 @@ export default function GeradorCarrosseis() {
   const navigate = useNavigate();
   const { activeCompany } = useCompany();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   const companyId = activeCompany?.company_id;
 
@@ -133,7 +135,10 @@ export default function GeradorCarrosseis() {
   };
 
   const handleGenerationFinished = (carouselId?: string) => {
-    // Refresh history when generation completes
+    // Invalidate the carousel history cache to force a refetch
+    queryClient.invalidateQueries({ queryKey: ["carousel-history"] });
+    
+    // Also increment key as backup
     setHistoryKey((prev) => prev + 1);
     
     // Store the generated carousel ID to display it
