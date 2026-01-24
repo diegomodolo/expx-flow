@@ -1196,8 +1196,9 @@ async function processSync(
             if (syncAds) {
               try {
                 console.log('Fetching ads for ad set:', adSet.id)
-                // Expanded creative fields to capture CTA, description, and tracking_specs for UTM parameters
-                const adsUrl = `https://graph.facebook.com/v20.0/${adSet.id}/ads?fields=id,name,status,tracking_specs,creative{id,title,body,image_url,video_id,thumbnail_url,object_story_spec,call_to_action_type,effective_object_story_id},insights${dateParam}.action_report_time(conversion).action_attribution_windows([\"7d_click\",\"1d_view\"])` +
+                // Expanded creative fields to capture CTA, description, url_tags and tracking_specs for UTM parameters
+                // url_tags is where Meta stores the UTM parameters at the creative level
+                const adsUrl = `https://graph.facebook.com/v20.0/${adSet.id}/ads?fields=id,name,status,tracking_specs,creative{id,title,body,image_url,video_id,thumbnail_url,object_story_spec,call_to_action_type,effective_object_story_id,url_tags},insights${dateParam}.action_report_time(conversion).action_attribution_windows([\"7d_click\",\"1d_view\"])` +
                   `{impressions,clicks,spend,cpm,ctr,cpc,reach,frequency,actions,quality_ranking,engagement_rate_ranking,conversion_rate_ranking}&access_token=${accessToken}`
                 console.log('Ads API URL (without token):', adsUrl.replace(accessToken, '[REDACTED]'))
                 const adsResponse = await fetch(adsUrl)
@@ -1330,16 +1331,19 @@ async function processSync(
                     const descriptionValue = linkData.description || objectStory.video_data?.message || creative.body || ''
                     console.log('Description extraction - linkData.description:', linkData.description, 'final:', descriptionValue)
                     
-                    // Get URL tags from adset level (this is where Meta stores UTM parameters)
+                    // Get URL tags from multiple sources (priority: creative.url_tags > adSet.url_tags)
+                    // url_tags is where Meta stores the UTM parameters
+                    const creativeUrlTags = creative.url_tags || ''
                     const adSetUrlTags = adSet.url_tags || ''
-                    console.log('AdSet URL Tags (UTM params):', adSetUrlTags)
+                    const urlTags = creativeUrlTags || adSetUrlTags
+                    console.log('URL Tags - creative.url_tags:', creativeUrlTags, 'adSet.url_tags:', adSetUrlTags, 'final:', urlTags)
                     
                     // Build final link_url with url_tags if present
                     let finalLinkUrl = linkData.link || ''
-                    if (finalLinkUrl && adSetUrlTags && !finalLinkUrl.includes('utm_')) {
+                    if (finalLinkUrl && urlTags && !finalLinkUrl.includes('utm_')) {
                       // Only append url_tags if the link doesn't already have UTM params
                       const separator = finalLinkUrl.includes('?') ? '&' : '?'
-                      finalLinkUrl = `${finalLinkUrl}${separator}${adSetUrlTags}`
+                      finalLinkUrl = `${finalLinkUrl}${separator}${urlTags}`
                       console.log('Final link URL with UTM params:', finalLinkUrl)
                     }
                     
