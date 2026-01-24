@@ -34,9 +34,7 @@ import {
   ImageIcon, 
   Save, 
   TrendingUp, 
-  DollarSign, 
-  Eye, 
-  MousePointer, 
+  Settings,
   AlertTriangle,
   Image,
   Film,
@@ -331,7 +329,7 @@ export function AdEditModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
+      <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
         <DialogHeader className="p-6 pb-4 flex-shrink-0">
           <div className="flex items-center gap-3">
             <ImageIcon className="w-6 h-6 text-primary" />
@@ -349,11 +347,11 @@ export function AdEditModal({
 
         <Separator className="flex-shrink-0" />
 
-        <ScrollArea className="flex-1 min-h-0 px-6">
-          <div className="space-y-6 py-6">
-            {/* Google Alert */}
+        <ScrollArea className="flex-1 min-h-0">
+          <div className="p-6 pt-4">
+            {/* Alerts */}
             {isGoogle && (
-              <Alert>
+              <Alert className="mb-4">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>
                   Google Ads: alterações serão salvas apenas localmente.
@@ -361,258 +359,286 @@ export function AdEditModal({
               </Alert>
             )}
 
-            {/* Creative Change Warning */}
             {creativeChanged && !isGoogle && (
-              <Alert className="border-warning bg-warning/10">
-                <Info className="h-4 w-4 text-warning" />
-                <AlertDescription className="text-warning-foreground">
-                  Alterações no criativo (mídia, textos, URL) exigem a criação de um novo creative no Meta. O anúncio será atualizado para usar o novo creative.
+              <Alert className="mb-4 border-primary/50 bg-primary/5">
+                <Info className="h-4 w-4 text-primary" />
+                <AlertDescription>
+                  Alterações no criativo exigem a criação de um novo creative no Meta.
                 </AlertDescription>
               </Alert>
             )}
 
-            {/* Name Field */}
-            <div className="space-y-2">
-              <Label>Nome do Anúncio *</Label>
-              <Input
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-                placeholder="Ex: Anúncio Principal - Produto A"
-              />
-              {editName.trim() === '' && (
-                <p className="text-xs text-destructive">O nome não pode estar vazio</p>
-              )}
-            </div>
+            {/* Two Column Layout */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Left Column - Configuration & Texts */}
+              <div className="space-y-6">
+                <div>
+                  <h4 className="font-medium text-sm mb-4 flex items-center gap-2">
+                    <Settings className="w-4 h-4" />
+                    Configurações
+                  </h4>
+                  
+                  {/* Name Field */}
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Nome do Anúncio *</Label>
+                      <Input
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        placeholder="Ex: Anúncio Principal - Produto A"
+                      />
+                      {editName.trim() === '' && (
+                        <p className="text-xs text-destructive">O nome não pode estar vazio</p>
+                      )}
+                    </div>
 
-            {/* Status Field */}
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm">
-                    {editStatus === 'active' ? 'Ativo' : 'Pausado'}
-                  </span>
-                  <Badge variant={editStatus === 'active' ? 'default' : 'secondary'}>
-                    {editStatus === 'active' ? 'ON' : 'OFF'}
-                  </Badge>
+                    {/* Status Field */}
+                    <div className="space-y-2">
+                      <Label>Status</Label>
+                      <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm">
+                            {editStatus === 'active' ? 'Ativo' : 'Pausado'}
+                          </span>
+                          <Badge variant={editStatus === 'active' ? 'default' : 'secondary'}>
+                            {editStatus === 'active' ? 'ON' : 'OFF'}
+                          </Badge>
+                        </div>
+                        <Switch
+                          checked={editStatus === 'active'}
+                          onCheckedChange={(checked) => setEditStatus(checked ? 'active' : 'paused')}
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <Switch
-                  checked={editStatus === 'active'}
-                  onCheckedChange={(checked) => setEditStatus(checked ? 'active' : 'paused')}
-                />
-              </div>
-            </div>
 
-            {/* Creative Section */}
-            <div className="space-y-4 border-t pt-4">
-              <h4 className="font-medium text-sm">Criativo</h4>
+                {/* Texts Section */}
+                <div className="border-t pt-4">
+                  <h4 className="font-medium text-sm mb-4">Textos do Anúncio</h4>
+                  <div className="space-y-4">
+                    {/* Body Text */}
+                    <div className="space-y-2">
+                      <Label>Texto Principal *</Label>
+                      <Textarea
+                        value={body}
+                        onChange={(e) => setBody(e.target.value)}
+                        placeholder="Texto principal do anúncio que aparece acima da mídia"
+                        rows={4}
+                      />
+                      <p className="text-xs text-muted-foreground">{body.length}/500 caracteres</p>
+                    </div>
 
-              {/* Creative Type */}
-              <div className="space-y-2">
-                <Label>Tipo de Criativo</Label>
-                <ToggleGroup
-                  type="single"
-                  value={creativeType}
-                  onValueChange={(value) => value && setCreativeType(value as 'IMAGE' | 'VIDEO' | 'CAROUSEL')}
-                  className="justify-start"
-                >
-                  <ToggleGroupItem value="IMAGE" aria-label="Imagem" className="gap-2">
-                    <Image className="h-4 w-4" />
-                    Imagem
-                  </ToggleGroupItem>
-                  <ToggleGroupItem value="VIDEO" aria-label="Vídeo" className="gap-2">
-                    <Film className="h-4 w-4" />
-                    Vídeo
-                  </ToggleGroupItem>
-                  <ToggleGroupItem value="CAROUSEL" aria-label="Carrossel" className="gap-2">
-                    <Layers className="h-4 w-4" />
-                    Carrossel
-                  </ToggleGroupItem>
-                </ToggleGroup>
-              </div>
-
-              {/* Media Uploader */}
-              <div className="space-y-2">
-                <Label>Mídia *</Label>
-                <MediaUploader
-                  mediaUrls={mediaUrls}
-                  onChange={setMediaUrls}
-                  type={creativeType}
-                  maxFiles={creativeType === 'CAROUSEL' ? 10 : 1}
-                  clientId={clientId}
-                  creativeContext={{ title, body, description }}
-                />
-              </div>
-
-              {/* Body Text */}
-              <div className="space-y-2">
-                <Label>Texto Principal *</Label>
-                <Textarea
-                  value={body}
-                  onChange={(e) => setBody(e.target.value)}
-                  placeholder="Texto principal do anúncio que aparece acima da mídia"
-                  rows={3}
-                />
-                <p className="text-xs text-muted-foreground">{body.length}/500 caracteres</p>
-              </div>
-
-              {/* Title */}
-              <div className="space-y-2">
-                <Label>Título</Label>
-                <Input
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Título do anúncio (headline)"
-                />
-              </div>
-
-              {/* Description */}
-              <div className="space-y-2">
-                <Label>Descrição</Label>
-                <Input
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Descrição complementar"
-                />
-              </div>
-            </div>
-
-            {/* Destination Section */}
-            <div className="space-y-4 border-t pt-4">
-              <h4 className="font-medium text-sm flex items-center gap-2">
-                <Link2 className="w-4 h-4" />
-                Destino
-              </h4>
-
-              {/* Link URL */}
-              <div className="space-y-2">
-                <Label>URL de Destino</Label>
-                <Input
-                  type="url"
-                  value={linkUrl}
-                  onChange={(e) => setLinkUrl(e.target.value)}
-                  placeholder="https://seusite.com/pagina"
-                />
-                {linkUrl && !linkUrl.match(/^https?:\/\//) && (
-                  <p className="text-xs text-destructive">URL deve começar com http:// ou https://</p>
-                )}
-              </div>
-
-              {/* Call to Action */}
-              <div className="space-y-2">
-                <Label>Chamada para Ação (CTA)</Label>
-                <Select value={callToAction} onValueChange={setCallToAction}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CTA_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* UTM Parameters */}
-              <Collapsible open={showUtmFields} onOpenChange={setShowUtmFields}>
-                <CollapsibleTrigger asChild>
-                  <Button variant="ghost" size="sm" className="gap-2 h-8 text-xs">
-                    <ChevronDown className={`h-3 w-3 transition-transform ${showUtmFields ? 'rotate-180' : ''}`} />
-                    Parâmetros UTM
-                  </Button>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="space-y-3 pt-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <Label className="text-xs">utm_source</Label>
+                    {/* Title */}
+                    <div className="space-y-2">
+                      <Label>Título</Label>
                       <Input
-                        value={utmSource}
-                        onChange={(e) => setUtmSource(e.target.value)}
-                        placeholder="facebook"
-                        className="h-8 text-sm"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        placeholder="Título do anúncio (headline)"
                       />
                     </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">utm_medium</Label>
+
+                    {/* Description */}
+                    <div className="space-y-2">
+                      <Label>Descrição</Label>
                       <Input
-                        value={utmMedium}
-                        onChange={(e) => setUtmMedium(e.target.value)}
-                        placeholder="cpc"
-                        className="h-8 text-sm"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">utm_campaign</Label>
-                      <Input
-                        value={utmCampaign}
-                        onChange={(e) => setUtmCampaign(e.target.value)}
-                        placeholder="{{campaign.name}}"
-                        className="h-8 text-sm"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">utm_content</Label>
-                      <Input
-                        value={utmContent}
-                        onChange={(e) => setUtmContent(e.target.value)}
-                        placeholder="{{ad.name}}"
-                        className="h-8 text-sm"
-                      />
-                    </div>
-                    <div className="space-y-1 col-span-2">
-                      <Label className="text-xs">utm_term</Label>
-                      <Input
-                        value={utmTerm}
-                        onChange={(e) => setUtmTerm(e.target.value)}
-                        placeholder="{{adset.name}}"
-                        className="h-8 text-sm"
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        placeholder="Descrição complementar"
                       />
                     </div>
                   </div>
-                </CollapsibleContent>
-              </Collapsible>
-            </div>
+                </div>
 
-            {/* Metrics Summary */}
-            <div className="space-y-4 border-t pt-4">
-              <h4 className="font-medium text-sm flex items-center gap-2">
-                <TrendingUp className="w-4 h-4" />
-                Métricas Atuais
-              </h4>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="p-3 rounded-lg bg-muted/50 text-center">
-                  <p className="text-xs text-muted-foreground">Investido</p>
-                  <p className="text-lg font-bold">{formatCurrency(node.metrics.spend)}</p>
+                {/* Destination Section */}
+                <div className="border-t pt-4">
+                  <h4 className="font-medium text-sm mb-4 flex items-center gap-2">
+                    <Link2 className="w-4 h-4" />
+                    Destino
+                  </h4>
+                  <div className="space-y-4">
+                    {/* Link URL */}
+                    <div className="space-y-2">
+                      <Label>URL de Destino</Label>
+                      <Input
+                        type="url"
+                        value={linkUrl}
+                        onChange={(e) => setLinkUrl(e.target.value)}
+                        placeholder="https://seusite.com/pagina"
+                      />
+                      {linkUrl && !linkUrl.match(/^https?:\/\//) && (
+                        <p className="text-xs text-destructive">URL deve começar com http:// ou https://</p>
+                      )}
+                    </div>
+
+                    {/* Call to Action */}
+                    <div className="space-y-2">
+                      <Label>Chamada para Ação (CTA)</Label>
+                      <Select value={callToAction} onValueChange={setCallToAction}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {CTA_OPTIONS.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* UTM Parameters */}
+                    <Collapsible open={showUtmFields} onOpenChange={setShowUtmFields}>
+                      <CollapsibleTrigger asChild>
+                        <Button variant="ghost" size="sm" className="gap-2 h-8 text-xs">
+                          <ChevronDown className={`h-3 w-3 transition-transform ${showUtmFields ? 'rotate-180' : ''}`} />
+                          Parâmetros UTM
+                        </Button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="space-y-3 pt-3">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <Label className="text-xs">utm_source</Label>
+                            <Input
+                              value={utmSource}
+                              onChange={(e) => setUtmSource(e.target.value)}
+                              placeholder="facebook"
+                              className="h-8 text-sm"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">utm_medium</Label>
+                            <Input
+                              value={utmMedium}
+                              onChange={(e) => setUtmMedium(e.target.value)}
+                              placeholder="cpc"
+                              className="h-8 text-sm"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">utm_campaign</Label>
+                            <Input
+                              value={utmCampaign}
+                              onChange={(e) => setUtmCampaign(e.target.value)}
+                              placeholder="{{campaign.name}}"
+                              className="h-8 text-sm"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">utm_content</Label>
+                            <Input
+                              value={utmContent}
+                              onChange={(e) => setUtmContent(e.target.value)}
+                              placeholder="{{ad.name}}"
+                              className="h-8 text-sm"
+                            />
+                          </div>
+                          <div className="space-y-1 col-span-2">
+                            <Label className="text-xs">utm_term</Label>
+                            <Input
+                              value={utmTerm}
+                              onChange={(e) => setUtmTerm(e.target.value)}
+                              placeholder="{{adset.name}}"
+                              className="h-8 text-sm"
+                            />
+                          </div>
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  </div>
                 </div>
-                <div className="p-3 rounded-lg bg-muted/50 text-center">
-                  <p className="text-xs text-muted-foreground">Impressões</p>
-                  <p className="text-lg font-bold">{formatNumber(node.metrics.impressions)}</p>
+              </div>
+
+              {/* Right Column - Creative/Media */}
+              <div className="space-y-6">
+                <div>
+                  <h4 className="font-medium text-sm mb-4 flex items-center gap-2">
+                    <ImageIcon className="w-4 h-4" />
+                    Criativo
+                  </h4>
+
+                  {/* Creative Type */}
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Tipo de Criativo</Label>
+                      <ToggleGroup
+                        type="single"
+                        value={creativeType}
+                        onValueChange={(value) => value && setCreativeType(value as 'IMAGE' | 'VIDEO' | 'CAROUSEL')}
+                        className="justify-start"
+                      >
+                        <ToggleGroupItem value="IMAGE" aria-label="Imagem" className="gap-2">
+                          <Image className="h-4 w-4" />
+                          Imagem
+                        </ToggleGroupItem>
+                        <ToggleGroupItem value="VIDEO" aria-label="Vídeo" className="gap-2">
+                          <Film className="h-4 w-4" />
+                          Vídeo
+                        </ToggleGroupItem>
+                        <ToggleGroupItem value="CAROUSEL" aria-label="Carrossel" className="gap-2">
+                          <Layers className="h-4 w-4" />
+                          Carrossel
+                        </ToggleGroupItem>
+                      </ToggleGroup>
+                    </div>
+
+                    {/* Media Uploader */}
+                    <div className="space-y-2">
+                      <Label>Mídia *</Label>
+                      <MediaUploader
+                        mediaUrls={mediaUrls}
+                        onChange={setMediaUrls}
+                        type={creativeType}
+                        maxFiles={creativeType === 'CAROUSEL' ? 10 : 1}
+                        clientId={clientId}
+                        creativeContext={{ title, body, description }}
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div className="p-3 rounded-lg bg-muted/50 text-center">
-                  <p className="text-xs text-muted-foreground">CTR</p>
-                  <p className="text-lg font-bold">{formatPercent(node.metrics.ctr)}</p>
-                </div>
-                <div className="p-3 rounded-lg bg-muted/50 text-center">
-                  <p className="text-xs text-muted-foreground">Conversões</p>
-                  <p className="text-lg font-bold">{formatNumber(node.metrics.conversions)}</p>
-                </div>
-                <div className="p-3 rounded-lg bg-muted/50 text-center">
-                  <p className="text-xs text-muted-foreground">CPC</p>
-                  <p className="text-lg font-bold">{formatCurrency(node.metrics.cpc || 0)}</p>
-                </div>
-                <div className="p-3 rounded-lg bg-muted/50 text-center">
-                  <p className="text-xs text-muted-foreground">CPA</p>
-                  <p className="text-lg font-bold">{formatCurrency(node.metrics.cpa || 0)}</p>
-                </div>
-                <div className="p-3 rounded-lg bg-muted/50 text-center">
-                  <p className="text-xs text-muted-foreground">Cliques</p>
-                  <p className="text-lg font-bold">{formatNumber(node.metrics.clicks || 0)}</p>
-                </div>
-                <div className="p-3 rounded-lg bg-muted/50 text-center">
-                  <p className="text-xs text-muted-foreground">Alcance</p>
-                  <p className="text-lg font-bold">{formatNumber(node.metrics.reach || 0)}</p>
+
+                {/* Metrics Summary */}
+                <div className="border-t pt-4">
+                  <h4 className="font-medium text-sm mb-4 flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4" />
+                    Métricas Atuais
+                  </h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3 rounded-lg bg-muted/50 text-center">
+                      <p className="text-xs text-muted-foreground">Investido</p>
+                      <p className="text-lg font-bold">{formatCurrency(node.metrics.spend)}</p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-muted/50 text-center">
+                      <p className="text-xs text-muted-foreground">Impressões</p>
+                      <p className="text-lg font-bold">{formatNumber(node.metrics.impressions)}</p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-muted/50 text-center">
+                      <p className="text-xs text-muted-foreground">CTR</p>
+                      <p className="text-lg font-bold">{formatPercent(node.metrics.ctr)}</p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-muted/50 text-center">
+                      <p className="text-xs text-muted-foreground">Conversões</p>
+                      <p className="text-lg font-bold">{formatNumber(node.metrics.conversions)}</p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-muted/50 text-center">
+                      <p className="text-xs text-muted-foreground">CPC</p>
+                      <p className="text-lg font-bold">{formatCurrency(node.metrics.cpc || 0)}</p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-muted/50 text-center">
+                      <p className="text-xs text-muted-foreground">CPA</p>
+                      <p className="text-lg font-bold">{formatCurrency(node.metrics.cpa || 0)}</p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-muted/50 text-center">
+                      <p className="text-xs text-muted-foreground">Cliques</p>
+                      <p className="text-lg font-bold">{formatNumber(node.metrics.clicks || 0)}</p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-muted/50 text-center">
+                      <p className="text-xs text-muted-foreground">Alcance</p>
+                      <p className="text-lg font-bold">{formatNumber(node.metrics.reach || 0)}</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
