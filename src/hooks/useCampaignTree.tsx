@@ -44,6 +44,7 @@ export interface TreeNode {
   callToAction?: string;
   linkUrl?: string;
   pixelId?: string;
+  conversionEvent?: string;
   children?: TreeNode[];
   parentId?: string;
 }
@@ -246,6 +247,8 @@ export function useCampaignTree(options: UseCampaignTreeOptions) {
           facebookId: adset.facebook_id,
           parentId: campaign.id,
           targeting: adset.targeting ? JSON.parse(adset.targeting) : undefined,
+          pixelId: (adset as any).pixel_id || undefined,
+          conversionEvent: (adset as any).conversion_event || undefined,
           metrics: {
             spend: Number(adset.spend) || 0,
             impressions: Number(adset.impressions) || 0,

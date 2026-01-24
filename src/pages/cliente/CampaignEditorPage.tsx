@@ -35,6 +35,7 @@ export default function CampaignEditorPage() {
   });
 
   const [selectedNode, setSelectedNode] = useState<TreeNode | null>(null);
+  const [parentNodeOfSelected, setParentNodeOfSelected] = useState<TreeNode | null>(null);
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [adSetModalOpen, setAdSetModalOpen] = useState(false);
   const [adModalOpen, setAdModalOpen] = useState(false);
@@ -45,8 +46,35 @@ export default function CampaignEditorPage() {
   const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>(undefined);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
+  // Helper function to find parent node of selected ad
+  const findParentNode = useCallback((node: TreeNode, tree: TreeNode | null): TreeNode | null => {
+    if (!tree || !node.parentId) return null;
+    
+    // Check if this tree node is the parent
+    if (tree.id === node.parentId) return tree;
+    
+    // Search in children
+    if (tree.children) {
+      for (const child of tree.children) {
+        if (child.id === node.parentId) return child;
+        const found = findParentNode(node, child);
+        if (found) return found;
+      }
+    }
+    return null;
+  }, []);
+
   const handleSelectNode = useCallback((node: TreeNode) => {
     setSelectedNode(node);
+    
+    // Find parent node for ads (to show inherited pixel)
+    if (node.type === 'ad') {
+      const parent = findParentNode(node, treeData);
+      setParentNodeOfSelected(parent);
+    } else {
+      setParentNodeOfSelected(null);
+    }
+    
     // For adsets, open the dedicated modal; for ads, open ad modal; for campaigns, use inspector panel
     if (node.type === 'adset') {
       setAdSetModalOpen(true);
@@ -55,7 +83,7 @@ export default function CampaignEditorPage() {
     } else {
       setInspectorOpen(true);
     }
-  }, []);
+  }, [findParentNode, treeData]);
 
   const handlePeriodChange = (value: string) => {
     setSyncPeriod(value);
@@ -364,6 +392,7 @@ export default function CampaignEditorPage() {
         isOpen={adModalOpen}
         onClose={() => setAdModalOpen(false)}
         node={selectedNode}
+        parentNode={parentNodeOfSelected}
         clientId={client?.id || ''}
         companyId={(client as any)?.company_id}
         onSuccess={invalidateQueries}

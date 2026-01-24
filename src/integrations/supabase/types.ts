@@ -560,6 +560,7 @@ export type Database = {
           clicks: number | null
           client_id: string
           company_id: string | null
+          conversion_event: string | null
           conversion_rate_ranking: string | null
           conversions: number | null
           cpa: number | null
@@ -592,6 +593,7 @@ export type Database = {
           clicks?: number | null
           client_id: string
           company_id?: string | null
+          conversion_event?: string | null
           conversion_rate_ranking?: string | null
           conversions?: number | null
           cpa?: number | null
@@ -624,6 +626,7 @@ export type Database = {
           clicks?: number | null
           client_id?: string
           company_id?: string | null
+          conversion_event?: string | null
           conversion_rate_ranking?: string | null
           conversions?: number | null
           cpa?: number | null

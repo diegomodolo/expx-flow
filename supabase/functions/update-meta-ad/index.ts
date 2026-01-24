@@ -24,6 +24,7 @@ interface UpdateRequest {
     name?: string;
     status?: 'ACTIVE' | 'PAUSED';
     creative?: CreativeData;
+    pixel_id?: string; // Pixel ID to set on ad's tracking_specs
   };
 }
 
@@ -276,6 +277,36 @@ serve(async (req) => {
       updatedFields.call_to_action = creative.call_to_action;
       updatedFields.image_url = creative.type !== 'VIDEO' ? creative.media_urls[0] : null;
       updatedFields.video_url = creative.type === 'VIDEO' ? creative.media_urls[0] : null;
+    }
+
+    // Update tracking_specs if pixel_id is provided
+    if (updates.pixel_id) {
+      console.log("Updating tracking_specs with pixel_id:", updates.pixel_id);
+      
+      const trackingSpecs = JSON.stringify([{
+        "action.type": "offsite_conversion",
+        "fb_pixel": [updates.pixel_id]
+      }]);
+      
+      const trackingParams = new URLSearchParams({
+        tracking_specs: trackingSpecs,
+        access_token: accessToken,
+      });
+
+      const trackingResponse = await fetch(
+        `https://graph.facebook.com/v21.0/${facebookId}`,
+        { method: "POST", body: trackingParams }
+      );
+
+      const trackingResult = await trackingResponse.json();
+      console.log("Tracking specs update result:", trackingResult);
+
+      if (trackingResult.error) {
+        console.error("Failed to update tracking_specs:", trackingResult.error);
+        // Don't throw, just log - the pixel update might not be supported for all ad types
+      } else {
+        updatedFields.pixel_id = updates.pixel_id;
+      }
     }
 
     // Update local database

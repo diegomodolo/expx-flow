@@ -168,9 +168,10 @@ export function AdSetEditModal({
         setExcludedAudiences([]);
       }
       
-      // Reset other fields
-      setPixelId('');
-      setConversionEvent('');
+      // Initialize pixel and conversion event from synced data
+      const nodeAny = node as any;
+      setPixelId(nodeAny.pixelId || '');
+      setConversionEvent(nodeAny.conversionEvent || '');
       setHasChanges(false);
       setActiveTab('settings');
     }

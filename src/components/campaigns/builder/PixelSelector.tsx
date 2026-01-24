@@ -9,9 +9,10 @@ interface PixelSelectorProps {
   companyId: string;
   value?: string;
   onChange: (pixelId: string) => void;
+  label?: string;
 }
 
-export function PixelSelector({ clientId, companyId, value, onChange }: PixelSelectorProps) {
+export function PixelSelector({ clientId, companyId, value, onChange, label }: PixelSelectorProps) {
   const { pixels, loading, fetchPixels } = useMetaPixels(clientId, companyId);
 
   useEffect(() => {
@@ -26,7 +27,7 @@ export function PixelSelector({ clientId, companyId, value, onChange }: PixelSel
     <div className="space-y-2">
       <Label className="flex items-center gap-2">
         <Activity className="h-4 w-4" />
-        Pixel de Conversão
+        {label || "Pixel de Conversão"}
       </Label>
       <Select
         value={value || "none"}
