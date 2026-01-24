@@ -1,247 +1,341 @@
 
-# Plano: Reorganizar Menu de Detalhes do Cliente em Grupos Expansíveis
+# Plano: Adicionar Criação de Conjuntos e Criativos em Campanhas/Ad Sets Existentes
 
 ## Visão Geral
 
-Reorganizar os 27 itens de menu em 8 grupos lógicos expansíveis usando o componente `Collapsible` do shadcn/ui. Isso reduzirá a complexidade visual do menu e melhorará a navegação.
+Implementar botões para criar **novos conjuntos de anúncios dentro de campanhas existentes** e **novos criativos dentro de ad sets existentes**, além de alterar o modo de visualização padrão dos criativos de grid para lista/tabela.
 
 ---
 
-## Estrutura dos Grupos (com suas alterações)
+## Alterações Resumidas
 
-### 1. Visão Geral (sempre visível, sem collapse)
-- Dashboard
-- Alertas & Sugestões
-
-### 2. Análises & Relatórios
-- Análise Completa
-- Análise Competitiva
-- Comparação de Períodos
-- Relatório Semanal
-- Tendências
-
-### 3. Campanhas & Anúncios
-- Campanhas
-- Conjuntos de Anúncios
-- Criativos
-- Funil de Conversão
-- **Automações** *(movido de Configurações)*
-
-### 4. Meta & Rastreamento
-- Pixels Meta
-- Públicos Meta
-- Conversões Offline
-- URLs
-- **Keyword Planner** *(movido de Criação de Conteúdo)*
-
-### 5. Gestão de Leads
-- CRM
-- Leads Desqualificados
-
-### 6. Criação de Conteúdo
-- Fábrica de Anúncios
-- Fábrica de Criativos
-- Fábrica de Carrosseis
-- **Redes Sociais** *(movido de Gestão de Leads)*
-
-### 7. Apresentações & Planejamento
-- Apresentações
-- Tarefas
-
-### 8. Configurações & Dados
-- Contato & Dados
-- Anotações
-- Histórico
+| Arquivo | Ação | Descrição |
+|---------|------|-----------|
+| `src/pages/cliente/ClienteCriativos.tsx` | Modificar | Default de viewMode para "table" + botão "Novo Criativo" |
+| `src/pages/cliente/ClienteConjuntos.tsx` | Modificar | Adicionar botão "Novo Conjunto" |
+| `src/components/campaigns/AdSetBuilderModal.tsx` | Criar | Modal para criar ad set em campanha existente |
+| `src/components/campaigns/CreativeBuilderModal.tsx` | Criar | Modal para criar criativo em ad set existente |
+| `src/hooks/useAdSetBuilder.tsx` | Criar | Hook para gerenciar estado/submissão de ad set |
+| `src/hooks/useCreativeBuilder.tsx` | Criar | Hook para gerenciar estado/submissão de criativo |
+| `supabase/functions/create-meta-adset/index.ts` | Criar | Edge function para criar ad set no Meta |
+| `supabase/functions/create-meta-ad/index.ts` | Criar | Edge function para criar criativo/anúncio no Meta |
 
 ---
 
-## Alterações Técnicas
+## Detalhes de Implementação
 
-### Arquivo a modificar
+### 1. Alterar Visualização Padrão dos Criativos
 
-| Arquivo | Ação |
-|---------|------|
-| `src/components/clients/ClientDetailsLayout.tsx` | Modificar |
-
-### Novos imports necessários
+No arquivo `src/pages/cliente/ClienteCriativos.tsx`, linha 64:
 
 ```typescript
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { ChevronDown, ChevronRight } from "lucide-react";
-```
+// Antes
+const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
 
-### Nova estrutura de dados
-
-Substituir o array `navItems` flat por uma estrutura agrupada:
-
-```typescript
-interface NavGroup {
-  title: string;
-  icon: LucideIcon;
-  items: NavItem[];
-  defaultOpen?: boolean;
-}
-
-interface NavItem {
-  title: string;
-  href: string;
-  icon: LucideIcon;
-}
-
-const navGroups: NavGroup[] = [
-  {
-    title: "Visão Geral",
-    icon: LayoutDashboard,
-    defaultOpen: true,
-    items: [
-      { title: "Dashboard", href: `/clientes/${clientId}`, icon: LayoutDashboard },
-      { title: "Alertas & Sugestões", href: `/clientes/${clientId}/alertas`, icon: AlertTriangle },
-    ]
-  },
-  {
-    title: "Análises & Relatórios",
-    icon: BarChart3,
-    items: [
-      { title: "Análise Completa", href: `...`, icon: BarChart3 },
-      { title: "Análise Competitiva", href: `...`, icon: Users },
-      { title: "Comparação de Períodos", href: `...`, icon: GitCompare },
-      { title: "Relatório Semanal", href: `...`, icon: FileText },
-      { title: "Tendências", href: `...`, icon: TrendingUp },
-    ]
-  },
-  // ... demais grupos
-];
-```
-
-### Estado para controlar grupos abertos
-
-```typescript
-const [openGroups, setOpenGroups] = useState<string[]>(() => {
-  // Abrir o grupo que contém a rota ativa por padrão
-  const activeGroup = navGroups.find(group => 
-    group.items.some(item => location.pathname === item.href)
-  );
-  return activeGroup ? [activeGroup.title, "Visão Geral"] : ["Visão Geral"];
-});
-```
-
-### Componente de navegação atualizado
-
-```typescript
-<nav className="space-y-1">
-  {navGroups.map((group) => {
-    const isOpen = openGroups.includes(group.title);
-    const hasActiveItem = group.items.some(item => location.pathname === item.href);
-    const GroupIcon = group.icon;
-    
-    return (
-      <Collapsible
-        key={group.title}
-        open={isOpen}
-        onOpenChange={(open) => {
-          setOpenGroups(prev => 
-            open 
-              ? [...prev, group.title]
-              : prev.filter(g => g !== group.title)
-          );
-        }}
-      >
-        <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-2 rounded-md text-sm hover:bg-muted">
-          <div className="flex items-center gap-2">
-            <GroupIcon className="w-4 h-4" />
-            <span className={cn(
-              "font-medium",
-              hasActiveItem && "text-primary"
-            )}>
-              {group.title}
-            </span>
-          </div>
-          {isOpen ? (
-            <ChevronDown className="w-4 h-4" />
-          ) : (
-            <ChevronRight className="w-4 h-4" />
-          )}
-        </CollapsibleTrigger>
-        
-        <CollapsibleContent>
-          <div className="ml-4 mt-1 space-y-1 border-l pl-3">
-            {group.items.map((item) => {
-              const isActive = location.pathname === item.href;
-              const Icon = item.icon;
-              
-              return (
-                <Link
-                  key={item.href}
-                  to={item.href}
-                  className={cn(
-                    "flex items-center gap-2 px-2 py-1.5 rounded-md text-sm",
-                    isActive
-                      ? "bg-primary text-primary-foreground font-medium"
-                      : "hover:bg-muted text-muted-foreground"
-                  )}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                  <span>{item.title}</span>
-                </Link>
-              );
-            })}
-          </div>
-        </CollapsibleContent>
-      </Collapsible>
-    );
-  })}
-</nav>
+// Depois
+const [viewMode, setViewMode] = useState<"grid" | "table">("table");
 ```
 
 ---
 
-## Resultado Visual Esperado
+### 2. Botão "Novo Conjunto" na Página de Conjuntos
+
+No `ClienteConjuntos.tsx`, adicionar:
+- Estado para controlar modal: `const [showAdSetModal, setShowAdSetModal] = useState(false)`
+- Botão junto aos filtros existentes:
+
+```typescript
+<Button
+  variant="default"
+  size="sm"
+  onClick={() => setShowAdSetModal(true)}
+>
+  <Plus className="w-4 h-4 mr-1" />
+  Novo Conjunto
+</Button>
+```
+
+- Importar e renderizar `AdSetBuilderModal`
+
+---
+
+### 3. Botão "Novo Criativo" na Página de Criativos
+
+No `ClienteCriativos.tsx`, adicionar:
+- Estado para controlar modal: `const [showCreativeModal, setShowCreativeModal] = useState(false)`
+- Botão junto aos filtros existentes:
+
+```typescript
+<Button
+  variant="default"
+  size="sm"
+  onClick={() => setShowCreativeModal(true)}
+>
+  <Plus className="w-4 h-4 mr-1" />
+  Novo Criativo
+</Button>
+```
+
+- Importar e renderizar `CreativeBuilderModal`
+
+---
+
+### 4. AdSetBuilderModal - Novo Componente
+
+Modal que permite criar um conjunto de anúncios dentro de uma campanha existente.
 
 ```text
-┌──────────────────────────────────┐
-│ Cliente                          │
-│ Nome do Cliente      [↔] [✎]    │
-├──────────────────────────────────┤
-│ ▼ Visão Geral                    │
-│   ├─ Dashboard                   │
-│   └─ Alertas & Sugestões         │
-│                                  │
-│ ▶ Análises & Relatórios          │
-│                                  │
-│ ▶ Campanhas & Anúncios           │
-│                                  │
-│ ▶ Meta & Rastreamento            │
-│                                  │
-│ ▶ Gestão de Leads                │
-│                                  │
-│ ▶ Criação de Conteúdo            │
-│                                  │
-│ ▶ Apresentações & Planejamento   │
-│                                  │
-│ ▶ Configurações & Dados          │
-└──────────────────────────────────┘
+┌──────────────────────────────────────────────────┐
+│  Novo Conjunto de Anúncios                    X  │
+├──────────────────────────────────────────────────┤
+│                                                  │
+│  Campanha *                                      │
+│  [▼ Selecionar campanha existente...]           │
+│                                                  │
+│  Nome do Conjunto *                              │
+│  [_________________________________]             │
+│                                                  │
+│  ─── Segmentação ───                            │
+│  Públicos de inclusão: [Multi-select]           │
+│  Públicos de exclusão: [Multi-select]           │
+│                                                  │
+│  ─── Demografia ───                             │
+│  Idade: [18] ─────○───── [65]                   │
+│  Gênero: [▼ Todos]                              │
+│                                                  │
+│  ─── Conversão (opcional) ───                   │
+│  Pixel: [▼ Selecionar...]                       │
+│  Evento: [▼ Selecionar...]                      │
+│                                                  │
+├──────────────────────────────────────────────────┤
+│                    [Cancelar]  [Criar Conjunto]  │
+└──────────────────────────────────────────────────┘
+```
+
+**Props:**
+- `isOpen: boolean`
+- `onClose: () => void`
+- `clientId: string`
+- `companyId: string`
+- `preSelectedCampaignId?: string` (opcional, para pré-selecionar)
+- `onSuccess?: () => void`
+
+**Comportamento:**
+- Dropdown lista campanhas ativas do cliente (usando `useUnifiedCampaigns`)
+- Reutiliza componentes existentes: `AudienceMultiSelect`, `PixelSelector`, `ConversionEventSelector`, `Slider`
+- Chama edge function `create-meta-adset` ao submeter
+
+---
+
+### 5. CreativeBuilderModal - Novo Componente
+
+Modal que permite criar um criativo/anúncio dentro de um ad set existente.
+
+```text
+┌──────────────────────────────────────────────────┐
+│  Novo Criativo                                X  │
+├──────────────────────────────────────────────────┤
+│                                                  │
+│  Campanha *                                      │
+│  [▼ Selecionar campanha...]                     │
+│                                                  │
+│  Conjunto de Anúncios *                          │
+│  [▼ Selecionar conjunto...] (filtra por camp.)  │
+│                                                  │
+│  ─── Criativo ───                               │
+│  Tipo: [Imagem] [Vídeo] [Carrossel]             │
+│                                                  │
+│  Mídia: [Upload / URL]                          │
+│                                                  │
+│  Texto principal *                               │
+│  [_________________________________]             │
+│                                                  │
+│  Título                                          │
+│  [_________________________________]             │
+│                                                  │
+│  URL de destino *                                │
+│  [_________________________________]             │
+│                                                  │
+│  Call to Action: [▼ Saiba mais]                 │
+│                                                  │
+│  ─── Preview ───                                │
+│  [Mockup do criativo no feed]                   │
+│                                                  │
+├──────────────────────────────────────────────────┤
+│                    [Cancelar]  [Criar Criativo]  │
+└──────────────────────────────────────────────────┘
+```
+
+**Props:**
+- `isOpen: boolean`
+- `onClose: () => void`
+- `clientId: string`
+- `companyId: string`
+- `clientName?: string`
+- `preSelectedCampaignId?: string`
+- `preSelectedAdSetId?: string`
+- `onSuccess?: () => void`
+
+**Comportamento:**
+- Dropdown de campanha lista campanhas ativas
+- Dropdown de ad set filtra por campanha selecionada (usando `useUnifiedAdGroups`)
+- Reutiliza o componente `CreativeEditor` existente para edição do criativo
+- Chama edge function `create-meta-ad` ao submeter
+
+---
+
+### 6. Hook useAdSetBuilder
+
+Gerencia o estado e submissão do ad set:
+
+```typescript
+interface AdSetBuilderState {
+  campaignId: string;
+  name: string;
+  includedAudiences: string[];
+  excludedAudiences: string[];
+  ageMin: number;
+  ageMax: number;
+  genders: number[];
+  pixelId?: string;
+  conversionEvent?: string;
+  isSubmitting: boolean;
+}
 ```
 
 ---
 
-## Comportamentos
+### 7. Hook useCreativeBuilder
 
-1. **Visão Geral** sempre aberto por padrão
-2. **Grupo ativo** (contendo a rota atual) abre automaticamente ao navegar
-3. Múltiplos grupos podem ficar abertos simultaneamente
-4. Ícone de chevron indica estado aberto/fechado
-5. Indicador visual no título do grupo quando contém item ativo
+Gerencia o estado e submissão do criativo:
+
+```typescript
+interface CreativeBuilderState {
+  campaignId: string;
+  adSetId: string;
+  type: 'IMAGE' | 'VIDEO' | 'CAROUSEL';
+  mediaUrls: string[];
+  body: string;
+  title: string;
+  description: string;
+  linkUrl: string;
+  callToAction: string;
+  urlParameters: UrlParameters;
+  isSubmitting: boolean;
+}
+```
 
 ---
 
-## Resumo
+### 8. Edge Function create-meta-adset
 
-| Item | Descrição |
-|------|-----------|
-| Arquivo | `src/components/clients/ClientDetailsLayout.tsx` |
-| Ação | Modificar estrutura de navegação |
-| Resultado | Menu reduzido de 27 itens visíveis para 8 grupos expansíveis |
+Nova função que cria apenas um ad set dentro de uma campanha existente no Meta:
+
+**Endpoint:** `create-meta-adset`
+
+**Request Body:**
+```typescript
+{
+  clientId: string;
+  campaignId: string;        // ID local da campanha
+  metaCampaignId: string;    // ID no Meta (facebook_id)
+  adSet: {
+    name: string;
+    pixel_id?: string;
+    conversion_event?: string;
+    targeting: {
+      custom_audiences?: string[];
+      excluded_audiences?: string[];
+      age_min?: number;
+      age_max?: number;
+      genders?: number[];
+    };
+  };
+}
+```
+
+**Lógica:**
+1. Buscar cliente e access token do Facebook
+2. Determinar optimization_goal baseado no objetivo da campanha
+3. Criar ad set via Meta Graph API (`/act_xxx/adsets`)
+4. Salvar no banco de dados local (tabela `ad_sets`)
+5. Retornar IDs criados
+
+---
+
+### 9. Edge Function create-meta-ad
+
+Nova função que cria um criativo + anúncio dentro de um ad set existente:
+
+**Endpoint:** `create-meta-ad`
+
+**Request Body:**
+```typescript
+{
+  clientId: string;
+  adSetId: string;           // ID local do ad set
+  metaAdSetId: string;       // ID no Meta (facebook_id)
+  creative: {
+    type: 'IMAGE' | 'VIDEO' | 'CAROUSEL';
+    media_urls: string[];
+    body: string;
+    title: string;
+    description?: string;
+    link_url: string;
+    call_to_action: string;
+    url_parameters?: UrlParameters;
+  };
+}
+```
+
+**Lógica:**
+1. Buscar cliente, ad set e access token
+2. Criar ad creative via Meta Graph API
+3. Criar ad vinculado ao ad set
+4. Salvar no banco local (tabela `ads`)
+5. Retornar IDs criados
+
+---
+
+## Fluxo de Uso
+
+### Criar Conjunto em Campanha Existente:
+1. Usuário acessa "Conjuntos de Anúncios"
+2. Clica em "Novo Conjunto"
+3. Modal abre, seleciona campanha no dropdown
+4. Preenche nome, segmentação, demographics
+5. Clica "Criar Conjunto"
+6. Sistema cria no Meta e salva localmente
+7. Lista atualiza automaticamente
+
+### Criar Criativo em Ad Set Existente:
+1. Usuário acessa "Criativos"
+2. Clica em "Novo Criativo"
+3. Modal abre, seleciona campanha e depois ad set
+4. Preenche mídia, textos, URL, CTA
+5. Visualiza preview
+6. Clica "Criar Criativo"
+7. Sistema cria no Meta e salva localmente
+8. Lista atualiza automaticamente
+
+---
+
+## Reutilização de Componentes
+
+Componentes existentes que serão reutilizados:
+- `AudienceMultiSelect` - Seleção de públicos
+- `PixelSelector` - Seleção de pixel
+- `ConversionEventSelector` - Seleção de evento
+- `CreativeEditor` - Editor completo do criativo
+- `MediaUploader` - Upload de mídia
+- `FeedPreview` - Preview do anúncio
+
+---
+
+## Ordem de Implementação
+
+1. **Alteração simples:** Default de viewMode para "table" em `ClienteCriativos.tsx`
+2. **Edge functions:** `create-meta-adset` e `create-meta-ad`
+3. **Hooks:** `useAdSetBuilder` e `useCreativeBuilder`
+4. **Modals:** `AdSetBuilderModal` e `CreativeBuilderModal`
+5. **Integração:** Adicionar botões e modals nas páginas
