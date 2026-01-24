@@ -1,230 +1,293 @@
 
 
-# Plano: Gerar Carrossel a Partir de Exemplo do Instagram
+# Plano: Análise de Slides de Referência e Geração de Conteúdo com IA
 
 ## Objetivo
-Adicionar na página de Gerador de Carrossel a opção de escolher entre:
-- **Gerar do Zero**: Fluxo atual (IA cria tudo do início)
-- **Gerar a Partir de Exemplo**: Usuário seleciona um carrossel existente do Instagram do cliente como referência
+Transformar o fluxo "Gerar a Partir de Exemplo" em um processo mais inteligente:
+1. Imagens de referência maiores para melhor visualização
+2. Ocultar seletor de número de slides (usa a quantidade do exemplo)
+3. IA analisa cada slide de referência e identifica o tipo de conteúdo
+4. Gera novos conteúdos mantendo a estrutura/tipo do original
+5. Usuário pode editar cada conteúdo antes de gerar
 
 ---
 
-## Arquitetura
+## Arquitetura do Novo Fluxo
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────────┐
-│                       Gerador de Carrossel                               │
+│                    GERAR A PARTIR DE EXEMPLO                              │
 ├──────────────────────────────────────────────────────────────────────────┤
-│  1. Seletor de Cliente                                                   │
-│  2. Tipo de Carrossel                                                    │
-│  ┌────────────────────────────────────────────────────────────────────┐ │
-│  │  NOVO: Modo de Geração                                             │ │
-│  │  ○ Gerar do Zero          ○ Gerar a Partir de Exemplo              │ │
-│  └────────────────────────────────────────────────────────────────────┘ │
 │                                                                          │
-│  ↓ Se "Gerar a Partir de Exemplo"                                        │
-│  ┌────────────────────────────────────────────────────────────────────┐ │
-│  │  [Selecionar Carrossel do Instagram]                               │ │
-│  │                                                                    │ │
-│  │  → Abre Modal com grid de carrosseis do cliente                    │ │
-│  │  → Ao selecionar, busca filhos (slides) via API                    │ │
-│  │  → Exibe preview com todas as imagens do carrossel                 │ │
-│  └────────────────────────────────────────────────────────────────────┘ │
+│  1. Selecionar Carrossel do Instagram                                    │
 │                                                                          │
-│  ┌────────────────────────────────────────────────────────────────────┐ │
-│  │  Preview do Carrossel Selecionado                                  │ │
-│  │  ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐                          │ │
-│  │  │ 1   │ │ 2   │ │ 3   │ │ 4   │ │ 5   │                          │ │
-│  │  └─────┘ └─────┘ └─────┘ └─────┘ └─────┘                          │ │
-│  │  Legenda: "5 tendências de marketing para 2026..."                │ │
-│  └────────────────────────────────────────────────────────────────────┘ │
+│  2. Preview do Carrossel Selecionado (IMAGENS MAIORES)                   │
+│     ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐                 │
+│     │          │ │          │ │          │ │          │                 │
+│     │   120px  │ │   120px  │ │   120px  │ │   120px  │                 │
+│     │          │ │          │ │          │ │          │                 │
+│     └──────────┘ └──────────┘ └──────────┘ └──────────┘                 │
 │                                                                          │
-│  3. Número de Slides                                                     │
-│  4. Tema/Orientação                                                      │
-│  [Gerar Carrossel]                                                       │
+│  3. [✨ Gerar Conteúdo com IA]  ← Novo botão                             │
+│                                                                          │
+│  4. Modal de Temas (após clicar em Gerar Conteúdo)                       │
+│     ┌────────────────────────────────────────────────────┐              │
+│     │  Sugestões de Tema:                                │              │
+│     │  ○ 5 estratégias de marketing digital              │              │
+│     │  ○ Como aumentar suas vendas online                │              │
+│     │  ○ Ferramentas essenciais para empreendedores      │              │
+│     │  ● Tema personalizado: [_____________________]     │              │
+│     │                                        [Gerar]     │              │
+│     └────────────────────────────────────────────────────┘              │
+│                                                                          │
+│  5. Após IA analisar, exibe abaixo de cada imagem:                       │
+│     ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐                 │
+│     │          │ │          │ │          │ │          │                 │
+│     │  Slide 1 │ │  Slide 2 │ │  Slide 3 │ │  Slide 4 │                 │
+│     │          │ │          │ │          │ │          │                 │
+│     └──────────┘ └──────────┘ └──────────┘ └──────────┘                 │
+│     Tipo: Capa   Tipo: Lista  Tipo: Dica   Tipo: CTA                    │
+│     ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐                     │
+│     │ "5 es-  │ │ "1. Au- │ │ "Use fe-│ │ "Baixe  │                     │
+│     │ tratégi-│ │ tomatize│ │ rrament-│ │ o guia  │                     │
+│     │ as..."  │ │ tarefas"│ │ as de IA│ │ grátis" │                     │
+│     └─────────┘ └─────────┘ └─────────┘ └─────────┘                     │
+│       [✏️]        [✏️]        [✏️]        [✏️]                          │
+│                                                                          │
+│  6. [🎨 Gerar Carrossel] (Só aparece após conteúdo gerado)               │
+│                                                                          │
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Fluxo de Usuário
+## Componentes a Criar/Modificar
 
-1. Usuário seleciona o cliente
-2. Escolhe o tipo de carrossel
-3. **NOVO**: Escolhe o modo de geração:
-   - **Gerar do Zero**: Continua normalmente
-   - **Gerar a Partir de Exemplo**: 
-     - Clica em "Selecionar Carrossel do Instagram"
-     - Modal abre com grid de carrosseis (apenas `CAROUSEL_ALBUM`) do Instagram do cliente
-     - Ao selecionar um, sistema busca os `children` (slides) desse carrossel
-     - Exibe preview horizontal com todas as imagens do carrossel
-     - Caption do carrossel original é exibida abaixo
-4. Define número de slides e tema
-5. Gera o novo carrossel (IA usa as imagens de referência)
+### Novos Componentes
 
----
+| Componente | Descrição |
+|------------|-----------|
+| `ThemeSelectorModal.tsx` | Modal para selecionar tema (sugestões + custom) |
+| `SlideContentEditor.tsx` | Card com preview da imagem + conteúdo editável |
 
-## Arquivos a Criar
+### Componentes Modificados
 
-| Arquivo | Descrição |
-|---------|-----------|
-| `supabase/functions/fetch-instagram-carousel-children/index.ts` | Edge function para buscar slides de um carrossel específico |
-| `src/components/carousel-generator/InstagramCarouselSelector.tsx` | Modal para selecionar carrossel do Instagram |
-| `src/components/carousel-generator/SelectedCarouselPreview.tsx` | Preview horizontal do carrossel selecionado |
+| Componente | Modificação |
+|------------|-------------|
+| `SelectedCarouselPreview.tsx` | Imagens maiores (120px), exibe conteúdo gerado por slide, botão IA |
+| `GeradorCarrosseis.tsx` | Ocultar slider quando fromExample, gerenciar estado dos conteúdos |
 
-## Arquivos a Modificar
+### Nova Edge Function
 
-| Arquivo | Modificação |
-|---------|-------------|
-| `src/pages/GeradorCarrosseis.tsx` | Adicionar modo de geração e integração com seletor |
-| `supabase/config.toml` | Registrar nova edge function |
-| `src/hooks/useCarouselGenerationStream.ts` | Aceitar referências do carrossel exemplo |
-| `supabase/functions/daily-carousel-generator-stream/index.ts` | Usar imagens do carrossel exemplo como referência visual |
+| Edge Function | Descrição |
+|---------------|-----------|
+| `analyze-carousel-slides` | Analisa cada imagem e gera conteúdo para novo tema |
 
 ---
 
 ## Detalhes Técnicos
 
-### 1. Edge Function: fetch-instagram-carousel-children
+### 1. Edge Function: analyze-carousel-slides
 
-Busca os filhos (slides) de um carrossel específico do Instagram:
+A IA recebe todas as imagens do carrossel de referência e:
+1. Analisa o tipo de cada slide (capa, lista, pergunta, CTA, dica, etc.)
+2. Gera sugestões de tema baseadas no briefing do cliente
+3. Quando o usuário escolhe um tema, gera o conteúdo novo para cada slide
 
 ```typescript
-// Endpoint: POST /functions/v1/fetch-instagram-carousel-children
-// Body: { clientId, carouselMediaId }
+// POST /functions/v1/analyze-carousel-slides
+// Body: { clientId, images: string[], selectedTheme?: string }
 
-// Chama: https://graph.facebook.com/v21.0/{carouselMediaId}/children
-// Fields: id,media_type,media_url
-
-// Retorna:
+// Resposta (sem tema - apenas sugestões):
 {
   success: true,
-  children: [
-    { id: "...", media_type: "IMAGE", media_url: "..." },
-    { id: "...", media_type: "VIDEO", media_url: "...", thumbnail_url: "..." }
+  themeSuggestions: [
+    "5 estratégias de marketing digital para 2026",
+    "Como aumentar suas vendas online em 30 dias",
+    "Ferramentas essenciais para empreendedores"
   ],
-  count: 5
+  slideAnalysis: [
+    { slideNumber: 1, detectedType: "cover", description: "Slide de capa com título impactante" },
+    { slideNumber: 2, detectedType: "list_item", description: "Item de lista numerada" },
+    ...
+  ]
+}
+
+// Resposta (com tema - gera conteúdos):
+{
+  success: true,
+  theme: "5 estratégias de marketing digital",
+  slideContents: [
+    { 
+      slideNumber: 1, 
+      type: "cover",
+      headline: "5 Estratégias de Marketing",
+      bodyText: "Que vão transformar seu negócio",
+      visualDescription: "Fundo gradiente com ícone de gráfico"
+    },
+    { 
+      slideNumber: 2, 
+      type: "list_item",
+      headline: "1. Automatize tarefas",
+      bodyText: "Use ferramentas como Zapier",
+      visualDescription: "Ícone de automação"
+    },
+    ...
+  ]
 }
 ```
 
-### 2. Componente InstagramCarouselSelector
+### 2. Interface SelectedCarouselPreview (Atualizada)
 
-Reutiliza lógica do `fetch-instagram-media` existente, mas:
-- Filtra apenas `CAROUSEL_ALBUM`
-- Ao selecionar, chama `fetch-instagram-carousel-children` para obter slides
-- Retorna objeto com dados do carrossel + array de slides
+```text
+┌─────────────────────────────────────────────────────────────────────────┐
+│  Carrossel de Referência                           5 slides            │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐       │
+│  │             │ │             │ │             │ │             │       │
+│  │   IMAGEM    │ │   IMAGEM    │ │   IMAGEM    │ │   IMAGEM    │  →    │
+│  │   120x120   │ │   120x120   │ │   120x120   │ │   120x120   │       │
+│  │             │ │             │ │             │ │             │       │
+│  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘       │
+│                                                                         │
+│  (Se conteúdo já gerado, mostra abaixo de cada imagem)                 │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐       │
+│  │ Tipo: Capa  │ │ Tipo: Lista │ │ Tipo: Dica  │ │ Tipo: CTA   │       │
+│  │ "5 estra-   │ │ "1. Auto-   │ │ "Use ferra- │ │ "Baixe o    │       │
+│  │ tégias de   │ │ matize ta-  │ │ mentas de   │ │ guia grá-   │       │
+│  │ marketing"  │ │ refas re-   │ │ IA para..." │ │ tis..."     │       │
+│  │ [✏️ Editar] │ │ petitivas"  │ │ [✏️ Editar] │ │ [✏️ Editar] │       │
+│  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘       │
+│                                                                         │
+│  "Legenda original do carrossel..."                                     │
+│                                                                         │
+│  ┌────────────────────┐  ┌────────────────────┐                        │
+│  │ ✨ Gerar Conteúdo  │  │ 🔄 Trocar          │  │ ✕ Remover │        │
+│  └────────────────────┘  └────────────────────┘                        │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### 3. ThemeSelectorModal
+
+Modal que aparece ao clicar em "Gerar Conteúdo com IA":
+
+```text
+┌──────────────────────────────────────────────────────────────┐
+│                    Escolha o Tema                            │
+│                                                              │
+│  A IA analisou as imagens do carrossel de referência.       │
+│  Escolha um tema para gerar o novo conteúdo:                │
+│                                                              │
+│  ○ 5 estratégias de marketing digital para 2026             │
+│  ○ Como aumentar suas vendas online em 30 dias              │
+│  ○ Ferramentas essenciais para empreendedores               │
+│                                                              │
+│  ● Tema personalizado:                                       │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │ Digite seu tema aqui...                              │    │
+│  └─────────────────────────────────────────────────────┘    │
+│                                                              │
+│              [Cancelar]  [✨ Gerar Conteúdo]                 │
+└──────────────────────────────────────────────────────────────┘
+```
+
+### 4. Estado no GeradorCarrosseis
 
 ```typescript
-interface SelectedCarousel {
-  id: string;
-  media_url: string; // Capa
-  caption?: string;
-  timestamp: string;
-  children: Array<{
-    id: string;
-    media_type: 'IMAGE' | 'VIDEO';
-    media_url: string;
-  }>;
+// Novos estados
+const [generatedSlideContents, setGeneratedSlideContents] = useState<SlideContent[] | null>(null);
+const [isAnalyzing, setIsAnalyzing] = useState(false);
+const [themeSuggestions, setThemeSuggestions] = useState<string[]>([]);
+const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
+
+// Interface para conteúdo do slide
+interface SlideContent {
+  slideNumber: number;
+  type: string; // "cover", "list_item", "question", "cta", "tip", etc.
+  headline: string;
+  bodyText: string;
+  visualDescription: string;
 }
 ```
 
-### 3. Componente SelectedCarouselPreview
+---
 
-Exibe o carrossel selecionado:
-- Grid horizontal scrollável com as imagens
-- Caption do carrossel original (truncada)
-- Botão para trocar/remover seleção
+## Fluxo Completo do Usuário
 
-### 4. Modificações na Geração
-
-O hook `useCarouselGenerationStream` passa as URLs das imagens de referência para a edge function:
-
-```typescript
-// Novo parâmetro
-referenceCarouselImages?: string[]
-```
-
-A edge function `daily-carousel-generator-stream`:
-- Recebe `reference_carousel_images` no body
-- Usa essas imagens como referência visual adicional (junto com as referências do schedule)
-- Prompt de IA inclui instrução para se basear no estilo/estrutura do carrossel de referência
+1. Usuário seleciona cliente
+2. Escolhe tipo de carrossel
+3. Escolhe "Gerar a Partir de Exemplo"
+4. Clica em "Selecionar Carrossel do Instagram"
+5. Seleciona um carrossel → exibe preview com imagens maiores
+6. **Slider de número de slides OCULTO** (usa quantidade do exemplo)
+7. Clica em "✨ Gerar Conteúdo com IA"
+8. Modal de temas abre com sugestões + campo customizado
+9. Escolhe tema e clica "Gerar"
+10. IA analisa cada imagem e gera conteúdo correspondente
+11. Preview atualiza mostrando abaixo de cada imagem:
+    - Tipo detectado (Capa, Lista, CTA, etc.)
+    - Headline gerada
+    - Botão de editar
+12. Usuário pode clicar em qualquer slide para editar o conteúdo
+13. Quando satisfeito, clica em "Gerar Carrossel"
+14. Sistema usa os conteúdos editados + imagens de referência para gerar
 
 ---
 
-## Interface do Usuário
+## Resumo de Alterações
 
-### Modo de Geração (novo RadioGroup)
+### Arquivos a Criar
 
-```text
-Modo de Geração
-○ Gerar do Zero
-   Crie um carrossel totalmente novo com IA
+1. **`supabase/functions/analyze-carousel-slides/index.ts`**
+   - Recebe imagens de referência
+   - Analisa tipo de cada slide via IA com visão
+   - Gera sugestões de tema
+   - Quando tema fornecido, gera conteúdo para cada slide
 
-● Gerar a Partir de Exemplo  
-   Use um carrossel existente do Instagram como referência
-```
+2. **`src/components/carousel-generator/ThemeSelectorModal.tsx`**
+   - Modal com radio buttons para sugestões
+   - Campo de texto para tema customizado
+   - Loading state durante análise
 
-### Seletor de Carrossel (quando "Gerar a Partir de Exemplo")
+3. **`src/components/carousel-generator/SlideContentCard.tsx`**
+   - Card compacto com imagem de referência
+   - Badge do tipo detectado
+   - Texto do conteúdo gerado
+   - Botão/modal para editar
 
-```text
-Carrossel de Referência *
-┌─────────────────────────────────────────────────────────────┐
-│  📷 Selecionar Carrossel do Instagram                       │
-└─────────────────────────────────────────────────────────────┘
+### Arquivos a Modificar
 
-ou se já selecionado:
+4. **`src/components/carousel-generator/SelectedCarouselPreview.tsx`**
+   - Aumentar tamanho das imagens (80px → 120px)
+   - Adicionar botão "Gerar Conteúdo com IA"
+   - Renderizar SlideContentCard quando há conteúdo gerado
+   - Receber/emitir estado dos conteúdos
 
-┌─────────────────────────────────────────────────────────────┐
-│ ┌────┐┌────┐┌────┐┌────┐┌────┐                             │
-│ │ 1  ││ 2  ││ 3  ││ 4  ││ 5  │  ← scroll horizontal       │
-│ └────┘└────┘└────┘└────┘└────┘                             │
-│                                                             │
-│ "5 tendências de marketing digital para 2026..."           │
-│                                                             │
-│ [ 🔄 Trocar ]  [ ✕ Remover ]                               │
-└─────────────────────────────────────────────────────────────┘
-```
+5. **`src/pages/GeradorCarrosseis.tsx`**
+   - Ocultar slider de slides quando `generationMode === "fromExample"`
+   - Adicionar estados para conteúdos gerados e modal de tema
+   - Passar conteúdos editados para a geração final
+   - Só habilitar "Gerar Carrossel" após conteúdos gerados
 
----
+6. **`supabase/functions/daily-carousel-generator-stream/index.ts`**
+   - Aceitar `pre_generated_slides` no body
+   - Se fornecido, pular etapa de geração de texto e usar direto
 
-## Resumo das Alterações
+7. **`src/hooks/useCarouselGenerationStream.ts`**
+   - Aceitar `preGeneratedSlides?: SlideContent[]`
+   - Passar para edge function
 
-1. **Criar** `supabase/functions/fetch-instagram-carousel-children/index.ts`
-   - Busca slides de um carrossel específico via Graph API
-
-2. **Criar** `src/components/carousel-generator/InstagramCarouselSelector.tsx`
-   - Modal para listar e selecionar carrosseis do Instagram
-   - Usa `fetch-instagram-media` com filtro `CAROUSEL_ALBUM`
-   - Ao selecionar, busca children e retorna dados completos
-
-3. **Criar** `src/components/carousel-generator/SelectedCarouselPreview.tsx`
-   - Preview compacto do carrossel selecionado
-   - Grid horizontal com miniaturas dos slides
-
-4. **Editar** `src/pages/GeradorCarrosseis.tsx`
-   - Adicionar estado `generationMode: 'scratch' | 'fromExample'`
-   - Adicionar estado `selectedCarousel` para armazenar o carrossel de referência
-   - Renderizar RadioGroup para escolher modo
-   - Renderizar seletor/preview quando modo = 'fromExample'
-
-5. **Editar** `src/hooks/useCarouselGenerationStream.ts`
-   - Adicionar parâmetro `referenceCarouselImages?: string[]`
-   - Passar para a edge function
-
-6. **Editar** `supabase/functions/daily-carousel-generator-stream/index.ts`
-   - Aceitar `reference_carousel_images` no body
-   - Combinar com referências existentes do schedule
-   - Ajustar prompt para instruir IA a se basear no carrossel de referência
-
-7. **Editar** `supabase/config.toml`
-   - Registrar `fetch-instagram-carousel-children`
+8. **`supabase/config.toml`**
+   - Registrar `analyze-carousel-slides`
 
 ---
 
 ## Benefícios
 
-- **Consistência Visual**: Novos carrosseis mantêm o estilo dos existentes
-- **Inspiração Real**: Usuário pode replicar carrosseis de sucesso
-- **Referência Precisa**: IA recebe imagens reais como guia visual
-- **Flexibilidade**: Usuário escolhe entre criar do zero ou se basear em exemplo
+- **Consistência Estrutural**: Novo carrossel mantém a mesma estrutura do original
+- **Controle Total**: Usuário visualiza e edita cada conteúdo antes de gerar
+- **Economia de Créditos**: Ajustes feitos antes da geração de imagens
+- **Melhor UX**: Imagens maiores facilitam visualização
+- **Flexibilidade**: Tema pode ser sugerido ou customizado
 
