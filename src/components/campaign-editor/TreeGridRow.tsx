@@ -4,7 +4,8 @@ import { InlineStatusToggle } from "./InlineStatusToggle";
 import { InlineBudgetInput } from "./InlineBudgetInput";
 import { BudgetProgressCell } from "./BudgetProgressCell";
 import { CreativeThumbnail } from "./CreativeThumbnail";
-import { ChevronRight, Layers, Target, Image } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ChevronRight, Layers, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface TreeGridRowProps {
@@ -13,11 +14,13 @@ interface TreeGridRowProps {
   isExpanded: boolean;
   hasChildren: boolean;
   isSelected: boolean;
+  isChecked: boolean;
   targets: ClientTargets;
   isStatusLoading: boolean;
   isBudgetLoading: boolean;
   onToggleExpand: () => void;
   onSelect: () => void;
+  onToggleCheck: () => void;
   onToggleStatus: (newStatus: boolean) => void;
   onUpdateBudget: (newBudget: number) => void;
 }
@@ -28,11 +31,13 @@ export function TreeGridRow({
   isExpanded,
   hasChildren,
   isSelected,
+  isChecked,
   targets,
   isStatusLoading,
   isBudgetLoading,
   onToggleExpand,
   onSelect,
+  onToggleCheck,
   onToggleStatus,
   onUpdateBudget,
 }: TreeGridRowProps) {
@@ -62,7 +67,7 @@ export function TreeGridRow({
     }
   };
 
-  const paddingLeft = `${depth * 20 + 12}px`;
+  const paddingLeft = `${depth * 20 + 4}px`;
 
   return (
     <tr
@@ -74,6 +79,14 @@ export function TreeGridRow({
       )}
       onClick={onSelect}
     >
+      {/* Checkbox column */}
+      <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+        <Checkbox
+          checked={isChecked}
+          onCheckedChange={() => onToggleCheck()}
+        />
+      </td>
+
       {/* Name column */}
       <td className="px-3 py-3">
         <div className="flex items-center gap-2" style={{ paddingLeft }}>
@@ -174,6 +187,28 @@ export function TreeGridRow({
           targets={targets}
           prefix="R$"
           decimals={0}
+        />
+      </td>
+
+      {/* CPM column */}
+      <td className="px-3 py-3">
+        <MetricCell
+          metric="cpm"
+          value={node.metrics.cpm}
+          targets={targets}
+          prefix="R$"
+          decimals={2}
+        />
+      </td>
+
+      {/* CPC column */}
+      <td className="px-3 py-3">
+        <MetricCell
+          metric="cpc"
+          value={node.metrics.cpc}
+          targets={targets}
+          prefix="R$"
+          decimals={2}
         />
       </td>
 

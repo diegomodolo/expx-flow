@@ -10,6 +10,7 @@ export interface TreeNodeMetrics {
   ctr: number;
   cpc: number;
   cpa: number;
+  cpm: number;
   roas?: number;
   reach?: number;
   frequency?: number;
@@ -51,6 +52,7 @@ export interface ClientTargets {
   target_ctr: number;
   target_roas: number;
   target_cpc: number;
+  target_cpm: number;
 }
 
 interface UseCampaignTreeOptions {
@@ -192,6 +194,11 @@ export function useCampaignTree(options: UseCampaignTreeOptions) {
     // Safely access properties that might not exist on all campaign types
     const campaignAny = campaign as any;
     
+    // Calculate campaign CPM: (spend / impressions) * 1000
+    const campaignImpressions = Number(campaign.impressions) || 0;
+    const campaignSpend = Number(campaign.spend) || 0;
+    const campaignCpm = campaignImpressions > 0 ? (campaignSpend / campaignImpressions) * 1000 : 0;
+
     const campaignNode: TreeNode = {
       id: campaign.id,
       type: "campaign",
@@ -202,13 +209,14 @@ export function useCampaignTree(options: UseCampaignTreeOptions) {
       platform,
       facebookId: campaignAny.facebook_id || campaignAny.google_id,
       metrics: {
-        spend: Number(campaign.spend) || 0,
-        impressions: Number(campaign.impressions) || 0,
+        spend: campaignSpend,
+        impressions: campaignImpressions,
         clicks: Number(campaign.clicks) || 0,
         conversions: Number(campaign.conversions) || 0,
         ctr: Number(campaign.ctr) || 0,
         cpc: Number(campaign.cpc) || 0,
         cpa: Number(campaign.cpa) || 0,
+        cpm: campaignCpm,
         roas: campaignAny.roas ? Number(campaignAny.roas) : undefined,
         reach: campaign.reach ? Number(campaign.reach) : undefined,
         frequency: campaign.frequency ? Number(campaign.frequency) : undefined,
@@ -245,6 +253,7 @@ export function useCampaignTree(options: UseCampaignTreeOptions) {
             ctr: Number(adset.ctr) || 0,
             cpc: Number(adset.cpc) || 0,
             cpa: Number(adset.cpa) || 0,
+            cpm: Number((adset as any).cpm) || 0,
             reach: adset.reach ? Number(adset.reach) : undefined,
             frequency: adset.frequency ? Number(adset.frequency) : undefined,
           },
@@ -291,6 +300,7 @@ export function useCampaignTree(options: UseCampaignTreeOptions) {
               ctr: Number(ad.ctr) || 0,
               cpc: Number(ad.cpc) || 0,
               cpa: Number(ad.cpa) || 0,
+              cpm: Number((ad as any).cpm) || 0,
               reach: ad.reach ? Number(ad.reach) : undefined,
               frequency: ad.frequency ? Number(ad.frequency) : undefined,
             },
@@ -323,6 +333,7 @@ export function useCampaignTree(options: UseCampaignTreeOptions) {
             ctr: Number(adGroup.ctr) || 0,
             cpc: Number(adGroup.cpc) || 0,
             cpa: Number(adGroup.cpa) || 0,
+            cpm: Number((adGroup as any).cpm) || 0,
           },
           children: groupAds.map((ad) => {
             const adAny = ad as any;
@@ -349,6 +360,7 @@ export function useCampaignTree(options: UseCampaignTreeOptions) {
                 ctr: Number(ad.ctr) || 0,
                 cpc: Number(ad.cpc) || 0,
                 cpa: Number(ad.cpa) || 0,
+                cpm: Number((ad as any).cpm) || 0,
               },
             };
           }),
@@ -369,6 +381,7 @@ export function useCampaignTree(options: UseCampaignTreeOptions) {
         target_ctr: Number(clientBenchmarks.target_ctr) || 1.5,
         target_roas: Number(clientBenchmarks.target_roas) || 3,
         target_cpc: Number(clientBenchmarks.target_cpc) || 2,
+        target_cpm: Number(clientBenchmarks.target_cpm) || 15,
       };
     }
     return {
@@ -376,6 +389,7 @@ export function useCampaignTree(options: UseCampaignTreeOptions) {
       target_ctr: 1.5,
       target_roas: 3,
       target_cpc: 2,
+      target_cpm: 15,
     };
   }, [clientBenchmarks]);
 
@@ -419,6 +433,10 @@ export function getHealthColor(
     case "cpc":
       if (value <= targets.target_cpc) return "green";
       if (value <= targets.target_cpc * 1.3) return "yellow";
+      return "red";
+    case "cpm":
+      if (value <= targets.target_cpm) return "green";
+      if (value <= targets.target_cpm * 1.3) return "yellow";
       return "red";
     default:
       return "neutral";
