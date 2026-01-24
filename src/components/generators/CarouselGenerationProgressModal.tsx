@@ -38,7 +38,7 @@ export function CarouselGenerationProgressModal({
   referenceCarouselImages?: string[];
   preGeneratedSlides?: PreGeneratedSlide[];
   visualVariations?: VisualVariations;
-  onFinished: () => void;
+  onFinished: (carouselId?: string) => void;
 }) {
   const { isGenerating, start, cancel } = useCarouselGenerationStream();
 
@@ -147,7 +147,7 @@ export function CarouselGenerationProgressModal({
         if (ev.type === "completed") {
           setIsDone(true);
           toast.success("Carrossel gerado!");
-          onFinished();
+          onFinished(ev.carousel_id);
           return;
         }
 

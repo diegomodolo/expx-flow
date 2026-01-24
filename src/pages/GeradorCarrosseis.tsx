@@ -22,6 +22,7 @@ import { SelectedCarouselPreview } from "@/components/carousel-generator/Selecte
 import { ThemeSelectorModal } from "@/components/carousel-generator/ThemeSelectorModal";
 import { SlideContent } from "@/components/carousel-generator/SlideContentCard";
 import { VisualVariationOptionsCard, VisualVariationOptions, defaultVisualVariations } from "@/components/carousel-generator/VisualVariationOptions";
+import { GeneratedCarouselPreview } from "@/components/carousel-generator/GeneratedCarouselPreview";
 import { supabase } from "@/integrations/supabase/client";
 
 type GenerationMode = "scratch" | "fromExample";
@@ -87,6 +88,9 @@ export default function GeradorCarrosseis() {
   // Visual variation options state
   const [visualVariations, setVisualVariations] = useState<VisualVariationOptions>(defaultVisualVariations);
 
+  // State for last generated carousel
+  const [lastGeneratedCarouselId, setLastGeneratedCarouselId] = useState<string | null>(null);
+
   const { clients, loading: isLoadingClients } = useClients();
 
   const clientsForCombobox = useMemo(
@@ -128,9 +132,19 @@ export default function GeradorCarrosseis() {
     setIsModalOpen(true);
   };
 
-  const handleGenerationFinished = () => {
+  const handleGenerationFinished = (carouselId?: string) => {
     // Refresh history when generation completes
     setHistoryKey((prev) => prev + 1);
+    
+    // Store the generated carousel ID to display it
+    if (carouselId) {
+      setLastGeneratedCarouselId(carouselId);
+    }
+    
+    // Close the modal after a short delay to allow the user to see the success message
+    setTimeout(() => {
+      setIsModalOpen(false);
+    }, 1500);
   };
 
   const handleClientChange = (id: string) => {
@@ -481,78 +495,90 @@ export default function GeradorCarrosseis() {
                 </CardContent>
               </Card>
 
-              {/* Preview/Info Card */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Como Funciona</CardTitle>
-                  <CardDescription>
-                    Entenda o processo de geração de carrosseis
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-4">
-                    <div className="flex gap-3">
-                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                        <span className="text-sm font-semibold text-primary">1</span>
+              {/* Preview/Info Card - Shows generated carousel or how-it-works */}
+              {lastGeneratedCarouselId ? (
+                <GeneratedCarouselPreview
+                  carouselId={lastGeneratedCarouselId}
+                  onClose={() => setLastGeneratedCarouselId(null)}
+                  onViewDetails={() => {
+                    // Navigate to the history tab to see details
+                    setActiveTab("history");
+                    setLastGeneratedCarouselId(null);
+                  }}
+                />
+              ) : (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Como Funciona</CardTitle>
+                    <CardDescription>
+                      Entenda o processo de geração de carrosseis
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-4">
+                      <div className="flex gap-3">
+                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                          <span className="text-sm font-semibold text-primary">1</span>
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">Análise do Briefing</p>
+                          <p className="text-xs text-muted-foreground">
+                            A IA analisa o briefing do cliente para entender o negócio
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium text-sm">Análise do Briefing</p>
-                        <p className="text-xs text-muted-foreground">
-                          A IA analisa o briefing do cliente para entender o negócio
-                        </p>
+
+                      <div className="flex gap-3">
+                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                          <span className="text-sm font-semibold text-primary">2</span>
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">Criação do Conteúdo</p>
+                          <p className="text-xs text-muted-foreground">
+                            Headlines e textos são criados para cada slide
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-3">
+                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                          <span className="text-sm font-semibold text-primary">3</span>
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">Geração das Imagens</p>
+                          <p className="text-xs text-muted-foreground">
+                            Cada slide é renderizado com design profissional
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-3">
+                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                          <span className="text-sm font-semibold text-primary">4</span>
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">Pronto para Publicar</p>
+                          <p className="text-xs text-muted-foreground">
+                            Baixe, agende ou publique diretamente
+                          </p>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="flex gap-3">
-                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                        <span className="text-sm font-semibold text-primary">2</span>
-                      </div>
-                      <div>
-                        <p className="font-medium text-sm">Criação do Conteúdo</p>
+                    <div className="pt-4 border-t">
+                      <div className="p-4 rounded-lg bg-muted/50">
+                        <p className="text-sm font-medium mb-2">💡 Dica</p>
                         <p className="text-xs text-muted-foreground">
-                          Headlines e textos são criados para cada slide
+                          Carrosseis com 6-8 slides têm melhor performance. 
+                          Escolha o tipo que melhor se adequa ao objetivo: 
+                          tutoriais para educar, comparações para converter, 
+                          bastidores para humanizar.
                         </p>
                       </div>
                     </div>
-
-                    <div className="flex gap-3">
-                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                        <span className="text-sm font-semibold text-primary">3</span>
-                      </div>
-                      <div>
-                        <p className="font-medium text-sm">Geração das Imagens</p>
-                        <p className="text-xs text-muted-foreground">
-                          Cada slide é renderizado com design profissional
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-3">
-                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                        <span className="text-sm font-semibold text-primary">4</span>
-                      </div>
-                      <div>
-                        <p className="font-medium text-sm">Pronto para Publicar</p>
-                        <p className="text-xs text-muted-foreground">
-                          Baixe, agende ou publique diretamente
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="pt-4 border-t">
-                    <div className="p-4 rounded-lg bg-muted/50">
-                      <p className="text-sm font-medium mb-2">💡 Dica</p>
-                      <p className="text-xs text-muted-foreground">
-                        Carrosseis com 6-8 slides têm melhor performance. 
-                        Escolha o tipo que melhor se adequa ao objetivo: 
-                        tutoriais para educar, comparações para converter, 
-                        bastidores para humanizar.
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </TabsContent>
 
