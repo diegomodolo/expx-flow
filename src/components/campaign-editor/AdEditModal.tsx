@@ -52,6 +52,7 @@ import {
 } from 'lucide-react';
 import { TreeNode } from '@/hooks/useCampaignTree';
 import { MediaUploader } from '@/components/campaigns/builder/MediaUploader';
+import { PixelSelector } from '@/components/campaigns/builder/PixelSelector';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -117,6 +118,9 @@ export function AdEditModal({
   const [utmTerm, setUtmTerm] = useState('');
   const [utmFullString, setUtmFullString] = useState('');
   const [showUtmFields, setShowUtmFields] = useState(false);
+  
+  // Pixel tracking
+  const [pixelId, setPixelId] = useState('');
 
   // Build full UTM string from individual fields
   const buildUtmString = () => {
@@ -672,6 +676,16 @@ export function AdEditModal({
                         </div>
                       </CollapsibleContent>
                     </Collapsible>
+
+                    {/* Pixel Tracking */}
+                    <div className="border-t pt-4">
+                      <PixelSelector
+                        clientId={clientId}
+                        companyId={companyId || ''}
+                        value={pixelId}
+                        onChange={setPixelId}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
