@@ -1,14 +1,9 @@
 
 
-# Plano: Análise de Slides de Referência e Geração de Conteúdo com IA
+# Plano: Opções de Variação Visual para Geração a Partir de Exemplo
 
 ## Objetivo
-Transformar o fluxo "Gerar a Partir de Exemplo" em um processo mais inteligente:
-1. Imagens de referência maiores para melhor visualização
-2. Ocultar seletor de número de slides (usa a quantidade do exemplo)
-3. IA analisa cada slide de referência e identifica o tipo de conteúdo
-4. Gera novos conteúdos mantendo a estrutura/tipo do original
-5. Usuário pode editar cada conteúdo antes de gerar
+Após validar os conteúdos gerados por IA, adicionar uma etapa de **configuração visual** que permite ao usuário escolher quais elementos variar nas imagens geradas. Se nenhuma opção for marcada, a IA deve reproduzir a imagem de referência exatamente igual, apenas trocando o texto.
 
 ---
 
@@ -21,273 +16,239 @@ Transformar o fluxo "Gerar a Partir de Exemplo" em um processo mais inteligente:
 │                                                                          │
 │  1. Selecionar Carrossel do Instagram                                    │
 │                                                                          │
-│  2. Preview do Carrossel Selecionado (IMAGENS MAIORES)                   │
-│     ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐                 │
-│     │          │ │          │ │          │ │          │                 │
-│     │   120px  │ │   120px  │ │   120px  │ │   120px  │                 │
-│     │          │ │          │ │          │ │          │                 │
-│     └──────────┘ └──────────┘ └──────────┘ └──────────┘                 │
+│  2. Preview com Imagens (3 por linha)                                    │
+│     + Conteúdo gerado por IA (editável)                                  │
 │                                                                          │
-│  3. [✨ Gerar Conteúdo com IA]  ← Novo botão                             │
+│  3. NOVO: Configurações Visuais (aparece após conteúdo gerado)           │
+│     ┌────────────────────────────────────────────────────────────────┐  │
+│     │  🎨 Configurações de Variação Visual                           │  │
+│     │                                                                │  │
+│     │  ☐ Alterar paleta de cores                                     │  │
+│     │    Inverte/troca as cores principais das imagens               │  │
+│     │                                                                │  │
+│     │  ☐ Alterar personagens/pessoas                                 │  │
+│     │    Substitui as pessoas por outras diferentes                  │  │
+│     │                                                                │  │
+│     │  ☐ Alterar elementos de fundo                                  │  │
+│     │    Troca os elementos decorativos e de fundo                   │  │
+│     │                                                                │  │
+│     │  ☐ Alterar disposição dos elementos                            │  │
+│     │    Reposiciona textos e elementos visuais                      │  │
+│     │                                                                │  │
+│     │  💡 Se nenhuma opção marcada, a imagem será reproduzida        │  │
+│     │     exatamente igual à referência, apenas com o texto novo.    │  │
+│     └────────────────────────────────────────────────────────────────┘  │
 │                                                                          │
-│  4. Modal de Temas (após clicar em Gerar Conteúdo)                       │
-│     ┌────────────────────────────────────────────────────┐              │
-│     │  Sugestões de Tema:                                │              │
-│     │  ○ 5 estratégias de marketing digital              │              │
-│     │  ○ Como aumentar suas vendas online                │              │
-│     │  ○ Ferramentas essenciais para empreendedores      │              │
-│     │  ● Tema personalizado: [_____________________]     │              │
-│     │                                        [Gerar]     │              │
-│     └────────────────────────────────────────────────────┘              │
-│                                                                          │
-│  5. Após IA analisar, exibe abaixo de cada imagem:                       │
-│     ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐                 │
-│     │          │ │          │ │          │ │          │                 │
-│     │  Slide 1 │ │  Slide 2 │ │  Slide 3 │ │  Slide 4 │                 │
-│     │          │ │          │ │          │ │          │                 │
-│     └──────────┘ └──────────┘ └──────────┘ └──────────┘                 │
-│     Tipo: Capa   Tipo: Lista  Tipo: Dica   Tipo: CTA                    │
-│     ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐                     │
-│     │ "5 es-  │ │ "1. Au- │ │ "Use fe-│ │ "Baixe  │                     │
-│     │ tratégi-│ │ tomatize│ │ rrament-│ │ o guia  │                     │
-│     │ as..."  │ │ tarefas"│ │ as de IA│ │ grátis" │                     │
-│     └─────────┘ └─────────┘ └─────────┘ └─────────┘                     │
-│       [✏️]        [✏️]        [✏️]        [✏️]                          │
-│                                                                          │
-│  6. [🎨 Gerar Carrossel] (Só aparece após conteúdo gerado)               │
+│  4. [🎨 Gerar Carrossel]                                                 │
 │                                                                          │
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Componentes a Criar/Modificar
+## Opções de Variação Visual
 
-### Novos Componentes
+| Opção | Descrição | Instrução para IA |
+|-------|-----------|-------------------|
+| **Alterar Paleta de Cores** | Inverte/troca as cores principais | "Inverta a paleta de cores: onde tem azul, coloque vermelho; onde tem vermelho, coloque azul" |
+| **Alterar Personagens** | Substitui pessoas por outras | "Substitua a pessoa/personagem por uma pessoa diferente (gênero, etnia, estilo diferentes)" |
+| **Alterar Elementos de Fundo** | Troca elementos decorativos | "Substitua os elementos de fundo (ícones, formas, padrões) por outros diferentes" |
+| **Alterar Disposição** | Reposiciona elementos | "Altere a disposição dos elementos: mova textos, mude alinhamentos, reposicione blocos" |
 
-| Componente | Descrição |
-|------------|-----------|
-| `ThemeSelectorModal.tsx` | Modal para selecionar tema (sugestões + custom) |
-| `SlideContentEditor.tsx` | Card com preview da imagem + conteúdo editável |
+Se **NENHUMA opção marcada**:
+> "REPRODUZA EXATAMENTE a imagem de referência anexada. Mantenha idêntico: cores, layout, personagens, fundo, posicionamento. APENAS SUBSTITUA o texto pelo novo texto fornecido."
 
-### Componentes Modificados
+---
 
-| Componente | Modificação |
-|------------|-------------|
-| `SelectedCarouselPreview.tsx` | Imagens maiores (120px), exibe conteúdo gerado por slide, botão IA |
-| `GeradorCarrosseis.tsx` | Ocultar slider quando fromExample, gerenciar estado dos conteúdos |
+## Componentes
 
-### Nova Edge Function
+### Criar Novo Componente
 
-| Edge Function | Descrição |
-|---------------|-----------|
-| `analyze-carousel-slides` | Analisa cada imagem e gera conteúdo para novo tema |
+| Arquivo | Descrição |
+|---------|-----------|
+| `src/components/carousel-generator/VisualVariationOptions.tsx` | Card com as 4 opções de variação visual |
+
+### Modificar Componentes Existentes
+
+| Arquivo | Modificação |
+|---------|-------------|
+| `src/pages/GeradorCarrosseis.tsx` | Adicionar estado para variações visuais, exibir card após conteúdo gerado |
+| `src/hooks/useCarouselGenerationStream.ts` | Adicionar parâmetro `visualVariations` |
+| `src/components/generators/CarouselGenerationProgressModal.tsx` | Passar `visualVariations` para o hook |
+| `supabase/functions/daily-carousel-generator-stream/index.ts` | Receber `visual_variations` e ajustar prompt de imagem |
 
 ---
 
 ## Detalhes Técnicos
 
-### 1. Edge Function: analyze-carousel-slides
-
-A IA recebe todas as imagens do carrossel de referência e:
-1. Analisa o tipo de cada slide (capa, lista, pergunta, CTA, dica, etc.)
-2. Gera sugestões de tema baseadas no briefing do cliente
-3. Quando o usuário escolhe um tema, gera o conteúdo novo para cada slide
+### 1. Interface das Opções de Variação
 
 ```typescript
-// POST /functions/v1/analyze-carousel-slides
-// Body: { clientId, images: string[], selectedTheme?: string }
+// src/components/carousel-generator/VisualVariationOptions.tsx
 
-// Resposta (sem tema - apenas sugestões):
-{
-  success: true,
-  themeSuggestions: [
-    "5 estratégias de marketing digital para 2026",
-    "Como aumentar suas vendas online em 30 dias",
-    "Ferramentas essenciais para empreendedores"
-  ],
-  slideAnalysis: [
-    { slideNumber: 1, detectedType: "cover", description: "Slide de capa com título impactante" },
-    { slideNumber: 2, detectedType: "list_item", description: "Item de lista numerada" },
-    ...
-  ]
+export interface VisualVariationOptions {
+  alterColorPalette: boolean;      // Alterar paleta de cores
+  alterCharacters: boolean;        // Alterar personagens/pessoas
+  alterBackground: boolean;        // Alterar elementos de fundo
+  alterLayout: boolean;            // Alterar disposição dos elementos
 }
 
-// Resposta (com tema - gera conteúdos):
-{
-  success: true,
-  theme: "5 estratégias de marketing digital",
-  slideContents: [
-    { 
-      slideNumber: 1, 
-      type: "cover",
-      headline: "5 Estratégias de Marketing",
-      bodyText: "Que vão transformar seu negócio",
-      visualDescription: "Fundo gradiente com ícone de gráfico"
-    },
-    { 
-      slideNumber: 2, 
-      type: "list_item",
-      headline: "1. Automatize tarefas",
-      bodyText: "Use ferramentas como Zapier",
-      visualDescription: "Ícone de automação"
-    },
-    ...
-  ]
-}
+// Valores padrão: todos false (reproduzir exatamente igual)
+const defaultVariations: VisualVariationOptions = {
+  alterColorPalette: false,
+  alterCharacters: false,
+  alterBackground: false,
+  alterLayout: false,
+};
 ```
 
-### 2. Interface SelectedCarouselPreview (Atualizada)
+### 2. Componente VisualVariationOptions
+
+Um card simples com 4 checkboxes:
 
 ```text
-┌─────────────────────────────────────────────────────────────────────────┐
-│  Carrossel de Referência                           5 slides            │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐       │
-│  │             │ │             │ │             │ │             │       │
-│  │   IMAGEM    │ │   IMAGEM    │ │   IMAGEM    │ │   IMAGEM    │  →    │
-│  │   120x120   │ │   120x120   │ │   120x120   │ │   120x120   │       │
-│  │             │ │             │ │             │ │             │       │
-│  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘       │
-│                                                                         │
-│  (Se conteúdo já gerado, mostra abaixo de cada imagem)                 │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐       │
-│  │ Tipo: Capa  │ │ Tipo: Lista │ │ Tipo: Dica  │ │ Tipo: CTA   │       │
-│  │ "5 estra-   │ │ "1. Auto-   │ │ "Use ferra- │ │ "Baixe o    │       │
-│  │ tégias de   │ │ matize ta-  │ │ mentas de   │ │ guia grá-   │       │
-│  │ marketing"  │ │ refas re-   │ │ IA para..." │ │ tis..."     │       │
-│  │ [✏️ Editar] │ │ petitivas"  │ │ [✏️ Editar] │ │ [✏️ Editar] │       │
-│  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘       │
-│                                                                         │
-│  "Legenda original do carrossel..."                                     │
-│                                                                         │
-│  ┌────────────────────┐  ┌────────────────────┐                        │
-│  │ ✨ Gerar Conteúdo  │  │ 🔄 Trocar          │  │ ✕ Remover │        │
-│  └────────────────────┘  └────────────────────┘                        │
-└─────────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│  🎨 Configurações de Variação Visual                                │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  ☐ Alterar paleta de cores                                          │
+│     Inverte/troca as cores principais da imagem                     │
+│                                                                     │
+│  ☐ Alterar personagens/pessoas                                      │
+│     Substitui pessoas que aparecem nas imagens                      │
+│                                                                     │
+│  ☐ Alterar elementos de fundo                                       │
+│     Troca ícones, formas e elementos decorativos                    │
+│                                                                     │
+│  ☐ Alterar disposição dos elementos                                 │
+│     Reposiciona textos e blocos visuais                             │
+│                                                                     │
+│  ───────────────────────────────────────────────────────────────    │
+│  💡 Se nenhuma opção estiver marcada, a imagem será reproduzida     │
+│     fielmente à referência, apenas com o novo texto.                │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
-### 3. ThemeSelectorModal
+### 3. Lógica do Prompt de Imagem
 
-Modal que aparece ao clicar em "Gerar Conteúdo com IA":
-
-```text
-┌──────────────────────────────────────────────────────────────┐
-│                    Escolha o Tema                            │
-│                                                              │
-│  A IA analisou as imagens do carrossel de referência.       │
-│  Escolha um tema para gerar o novo conteúdo:                │
-│                                                              │
-│  ○ 5 estratégias de marketing digital para 2026             │
-│  ○ Como aumentar suas vendas online em 30 dias              │
-│  ○ Ferramentas essenciais para empreendedores               │
-│                                                              │
-│  ● Tema personalizado:                                       │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │ Digite seu tema aqui...                              │    │
-│  └─────────────────────────────────────────────────────┘    │
-│                                                              │
-│              [Cancelar]  [✨ Gerar Conteúdo]                 │
-└──────────────────────────────────────────────────────────────┘
-```
-
-### 4. Estado no GeradorCarrosseis
+Na edge function `daily-carousel-generator-stream`, o prompt será construído dinamicamente:
 
 ```typescript
-// Novos estados
-const [generatedSlideContents, setGeneratedSlideContents] = useState<SlideContent[] | null>(null);
-const [isAnalyzing, setIsAnalyzing] = useState(false);
-const [themeSuggestions, setThemeSuggestions] = useState<string[]>([]);
-const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
+// Se nenhuma variação selecionada = modo "cópia fiel"
+const noVariations = !visual_variations || 
+  (!visual_variations.alterColorPalette && 
+   !visual_variations.alterCharacters && 
+   !visual_variations.alterBackground && 
+   !visual_variations.alterLayout);
 
-// Interface para conteúdo do slide
-interface SlideContent {
-  slideNumber: number;
-  type: string; // "cover", "list_item", "question", "cta", "tip", etc.
-  headline: string;
-  bodyText: string;
-  visualDescription: string;
+if (noVariations) {
+  // Prompt para CÓPIA EXATA
+  prompt += `
+MODO CÓPIA FIEL:
+- REPRODUZA EXATAMENTE a imagem de referência anexada
+- MANTENHA IDÊNTICO: cores, layout, personagens, elementos de fundo, posicionamento
+- APENAS SUBSTITUA o texto pelo novo texto abaixo
+- O resultado deve ser visualmente IDÊNTICO à referência, só mudando o conteúdo textual`;
+} else {
+  // Prompt com variações selecionadas
+  if (visual_variations.alterColorPalette) {
+    prompt += "\n- INVERTA A PALETA DE CORES: onde tem uma cor, coloque outra (ex: azul↔vermelho)";
+  }
+  if (visual_variations.alterCharacters) {
+    prompt += "\n- SUBSTITUA OS PERSONAGENS/PESSOAS por pessoas diferentes (aparência, gênero, estilo)";
+  }
+  if (visual_variations.alterBackground) {
+    prompt += "\n- TROQUE OS ELEMENTOS DE FUNDO por outros diferentes (ícones, formas, padrões)";
+  }
+  if (visual_variations.alterLayout) {
+    prompt += "\n- ALTERE A DISPOSIÇÃO DOS ELEMENTOS: reposicione textos, mude alinhamentos";
+  }
 }
+```
+
+### 4. Estados no GeradorCarrosseis
+
+```typescript
+// Novo estado para variações visuais
+const [visualVariations, setVisualVariations] = useState<VisualVariationOptions>({
+  alterColorPalette: false,
+  alterCharacters: false,
+  alterBackground: false,
+  alterLayout: false,
+});
+```
+
+O card de variações visuais só aparece quando:
+- `generationMode === "fromExample"`
+- `generatedSlideContents !== null && generatedSlideContents.length > 0`
+
+### 5. Passagem de Dados
+
+```text
+GeradorCarrosseis
+    ↓ visualVariations
+CarouselGenerationProgressModal
+    ↓ visualVariations
+useCarouselGenerationStream.start()
+    ↓ visual_variations (JSON body)
+daily-carousel-generator-stream (Edge Function)
+    ↓ Constrói prompt baseado nas opções
+generateImageWithNanoBanana()
 ```
 
 ---
 
 ## Fluxo Completo do Usuário
 
-1. Usuário seleciona cliente
-2. Escolhe tipo de carrossel
-3. Escolhe "Gerar a Partir de Exemplo"
-4. Clica em "Selecionar Carrossel do Instagram"
-5. Seleciona um carrossel → exibe preview com imagens maiores
-6. **Slider de número de slides OCULTO** (usa quantidade do exemplo)
-7. Clica em "✨ Gerar Conteúdo com IA"
-8. Modal de temas abre com sugestões + campo customizado
-9. Escolhe tema e clica "Gerar"
-10. IA analisa cada imagem e gera conteúdo correspondente
-11. Preview atualiza mostrando abaixo de cada imagem:
-    - Tipo detectado (Capa, Lista, CTA, etc.)
-    - Headline gerada
-    - Botão de editar
-12. Usuário pode clicar em qualquer slide para editar o conteúdo
-13. Quando satisfeito, clica em "Gerar Carrossel"
-14. Sistema usa os conteúdos editados + imagens de referência para gerar
+1. Seleciona cliente
+2. Escolhe "Gerar a Partir de Exemplo"
+3. Seleciona carrossel do Instagram
+4. Clica em "Gerar Conteúdo com IA"
+5. Escolhe tema e IA gera conteúdos para cada slide
+6. Edita os conteúdos se necessário
+7. **NOVO: Configura variações visuais (ou deixa tudo desmarcado para cópia fiel)**
+8. Clica em "Gerar Carrossel"
+9. IA gera imagens baseadas nas referências + opções de variação
 
 ---
 
-## Resumo de Alterações
+## Resumo das Alterações
 
-### Arquivos a Criar
+### Arquivo a Criar
 
-1. **`supabase/functions/analyze-carousel-slides/index.ts`**
-   - Recebe imagens de referência
-   - Analisa tipo de cada slide via IA com visão
-   - Gera sugestões de tema
-   - Quando tema fornecido, gera conteúdo para cada slide
-
-2. **`src/components/carousel-generator/ThemeSelectorModal.tsx`**
-   - Modal com radio buttons para sugestões
-   - Campo de texto para tema customizado
-   - Loading state durante análise
-
-3. **`src/components/carousel-generator/SlideContentCard.tsx`**
-   - Card compacto com imagem de referência
-   - Badge do tipo detectado
-   - Texto do conteúdo gerado
-   - Botão/modal para editar
+1. **`src/components/carousel-generator/VisualVariationOptions.tsx`**
+   - Card com 4 checkboxes para opções de variação
+   - Texto explicativo sobre cada opção
+   - Nota sobre comportamento quando nada selecionado
 
 ### Arquivos a Modificar
 
-4. **`src/components/carousel-generator/SelectedCarouselPreview.tsx`**
-   - Aumentar tamanho das imagens (80px → 120px)
-   - Adicionar botão "Gerar Conteúdo com IA"
-   - Renderizar SlideContentCard quando há conteúdo gerado
-   - Receber/emitir estado dos conteúdos
+2. **`src/pages/GeradorCarrosseis.tsx`**
+   - Adicionar estado `visualVariations`
+   - Importar e renderizar `VisualVariationOptions` após conteúdo gerado
+   - Resetar variações quando carrossel/modo mudar
+   - Passar `visualVariations` para o modal
 
-5. **`src/pages/GeradorCarrosseis.tsx`**
-   - Ocultar slider de slides quando `generationMode === "fromExample"`
-   - Adicionar estados para conteúdos gerados e modal de tema
-   - Passar conteúdos editados para a geração final
-   - Só habilitar "Gerar Carrossel" após conteúdos gerados
+3. **`src/hooks/useCarouselGenerationStream.ts`**
+   - Adicionar `visualVariations?: VisualVariationOptions` nos parâmetros
+   - Passar para o body da requisição como `visual_variations`
 
-6. **`supabase/functions/daily-carousel-generator-stream/index.ts`**
-   - Aceitar `pre_generated_slides` no body
-   - Se fornecido, pular etapa de geração de texto e usar direto
+4. **`src/components/generators/CarouselGenerationProgressModal.tsx`**
+   - Receber prop `visualVariations`
+   - Passar para `start()` do hook
 
-7. **`src/hooks/useCarouselGenerationStream.ts`**
-   - Aceitar `preGeneratedSlides?: SlideContent[]`
-   - Passar para edge function
-
-8. **`supabase/config.toml`**
-   - Registrar `analyze-carousel-slides`
+5. **`supabase/functions/daily-carousel-generator-stream/index.ts`**
+   - Receber `visual_variations` do body
+   - Construir prompt de imagem baseado nas opções:
+     - Se nenhuma marcada → modo "cópia fiel"
+     - Se alguma marcada → incluir instruções específicas
 
 ---
 
 ## Benefícios
 
-- **Consistência Estrutural**: Novo carrossel mantém a mesma estrutura do original
-- **Controle Total**: Usuário visualiza e edita cada conteúdo antes de gerar
-- **Economia de Créditos**: Ajustes feitos antes da geração de imagens
-- **Melhor UX**: Imagens maiores facilitam visualização
-- **Flexibilidade**: Tema pode ser sugerido ou customizado
+- **Controle Total**: Usuário decide exatamente o que variar
+- **Cópia Fiel**: Possibilidade de replicar o carrossel original com texto novo
+- **Flexibilidade**: Combinar variações conforme necessidade
+- **Consistência**: Manter elementos importantes (cores, pessoas) enquanto varia outros
 
