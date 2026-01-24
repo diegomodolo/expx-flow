@@ -1,145 +1,188 @@
 
-# Plano: Correção do Elemento Sugerido + Nova Opção de Variação
+# Plano: Ativar Botões de Ação no Carrossel Gerado
 
-## Diagnóstico do Problema
+## Visão Geral
 
-### Bug Principal Identificado
-No arquivo `GeradorCarrosseis.tsx` (linhas 604-612), ao montar os `preGeneratedSlides` para enviar ao modal de geração, o campo **`suggestedElement` está sendo omitido** do mapeamento:
+Implementar a funcionalidade completa dos três botões de ação para o carrossel gerado:
+1. **Agendar Publicação** - Enviar para o agendador de posts
+2. **Enviar para Planejamento** - Adicionar ao planejamento de conteúdo do cliente  
+3. **Enviar para Apresentação** - Adicionar à apresentação de conteúdo do cliente
 
-```typescript
-preGeneratedSlides={
-  generatedSlideContents.map(s => ({
-    slideNumber: s.slideNumber,
-    type: s.type,
-    headline: s.headline,
-    bodyText: s.bodyText,
-    visualDescription: s.visualDescription,
-    // ❌ FALTA: suggestedElement: s.suggestedElement
-  }))
-}
-```
-
-Isso explica os logs mostrando `suggestedElement: "none"` — o valor nunca chega à edge function!
-
-### Problema Secundário
-A opção "Alterar elementos de fundo" está tentando fazer duas coisas ao mesmo tempo:
-1. Trocar ícones decorativos do fundo
-2. Substituir o elemento principal pelo sugerido
-
-Você prefere separá-las para ter controle granular.
+Os três botões ficarão na mesma linha horizontal.
 
 ---
 
 ## Alterações Planejadas
 
-### 1. Corrigir Passagem do `suggestedElement` (Bug Principal)
+### 1. Criar Modal de Agendamento para Carrossel
 
-| Arquivo | Alteração |
-|---------|-----------|
-| `src/pages/GeradorCarrosseis.tsx` | Adicionar `suggestedElement: s.suggestedElement` no mapeamento (linha ~611) |
+Criar um componente `SendCarouselToScheduleModal` específico para carrosséis, pois o existente (`SendToScheduleModal`) é para criativos individuais.
 
-### 2. Criar Nova Opção de Variação Visual
+| Arquivo | Ação |
+|---------|------|
+| `src/components/carousel-generator/SendCarouselToScheduleModal.tsx` | Criar novo |
 
-Adicionar uma quinta opção: **"Substituir elemento principal"**
+**Funcionalidade:**
+- Selecionar plataformas (Instagram, Facebook)
+- Escolher data e hora
+- Enviar todas as imagens do carrossel como `media_urls`
+- Inserir na tabela `scheduled_posts` com `content_type: 'carousel'`
 
-| Arquivo | Alteração |
-|---------|-----------|
-| `src/components/carousel-generator/VisualVariationOptions.tsx` | Adicionar checkbox "Substituir elemento principal" com ícone apropriado |
-| `src/hooks/useCarouselGenerationStream.ts` | Adicionar `replaceMainElement: boolean` à interface `VisualVariations` |
-| `supabase/functions/daily-carousel-generator-stream/index.ts` | Atualizar interface e lógica de instruções |
+### 2. Criar Modal de Envio para Planejamento
 
-### 3. Atualizar Instruções da Edge Function
+Criar `SendCarouselToPlanModal` para adicionar o carrossel a um planejamento de conteúdo.
 
-Separar as instruções:
-- **"Alterar elementos de fundo"** = trocar apenas ícones/decorações do fundo
-- **"Substituir elemento principal"** = trocar o objeto/ícone mais destacado pelo elemento sugerido
+| Arquivo | Ação |
+|---------|------|
+| `src/components/carousel-generator/SendCarouselToPlanModal.tsx` | Criar novo |
 
-### 4. Implementar Auto-Retry
+**Funcionalidade:**
+- Listar planejamentos existentes do cliente
+- Opção de criar novo planejamento
+- Inserir na tabela `content_plan_posts` com `post_type: 'carrossel'`
+- Inserir slides na tabela `content_plan_slides`
 
-Quando `replaceMainElement` estiver ativado e houver `suggestedElement`, a edge function tentará até 2 vezes se a primeira geração não mencionar o elemento no retorno.
+### 3. Criar Modal de Envio para Apresentação
+
+Criar `SendCarouselToPresentationModal` para adicionar o carrossel a uma apresentação.
+
+| Arquivo | Ação |
+|---------|------|
+| `src/components/carousel-generator/SendCarouselToPresentationModal.tsx` | Criar novo |
+
+**Funcionalidade:**
+- Listar apresentações existentes do cliente
+- Opção de criar nova apresentação
+- Inserir na tabela `presentation_creatives` com `creative_type: 'carrossel'`
+- Inserir mídia na tabela `creative_media`
+
+### 4. Atualizar GeneratedCarouselPreview
+
+Modificar o componente para:
+- Adicionar estados para controle dos modais
+- Conectar os callbacks dos botões aos modais
+- Reorganizar layout dos botões em linha única
+
+| Arquivo | Ação |
+|---------|------|
+| `src/components/carousel-generator/GeneratedCarouselPreview.tsx` | Modificar |
 
 ---
 
 ## Detalhes Técnicos
 
-### Nova Interface VisualVariations
+### Interface do Carrossel Gerado
 
 ```typescript
-export interface VisualVariations {
-  alterColorPalette: boolean;
-  alterCharacters: boolean;
-  alterBackground: boolean;      // Agora = apenas decorativos
-  replaceMainElement: boolean;   // NOVO = substitui elemento principal
-  alterLayout: boolean;
+interface GeneratedCarousel {
+  id: string;
+  client_id: string;     // Precisa buscar da tabela
+  company_id: string;    // Precisa buscar da tabela
+  carousel_type: string;
+  theme: string;
+  slides: CarouselSlide[];
+  caption: string;
+  hashtags: string;
 }
-
-export const defaultVisualVariations: VisualVariations = {
-  alterColorPalette: false,
-  alterCharacters: false,
-  alterBackground: false,
-  replaceMainElement: false,
-  alterLayout: false,
-};
 ```
 
-### Nova Opção no Card de Variações
+### Novo Layout dos Botões (3 em linha)
 
 ```text
-┌─────────────────────────────────────────────────┐
-│ ☑ Alterar paleta de cores                       │
-│ ☑ Alterar personagens/pessoas                   │
-│ ☑ Alterar elementos de fundo                    │
-│   (decorativos, ícones de fundo)                │
-│ ☑ Substituir elemento principal pelo sugerido   │  ← NOVA
-│   (ex: trocar computador por ampulheta)         │
-│ ☑ Alterar disposição dos elementos              │
-└─────────────────────────────────────────────────┘
+┌─────────────────┬─────────────────┬─────────────────┐
+│ 📅 Agendar      │ 📋 Planejamento │ 📑 Apresentação │
+│ Publicação      │                 │                 │
+└─────────────────┴─────────────────┴─────────────────┘
 ```
 
-### Lógica de Instruções na Edge Function
+### SendCarouselToScheduleModal
 
 ```typescript
-// Quando replaceMainElement = true E suggestedElement existe
-if (variations.replaceMainElement && suggestedElement) {
-  elementsToChange.push(
-    `SUBSTITUA O ELEMENTO PRINCIPAL DA IMAGEM: ` +
-    `Identifique o objeto/ícone mais destacado (ex: computador, dado, roleta) ` +
-    `e TROQUE-O por "${suggestedElement}". ` +
-    `MANTENHA a mesma posição, escala e integração visual.`
-  );
+interface Props {
+  carousel: GeneratedCarousel;
+  clientId: string;
+  companyId: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
 }
 
-// Quando alterBackground = true (agora só para decorativos)
-if (variations.alterBackground) {
-  elementsToChange.push(
-    `TROQUE ELEMENTOS DECORATIVOS DE FUNDO: ` +
-    `Substitua ícones pequenos, formas geométricas ou padrões decorativos ` +
-    `(NÃO o elemento principal).`
-  );
-}
+// Inserção no banco
+await supabase.from('scheduled_posts').insert({
+  client_id: clientId,
+  company_id: companyId,
+  caption: carousel.caption,
+  media_urls: carousel.slides.map(s => s.image_url).filter(Boolean),
+  content_type: 'carousel',
+  platforms: selectedPlatforms,
+  scheduled_at: scheduledDateTime,
+  status: 'scheduled',
+  created_by: userId,
+  // ... contas de instagram/facebook
+});
 ```
 
-### Auto-Retry para Elemento Sugerido
+### SendCarouselToPlanModal
 
 ```typescript
-const MAX_RETRIES = 2;
-let attempts = 0;
-let imageDataUrl: string | null = null;
-
-while (attempts < MAX_RETRIES && !imageDataUrl) {
-  attempts++;
-  
-  try {
-    imageDataUrl = await generateImageWithNanoBanana(
-      attempts === 1 ? imagePrompt : 
-        `${imagePrompt}\n\n⚠️ CRÍTICO: Você DEVE incluir "${suggestedElement}" como elemento principal. Esta é a segunda tentativa.`,
-      LOVABLE_API_KEY,
-      slideReferences
-    );
-  } catch (e) {
-    console.log(`[Retry ${attempts}] Failed:`, e.message);
-  }
+interface Props {
+  carousel: GeneratedCarousel;
+  clientId: string;
+  companyId: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
 }
+
+// Fluxo:
+// 1. Listar content_plans do cliente
+// 2. Selecionar ou criar novo
+// 3. Inserir content_plan_posts com post_type: 'carrossel'
+// 4. Inserir cada slide em content_plan_slides
+```
+
+### SendCarouselToPresentationModal
+
+```typescript
+interface Props {
+  carousel: GeneratedCarousel;
+  clientId: string;
+  companyId: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
+}
+
+// Fluxo:
+// 1. Listar content_presentations do cliente
+// 2. Selecionar ou criar nova
+// 3. Inserir presentation_creatives
+// 4. Inserir cada imagem em creative_media
+```
+
+### Atualização do GeneratedCarouselPreview
+
+```typescript
+// Novos estados
+const [showScheduleModal, setShowScheduleModal] = useState(false);
+const [showPlanModal, setShowPlanModal] = useState(false);
+const [showPresentationModal, setShowPresentationModal] = useState(false);
+
+// Novo layout dos botões
+<div className="grid grid-cols-3 gap-2">
+  <Button onClick={() => setShowScheduleModal(true)} size="sm">
+    <CalendarPlus className="w-3.5 h-3.5 mr-1.5" />
+    Agendar
+  </Button>
+  <Button onClick={() => setShowPlanModal(true)} size="sm" variant="outline">
+    <FileText className="w-3.5 h-3.5 mr-1.5" />
+    Planejamento
+  </Button>
+  <Button onClick={() => setShowPresentationModal(true)} size="sm" variant="outline">
+    <Presentation className="w-3.5 h-3.5 mr-1.5" />
+    Apresentação
+  </Button>
+</div>
 ```
 
 ---
@@ -148,32 +191,27 @@ while (attempts < MAX_RETRIES && !imageDataUrl) {
 
 | # | Arquivo | Ação | Descrição |
 |---|---------|------|-----------|
-| 1 | `src/pages/GeradorCarrosseis.tsx` | Modificar | Adicionar `suggestedElement` no mapeamento |
-| 2 | `src/components/carousel-generator/VisualVariationOptions.tsx` | Modificar | Adicionar checkbox "Substituir elemento principal" |
-| 3 | `src/hooks/useCarouselGenerationStream.ts` | Modificar | Adicionar `replaceMainElement` à interface |
-| 4 | `supabase/functions/daily-carousel-generator-stream/index.ts` | Modificar | Atualizar interface, instruções e adicionar auto-retry |
+| 1 | `src/components/carousel-generator/SendCarouselToScheduleModal.tsx` | Criar | Modal para agendar publicação do carrossel |
+| 2 | `src/components/carousel-generator/SendCarouselToPlanModal.tsx` | Criar | Modal para enviar ao planejamento |
+| 3 | `src/components/carousel-generator/SendCarouselToPresentationModal.tsx` | Criar | Modal para enviar à apresentação |
+| 4 | `src/components/carousel-generator/GeneratedCarouselPreview.tsx` | Modificar | Integrar modais e reorganizar botões em linha |
 
 ---
 
-## Fluxo Visual do Usuário
+## Fluxo do Usuário
 
 ```text
-Usuário seleciona carrossel de referência
-          ↓
-IA analisa e sugere elementos (ampulheta, gráfico, placa)
-          ↓
-Usuário edita os textos e elementos sugeridos
-          ↓
-Usuário marca [✓] "Substituir elemento principal pelo sugerido"
-          ↓
-Sistema envia:
-  - Imagem de referência
-  - Novo texto
-  - Instrução: "Troque o objeto principal por AMPULHETA"
-          ↓
-IA gera imagem mantendo layout, cores, mas com ampulheta
-          ↓
-Se não aparecer ampulheta → auto-retry com prompt reforçado
-          ↓
-Imagem final com o elemento correto
+Carrossel é gerado e exibido na tela
+            ↓
+┌───────────────────────────────────────────────────┐
+│    [Agendar]    [Planejamento]    [Apresentação]  │
+└───────────────────────────────────────────────────┘
+            ↓ (clique em qualquer um)
+     Modal correspondente abre
+            ↓
+   Usuário configura e confirma
+            ↓
+   Dados salvos no banco
+            ↓
+   Toast de sucesso + modal fecha
 ```
