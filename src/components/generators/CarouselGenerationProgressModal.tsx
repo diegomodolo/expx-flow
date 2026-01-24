@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { CheckCircle2, Loader2, XCircle } from "lucide-react";
 import { toast } from "sonner";
-import { CarouselType, PreGeneratedSlide, useCarouselGenerationStream } from "@/hooks/useCarouselGenerationStream";
+import { CarouselType, PreGeneratedSlide, VisualVariations, useCarouselGenerationStream } from "@/hooks/useCarouselGenerationStream";
 
 type SlideProgress = {
   slide_number: number;
@@ -26,6 +26,7 @@ export function CarouselGenerationProgressModal({
   carouselType,
   referenceCarouselImages,
   preGeneratedSlides,
+  visualVariations,
   onFinished,
 }: {
   open: boolean;
@@ -36,6 +37,7 @@ export function CarouselGenerationProgressModal({
   carouselType?: CarouselType;
   referenceCarouselImages?: string[];
   preGeneratedSlides?: PreGeneratedSlide[];
+  visualVariations?: VisualVariations;
   onFinished: () => void;
 }) {
   const { isGenerating, start, cancel } = useCarouselGenerationStream();
@@ -73,6 +75,7 @@ export function CarouselGenerationProgressModal({
       carouselType,
       referenceCarouselImages,
       preGeneratedSlides,
+      visualVariations,
       onEvent: (ev) => {
         if (ev.type === "started") {
           setCarouselId(ev.carousel_id);
@@ -136,7 +139,7 @@ export function CarouselGenerationProgressModal({
       toast.error(e?.message || "Erro ao gerar carrossel");
       setIsDone(true);
     });
-  }, [open, cancel, start, clientId, companyId, userId, carouselType, referenceCarouselImages, preGeneratedSlides, onFinished]);
+  }, [open, cancel, start, clientId, companyId, userId, carouselType, referenceCarouselImages, preGeneratedSlides, visualVariations, onFinished]);
 
   const activeSlide = slides[activeIndex];
 

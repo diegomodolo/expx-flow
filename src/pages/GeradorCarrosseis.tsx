@@ -21,6 +21,7 @@ import { InstagramCarouselSelector, SelectedCarousel } from "@/components/carous
 import { SelectedCarouselPreview } from "@/components/carousel-generator/SelectedCarouselPreview";
 import { ThemeSelectorModal } from "@/components/carousel-generator/ThemeSelectorModal";
 import { SlideContent } from "@/components/carousel-generator/SlideContentCard";
+import { VisualVariationOptionsCard, VisualVariationOptions, defaultVisualVariations } from "@/components/carousel-generator/VisualVariationOptions";
 import { supabase } from "@/integrations/supabase/client";
 
 type GenerationMode = "scratch" | "fromExample";
@@ -82,6 +83,9 @@ export default function GeradorCarrosseis() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [themeSuggestions, setThemeSuggestions] = useState<string[]>([]);
   const [generatedSlideContents, setGeneratedSlideContents] = useState<SlideContent[] | null>(null);
+  
+  // Visual variation options state
+  const [visualVariations, setVisualVariations] = useState<VisualVariationOptions>(defaultVisualVariations);
 
   const { clients, loading: isLoadingClients } = useClients();
 
@@ -135,6 +139,7 @@ export default function GeradorCarrosseis() {
     setSelectedCarousel(null);
     setGeneratedSlideContents(null);
     setThemeSuggestions([]);
+    setVisualVariations(defaultVisualVariations);
   };
 
   const handleGenerationModeChange = (mode: GenerationMode) => {
@@ -143,6 +148,7 @@ export default function GeradorCarrosseis() {
       setSelectedCarousel(null);
       setGeneratedSlideContents(null);
       setThemeSuggestions([]);
+      setVisualVariations(defaultVisualVariations);
     }
   };
 
@@ -151,6 +157,7 @@ export default function GeradorCarrosseis() {
     // Reset generated content when carousel changes
     setGeneratedSlideContents(null);
     setThemeSuggestions([]);
+    setVisualVariations(defaultVisualVariations);
   };
 
   const handleGenerateContentClick = async () => {
@@ -416,6 +423,14 @@ export default function GeradorCarrosseis() {
                     </div>
                   )}
 
+                  {/* Visual Variation Options - Shows after content is generated in fromExample mode */}
+                  {generationMode === "fromExample" && generatedSlideContents && generatedSlideContents.length > 0 && (
+                    <VisualVariationOptionsCard
+                      options={visualVariations}
+                      onChange={setVisualVariations}
+                    />
+                  )}
+
                   {/* Slides Count - HIDDEN when using example mode */}
                   {generationMode === "scratch" && (
                     <div className="space-y-3">
@@ -563,6 +578,7 @@ export default function GeradorCarrosseis() {
               bodyText: s.bodyText,
               visualDescription: s.visualDescription,
             }))}
+            visualVariations={generationMode === "fromExample" ? visualVariations : undefined}
             onFinished={handleGenerationFinished}
           />
         )}

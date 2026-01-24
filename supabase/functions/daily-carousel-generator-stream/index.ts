@@ -65,6 +65,13 @@ interface PreGeneratedSlide {
   visualDescription: string;
 }
 
+interface VisualVariations {
+  alterColorPalette: boolean;
+  alterCharacters: boolean;
+  alterBackground: boolean;
+  alterLayout: boolean;
+}
+
 interface GeneratedCarousel {
   carousel_type: string;
   theme: string;
@@ -148,7 +155,7 @@ serve(async (req) => {
     });
   }
 
-  const { client_id, company_id, user_id, carousel_type, reference_carousel_images, pre_generated_slides } = body ?? {};
+  const { client_id, company_id, user_id, carousel_type, reference_carousel_images, pre_generated_slides, visual_variations } = body ?? {};
   if (!client_id || !company_id || !user_id) {
     return new Response(JSON.stringify({ error: "Missing required fields" }), {
       status: 400,
@@ -162,7 +169,8 @@ serve(async (req) => {
     user_id, 
     carousel_type, 
     reference_carousel_images_count: reference_carousel_images?.length || 0,
-    pre_generated_slides_count: pre_generated_slides?.length || 0 
+    pre_generated_slides_count: pre_generated_slides?.length || 0,
+    visual_variations: visual_variations || null
   });
 
   const stream = new ReadableStream({
@@ -265,6 +273,9 @@ serve(async (req) => {
           const slide = carousel.slides[i];
           try {
             const hasReferences = allReferenceImages.length > 0;
+            
+            // Build visual variation instructions
+            const variationInstructions = buildVisualVariationInstructions(visual_variations as VisualVariations | undefined, hasReferences);
 
             const imagePrompt = `Crie uma imagem profissional para carrossel do Instagram no formato VERTICAL 3:4 (1080x1440 pixels).
 ${styleContext}
@@ -281,10 +292,7 @@ REGRAS OBRIGATÓRIAS:
 - Texto legível, grande e bem posicionado
 - Design moderno, clean e profissional
 - NÃO incluir textos longos, apenas a headline curta e impactante
-${hasReferences ? `- MUITO IMPORTANTE: Siga EXATAMENTE o estilo visual das imagens de referência anexadas
-- REPRODUZA o logotipo/marca IDÊNTICO ao das referências (mesma fonte, cores, posição)
-- MANTENHA a paleta de cores e estética das referências
-- COPIE o estilo de layout, tipografia e composição` : ''}
+${variationInstructions}
 - Ultra high resolution`;
 
             const dataUrl = await generateImageWithNanoBanana(imagePrompt, LOVABLE_API_KEY, allReferenceImages);
@@ -384,6 +392,73 @@ function pickTypeFromSchedule(schedule: CarouselSchedule | null): CarouselType {
     if (r <= 0) return t;
   }
   return "tutorial";
+}
+
+/**
+ * Build visual variation instructions for the image prompt based on user selections.
+ * If no variations are selected, instructs AI to faithfully reproduce the reference image.
+ */
+function buildVisualVariationInstructions(variations: VisualVariations | undefined, hasReferences: boolean): string {
+  if (!hasReferences) {
+    return '';
+  }
+  
+  // Check if any variation is selected
+  const noVariations = !variations || 
+    (!variations.alterColorPalette && 
+     !variations.alterCharacters && 
+     !variations.alterBackground && 
+     !variations.alterLayout);
+  
+  if (noVariations) {
+    // Faithful copy mode - reproduce exactly, only change text
+    return `MODO CÓPIA FIEL (siga as imagens de referência anexadas):
+- REPRODUZA EXATAMENTE a imagem de referência anexada
+- MANTENHA IDÊNTICO: cores, layout, personagens, elementos de fundo, posicionamento
+- REPRODUZA o logotipo/marca IDÊNTICO ao das referências (mesma fonte, cores, posição)
+- APENAS SUBSTITUA o texto pelo novo texto acima (headline e body_text)
+- O resultado deve ser visualmente IDÊNTICO à referência, só mudando o conteúdo textual
+- COPIE fielmente a tipografia, composição e estética`;
+  }
+  
+  // Build instructions based on selected variations
+  let instructions = `VARIAÇÕES VISUAIS SOLICITADAS (baseie-se nas imagens de referência anexadas):
+- REPRODUZA o logotipo/marca IDÊNTICO ao das referências (mesma fonte, cores, posição)
+- MANTENHA o estilo geral e profissionalismo das referências`;
+  
+  if (variations.alterColorPalette) {
+    instructions += `
+- ALTERE A PALETA DE CORES: inverta/troque as cores principais (ex: onde tem azul, coloque vermelho; onde tem vermelho, coloque azul)`;
+  } else {
+    instructions += `
+- MANTENHA a paleta de cores das referências`;
+  }
+  
+  if (variations.alterCharacters) {
+    instructions += `
+- SUBSTITUA OS PERSONAGENS/PESSOAS: coloque pessoas diferentes (aparência, gênero, etnia, estilo diferentes)`;
+  } else {
+    instructions += `
+- MANTENHA os personagens/pessoas similares às referências`;
+  }
+  
+  if (variations.alterBackground) {
+    instructions += `
+- TROQUE OS ELEMENTOS DE FUNDO: substitua ícones, formas, padrões decorativos por outros diferentes`;
+  } else {
+    instructions += `
+- MANTENHA os elementos de fundo similares às referências`;
+  }
+  
+  if (variations.alterLayout) {
+    instructions += `
+- ALTERE A DISPOSIÇÃO DOS ELEMENTOS: reposicione textos, mude alinhamentos, reorganize blocos visuais`;
+  } else {
+    instructions += `
+- MANTENHA a disposição/layout similar às referências`;
+  }
+  
+  return instructions;
 }
 
 async function uploadDataUrlToStorage({

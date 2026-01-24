@@ -11,6 +11,13 @@ export interface PreGeneratedSlide {
   visualDescription: string;
 }
 
+export interface VisualVariations {
+  alterColorPalette: boolean;
+  alterCharacters: boolean;
+  alterBackground: boolean;
+  alterLayout: boolean;
+}
+
 type StreamEvent =
   | {
       type: "started";
@@ -48,6 +55,7 @@ export function useCarouselGenerationStream() {
       carouselType,
       referenceCarouselImages,
       preGeneratedSlides,
+      visualVariations,
       onEvent,
     }: {
       clientId: string;
@@ -56,6 +64,7 @@ export function useCarouselGenerationStream() {
       carouselType?: CarouselType;
       referenceCarouselImages?: string[];
       preGeneratedSlides?: PreGeneratedSlide[];
+      visualVariations?: VisualVariations;
       onEvent: (ev: StreamEvent) => void;
     }) => {
       setIsGenerating(true);
@@ -76,6 +85,7 @@ export function useCarouselGenerationStream() {
             carousel_type: carouselType,
             reference_carousel_images: referenceCarouselImages,
             pre_generated_slides: preGeneratedSlides,
+            visual_variations: visualVariations,
           }),
           signal: controller.signal,
         });
