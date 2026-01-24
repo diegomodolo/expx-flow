@@ -33,7 +33,6 @@ import {
   Loader2, 
   ImageIcon, 
   Save, 
-  TrendingUp, 
   Settings,
   AlertTriangle,
   Image,
@@ -42,6 +41,14 @@ import {
   Link2,
   ChevronDown,
   Info,
+  DollarSign,
+  Eye,
+  MousePointerClick,
+  Percent,
+  Target,
+  Receipt,
+  Coins,
+  Users,
 } from 'lucide-react';
 import { TreeNode } from '@/hooks/useCampaignTree';
 import { MediaUploader } from '@/components/campaigns/builder/MediaUploader';
@@ -368,6 +375,66 @@ export function AdEditModal({
               </Alert>
             )}
 
+            {/* Metrics Cards at Top */}
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2 mb-6">
+              <div className="p-2 rounded-lg bg-muted/50 flex flex-col items-center">
+                <div className="flex items-center gap-1 text-muted-foreground mb-1">
+                  <DollarSign className="w-3 h-3" />
+                  <span className="text-xs">Investido</span>
+                </div>
+                <p className="text-sm font-bold">{formatCurrency(node.metrics.spend)}</p>
+              </div>
+              <div className="p-2 rounded-lg bg-muted/50 flex flex-col items-center">
+                <div className="flex items-center gap-1 text-muted-foreground mb-1">
+                  <Eye className="w-3 h-3" />
+                  <span className="text-xs">Impressões</span>
+                </div>
+                <p className="text-sm font-bold">{formatNumber(node.metrics.impressions)}</p>
+              </div>
+              <div className="p-2 rounded-lg bg-muted/50 flex flex-col items-center">
+                <div className="flex items-center gap-1 text-muted-foreground mb-1">
+                  <MousePointerClick className="w-3 h-3" />
+                  <span className="text-xs">Cliques</span>
+                </div>
+                <p className="text-sm font-bold">{formatNumber(node.metrics.clicks || 0)}</p>
+              </div>
+              <div className="p-2 rounded-lg bg-muted/50 flex flex-col items-center">
+                <div className="flex items-center gap-1 text-muted-foreground mb-1">
+                  <Percent className="w-3 h-3" />
+                  <span className="text-xs">CTR</span>
+                </div>
+                <p className="text-sm font-bold">{formatPercent(node.metrics.ctr)}</p>
+              </div>
+              <div className="p-2 rounded-lg bg-muted/50 flex flex-col items-center">
+                <div className="flex items-center gap-1 text-muted-foreground mb-1">
+                  <Target className="w-3 h-3" />
+                  <span className="text-xs">Conversões</span>
+                </div>
+                <p className="text-sm font-bold">{formatNumber(node.metrics.conversions)}</p>
+              </div>
+              <div className="p-2 rounded-lg bg-muted/50 flex flex-col items-center">
+                <div className="flex items-center gap-1 text-muted-foreground mb-1">
+                  <Receipt className="w-3 h-3" />
+                  <span className="text-xs">CPA</span>
+                </div>
+                <p className="text-sm font-bold">{formatCurrency(node.metrics.cpa || 0)}</p>
+              </div>
+              <div className="p-2 rounded-lg bg-muted/50 flex flex-col items-center">
+                <div className="flex items-center gap-1 text-muted-foreground mb-1">
+                  <Coins className="w-3 h-3" />
+                  <span className="text-xs">CPC</span>
+                </div>
+                <p className="text-sm font-bold">{formatCurrency(node.metrics.cpc || 0)}</p>
+              </div>
+              <div className="p-2 rounded-lg bg-muted/50 flex flex-col items-center">
+                <div className="flex items-center gap-1 text-muted-foreground mb-1">
+                  <Users className="w-3 h-3" />
+                  <span className="text-xs">Alcance</span>
+                </div>
+                <p className="text-sm font-bold">{formatNumber(node.metrics.reach || 0)}</p>
+              </div>
+            </div>
+
             {/* Two Column Layout */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Left Column - Configuration & Texts */}
@@ -599,47 +666,6 @@ export function AdEditModal({
                   </div>
                 </div>
 
-                {/* Metrics Summary */}
-                <div className="border-t pt-4">
-                  <h4 className="font-medium text-sm mb-4 flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4" />
-                    Métricas Atuais
-                  </h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="p-3 rounded-lg bg-muted/50 text-center">
-                      <p className="text-xs text-muted-foreground">Investido</p>
-                      <p className="text-lg font-bold">{formatCurrency(node.metrics.spend)}</p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-muted/50 text-center">
-                      <p className="text-xs text-muted-foreground">Impressões</p>
-                      <p className="text-lg font-bold">{formatNumber(node.metrics.impressions)}</p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-muted/50 text-center">
-                      <p className="text-xs text-muted-foreground">CTR</p>
-                      <p className="text-lg font-bold">{formatPercent(node.metrics.ctr)}</p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-muted/50 text-center">
-                      <p className="text-xs text-muted-foreground">Conversões</p>
-                      <p className="text-lg font-bold">{formatNumber(node.metrics.conversions)}</p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-muted/50 text-center">
-                      <p className="text-xs text-muted-foreground">CPC</p>
-                      <p className="text-lg font-bold">{formatCurrency(node.metrics.cpc || 0)}</p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-muted/50 text-center">
-                      <p className="text-xs text-muted-foreground">CPA</p>
-                      <p className="text-lg font-bold">{formatCurrency(node.metrics.cpa || 0)}</p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-muted/50 text-center">
-                      <p className="text-xs text-muted-foreground">Cliques</p>
-                      <p className="text-lg font-bold">{formatNumber(node.metrics.clicks || 0)}</p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-muted/50 text-center">
-                      <p className="text-xs text-muted-foreground">Alcance</p>
-                      <p className="text-lg font-bold">{formatNumber(node.metrics.reach || 0)}</p>
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
