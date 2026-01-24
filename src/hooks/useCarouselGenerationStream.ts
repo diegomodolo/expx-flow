@@ -16,6 +16,7 @@ export interface VisualVariations {
   alterColorPalette: boolean;
   alterCharacters: boolean;
   alterBackground: boolean;
+  replaceMainElement: boolean;
   alterLayout: boolean;
 }
 

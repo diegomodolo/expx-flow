@@ -70,6 +70,7 @@ interface VisualVariations {
   alterColorPalette: boolean;
   alterCharacters: boolean;
   alterBackground: boolean;
+  replaceMainElement: boolean;
   alterLayout: boolean;
 }
 
@@ -312,6 +313,7 @@ serve(async (req) => {
                 visual_variations.alterColorPalette || 
                 visual_variations.alterCharacters || 
                 visual_variations.alterBackground || 
+                visual_variations.replaceMainElement ||
                 visual_variations.alterLayout
               );
               
@@ -374,7 +376,29 @@ ${variationInstructions}
 - Ultra high resolution`;
             }
 
-            const dataUrl = await generateImageWithNanoBanana(imagePrompt, LOVABLE_API_KEY, slideReferences);
+            // Auto-retry logic for replaceMainElement
+            const shouldAutoRetry = visual_variations?.replaceMainElement && suggestedElement;
+            const MAX_RETRIES = shouldAutoRetry ? 2 : 1;
+            let dataUrl: string | null = null;
+            let attempts = 0;
+            
+            while (attempts < MAX_RETRIES && !dataUrl) {
+              attempts++;
+              const retryPrompt = attempts > 1 
+                ? `${imagePrompt}\n\n⚠️ CRÍTICO - SEGUNDA TENTATIVA: Você DEVE incluir "${suggestedElement}" como elemento principal da imagem. O elemento atual está ERRADO. SUBSTITUA o ícone/objeto central por "${suggestedElement}". Esta instrução é OBRIGATÓRIA.`
+                : imagePrompt;
+              
+              try {
+                dataUrl = await generateImageWithNanoBanana(retryPrompt, LOVABLE_API_KEY, slideReferences);
+                if (dataUrl && attempts > 1) {
+                  console.log(`[daily-carousel-generator-stream] Auto-retry succeeded on attempt ${attempts}`);
+                }
+              } catch (retryError: any) {
+                console.log(`[daily-carousel-generator-stream] Attempt ${attempts} failed:`, retryError?.message);
+                if (attempts >= MAX_RETRIES) throw retryError;
+              }
+            }
+            
             if (!dataUrl) throw new Error("No image returned");
 
             const publicUrl = await uploadDataUrlToStorage({
@@ -496,6 +520,7 @@ function buildVisualVariationInstructions(
     (!variations.alterColorPalette && 
      !variations.alterCharacters && 
      !variations.alterBackground && 
+     !variations.replaceMainElement &&
      !variations.alterLayout);
   
   if (noVariations) {
@@ -540,14 +565,22 @@ MODO CÓPIA EXATA (OBRIGATÓRIO):
   }
   
   if (!variations.alterBackground) {
-    elementsToPreserve.push("ELEMENTOS DE FUNDO (ícones, formas, padrões decorativos, cenário)");
+    elementsToPreserve.push("ELEMENTOS DECORATIVOS DE FUNDO (ícones pequenos, formas geométricas, padrões no fundo)");
   } else {
-    // Use suggested element if provided
-    if (suggestedElement) {
-      elementsToChange.push(`SUBSTITUA ELEMENTOS DE FUNDO: troque ícones, objetos ou elementos decorativos por "${suggestedElement}" (mantenha cores e estilo visual)`);
-    } else {
-      elementsToChange.push("TROQUE OS ELEMENTOS DE FUNDO: substitua ícones, formas, padrões decorativos por outros diferentes");
-    }
+    elementsToChange.push("TROQUE ELEMENTOS DECORATIVOS DE FUNDO: substitua ícones pequenos, formas e padrões do fundo por outros diferentes (NÃO o elemento central/principal)");
+  }
+  
+  // NEW: Handle replaceMainElement separately from alterBackground
+  if (variations.replaceMainElement && suggestedElement) {
+    elementsToChange.push(
+      `🎯 SUBSTITUIÇÃO DO ELEMENTO PRINCIPAL (OBRIGATÓRIO): ` +
+      `Identifique o OBJETO/ÍCONE MAIS DESTACADO da imagem (ex: computador, dado, roleta, placa) ` +
+      `e SUBSTITUA-O COMPLETAMENTE por "${suggestedElement}". ` +
+      `MANTENHA a mesma posição, escala e integração visual do elemento original. ` +
+      `O novo elemento "${suggestedElement}" deve ser o foco central da imagem.`
+    );
+  } else if (!variations.replaceMainElement) {
+    elementsToPreserve.push("ELEMENTO PRINCIPAL/CENTRAL (o objeto ou ícone mais destacado da imagem)");
   }
   
   if (!variations.alterLayout) {

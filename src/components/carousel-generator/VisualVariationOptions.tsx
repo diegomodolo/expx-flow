@@ -1,12 +1,13 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Palette, Users, Image, LayoutGrid, Lightbulb } from "lucide-react";
+import { Palette, Users, Image, LayoutGrid, Lightbulb, Replace } from "lucide-react";
 
 export interface VisualVariationOptions {
   alterColorPalette: boolean;
   alterCharacters: boolean;
   alterBackground: boolean;
+  replaceMainElement: boolean;
   alterLayout: boolean;
 }
 
@@ -14,6 +15,7 @@ export const defaultVisualVariations: VisualVariationOptions = {
   alterColorPalette: false,
   alterCharacters: false,
   alterBackground: false,
+  replaceMainElement: false,
   alterLayout: false,
 };
 
@@ -92,7 +94,26 @@ export function VisualVariationOptionsCard({
                 Alterar elementos de fundo
               </Label>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Troca ícones, formas e elementos decorativos
+                Troca ícones decorativos e formas do fundo
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3">
+            <Checkbox
+              id="replace-main-element"
+              checked={options.replaceMainElement}
+              onCheckedChange={(checked) =>
+                handleChange("replaceMainElement", checked === true)
+              }
+            />
+            <div className="flex-1">
+              <Label htmlFor="replace-main-element" className="flex items-center gap-2 cursor-pointer">
+                <Replace className="w-4 h-4 text-muted-foreground" />
+                Substituir elemento principal pelo sugerido
+              </Label>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Troca o ícone/objeto central pelo elemento sugerido
               </p>
             </div>
           </div>
