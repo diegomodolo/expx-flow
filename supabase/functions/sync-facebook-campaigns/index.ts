@@ -1138,9 +1138,9 @@ async function processSync(
               const adSetCounted = countConversionsFromActions(adSetCombinedMetrics, campaign.objective, `${campaign.name} → ${adSet.name}`)
               campaignChildLeads += adSetCounted
 
-              // Still store 0 at ad set level to avoid duplication
-              adSetLeads = 0
-              console.log('Ad set conversions counted for campaign fallback (not saved at ad set):', adSet.name, adSetCounted)
+              // Save real conversions at ad set level for granular analysis
+              adSetLeads = adSetCounted
+              console.log('Ad set conversions saved:', adSet.name, adSetLeads)
             }
 
             // Save ad set to database
@@ -1298,10 +1298,13 @@ async function processSync(
                     adEngagementRateRanking = adInsights.engagement_rate_ranking || null
                     adConversionRateRanking = adInsights.conversion_rate_ranking || null
                     
-                     // Don't count conversions at ad level to avoid duplication
-                     // Conversions are already counted at campaign level
-                     adLeads = 0
-                     console.log('Ad conversions set to 0 (counted at campaign level)', ad.name)
+                     // Count conversions at ad level for granular analysis
+                     const adCombinedMetrics = [
+                       ...(Array.isArray(adInsights.actions) ? adInsights.actions : []),
+                       ...(Array.isArray((adInsights as any).conversions) ? (adInsights as any).conversions : [])
+                     ]
+                     adLeads = countConversionsFromActions(adCombinedMetrics, campaign.objective, `${campaign.name} → ${adSet.name} → ${ad.name}`)
+                     console.log('Ad conversions saved:', ad.name, adLeads)
                   }
                    
                     // Save ad to database with complete data
