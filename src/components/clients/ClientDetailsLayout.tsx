@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useEffect, useState, useMemo } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,11 @@ import { useSyncJobStatus } from "@/hooks/useSyncJobStatus";
 import { useClients, Client } from "@/hooks/useClients";
 import { ClientDialog } from "@/components/clients/ClientDialog";
 import { ClientQuickSwitch } from "@/components/clients/ClientQuickSwitch";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   LayoutDashboard,
   Megaphone,
@@ -31,7 +36,6 @@ import {
   Share2,
   UsersRound,
   Activity,
-  Instagram,
   Pencil,
   ArrowLeftRight,
   ListTodo,
@@ -40,6 +44,14 @@ import {
   Palette,
   ExternalLink,
   Link2,
+  ChevronDown,
+  ChevronRight,
+  LucideIcon,
+  Eye,
+  Settings,
+  Target,
+  PenTool,
+  Presentation,
 } from "lucide-react";
 
 interface ClientDetailsLayoutProps {
@@ -47,6 +59,18 @@ interface ClientDetailsLayoutProps {
   clientId: string;
   clientName: string;
   dashboardToken?: string | null;
+}
+
+interface NavItem {
+  title: string;
+  href: string;
+  icon: LucideIcon;
+}
+
+interface NavGroup {
+  title: string;
+  icon: LucideIcon;
+  items: NavItem[];
 }
 
 export function ClientDetailsLayout({ children, clientId, clientName, dashboardToken }: ClientDetailsLayoutProps) {
@@ -59,6 +83,108 @@ export function ClientDetailsLayout({ children, clientId, clientName, dashboardT
   
   // Find the current client from the clients list
   const currentClient = clients.find(c => c.id === clientId);
+
+  // Navigation groups
+  const navGroups: NavGroup[] = useMemo(() => [
+    {
+      title: "Visão Geral",
+      icon: Eye,
+      items: [
+        { title: "Dashboard", href: `/clientes/${clientId}`, icon: LayoutDashboard },
+        { title: "Alertas & Sugestões", href: `/clientes/${clientId}/alertas`, icon: AlertTriangle },
+      ]
+    },
+    {
+      title: "Análises & Relatórios",
+      icon: BarChart3,
+      items: [
+        { title: "Análise Completa", href: `/clientes/${clientId}/analise`, icon: BarChart3 },
+        { title: "Análise Competitiva", href: `/clientes/${clientId}/competitiva`, icon: Users },
+        { title: "Comparação de Períodos", href: `/clientes/${clientId}/comparacao`, icon: GitCompare },
+        { title: "Relatório Semanal", href: `/clientes/${clientId}/relatorio`, icon: FileText },
+        { title: "Tendências", href: `/clientes/${clientId}/tendencias`, icon: TrendingUp },
+      ]
+    },
+    {
+      title: "Campanhas & Anúncios",
+      icon: Megaphone,
+      items: [
+        { title: "Campanhas", href: `/clientes/${clientId}/campanhas`, icon: Megaphone },
+        { title: "Conjuntos de Anúncios", href: `/clientes/${clientId}/conjuntos`, icon: Layers },
+        { title: "Criativos", href: `/clientes/${clientId}/criativos`, icon: Image },
+        { title: "Funil de Conversão", href: `/clientes/${clientId}/funil`, icon: TrendingUp },
+        { title: "Automações", href: `/clientes/${clientId}/automacoes`, icon: Zap },
+      ]
+    },
+    {
+      title: "Meta & Rastreamento",
+      icon: Target,
+      items: [
+        { title: "Pixels Meta", href: `/clientes/${clientId}/pixels`, icon: Activity },
+        { title: "Públicos Meta", href: `/clientes/${clientId}/publicos`, icon: UsersRound },
+        { title: "Conversões Offline", href: `/clientes/${clientId}/conversoes`, icon: DollarSign },
+        { title: "URLs", href: `/clientes/${clientId}/urls`, icon: Link2 },
+        { title: "Keyword Planner", href: `/clientes/${clientId}/keyword-planner`, icon: Sparkles },
+      ]
+    },
+    {
+      title: "Gestão de Leads",
+      icon: Kanban,
+      items: [
+        { title: "CRM", href: `/clientes/${clientId}/crm`, icon: Kanban },
+        { title: "Leads Desqualificados", href: `/clientes/${clientId}/leads-desqualificados`, icon: UserX },
+      ]
+    },
+    {
+      title: "Criação de Conteúdo",
+      icon: PenTool,
+      items: [
+        { title: "Fábrica de Anúncios", href: `/clientes/${clientId}/fabrica-anuncios`, icon: Factory },
+        { title: "Fábrica de Criativos", href: `/clientes/${clientId}/fabrica-criativos`, icon: Palette },
+        { title: "Fábrica de Carrosseis", href: `/clientes/${clientId}/fabrica-carrosseis`, icon: Layers },
+        { title: "Redes Sociais", href: `/clientes/${clientId}/redes-sociais`, icon: Share2 },
+      ]
+    },
+    {
+      title: "Apresentações & Planejamento",
+      icon: Presentation,
+      items: [
+        { title: "Apresentações", href: `/clientes/${clientId}/apresentacoes`, icon: TrendingUp },
+        { title: "Tarefas", href: `/clientes/${clientId}/tarefas`, icon: ListTodo },
+      ]
+    },
+    {
+      title: "Configurações & Dados",
+      icon: Settings,
+      items: [
+        { title: "Contato & Dados", href: `/clientes/${clientId}/contato`, icon: User },
+        { title: "Anotações", href: `/clientes/${clientId}/anotacoes`, icon: StickyNote },
+        { title: "Histórico", href: `/clientes/${clientId}/historico`, icon: Clock },
+      ]
+    },
+  ], [clientId]);
+
+  // State for controlling open groups - initialize with active group + Visão Geral
+  const [openGroups, setOpenGroups] = useState<string[]>(() => {
+    const activeGroup = navGroups.find(group => 
+      group.items.some(item => location.pathname === item.href)
+    );
+    const defaultOpen = ["Visão Geral"];
+    if (activeGroup && activeGroup.title !== "Visão Geral") {
+      defaultOpen.push(activeGroup.title);
+    }
+    return defaultOpen;
+  });
+
+  // Update open groups when route changes
+  useEffect(() => {
+    const activeGroup = navGroups.find(group => 
+      group.items.some(item => location.pathname === item.href)
+    );
+    if (activeGroup && !openGroups.includes(activeGroup.title)) {
+      setOpenGroups(prev => [...prev, activeGroup.title]);
+    }
+  }, [location.pathname, navGroups]);
 
   // Check for active sync jobs for this client
   useEffect(() => {
@@ -111,176 +237,13 @@ export function ClientDetailsLayout({ children, clientId, clientName, dashboardT
     window.dispatchEvent(new CustomEvent('refreshClientDetails'));
   };
 
-  const navItems = [
-    {
-      title: "Dashboard",
-      href: `/clientes/${clientId}`,
-      icon: LayoutDashboard,
-      description: "Visão geral e métricas principais"
-    },
-    {
-      title: "Alertas & Sugestões",
-      href: `/clientes/${clientId}/alertas`,
-      icon: AlertTriangle,
-      description: "Ver alertas e sugestões"
-    },
-    {
-      title: "Análise Competitiva",
-      href: `/clientes/${clientId}/competitiva`,
-      icon: Users,
-      description: "Comparar com concorrentes"
-    },
-    {
-      title: "Análise Completa",
-      href: `/clientes/${clientId}/analise`,
-      icon: BarChart3,
-      description: "Análise detalhada"
-    },
-    {
-      title: "Anotações",
-      href: `/clientes/${clientId}/anotacoes`,
-      icon: StickyNote,
-      description: "Anotações sobre o cliente"
-    },
-    {
-      title: "Automações",
-      href: `/clientes/${clientId}/automacoes`,
-      icon: Zap,
-      description: "Gerenciar automações"
-    },
-    {
-      title: "Campanhas",
-      href: `/clientes/${clientId}/campanhas`,
-      icon: Megaphone,
-      description: "Gerenciar campanhas ativas"
-    },
-    {
-      title: "Comparação de Períodos",
-      href: `/clientes/${clientId}/comparacao`,
-      icon: GitCompare,
-      description: "Comparar períodos"
-    },
-    {
-      title: "Conjuntos de Anúncios",
-      href: `/clientes/${clientId}/conjuntos`,
-      icon: Layers,
-      description: "Ver conjuntos de anúncios"
-    },
-    {
-      title: "Contato & Dados",
-      href: `/clientes/${clientId}/contato`,
-      icon: User,
-      description: "Informações de contato"
-    },
-    {
-      title: "Conversões Offline",
-      href: `/clientes/${clientId}/conversoes`,
-      icon: DollarSign,
-      description: "Rastrear conversões offline"
-    },
-    {
-      title: "Criativos",
-      href: `/clientes/${clientId}/criativos`,
-      icon: Image,
-      description: "Gerenciar criativos e anúncios"
-    },
-    {
-      title: "CRM",
-      href: `/clientes/${clientId}/crm`,
-      icon: Kanban,
-      description: "Gerenciar leads no mini CRM"
-    },
-    {
-      title: "Funil de Conversão",
-      href: `/clientes/${clientId}/funil`,
-      icon: TrendingUp,
-      description: "Análise do funil de vendas"
-    },
-    {
-      title: "Histórico",
-      href: `/clientes/${clientId}/historico`,
-      icon: Clock,
-      description: "Histórico de alterações"
-    },
-    {
-      title: "Tarefas",
-      href: `/clientes/${clientId}/tarefas`,
-      icon: ListTodo,
-      description: "Gerenciar tarefas do cliente"
-    },
-    {
-      title: "Leads Desqualificados",
-      href: `/clientes/${clientId}/leads-desqualificados`,
-      icon: UserX,
-      description: "Gerenciar leads desqualificados"
-    },
-    {
-      title: "Pixels Meta",
-      href: `/clientes/${clientId}/pixels`,
-      icon: Activity,
-      description: "Gerenciar pixels de conversão"
-    },
-    {
-      title: "Públicos Meta",
-      href: `/clientes/${clientId}/publicos`,
-      icon: UsersRound,
-      description: "Gerenciar públicos personalizados"
-    },
-    {
-      title: "Apresentações",
-      href: `/clientes/${clientId}/apresentacoes`,
-      icon: TrendingUp,
-      description: "Apresentações de resultados"
-    },
-    {
-      title: "Redes Sociais",
-      href: `/clientes/${clientId}/redes-sociais`,
-      icon: Share2,
-      description: "Análise de redes sociais"
-    },
-    {
-      title: "Relatório Semanal",
-      href: `/clientes/${clientId}/relatorio`,
-      icon: FileText,
-      description: "Relatórios semanais"
-    },
-    {
-      title: "Tendências",
-      href: `/clientes/${clientId}/tendencias`,
-      icon: TrendingUp,
-      description: "Dashboard Google Trends"
-    },
-    {
-      title: "Keyword Planner",
-      href: `/clientes/${clientId}/keyword-planner`,
-      icon: Sparkles,
-      description: "Planejador de palavras-chave"
-    },
-    {
-      title: "Fábrica de Anúncios",
-      href: `/clientes/${clientId}/fabrica-anuncios`,
-      icon: Factory,
-      description: "Configurar geração automática de anúncios"
-    },
-    {
-      title: "Fábrica de Criativos",
-      href: `/clientes/${clientId}/fabrica-criativos`,
-      icon: Palette,
-      description: "Geração automática de criativos para redes sociais"
-    },
-    {
-      title: "Fábrica de Carrosseis",
-      href: `/clientes/${clientId}/fabrica-carrosseis`,
-      icon: Layers,
-      description: "Geração automática de carrosseis para Instagram"
-    },
-    {
-      title: "URLs",
-      href: `/clientes/${clientId}/urls`,
-      icon: Link2,
-      description: "URLs de destino e validação"
-    }
-  ];
+  const toggleGroup = (groupTitle: string, open: boolean) => {
+    setOpenGroups(prev => 
+      open 
+        ? [...prev, groupTitle]
+        : prev.filter(g => g !== groupTitle)
+    );
+  };
 
   return (
     <div className="flex gap-6">
@@ -334,26 +297,62 @@ export function ClientDetailsLayout({ children, clientId, clientName, dashboardT
           </div>
           
           <nav className="space-y-1">
-            {navItems.map((item) => {
-              const isActive = location.pathname === item.href;
-              const Icon = item.icon;
+            {navGroups.map((group) => {
+              const isOpen = openGroups.includes(group.title);
+              const hasActiveItem = group.items.some(item => location.pathname === item.href);
+              const GroupIcon = group.icon;
               
               return (
-                <Link
-                  key={item.href}
-                  to={item.href}
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors",
-                    isActive
-                      ? "bg-primary text-primary-foreground font-medium"
-                      : "hover:bg-muted text-muted-foreground"
-                  )}
+                <Collapsible
+                  key={group.title}
+                  open={isOpen}
+                  onOpenChange={(open) => toggleGroup(group.title, open)}
                 >
-                  <Icon className="w-4 h-4 shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium truncate">{item.title}</div>
-                  </div>
-                </Link>
+                  <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-2 rounded-md text-sm hover:bg-muted transition-colors">
+                    <div className="flex items-center gap-2">
+                      <GroupIcon className={cn(
+                        "w-4 h-4",
+                        hasActiveItem && "text-primary"
+                      )} />
+                      <span className={cn(
+                        "font-medium",
+                        hasActiveItem && "text-primary"
+                      )}>
+                        {group.title}
+                      </span>
+                    </div>
+                    {isOpen ? (
+                      <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                    ) : (
+                      <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                    )}
+                  </CollapsibleTrigger>
+                  
+                  <CollapsibleContent>
+                    <div className="ml-4 mt-1 space-y-0.5 border-l border-border pl-3">
+                      {group.items.map((item) => {
+                        const isActive = location.pathname === item.href;
+                        const Icon = item.icon;
+                        
+                        return (
+                          <Link
+                            key={item.href}
+                            to={item.href}
+                            className={cn(
+                              "flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors",
+                              isActive
+                                ? "bg-primary text-primary-foreground font-medium"
+                                : "hover:bg-muted text-muted-foreground"
+                            )}
+                          >
+                            <Icon className="w-3.5 h-3.5 shrink-0" />
+                            <span className="truncate">{item.title}</span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
               );
             })}
           </nav>
