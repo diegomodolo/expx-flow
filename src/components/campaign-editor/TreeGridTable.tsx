@@ -81,34 +81,37 @@ export function TreeGridTable({
     );
   }
 
-  const renderNode = (node: TreeNode, depth: number = 0) => {
+  // Flatten the tree into an array of rows for proper table alignment
+  const flattenTree = (node: TreeNode, depth: number = 0): React.ReactNode[] => {
     const isExpanded = expandedNodes.has(node.id);
     const hasChildren = node.children && node.children.length > 0;
     const isSelected = selectedNodeId === node.id;
 
-    return (
-      <div key={node.id}>
-        <TreeGridRow
-          node={node}
-          depth={depth}
-          isExpanded={isExpanded}
-          hasChildren={hasChildren}
-          isSelected={isSelected}
-          targets={targets}
-          isStatusLoading={loading && currentAction === `status-${node.id}`}
-          isBudgetLoading={loading && currentAction === `budget-${node.id}`}
-          onToggleExpand={() => toggleExpand(node.id)}
-          onSelect={() => onSelectNode(node)}
-          onToggleStatus={(newStatus) => handleToggleStatus(node, newStatus)}
-          onUpdateBudget={(newBudget) => handleUpdateBudget(node, newBudget)}
-        />
-        {isExpanded && hasChildren && (
-          <div className="border-l border-border/50 ml-4">
-            {node.children!.map((child) => renderNode(child, depth + 1))}
-          </div>
-        )}
-      </div>
-    );
+    const rows: React.ReactNode[] = [
+      <TreeGridRow
+        key={node.id}
+        node={node}
+        depth={depth}
+        isExpanded={isExpanded}
+        hasChildren={hasChildren}
+        isSelected={isSelected}
+        targets={targets}
+        isStatusLoading={loading && currentAction === `status-${node.id}`}
+        isBudgetLoading={loading && currentAction === `budget-${node.id}`}
+        onToggleExpand={() => toggleExpand(node.id)}
+        onSelect={() => onSelectNode(node)}
+        onToggleStatus={(newStatus) => handleToggleStatus(node, newStatus)}
+        onUpdateBudget={(newBudget) => handleUpdateBudget(node, newBudget)}
+      />
+    ];
+
+    if (isExpanded && hasChildren) {
+      node.children!.forEach((child) => {
+        rows.push(...flattenTree(child, depth + 1));
+      });
+    }
+
+    return rows;
   };
 
   return (
@@ -141,7 +144,7 @@ export function TreeGridTable({
           </tr>
         </thead>
         <tbody className="bg-card divide-y divide-border">
-          {renderNode(campaign)}
+          {flattenTree(campaign)}
         </tbody>
       </table>
     </div>
