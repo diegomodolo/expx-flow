@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
-import { CheckCircle2, ChevronLeft, ChevronRight, ExternalLink, X } from "lucide-react";
+import { CheckCircle2, ChevronLeft, ChevronRight, ExternalLink, X, Heart, MessageCircle, Send, Bookmark } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface CarouselSlide {
@@ -85,12 +85,12 @@ export function GeneratedCarouselPreview({
   if (isLoading) {
     return (
       <Card>
-        <CardHeader>
-          <Skeleton className="h-6 w-48" />
-          <Skeleton className="h-4 w-32 mt-1" />
+        <CardHeader className="pb-3">
+          <Skeleton className="h-5 w-40" />
+          <Skeleton className="h-4 w-28 mt-1" />
         </CardHeader>
         <CardContent>
-          <Skeleton className="aspect-[3/4] w-full rounded-lg" />
+          <Skeleton className="aspect-square w-full max-w-[280px] mx-auto rounded-lg" />
         </CardContent>
       </Card>
     );
@@ -107,91 +107,125 @@ export function GeneratedCarouselPreview({
       <Button
         variant="ghost"
         size="icon"
-        className="absolute top-2 right-2 h-8 w-8"
+        className="absolute top-2 right-2 h-7 w-7 z-10"
         onClick={onClose}
       >
         <X className="h-4 w-4" />
       </Button>
 
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <CheckCircle2 className="w-5 h-5 text-primary" />
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-sm">
+          <CheckCircle2 className="w-4 h-4 text-primary" />
           Carrossel Gerado!
         </CardTitle>
-        <CardDescription>
+        <CardDescription className="text-xs">
           {carousel.slides.length} slides • {carousel.carousel_type}
         </CardDescription>
       </CardHeader>
 
-      <CardContent className="space-y-4">
-        {/* Carousel viewer */}
-        <div className="relative">
-          <div className="aspect-[3/4] rounded-lg overflow-hidden bg-muted">
-            {activeSlide?.image_url ? (
-              <img
-                src={activeSlide.image_url}
-                alt={`Slide ${activeSlideIndex + 1}`}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <p className="text-sm text-muted-foreground">
-                  Imagem não disponível
-                </p>
+      <CardContent className="space-y-3">
+        {/* Instagram Mockup */}
+        <div className="max-w-[300px] mx-auto">
+          <div className="bg-white dark:bg-zinc-900 rounded-xl border border-border shadow-sm overflow-hidden">
+            {/* Instagram Header */}
+            <div className="flex items-center gap-2 p-2.5 border-b border-border/50">
+              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-500 via-pink-500 to-orange-400 p-[2px]">
+                <div className="w-full h-full rounded-full bg-white dark:bg-zinc-900 flex items-center justify-center">
+                  <span className="text-[8px] font-semibold">IG</span>
+                </div>
               </div>
-            )}
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold truncate">sua_marca</p>
+                <p className="text-[10px] text-muted-foreground">Patrocinado</p>
+              </div>
+              <button className="text-muted-foreground">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                  <circle cx="12" cy="6" r="1.5" />
+                  <circle cx="12" cy="12" r="1.5" />
+                  <circle cx="12" cy="18" r="1.5" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Image Container */}
+            <div className="relative aspect-square bg-muted">
+              {activeSlide?.image_url ? (
+                <img
+                  src={activeSlide.image_url}
+                  alt={`Slide ${activeSlideIndex + 1}`}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <p className="text-xs text-muted-foreground">
+                    Imagem não disponível
+                  </p>
+                </div>
+              )}
+
+              {/* Navigation arrows */}
+              {carousel.slides.length > 1 && (
+                <>
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="absolute left-1.5 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full shadow-md bg-white/90 hover:bg-white"
+                    onClick={handlePrev}
+                  >
+                    <ChevronLeft className="h-3 w-3 text-black" />
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full shadow-md bg-white/90 hover:bg-white"
+                    onClick={handleNext}
+                  >
+                    <ChevronRight className="h-3 w-3 text-black" />
+                  </Button>
+                </>
+              )}
+
+              {/* Dots indicator on image */}
+              {carousel.slides.length > 1 && (
+                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+                  {carousel.slides.map((_, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setActiveSlideIndex(idx)}
+                      className={cn(
+                        "w-1.5 h-1.5 rounded-full transition-colors",
+                        idx === activeSlideIndex 
+                          ? "bg-blue-500" 
+                          : "bg-white/60"
+                      )}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Instagram Actions */}
+            <div className="p-2.5">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-3">
+                  <Heart className="w-5 h-5" />
+                  <MessageCircle className="w-5 h-5" />
+                  <Send className="w-5 h-5" />
+                </div>
+                <Bookmark className="w-5 h-5" />
+              </div>
+              
+              <p className="text-[10px] font-semibold mb-1">1.234 curtidas</p>
+              <p className="text-[10px] line-clamp-2">
+                <span className="font-semibold">sua_marca</span>{" "}
+                {carousel.caption?.substring(0, 60) || activeSlide?.headline}...
+              </p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">
+                Slide {activeSlideIndex + 1}/{carousel.slides.length}
+              </p>
+            </div>
           </div>
-
-          {/* Navigation arrows */}
-          {carousel.slides.length > 1 && (
-            <>
-              <Button
-                variant="secondary"
-                size="icon"
-                className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full shadow-md"
-                onClick={handlePrev}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="secondary"
-                size="icon"
-                className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full shadow-md"
-                onClick={handleNext}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </>
-          )}
-        </div>
-
-        {/* Dots indicator */}
-        {carousel.slides.length > 1 && (
-          <div className="flex justify-center gap-1.5">
-            {carousel.slides.map((_, idx) => (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => setActiveSlideIndex(idx)}
-                className={cn(
-                  "w-2 h-2 rounded-full transition-colors",
-                  idx === activeSlideIndex 
-                    ? "bg-primary" 
-                    : "bg-muted-foreground/30 hover:bg-muted-foreground/50"
-                )}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Slide info */}
-        <div className="space-y-1">
-          <p className="text-sm font-medium line-clamp-2">
-            {activeSlide?.headline}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Slide {activeSlideIndex + 1} de {carousel.slides.length}
-          </p>
         </div>
 
         {/* Action button */}
@@ -199,8 +233,9 @@ export function GeneratedCarouselPreview({
           onClick={onViewDetails} 
           className="w-full"
           variant="outline"
+          size="sm"
         >
-          <ExternalLink className="w-4 h-4 mr-2" />
+          <ExternalLink className="w-3.5 h-3.5 mr-2" />
           Ver Detalhes e Editar
         </Button>
       </CardContent>
