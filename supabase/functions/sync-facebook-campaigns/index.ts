@@ -1092,7 +1092,8 @@ async function processSync(
       if (syncAdSets) {
         try {
           console.log('Fetching ad sets for campaign:', campaign.id)
-            const adSetsUrl = `https://graph.facebook.com/v20.0/${campaign.id}/adsets?fields=id,name,status,daily_budget,lifetime_budget,bid_strategy,optimization_goal,targeting,insights${dateParam}.action_report_time(conversion).action_attribution_windows([\"7d_click\",\"1d_view\"])` +
+            // Added url_tags field to capture UTM parameters configured at adset level
+            const adSetsUrl = `https://graph.facebook.com/v20.0/${campaign.id}/adsets?fields=id,name,status,daily_budget,lifetime_budget,bid_strategy,optimization_goal,targeting,promoted_object,url_tags,insights${dateParam}.action_report_time(conversion).action_attribution_windows([\"7d_click\",\"1d_view\"])` +
             `{impressions,clicks,spend,cpm,actions,reach,frequency,quality_ranking,engagement_rate_ranking,conversion_rate_ranking}&access_token=${accessToken}`
           const adSetsResponse = await fetch(adSetsUrl)
           
@@ -1329,6 +1330,19 @@ async function processSync(
                     const descriptionValue = linkData.description || objectStory.video_data?.message || creative.body || ''
                     console.log('Description extraction - linkData.description:', linkData.description, 'final:', descriptionValue)
                     
+                    // Get URL tags from adset level (this is where Meta stores UTM parameters)
+                    const adSetUrlTags = adSet.url_tags || ''
+                    console.log('AdSet URL Tags (UTM params):', adSetUrlTags)
+                    
+                    // Build final link_url with url_tags if present
+                    let finalLinkUrl = linkData.link || ''
+                    if (finalLinkUrl && adSetUrlTags && !finalLinkUrl.includes('utm_')) {
+                      // Only append url_tags if the link doesn't already have UTM params
+                      const separator = finalLinkUrl.includes('?') ? '&' : '?'
+                      finalLinkUrl = `${finalLinkUrl}${separator}${adSetUrlTags}`
+                      console.log('Final link URL with UTM params:', finalLinkUrl)
+                    }
+                    
                     // Save ad to database with complete data
                     const adData = {
                       facebook_id: ad.id,
@@ -1345,7 +1359,7 @@ async function processSync(
                       creative_description: descriptionValue,
                       image_url: imageUrl,
                       video_url: videoUrl,
-                     link_url: linkData.link || '',
+                     link_url: finalLinkUrl,
                      call_to_action: JSON.stringify(callToActionValue),
                      ctr: adCtr,
                      cpc: adCpc,

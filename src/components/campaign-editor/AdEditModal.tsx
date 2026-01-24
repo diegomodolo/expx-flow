@@ -113,7 +113,37 @@ export function AdEditModal({
   const [utmCampaign, setUtmCampaign] = useState('');
   const [utmContent, setUtmContent] = useState('');
   const [utmTerm, setUtmTerm] = useState('');
+  const [utmFullString, setUtmFullString] = useState('');
   const [showUtmFields, setShowUtmFields] = useState(false);
+
+  // Build full UTM string from individual fields
+  const buildUtmString = () => {
+    const params: string[] = [];
+    if (utmSource) params.push(`utm_source=${utmSource}`);
+    if (utmMedium) params.push(`utm_medium=${utmMedium}`);
+    if (utmCampaign) params.push(`utm_campaign=${utmCampaign}`);
+    if (utmContent) params.push(`utm_content=${utmContent}`);
+    if (utmTerm) params.push(`utm_term=${utmTerm}`);
+    return params.join('&');
+  };
+
+  // Parse full UTM string to individual fields
+  const parseUtmString = (fullString: string) => {
+    const params = new URLSearchParams(fullString);
+    setUtmSource(params.get('utm_source') || '');
+    setUtmMedium(params.get('utm_medium') || '');
+    setUtmCampaign(params.get('utm_campaign') || '');
+    setUtmContent(params.get('utm_content') || '');
+    setUtmTerm(params.get('utm_term') || '');
+  };
+
+  // Sync individual fields to full string
+  useEffect(() => {
+    const built = buildUtmString();
+    if (built !== utmFullString) {
+      setUtmFullString(built);
+    }
+  }, [utmSource, utmMedium, utmCampaign, utmContent, utmTerm]);
 
   // Original values for comparison
   const [originalValues, setOriginalValues] = useState<any>(null);
@@ -500,11 +530,13 @@ export function AdEditModal({
                     {/* Description */}
                     <div className="space-y-2">
                       <Label>Descrição</Label>
-                      <Input
+                      <Textarea
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
-                        placeholder="Descrição complementar"
+                        placeholder="Descrição complementar do anúncio"
+                        rows={3}
                       />
+                      <p className="text-xs text-muted-foreground">{description.length}/300 caracteres</p>
                     </div>
                   </div>
                 </div>
@@ -553,9 +585,28 @@ export function AdEditModal({
                         <Button variant="ghost" size="sm" className="gap-2 h-8 text-xs">
                           <ChevronDown className={`h-3 w-3 transition-transform ${showUtmFields ? 'rotate-180' : ''}`} />
                           Parâmetros UTM
+                          {utmFullString && <Badge variant="secondary" className="ml-2 text-xs">Configurado</Badge>}
                         </Button>
                       </CollapsibleTrigger>
-                      <CollapsibleContent className="space-y-3 pt-3">
+                      <CollapsibleContent className="space-y-4 pt-3">
+                        {/* Full UTM String Field */}
+                        <div className="space-y-2">
+                          <Label className="text-xs font-medium">String Completa (como no Meta)</Label>
+                          <Input
+                            value={utmFullString}
+                            onChange={(e) => {
+                              setUtmFullString(e.target.value);
+                              parseUtmString(e.target.value);
+                            }}
+                            placeholder="utm_source={{site_source_name}}&utm_medium={{ad.name}}&utm_campaign={{campaign.name}}"
+                            className="h-9 text-sm font-mono"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Cole aqui a string completa de parâmetros ou edite os campos individuais abaixo
+                          </p>
+                        </div>
+                        
+                        {/* Individual Fields */}
                         <div className="grid grid-cols-2 gap-3">
                           <div className="space-y-1">
                             <Label className="text-xs">utm_source</Label>
