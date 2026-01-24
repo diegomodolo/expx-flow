@@ -273,12 +273,56 @@ serve(async (req) => {
 
           const slide = carousel.slides[i];
           try {
-            const hasReferences = allReferenceImages.length > 0;
+            // CRITICAL FIX: Get the SPECIFIC reference image for THIS slide (not all images)
+            const slideReferenceImage = reference_carousel_images?.[i] || null;
+            const hasSpecificReference = slideReferenceImage !== null;
+            const hasAnyReferences = allReferenceImages.length > 0;
+            
+            // For this slide, use ONLY its specific reference if available
+            const slideReferences = hasSpecificReference ? [slideReferenceImage] : allReferenceImages;
             
             // Build visual variation instructions
-            const variationInstructions = buildVisualVariationInstructions(visual_variations as VisualVariations | undefined, hasReferences);
+            const variationInstructions = buildVisualVariationInstructions(
+              visual_variations as VisualVariations | undefined, 
+              hasAnyReferences,
+              hasSpecificReference
+            );
 
-            const imagePrompt = `Crie uma imagem profissional para carrossel do Instagram no formato VERTICAL 3:4 (1080x1440 pixels).
+            console.log("[daily-carousel-generator-stream] Generating slide", {
+              slideNumber: i + 1,
+              hasSpecificReference,
+              referenceUrl: slideReferenceImage ? slideReferenceImage.substring(0, 80) + "..." : "none",
+              headline: slide.headline.substring(0, 40) + "...",
+              variationsApplied: visual_variations,
+              totalRefsForThisSlide: slideReferences.length,
+            });
+
+            let imagePrompt: string;
+
+            if (hasSpecificReference) {
+              // MODE: DIRECT EDIT - Use specific reference as base, only swap text
+              imagePrompt = `EDITE a imagem de referência anexada.
+
+TAREFA: Reproduzir EXATAMENTE a imagem de referência, APENAS substituindo o texto.
+
+NOVO CONTEÚDO DE TEXTO:
+Headline: ${slide.headline}
+Texto secundário: ${slide.body_text}
+
+REGRAS ABSOLUTAS:
+- COPIE EXATAMENTE o layout, composição, cores, elementos visuais da referência
+- MANTENHA IDÊNTICOS: posição dos elementos, paleta de cores, tipografia, fundo
+- REPRODUZA o logotipo/marca IDÊNTICO (mesma fonte, cor, posição)
+- APENAS SUBSTITUA o texto pelo novo texto acima
+- O resultado deve ser visualmente IDÊNTICO à referência (exceto pelo texto)
+- Formato VERTICAL 3:4 (1080x1440 pixels)
+- Texto em português brasileiro sem erros ortográficos
+- Texto legível com alto contraste
+
+${variationInstructions}`;
+            } else {
+              // MODE: CREATE NEW - No specific reference, create from scratch
+              imagePrompt = `Crie uma imagem profissional para carrossel do Instagram no formato VERTICAL 3:4 (1080x1440 pixels).
 ${styleContext}
 
 SLIDE ${slide.slide_number}:
@@ -295,8 +339,9 @@ REGRAS OBRIGATÓRIAS:
 - NÃO incluir textos longos, apenas a headline curta e impactante
 ${variationInstructions}
 - Ultra high resolution`;
+            }
 
-            const dataUrl = await generateImageWithNanoBanana(imagePrompt, LOVABLE_API_KEY, allReferenceImages);
+            const dataUrl = await generateImageWithNanoBanana(imagePrompt, LOVABLE_API_KEY, slideReferences);
             if (!dataUrl) throw new Error("No image returned");
 
             const publicUrl = await uploadDataUrlToStorage({
@@ -398,8 +443,16 @@ function pickTypeFromSchedule(schedule: CarouselSchedule | null): CarouselType {
 /**
  * Build visual variation instructions for the image prompt based on user selections.
  * If no variations are selected, instructs AI to faithfully reproduce the reference image.
+ * 
+ * @param variations - User-selected visual variations
+ * @param hasReferences - Whether there are any reference images available
+ * @param hasSpecificReference - Whether this slide has its OWN specific reference image
  */
-function buildVisualVariationInstructions(variations: VisualVariations | undefined, hasReferences: boolean): string {
+function buildVisualVariationInstructions(
+  variations: VisualVariations | undefined, 
+  hasReferences: boolean,
+  hasSpecificReference: boolean = false
+): string {
   if (!hasReferences) {
     return '';
   }
@@ -412,7 +465,20 @@ function buildVisualVariationInstructions(variations: VisualVariations | undefin
      !variations.alterLayout);
   
   if (noVariations) {
-    // Faithful copy mode - reproduce exactly, only change text
+    // When we have a SPECIFIC reference for this slide, use even stricter copy mode
+    if (hasSpecificReference) {
+      return `
+MODO CÓPIA EXATA (OBRIGATÓRIO):
+- Esta é uma operação de EDIÇÃO, NÃO de criação
+- A imagem anexada é o TEMPLATE EXATO que deve ser copiado
+- REPRODUZA pixel por pixel o layout, design, cores e composição
+- APENAS substitua o texto pelos novos valores fornecidos acima
+- O resultado deve ser INDISTINGUÍVEL da original (exceto pelo texto)
+- PRESERVE: posição exata de todos elementos, tipografia, espaçamentos, sombras
+- NÃO adicione ou remova nenhum elemento visual`;
+    }
+    
+    // Faithful copy mode for general references
     return `MODO CÓPIA FIEL (siga as imagens de referência anexadas):
 - REPRODUZA EXATAMENTE a imagem de referência anexada
 - MANTENHA IDÊNTICO: cores, layout, personagens, elementos de fundo, posicionamento
@@ -423,16 +489,16 @@ function buildVisualVariationInstructions(variations: VisualVariations | undefin
   }
   
   // Build instructions based on selected variations
-  let instructions = `VARIAÇÕES VISUAIS SOLICITADAS (baseie-se nas imagens de referência anexadas):
-- REPRODUZA o logotipo/marca IDÊNTICO ao das referências (mesma fonte, cores, posição)
-- MANTENHA o estilo geral e profissionalismo das referências`;
+  let instructions = `VARIAÇÕES VISUAIS SOLICITADAS (baseie-se na imagem de referência anexada):
+- REPRODUZA o logotipo/marca IDÊNTICO ao da referência (mesma fonte, cores, posição)
+- MANTENHA o estilo geral e profissionalismo da referência`;
   
   if (variations.alterColorPalette) {
     instructions += `
 - ALTERE A PALETA DE CORES: inverta/troque as cores principais (ex: onde tem azul, coloque vermelho; onde tem vermelho, coloque azul)`;
   } else {
     instructions += `
-- MANTENHA a paleta de cores das referências`;
+- MANTENHA a paleta de cores da referência`;
   }
   
   if (variations.alterCharacters) {
@@ -440,7 +506,7 @@ function buildVisualVariationInstructions(variations: VisualVariations | undefin
 - SUBSTITUA OS PERSONAGENS/PESSOAS: coloque pessoas diferentes (aparência, gênero, etnia, estilo diferentes)`;
   } else {
     instructions += `
-- MANTENHA os personagens/pessoas similares às referências`;
+- MANTENHA os personagens/pessoas similares à referência`;
   }
   
   if (variations.alterBackground) {
@@ -448,7 +514,7 @@ function buildVisualVariationInstructions(variations: VisualVariations | undefin
 - TROQUE OS ELEMENTOS DE FUNDO: substitua ícones, formas, padrões decorativos por outros diferentes`;
   } else {
     instructions += `
-- MANTENHA os elementos de fundo similares às referências`;
+- MANTENHA os elementos de fundo similares à referência`;
   }
   
   if (variations.alterLayout) {
@@ -456,7 +522,7 @@ function buildVisualVariationInstructions(variations: VisualVariations | undefin
 - ALTERE A DISPOSIÇÃO DOS ELEMENTOS: reposicione textos, mude alinhamentos, reorganize blocos visuais`;
   } else {
     instructions += `
-- MANTENHA a disposição/layout similar às referências`;
+- MANTENHA a disposição/layout similar à referência`;
   }
   
   return instructions;
