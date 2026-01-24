@@ -131,6 +131,49 @@ export function ClienteDashboard({
         </Card>
       )}
 
+      {/* Paused Client Alert */}
+      {client?.is_paused && (
+        <Card className="border-yellow-500 bg-yellow-500/10">
+          <CardContent className="flex items-start gap-3 p-4">
+            <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5 flex-shrink-0" />
+            <div>
+              <h3 className="font-semibold text-yellow-700 mb-1">Cliente Pausado</h3>
+              <p className="text-yellow-700/80 text-sm">
+                Este cliente está com as operações pausadas.
+                {client.pause_reason && (
+                  <span className="block mt-1">{client.pause_reason}</span>
+                )}
+                {client.paused_at && (
+                  <span className="block mt-1 text-xs text-yellow-600/70">
+                    Pausado em: {new Date(client.paused_at).toLocaleDateString('pt-BR')}
+                  </span>
+                )}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Canceled Client Alert */}
+      {client?.is_canceled && (
+        <Card className="border-destructive bg-destructive/5">
+          <CardContent className="flex items-start gap-3 p-4">
+            <AlertTriangle className="h-5 w-5 text-destructive mt-0.5 flex-shrink-0" />
+            <div>
+              <h3 className="font-semibold text-destructive mb-1">Cliente Cancelado</h3>
+              <p className="text-destructive/80 text-sm">
+                Este cliente foi cancelado e não está mais ativo.
+                {client.canceled_at && (
+                  <span className="block mt-1 text-xs text-destructive/70">
+                    Cancelado em: {new Date(client.canceled_at).toLocaleDateString('pt-BR')}
+                  </span>
+                )}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Client Overview Card */}
       <Card>
         <CardContent className="p-4 lg:p-6">
