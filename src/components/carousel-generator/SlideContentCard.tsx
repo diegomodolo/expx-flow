@@ -116,7 +116,7 @@ export function SlideContentCard({
             <Textarea
               value={editedContent.bodyText}
               onChange={(e) => setEditedContent({ ...editedContent, bodyText: e.target.value })}
-              className="min-h-[40px] text-xs resize-none"
+              className="min-h-[80px] text-xs resize-y"
               placeholder="Texto complementar"
             />
             <div className="flex gap-1">
