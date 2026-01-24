@@ -343,11 +343,19 @@ export function AdEditModal({
             <div className="flex-1">
               <DialogTitle className="text-xl">Editar Anúncio</DialogTitle>
               <DialogDescription className="flex items-center gap-2 mt-1">
-                <Badge variant={node.status === 'active' ? 'default' : 'secondary'}>
-                  {node.status === 'active' ? 'Ativo' : 'Pausado'}
-                </Badge>
                 <Badge variant="outline">{node.platform.toUpperCase()}</Badge>
               </DialogDescription>
+            </div>
+            {/* Status Toggle in Header */}
+            <div className="flex items-center gap-3 pr-8">
+              <span className="text-sm text-muted-foreground">
+                {editStatus === 'active' ? 'Ativo' : 'Pausado'}
+              </span>
+              <Switch
+                checked={editStatus === 'active'}
+                onCheckedChange={(checked) => setEditStatus(checked ? 'active' : 'paused')}
+                className="data-[state=checked]:bg-green-500"
+              />
             </div>
           </div>
         </DialogHeader>
@@ -459,24 +467,6 @@ export function AdEditModal({
                       )}
                     </div>
 
-                    {/* Status Field */}
-                    <div className="space-y-2">
-                      <Label>Status</Label>
-                      <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm">
-                            {editStatus === 'active' ? 'Ativo' : 'Pausado'}
-                          </span>
-                          <Badge variant={editStatus === 'active' ? 'default' : 'secondary'}>
-                            {editStatus === 'active' ? 'ON' : 'OFF'}
-                          </Badge>
-                        </div>
-                        <Switch
-                          checked={editStatus === 'active'}
-                          onCheckedChange={(checked) => setEditStatus(checked ? 'active' : 'paused')}
-                        />
-                      </div>
-                    </div>
                   </div>
                 </div>
 
