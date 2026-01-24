@@ -1,140 +1,79 @@
 
-# Plano: Corrigir Geração de Carrossel "A Partir de Exemplo"
+# Plano: Corrigir Re-início da Geração do Carrossel
 
-## Problemas Identificados
+## Problema Identificado
 
-Analisando os logs, identifiquei 3 problemas críticos:
+O modal de geração está **reiniciando a geração** após completar todas as imagens porque o `useEffect` que controla a geração tem dependências que são **objetos/arrays recriados a cada render**.
 
-### Problema 1: Edge function usando versão antiga
-Os logs mostram:
-```
-reference_carousel_images_count: 5
-// NÃO mostra pre_generated_slides_count!
-```
+### Causa Raiz
 
-Mas o log atualizado deveria mostrar:
-```
-pre_generated_slides_count: 5
-pre_generated_slides_provided: true
-```
+No `CarouselGenerationProgressModal.tsx` (linha 152):
 
-Isso indica que a edge function precisa ser redeployada com as mudanças mais recentes.
-
-### Problema 2: Passando TODAS as referências para CADA slide
-Atualmente, a função `generateImageWithNanoBanana` recebe TODAS as 5 imagens de referência para cada slide:
 ```typescript
-// PROBLEMA: passa todas as referências para cada slide
-const dataUrl = await generateImageWithNanoBanana(imagePrompt, LOVABLE_API_KEY, allReferenceImages);
+useEffect(() => {
+  // ... lógica de geração
+}, [open, cancel, start, clientId, companyId, userId, carouselType, 
+    referenceCarouselImages, preGeneratedSlides, visualVariations, onFinished]);
 ```
 
-O correto seria passar apenas a imagem de referência CORRESPONDENTE ao slide atual:
+E no `GeradorCarrosseis.tsx` (linhas 576-585):
+
 ```typescript
-// CORRETO: passa apenas a referência do slide específico
-const slideReferenceImage = allReferenceImages[i] || null;
+preGeneratedSlides={
+  generationMode === "fromExample" && generatedSlideContents && generatedSlideContents.length > 0
+    ? generatedSlideContents.map(s => ({ ... }))  // ← NOVO ARRAY A CADA RENDER!
+    : undefined
+}
 ```
 
-### Problema 3: Prompt não instrui a copiar a imagem específica
-O prompt de imagem precisa instruir a IA a:
-- Usar a imagem de referência ESPECÍFICA do slide como base
-- Reproduzir o layout/composição exata
-- Apenas trocar o texto
+Quando a geração termina e chama `onFinished()`, isso pode causar um re-render do componente pai, que recria esses arrays, disparando o `useEffect` novamente.
 
 ---
 
 ## Solução
 
-### Arquivos a Modificar
+Usar **refs** para armazenar os parâmetros de geração e controlar se já iniciou, evitando re-execuções indesejadas.
 
-| Arquivo | Alteração |
-|---------|-----------|
-| `supabase/functions/daily-carousel-generator-stream/index.ts` | Corrigir lógica de geração por slide |
-
-### Alterações Detalhadas
-
-#### 1. Passar imagem de referência ESPECÍFICA por slide
-
-No loop de geração (linhas 271-338), modificar para passar apenas a referência correspondente:
+### Alterações no CarouselGenerationProgressModal.tsx
 
 ```typescript
-for (let i = 0; i < carousel.slides.length; i++) {
-  // ...
+// Adicionar refs para controlar a geração
+const hasStartedRef = useRef(false);
+const paramsRef = useRef<{...} | null>(null);
+
+useEffect(() => {
+  if (!open) {
+    // Reset quando fecha
+    hasStartedRef.current = false;
+    paramsRef.current = null;
+    cancel();
+    // ... reset states
+    return;
+  }
+
+  // Se já iniciou, não inicia novamente
+  if (hasStartedRef.current) {
+    return;
+  }
+
+  // Marca como iniciado ANTES de chamar start()
+  hasStartedRef.current = true;
   
-  // Pega apenas a imagem de referência CORRESPONDENTE a este slide
-  const slideReferenceImage = reference_carousel_images?.[i] || null;
-  
-  // Se tem imagem de referência específica para este slide, usa ela
-  const slideReferences = slideReferenceImage ? [slideReferenceImage] : allReferenceImages;
-  
-  // ...
-  const dataUrl = await generateImageWithNanoBanana(
-    imagePrompt, 
-    LOVABLE_API_KEY, 
-    slideReferences
-  );
-}
-```
+  // Armazena os parâmetros para debug
+  paramsRef.current = {
+    clientId,
+    companyId,
+    userId,
+    carouselType,
+    referenceCarouselImages,
+    preGeneratedSlides,
+    visualVariations,
+  };
 
-#### 2. Melhorar o prompt para modo "fromExample"
+  console.log("[CarouselGenerationProgressModal] Starting with:", paramsRef.current);
 
-Quando há uma imagem de referência ESPECÍFICA, o prompt deve ser muito mais direto:
-
-```typescript
-// Se tem referência específica do slide, usar prompt de "cópia com edição"
-const specificReferenceMode = slideReferenceImage !== null;
-
-if (specificReferenceMode) {
-  imagePrompt = `EDITE a imagem de referência anexada (imagem número 1).
-
-TAREFA: Reproduzir EXATAMENTE a imagem de referência, APENAS substituindo o texto.
-
-NOVO CONTEÚDO DE TEXTO:
-Headline: ${slide.headline}
-Texto secundário: ${slide.body_text}
-
-REGRAS ABSOLUTAS:
-- COPIE EXATAMENTE o layout, composição, cores, elementos visuais da referência
-- MANTENHA IDÊNTICOS: posição dos elementos, paleta de cores, tipografia, fundo
-- REPRODUZA o logotipo/marca IDÊNTICO (mesma fonte, cor, posição)
-- APENAS SUBSTITUA o texto pelo novo texto acima
-- O resultado deve ser visualmente IDÊNTICO à referência
-- Formato VERTICAL 3:4 (1080x1440 pixels)
-- Texto em português brasileiro sem erros
-
-${variationInstructions}`;
-} else {
-  // Prompt original para quando não há referência específica
-  imagePrompt = `Crie uma imagem profissional para carrossel do Instagram...`;
-}
-```
-
-#### 3. Ajustar buildVisualVariationInstructions
-
-Quando há referência específica e modo cópia fiel, as instruções devem ser mais enfáticas:
-
-```typescript
-if (noVariations && hasSpecificReference) {
-  return `
-MODO CÓPIA EXATA:
-- Esta é uma operação de EDIÇÃO, não de criação
-- A imagem anexada é o TEMPLATE que deve ser copiado
-- REPRODUZA pixel por pixel o layout e design
-- APENAS mude o texto pelos novos valores fornecidos
-- Resultado deve ser indistinguível da original (exceto texto)`;
-}
-```
-
-#### 4. Log detalhado para debug
-
-Adicionar log antes de gerar cada slide:
-
-```typescript
-console.log("[daily-carousel-generator-stream] Generating slide", {
-  slideNumber: i + 1,
-  hasSpecificReference: !!slideReferenceImage,
-  referenceUrl: slideReferenceImage?.substring(0, 50) + "...",
-  headline: slide.headline.substring(0, 30) + "...",
-  variationsApplied: visual_variations,
-});
+  start({ ... });
+}, [open]); // ← APENAS 'open' como dependência!
 ```
 
 ---
@@ -142,37 +81,127 @@ console.log("[daily-carousel-generator-stream] Generating slide", {
 ## Fluxo Corrigido
 
 ```text
-Modo "fromExample" com 5 slides:
-
-Slide 1:
-├── Referência: reference_carousel_images[0]  ← imagem específica
-├── Headline: "Novo texto 1"
-├── Prompt: "EDITE a imagem de referência..."
-└── Resultado: Cópia fiel com texto novo
-
-Slide 2:
-├── Referência: reference_carousel_images[1]  ← imagem específica
-├── Headline: "Novo texto 2"
-├── Prompt: "EDITE a imagem de referência..."
-└── Resultado: Cópia fiel com texto novo
-
-... (continua para cada slide)
+1. Modal abre (open = true)
+2. hasStartedRef.current = false → entra no if
+3. hasStartedRef.current = true ← marca antes de iniciar
+4. Chama start() e começa geração
+5. Durante geração, qualquer re-render acontece
+6. useEffect dispara novamente
+7. hasStartedRef.current = true → return (não reinicia!)
+8. Geração completa, chama onFinished()
+9. onFinished pode causar re-render
+10. hasStartedRef.current = true → return (não reinicia!)
+11. Usuário fecha modal (open = false)
+12. hasStartedRef.current = false ← reset
+13. Próxima abertura funciona normalmente
 ```
+
+---
+
+## Arquivos a Modificar
+
+| Arquivo | Alteração |
+|---------|-----------|
+| `src/components/generators/CarouselGenerationProgressModal.tsx` | Adicionar ref para prevenir re-execução |
+
+---
+
+## Código Detalhado
+
+```typescript
+import { useEffect, useMemo, useRef, useState } from "react";
+
+// ... dentro do componente
+
+const { isGenerating, start, cancel } = useCarouselGenerationStream();
+
+// Ref para prevenir re-execução da geração
+const hasStartedRef = useRef(false);
+
+// ... outros estados
+
+useEffect(() => {
+  if (!open) {
+    // Reset completo quando fecha
+    hasStartedRef.current = false;
+    cancel();
+    setCarouselId(null);
+    setPickedType(null);
+    setSlidesTotal(0);
+    setSlides([]);
+    setActiveIndex(0);
+    setIsDone(false);
+    return;
+  }
+
+  // GUARD: Se já iniciou, não inicia novamente
+  if (hasStartedRef.current) {
+    console.log("[CarouselGenerationProgressModal] Already started, skipping...");
+    return;
+  }
+
+  // Marca como iniciado ANTES de chamar start
+  hasStartedRef.current = true;
+
+  // Debug log
+  console.log("[CarouselGenerationProgressModal] Starting with:", {
+    clientId,
+    companyId,
+    carouselType: carouselType || "NOT PROVIDED",
+    referenceCarouselImages: referenceCarouselImages?.length || 0,
+    preGeneratedSlides: preGeneratedSlides?.length || 0,
+    visualVariations: visualVariations || "NOT PROVIDED",
+  });
+
+  // Start generation
+  start({
+    clientId,
+    companyId,
+    userId,
+    carouselType,
+    referenceCarouselImages,
+    preGeneratedSlides,
+    visualVariations,
+    onEvent: (ev) => {
+      // ... event handlers (sem mudanças)
+    },
+  }).catch((e: any) => {
+    console.error(e);
+    toast.error(e?.message || "Erro ao gerar carrossel");
+    setIsDone(true);
+  });
+}, [open, cancel, start, clientId, companyId, userId, carouselType, 
+    referenceCarouselImages, preGeneratedSlides, visualVariations, onFinished]);
+```
+
+---
+
+## Alternativa: Memoizar no Componente Pai
+
+Opcionalmente, também podemos memoizar os arrays no `GeradorCarrosseis.tsx` para evitar recriação:
+
+```typescript
+const memoizedPreGeneratedSlides = useMemo(() => {
+  if (generationMode !== "fromExample" || !generatedSlideContents?.length) {
+    return undefined;
+  }
+  return generatedSlideContents.map(s => ({
+    slideNumber: s.slideNumber,
+    type: s.type,
+    headline: s.headline,
+    bodyText: s.bodyText,
+    visualDescription: s.visualDescription,
+  }));
+}, [generationMode, generatedSlideContents]);
+```
+
+Mas a solução com `useRef` é mais robusta e resolve o problema na raiz.
 
 ---
 
 ## Benefícios
 
-1. **Fidelidade visual**: Cada slide será baseado EXATAMENTE na imagem de referência correspondente
-2. **Textos corretos**: Usará os textos pré-gerados e editados pelo usuário
-3. **Variações controladas**: Aplica variações apenas quando solicitado
-4. **Quantidade correta**: Gera exatamente N slides (onde N = número de referências)
-
----
-
-## Resumo das Mudanças
-
-1. **No loop de geração**: Passar `reference_carousel_images[i]` para cada slide específico
-2. **No prompt de imagem**: Quando tem referência específica, usar prompt de "EDIÇÃO" em vez de "criação"
-3. **Na função buildVisualVariationInstructions**: Adicionar modo "hasSpecificReference" para instruções mais diretas
-4. **Logs**: Adicionar logs detalhados para cada slide sendo gerado
+- **Previne re-execução**: A geração só inicia uma vez por abertura do modal
+- **Robusto**: Funciona mesmo se props mudarem durante a geração
+- **Simples**: Mudança mínima no código
+- **Debug fácil**: Log indica quando tentou reiniciar mas foi bloqueado
