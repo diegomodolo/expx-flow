@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { CheckCircle2, ChevronLeft, ChevronRight, X, Heart, MessageCircle, Send, Bookmark, CalendarPlus, FileText, Presentation } from "lucide-react";
+import { CheckCircle2, ChevronLeft, ChevronRight, X, Heart, MessageCircle, Send, Bookmark, CalendarPlus, FileText, Presentation, ZoomIn } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { GeneratedSlideEditCard } from "./GeneratedSlideEditCard";
@@ -49,6 +50,7 @@ export function GeneratedCarouselPreview({
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
   const [editingSlideIndex, setEditingSlideIndex] = useState<number | null>(null);
   const [isSlideEditModalOpen, setIsSlideEditModalOpen] = useState(false);
+  const [previewImageIndex, setPreviewImageIndex] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchCarousel = async () => {
@@ -244,13 +246,14 @@ export function GeneratedCarouselPreview({
         {/* Individual Slide Editing Section */}
         <div className="space-y-2">
           <p className="text-xs font-medium text-muted-foreground">
-            Editar Slides Individuais
+            Clique para ampliar • Editar Slides
           </p>
           <div className="grid grid-cols-5 gap-2">
             {carousel.slides.map((slide, idx) => (
               <GeneratedSlideEditCard
                 key={idx}
                 slide={slide}
+                onImageClick={() => setPreviewImageIndex(idx)}
                 onEditClick={() => {
                   setEditingSlideIndex(idx);
                   setIsSlideEditModalOpen(true);
@@ -260,6 +263,52 @@ export function GeneratedCarouselPreview({
             ))}
           </div>
         </div>
+
+        {/* Fullscreen Image Preview Modal */}
+        <Dialog open={previewImageIndex !== null} onOpenChange={(open) => !open && setPreviewImageIndex(null)}>
+          <DialogContent className="max-w-4xl w-[95vw] p-2 bg-background">
+            {previewImageIndex !== null && carousel.slides[previewImageIndex]?.image_url && (
+              <div className="relative">
+                {/* Navigation for preview */}
+                {carousel.slides.length > 1 && (
+                  <>
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      className="absolute left-2 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full shadow-lg z-10"
+                      onClick={() => setPreviewImageIndex(prev => 
+                        prev === null ? 0 : prev === 0 ? carousel.slides.length - 1 : prev - 1
+                      )}
+                    >
+                      <ChevronLeft className="h-5 w-5" />
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full shadow-lg z-10"
+                      onClick={() => setPreviewImageIndex(prev => 
+                        prev === null ? 0 : prev === carousel.slides.length - 1 ? 0 : prev + 1
+                      )}
+                    >
+                      <ChevronRight className="h-5 w-5" />
+                    </Button>
+                  </>
+                )}
+                
+                <img
+                  src={carousel.slides[previewImageIndex].image_url}
+                  alt={`Slide ${previewImageIndex + 1} ampliado`}
+                  className="w-full h-auto max-h-[85vh] object-contain rounded-lg"
+                />
+                
+                {/* Slide indicator */}
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 text-white text-sm px-3 py-1.5 rounded-full">
+                  Slide {previewImageIndex + 1} de {carousel.slides.length}
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
         {/* Action Buttons */}
         <div className="flex flex-col gap-2">
