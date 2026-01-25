@@ -3,10 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useCampaignTree, TreeNode } from "@/hooks/useCampaignTree";
 import { useClientContext } from "./ClienteContext";
 import { TreeGridTable } from "@/components/campaign-editor/TreeGridTable";
-import { InspectorPanel } from "@/components/campaign-editor/InspectorPanel";
-import { CampaignEditModal } from "@/components/campaign-editor/CampaignEditModal";
-import { AdSetEditModal } from "@/components/campaign-editor/AdSetEditModal";
-import { AdEditModal } from "@/components/campaign-editor/AdEditModal";
+import { UnifiedCampaignModal } from "@/components/campaign-editor/UnifiedCampaignModal";
 import { KPISummaryBar } from "@/components/campaign-editor/KPISummaryBar";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -36,10 +33,7 @@ export default function CampaignEditorPage() {
   });
 
   const [selectedNode, setSelectedNode] = useState<TreeNode | null>(null);
-  const [parentNodeOfSelected, setParentNodeOfSelected] = useState<TreeNode | null>(null);
-  const [campaignModalOpen, setCampaignModalOpen] = useState(false);
-  const [adSetModalOpen, setAdSetModalOpen] = useState(false);
-  const [adModalOpen, setAdModalOpen] = useState(false);
+  const [unifiedModalOpen, setUnifiedModalOpen] = useState(false);
   const [syncPeriod, setSyncPeriod] = useState<string>(() => {
     return localStorage.getItem('campaignEditorSyncPeriod') || '30';
   });
@@ -47,44 +41,10 @@ export default function CampaignEditorPage() {
   const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>(undefined);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
-  // Helper function to find parent node of selected ad
-  const findParentNode = useCallback((node: TreeNode, tree: TreeNode | null): TreeNode | null => {
-    if (!tree || !node.parentId) return null;
-    
-    // Check if this tree node is the parent
-    if (tree.id === node.parentId) return tree;
-    
-    // Search in children
-    if (tree.children) {
-      for (const child of tree.children) {
-        if (child.id === node.parentId) return child;
-        const found = findParentNode(node, child);
-        if (found) return found;
-      }
-    }
-    return null;
-  }, []);
-
   const handleSelectNode = useCallback((node: TreeNode) => {
     setSelectedNode(node);
-    
-    // Find parent node for ads (to show inherited pixel)
-    if (node.type === 'ad') {
-      const parent = findParentNode(node, treeData);
-      setParentNodeOfSelected(parent);
-    } else {
-      setParentNodeOfSelected(null);
-    }
-    
-    // Open the appropriate modal based on node type
-    if (node.type === 'campaign') {
-      setCampaignModalOpen(true);
-    } else if (node.type === 'adset') {
-      setAdSetModalOpen(true);
-    } else if (node.type === 'ad') {
-      setAdModalOpen(true);
-    }
-  }, [findParentNode, treeData]);
+    setUnifiedModalOpen(true);
+  }, []);
 
   const handlePeriodChange = (value: string) => {
     setSyncPeriod(value);
@@ -369,32 +329,12 @@ export default function CampaignEditorPage() {
         onRefresh={invalidateQueries}
       />
 
-      {/* Campaign Edit Modal */}
-      <CampaignEditModal
-        isOpen={campaignModalOpen}
-        onClose={() => setCampaignModalOpen(false)}
-        node={selectedNode}
-        clientId={client?.id || ''}
-        companyId={(client as any)?.company_id}
-        onSuccess={invalidateQueries}
-      />
-
-      {/* AdSet Edit Modal (for ad sets) */}
-      <AdSetEditModal
-        isOpen={adSetModalOpen}
-        onClose={() => setAdSetModalOpen(false)}
-        node={selectedNode}
-        clientId={client?.id || ''}
-        companyId={(client as any)?.company_id}
-        onSuccess={invalidateQueries}
-      />
-
-      {/* Ad Edit Modal (for ads/creatives) */}
-      <AdEditModal
-        isOpen={adModalOpen}
-        onClose={() => setAdModalOpen(false)}
-        node={selectedNode}
-        parentNode={parentNodeOfSelected}
+      {/* Unified Campaign Modal */}
+      <UnifiedCampaignModal
+        isOpen={unifiedModalOpen}
+        onClose={() => setUnifiedModalOpen(false)}
+        campaignTree={treeData}
+        initialSelectedNode={selectedNode}
         clientId={client?.id || ''}
         companyId={(client as any)?.company_id}
         onSuccess={invalidateQueries}
