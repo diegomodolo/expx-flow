@@ -1317,55 +1317,96 @@ async function processSync(
                   }
                   
                   // Helper function to fetch full resolution image from image_hash
-                  const fetchImageFromHash = async (imageHash: string, accountId: string): Promise<string> => {
-                    if (!imageHash) return ''
+                  // IMPROVED: More robust error handling and logging
+                  const fetchImageFromHash = async (imageHash: string, adAccountId: string): Promise<string> => {
+                    if (!imageHash || !adAccountId) {
+                      console.log('fetchImageFromHash: missing imageHash or accountId', { imageHash, adAccountId })
+                      return ''
+                    }
+                    
                     try {
-                      const url = `https://graph.facebook.com/v20.0/${accountId}/adimages?hashes=["${imageHash}"]&fields=url_128,url&access_token=${accessToken}`
-                      console.log(`Fetching image from hash: ${imageHash}`)
+                      // The API expects the format act_ACCOUNTID
+                      const formattedAccountId = adAccountId.startsWith('act_') ? adAccountId : `act_${adAccountId}`
+                      const url = `https://graph.facebook.com/v20.0/${formattedAccountId}/adimages?hashes=["${imageHash}"]&fields=url_128,url&access_token=${accessToken}`
+                      
+                      console.log(`📸 Fetching image from hash: ${imageHash} for account: ${formattedAccountId}`)
                       const response = await fetch(url)
                       
                       if (!response.ok) {
-                        console.log(`Failed to fetch image for hash ${imageHash}: status ${response.status}`)
+                        const errorText = await response.text()
+                        console.log(`❌ Failed to fetch image for hash ${imageHash}: status ${response.status}, error: ${errorText}`)
                         return ''
                       }
                       
                       const data = await response.json()
+                      console.log('📸 Image hash API response:', JSON.stringify(data))
+                      
                       const imageData = data.data?.[0]
-                      // url field contains the full resolution image
+                      // url field contains the full resolution image, url_128 is fallback
                       const fullUrl = imageData?.url || imageData?.url_128 || ''
-                      console.log(`Image hash response - full URL:`, fullUrl ? 'found' : 'not found')
+                      
+                      console.log(`📸 Image hash result - full URL found: ${fullUrl ? 'YES ✅' : 'NO ❌'}`)
                       return fullUrl
                     } catch (error) {
-                      console.error(`Error fetching image for hash ${imageHash}:`, error)
+                      console.error(`❌ Error fetching image for hash ${imageHash}:`, error)
                       return ''
                     }
                   }
                   
                   // Helper function to extract media URLs (async for video source fetching)
+                  // IMPROVED: Priority order changed to get high-res images first
                   const extractMediaUrls = async (creative: any, objectStory: any) => {
-                    // Start with the low-res thumbnail as fallback
-                    let imageUrl = creative.image_url || 
-                                   linkData.picture || 
-                                   linkData.image_url || 
-                                   creative.thumbnail_url || 
-                                   ''
+                    let imageUrl = ''
                     
-                    // Try to get full resolution image from effective_object_story_id first
-                    const storyId = creative.effective_object_story_id
-                    if (storyId && !creative.video_id) {
-                      const fullPicture = await fetchFullImageFromStory(storyId)
-                      if (fullPicture) {
-                        imageUrl = fullPicture
-                        console.log('Using full_picture from story')
+                    // 1. Search for image_hash from multiple possible sources
+                    const imageHash = creative.image_hash || 
+                                      linkData?.image_hash || 
+                                      creative.object_story_spec?.link_data?.image_hash ||
+                                      objectStory?.link_data?.image_hash
+                    
+                    console.log(`🔍 Image extraction for ad - Found image_hash: ${imageHash || 'none'}`)
+                    console.log(`   - creative.image_hash: ${creative.image_hash || 'none'}`)
+                    console.log(`   - linkData.image_hash: ${linkData?.image_hash || 'none'}`)
+                    
+                    // 2. PRIORITY 1: Try to fetch via image_hash first (guaranteed high resolution)
+                    if (imageHash) {
+                      console.log(`🔄 STEP 1: Attempting to fetch high-res image via hash: ${imageHash}`)
+                      const fullImage = await fetchImageFromHash(imageHash, accountId)
+                      if (fullImage) {
+                        imageUrl = fullImage
+                        console.log('✅ SUCCESS: Using full image from image_hash')
+                      } else {
+                        console.log('⚠️ FAILED: Could not fetch image from hash, trying next method...')
                       }
                     }
                     
-                    // If still low-res and we have image_hash, try to fetch full resolution
-                    if (creative.image_hash && (!imageUrl || imageUrl.includes('p64x64') || imageUrl.includes('p75x75'))) {
-                      const fullImage = await fetchImageFromHash(creative.image_hash, accountId)
-                      if (fullImage) {
-                        imageUrl = fullImage
-                        console.log('Using full image from image_hash')
+                    // 3. PRIORITY 2: If no image yet, try via effective_object_story_id
+                    const storyId = creative.effective_object_story_id
+                    if (!imageUrl && storyId && !creative.video_id) {
+                      console.log(`🔄 STEP 2: Attempting to fetch image via story_id: ${storyId}`)
+                      const fullPicture = await fetchFullImageFromStory(storyId)
+                      if (fullPicture) {
+                        imageUrl = fullPicture
+                        console.log('✅ SUCCESS: Using full_picture from story')
+                      } else {
+                        console.log('⚠️ FAILED: Could not fetch image from story, trying next method...')
+                      }
+                    }
+                    
+                    // 4. PRIORITY 3: Fallback to direct URLs (may be low resolution)
+                    if (!imageUrl) {
+                      console.log('🔄 STEP 3: Falling back to direct URLs...')
+                      imageUrl = creative.image_url || 
+                                 linkData?.picture || 
+                                 linkData?.image_url || 
+                                 creative.thumbnail_url || 
+                                 ''
+                      
+                      // Log warning if using low-res fallback
+                      if (imageUrl && (imageUrl.includes('p64x64') || imageUrl.includes('p75x75'))) {
+                        console.warn(`⚠️ WARNING: Using low-res fallback image for ad. Hash: ${imageHash || 'none'}, URL contains low-res params`)
+                      } else if (imageUrl) {
+                        console.log('ℹ️ Using direct URL (resolution unknown)')
                       }
                     }
                     
@@ -1373,7 +1414,7 @@ async function processSync(
                     let videoThumbnail = ''
                     
                     // Get video_id from multiple possible locations
-                    const videoId = creative.video_id || linkData.video_id || objectStory.video_data?.video_id
+                    const videoId = creative.video_id || linkData?.video_id || objectStory?.video_data?.video_id
                     
                     if (videoId) {
                       // Fetch the real playable video URL from Meta API
@@ -1391,7 +1432,9 @@ async function processSync(
                     // Use video thumbnail as image if no image available
                     const finalImageUrl = imageUrl || videoThumbnail
                     
-                    console.log('Extracted URLs - Image:', finalImageUrl, 'Video:', videoUrl)
+                    console.log('📊 Final extracted URLs:')
+                    console.log(`   - Image: ${finalImageUrl ? 'found' : 'not found'}`)
+                    console.log(`   - Video: ${videoUrl ? 'found' : 'not found'}`)
                     return { imageUrl: finalImageUrl, videoUrl }
                   }
                   
