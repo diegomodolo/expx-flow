@@ -1,198 +1,222 @@
 
-# Plano: Corrigir Resolução de Imagens na Sincronização do Meta
+# Plano: Unificar Página de Campanhas com TreeGrid para Todas as Campanhas
 
-## Problema Identificado
+## Objetivo
 
-Alguns criativos estão sendo salvos com imagens em baixa resolução (64x64 pixels) porque:
+Transformar a página de campanhas (`ClienteCampanhas.tsx`) para exibir todas as campanhas do cliente em formato de TreeGrid (árvore hierárquica), substituindo a lista de tabela atual. Mantendo os controles existentes de projeção de orçamento, sincronização e filtros.
 
-1. **Falha no método primário**: A função `fetchFullImageFromStory` falha com status 400 porque usa User Access Token em vez de Page Access Token
-2. **Fallback incompleto**: A função `fetchImageFromHash` não está sendo acionada corretamente para todos os casos
+---
 
-### Diferença nas URLs
+## Análise da Situação Atual
 
-| Criativo | Resolução | Parâmetro na URL |
-|----------|-----------|------------------|
-| Criativo 01 | Boa | Sem `stp=...p64x64...` |
-| Criativo 03 | Ruim | Com `stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6` |
+### Página de Campanhas (`ClienteCampanhas.tsx`)
+- Lista todas as campanhas em tabela simples
+- Tem filtros de plataforma (Meta/Google/All)
+- Filtro de status (ativas/pausadas/finalizadas)
+- Seletor de período para sincronização
+- Botão de sincronização para todas as plataformas
+- Projeção de orçamento (BudgetProjectionIndicator)
+- Modal para criar nova campanha
+
+### Página de Edição (`CampaignEditorPage.tsx`)
+- Usa `useCampaignTree` para buscar dados de UMA campanha
+- Exibe TreeGridTable com a hierarquia Campanha > Conjunto > Anúncio
+- Tem KPISummaryBar com métricas consolidadas
+- Modal unificado para editar nós selecionados
+
+### Hook Atual (`useCampaignTree.tsx`)
+- Busca dados de apenas UMA campanha por `campaignId`
+- Constrói árvore com adsets/ads
 
 ---
 
 ## Solução Proposta
 
-### 1. Modificar a lógica de extração de `image_hash`
+### Novo Hook: `useAllCampaignsTree`
 
-Atualmente o código busca `creative.image_hash`, mas o hash também pode estar em `linkData.image_hash` ou `object_story_spec.link_data.image_hash`. Vamos expandir a busca.
+Criar um novo hook que:
+1. Busca TODAS as campanhas do cliente (Meta + Google)
+2. Para cada campanha, busca seus conjuntos e anúncios
+3. Retorna um array de TreeNodes, um por campanha
 
-### 2. Priorizar busca via `image_hash` antes de usar URL direta
+### Modificações na UI
 
-Em vez de usar a URL de thumbnail como fallback inicial, vamos inverter a lógica:
-- Primeiro tentar buscar imagem via `image_hash` (sempre retorna alta resolução)
-- Se não tiver `image_hash`, tentar via `effective_object_story_id`
-- Só usar `image_url` direto como último recurso
+#### Manter
+- BudgetProjectionIndicator
+- Filtros de plataforma e status
+- Seletor de período
+- Botões de sincronização
+- Modal de criar campanha
+- KPISummaryBar (agora com métricas totais de todas as campanhas)
 
-### 3. Adicionar logs detalhados para debug
+#### Substituir
+- Tabela simples por componente TreeGridTable modificado
+- Receber array de campanhas em vez de uma única
 
-Incluir logs que mostrem:
-- Se o `image_hash` foi encontrado e de onde
-- O resultado da chamada à API de imagens
-- Qual estratégia foi usada no final
-
----
-
-## Alterações Técnicas
-
-### Arquivo: `supabase/functions/sync-facebook-campaigns/index.ts`
-
-#### Modificação 1: Função `extractMediaUrls`
-
-```typescript
-const extractMediaUrls = async (creative: any, objectStory: any) => {
-  let imageUrl = ''
-  
-  // 1. Buscar image_hash de múltiplas fontes possíveis
-  const imageHash = creative.image_hash || 
-                    linkData?.image_hash || 
-                    creative.object_story_spec?.link_data?.image_hash
-  
-  // 2. PRIMEIRO: tentar buscar via image_hash (melhor qualidade garantida)
-  if (imageHash) {
-    console.log(`Attempting to fetch high-res image via hash: ${imageHash}`)
-    const fullImage = await fetchImageFromHash(imageHash, accountId)
-    if (fullImage) {
-      imageUrl = fullImage
-      console.log('SUCCESS: Using full image from image_hash')
-    } else {
-      console.log('FAILED: Could not fetch image from hash')
-    }
-  }
-  
-  // 3. SEGUNDO: se não conseguiu via hash, tentar via story_id
-  if (!imageUrl && creative.effective_object_story_id && !creative.video_id) {
-    console.log(`Attempting to fetch image via story_id: ${creative.effective_object_story_id}`)
-    const fullPicture = await fetchFullImageFromStory(creative.effective_object_story_id)
-    if (fullPicture) {
-      imageUrl = fullPicture
-      console.log('SUCCESS: Using full_picture from story')
-    }
-  }
-  
-  // 4. TERCEIRO: fallback para URLs diretas (podem ser baixa resolução)
-  if (!imageUrl) {
-    imageUrl = creative.image_url || 
-               linkData?.picture || 
-               linkData?.image_url || 
-               creative.thumbnail_url || 
-               ''
-    
-    // Se a URL ainda contém p64x64, logar warning
-    if (imageUrl.includes('p64x64') || imageUrl.includes('p75x75')) {
-      console.warn(`WARNING: Using low-res fallback image for ad. Hash: ${imageHash || 'none'}`)
-    }
-  }
-  
-  // ... resto do código para vídeo
-}
-```
-
-#### Modificação 2: Melhorar função `fetchImageFromHash`
-
-Adicionar tratamento de erro mais robusto e logs detalhados:
-
-```typescript
-const fetchImageFromHash = async (imageHash: string, accountId: string): Promise<string> => {
-  if (!imageHash || !accountId) {
-    console.log('fetchImageFromHash: missing imageHash or accountId')
-    return ''
-  }
-  
-  try {
-    // A API usa o formato act_ACCOUNTID
-    const formattedAccountId = accountId.startsWith('act_') ? accountId : `act_${accountId}`
-    const url = `https://graph.facebook.com/v20.0/${formattedAccountId}/adimages?hashes=["${imageHash}"]&fields=url_128,url&access_token=${accessToken}`
-    
-    console.log(`Fetching image from hash: ${imageHash} for account: ${formattedAccountId}`)
-    const response = await fetch(url)
-    
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.log(`Failed to fetch image for hash ${imageHash}: status ${response.status}, error: ${errorText}`)
-      return ''
-    }
-    
-    const data = await response.json()
-    console.log('Image hash API response:', JSON.stringify(data))
-    
-    const imageData = data.data?.[0]
-    const fullUrl = imageData?.url || imageData?.url_128 || ''
-    
-    console.log(`Image hash result - full URL found: ${fullUrl ? 'yes' : 'no'}`)
-    return fullUrl
-  } catch (error) {
-    console.error(`Error fetching image for hash ${imageHash}:`, error)
-    return ''
-  }
-}
-```
+#### Adicionar
+- Modal unificado (UnifiedCampaignModal) para editar nós selecionados
 
 ---
 
-## Fluxo Após Correção
+## Arquitetura da Solução
 
 ```text
-+------------------+
-|  Início do Ad    |
-+--------+---------+
-         |
-         v
-+--------+---------+
-| Tem image_hash?  |
-+--------+---------+
-    |           |
-   SIM         NÃO
-    |           |
-    v           |
-+--------+      |
-| Buscar |      |
-| via    |      |
-| /adimages      |
-+--------+      |
-    |           |
-    v           v
-+--------+---------+
-| Conseguiu URL?   |
-+--------+---------+
-    |           |
-   SIM         NÃO
-    |           |
-    v           v
-+--------+  +--------+---------+
-| USAR   |  | Tem story_id?   |
-| (alta) |  +--------+---------+
-+--------+      |           |
-               SIM         NÃO
-                |           |
-                v           v
-           +--------+  +--------+
-           | Buscar |  | Usar   |
-           | via    |  | URL    |
-           | story  |  | direta |
-           +--------+  +--------+
+ClienteCampanhas.tsx
+├── Header com título e controles
+│   ├── Seletor de período
+│   ├── Botão de sincronização
+│   ├── Filtro de plataforma
+│   ├── Filtro de status
+│   └── Botão Nova Campanha
+├── BudgetProjectionIndicator
+├── KPISummaryBar (métricas totais)
+├── TreeGridTableMultiple (novo componente)
+│   └── Renderiza múltiplas campanhas como TreeNodes de nível 0
+└── UnifiedCampaignModal
 ```
 
 ---
 
-## Resultado Esperado
+## Implementação Detalhada
 
-Após a correção e ressincronização:
-- **Todos os criativos com `image_hash`** terão imagens em alta resolução
-- O sistema priorizará sempre a fonte de maior qualidade
-- Logs detalhados permitirão identificar casos problemáticos
+### 1. Novo Hook: `useAllCampaignsTree.tsx`
+
+```typescript
+interface UseAllCampaignsTreeOptions {
+  clientId?: string;
+  companyId?: string;
+  platform?: 'meta' | 'google' | 'all';
+  includeInactive?: boolean;
+}
+
+export function useAllCampaignsTree(options) {
+  // Buscar campanhas Meta
+  const { data: metaCampaigns } = useQuery({...})
+  
+  // Buscar campanhas Google
+  const { data: googleCampaigns } = useQuery({...})
+  
+  // Buscar todos os ad_sets do cliente
+  const { data: allAdSets } = useQuery({...})
+  
+  // Buscar todos os ads do cliente
+  const { data: allAds } = useQuery({...})
+  
+  // Buscar google_ad_groups e google_ads
+  const { data: allGoogleAdGroups } = useQuery({...})
+  const { data: allGoogleAds } = useQuery({...})
+  
+  // Montar árvore para cada campanha
+  const treeData = useMemo(() => {
+    return [...metaCampaigns, ...googleCampaigns].map(campaign => {
+      // Montar TreeNode com children
+    })
+  }, [...])
+  
+  // Calcular métricas totais
+  const totalMetrics = useMemo(() => {...}, [treeData])
+  
+  return { treeData, isLoading, totalMetrics, targets }
+}
+```
+
+### 2. Novo Componente: `MultiCampaignTreeGrid.tsx`
+
+Similar ao TreeGridTable, mas:
+- Recebe `campaigns: TreeNode[]` em vez de `campaign: TreeNode`
+- Cada campanha é um nó de nível 0 expansível
+- Mantém estado de expansão por campanha
+- Suporta filtros de plataforma e status
+
+### 3. Modificar: `ClienteCampanhas.tsx`
+
+- Substituir `useUnifiedCampaigns` por `useAllCampaignsTree`
+- Substituir tabela por `MultiCampaignTreeGrid`
+- Adicionar `UnifiedCampaignModal`
+- Adaptar KPISummaryBar para receber métricas totais
+
+### 4. KPISummaryBar Alternativo
+
+Criar variante que receba métricas agregadas:
+```typescript
+interface AggregatedKPISummaryBarProps {
+  metrics: {
+    spend: number;
+    impressions: number;
+    clicks: number;
+    conversions: number;
+    ctr: number;
+    cpa: number;
+  };
+  targets: ClientTargets;
+}
+```
 
 ---
 
-## Próximos Passos
+## Arquivos a Criar/Modificar
 
-1. Implementar as alterações na Edge Function
-2. Fazer deploy da função atualizada
-3. Ressincronizar a campanha clicando em "Atualizar"
-4. Verificar se as imagens estão em alta resolução
+| Arquivo | Ação |
+|---------|------|
+| `src/hooks/useAllCampaignsTree.tsx` | **Criar** - Hook para buscar todas as campanhas com hierarquia |
+| `src/components/campaign-editor/MultiCampaignTreeGrid.tsx` | **Criar** - Componente TreeGrid para múltiplas campanhas |
+| `src/pages/cliente/ClienteCampanhas.tsx` | **Modificar** - Substituir tabela por TreeGrid, adicionar modal |
+| `src/components/campaign-editor/KPISummaryBar.tsx` | **Modificar** - Adicionar suporte para métricas agregadas |
+
+---
+
+## Fluxo de Dados
+
+```text
+1. useAllCampaignsTree busca:
+   ├── campaigns (Meta)
+   ├── google_campaigns (Google)
+   ├── ad_sets (por client_id)
+   ├── ads (por ad_set_id)
+   ├── google_ad_groups (por client_id)
+   └── google_ads (por ad_group_id)
+
+2. Monta TreeNode[] onde cada item é uma campanha:
+   └── Campanha (nível 0)
+       └── Conjunto (nível 1)
+           └── Anúncio (nível 2)
+
+3. MultiCampaignTreeGrid renderiza:
+   ├── Header com checkbox "select all"
+   └── Linhas para cada campanha e seus filhos (expansível)
+
+4. Filtros aplicados:
+   ├── Platform filter -> filtra por campaign.platform
+   └── Status filter -> filtra por campaign.status
+```
+
+---
+
+## Comportamento da UI
+
+- Campanhas começam **colapsadas** por padrão
+- Clique na seta expande para ver conjuntos
+- Clique em um nó abre o `UnifiedCampaignModal`
+- Checkbox permite seleção múltipla para ações em lote
+- Filtros afetam apenas o nível de campanha (filhos seguem o pai)
+
+---
+
+## Considerações de Performance
+
+- Dados buscados por `client_id`, não por campanha individual
+- Evita N+1 queries usando batch fetching
+- Lazy loading: conjuntos e anúncios carregados em batch, não sob demanda
+- React Query faz cache automático
+
+---
+
+## Resultado Final
+
+A página de campanhas terá:
+- Mesmos controles de sincronização e filtros atuais
+- Projeção de orçamento mantida
+- TreeGrid mostrando todas as campanhas com hierarquia expansível
+- Cards de KPIs totais no topo
+- Modal de edição para qualquer nó selecionado
+- Operações em lote (pausar/ativar) via seleção
