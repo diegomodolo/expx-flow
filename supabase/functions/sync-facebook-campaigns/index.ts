@@ -1208,7 +1208,8 @@ async function processSync(
                 console.log('Fetching ads for ad set:', adSet.id)
                 // Expanded creative fields to capture CTA, description, url_tags and tracking_specs for UTM parameters
                 // url_tags is where Meta stores the UTM parameters at the creative level
-                const adsUrl = `https://graph.facebook.com/v20.0/${adSet.id}/ads?fields=id,name,status,tracking_specs,creative{id,title,body,image_url,video_id,thumbnail_url,object_story_spec,call_to_action_type,effective_object_story_id,url_tags,object_url},insights${dateParam}.action_report_time(conversion).action_attribution_windows([\"7d_click\",\"1d_view\"])` +
+                // Added image_hash to fetch full resolution images later, and effective_object_story_id for fallback
+                const adsUrl = `https://graph.facebook.com/v20.0/${adSet.id}/ads?fields=id,name,status,tracking_specs,creative{id,title,body,image_url,image_hash,video_id,thumbnail_url,object_story_spec,call_to_action_type,effective_object_story_id,url_tags,object_url},insights${dateParam}.action_report_time(conversion).action_attribution_windows([\"7d_click\",\"1d_view\"])` +
                   `{impressions,clicks,spend,cpm,ctr,cpc,reach,frequency,actions,quality_ranking,engagement_rate_ranking,conversion_rate_ranking}&access_token=${accessToken}`
                 console.log('Ads API URL (without token):', adsUrl.replace(accessToken, '[REDACTED]'))
                 const adsResponse = await fetch(adsUrl)
@@ -1292,13 +1293,81 @@ async function processSync(
                     }
                   }
                   
+                  // Helper function to fetch full resolution image from effective_object_story_id
+                  const fetchFullImageFromStory = async (storyId: string): Promise<string> => {
+                    if (!storyId) return ''
+                    try {
+                      // effective_object_story_id format: page_id_post_id (e.g., "123456789_987654321")
+                      const url = `https://graph.facebook.com/v20.0/${storyId}?fields=full_picture&access_token=${accessToken}`
+                      console.log(`Fetching full_picture from story: ${storyId}`)
+                      const response = await fetch(url)
+                      
+                      if (!response.ok) {
+                        console.log(`Failed to fetch story image for ${storyId}: status ${response.status}`)
+                        return ''
+                      }
+                      
+                      const data = await response.json()
+                      console.log(`Story full_picture response:`, data.full_picture ? 'found' : 'not found')
+                      return data.full_picture || ''
+                    } catch (error) {
+                      console.error(`Error fetching story image for ${storyId}:`, error)
+                      return ''
+                    }
+                  }
+                  
+                  // Helper function to fetch full resolution image from image_hash
+                  const fetchImageFromHash = async (imageHash: string, accountId: string): Promise<string> => {
+                    if (!imageHash) return ''
+                    try {
+                      const url = `https://graph.facebook.com/v20.0/${accountId}/adimages?hashes=["${imageHash}"]&fields=url_128,url&access_token=${accessToken}`
+                      console.log(`Fetching image from hash: ${imageHash}`)
+                      const response = await fetch(url)
+                      
+                      if (!response.ok) {
+                        console.log(`Failed to fetch image for hash ${imageHash}: status ${response.status}`)
+                        return ''
+                      }
+                      
+                      const data = await response.json()
+                      const imageData = data.data?.[0]
+                      // url field contains the full resolution image
+                      const fullUrl = imageData?.url || imageData?.url_128 || ''
+                      console.log(`Image hash response - full URL:`, fullUrl ? 'found' : 'not found')
+                      return fullUrl
+                    } catch (error) {
+                      console.error(`Error fetching image for hash ${imageHash}:`, error)
+                      return ''
+                    }
+                  }
+                  
                   // Helper function to extract media URLs (async for video source fetching)
                   const extractMediaUrls = async (creative: any, objectStory: any) => {
-                    const imageUrl = creative.image_url || 
+                    // Start with the low-res thumbnail as fallback
+                    let imageUrl = creative.image_url || 
                                    linkData.picture || 
                                    linkData.image_url || 
                                    creative.thumbnail_url || 
                                    ''
+                    
+                    // Try to get full resolution image from effective_object_story_id first
+                    const storyId = creative.effective_object_story_id
+                    if (storyId && !creative.video_id) {
+                      const fullPicture = await fetchFullImageFromStory(storyId)
+                      if (fullPicture) {
+                        imageUrl = fullPicture
+                        console.log('Using full_picture from story')
+                      }
+                    }
+                    
+                    // If still low-res and we have image_hash, try to fetch full resolution
+                    if (creative.image_hash && (!imageUrl || imageUrl.includes('p64x64') || imageUrl.includes('p75x75'))) {
+                      const fullImage = await fetchImageFromHash(creative.image_hash, accountId)
+                      if (fullImage) {
+                        imageUrl = fullImage
+                        console.log('Using full image from image_hash')
+                      }
+                    }
                     
                     let videoUrl = ''
                     let videoThumbnail = ''
