@@ -77,12 +77,12 @@ export function UnifiedCampaignModal({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent 
-        className="w-[1600px] max-w-[95vw] h-[85vh] flex flex-col p-0 gap-0 overflow-hidden"
+        className="w-[1800px] max-w-[95vw] h-[85vh] flex flex-col p-0 gap-0 overflow-hidden"
         hideCloseButton={false}
       >
         <div className="flex h-full">
           {/* Left sidebar - Tree navigation */}
-          <div className="w-[280px] min-w-[280px] border-r bg-muted/30 flex flex-col">
+          <div className="w-[340px] min-w-[340px] border-r bg-muted/30 flex flex-col">
             <CampaignTreeNav
               tree={campaignTree}
               selectedNodeId={selectedNode?.id || null}
