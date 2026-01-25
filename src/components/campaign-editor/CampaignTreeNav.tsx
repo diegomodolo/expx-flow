@@ -3,13 +3,11 @@ import { cn } from '@/lib/utils';
 import { TreeNode } from '@/hooks/useCampaignTree';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { 
   Target, 
   Layers, 
   ImageIcon,
   ChevronRight,
-  ChevronDown,
 } from 'lucide-react';
 
 interface CampaignTreeNavProps {
@@ -55,7 +53,7 @@ function TreeNodeItem({
   const getStatusBadge = () => {
     if (node.status === 'active') {
       return (
-        <Badge variant="outline" className="h-5 px-1.5 text-[10px] bg-green-500/10 text-green-600 border-green-500/30">
+        <Badge variant="outline" className="h-5 px-1.5 text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/30 dark:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/40">
           Ativo
         </Badge>
       );
@@ -71,56 +69,56 @@ function TreeNodeItem({
     <div>
       <div
         className={cn(
-          "flex items-center gap-2 px-2 py-2 rounded-md cursor-pointer transition-colors group",
+          "flex items-center gap-2 px-3 py-3 cursor-pointer transition-colors group",
           isSelected
-            ? "bg-primary text-primary-foreground"
+            ? "bg-primary/10 ring-2 ring-primary ring-inset"
             : "hover:bg-muted/50",
-          level > 0 && "ml-4"
         )}
-        style={{ paddingLeft: level > 0 ? `${level * 16 + 8}px` : undefined }}
+        style={{ paddingLeft: `${level * 20 + 12}px` }}
         onClick={() => onSelectNode(node)}
       >
         {/* Expand/Collapse button */}
         {hasChildren ? (
-          <Button
-            variant="ghost"
-            size="icon"
-            className={cn(
-              "h-5 w-5 p-0 hover:bg-transparent",
-              isSelected ? "text-primary-foreground" : "text-muted-foreground"
-            )}
+          <button
+            className="p-0.5 hover:bg-muted rounded transition-colors"
             onClick={(e) => {
               e.stopPropagation();
               toggleExpand(node.id);
             }}
           >
-            {isExpanded ? (
-              <ChevronDown className="w-3.5 h-3.5" />
-            ) : (
-              <ChevronRight className="w-3.5 h-3.5" />
-            )}
-          </Button>
+            <ChevronRight
+              className={cn(
+                "w-4 h-4 transition-transform text-muted-foreground",
+                isExpanded && "rotate-90"
+              )}
+            />
+          </button>
         ) : (
           <div className="w-5" />
         )}
 
         {/* Icon */}
         <span className={cn(
-          isSelected ? "text-primary-foreground" : "text-muted-foreground"
+          node.type === 'campaign' ? "text-primary" : "text-muted-foreground"
         )}>
           {getIcon()}
         </span>
 
         {/* Name */}
-        <span className={cn(
-          "flex-1 truncate text-sm font-medium",
-          isSelected ? "text-primary-foreground" : "text-foreground"
-        )}>
+        <span
+          className={cn(
+            "flex-1 truncate text-sm",
+            node.type === 'campaign' && "font-medium text-foreground",
+            node.type === 'adset' && "font-normal text-foreground",
+            node.type === 'ad' && "font-normal text-foreground"
+          )}
+          title={node.name}
+        >
           {node.name}
         </span>
 
         {/* Status badge */}
-        {!isSelected && getStatusBadge()}
+        {getStatusBadge()}
       </div>
 
       {/* Children */}
