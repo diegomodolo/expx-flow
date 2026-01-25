@@ -82,7 +82,7 @@ export function UnifiedCampaignModal({
       >
         <div className="flex h-full">
           {/* Left sidebar - Tree navigation */}
-          <div className="w-[340px] min-w-[340px] border-r bg-muted/30 flex flex-col">
+          <div className="w-[400px] min-w-[400px] border-r bg-muted/30 flex flex-col">
             <CampaignTreeNav
               tree={campaignTree}
               selectedNodeId={selectedNode?.id || null}

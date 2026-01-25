@@ -107,7 +107,7 @@ function TreeNodeItem({
         {/* Name */}
         <span
           className={cn(
-            "flex-1 truncate text-sm",
+            "flex-1 truncate text-xs",
             node.type === 'campaign' && "font-medium text-foreground",
             node.type === 'adset' && "font-normal text-foreground",
             node.type === 'ad' && "font-normal text-foreground"
