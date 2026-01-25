@@ -1,238 +1,198 @@
 
-# Plano: Modal Unificado de Edição de Campanha
+# Plano: Corrigir Resolução de Imagens na Sincronização do Meta
 
-## Objetivo
-Criar um modal unificado que centraliza a edição de Campanhas, Conjuntos de Anúncios e Criativos em uma única interface. O modal terá um painel de navegação à esquerda (TreeList) e um painel de conteúdo dinâmico à direita, permitindo navegar pela hierarquia sem fechar o modal.
+## Problema Identificado
+
+Alguns criativos estão sendo salvos com imagens em baixa resolução (64x64 pixels) porque:
+
+1. **Falha no método primário**: A função `fetchFullImageFromStory` falha com status 400 porque usa User Access Token em vez de Page Access Token
+2. **Fallback incompleto**: A função `fetchImageFromHash` não está sendo acionada corretamente para todos os casos
+
+### Diferença nas URLs
+
+| Criativo | Resolução | Parâmetro na URL |
+|----------|-----------|------------------|
+| Criativo 01 | Boa | Sem `stp=...p64x64...` |
+| Criativo 03 | Ruim | Com `stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6` |
 
 ---
 
-## Estrutura do Modal
+## Solução Proposta
+
+### 1. Modificar a lógica de extração de `image_hash`
+
+Atualmente o código busca `creative.image_hash`, mas o hash também pode estar em `linkData.image_hash` ou `object_story_spec.link_data.image_hash`. Vamos expandir a busca.
+
+### 2. Priorizar busca via `image_hash` antes de usar URL direta
+
+Em vez de usar a URL de thumbnail como fallback inicial, vamos inverter a lógica:
+- Primeiro tentar buscar imagem via `image_hash` (sempre retorna alta resolução)
+- Se não tiver `image_hash`, tentar via `effective_object_story_id`
+- Só usar `image_url` direto como último recurso
+
+### 3. Adicionar logs detalhados para debug
+
+Incluir logs que mostrem:
+- Se o `image_hash` foi encontrado e de onde
+- O resultado da chamada à API de imagens
+- Qual estratégia foi usada no final
+
+---
+
+## Alterações Técnicas
+
+### Arquivo: `supabase/functions/sync-facebook-campaigns/index.ts`
+
+#### Modificação 1: Função `extractMediaUrls`
+
+```typescript
+const extractMediaUrls = async (creative: any, objectStory: any) => {
+  let imageUrl = ''
+  
+  // 1. Buscar image_hash de múltiplas fontes possíveis
+  const imageHash = creative.image_hash || 
+                    linkData?.image_hash || 
+                    creative.object_story_spec?.link_data?.image_hash
+  
+  // 2. PRIMEIRO: tentar buscar via image_hash (melhor qualidade garantida)
+  if (imageHash) {
+    console.log(`Attempting to fetch high-res image via hash: ${imageHash}`)
+    const fullImage = await fetchImageFromHash(imageHash, accountId)
+    if (fullImage) {
+      imageUrl = fullImage
+      console.log('SUCCESS: Using full image from image_hash')
+    } else {
+      console.log('FAILED: Could not fetch image from hash')
+    }
+  }
+  
+  // 3. SEGUNDO: se não conseguiu via hash, tentar via story_id
+  if (!imageUrl && creative.effective_object_story_id && !creative.video_id) {
+    console.log(`Attempting to fetch image via story_id: ${creative.effective_object_story_id}`)
+    const fullPicture = await fetchFullImageFromStory(creative.effective_object_story_id)
+    if (fullPicture) {
+      imageUrl = fullPicture
+      console.log('SUCCESS: Using full_picture from story')
+    }
+  }
+  
+  // 4. TERCEIRO: fallback para URLs diretas (podem ser baixa resolução)
+  if (!imageUrl) {
+    imageUrl = creative.image_url || 
+               linkData?.picture || 
+               linkData?.image_url || 
+               creative.thumbnail_url || 
+               ''
+    
+    // Se a URL ainda contém p64x64, logar warning
+    if (imageUrl.includes('p64x64') || imageUrl.includes('p75x75')) {
+      console.warn(`WARNING: Using low-res fallback image for ad. Hash: ${imageHash || 'none'}`)
+    }
+  }
+  
+  // ... resto do código para vídeo
+}
+```
+
+#### Modificação 2: Melhorar função `fetchImageFromHash`
+
+Adicionar tratamento de erro mais robusto e logs detalhados:
+
+```typescript
+const fetchImageFromHash = async (imageHash: string, accountId: string): Promise<string> => {
+  if (!imageHash || !accountId) {
+    console.log('fetchImageFromHash: missing imageHash or accountId')
+    return ''
+  }
+  
+  try {
+    // A API usa o formato act_ACCOUNTID
+    const formattedAccountId = accountId.startsWith('act_') ? accountId : `act_${accountId}`
+    const url = `https://graph.facebook.com/v20.0/${formattedAccountId}/adimages?hashes=["${imageHash}"]&fields=url_128,url&access_token=${accessToken}`
+    
+    console.log(`Fetching image from hash: ${imageHash} for account: ${formattedAccountId}`)
+    const response = await fetch(url)
+    
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.log(`Failed to fetch image for hash ${imageHash}: status ${response.status}, error: ${errorText}`)
+      return ''
+    }
+    
+    const data = await response.json()
+    console.log('Image hash API response:', JSON.stringify(data))
+    
+    const imageData = data.data?.[0]
+    const fullUrl = imageData?.url || imageData?.url_128 || ''
+    
+    console.log(`Image hash result - full URL found: ${fullUrl ? 'yes' : 'no'}`)
+    return fullUrl
+  } catch (error) {
+    console.error(`Error fetching image for hash ${imageHash}:`, error)
+    return ''
+  }
+}
+```
+
+---
+
+## Fluxo Após Correção
 
 ```text
-┌────────────────────────────────────────────────────────────────────────────┐
-│  [Target] Editar Estrutura da Campanha                           [X]      │
-├────────────────┬───────────────────────────────────────────────────────────┤
-│                │                                                           │
-│  NAVEGAÇÃO     │   CONTEÚDO DINÂMICO                                       │
-│  (TreeList)    │                                                           │
-│                │   ┌─────────────────────────────────────────────────────┐ │
-│  ▼ Campanha    │   │ Cabeçalho com Métricas                             │ │
-│    ▼ Conjunto1 │   │                                                     │ │
-│      • Anúnc1  │   │ Formulário de edição do item selecionado           │ │
-│      • Anúnc2  │   │ (CampaignContent / AdSetContent / AdContent)       │ │
-│    ▼ Conjunto2 │   │                                                     │ │
-│      • Anúnc3  │   │                                                     │ │
-│                │   │                                                     │ │
-│                │   └─────────────────────────────────────────────────────┘ │
-│                │                                                           │
-├────────────────┴───────────────────────────────────────────────────────────┤
-│                                                [Cancelar] [💾 Salvar]      │
-└────────────────────────────────────────────────────────────────────────────┘
++------------------+
+|  Início do Ad    |
++--------+---------+
+         |
+         v
++--------+---------+
+| Tem image_hash?  |
++--------+---------+
+    |           |
+   SIM         NÃO
+    |           |
+    v           |
++--------+      |
+| Buscar |      |
+| via    |      |
+| /adimages      |
++--------+      |
+    |           |
+    v           v
++--------+---------+
+| Conseguiu URL?   |
++--------+---------+
+    |           |
+   SIM         NÃO
+    |           |
+    v           v
++--------+  +--------+---------+
+| USAR   |  | Tem story_id?   |
+| (alta) |  +--------+---------+
++--------+      |           |
+               SIM         NÃO
+                |           |
+                v           v
+           +--------+  +--------+
+           | Buscar |  | Usar   |
+           | via    |  | URL    |
+           | story  |  | direta |
+           +--------+  +--------+
 ```
 
 ---
 
-## Componentes a Criar
+## Resultado Esperado
 
-### 1. `UnifiedCampaignModal.tsx` (Componente Principal)
-Container do modal unificado com layout de duas colunas:
-- **Lado Esquerdo (25%)**: TreeList navegável mostrando a hierarquia
-- **Lado Direito (75%)**: Conteúdo dinâmico baseado no item selecionado
-
-### 2. `CampaignTreeNav.tsx` (Navegação em Árvore)
-Versão simplificada do TreeGrid para navegação:
-- Exibe apenas ícone, nome e status de cada nó
-- Indicador visual do item selecionado
-- Expansão/colapso de nós pai
-- Sem métricas (mantém interface limpa)
-
-### 3. Componentes de Conteúdo (Refatoração)
-Extrair o conteúdo interno dos modais existentes para componentes reutilizáveis:
-- `CampaignEditContent.tsx`: Conteúdo atual do CampaignEditModal
-- `AdSetEditContent.tsx`: Conteúdo atual do AdSetEditModal  
-- `AdEditContent.tsx`: Conteúdo atual do AdEditModal
+Após a correção e ressincronização:
+- **Todos os criativos com `image_hash`** terão imagens em alta resolução
+- O sistema priorizará sempre a fonte de maior qualidade
+- Logs detalhados permitirão identificar casos problemáticos
 
 ---
 
-## Fluxo de Funcionamento
+## Próximos Passos
 
-1. **Abertura do Modal**
-   - Usuário clica em qualquer item (campanha, conjunto ou criativo) na TreeGridTable
-   - Modal abre com o item clicado já selecionado no TreeList
-   - Conteúdo correspondente é exibido à direita
-
-2. **Navegação Interna**
-   - Usuário pode clicar em outros itens no TreeList
-   - O conteúdo à direita atualiza dinamicamente
-   - O item selecionado fica destacado visualmente
-
-3. **Salvamento**
-   - Cada alteração é salva individualmente ao clicar em "Salvar"
-   - Após salvar, permanece no modal para continuar editando outros itens
-   - Botão "Fechar" encerra o modal
-
----
-
-## Implementação
-
-### Passo 1: Criar Componentes de Conteúdo Reutilizáveis
-
-Extrair a lógica interna dos modais atuais para componentes separados que recebem props ao invés de gerenciar seu próprio estado de abertura/fechamento.
-
-**Antes** (CampaignEditModal.tsx):
-```typescript
-export function CampaignEditModal({ isOpen, onClose, node, ... }) {
-  return (
-    <Dialog open={isOpen}>
-      <DialogContent>
-        {/* Todo o conteúdo aqui */}
-      </DialogContent>
-    </Dialog>
-  )
-}
-```
-
-**Depois** (CampaignEditContent.tsx):
-```typescript
-export function CampaignEditContent({ node, clientId, onSuccess }) {
-  // Apenas o conteúdo interno, sem Dialog wrapper
-  return (
-    <div className="space-y-6">
-      {/* Métricas, formulário, etc */}
-    </div>
-  )
-}
-```
-
-### Passo 2: Criar TreeList de Navegação
-
-```typescript
-interface CampaignTreeNavProps {
-  tree: TreeNode;
-  selectedNodeId: string | null;
-  onSelectNode: (node: TreeNode) => void;
-}
-
-export function CampaignTreeNav({ tree, selectedNodeId, onSelectNode }: CampaignTreeNavProps) {
-  // Renderiza árvore navegável com expansão/colapso
-}
-```
-
-### Passo 3: Criar Modal Unificado
-
-```typescript
-interface UnifiedCampaignModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  campaignTree: TreeNode | null;
-  initialSelectedNode: TreeNode | null;
-  clientId: string;
-  companyId?: string;
-  onSuccess?: () => void;
-}
-
-export function UnifiedCampaignModal({ ... }) {
-  const [selectedNode, setSelectedNode] = useState(initialSelectedNode);
-
-  return (
-    <Dialog open={isOpen}>
-      <DialogContent className="max-w-6xl max-h-[90vh]">
-        <div className="flex h-full">
-          {/* Sidebar com TreeNav */}
-          <div className="w-1/4 border-r">
-            <CampaignTreeNav
-              tree={campaignTree}
-              selectedNodeId={selectedNode?.id}
-              onSelectNode={setSelectedNode}
-            />
-          </div>
-
-          {/* Conteúdo dinâmico */}
-          <div className="w-3/4 overflow-auto">
-            {selectedNode?.type === 'campaign' && (
-              <CampaignEditContent node={selectedNode} ... />
-            )}
-            {selectedNode?.type === 'adset' && (
-              <AdSetEditContent node={selectedNode} ... />
-            )}
-            {selectedNode?.type === 'ad' && (
-              <AdEditContent node={selectedNode} ... />
-            )}
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  )
-}
-```
-
-### Passo 4: Atualizar CampaignEditorPage
-
-Substituir os três modais separados pelo modal unificado:
-
-```typescript
-// Antes (3 modais separados)
-<CampaignEditModal isOpen={campaignModalOpen} ... />
-<AdSetEditModal isOpen={adSetModalOpen} ... />
-<AdEditModal isOpen={adModalOpen} ... />
-
-// Depois (1 modal unificado)
-<UnifiedCampaignModal
-  isOpen={unifiedModalOpen}
-  onClose={() => setUnifiedModalOpen(false)}
-  campaignTree={treeData}
-  initialSelectedNode={selectedNode}
-  clientId={client?.id || ''}
-  onSuccess={invalidateQueries}
-/>
-```
-
----
-
-## Arquivos a Criar/Modificar
-
-| Arquivo | Ação | Descrição |
-|---------|------|-----------|
-| `src/components/campaign-editor/UnifiedCampaignModal.tsx` | **Criar** | Modal principal com layout de duas colunas |
-| `src/components/campaign-editor/CampaignTreeNav.tsx` | **Criar** | Componente de navegação em árvore |
-| `src/components/campaign-editor/CampaignEditContent.tsx` | **Criar** | Conteúdo extraído do CampaignEditModal |
-| `src/components/campaign-editor/AdSetEditContent.tsx` | **Criar** | Conteúdo extraído do AdSetEditModal |
-| `src/components/campaign-editor/AdEditContent.tsx` | **Criar** | Conteúdo extraído do AdEditModal |
-| `src/pages/cliente/CampaignEditorPage.tsx` | **Modificar** | Usar UnifiedCampaignModal ao invés dos 3 modais |
-
----
-
-## Detalhes de UI/UX
-
-### TreeList (Navegação)
-- Largura: 280px fixo
-- Ícones por tipo: Target (campanha), Layers (conjunto), Image (anúncio)
-- Status: Badge colorido (verde=ativo, cinza=pausado)
-- Hover: Background sutil
-- Selecionado: Background primário com texto branco
-
-### Área de Conteúdo
-- Scroll independente da navegação
-- Mantém todos os elementos atuais dos modais
-- Botão Salvar fixo no rodapé do conteúdo
-
-### Dimensões do Modal
-- Largura: max-w-6xl (1152px)
-- Altura: max-h-[90vh]
-- Proporção: 25% navegação / 75% conteúdo
-
----
-
-## Comportamento ao Navegar
-
-1. **Mudanças não salvas**: Ao trocar de item, verificar se há mudanças pendentes
-   - Se sim: Perguntar "Deseja salvar antes de continuar?"
-   - Opções: "Salvar", "Descartar", "Cancelar"
-
-2. **Feedback visual**: 
-   - Item selecionado destacado na árvore
-   - Indicador de carregamento durante transições
-
-3. **Persistência de estado**:
-   - Manter nós expandidos ao navegar
-   - Manter scroll position da árvore
+1. Implementar as alterações na Edge Function
+2. Fazer deploy da função atualizada
+3. Ressincronizar a campanha clicando em "Atualizar"
+4. Verificar se as imagens estão em alta resolução
