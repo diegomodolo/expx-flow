@@ -77,7 +77,7 @@ export function UnifiedCampaignModal({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent 
-        className="max-w-6xl w-[95vw] h-[90vh] max-h-[900px] flex flex-col p-0 gap-0 overflow-hidden"
+        className="w-[1600px] max-w-[95vw] h-[85vh] flex flex-col p-0 gap-0 overflow-hidden"
         hideCloseButton={false}
       >
         <div className="flex h-full">
