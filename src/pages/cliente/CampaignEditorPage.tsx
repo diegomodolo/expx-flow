@@ -4,6 +4,7 @@ import { useCampaignTree, TreeNode } from "@/hooks/useCampaignTree";
 import { useClientContext } from "./ClienteContext";
 import { TreeGridTable } from "@/components/campaign-editor/TreeGridTable";
 import { InspectorPanel } from "@/components/campaign-editor/InspectorPanel";
+import { CampaignEditModal } from "@/components/campaign-editor/CampaignEditModal";
 import { AdSetEditModal } from "@/components/campaign-editor/AdSetEditModal";
 import { AdEditModal } from "@/components/campaign-editor/AdEditModal";
 import { KPISummaryBar } from "@/components/campaign-editor/KPISummaryBar";
@@ -36,7 +37,7 @@ export default function CampaignEditorPage() {
 
   const [selectedNode, setSelectedNode] = useState<TreeNode | null>(null);
   const [parentNodeOfSelected, setParentNodeOfSelected] = useState<TreeNode | null>(null);
-  const [inspectorOpen, setInspectorOpen] = useState(false);
+  const [campaignModalOpen, setCampaignModalOpen] = useState(false);
   const [adSetModalOpen, setAdSetModalOpen] = useState(false);
   const [adModalOpen, setAdModalOpen] = useState(false);
   const [syncPeriod, setSyncPeriod] = useState<string>(() => {
@@ -75,13 +76,13 @@ export default function CampaignEditorPage() {
       setParentNodeOfSelected(null);
     }
     
-    // For adsets, open the dedicated modal; for ads, open ad modal; for campaigns, use inspector panel
-    if (node.type === 'adset') {
+    // Open the appropriate modal based on node type
+    if (node.type === 'campaign') {
+      setCampaignModalOpen(true);
+    } else if (node.type === 'adset') {
       setAdSetModalOpen(true);
     } else if (node.type === 'ad') {
       setAdModalOpen(true);
-    } else {
-      setInspectorOpen(true);
     }
   }, [findParentNode, treeData]);
 
@@ -368,13 +369,14 @@ export default function CampaignEditorPage() {
         onRefresh={invalidateQueries}
       />
 
-      {/* Inspector Panel (for campaigns and ads) */}
-      <InspectorPanel
+      {/* Campaign Edit Modal */}
+      <CampaignEditModal
+        isOpen={campaignModalOpen}
+        onClose={() => setCampaignModalOpen(false)}
         node={selectedNode}
-        isOpen={inspectorOpen}
-        onClose={() => setInspectorOpen(false)}
-        clientId={client?.id}
-        onUpdate={invalidateQueries}
+        clientId={client?.id || ''}
+        companyId={(client as any)?.company_id}
+        onSuccess={invalidateQueries}
       />
 
       {/* AdSet Edit Modal (for ad sets) */}
