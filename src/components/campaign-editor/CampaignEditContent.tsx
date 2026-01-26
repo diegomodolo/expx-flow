@@ -15,7 +15,6 @@ import {
 } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
-  Loader2, 
   Target, 
   Save, 
   Settings, 
@@ -31,6 +30,8 @@ import {
 import { TreeNode } from '@/hooks/useCampaignTree';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useSaveWithProgress } from '@/hooks/useSaveWithProgress';
+import { SaveProgressModal } from './SaveProgressModal';
 
 interface CampaignEditContentProps {
   node: TreeNode;
@@ -66,7 +67,7 @@ export function CampaignEditContent({
   companyId,
   onSuccess,
 }: CampaignEditContentProps) {
-  const [isSaving, setIsSaving] = useState(false);
+  const saveProgress = useSaveWithProgress();
   
   // Basic fields
   const [editName, setEditName] = useState('');
@@ -103,9 +104,7 @@ export function CampaignEditContent({
   const handleSave = useCallback(async () => {
     if (!clientId || !node) return;
 
-    setIsSaving(true);
-
-    try {
+    const metaAction = async () => {
       const currentNodeStatus = node.status === 'active' ? 'active' : 'paused';
       const nameChanged = editName !== node.name;
       const statusChanged = editStatus !== currentNodeStatus;
@@ -159,17 +158,17 @@ export function CampaignEditContent({
         if (error) throw error;
         if (!data?.success) throw new Error(data?.error || 'Erro ao atualizar orçamento');
       }
+    };
 
-      toast.success('Campanha atualizada com sucesso!');
+    const success = await saveProgress.execute(metaAction, async () => {
       setHasChanges(false);
-      onSuccess?.();
-    } catch (error: any) {
-      console.error('Error saving campaign:', error);
-      toast.error(error.message || 'Erro ao salvar alterações');
-    } finally {
-      setIsSaving(false);
+      await onSuccess?.();
+    });
+
+    if (success) {
+      toast.success('Campanha atualizada com sucesso!');
     }
-  }, [clientId, node, editName, editStatus, budgetType, editBudget, onSuccess]);
+  }, [clientId, node, editName, editStatus, budgetType, editBudget, onSuccess, saveProgress]);
 
   // Calculate ad sets summary
   const adSetsSummary = useMemo(() => {
@@ -395,21 +394,21 @@ export function CampaignEditContent({
       <div className="p-4 flex justify-end gap-2">
         <Button
           onClick={handleSave}
-          disabled={isSaving || !hasChanges || editName.trim() === ''}
+          disabled={saveProgress.isOpen || !hasChanges || editName.trim() === ''}
         >
-          {isSaving ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Salvando...
-            </>
-          ) : (
-            <>
-              <Save className="w-4 h-4 mr-2" />
-              Salvar
-            </>
-          )}
+          <Save className="w-4 h-4 mr-2" />
+          Salvar
         </Button>
       </div>
+
+      {/* Save Progress Modal */}
+      <SaveProgressModal
+        isOpen={saveProgress.isOpen}
+        steps={saveProgress.steps}
+        error={saveProgress.error}
+        onClose={saveProgress.close}
+        onRetry={handleSave}
+      />
     </div>
   );
 }

@@ -22,7 +22,6 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { 
-  Loader2, 
   ImageIcon, 
   Save, 
   Settings,
@@ -46,6 +45,8 @@ import { MediaUploader } from '@/components/campaigns/builder/MediaUploader';
 import { PixelSelector } from '@/components/campaigns/builder/PixelSelector';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useSaveWithProgress } from '@/hooks/useSaveWithProgress';
+import { SaveProgressModal } from './SaveProgressModal';
 
 // CTA options
 const CTA_OPTIONS = [
@@ -80,7 +81,7 @@ export function AdEditContent({
   companyId,
   onSuccess,
 }: AdEditContentProps) {
-  const [isSaving, setIsSaving] = useState(false);
+  const saveProgress = useSaveWithProgress();
   const [hasChanges, setHasChanges] = useState(false);
   const [creativeChanged, setCreativeChanged] = useState(false);
   
@@ -296,11 +297,10 @@ export function AdEditContent({
       return;
     }
 
-    setIsSaving(true);
     const platform = node.platform as 'meta' | 'google';
     const facebookId = (node as any).facebookId;
 
-    try {
+    const metaAction = async () => {
       let finalUrl = linkUrl;
       if (linkUrl) {
         const utmParams: string[] = [];
@@ -357,8 +357,6 @@ export function AdEditContent({
         if (!data?.success) {
           throw new Error(data?.error || 'Erro ao atualizar anúncio');
         }
-
-        toast.success('Anúncio atualizado com sucesso!');
       } else {
         const { error: updateError } = await supabase
           .from('ads')
@@ -380,20 +378,19 @@ export function AdEditContent({
           .eq('id', node.id);
 
         if (updateError) throw updateError;
-
-        toast.success('Anúncio atualizado localmente');
       }
+    };
 
+    const success = await saveProgress.execute(metaAction, async () => {
       setHasChanges(false);
       setCreativeChanged(false);
-      onSuccess?.();
-    } catch (error: any) {
-      console.error('Error saving ad:', error);
-      toast.error(error.message || 'Erro ao salvar alterações');
-    } finally {
-      setIsSaving(false);
+      await onSuccess?.();
+    });
+
+    if (success) {
+      toast.success('Anúncio atualizado com sucesso!');
     }
-  }, [clientId, node, editName, editStatus, creativeType, mediaUrls, body, title, description, linkUrl, callToAction, utmSource, utmMedium, utmCampaign, utmContent, utmTerm, pixelId, originalValues, creativeChanged, onSuccess]);
+  }, [clientId, node, editName, editStatus, creativeType, mediaUrls, body, title, description, linkUrl, callToAction, utmSource, utmMedium, utmCampaign, utmContent, utmTerm, pixelId, originalValues, creativeChanged, onSuccess, saveProgress]);
 
   if (!node || node.type !== 'ad') return null;
 
@@ -770,21 +767,21 @@ export function AdEditContent({
       <div className="p-4 flex justify-end gap-2">
         <Button 
           onClick={handleSave} 
-          disabled={isSaving || !hasChanges || editName.trim() === '' || mediaUrls.length === 0}
+          disabled={saveProgress.isOpen || !hasChanges || editName.trim() === '' || mediaUrls.length === 0}
         >
-          {isSaving ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Salvando...
-            </>
-          ) : (
-            <>
-              <Save className="w-4 h-4 mr-2" />
-              Salvar Alterações
-            </>
-          )}
+          <Save className="w-4 h-4 mr-2" />
+          Salvar Alterações
         </Button>
       </div>
+
+      {/* Save Progress Modal */}
+      <SaveProgressModal
+        isOpen={saveProgress.isOpen}
+        steps={saveProgress.steps}
+        error={saveProgress.error}
+        onClose={saveProgress.close}
+        onRetry={handleSave}
+      />
     </div>
   );
 }
