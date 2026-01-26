@@ -257,6 +257,7 @@ export function AdSetSection({
                       creative={creative}
                       onChange={(updates) => onUpdateCreative(index, updates)}
                       clientId={clientId}
+                      companyId={companyId}
                       clientName={clientName}
                       clientAvatar={clientAvatar}
                     />

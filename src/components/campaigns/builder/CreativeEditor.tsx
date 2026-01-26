@@ -17,6 +17,7 @@ interface CreativeEditorProps {
   creative: CreativeData;
   onChange: (updates: Partial<CreativeData>) => void;
   clientId?: string;
+  companyId?: string;
   clientName?: string;
   clientAvatar?: string;
 }
@@ -42,7 +43,7 @@ const CTA_OPTIONS = [
   { value: 'GET_OFFER', label: 'Obter Oferta' },
 ];
 
-export function CreativeEditor({ creative, onChange, clientId, clientName, clientAvatar }: CreativeEditorProps) {
+export function CreativeEditor({ creative, onChange, clientId, companyId, clientName, clientAvatar }: CreativeEditorProps) {
   const [generatingTexts, setGeneratingTexts] = useState(false);
   const { toast } = useToast();
 
@@ -141,6 +142,7 @@ export function CreativeEditor({ creative, onChange, clientId, clientName, clien
             onChange={(urls) => onChange({ mediaUrls: urls })}
             type={creative.type}
             clientId={clientId}
+            companyId={companyId}
             creativeContext={{
               title: creative.title,
               description: creative.description,

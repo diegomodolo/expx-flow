@@ -12,6 +12,7 @@ interface MediaUploaderProps {
   type: 'IMAGE' | 'VIDEO' | 'CAROUSEL';
   maxFiles?: number;
   clientId?: string;
+  companyId?: string;
   creativeContext?: {
     title?: string;
     description?: string;
@@ -27,6 +28,7 @@ export function MediaUploader({
   type,
   maxFiles = type === 'CAROUSEL' ? 10 : 1,
   clientId,
+  companyId,
   creativeContext,
   thumbnailUrl,
   externalVideoUrl,
@@ -390,7 +392,7 @@ export function MediaUploader({
             setShowImageEditor(false);
           }}
           clientId={clientId || ''}
-          companyId=""
+          companyId={companyId || ''}
         />
       )}
 

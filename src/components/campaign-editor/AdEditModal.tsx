@@ -719,6 +719,7 @@ export function AdEditModal({
                         type={creativeType}
                         maxFiles={creativeType === 'CAROUSEL' ? 10 : 1}
                         clientId={clientId}
+                        companyId={companyId}
                         creativeContext={{ title, body, description }}
                         thumbnailUrl={creativeType === 'VIDEO' ? videoThumbnailUrl : undefined}
                         externalVideoUrl={creativeType === 'VIDEO' ? externalVideoUrl : undefined}
