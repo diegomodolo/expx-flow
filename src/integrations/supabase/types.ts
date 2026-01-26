@@ -4949,6 +4949,53 @@ export type Database = {
           },
         ]
       }
+      editor_element_library: {
+        Row: {
+          category: string | null
+          company_id: string
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          image_url: string
+          is_default: boolean | null
+          name: string
+          tags: string[] | null
+        }
+        Insert: {
+          category?: string | null
+          company_id: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          image_url: string
+          is_default?: boolean | null
+          name: string
+          tags?: string[] | null
+        }
+        Update: {
+          category?: string | null
+          company_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string
+          is_default?: boolean | null
+          name?: string
+          tags?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "editor_element_library_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_board_permissions: {
         Row: {
           can_view_others_boards: boolean

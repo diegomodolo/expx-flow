@@ -352,3 +352,6 @@ verify_jwt = false
 
 [functions.delete-tree-entity]
 verify_jwt = false
+
+[functions.generate-element]
+verify_jwt = true
