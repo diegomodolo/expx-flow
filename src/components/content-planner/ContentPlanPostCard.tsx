@@ -52,7 +52,9 @@ import {
   Wand2,
   X,
   Presentation,
+  Pencil,
 } from "lucide-react";
+import { ImageEditorModal } from "@/components/image-editor/ImageEditorModal";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ImageUploader } from "@/components/ui/image-uploader";
@@ -624,6 +626,7 @@ export const ContentPlanPostCard = forwardRef<ContentPlanPostCardRef, ContentPla
   const [useCurrentImageAsReference, setUseCurrentImageAsReference] = useState(false);
   const [additionalImageToMerge, setAdditionalImageToMerge] = useState<string | null>(null);
   const [uploadingAdditionalImage, setUploadingAdditionalImage] = useState(false);
+  const [showImageEditorModal, setShowImageEditorModal] = useState(false);
   const additionalImageInputRef = useRef<HTMLInputElement>(null);
   
   const { activeCompany } = useCompany();
@@ -1161,23 +1164,37 @@ Responda APENAS com o texto solicitado, sem explicações adicionais.`;
                           className="w-full"
                         />
                         {hasCreativeFactory && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="gap-2"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleOpenExtraPromptDialog();
-                            }}
-                            disabled={generatingCreative}
-                          >
-                            {generatingCreative ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <Wand2 className="w-4 h-4" />
-                            )}
-                            Gerar Nova
-                          </Button>
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-2"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setShowImageEditorModal(true);
+                              }}
+                            >
+                              <Pencil className="w-4 h-4" />
+                              Editar
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-2"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenExtraPromptDialog();
+                              }}
+                              disabled={generatingCreative}
+                            >
+                              {generatingCreative ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <Wand2 className="w-4 h-4" />
+                              )}
+                              Gerar Nova
+                            </Button>
+                          </>
                         )}
                       </div>
                     </div>
@@ -1759,6 +1776,23 @@ Responda APENAS com o texto solicitado, sem explicações adicionais.`;
             slides: post.slides,
             reels_uploaded_video_url: post.reels_uploaded_video_url,
           }]}
+        />
+      )}
+
+      {/* Image Editor Modal */}
+      {post.image_url && clientId && activeCompany?.company_id && (
+        <ImageEditorModal
+          open={showImageEditorModal}
+          onOpenChange={setShowImageEditorModal}
+          images={[post.image_url]}
+          onSave={(newImages) => {
+            if (newImages[0] && newImages[0] !== post.image_url) {
+              onUpdate({ image_url: newImages[0] });
+              onRefetch();
+            }
+          }}
+          clientId={clientId}
+          companyId={activeCompany.company_id}
         />
       )}
     </>
