@@ -48,6 +48,7 @@ export interface TreeNode {
   children?: TreeNode[];
   parentId?: string;
   needsSync?: boolean; // true when last_synced_at is null (item not yet synced with Meta)
+  isSyncing?: boolean; // true when item is currently being synced in background
 }
 
 export interface ClientTargets {

@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { DuplicateEntityModal } from "./DuplicateEntityModal";
 import { useTreeNodeActions } from "@/hooks/useTreeNodeActions";
+import { useSyncingItems } from "@/contexts/SyncingItemsContext";
 
 interface TreeNodeActionsDropdownProps {
   node: TreeNode;
@@ -24,7 +25,12 @@ export function TreeNodeActionsDropdown({
   onRefresh,
 }: TreeNodeActionsDropdownProps) {
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
-  const { duplicateEntity, isDuplicating, syncEntity, isSyncing } = useTreeNodeActions({ onSuccess: onRefresh });
+  const { addSyncingItem, removeSyncingItem } = useSyncingItems();
+  const { duplicateEntity, isDuplicating, syncEntity, isSyncing } = useTreeNodeActions({ 
+    onSuccess: onRefresh,
+    addSyncingItem,
+    removeSyncingItem,
+  });
 
   const handleDuplicate = async (newName: string) => {
     await duplicateEntity({

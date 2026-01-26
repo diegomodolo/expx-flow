@@ -8,6 +8,7 @@ export interface UseAllCampaignsTreeOptions {
   companyId?: string;
   platform?: "meta" | "google" | "all";
   includeInactive?: boolean;
+  syncingItems?: Set<string>; // Items currently being synced
 }
 
 export interface AllCampaignsTreeResult {
@@ -20,7 +21,7 @@ export interface AllCampaignsTreeResult {
 }
 
 export function useAllCampaignsTree(options: UseAllCampaignsTreeOptions): AllCampaignsTreeResult {
-  const { clientId, companyId, platform = "all", includeInactive = true } = options;
+  const { clientId, companyId, platform = "all", includeInactive = true, syncingItems } = options;
   const queryClient = useQueryClient();
 
   // Fetch Meta campaigns (excluding deleted ones)
@@ -171,6 +172,7 @@ export function useAllCampaignsTree(options: UseAllCampaignsTreeOptions): AllCam
           platform: "meta",
           facebookId: campaign.facebook_id,
           needsSync: !campaign.last_synced_at,
+          isSyncing: syncingItems?.has(campaign.id),
           metrics: {
             spend: campaignSpend,
             impressions: campaignImpressions,
@@ -203,6 +205,7 @@ export function useAllCampaignsTree(options: UseAllCampaignsTreeOptions): AllCam
               facebookId: adset.facebook_id,
               parentId: campaign.id,
               needsSync: !adset.last_synced_at,
+              isSyncing: syncingItems?.has(adset.id),
               targeting: adset.targeting ? JSON.parse(adset.targeting) : undefined,
               pixelId: (adset as any).pixel_id || undefined,
               conversionEvent: (adset as any).conversion_event || undefined,
@@ -234,6 +237,7 @@ export function useAllCampaignsTree(options: UseAllCampaignsTreeOptions): AllCam
                 facebookId: ad.facebook_id,
                 parentId: adset.id,
                 needsSync: !ad.last_synced_at,
+                isSyncing: syncingItems?.has(ad.id),
                 creativeUrl: ad.image_url || ad.video_url,
                 imageUrl: ad.image_url || undefined,
                 videoUrl: ad.video_url || undefined,
@@ -371,7 +375,7 @@ export function useAllCampaignsTree(options: UseAllCampaignsTreeOptions): AllCam
     }
 
     return trees;
-  }, [metaCampaigns, googleCampaigns, allMetaAdSets, allMetaAds, allGoogleAdGroups, allGoogleAds, platform, includeInactive]);
+  }, [metaCampaigns, googleCampaigns, allMetaAdSets, allMetaAds, allGoogleAdGroups, allGoogleAds, platform, includeInactive, syncingItems]);
 
   // Calculate total metrics across all campaigns
   const totalMetrics = useMemo((): TreeNodeMetrics => {

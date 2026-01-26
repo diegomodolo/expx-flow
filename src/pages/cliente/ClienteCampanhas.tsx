@@ -16,15 +16,17 @@ import { MultiCampaignTreeGrid } from "@/components/campaign-editor/MultiCampaig
 import { AggregatedKPISummaryBar } from "@/components/campaign-editor/AggregatedKPISummaryBar";
 import { UnifiedCampaignModal } from "@/components/campaign-editor/UnifiedCampaignModal";
 import { TreeNode } from "@/hooks/useCampaignTree";
+import { SyncingItemsProvider, useSyncingItems } from "@/contexts/SyncingItemsContext";
 
 type Platform = "meta" | "google" | "all";
 
-export function ClienteCampanhas() {
+function ClienteCampanhasContent() {
   const { client, refetchClient } = useClientContext();
   const { activeCompany } = useCompany();
   const { toast } = useToast();
   const { syncCampaigns: syncMetaCampaigns, syncing: syncingMeta } = useFacebookCampaignSync();
   const { syncCampaigns: syncGoogleCampaigns, syncing: syncingGoogle } = useGoogleAdsCampaignSync();
+  const { syncingItems } = useSyncingItems();
   
   const [platformFilter, setPlatformFilter] = useState<Platform>('all');
   const [campaignFilter, setCampaignFilter] = useState<'all' | 'active' | 'paused' | 'finished' | 'deleted'>('active');
@@ -38,7 +40,7 @@ export function ClienteCampanhas() {
   const [selectedNode, setSelectedNode] = useState<TreeNode | null>(null);
   const [unifiedModalOpen, setUnifiedModalOpen] = useState(false);
 
-  // Use the new unified tree hook
+  // Use the new unified tree hook with syncingItems
   const { 
     campaigns: allCampaigns, 
     isLoading, 
@@ -51,6 +53,7 @@ export function ClienteCampanhas() {
     companyId: activeCompany?.company_id,
     platform: platformFilter,
     includeInactive: true,
+    syncingItems, // Pass the syncing items to mark isSyncing on nodes
   });
 
   // Count by platform
@@ -456,5 +459,14 @@ export function ClienteCampanhas() {
         }}
       />
     </div>
+  );
+}
+
+// Wrapper component that provides the SyncingItemsContext
+export function ClienteCampanhas() {
+  return (
+    <SyncingItemsProvider>
+      <ClienteCampanhasContent />
+    </SyncingItemsProvider>
   );
 }
