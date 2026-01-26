@@ -17,6 +17,7 @@ import {
   Quote,
 } from 'lucide-react';
 import { CanvasElement } from './hooks/useImageEditor';
+import { ElementProperties } from './ElementProperties';
 
 interface EditorToolbarProps {
   onAddElement: (type: CanvasElement['type'], config?: Partial<CanvasElement>) => void;
@@ -24,6 +25,8 @@ interface EditorToolbarProps {
   onRedo: () => void;
   canUndo: boolean;
   canRedo: boolean;
+  selectedElement: CanvasElement | null;
+  onUpdateElement: (id: string, updates: Partial<CanvasElement>) => void;
 }
 
 export const EditorToolbar: React.FC<EditorToolbarProps> = ({
@@ -32,6 +35,8 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
   onRedo,
   canUndo,
   canRedo,
+  selectedElement,
+  onUpdateElement,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -69,7 +74,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
   ];
 
   return (
-    <div className="w-[200px] bg-card border-r border-border flex flex-col h-full">
+    <div className="w-[240px] bg-card border-r border-border flex flex-col h-full">
       <div className="p-3 border-b border-border">
         <h3 className="text-sm font-medium text-foreground mb-3">Ferramentas</h3>
         <div className="flex gap-2">
@@ -95,6 +100,17 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
       </div>
 
       <ScrollArea className="flex-1">
+        {/* Element Properties Panel */}
+        {selectedElement && (
+          <>
+            <ElementProperties
+              element={selectedElement}
+              onUpdate={onUpdateElement}
+            />
+            <Separator className="my-2" />
+          </>
+        )}
+
         <div className="p-3 space-y-4">
           {/* Texto */}
           <div>
