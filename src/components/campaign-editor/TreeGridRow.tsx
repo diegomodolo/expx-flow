@@ -6,7 +6,7 @@ import { CreativeThumbnail } from "./CreativeThumbnail";
 import { TreeNodeActionsDropdown } from "./TreeNodeActionsDropdown";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { ChevronRight, Layers, Target, AlertCircle } from "lucide-react";
+import { ChevronRight, Layers, Target, AlertCircle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface TreeGridRowProps {
@@ -126,15 +126,23 @@ export function TreeGridRow({
               node.type === "campaign" && "font-medium text-foreground",
               node.type === "adset" && "font-normal text-foreground",
               node.type === "ad" && "font-normal text-foreground",
-              node.needsSync && "opacity-50"
+              (node.needsSync || node.isSyncing) && "opacity-50"
             )}
             title={node.name}
           >
             {node.name}
           </span>
 
-          {/* Sync pending badge */}
-          {node.needsSync && (
+          {/* Sync status badge */}
+          {node.isSyncing ? (
+            <Badge 
+              variant="outline" 
+              className="ml-2 text-xs text-blue-600 border-blue-300 bg-blue-50 dark:bg-blue-950/30 dark:border-blue-700 dark:text-blue-400 shrink-0"
+            >
+              <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+              Sincronizando...
+            </Badge>
+          ) : node.needsSync ? (
             <Badge 
               variant="outline" 
               className="ml-2 text-xs text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700 dark:text-amber-400 shrink-0"
@@ -142,7 +150,7 @@ export function TreeGridRow({
               <AlertCircle className="w-3 h-3 mr-1" />
               Não sincronizado
             </Badge>
-          )}
+          ) : null}
         </div>
       </td>
 
@@ -152,7 +160,7 @@ export function TreeGridRow({
           id={node.id}
           isActive={node.status === "active"}
           isLoading={isStatusLoading}
-          disabled={node.platform === "google" || node.needsSync}
+          disabled={node.platform === "google" || node.needsSync || node.isSyncing}
           onToggle={onToggleStatus}
         />
       </td>
@@ -166,7 +174,7 @@ export function TreeGridRow({
               currentBudget={node.budget.amount}
               budgetType={node.budget.type}
               isLoading={isBudgetLoading}
-              disabled={node.platform === "google" || node.needsSync}
+              disabled={node.platform === "google" || node.needsSync || node.isSyncing}
               onSave={onUpdateBudget}
             />
           ) : (
