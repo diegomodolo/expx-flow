@@ -569,12 +569,14 @@ export type Database = {
           created_at: string
           ctr: number | null
           daily_budget: number | null
+          deleted_at: string | null
           engagement_rate_ranking: string | null
           facebook_id: string
           frequency: number | null
           id: string
           impressions: number | null
           is_active: boolean
+          last_synced_at: string | null
           lifetime_budget: number | null
           name: string
           optimization_goal: string | null
@@ -602,12 +604,14 @@ export type Database = {
           created_at?: string
           ctr?: number | null
           daily_budget?: number | null
+          deleted_at?: string | null
           engagement_rate_ranking?: string | null
           facebook_id: string
           frequency?: number | null
           id?: string
           impressions?: number | null
           is_active?: boolean
+          last_synced_at?: string | null
           lifetime_budget?: number | null
           name: string
           optimization_goal?: string | null
@@ -635,12 +639,14 @@ export type Database = {
           created_at?: string
           ctr?: number | null
           daily_budget?: number | null
+          deleted_at?: string | null
           engagement_rate_ranking?: string | null
           facebook_id?: string
           frequency?: number | null
           id?: string
           impressions?: number | null
           is_active?: boolean
+          last_synced_at?: string | null
           lifetime_budget?: number | null
           name?: string
           optimization_goal?: string | null
@@ -675,6 +681,7 @@ export type Database = {
           creative_title: string | null
           creative_type: string | null
           ctr: number | null
+          deleted_at: string | null
           engagement_rate_ranking: string | null
           facebook_id: string
           frequency: number | null
@@ -682,6 +689,7 @@ export type Database = {
           image_url: string | null
           impressions: number | null
           is_active: boolean
+          last_synced_at: string | null
           likes: number | null
           link_url: string | null
           name: string
@@ -718,6 +726,7 @@ export type Database = {
           creative_title?: string | null
           creative_type?: string | null
           ctr?: number | null
+          deleted_at?: string | null
           engagement_rate_ranking?: string | null
           facebook_id: string
           frequency?: number | null
@@ -725,6 +734,7 @@ export type Database = {
           image_url?: string | null
           impressions?: number | null
           is_active?: boolean
+          last_synced_at?: string | null
           likes?: number | null
           link_url?: string | null
           name: string
@@ -761,6 +771,7 @@ export type Database = {
           creative_title?: string | null
           creative_type?: string | null
           ctr?: number | null
+          deleted_at?: string | null
           engagement_rate_ranking?: string | null
           facebook_id?: string
           frequency?: number | null
@@ -768,6 +779,7 @@ export type Database = {
           image_url?: string | null
           impressions?: number | null
           is_active?: boolean
+          last_synced_at?: string | null
           likes?: number | null
           link_url?: string | null
           name?: string
@@ -1622,12 +1634,14 @@ export type Database = {
           created_at: string
           ctr: number
           daily_budget: number | null
+          deleted_at: string | null
           engagement_rate_ranking: string | null
           facebook_id: string | null
           frequency: number | null
           id: string
           impressions: number | null
           is_active: boolean
+          last_synced_at: string | null
           lifetime_budget: number | null
           name: string
           objective: string | null
@@ -1652,12 +1666,14 @@ export type Database = {
           created_at?: string
           ctr?: number
           daily_budget?: number | null
+          deleted_at?: string | null
           engagement_rate_ranking?: string | null
           facebook_id?: string | null
           frequency?: number | null
           id?: string
           impressions?: number | null
           is_active?: boolean
+          last_synced_at?: string | null
           lifetime_budget?: number | null
           name: string
           objective?: string | null
@@ -1682,12 +1698,14 @@ export type Database = {
           created_at?: string
           ctr?: number
           daily_budget?: number | null
+          deleted_at?: string | null
           engagement_rate_ranking?: string | null
           facebook_id?: string | null
           frequency?: number | null
           id?: string
           impressions?: number | null
           is_active?: boolean
+          last_synced_at?: string | null
           lifetime_budget?: number | null
           name?: string
           objective?: string | null
@@ -10869,7 +10887,7 @@ export type Database = {
     Enums: {
       ad_generation_status: "pending" | "approved" | "rejected" | "published"
       ad_generation_type: "clone" | "concept" | "iteration"
-      campaign_status: "active" | "paused" | "finished"
+      campaign_status: "active" | "paused" | "finished" | "deleted"
       client_status: "green" | "yellow" | "red" | "orange"
       menu_item_type:
         | "dashboard"
@@ -11045,7 +11063,7 @@ export const Constants = {
     Enums: {
       ad_generation_status: ["pending", "approved", "rejected", "published"],
       ad_generation_type: ["clone", "concept", "iteration"],
-      campaign_status: ["active", "paused", "finished"],
+      campaign_status: ["active", "paused", "finished", "deleted"],
       client_status: ["green", "yellow", "red", "orange"],
       menu_item_type: [
         "dashboard",

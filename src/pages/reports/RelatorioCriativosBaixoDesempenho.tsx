@@ -15,7 +15,7 @@ interface LowPerformingCreative {
   name: string;
   campaign_id: string;
   campaign_name: string;
-  campaign_status: 'active' | 'paused' | 'finished';
+  campaign_status: 'active' | 'paused' | 'finished' | 'deleted';
   campaign_is_active: boolean;
   client_id: string;
   client_name: string;

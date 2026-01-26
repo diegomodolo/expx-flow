@@ -831,101 +831,42 @@ async function processSync(
     let totalLeads = 0
     let totalClicks = 0
 
-    // Clear existing data based on sync options
-    // IMPORTANT: when syncing a specific campaign, do NOT delete the campaign row.
-    // Deleting it changes the internal UUID used by the UI route and breaks the editor URL.
-    if (syncCampaigns) {
-      if (campaignFacebookId) {
-        console.log('Specific campaign sync: skipping campaign deletion to preserve internal campaign UUID:', campaignFacebookId)
-      } else {
-        // Delete all campaigns for the client (legacy full resync behavior)
-        const { error: deleteCampaignsError } = await supabase
-          .from('campaigns')
-          .delete()
-          .eq('client_id', clientId)
-        
-        if (deleteCampaignsError) {
-          console.error('Error deleting existing campaigns:', deleteCampaignsError)
-        } else {
-          console.log('Cleared existing campaigns for client')
-        }
-      }
-    }
+    // NEW: Generate sync timestamp to track what was synced in this batch
+    const syncTimestamp = new Date().toISOString()
+    console.log('Sync timestamp for this batch:', syncTimestamp)
 
-    if (syncAdSets) {
-      if (campaignFacebookId) {
-        // First get the internal campaign ID
-        const { data: campaignRecord } = await supabase
-          .from('campaigns')
-          .select('id')
-          .eq('facebook_id', campaignFacebookId)
-          .eq('client_id', clientId)
-          .single()
-        
-        if (campaignRecord) {
-          const { error: deleteAdSetsError } = await supabase
-            .from('ad_sets')
-            .delete()
-            .eq('campaign_id', campaignRecord.id)
-          
-          if (deleteAdSetsError) {
-            console.error('Error deleting ad sets for campaign:', deleteAdSetsError)
-          } else {
-            console.log('Cleared ad sets for specific campaign')
-          }
-        }
-      } else {
-        const { error: deleteAdSetsError } = await supabase
-          .from('ad_sets')
-          .delete()
-          .eq('client_id', clientId)
-        
-        if (deleteAdSetsError) {
-          console.error('Error deleting existing ad sets:', deleteAdSetsError)
-        } else {
-          console.log('Cleared existing ad sets for client')
-        }
-      }
-    }
+    // NEW: Count totals for progress tracking
+    let totalAdSetsCount = 0
+    let totalAdsCount = 0
+    let processedCampaigns = 0
+    let processedAdSets = 0
+    let processedAds = 0
 
-    if (syncAds) {
-      if (campaignFacebookId) {
-        // First get the internal campaign ID
-        const { data: campaignRecord } = await supabase
-          .from('campaigns')
-          .select('id')
-          .eq('facebook_id', campaignFacebookId)
-          .eq('client_id', clientId)
-          .single()
-        
-        if (campaignRecord) {
-          const { error: deleteAdsError } = await supabase
-            .from('ads')
-            .delete()
-            .eq('campaign_id', campaignRecord.id)
-          
-          if (deleteAdsError) {
-            console.error('Error deleting ads for campaign:', deleteAdsError)
-          } else {
-            console.log('Cleared ads for specific campaign')
-          }
-        }
-      } else {
-        const { error: deleteAdsError } = await supabase
-          .from('ads')
-          .delete()
-          .eq('client_id', clientId)
-        
-        if (deleteAdsError) {
-          console.error('Error deleting existing ads:', deleteAdsError)
-        } else {
-          console.log('Cleared existing ads for client')
-        }
-      }
-    }
+    // Initialize progress with campaign count
+    await updateJobProgress(supabase, jobId, {
+      campaigns: { current: 0, total: campaigns.length },
+      adsets: { current: 0, total: 0 },
+      ads: { current: 0, total: 0 },
+      current_entity: 'Iniciando sincronização...'
+    })
+
+    // NEW: UPSERT STRATEGY - No more DELETE operations
+    // Data will be updated in place, and items not found in Meta will be marked as 'deleted' at the end
+    console.log('Using UPSERT strategy - no data deletion during sync')
 
     // Process each campaign if sync campaigns is enabled
-    for (const campaign of campaigns) {
+    for (let campaignIdx = 0; campaignIdx < campaigns.length; campaignIdx++) {
+      const campaign = campaigns[campaignIdx]
+      processedCampaigns++
+      
+      // Update progress for each campaign
+      await updateJobProgress(supabase, jobId, {
+        campaigns: { current: processedCampaigns, total: campaigns.length },
+        adsets: { current: processedAdSets, total: totalAdSetsCount },
+        ads: { current: processedAds, total: totalAdsCount },
+        current_entity: `Campanha: ${campaign.name}`
+      })
+      
       console.log('Processing campaign:', campaign.name, 'Status:', campaign.status)
       
       const isActive = campaign.status === 'ACTIVE'
@@ -1020,10 +961,11 @@ async function processSync(
           client_id: clientId,
           user_id: client.user_id,
           company_id: client.company_id,
-          period: '30 dias'
+          period: '30 dias',
+          last_synced_at: syncTimestamp // Track when this was synced
         }
 
-        // Check if campaign already exists for this client
+        // UPSERT: Check if campaign already exists for this client
         const { data: existingCampaign } = await supabase
           .from('campaigns')
           .select('id')
@@ -1154,7 +1096,7 @@ async function processSync(
             console.log('Ad set promoted_object:', JSON.stringify(promotedObject))
             console.log('Extracted pixel_id:', adSetPixelId, 'conversion_event:', adSetConversionEvent)
             
-            // Save ad set to database
+            // Save ad set to database with last_synced_at
             const adSetData = {
               facebook_id: adSet.id,
               campaign_id: savedCampaign.id,
@@ -1183,8 +1125,19 @@ async function processSync(
               quality_ranking: adSetQualityRanking,
               engagement_rate_ranking: adSetEngagementRateRanking,
               conversion_rate_ranking: adSetConversionRateRanking,
-              is_active: adSet.status === 'ACTIVE'
+              is_active: adSet.status === 'ACTIVE',
+              last_synced_at: syncTimestamp // Track when this was synced
             }
+
+            // Update progress for each ad set
+            processedAdSets++
+            totalAdSetsCount = Math.max(totalAdSetsCount, processedAdSets)
+            await updateJobProgress(supabase, jobId, {
+              campaigns: { current: processedCampaigns, total: campaigns.length },
+              adsets: { current: processedAdSets, total: totalAdSetsCount },
+              ads: { current: processedAds, total: totalAdsCount },
+              current_entity: `Conjunto: ${adSet.name}`
+            })
 
             // Upsert by facebook_id to avoid duplicate key errors when resyncing.
             // This also guarantees the ad set gets linked to the current campaign_id.
@@ -1598,8 +1551,19 @@ async function processSync(
                      video_view_percentage: 0,
                      video_completion_rate: 0,
                      negative_feedback: 0,
-                     is_active: ad.status === 'ACTIVE'
+                     is_active: ad.status === 'ACTIVE',
+                     last_synced_at: syncTimestamp // Track when this was synced
                    }
+
+                  // Update progress for each ad
+                  processedAds++
+                  totalAdsCount = Math.max(totalAdsCount, processedAds)
+                  await updateJobProgress(supabase, jobId, {
+                    campaigns: { current: processedCampaigns, total: campaigns.length },
+                    adsets: { current: processedAdSets, total: totalAdSetsCount },
+                    ads: { current: processedAds, total: totalAdsCount },
+                    current_entity: `Anúncio: ${ad.name}`
+                  })
 
                   // Upsert by facebook_id to avoid duplicate key errors when resyncing.
                   const { error: adError } = await supabase
@@ -1683,6 +1647,80 @@ async function processSync(
     }
 
     const avgCpl = totalLeads > 0 ? totalSpend / totalLeads : 0
+
+    // ========== SOFT DELETE: Mark items not synced in this batch as 'deleted' ==========
+    // Only do this for full sync (not when syncing a specific campaign)
+    if (!campaignFacebookId) {
+      console.log('🗑️ SOFT DELETE: Marking items not synced in this batch as deleted...')
+      console.log('  - Sync timestamp:', syncTimestamp)
+      
+      // Mark campaigns not synced as deleted
+      if (syncCampaigns && campaigns.length > 0) {
+        const { data: deletedCampaigns, error: deleteCampaignsError } = await supabase
+          .from('campaigns')
+          .update({ 
+            status: 'deleted', 
+            deleted_at: syncTimestamp,
+            is_active: false
+          })
+          .eq('client_id', clientId)
+          .neq('status', 'deleted') // Don't re-delete already deleted
+          .or(`last_synced_at.is.null,last_synced_at.lt.${syncTimestamp}`)
+          .select('id, name')
+        
+        if (deleteCampaignsError) {
+          console.error('Error soft-deleting campaigns:', deleteCampaignsError)
+        } else {
+          console.log(`✅ Soft-deleted ${deletedCampaigns?.length || 0} campaigns not found in Meta`)
+          deletedCampaigns?.forEach(c => console.log(`  - ${c.name}`))
+        }
+      }
+      
+      // Mark ad sets not synced as deleted
+      if (syncAdSets) {
+        const { data: deletedAdSets, error: deleteAdSetsError } = await supabase
+          .from('ad_sets')
+          .update({ 
+            status: 'deleted', 
+            deleted_at: syncTimestamp,
+            is_active: false
+          })
+          .eq('client_id', clientId)
+          .neq('status', 'deleted')
+          .or(`last_synced_at.is.null,last_synced_at.lt.${syncTimestamp}`)
+          .select('id, name')
+        
+        if (deleteAdSetsError) {
+          console.error('Error soft-deleting ad sets:', deleteAdSetsError)
+        } else {
+          console.log(`✅ Soft-deleted ${deletedAdSets?.length || 0} ad sets not found in Meta`)
+        }
+      }
+      
+      // Mark ads not synced as deleted
+      if (syncAds) {
+        const { data: deletedAds, error: deleteAdsError } = await supabase
+          .from('ads')
+          .update({ 
+            status: 'deleted', 
+            deleted_at: syncTimestamp,
+            is_active: false
+          })
+          .eq('client_id', clientId)
+          .neq('status', 'deleted')
+          .or(`last_synced_at.is.null,last_synced_at.lt.${syncTimestamp}`)
+          .select('id, name')
+        
+        if (deleteAdsError) {
+          console.error('Error soft-deleting ads:', deleteAdsError)
+        } else {
+          console.log(`✅ Soft-deleted ${deletedAds?.length || 0} ads not found in Meta`)
+        }
+      }
+    } else {
+      console.log('⏭️ Skipping soft delete - specific campaign sync mode')
+    }
+    // ========== END SOFT DELETE ==========
 
     // Get updated ad account data to check for funding issues
     console.log('🔍 FETCHING UPDATED AD ACCOUNT DATA after financial status update...')

@@ -27,7 +27,7 @@ export interface TreeNode {
   type: "campaign" | "adset" | "ad";
   level: number;
   name: string;
-  status: "active" | "paused" | "finished";
+  status: "active" | "paused" | "finished" | "deleted";
   isExpanded: boolean;
   platform: "meta" | "google";
   metrics: TreeNodeMetrics;
@@ -183,7 +183,10 @@ export function useCampaignTree(options: UseCampaignTreeOptions) {
 
     const platform: "meta" | "google" = metaCampaign ? "meta" : "google";
 
-    const getStatus = (item: any): "active" | "paused" | "finished" => {
+    const getStatus = (item: any): "active" | "paused" | "finished" | "deleted" => {
+      if (item.status === "deleted" || item.status === "DELETED") {
+        return "deleted";
+      }
       if (item.status === "ACTIVE" || item.status === "active" || item.is_active === true) {
         return "active";
       }

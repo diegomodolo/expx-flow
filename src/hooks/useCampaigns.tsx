@@ -7,7 +7,7 @@ export interface Campaign {
   client_id: string;
   name: string;
   platforms: string;
-  status: "active" | "paused" | "finished";
+  status: "active" | "paused" | "finished" | "deleted";
   ctr: number;
   cpc: number;
   conversions: number;
@@ -26,6 +26,8 @@ export interface Campaign {
   created_at?: string;
   updated_at?: string;
   clicks?: number;
+  last_synced_at?: string;
+  deleted_at?: string;
   client?: {
     name: string;
     avatar: string;

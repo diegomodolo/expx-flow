@@ -8,7 +8,7 @@ export interface ClientCampaign {
   id: string;
   name: string;
   platforms: string;
-  status: 'active' | 'paused' | 'finished';
+  status: 'active' | 'paused' | 'finished' | 'deleted';
   is_active: boolean;
   ctr: number;
   cpc: number;
@@ -27,6 +27,8 @@ export interface ClientCampaign {
   daily_budget?: number; // Orçamento diário
   lifetime_budget?: number; // Orçamento vitalício
   created_at: string;
+  last_synced_at?: string;
+  deleted_at?: string;
 }
 
 export interface ClientDetailsData extends Client {
