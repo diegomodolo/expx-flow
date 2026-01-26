@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 
 export interface CanvasElement {
   id: string;
@@ -49,6 +49,11 @@ interface UseImageEditorProps {
 }
 
 export function useImageEditor({ initialImages }: UseImageEditorProps) {
+  // Use a ref to track the original images that initialized the session
+  // This prevents resets when state.images changes due to AI edits
+  const sessionInitialImagesRef = useRef<string[]>(initialImages);
+  const isInitializedRef = useRef(false);
+
   const [state, setState] = useState<ImageEditorState>(() => ({
     images: initialImages,
     currentImageIndex: 0,
@@ -61,9 +66,19 @@ export function useImageEditor({ initialImages }: UseImageEditorProps) {
     isProcessingAI: false,
   }));
 
-  // Reset state when initialImages change (e.g., when modal opens with new images)
+  // Only reset state when the modal opens with genuinely NEW images
+  // Compare against the session's initial images, not current state
   useEffect(() => {
-    if (initialImages.length > 0 && JSON.stringify(initialImages) !== JSON.stringify(state.images)) {
+    const initialImagesKey = JSON.stringify(initialImages);
+    const sessionKey = JSON.stringify(sessionInitialImagesRef.current);
+    
+    // Only reset if:
+    // 1. We have images to work with
+    // 2. The initialImages are different from what started this session
+    // This prevents resets when switching tabs or when state.images changes from AI edits
+    if (initialImages.length > 0 && initialImagesKey !== sessionKey) {
+      sessionInitialImagesRef.current = initialImages;
+      isInitializedRef.current = true;
       setState({
         images: initialImages,
         currentImageIndex: 0,
@@ -75,6 +90,9 @@ export function useImageEditor({ initialImages }: UseImageEditorProps) {
         aiChatMessages: [],
         isProcessingAI: false,
       });
+    } else if (!isInitializedRef.current && initialImages.length > 0) {
+      // First initialization
+      isInitializedRef.current = true;
     }
   }, [initialImages]);
 
