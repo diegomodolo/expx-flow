@@ -1,292 +1,182 @@
 
-# Plano: Modal de Status de Salvamento com Feedback Visual em Etapas
+# Plano: Correção do Flash e Dados Desatualizados no Salvamento
 
-## Objetivo
+## Problema Identificado
 
-Criar um modal de progresso que aparece ao clicar em "Salvar" no editor de campanhas/conjuntos/anúncios, mostrando cada etapa do processo em tempo real para dar feedback claro ao usuário.
-
----
+Ao salvar alterações em um conjunto de anúncios:
+1. **Flash visual**: O refetch de 6 queries simultâneas causa re-renderização massiva
+2. **Dados antigos**: O React Query retorna dados do cache antes das queries completarem
 
 ## Análise do Fluxo Atual
 
-### Como funciona hoje
-1. Usuário clica em "Salvar"
-2. `handleSave()` é executado com `isSaving = true` (mostra apenas "Salvando...")
-3. Chama edge function para atualizar no Meta
-4. Edge function atualiza banco local após sucesso
-5. Toast de sucesso aparece
-6. `onSuccess()` é chamado (refetch dos dados)
-
-### Problema
-- O feedback é genérico ("Salvando...")
-- Usuário não sabe se está enviando para Meta, aguardando resposta, ou sincronizando
-- Parece que nada aconteceu até aparecer o toast final
-
----
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│  1. Usuário edita nome e clica "Salvar"                         │
+│  2. Edge function atualiza Meta + banco local                   │
+│  3. Modal de progresso fecha                                    │
+│  4. onSuccess() é chamado → refetchCampaigns()                  │
+│  5. 6 queries são disparadas simultaneamente                    │
+│  6. React Query retorna dados do cache (stale) primeiro         │
+│  7. Tela pisca com dados antigos                                │
+│  8. Dados novos eventualmente chegam                            │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 ## Solução Proposta
 
-### 1. Criar componente `SaveProgressModal`
+### Estratégia: Atualização Otimista + Invalidação Correta
 
-Modal pequeno que mostra as etapas do processo:
-
-| Etapa | Status Visual |
-|-------|---------------|
-| Enviando para o Meta | Spinner animado |
-| Aguardando resposta do Meta | Spinner ou check |
-| Atualizando dados locais | Spinner ou check |
-| Concluído | Check verde + fechar automático |
-
-### 2. Criar hook `useSaveWithProgress`
-
-Hook que encapsula a lógica de salvamento com controle de etapas:
-
-```typescript
-interface SaveStep {
-  id: 'sending' | 'waiting' | 'syncing' | 'complete';
-  label: string;
-  status: 'pending' | 'active' | 'complete' | 'error';
-}
-
-interface UseSaveWithProgressReturn {
-  isOpen: boolean;
-  steps: SaveStep[];
-  error: string | null;
-  execute: (saveFn: () => Promise<void>) => Promise<void>;
-  close: () => void;
-}
-```
-
-### 3. Modificar componentes de edição
-
-Integrar o hook em:
-- `CampaignEditContent.tsx`
-- `AdSetEditContent.tsx`
-- `AdEditContent.tsx`
+Em vez de apenas fazer refetch, vamos:
+1. **Invalidar o cache** corretamente para forçar nova busca
+2. **Aguardar** a invalidação completar antes de fechar o modal
+3. **Usar invalidateQueries** em vez de refetch para garantir dados frescos
 
 ---
 
-## Arquitetura da Solução
+## Implementação
 
-```text
-┌─────────────────────────────────────────────────┐
-│         Modal de Edição (atual)                 │
-│  ┌───────────────────────────────────────────┐  │
-│  │  Formulário de edição                     │  │
-│  └───────────────────────────────────────────┘  │
-│  ┌───────────────────────────────────────────┐  │
-│  │  [Salvar]  → abre SaveProgressModal       │  │
-│  └───────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────┘
+### Arquivo 1: `src/hooks/useAllCampaignsTree.tsx`
 
-┌─────────────────────────────────────────────────┐
-│         SaveProgressModal (overlay)             │
-│  ┌───────────────────────────────────────────┐  │
-│  │  ○ Enviando para o Meta...      [spinner] │  │
-│  │  ○ Aguardando resposta          [pending] │  │
-│  │  ○ Atualizando dados            [pending] │  │
-│  └───────────────────────────────────────────┘  │
-│                                                 │
-│         Atualizando alterações...               │
-└─────────────────────────────────────────────────┘
-```
-
----
-
-## Implementação Técnica
-
-### Arquivo 1: `src/components/campaign-editor/SaveProgressModal.tsx`
-
-Componente visual do modal com as etapas:
+Modificar o hook para expor função de invalidação que aguarda a conclusão:
 
 ```typescript
-interface SaveProgressModalProps {
-  isOpen: boolean;
-  steps: SaveStep[];
-  error: string | null;
-  onClose: () => void;
-}
+import { useQueryClient } from "@tanstack/react-query";
 
-export function SaveProgressModal({ isOpen, steps, error, onClose }: SaveProgressModalProps) {
-  return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-sm">
-        <DialogHeader>
-          <DialogTitle>Salvando alterações</DialogTitle>
-        </DialogHeader>
-        
-        <div className="space-y-3 py-4">
-          {steps.map((step) => (
-            <div key={step.id} className="flex items-center gap-3">
-              {step.status === 'active' && <Loader2 className="animate-spin" />}
-              {step.status === 'complete' && <CheckCircle className="text-green-500" />}
-              {step.status === 'pending' && <Circle className="text-muted" />}
-              {step.status === 'error' && <XCircle className="text-destructive" />}
-              <span className={cn(
-                step.status === 'active' && 'font-medium',
-                step.status === 'pending' && 'text-muted-foreground',
-                step.status === 'complete' && 'text-green-600'
-              )}>
-                {step.label}
-              </span>
-            </div>
-          ))}
-        </div>
-        
-        {error && (
-          <Alert variant="destructive">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-      </DialogContent>
-    </Dialog>
-  );
+export function useAllCampaignsTree(options) {
+  const queryClient = useQueryClient();
+  // ... código existente ...
+
+  // Nova função que invalida e aguarda
+  const invalidateAndRefetch = async () => {
+    // Invalida todas as queries relacionadas
+    await queryClient.invalidateQueries({
+      queryKey: ["all-campaigns-tree-meta", clientId],
+    });
+    await queryClient.invalidateQueries({
+      queryKey: ["all-campaigns-tree-meta-adsets", clientId],
+    });
+    await queryClient.invalidateQueries({
+      queryKey: ["all-campaigns-tree-meta-ads", clientId],
+    });
+    await queryClient.invalidateQueries({
+      queryKey: ["all-campaigns-tree-google", clientId],
+    });
+    await queryClient.invalidateQueries({
+      queryKey: ["all-campaigns-tree-google-adgroups", clientId],
+    });
+    await queryClient.invalidateQueries({
+      queryKey: ["all-campaigns-tree-google-ads", clientId],
+    });
+  };
+
+  return {
+    campaigns,
+    isLoading,
+    totalMetrics,
+    targets,
+    refetch, // manter para compatibilidade
+    invalidateAndRefetch, // nova função async
+  };
 }
 ```
 
-### Arquivo 2: `src/hooks/useSaveWithProgress.tsx`
+### Arquivo 2: `src/pages/cliente/ClienteCampanhas.tsx`
 
-Hook para gerenciar o estado das etapas:
-
-```typescript
-export function useSaveWithProgress() {
-  const [isOpen, setIsOpen] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [steps, setSteps] = useState<SaveStep[]>([
-    { id: 'sending', label: 'Enviando para o Meta', status: 'pending' },
-    { id: 'waiting', label: 'Aguardando resposta', status: 'pending' },
-    { id: 'syncing', label: 'Atualizando dados locais', status: 'pending' },
-    { id: 'complete', label: 'Concluído', status: 'pending' },
-  ]);
-
-  const updateStep = (stepId: string, status: SaveStep['status']) => {
-    setSteps(prev => prev.map(s => 
-      s.id === stepId ? { ...s, status } : s
-    ));
-  };
-
-  const execute = async (
-    metaAction: () => Promise<any>,
-    onSuccess?: () => void
-  ) => {
-    setIsOpen(true);
-    setError(null);
-    resetSteps();
-
-    try {
-      // Etapa 1: Enviando
-      updateStep('sending', 'active');
-      await new Promise(r => setTimeout(r, 300)); // pequeno delay visual
-      
-      // Etapa 2: Aguardando resposta do Meta
-      updateStep('sending', 'complete');
-      updateStep('waiting', 'active');
-      
-      const result = await metaAction();
-      
-      // Etapa 3: Sincronizando dados locais
-      updateStep('waiting', 'complete');
-      updateStep('syncing', 'active');
-      
-      // O onSuccess geralmente faz refetch dos dados
-      await onSuccess?.();
-      
-      // Etapa 4: Concluído
-      updateStep('syncing', 'complete');
-      updateStep('complete', 'active');
-      
-      // Fechar após 1.5s
-      setTimeout(() => {
-        updateStep('complete', 'complete');
-        setIsOpen(false);
-      }, 1500);
-      
-      return result;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erro desconhecido';
-      setError(message);
-      // Marcar etapa atual como erro
-      // Modal fica aberto para mostrar erro
-    }
-  };
-
-  return { isOpen, steps, error, execute, close: () => setIsOpen(false) };
-}
-```
-
-### Arquivo 3-5: Modificar componentes de edição
-
-Em cada componente (`CampaignEditContent`, `AdSetEditContent`, `AdEditContent`):
+Usar a nova função de invalidação:
 
 ```typescript
-// Adicionar import
-import { SaveProgressModal } from './SaveProgressModal';
-import { useSaveWithProgress } from '@/hooks/useSaveWithProgress';
+const { 
+  campaigns: allCampaigns, 
+  isLoading, 
+  totalMetrics, 
+  targets,
+  refetch: refetchCampaigns,
+  invalidateAndRefetch, // nova função
+} = useAllCampaignsTree({ ... });
 
-// No componente
-const saveProgress = useSaveWithProgress();
-
-// Modificar handleSave
-const handleSave = useCallback(async () => {
-  if (!clientId || !node) return;
-
-  const metaAction = async () => {
-    // ... lógica atual de chamada ao Meta
-  };
-
-  await saveProgress.execute(metaAction, onSuccess);
-}, [...]);
-
-// No JSX, antes do fechamento do Dialog
-<SaveProgressModal
-  isOpen={saveProgress.isOpen}
-  steps={saveProgress.steps}
-  error={saveProgress.error}
-  onClose={saveProgress.close}
+// No UnifiedCampaignModal
+<UnifiedCampaignModal
+  ...
+  onSuccess={async () => {
+    await invalidateAndRefetch(); // aguarda invalidação
+    refetchClient?.();
+  }}
 />
 ```
 
+### Arquivo 3: `src/hooks/useSaveWithProgress.tsx`
+
+Garantir que o callback de sucesso seja async e aguardado:
+
+```typescript
+const execute = useCallback(async (
+  metaAction: () => Promise<any>,
+  onSuccess?: () => Promise<void> | void // aceitar Promise
+): Promise<boolean> => {
+  // ...
+  
+  // Etapa 3: Sincronizando - AGUARDAR a invalidação
+  updateStep('syncing', 'active');
+  
+  if (onSuccess) {
+    await onSuccess(); // aguardar a promise
+  }
+  
+  updateStep('syncing', 'complete');
+  // ...
+}, []);
+```
+
+### Arquivo 4: Componentes de Edição
+
+Garantir que o onSuccess é passado corretamente:
+
+```typescript
+// AdSetEditContent.tsx
+const success = await saveProgress.execute(metaAction, async () => {
+  setHasChanges(false);
+  if (onSuccess) {
+    await onSuccess(); // propagar a promise
+  }
+});
+```
+
 ---
 
-## Arquivos a Criar/Modificar
+## Fluxo Corrigido
 
-| Arquivo | Ação |
-|---------|------|
-| `src/components/campaign-editor/SaveProgressModal.tsx` | **Criar** |
-| `src/hooks/useSaveWithProgress.tsx` | **Criar** |
-| `src/components/campaign-editor/CampaignEditContent.tsx` | **Modificar** |
-| `src/components/campaign-editor/AdSetEditContent.tsx` | **Modificar** |
-| `src/components/campaign-editor/AdEditContent.tsx` | **Modificar** |
-
----
-
-## Comportamento Visual
-
-### Durante o salvamento
-- Modal abre imediatamente ao clicar em Salvar
-- Cada etapa fica "ativa" (com spinner) conforme progride
-- Etapas completadas mostram check verde
-- Etapas pendentes ficam cinza
-
-### Em caso de sucesso
-- Última etapa "Concluído" fica verde
-- Modal fecha automaticamente após 1.5 segundos
-- Dados já estão atualizados na tabela atrás
-
-### Em caso de erro
-- Etapa que falhou fica vermelha
-- Mensagem de erro aparece no modal
-- Modal permanece aberto para usuário ver o erro
-- Botão de fechar disponível
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│  1. Usuário edita nome e clica "Salvar"                         │
+│  2. Modal de progresso abre                                     │
+│  3. Edge function atualiza Meta + banco local                   │
+│  4. Etapa "Sincronizando" - invalidateAndRefetch() é chamado    │
+│  5. Todas as queries são invalidadas e refrescadas              │
+│  6. AGUARDA até os dados novos estarem disponíveis              │
+│  7. Etapa "Concluído" - dados já estão corretos                 │
+│  8. Modal fecha                                                 │
+│  9. Tela já mostra dados atualizados SEM flash                  │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
-## Resultado Esperado
+## Arquivos a Modificar
 
-O usuário terá feedback visual claro de cada etapa:
-1. "Enviando para o Meta" - indica que a requisição está sendo enviada
-2. "Aguardando resposta" - indica que está esperando confirmação do Meta
-3. "Atualizando dados locais" - indica que está salvando no banco
-4. "Concluído" - indica sucesso total
+| Arquivo | Mudança |
+|---------|---------|
+| `src/hooks/useAllCampaignsTree.tsx` | Adicionar função `invalidateAndRefetch` que usa `queryClient.invalidateQueries` |
+| `src/pages/cliente/ClienteCampanhas.tsx` | Usar `invalidateAndRefetch` em vez de `refetch` no `onSuccess` |
+| `src/hooks/useSaveWithProgress.tsx` | Garantir que `onSuccess` é `await`ed corretamente |
+| `src/components/campaign-editor/AdSetEditContent.tsx` | Propagar a promise do onSuccess |
+| `src/components/campaign-editor/CampaignEditContent.tsx` | Propagar a promise do onSuccess |
+| `src/components/campaign-editor/AdEditContent.tsx` | Propagar a promise do onSuccess |
 
-Isso elimina a sensação de "não aconteceu nada" e mostra claramente que o processo está funcionando.
+---
+
+## Benefícios
+
+- Dados sempre atualizados ao fechar o modal
+- Sem flash visual na tela
+- Sincronização real com o banco antes de mostrar "Concluído"
+- Feedback visual preciso do que está acontecendo
