@@ -4,7 +4,11 @@ import { TreeGridRow } from "./TreeGridRow";
 import { BulkActionsBar } from "./BulkActionsBar";
 import { useInlineEdit } from "@/hooks/useInlineEdit";
 import { Checkbox } from "@/components/ui/checkbox";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+type SortColumn = "name" | "status" | "budget" | "ctr" | "cpa" | "cpm" | "cpc" | "conversions" | "spend";
+type SortDirection = "asc" | "desc";
 
 interface MultiCampaignTreeGridProps {
   campaigns: TreeNode[];
@@ -29,16 +33,91 @@ export function MultiCampaignTreeGrid({
 }: MultiCampaignTreeGridProps) {
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [selectedNodes, setSelectedNodes] = useState<Set<string>>(new Set());
+  const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
   const { loading, currentAction, updateStatus, updateBudget, bulkUpdateStatus } = useInlineEdit({
     onSuccess: onRefresh,
   });
 
-  // Filter campaigns by status
+  const handleSort = useCallback((column: SortColumn) => {
+    if (sortColumn === column) {
+      if (sortDirection === "asc") {
+        setSortDirection("desc");
+      } else {
+        setSortColumn(null);
+        setSortDirection("asc");
+      }
+    } else {
+      setSortColumn(column);
+      setSortDirection("asc");
+    }
+  }, [sortColumn, sortDirection]);
+
+  // Filter and sort campaigns
   const filteredCampaigns = useMemo(() => {
-    if (statusFilter === "all") return campaigns;
-    return campaigns.filter((campaign) => campaign.status === statusFilter);
-  }, [campaigns, statusFilter]);
+    let result = statusFilter === "all" ? [...campaigns] : campaigns.filter((campaign) => campaign.status === statusFilter);
+    
+    if (sortColumn) {
+      result.sort((a, b) => {
+        let aValue: number | string;
+        let bValue: number | string;
+        
+        switch (sortColumn) {
+          case "name":
+            aValue = a.name.toLowerCase();
+            bValue = b.name.toLowerCase();
+            break;
+          case "status":
+            aValue = a.status;
+            bValue = b.status;
+            break;
+          case "budget":
+            aValue = a.budget?.amount ?? 0;
+            bValue = b.budget?.amount ?? 0;
+            break;
+          case "ctr":
+            aValue = a.metrics.ctr;
+            bValue = b.metrics.ctr;
+            break;
+          case "cpa":
+            aValue = a.metrics.cpa;
+            bValue = b.metrics.cpa;
+            break;
+          case "cpm":
+            aValue = a.metrics.cpm;
+            bValue = b.metrics.cpm;
+            break;
+          case "cpc":
+            aValue = a.metrics.cpc;
+            bValue = b.metrics.cpc;
+            break;
+          case "conversions":
+            aValue = a.metrics.conversions;
+            bValue = b.metrics.conversions;
+            break;
+          case "spend":
+            aValue = a.metrics.spend;
+            bValue = b.metrics.spend;
+            break;
+          default:
+            return 0;
+        }
+        
+        if (typeof aValue === "string" && typeof bValue === "string") {
+          return sortDirection === "asc" 
+            ? aValue.localeCompare(bValue) 
+            : bValue.localeCompare(aValue);
+        }
+        
+        return sortDirection === "asc" 
+          ? (aValue as number) - (bValue as number) 
+          : (bValue as number) - (aValue as number);
+      });
+    }
+    
+    return result;
+  }, [campaigns, statusFilter, sortColumn, sortDirection]);
 
   // Collect all node IDs for "select all" functionality
   const allNodeIds = useMemo(() => {
@@ -249,33 +328,78 @@ export function MultiCampaignTreeGrid({
                   }}
                 />
               </th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-[27%]">
-                Nome
-              </th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-[7%]">
-                Status
-              </th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-[13%]">
-                Orçamento
-              </th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-[7%]">
-                CTR
-              </th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-[8%]">
-                CPA
-              </th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-[7%]">
-                CPM
-              </th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-[7%]">
-                CPC
-              </th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-[7%]">
-                Conv.
-              </th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-[14%]">
-                Investido
-              </th>
+              <SortableHeader 
+                column="name" 
+                label="Nome" 
+                width="27%" 
+                sortColumn={sortColumn}
+                sortDirection={sortDirection}
+                onSort={handleSort}
+              />
+              <SortableHeader 
+                column="status" 
+                label="Status" 
+                width="7%" 
+                sortColumn={sortColumn}
+                sortDirection={sortDirection}
+                onSort={handleSort}
+              />
+              <SortableHeader 
+                column="budget" 
+                label="Orçamento" 
+                width="13%" 
+                sortColumn={sortColumn}
+                sortDirection={sortDirection}
+                onSort={handleSort}
+              />
+              <SortableHeader 
+                column="ctr" 
+                label="CTR" 
+                width="7%" 
+                sortColumn={sortColumn}
+                sortDirection={sortDirection}
+                onSort={handleSort}
+              />
+              <SortableHeader 
+                column="cpa" 
+                label="CPA" 
+                width="8%" 
+                sortColumn={sortColumn}
+                sortDirection={sortDirection}
+                onSort={handleSort}
+              />
+              <SortableHeader 
+                column="cpm" 
+                label="CPM" 
+                width="7%" 
+                sortColumn={sortColumn}
+                sortDirection={sortDirection}
+                onSort={handleSort}
+              />
+              <SortableHeader 
+                column="cpc" 
+                label="CPC" 
+                width="7%" 
+                sortColumn={sortColumn}
+                sortDirection={sortDirection}
+                onSort={handleSort}
+              />
+              <SortableHeader 
+                column="conversions" 
+                label="Conv." 
+                width="7%" 
+                sortColumn={sortColumn}
+                sortDirection={sortDirection}
+                onSort={handleSort}
+              />
+              <SortableHeader 
+                column="spend" 
+                label="Investido" 
+                width="14%" 
+                sortColumn={sortColumn}
+                sortDirection={sortDirection}
+                onSort={handleSort}
+              />
             </tr>
           </thead>
           <tbody className="bg-card divide-y divide-border">
@@ -284,5 +408,43 @@ export function MultiCampaignTreeGrid({
         </table>
       </div>
     </div>
+  );
+}
+
+// Helper component for sortable headers
+interface SortableHeaderProps {
+  column: SortColumn;
+  label: string;
+  width: string;
+  sortColumn: SortColumn | null;
+  sortDirection: SortDirection;
+  onSort: (column: SortColumn) => void;
+}
+
+function SortableHeader({ column, label, width, sortColumn, sortDirection, onSort }: SortableHeaderProps) {
+  const isActive = sortColumn === column;
+  
+  return (
+    <th 
+      className={cn(
+        "px-3 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer hover:bg-muted/50 transition-colors select-none",
+        isActive ? "text-foreground" : "text-muted-foreground"
+      )}
+      style={{ width }}
+      onClick={() => onSort(column)}
+    >
+      <div className="flex items-center gap-1">
+        <span>{label}</span>
+        {isActive ? (
+          sortDirection === "asc" ? (
+            <ArrowUp className="h-3 w-3" />
+          ) : (
+            <ArrowDown className="h-3 w-3" />
+          )
+        ) : (
+          <ArrowUpDown className="h-3 w-3 opacity-40" />
+        )}
+      </div>
+    </th>
   );
 }
