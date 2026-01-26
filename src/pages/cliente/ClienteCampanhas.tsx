@@ -44,7 +44,8 @@ export function ClienteCampanhas() {
     isLoading, 
     totalMetrics, 
     targets,
-    refetch: refetchCampaigns 
+    refetch: refetchCampaigns,
+    invalidateAndRefetch,
   } = useAllCampaignsTree({
     clientId: client?.id,
     companyId: activeCompany?.company_id,
@@ -436,8 +437,8 @@ export function ClienteCampanhas() {
         initialSelectedNode={selectedNode}
         clientId={client?.id || ''}
         companyId={activeCompany?.company_id}
-        onSuccess={() => {
-          refetchCampaigns();
+        onSuccess={async () => {
+          await invalidateAndRefetch();
           refetchClient?.();
         }}
       />

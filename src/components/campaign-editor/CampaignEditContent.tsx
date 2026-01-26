@@ -37,7 +37,7 @@ interface CampaignEditContentProps {
   node: TreeNode;
   clientId: string;
   companyId?: string;
-  onSuccess?: () => void;
+  onSuccess?: () => Promise<void> | void;
 }
 
 const OBJECTIVE_LABELS: Record<string, string> = {
@@ -162,7 +162,9 @@ export function CampaignEditContent({
 
     const success = await saveProgress.execute(metaAction, async () => {
       setHasChanges(false);
-      await onSuccess?.();
+      if (onSuccess) {
+        await onSuccess();
+      }
     });
 
     if (success) {

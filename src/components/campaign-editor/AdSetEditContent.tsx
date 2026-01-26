@@ -44,7 +44,7 @@ interface AdSetEditContentProps {
   node: TreeNode;
   clientId: string;
   companyId?: string;
-  onSuccess?: () => void;
+  onSuccess?: () => Promise<void> | void;
 }
 
 export function AdSetEditContent({
@@ -232,7 +232,9 @@ export function AdSetEditContent({
 
     const success = await saveProgress.execute(metaAction, async () => {
       setHasChanges(false);
-      await onSuccess?.();
+      if (onSuccess) {
+        await onSuccess();
+      }
     });
 
     if (success) {
