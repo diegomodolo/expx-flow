@@ -56,23 +56,52 @@ serve(async (req) => {
 
     console.log(`Duplicating ${entityType} with facebookId: ${facebookId}, newName: ${newName}`);
 
-    // Fetch client's Meta access token
+    // Fetch client's company_id and ad_account_id
     const { data: client, error: clientError } = await supabaseClient
       .from("clients")
-      .select("meta_access_token, ad_account_id")
+      .select("company_id, ad_account_id")
       .eq("id", clientId)
       .single();
 
-    if (clientError || !client?.meta_access_token) {
+    if (clientError || !client?.company_id) {
       console.error("Client error:", clientError);
       return new Response(
-        JSON.stringify({ success: false, error: "Token do Meta não encontrado" }),
+        JSON.stringify({ success: false, error: "Cliente não encontrado" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const accessToken = client.meta_access_token;
-    const adAccountId = client.ad_account_id;
+    // Fetch Meta access token from facebook_integrations
+    const { data: integration, error: integrationError } = await supabaseClient
+      .from("facebook_integrations")
+      .select("access_token")
+      .eq("company_id", client.company_id)
+      .single();
+
+    if (integrationError || !integration?.access_token) {
+      console.error("Integration error:", integrationError);
+      return new Response(
+        JSON.stringify({ success: false, error: "Token do Meta não encontrado. Configure a integração com o Facebook." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Fetch ad account ID from facebook_ad_accounts
+    let adAccountId = null;
+    if (client.ad_account_id) {
+      const { data: adAccount, error: adAccountError } = await supabaseClient
+        .from("facebook_ad_accounts")
+        .select("account_id")
+        .eq("id", client.ad_account_id)
+        .single();
+
+      if (!adAccountError && adAccount?.account_id) {
+        // Remove "act_" prefix if present
+        adAccountId = adAccount.account_id.replace("act_", "");
+      }
+    }
+
+    const accessToken = integration.access_token;
 
     let result;
 
