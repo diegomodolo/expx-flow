@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface UseTreeNodeActionsProps {
   onSuccess?: () => void;
@@ -17,6 +18,7 @@ interface DuplicateEntityParams {
 
 export function useTreeNodeActions({ onSuccess }: UseTreeNodeActionsProps = {}) {
   const [isDuplicating, setIsDuplicating] = useState(false);
+  const queryClient = useQueryClient();
 
   const duplicateEntity = async (params: DuplicateEntityParams) => {
     const { type, id, clientId, facebookId, newName, platform } = params;
@@ -57,6 +59,12 @@ export function useTreeNodeActions({ onSuccess }: UseTreeNodeActionsProps = {}) 
       };
 
       toast.success(`${entityLabels[type]} duplicado com sucesso!`);
+      
+      // Invalidate queries to refresh the list immediately
+      await queryClient.invalidateQueries({ queryKey: ["all-campaigns-tree-meta", clientId] });
+      await queryClient.invalidateQueries({ queryKey: ["all-campaigns-tree-meta-adsets", clientId] });
+      await queryClient.invalidateQueries({ queryKey: ["all-campaigns-tree-meta-ads", clientId] });
+      
       onSuccess?.();
     } catch (err) {
       console.error("Error duplicating entity:", err);
