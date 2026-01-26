@@ -9,6 +9,11 @@ export interface HealthScore360Data {
   clientName: string;
   clientAvatar: string | null;
   
+  // Squad info
+  squadId: string | null;
+  squadName: string | null;
+  squadColor: string | null;
+  
   // Metas
   targetRoas: number;
   targetCpl: number;
@@ -67,6 +72,7 @@ interface RawHealthConfig {
     id: string;
     name: string;
     avatar: string | null;
+    team_id: string | null;
   };
 }
 
@@ -127,7 +133,8 @@ export function useCSHealthScore360(clientId?: string) {
           clients!client_health_config_client_id_fkey (
             id,
             name,
-            avatar
+            avatar,
+            team_id
           )
         `)
         .eq('company_id', activeCompany.company_id);
@@ -175,15 +182,34 @@ export function useCSHealthScore360(clientId?: string) {
         });
       }
 
+      // Buscar squads para mapear nomes
+      const teamIds = [...new Set((healthConfigs || []).map((h: RawHealthConfig) => h.clients?.team_id).filter(Boolean))];
+      let teamsMap: Record<string, { name: string; color: string | null }> = {};
+      
+      if (teamIds.length > 0) {
+        const { data: teams } = await supabase
+          .from('teams')
+          .select('id, name, color')
+          .in('id', teamIds);
+        
+        (teams || []).forEach((t: any) => {
+          teamsMap[t.id] = { name: t.name, color: t.color };
+        });
+      }
+
       // Transformar dados
       const healthData: HealthScore360Data[] = (healthConfigs || []).map((config: RawHealthConfig) => {
         const stats = campaignStats[config.client_id] || { roas: null, cpl: null, activeCampaigns: 0, totalSpend: 0, totalConversions: 0 };
+        const teamInfo = config.clients?.team_id ? teamsMap[config.clients.team_id] : null;
         
         const data: HealthScore360Data = {
           id: config.id,
           clientId: config.client_id,
           clientName: config.clients?.name || 'Cliente',
           clientAvatar: config.clients?.avatar || null,
+          squadId: config.clients?.team_id || null,
+          squadName: teamInfo?.name || null,
+          squadColor: teamInfo?.color || null,
           targetRoas: config.target_roas,
           targetCpl: config.target_cpl,
           npsScore: config.nps_score,

@@ -23,13 +23,15 @@ import {
   Minus,
   ThumbsDown,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Building2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCSClientsList, CSClientListItem } from '@/hooks/useCSClientsList';
 import { CSNewTouchpointModal } from '@/components/cs/CSNewTouchpointModal';
+import { useCSSquadFilter } from '@/contexts/CSSquadFilterContext';
 
-type SortField = 'name' | 'healthScore' | 'churnRiskLevel' | 'npsScore' | 'lastTouchpointAt' | 'activeCampaigns' | 'onboardingStatus';
+type SortField = 'name' | 'healthScore' | 'churnRiskLevel' | 'npsScore' | 'lastTouchpointAt' | 'activeCampaigns' | 'onboardingStatus' | 'squadName';
 type SortDirection = 'asc' | 'desc';
 
 const riskConfig = {
@@ -66,7 +68,8 @@ function NPSIcon({ category }: { category: 'promoter' | 'passive' | 'detractor' 
 
 export default function CSClientsList() {
   const navigate = useNavigate();
-  const { clients, isLoading, refetch } = useCSClientsList();
+  const { selectedSquadId } = useCSSquadFilter();
+  const { clients, isLoading, refetch } = useCSClientsList(selectedSquadId);
   
   const [searchTerm, setSearchTerm] = useState('');
   const [riskFilter, setRiskFilter] = useState<string>('all');
@@ -144,6 +147,9 @@ export default function CSClientsList() {
         case 'onboardingStatus':
           const onboardingOrder = { pending: 0, in_progress: 1, completed: 2 };
           comparison = onboardingOrder[a.onboardingStatus] - onboardingOrder[b.onboardingStatus];
+          break;
+        case 'squadName':
+          comparison = (a.squadName || '').localeCompare(b.squadName || '');
           break;
       }
       
@@ -241,12 +247,20 @@ export default function CSClientsList() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[250px]">
+                <TableHead className="w-[200px]">
                   <button 
                     className="flex items-center gap-1 hover:text-foreground"
                     onClick={() => handleSort('name')}
                   >
                     Cliente {getSortIcon('name')}
+                  </button>
+                </TableHead>
+                <TableHead className="w-[120px]">
+                  <button 
+                    className="flex items-center gap-1 hover:text-foreground"
+                    onClick={() => handleSort('squadName')}
+                  >
+                    Squad {getSortIcon('squadName')}
                   </button>
                 </TableHead>
                 <TableHead className="w-[140px]">
@@ -304,20 +318,20 @@ export default function CSClientsList() {
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <TableRow key={i}>
-                    <TableCell colSpan={8}>
+                    <TableCell colSpan={9}>
                       <div className="animate-pulse h-12 bg-muted/50 rounded" />
                     </TableCell>
                   </TableRow>
                 ))
               ) : paginatedClients.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
+                  <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
                     Nenhum cliente encontrado
                   </TableCell>
                 </TableRow>
               ) : (
                 paginatedClients.map((client) => (
-                  <TableRow key={client.clientId} className="cursor-pointer hover:bg-muted/50">
+                <TableRow key={client.clientId} className="cursor-pointer hover:bg-muted/50">
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <Avatar className="h-10 w-10">
@@ -329,6 +343,23 @@ export default function CSClientsList() {
                           <p className="text-xs text-muted-foreground">{client.company}</p>
                         </div>
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      {client.squadName ? (
+                        <Badge 
+                          variant="outline" 
+                          className="text-xs"
+                          style={{ 
+                            borderColor: client.squadColor || undefined,
+                            backgroundColor: client.squadColor ? `${client.squadColor}20` : undefined 
+                          }}
+                        >
+                          <Building2 className="h-3 w-3 mr-1" />
+                          {client.squadName}
+                        </Badge>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">-</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       <div className="space-y-1">

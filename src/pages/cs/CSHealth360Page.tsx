@@ -1,11 +1,33 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Heart, Activity, Star, Users } from 'lucide-react';
 import { useCSHealthScore360 } from '@/hooks/useCSHealthScore360';
 import { CSHealthScore360Card } from '@/components/cs/CSHealthScore360Card';
+import { useCSSquadFilter } from '@/contexts/CSSquadFilterContext';
 
 export default function CSHealth360Page() {
   const { healthData, stats, isLoading } = useCSHealthScore360();
+  const { selectedSquadId } = useCSSquadFilter();
+  
+  // Filtrar por squad se selecionado
+  const filteredHealthData = useMemo(() => {
+    if (!selectedSquadId) return healthData;
+    return healthData.filter(c => c.squadId === selectedSquadId);
+  }, [healthData, selectedSquadId]);
+
+  // Recalcular stats filtradas
+  const filteredStats = useMemo(() => {
+    const data = filteredHealthData;
+    const low = data.filter(c => c.churnRiskLevel === 'low').length;
+    const averageScore = data.length > 0
+      ? Math.round(data.reduce((sum, c) => sum + c.healthScoreTotal, 0) / data.length)
+      : 0;
+    const npsClients = data.filter(c => c.npsScore !== null);
+    const averageNps = npsClients.length > 0
+      ? Math.round(npsClients.reduce((sum, c) => sum + (c.npsScore || 0), 0) / npsClients.length * 10) / 10
+      : 0;
+    return { low, averageScore, averageNps, total: data.length };
+  }, [filteredHealthData]);
 
   return (
     <div className="space-y-6">
@@ -27,7 +49,7 @@ export default function CSHealth360Page() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-green-600 dark:text-green-400">Saúde Média</p>
-                <p className="text-3xl font-bold text-green-700 dark:text-green-300">{stats.averageScore}%</p>
+                <p className="text-3xl font-bold text-green-700 dark:text-green-300">{filteredStats.averageScore}%</p>
               </div>
               <Activity className="h-8 w-8 text-green-500" />
             </div>
@@ -39,7 +61,7 @@ export default function CSHealth360Page() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">Baixo Risco</p>
-                <p className="text-3xl font-bold text-emerald-700 dark:text-emerald-300">{stats.low}</p>
+                <p className="text-3xl font-bold text-emerald-700 dark:text-emerald-300">{filteredStats.low}</p>
               </div>
               <Heart className="h-8 w-8 text-emerald-500" />
             </div>
@@ -51,7 +73,7 @@ export default function CSHealth360Page() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-blue-600 dark:text-blue-400">NPS Médio</p>
-                <p className="text-3xl font-bold text-blue-700 dark:text-blue-300">{stats.averageNps || '-'}</p>
+                <p className="text-3xl font-bold text-blue-700 dark:text-blue-300">{filteredStats.averageNps || '-'}</p>
               </div>
               <Star className="h-8 w-8 text-blue-500" />
             </div>
@@ -63,7 +85,7 @@ export default function CSHealth360Page() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-purple-600 dark:text-purple-400">Total Clientes</p>
-                <p className="text-3xl font-bold text-purple-700 dark:text-purple-300">{healthData.length}</p>
+                <p className="text-3xl font-bold text-purple-700 dark:text-purple-300">{filteredStats.total}</p>
               </div>
               <Users className="h-8 w-8 text-purple-500" />
             </div>
@@ -79,7 +101,7 @@ export default function CSHealth360Page() {
               <CardContent className="pt-6 h-48 bg-muted/50" />
             </Card>
           ))
-        ) : healthData.length === 0 ? (
+        ) : filteredHealthData.length === 0 ? (
           <Card className="col-span-full">
             <CardContent className="pt-6 text-center py-12">
               <Heart className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
@@ -90,7 +112,7 @@ export default function CSHealth360Page() {
             </CardContent>
           </Card>
         ) : (
-          healthData.map((client) => (
+          filteredHealthData.map((client) => (
             <CSHealthScore360Card key={client.id} data={client} />
           ))
         )}

@@ -9,7 +9,8 @@ import {
   Calendar, 
   MessageSquare,
   ChevronRight,
-  Flame
+  Flame,
+  Building2
 } from 'lucide-react';
 import { HealthScore360Data } from '@/hooks/useCSHealthScore360';
 import { useNavigate } from 'react-router-dom';
@@ -87,7 +88,7 @@ export function CSRiskRadar({ clients, isLoading }: CSRiskRadarProps) {
                 </Avatar>
                 
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="font-semibold truncate">{client.clientName}</h3>
                     <Badge 
                       variant={client.churnRiskLevel === 'critical' ? 'destructive' : 'outline'}
@@ -95,6 +96,19 @@ export function CSRiskRadar({ clients, isLoading }: CSRiskRadarProps) {
                     >
                       {client.churnRiskLevel === 'critical' ? 'Crítico' : 'Alto Risco'}
                     </Badge>
+                    {client.squadName && (
+                      <Badge 
+                        variant="outline" 
+                        className="text-xs shrink-0"
+                        style={{ 
+                          borderColor: client.squadColor || undefined,
+                          backgroundColor: client.squadColor ? `${client.squadColor}20` : undefined 
+                        }}
+                      >
+                        <Building2 className="h-3 w-3 mr-1" />
+                        {client.squadName}
+                      </Badge>
+                    )}
                   </div>
                   
                   <div className="mt-2 flex items-center gap-4 text-sm text-muted-foreground">

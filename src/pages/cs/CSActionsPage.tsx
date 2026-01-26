@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
@@ -13,21 +13,29 @@ import { CSTouchpointLog } from '@/components/cs/CSTouchpointLog';
 import { CSQBRList } from '@/components/cs/CSQBRList';
 import { CSValueStatementList } from '@/components/cs/CSValueStatementList';
 import { CSNewTouchpointModal } from '@/components/cs/CSNewTouchpointModal';
+import { useCSSquadFilter } from '@/contexts/CSSquadFilterContext';
 
 export default function CSActionsPage() {
   const { healthData } = useCSHealthScore360();
+  const { selectedSquadId } = useCSSquadFilter();
   const [selectedClientId, setSelectedClientId] = useState<string>('');
   const [showNewTouchpoint, setShowNewTouchpoint] = useState(false);
   
-  const selectedClient = healthData.find(c => c.clientId === selectedClientId);
+  // Filtrar por squad se selecionado
+  const filteredHealthData = useMemo(() => {
+    if (!selectedSquadId) return healthData;
+    return healthData.filter(c => c.squadId === selectedSquadId);
+  }, [healthData, selectedSquadId]);
+  
+  const selectedClient = filteredHealthData.find(c => c.clientId === selectedClientId);
 
-  const pendingContacts = healthData.filter(c => {
+  const pendingContacts = filteredHealthData.filter(c => {
     if (!c.lastCsContactAt) return true;
     const days = Math.floor((Date.now() - new Date(c.lastCsContactAt).getTime()) / (1000 * 60 * 60 * 24));
     return days > 7;
   });
 
-  const upsellOpportunities = healthData.filter(c => 
+  const upsellOpportunities = filteredHealthData.filter(c => 
     c.churnRiskLevel === 'low' && c.healthScoreTotal >= 80
   );
 
