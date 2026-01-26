@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Heart, 
   AlertTriangle, 
@@ -21,13 +22,22 @@ import {
 import { useCSHealthScore360 } from '@/hooks/useCSHealthScore360';
 import { CSRiskRadar } from '@/components/cs/CSRiskRadar';
 import { CSHealthScore360Card } from '@/components/cs/CSHealthScore360Card';
+import { CSSuccessJourney } from '@/components/cs/CSSuccessJourney';
+import { CSTouchpointLog } from '@/components/cs/CSTouchpointLog';
+import { CSQBRList } from '@/components/cs/CSQBRList';
+import { CSNewTouchpointModal } from '@/components/cs/CSNewTouchpointModal';
+import { CSNPSTracker } from '@/components/cs/CSNPSTracker';
+import { CSValueStatementList } from '@/components/cs/CSValueStatementList';
 import { useNavigate } from 'react-router-dom';
 
 export default function CSHub() {
   const { healthData, stats, isLoading } = useCSHealthScore360();
   const navigate = useNavigate();
+  const [selectedClientId, setSelectedClientId] = useState<string>('');
+  const [showNewTouchpoint, setShowNewTouchpoint] = useState(false);
 
   const riskClients = healthData.filter(c => c.churnRiskLevel === 'critical' || c.churnRiskLevel === 'high');
+  const selectedClient = healthData.find(c => c.clientId === selectedClientId);
 
   return (
     <DashboardLayout>
@@ -98,7 +108,7 @@ export default function CSHub() {
 
         {/* Main Content */}
         <Tabs defaultValue="radar" className="space-y-4">
-          <TabsList className="grid w-full max-w-md grid-cols-3">
+          <TabsList className="grid w-full max-w-2xl grid-cols-4">
             <TabsTrigger value="radar" className="flex items-center gap-2">
               <AlertTriangle className="h-4 w-4" />
               Radar de Risco
@@ -106,6 +116,10 @@ export default function CSHub() {
             <TabsTrigger value="health" className="flex items-center gap-2">
               <Heart className="h-4 w-4" />
               Saúde 360
+            </TabsTrigger>
+            <TabsTrigger value="journey" className="flex items-center gap-2">
+              <Trophy className="h-4 w-4" />
+              Jornada
             </TabsTrigger>
             <TabsTrigger value="actions" className="flex items-center gap-2">
               <Target className="h-4 w-4" />
@@ -143,7 +157,46 @@ export default function CSHub() {
             </div>
           </TabsContent>
 
-          <TabsContent value="actions" className="space-y-4">
+          <TabsContent value="journey" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <Trophy className="h-5 w-5 text-primary" />
+                    Jornada da Vitória
+                  </span>
+                  <Select value={selectedClientId} onValueChange={setSelectedClientId}>
+                    <SelectTrigger className="w-[280px]">
+                      <SelectValue placeholder="Selecione um cliente" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {healthData.map((client) => (
+                        <SelectItem key={client.clientId} value={client.clientId}>
+                          {client.clientName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {!selectedClientId ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <Trophy className="h-12 w-12 mx-auto mb-4 opacity-30" />
+                    <p>Selecione um cliente para ver a jornada</p>
+                  </div>
+                ) : (
+                  <CSSuccessJourney 
+                    clientId={selectedClientId} 
+                    clientName={selectedClient?.clientName} 
+                  />
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="actions" className="space-y-6">
+            {/* Quick Actions */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Card>
                 <CardHeader>
@@ -172,9 +225,16 @@ export default function CSHub() {
                               }
                             </p>
                           </div>
-                          <Button size="sm" variant="outline">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => {
+                              setSelectedClientId(client.clientId);
+                              setShowNewTouchpoint(true);
+                            }}
+                          >
                             <Phone className="h-3 w-3 mr-1" />
-                            Ligar
+                            Registrar
                           </Button>
                         </div>
                       ))}
@@ -222,8 +282,30 @@ export default function CSHub() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* NPS & Touchpoints */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <CSNPSTracker />
+              <CSTouchpointLog limit={5} />
+            </div>
+
+            {/* QBR & Value Statements */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <CSQBRList />
+              <CSValueStatementList />
+            </div>
           </TabsContent>
         </Tabs>
+
+        {/* New Touchpoint Modal */}
+        {selectedClientId && (
+          <CSNewTouchpointModal
+            open={showNewTouchpoint}
+            onOpenChange={setShowNewTouchpoint}
+            clientId={selectedClientId}
+            clientName={selectedClient?.clientName}
+          />
+        )}
       </div>
     </DashboardLayout>
   );
