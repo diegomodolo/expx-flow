@@ -348,4 +348,4 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.duplicate-tree-entity]
-verify_jwt = true
+verify_jwt = false
