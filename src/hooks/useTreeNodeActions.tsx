@@ -16,8 +16,16 @@ interface DuplicateEntityParams {
   platform: "meta" | "google";
 }
 
+interface SyncEntityParams {
+  type: "campaign" | "adset" | "ad";
+  id: string;
+  clientId: string;
+  facebookId?: string;
+}
+
 export function useTreeNodeActions({ onSuccess }: UseTreeNodeActionsProps = {}) {
   const [isDuplicating, setIsDuplicating] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const queryClient = useQueryClient();
 
   const duplicateEntity = async (params: DuplicateEntityParams) => {
@@ -74,8 +82,118 @@ export function useTreeNodeActions({ onSuccess }: UseTreeNodeActionsProps = {}) 
     }
   };
 
+  const syncEntity = async (params: SyncEntityParams) => {
+    const { type, id, clientId, facebookId } = params;
+
+    if (!facebookId) {
+      toast.error("ID do Meta não encontrado para sincronização.");
+      return;
+    }
+
+    setIsSyncing(true);
+
+    try {
+      const entityLabels = {
+        campaign: "Campanha",
+        adset: "Conjunto de anúncios",
+        ad: "Criativo",
+      };
+
+      toast.info(`Sincronizando ${entityLabels[type].toLowerCase()}...`);
+
+      // For campaigns, sync directly with the campaign ID
+      // For ad sets and ads, we need to sync the parent campaign
+      let campaignFacebookId = facebookId;
+      
+      if (type === "adset") {
+        // Get the parent campaign's facebook_id
+        const { data: adset } = await supabase
+          .from("ad_sets")
+          .select("campaign_id")
+          .eq("id", id)
+          .single();
+        
+        if (adset?.campaign_id) {
+          const { data: campaign } = await supabase
+            .from("campaigns")
+            .select("facebook_id")
+            .eq("id", adset.campaign_id)
+            .single();
+          
+          if (campaign?.facebook_id) {
+            campaignFacebookId = campaign.facebook_id;
+          }
+        }
+      } else if (type === "ad") {
+        // Get the parent ad set, then the campaign
+        const { data: ad } = await supabase
+          .from("ads")
+          .select("ad_set_id")
+          .eq("id", id)
+          .single();
+        
+        if (ad?.ad_set_id) {
+          const { data: adset } = await supabase
+            .from("ad_sets")
+            .select("campaign_id")
+            .eq("id", ad.ad_set_id)
+            .single();
+          
+          if (adset?.campaign_id) {
+            const { data: campaign } = await supabase
+              .from("campaigns")
+              .select("facebook_id")
+              .eq("id", adset.campaign_id)
+              .single();
+            
+            if (campaign?.facebook_id) {
+              campaignFacebookId = campaign.facebook_id;
+            }
+          }
+        }
+      }
+
+      const { data, error } = await supabase.functions.invoke("sync-facebook-campaigns", {
+        body: {
+          clientId,
+          campaignFacebookId,
+          syncCampaigns: true,
+          syncAdSets: type === "campaign" || type === "adset",
+          syncAds: true,
+        },
+      });
+
+      if (error) {
+        console.error("Error syncing entity:", error);
+        toast.error(`Erro ao sincronizar: ${error.message}`);
+        return;
+      }
+
+      if (!data?.success) {
+        toast.error(data?.error || "Erro desconhecido ao sincronizar");
+        return;
+      }
+
+      toast.success(`${entityLabels[type]} sincronizado com sucesso!`);
+      
+      // Invalidate queries to refresh the list
+      await queryClient.invalidateQueries({ queryKey: ["all-campaigns-tree-meta", clientId] });
+      await queryClient.invalidateQueries({ queryKey: ["all-campaigns-tree-meta-adsets", clientId] });
+      await queryClient.invalidateQueries({ queryKey: ["all-campaigns-tree-meta-ads", clientId] });
+      
+      onSuccess?.();
+    } catch (err) {
+      console.error("Error syncing entity:", err);
+      toast.error("Erro ao sincronizar entidade");
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   return {
     duplicateEntity,
     isDuplicating,
+    syncEntity,
+    isSyncing,
   };
 }

@@ -5,7 +5,8 @@ import { InlineBudgetInput } from "./InlineBudgetInput";
 import { CreativeThumbnail } from "./CreativeThumbnail";
 import { TreeNodeActionsDropdown } from "./TreeNodeActionsDropdown";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ChevronRight, Layers, Target } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { ChevronRight, Layers, Target, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface TreeGridRowProps {
@@ -124,12 +125,24 @@ export function TreeGridRow({
               "truncate text-sm",
               node.type === "campaign" && "font-medium text-foreground",
               node.type === "adset" && "font-normal text-foreground",
-              node.type === "ad" && "font-normal text-foreground"
+              node.type === "ad" && "font-normal text-foreground",
+              node.needsSync && "opacity-50"
             )}
             title={node.name}
           >
             {node.name}
           </span>
+
+          {/* Sync pending badge */}
+          {node.needsSync && (
+            <Badge 
+              variant="outline" 
+              className="ml-2 text-xs text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700 dark:text-amber-400 shrink-0"
+            >
+              <AlertCircle className="w-3 h-3 mr-1" />
+              Não sincronizado
+            </Badge>
+          )}
         </div>
       </td>
 
@@ -139,7 +152,7 @@ export function TreeGridRow({
           id={node.id}
           isActive={node.status === "active"}
           isLoading={isStatusLoading}
-          disabled={node.platform === "google"}
+          disabled={node.platform === "google" || node.needsSync}
           onToggle={onToggleStatus}
         />
       </td>
@@ -153,7 +166,7 @@ export function TreeGridRow({
               currentBudget={node.budget.amount}
               budgetType={node.budget.type}
               isLoading={isBudgetLoading}
-              disabled={node.platform === "google"}
+              disabled={node.platform === "google" || node.needsSync}
               onSave={onUpdateBudget}
             />
           ) : (

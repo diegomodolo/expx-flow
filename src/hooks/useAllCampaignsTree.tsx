@@ -170,6 +170,7 @@ export function useAllCampaignsTree(options: UseAllCampaignsTreeOptions): AllCam
           isExpanded: false,
           platform: "meta",
           facebookId: campaign.facebook_id,
+          needsSync: !campaign.last_synced_at,
           metrics: {
             spend: campaignSpend,
             impressions: campaignImpressions,
@@ -201,6 +202,7 @@ export function useAllCampaignsTree(options: UseAllCampaignsTreeOptions): AllCam
               platform: "meta",
               facebookId: adset.facebook_id,
               parentId: campaign.id,
+              needsSync: !adset.last_synced_at,
               targeting: adset.targeting ? JSON.parse(adset.targeting) : undefined,
               pixelId: (adset as any).pixel_id || undefined,
               conversionEvent: (adset as any).conversion_event || undefined,
@@ -231,6 +233,7 @@ export function useAllCampaignsTree(options: UseAllCampaignsTreeOptions): AllCam
                 platform: "meta" as const,
                 facebookId: ad.facebook_id,
                 parentId: adset.id,
+                needsSync: !ad.last_synced_at,
                 creativeUrl: ad.image_url || ad.video_url,
                 imageUrl: ad.image_url || undefined,
                 videoUrl: ad.video_url || undefined,

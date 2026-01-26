@@ -47,6 +47,7 @@ export interface TreeNode {
   conversionEvent?: string;
   children?: TreeNode[];
   parentId?: string;
+  needsSync?: boolean; // true when last_synced_at is null (item not yet synced with Meta)
 }
 
 export interface ClientTargets {
