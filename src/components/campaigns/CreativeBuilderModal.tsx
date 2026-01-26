@@ -250,6 +250,7 @@ export function CreativeBuilderModal({
               type={state.type}
               maxFiles={maxFiles}
               clientId={clientId}
+              companyId={companyId}
             />
           </div>
 

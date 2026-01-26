@@ -120,6 +120,7 @@ export function CampaignBuilderModal({
                 creative={creative}
                 onChange={(updates) => updateCreative(state.currentAdSetIndex, state.selectedCreativeIndex!, updates)}
                 clientId={clientId}
+                companyId={companyId}
                 clientName={clientName}
               />
             </div>
