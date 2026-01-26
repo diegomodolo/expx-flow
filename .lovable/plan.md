@@ -1,155 +1,249 @@
 
-# Plano: Unificar Página de Campanhas com TreeGrid para Todas as Campanhas
+# Plano: Modal de Status de Salvamento com Feedback Visual em Etapas
 
 ## Objetivo
 
-Transformar a página de campanhas (`ClienteCampanhas.tsx`) para exibir todas as campanhas do cliente em formato de TreeGrid (árvore hierárquica), substituindo a lista de tabela atual. Mantendo os controles existentes de projeção de orçamento, sincronização e filtros.
+Criar um modal de progresso que aparece ao clicar em "Salvar" no editor de campanhas/conjuntos/anúncios, mostrando cada etapa do processo em tempo real para dar feedback claro ao usuário.
 
 ---
 
-## Análise da Situação Atual
+## Análise do Fluxo Atual
 
-### Página de Campanhas (`ClienteCampanhas.tsx`)
-- Lista todas as campanhas em tabela simples
-- Tem filtros de plataforma (Meta/Google/All)
-- Filtro de status (ativas/pausadas/finalizadas)
-- Seletor de período para sincronização
-- Botão de sincronização para todas as plataformas
-- Projeção de orçamento (BudgetProjectionIndicator)
-- Modal para criar nova campanha
+### Como funciona hoje
+1. Usuário clica em "Salvar"
+2. `handleSave()` é executado com `isSaving = true` (mostra apenas "Salvando...")
+3. Chama edge function para atualizar no Meta
+4. Edge function atualiza banco local após sucesso
+5. Toast de sucesso aparece
+6. `onSuccess()` é chamado (refetch dos dados)
 
-### Página de Edição (`CampaignEditorPage.tsx`)
-- Usa `useCampaignTree` para buscar dados de UMA campanha
-- Exibe TreeGridTable com a hierarquia Campanha > Conjunto > Anúncio
-- Tem KPISummaryBar com métricas consolidadas
-- Modal unificado para editar nós selecionados
-
-### Hook Atual (`useCampaignTree.tsx`)
-- Busca dados de apenas UMA campanha por `campaignId`
-- Constrói árvore com adsets/ads
+### Problema
+- O feedback é genérico ("Salvando...")
+- Usuário não sabe se está enviando para Meta, aguardando resposta, ou sincronizando
+- Parece que nada aconteceu até aparecer o toast final
 
 ---
 
 ## Solução Proposta
 
-### Novo Hook: `useAllCampaignsTree`
+### 1. Criar componente `SaveProgressModal`
 
-Criar um novo hook que:
-1. Busca TODAS as campanhas do cliente (Meta + Google)
-2. Para cada campanha, busca seus conjuntos e anúncios
-3. Retorna um array de TreeNodes, um por campanha
+Modal pequeno que mostra as etapas do processo:
 
-### Modificações na UI
+| Etapa | Status Visual |
+|-------|---------------|
+| Enviando para o Meta | Spinner animado |
+| Aguardando resposta do Meta | Spinner ou check |
+| Atualizando dados locais | Spinner ou check |
+| Concluído | Check verde + fechar automático |
 
-#### Manter
-- BudgetProjectionIndicator
-- Filtros de plataforma e status
-- Seletor de período
-- Botões de sincronização
-- Modal de criar campanha
-- KPISummaryBar (agora com métricas totais de todas as campanhas)
+### 2. Criar hook `useSaveWithProgress`
 
-#### Substituir
-- Tabela simples por componente TreeGridTable modificado
-- Receber array de campanhas em vez de uma única
+Hook que encapsula a lógica de salvamento com controle de etapas:
 
-#### Adicionar
-- Modal unificado (UnifiedCampaignModal) para editar nós selecionados
+```typescript
+interface SaveStep {
+  id: 'sending' | 'waiting' | 'syncing' | 'complete';
+  label: string;
+  status: 'pending' | 'active' | 'complete' | 'error';
+}
+
+interface UseSaveWithProgressReturn {
+  isOpen: boolean;
+  steps: SaveStep[];
+  error: string | null;
+  execute: (saveFn: () => Promise<void>) => Promise<void>;
+  close: () => void;
+}
+```
+
+### 3. Modificar componentes de edição
+
+Integrar o hook em:
+- `CampaignEditContent.tsx`
+- `AdSetEditContent.tsx`
+- `AdEditContent.tsx`
 
 ---
 
 ## Arquitetura da Solução
 
 ```text
-ClienteCampanhas.tsx
-├── Header com título e controles
-│   ├── Seletor de período
-│   ├── Botão de sincronização
-│   ├── Filtro de plataforma
-│   ├── Filtro de status
-│   └── Botão Nova Campanha
-├── BudgetProjectionIndicator
-├── KPISummaryBar (métricas totais)
-├── TreeGridTableMultiple (novo componente)
-│   └── Renderiza múltiplas campanhas como TreeNodes de nível 0
-└── UnifiedCampaignModal
+┌─────────────────────────────────────────────────┐
+│         Modal de Edição (atual)                 │
+│  ┌───────────────────────────────────────────┐  │
+│  │  Formulário de edição                     │  │
+│  └───────────────────────────────────────────┘  │
+│  ┌───────────────────────────────────────────┐  │
+│  │  [Salvar]  → abre SaveProgressModal       │  │
+│  └───────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────┐
+│         SaveProgressModal (overlay)             │
+│  ┌───────────────────────────────────────────┐  │
+│  │  ○ Enviando para o Meta...      [spinner] │  │
+│  │  ○ Aguardando resposta          [pending] │  │
+│  │  ○ Atualizando dados            [pending] │  │
+│  └───────────────────────────────────────────┘  │
+│                                                 │
+│         Atualizando alterações...               │
+└─────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Implementação Detalhada
+## Implementação Técnica
 
-### 1. Novo Hook: `useAllCampaignsTree.tsx`
+### Arquivo 1: `src/components/campaign-editor/SaveProgressModal.tsx`
+
+Componente visual do modal com as etapas:
 
 ```typescript
-interface UseAllCampaignsTreeOptions {
-  clientId?: string;
-  companyId?: string;
-  platform?: 'meta' | 'google' | 'all';
-  includeInactive?: boolean;
+interface SaveProgressModalProps {
+  isOpen: boolean;
+  steps: SaveStep[];
+  error: string | null;
+  onClose: () => void;
 }
 
-export function useAllCampaignsTree(options) {
-  // Buscar campanhas Meta
-  const { data: metaCampaigns } = useQuery({...})
-  
-  // Buscar campanhas Google
-  const { data: googleCampaigns } = useQuery({...})
-  
-  // Buscar todos os ad_sets do cliente
-  const { data: allAdSets } = useQuery({...})
-  
-  // Buscar todos os ads do cliente
-  const { data: allAds } = useQuery({...})
-  
-  // Buscar google_ad_groups e google_ads
-  const { data: allGoogleAdGroups } = useQuery({...})
-  const { data: allGoogleAds } = useQuery({...})
-  
-  // Montar árvore para cada campanha
-  const treeData = useMemo(() => {
-    return [...metaCampaigns, ...googleCampaigns].map(campaign => {
-      // Montar TreeNode com children
-    })
-  }, [...])
-  
-  // Calcular métricas totais
-  const totalMetrics = useMemo(() => {...}, [treeData])
-  
-  return { treeData, isLoading, totalMetrics, targets }
+export function SaveProgressModal({ isOpen, steps, error, onClose }: SaveProgressModalProps) {
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Salvando alterações</DialogTitle>
+        </DialogHeader>
+        
+        <div className="space-y-3 py-4">
+          {steps.map((step) => (
+            <div key={step.id} className="flex items-center gap-3">
+              {step.status === 'active' && <Loader2 className="animate-spin" />}
+              {step.status === 'complete' && <CheckCircle className="text-green-500" />}
+              {step.status === 'pending' && <Circle className="text-muted" />}
+              {step.status === 'error' && <XCircle className="text-destructive" />}
+              <span className={cn(
+                step.status === 'active' && 'font-medium',
+                step.status === 'pending' && 'text-muted-foreground',
+                step.status === 'complete' && 'text-green-600'
+              )}>
+                {step.label}
+              </span>
+            </div>
+          ))}
+        </div>
+        
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
 }
 ```
 
-### 2. Novo Componente: `MultiCampaignTreeGrid.tsx`
+### Arquivo 2: `src/hooks/useSaveWithProgress.tsx`
 
-Similar ao TreeGridTable, mas:
-- Recebe `campaigns: TreeNode[]` em vez de `campaign: TreeNode`
-- Cada campanha é um nó de nível 0 expansível
-- Mantém estado de expansão por campanha
-- Suporta filtros de plataforma e status
+Hook para gerenciar o estado das etapas:
 
-### 3. Modificar: `ClienteCampanhas.tsx`
-
-- Substituir `useUnifiedCampaigns` por `useAllCampaignsTree`
-- Substituir tabela por `MultiCampaignTreeGrid`
-- Adicionar `UnifiedCampaignModal`
-- Adaptar KPISummaryBar para receber métricas totais
-
-### 4. KPISummaryBar Alternativo
-
-Criar variante que receba métricas agregadas:
 ```typescript
-interface AggregatedKPISummaryBarProps {
-  metrics: {
-    spend: number;
-    impressions: number;
-    clicks: number;
-    conversions: number;
-    ctr: number;
-    cpa: number;
+export function useSaveWithProgress() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [steps, setSteps] = useState<SaveStep[]>([
+    { id: 'sending', label: 'Enviando para o Meta', status: 'pending' },
+    { id: 'waiting', label: 'Aguardando resposta', status: 'pending' },
+    { id: 'syncing', label: 'Atualizando dados locais', status: 'pending' },
+    { id: 'complete', label: 'Concluído', status: 'pending' },
+  ]);
+
+  const updateStep = (stepId: string, status: SaveStep['status']) => {
+    setSteps(prev => prev.map(s => 
+      s.id === stepId ? { ...s, status } : s
+    ));
   };
-  targets: ClientTargets;
+
+  const execute = async (
+    metaAction: () => Promise<any>,
+    onSuccess?: () => void
+  ) => {
+    setIsOpen(true);
+    setError(null);
+    resetSteps();
+
+    try {
+      // Etapa 1: Enviando
+      updateStep('sending', 'active');
+      await new Promise(r => setTimeout(r, 300)); // pequeno delay visual
+      
+      // Etapa 2: Aguardando resposta do Meta
+      updateStep('sending', 'complete');
+      updateStep('waiting', 'active');
+      
+      const result = await metaAction();
+      
+      // Etapa 3: Sincronizando dados locais
+      updateStep('waiting', 'complete');
+      updateStep('syncing', 'active');
+      
+      // O onSuccess geralmente faz refetch dos dados
+      await onSuccess?.();
+      
+      // Etapa 4: Concluído
+      updateStep('syncing', 'complete');
+      updateStep('complete', 'active');
+      
+      // Fechar após 1.5s
+      setTimeout(() => {
+        updateStep('complete', 'complete');
+        setIsOpen(false);
+      }, 1500);
+      
+      return result;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro desconhecido';
+      setError(message);
+      // Marcar etapa atual como erro
+      // Modal fica aberto para mostrar erro
+    }
+  };
+
+  return { isOpen, steps, error, execute, close: () => setIsOpen(false) };
 }
+```
+
+### Arquivo 3-5: Modificar componentes de edição
+
+Em cada componente (`CampaignEditContent`, `AdSetEditContent`, `AdEditContent`):
+
+```typescript
+// Adicionar import
+import { SaveProgressModal } from './SaveProgressModal';
+import { useSaveWithProgress } from '@/hooks/useSaveWithProgress';
+
+// No componente
+const saveProgress = useSaveWithProgress();
+
+// Modificar handleSave
+const handleSave = useCallback(async () => {
+  if (!clientId || !node) return;
+
+  const metaAction = async () => {
+    // ... lógica atual de chamada ao Meta
+  };
+
+  await saveProgress.execute(metaAction, onSuccess);
+}, [...]);
+
+// No JSX, antes do fechamento do Dialog
+<SaveProgressModal
+  isOpen={saveProgress.isOpen}
+  steps={saveProgress.steps}
+  error={saveProgress.error}
+  onClose={saveProgress.close}
+/>
 ```
 
 ---
@@ -158,65 +252,41 @@ interface AggregatedKPISummaryBarProps {
 
 | Arquivo | Ação |
 |---------|------|
-| `src/hooks/useAllCampaignsTree.tsx` | **Criar** - Hook para buscar todas as campanhas com hierarquia |
-| `src/components/campaign-editor/MultiCampaignTreeGrid.tsx` | **Criar** - Componente TreeGrid para múltiplas campanhas |
-| `src/pages/cliente/ClienteCampanhas.tsx` | **Modificar** - Substituir tabela por TreeGrid, adicionar modal |
-| `src/components/campaign-editor/KPISummaryBar.tsx` | **Modificar** - Adicionar suporte para métricas agregadas |
+| `src/components/campaign-editor/SaveProgressModal.tsx` | **Criar** |
+| `src/hooks/useSaveWithProgress.tsx` | **Criar** |
+| `src/components/campaign-editor/CampaignEditContent.tsx` | **Modificar** |
+| `src/components/campaign-editor/AdSetEditContent.tsx` | **Modificar** |
+| `src/components/campaign-editor/AdEditContent.tsx` | **Modificar** |
 
 ---
 
-## Fluxo de Dados
+## Comportamento Visual
 
-```text
-1. useAllCampaignsTree busca:
-   ├── campaigns (Meta)
-   ├── google_campaigns (Google)
-   ├── ad_sets (por client_id)
-   ├── ads (por ad_set_id)
-   ├── google_ad_groups (por client_id)
-   └── google_ads (por ad_group_id)
+### Durante o salvamento
+- Modal abre imediatamente ao clicar em Salvar
+- Cada etapa fica "ativa" (com spinner) conforme progride
+- Etapas completadas mostram check verde
+- Etapas pendentes ficam cinza
 
-2. Monta TreeNode[] onde cada item é uma campanha:
-   └── Campanha (nível 0)
-       └── Conjunto (nível 1)
-           └── Anúncio (nível 2)
+### Em caso de sucesso
+- Última etapa "Concluído" fica verde
+- Modal fecha automaticamente após 1.5 segundos
+- Dados já estão atualizados na tabela atrás
 
-3. MultiCampaignTreeGrid renderiza:
-   ├── Header com checkbox "select all"
-   └── Linhas para cada campanha e seus filhos (expansível)
-
-4. Filtros aplicados:
-   ├── Platform filter -> filtra por campaign.platform
-   └── Status filter -> filtra por campaign.status
-```
+### Em caso de erro
+- Etapa que falhou fica vermelha
+- Mensagem de erro aparece no modal
+- Modal permanece aberto para usuário ver o erro
+- Botão de fechar disponível
 
 ---
 
-## Comportamento da UI
+## Resultado Esperado
 
-- Campanhas começam **colapsadas** por padrão
-- Clique na seta expande para ver conjuntos
-- Clique em um nó abre o `UnifiedCampaignModal`
-- Checkbox permite seleção múltipla para ações em lote
-- Filtros afetam apenas o nível de campanha (filhos seguem o pai)
+O usuário terá feedback visual claro de cada etapa:
+1. "Enviando para o Meta" - indica que a requisição está sendo enviada
+2. "Aguardando resposta" - indica que está esperando confirmação do Meta
+3. "Atualizando dados locais" - indica que está salvando no banco
+4. "Concluído" - indica sucesso total
 
----
-
-## Considerações de Performance
-
-- Dados buscados por `client_id`, não por campanha individual
-- Evita N+1 queries usando batch fetching
-- Lazy loading: conjuntos e anúncios carregados em batch, não sob demanda
-- React Query faz cache automático
-
----
-
-## Resultado Final
-
-A página de campanhas terá:
-- Mesmos controles de sincronização e filtros atuais
-- Projeção de orçamento mantida
-- TreeGrid mostrando todas as campanhas com hierarquia expansível
-- Cards de KPIs totais no topo
-- Modal de edição para qualquer nó selecionado
-- Operações em lote (pausar/ativar) via seleção
+Isso elimina a sensação de "não aconteceu nada" e mostra claramente que o processo está funcionando.
