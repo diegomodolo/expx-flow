@@ -21,7 +21,7 @@ serve(async (req) => {
 
   try {
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
+    if (!authHeader?.startsWith("Bearer ")) {
       return new Response(
         JSON.stringify({ error: "Authorization header required" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -44,13 +44,19 @@ serve(async (req) => {
       global: { headers: { Authorization: authHeader } },
     });
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
+    // Validate JWT using getClaims
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+    
+    if (claimsError || !claimsData?.claims) {
+      console.error("Auth error:", claimsError);
       return new Response(
         JSON.stringify({ error: "Unauthorized" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    const userId = claimsData.claims.sub as string;
 
     const { prompt, companyId, name, category = "custom", tags = [] }: GenerateElementRequest = await req.json();
 
@@ -174,7 +180,7 @@ Generate the element now.`;
         category: category,
         tags: tags,
         is_default: false,
-        created_by: user.id,
+        created_by: userId,
       })
       .select()
       .single();
