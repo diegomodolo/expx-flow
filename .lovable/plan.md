@@ -1,230 +1,145 @@
 
-# Plano: Módulo CS com Menu Expandido e Lista de Clientes Dedicada
+# Plano: Integração de Squads no Módulo CS
 
-## Visão Geral
+## Contexto
 
-Implementação de uma estrutura completa de Customer Success com:
-1. **Menu lateral dedicado** com submenus para as 4 áreas principais
-2. **Nova lista de clientes focada em CS** com métricas de saúde, NPS, risco de churn e touchpoints
+O sistema já possui estrutura de Squads (tabela `teams`) onde cada cliente pode ser associado a um squad via `team_id`. A necessidade é permitir que cada CS trabalhe focado nos clientes do seu squad, com filtros e visualizações segmentadas.
 
----
+## Arquitetura da Solução
 
-## Fase 1: Reestruturar Menu Lateral
+### 1. Filtro Global de Squad no CSLayout
 
-### 1.1 Atualizar DashboardSidebar.tsx
+Adicionar um seletor de Squad no header da área CS que persiste entre navegações:
 
-Transformar o item "Customer Success" atual em uma categoria expandível com submenu:
+- Dropdown no topo do CSLayout para selecionar Squad
+- Opção "Todos os Squads" (padrão) + "Meu Squad" (baseado no funcionário logado)
+- Estado compartilhado via Context (`CSSquadFilterContext`)
+- Persistência em localStorage para manter seleção entre sessões
 
-```
-Customer Success (Heart icon)
-├── Radar de Risco
-├── Saúde 360
-├── Jornada
-├── Ações
-└── Clientes CS  ← Nova tela de lista
-```
+### 2. Atualização dos Hooks de Dados
 
-**Alterações em `src/components/dashboard/DashboardSidebar.tsx`:**
-- Mover "Customer Success" de item simples para categoria própria
-- Adicionar 5 subitens com rotas específicas
+Modificar os hooks para aceitar filtro de squad:
 
----
+**useCSClientsList.tsx:**
+- Adicionar parâmetro `squadId?: string`
+- Incluir `team_id` na query de clientes
+- Filtrar clientes pelo squad selecionado
 
-## Fase 2: Criar Rotas Dedicadas para Cada Seção
+**useCSHealthScore360.tsx:**
+- Adicionar parâmetro `squadId?: string`
+- Buscar `team_id` dos clientes via join
+- Filtrar dados pelo squad
 
-### 2.1 Novas páginas em `src/pages/cs/`:
+### 3. Exibição do Squad nas Listagens
 
-| Arquivo | Rota | Descrição |
-|---------|------|-----------|
-| `CSRiskRadarPage.tsx` | `/cs/radar` | Radar de Risco (conteúdo da tab atual) |
-| `CSHealth360Page.tsx` | `/cs/saude` | Saúde 360 (cards de health score) |
-| `CSJourneyPage.tsx` | `/cs/jornada` | Jornada da Vitória |
-| `CSActionsPage.tsx` | `/cs/acoes` | Ações, NPS, QBR, Value Statements |
-| `CSClientsList.tsx` | `/cs/clientes` | Nova lista de clientes focada em CS |
+Adicionar coluna/badge de Squad nas tabelas e cards:
 
-### 2.2 Atualizar `src/App.tsx`:
-- Adicionar rotas aninhadas `/cs/*`
-- Manter `/cs` como redirect para `/cs/radar`
+- CSClientsList: Coluna "Squad" com badge colorido
+- CSRiskRadar: Identificação do squad em cada card de risco
+- CSHealth360: Filtro e agrupamento por squad
 
----
+### 4. KPIs Segmentados por Squad
 
-## Fase 3: Layout Compartilhado para CS
+Atualizar os cards de estatísticas para mostrar:
+- Métricas do Squad selecionado (quando filtrado)
+- Comparativo entre Squads (quando "Todos")
 
-### 3.1 Criar `src/components/cs/CSLayout.tsx`
+### 5. "Meu Squad" para CS Logado
 
-Layout com sidebar interna (similar ao RadarLayout):
-- Sidebar compacta com ícones
-- Expande com tooltip no hover
-- Destaque visual na rota ativa
-
-**Estrutura visual:**
-```
-┌─────────────────────────────────────────────────────────┐
-│ DashboardLayout (sidebar principal)                      │
-│ ┌──────┬────────────────────────────────────────────────┐│
-│ │ CS   │ Conteúdo da seção ativa                        ││
-│ │ Menu │                                                 ││
-│ │      │                                                 ││
-│ │ 🎯   │  [KPIs]   [Cards/Tabelas]                      ││
-│ │ ❤️   │                                                 ││
-│ │ 🏆   │                                                 ││
-│ │ ⚡   │                                                 ││
-│ │ 👥   │                                                 ││
-│ └──────┴────────────────────────────────────────────────┘│
-└─────────────────────────────────────────────────────────┘
-```
-
----
-
-## Fase 4: Nova Lista de Clientes para CS
-
-### 4.1 Criar `src/pages/cs/CSClientsList.tsx`
-
-Tela inspirada no `Clientes.tsx` atual, mas com foco em métricas CS:
-
-**Colunas da tabela:**
-| Coluna | Descrição |
-|--------|-----------|
-| Cliente | Avatar + Nome + Empresa |
-| Health Score | Barra de progresso colorida (0-100%) |
-| Risco de Churn | Badge (Crítico/Alto/Médio/Baixo) |
-| NPS | Score com ícone (Promotor/Passivo/Detrator) |
-| Último Contato | Data + dias desde último touchpoint |
-| Campanhas Ativas | Contador |
-| Onboarding | Status (Pendente/Em Andamento/Concluído) |
-| Ações | Ver, Editar, Registrar Touchpoint |
-
-**Filtros disponíveis:**
-- Por risco de churn
-- Por faixa de health score
-- Por status de onboarding
-- Por responsável CS
-- Busca por nome
-
-**Funcionalidades:**
-- Ordenação por qualquer coluna
-- Paginação
-- Edição inline via ClientDialog existente
-- Botão "Registrar Touchpoint" direto na lista
-- Botão "Configurar Health Score" para clientes sem config
-
-### 4.2 Criar hook `useCSClientsList.tsx`
-
-Hook dedicado que combina:
-- Dados de `clients` (tabela principal)
-- Dados de `client_health_config`
-- Dados de `client_touchpoints` (último contato)
-- Estatísticas de campanhas
-
----
-
-## Fase 5: Integração e Navegação
-
-### 5.1 Atualizar CSHub.tsx
-
-Transformar em página de redirect ou overview rápida que redireciona para `/cs/radar`
-
-### 5.2 Links de navegação
-
-Ao clicar em cliente na lista CS → abre `/clientes/:id/cs` (página de CS individual já existente)
+Detectar automaticamente o squad do funcionário logado e oferecer atalho "Meu Squad"
 
 ---
 
 ## Arquivos a Criar
 
-```
-src/
-├── components/cs/
-│   └── CSLayout.tsx                 # Layout compartilhado
-│
-├── pages/cs/
-│   ├── CSRiskRadarPage.tsx         # Radar de Risco
-│   ├── CSHealth360Page.tsx         # Saúde 360
-│   ├── CSJourneyPage.tsx           # Jornada
-│   ├── CSActionsPage.tsx           # Ações
-│   └── CSClientsList.tsx           # Lista de clientes CS
-│
-└── hooks/
-    └── useCSClientsList.tsx        # Hook para lista de clientes
-```
+| Arquivo | Descrição |
+|---------|-----------|
+| `src/contexts/CSSquadFilterContext.tsx` | Context para gerenciar filtro de squad global no módulo CS |
 
 ## Arquivos a Modificar
 
-```
-src/
-├── components/dashboard/
-│   └── DashboardSidebar.tsx        # Adicionar categoria CS com submenus
-│
-├── App.tsx                          # Adicionar rotas /cs/*
-│
-└── pages/cs/
-    └── CSHub.tsx                    # Simplificar ou redirecionar
-```
+| Arquivo | Alterações |
+|---------|------------|
+| `src/components/cs/CSLayout.tsx` | Adicionar header com dropdown de squad e Provider do contexto |
+| `src/hooks/useCSClientsList.tsx` | Adicionar busca de `team_id` e filtro por squad |
+| `src/hooks/useCSHealthScore360.tsx` | Adicionar filtro por squad nos dados de saúde |
+| `src/pages/cs/CSClientsList.tsx` | Coluna de Squad na tabela + filtro adicional |
+| `src/pages/cs/CSRiskRadarPage.tsx` | Aplicar filtro de squad e mostrar badge |
+| `src/pages/cs/CSHealth360Page.tsx` | Aplicar filtro de squad |
+| `src/pages/cs/CSJourneyPage.tsx` | Aplicar filtro de squad no seletor de clientes |
+| `src/pages/cs/CSActionsPage.tsx` | Aplicar filtro de squad |
+| `src/components/cs/CSRiskRadar.tsx` | Mostrar badge de squad em cada card |
 
 ---
 
 ## Detalhes Técnicos
 
-### Menu na Sidebar
+### CSSquadFilterContext
 
-Nova categoria no `menuCategories`:
 ```typescript
-{
-  title: "Customer Success",
-  icon: Heart,
-  items: [
-    { title: "Radar de Risco", url: "/cs/radar", icon: AlertTriangle, permission: "clientes" },
-    { title: "Saúde 360", url: "/cs/saude", icon: Activity, permission: "clientes" },
-    { title: "Jornada", url: "/cs/jornada", icon: Trophy, permission: "clientes" },
-    { title: "Ações", url: "/cs/acoes", icon: Target, permission: "clientes" },
-    { title: "Clientes CS", url: "/cs/clientes", icon: Users, permission: "clientes" },
-  ]
+interface CSSquadFilterContextType {
+  selectedSquadId: string | null; // null = todos
+  setSelectedSquadId: (id: string | null) => void;
+  squads: Team[];
+  isLoading: boolean;
+  mySquadId: string | null; // squad do usuário logado
 }
 ```
 
-### Rotas no App.tsx
+### CSLayout com Filtro
+
+Novo header no CSLayout:
+- Logo CS + Título "Customer Success"
+- Dropdown: "Todos os Squads" | "Meu Squad ({nome})" | Lista de squads
+- Badge com contagem de clientes no squad selecionado
+
+### Alterações no useCSClientsList
 
 ```typescript
-<Route path="/cs" element={<CSLayout />}>
-  <Route index element={<Navigate to="/cs/radar" replace />} />
-  <Route path="radar" element={<CSRiskRadarPage />} />
-  <Route path="saude" element={<CSHealth360Page />} />
-  <Route path="jornada" element={<CSJourneyPage />} />
-  <Route path="acoes" element={<CSActionsPage />} />
-  <Route path="clientes" element={<CSClientsList />} />
-</Route>
+// Adicionar campos no select
+.select('id, name, company, avatar, created_at, team_id')
+
+// Adicionar no retorno
+squadId: client.team_id,
+squadName: squadsMap[client.team_id] || null,
+
+// Filtro no hook consumer
+const filteredClients = selectedSquadId 
+  ? clients.filter(c => c.squadId === selectedSquadId)
+  : clients;
 ```
 
-### Hook useCSClientsList
+### Tabela de Clientes CS com Squad
 
-```typescript
-// Retorna clientes com dados CS integrados
-interface CSClientListItem {
-  id: string;
-  name: string;
-  company: string;
-  avatar: string | null;
-  
-  // CS Data
-  healthScore: number;
-  churnRiskLevel: 'low' | 'medium' | 'high' | 'critical';
-  npsScore: number | null;
-  onboardingStatus: string;
-  lastTouchpointAt: string | null;
-  activeCampaigns: number;
-  csManagerId: string | null;
-  
-  // Para edição
-  hasHealthConfig: boolean;
-}
-```
+Nova coluna após "Cliente":
+| Squad | Badge colorido com nome do squad ou "Sem Squad" |
+
+Novo filtro no header:
+- Dropdown sincronizado com contexto global
+
+### Badge de Squad no Risk Radar
+
+Cada card de cliente em risco mostra:
+- Badge colorido com nome do squad
+- Permite identificação rápida de qual CS é responsável
+
+---
+
+## Fluxo do Usuário
+
+1. CS acessa `/cs/radar`
+2. No header, seleciona "Squad Marketing" ou "Meu Squad"
+3. Todas as páginas CS filtram automaticamente pelos clientes daquele squad
+4. KPIs mostram dados apenas do squad selecionado
+5. Ao navegar entre seções (Radar, Saúde, Jornada, etc), filtro permanece ativo
+6. Pode trocar para "Todos os Squads" para visão geral
 
 ---
 
 ## Resultado Final
 
-1. **Menu organizado**: CS tem sua própria categoria no sidebar com 5 submenus
-2. **Navegação fluida**: Cada seção é uma página dedicada com URL própria
-3. **Lista de clientes CS**: Visão focada em métricas de retenção e sucesso
-4. **Ações rápidas**: Registrar touchpoint, editar config direto da lista
-5. **Consistência visual**: Usa mesmos componentes e padrões do sistema
+1. **Filtro global** de Squad que persiste em toda navegação CS
+2. **Identificação visual** de Squad em todas as listagens
+3. **"Meu Squad"** para acesso rápido aos clientes do CS logado
+4. **KPIs segmentados** por Squad selecionado
+5. **Experiência focada** para cada membro do time de CS
