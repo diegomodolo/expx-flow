@@ -7,10 +7,19 @@ const corsHeaders = {
 };
 
 interface RequestBody {
-  campaignId: string;
-  clientId: string;
+  // New format (from useInlineEdit)
+  client_id?: string;
+  facebook_id?: string;
+  entity_type?: 'campaign' | 'adset' | 'ad';
   action?: 'toggle' | 'rename' | 'budget' | 'duplicate';
   status?: string;
+  new_name?: string;
+  budget_type?: 'daily' | 'lifetime';
+  budget_amount?: number;
+  
+  // Legacy format (for backward compatibility)
+  campaignId?: string;
+  clientId?: string;
   name?: string;
   budgetType?: 'daily' | 'lifetime';
   amount?: number;
@@ -33,9 +42,20 @@ Deno.serve(async (req) => {
     );
 
     const body: RequestBody = await req.json();
-    const { campaignId, clientId, action = 'toggle', status, name, budgetType, amount, newName } = body;
     
-    if (!campaignId || !clientId) {
+    // Support both new and legacy parameter formats
+    const clientId = body.client_id || body.clientId;
+    const facebookId = body.facebook_id || body.campaignId;
+    const entityType = body.entity_type || 'campaign';
+    const action = body.action || 'toggle';
+    const status = body.status;
+    const newName = body.new_name || body.name || body.newName;
+    const budgetType = body.budget_type || body.budgetType;
+    const budgetAmount = body.budget_amount || body.amount;
+    
+    console.log('Received request:', { clientId, facebookId, entityType, action, status });
+    
+    if (!facebookId || !clientId) {
       return new Response(
         JSON.stringify({ error: 'Missing required parameters: campaignId, clientId' }),
         { 
@@ -45,7 +65,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`Managing Facebook campaign ${campaignId} - Action: ${action}`);
+    console.log(`Managing ${entityType} ${facebookId} - Action: ${action}`);
 
     // Get client and integration data
     const { data: client, error: clientError } = await supabase
@@ -95,17 +115,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get the campaign's facebook_id
-    const { data: campaign, error: campaignError } = await supabase
-      .from('campaigns')
-      .select('facebook_id')
-      .eq('id', campaignId)
-      .single();
-
-    const facebookCampaignId = campaign?.facebook_id || campaignId;
-
     let facebookResponse: Response;
-    let updateData: Record<string, any> = {};
     let successMessage = '';
 
     switch (action) {
@@ -116,9 +126,12 @@ Deno.serve(async (req) => {
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
-        const facebookStatus = status === 'active' ? 'ACTIVE' : 'PAUSED';
+        // Accept both formats: "ACTIVE"/"PAUSED" or "active"/"paused"
+        const facebookStatus = status.toUpperCase() === 'ACTIVE' ? 'ACTIVE' : 'PAUSED';
         
-        facebookResponse = await fetch(`https://graph.facebook.com/v20.0/${facebookCampaignId}`, {
+        console.log(`Toggling ${entityType} ${facebookId} to ${facebookStatus}`);
+        
+        facebookResponse = await fetch(`https://graph.facebook.com/v20.0/${facebookId}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -127,42 +140,35 @@ Deno.serve(async (req) => {
           }),
         });
 
-        updateData = { 
-          status,
-          is_active: status === 'active',
-          updated_at: new Date().toISOString()
-        };
-        successMessage = `Campaign ${status === 'active' ? 'activated' : 'paused'} successfully`;
+        successMessage = `${entityType} ${facebookStatus === 'ACTIVE' ? 'activated' : 'paused'} successfully`;
         break;
       }
 
       case 'rename': {
-        if (!name) {
+        if (!newName) {
           return new Response(
             JSON.stringify({ error: 'Missing name parameter for rename action' }),
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
 
-        facebookResponse = await fetch(`https://graph.facebook.com/v20.0/${facebookCampaignId}`, {
+        console.log(`Renaming ${entityType} ${facebookId} to ${newName}`);
+
+        facebookResponse = await fetch(`https://graph.facebook.com/v20.0/${facebookId}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            name,
+            name: newName,
             access_token: integration.access_token,
           }),
         });
 
-        updateData = { 
-          name,
-          updated_at: new Date().toISOString()
-        };
-        successMessage = 'Campaign renamed successfully';
+        successMessage = `${entityType} renamed successfully`;
         break;
       }
 
       case 'budget': {
-        if (!budgetType || !amount) {
+        if (!budgetType || !budgetAmount) {
           return new Response(
             JSON.stringify({ error: 'Missing budgetType or amount for budget action' }),
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -170,12 +176,16 @@ Deno.serve(async (req) => {
         }
 
         const budgetField = budgetType === 'daily' ? 'daily_budget' : 'lifetime_budget';
+        // Convert to cents (Meta expects cents)
+        const amountInCents = Math.round(budgetAmount * 100);
         
-        facebookResponse = await fetch(`https://graph.facebook.com/v20.0/${facebookCampaignId}`, {
+        console.log(`Updating ${entityType} ${facebookId} budget: ${budgetField} = ${amountInCents} cents`);
+        
+        facebookResponse = await fetch(`https://graph.facebook.com/v20.0/${facebookId}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            [budgetField]: amount, // amount already in cents
+            [budgetField]: amountInCents,
             access_token: integration.access_token,
           }),
         });
@@ -185,10 +195,12 @@ Deno.serve(async (req) => {
       }
 
       case 'duplicate': {
-        // Facebook API for campaign duplication
-        const duplicateName = newName || `Copy of campaign`;
+        // Facebook API for entity duplication
+        const duplicateName = newName || `Copy of ${entityType}`;
         
-        facebookResponse = await fetch(`https://graph.facebook.com/v20.0/${facebookCampaignId}/copies`, {
+        console.log(`Duplicating ${entityType} ${facebookId}`);
+
+        facebookResponse = await fetch(`https://graph.facebook.com/v20.0/${facebookId}/copies`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -202,7 +214,7 @@ Deno.serve(async (req) => {
           }),
         });
 
-        successMessage = 'Campaign duplicated successfully';
+        successMessage = `${entityType} duplicated successfully`;
         break;
       }
 
@@ -218,7 +230,7 @@ Deno.serve(async (req) => {
       console.error('Facebook API error:', errorData);
       return new Response(
         JSON.stringify({ 
-          error: 'Failed to update campaign on Facebook', 
+          error: 'Failed to update on Facebook', 
           details: errorData.error?.message || 'Unknown Facebook API error' 
         }),
         { 
@@ -230,25 +242,6 @@ Deno.serve(async (req) => {
 
     const facebookResult = await facebookResponse.json();
     console.log('Facebook API response:', facebookResult);
-
-    // Update local database to sync with Facebook (for toggle and rename)
-    if (Object.keys(updateData).length > 0) {
-      const { error: updateError } = await supabase
-        .from('campaigns')
-        .update(updateData)
-        .eq('id', campaignId);
-
-      if (updateError) {
-        console.error('Error updating local campaign:', updateError);
-        return new Response(
-          JSON.stringify({ 
-            success: true, 
-            warning: 'Campaign updated on Facebook but local sync failed. Please refresh to see changes.' 
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-    }
 
     return new Response(
       JSON.stringify({ 
