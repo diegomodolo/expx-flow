@@ -9,7 +9,7 @@ interface AggregatedKPISummaryBarProps {
 
 export function AggregatedKPISummaryBar({ metrics, targets }: AggregatedKPISummaryBarProps) {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 p-4 bg-muted/30 rounded-lg border">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 p-4 bg-card rounded-lg border shadow-sm">
       {/* Spend */}
       <div className="flex items-center gap-2">
         <div className="p-2 rounded-md bg-primary/10">
