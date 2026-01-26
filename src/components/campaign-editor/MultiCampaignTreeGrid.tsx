@@ -15,7 +15,7 @@ interface MultiCampaignTreeGridProps {
   targets: ClientTargets;
   clientId: string;
   isLoading: boolean;
-  statusFilter: "all" | "active" | "paused" | "finished";
+  statusFilter: "all" | "active" | "paused" | "finished" | "deleted";
   onSelectNode: (node: TreeNode) => void;
   selectedNodeId: string | null;
   onRefresh: () => void;

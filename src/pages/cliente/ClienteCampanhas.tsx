@@ -27,7 +27,7 @@ export function ClienteCampanhas() {
   const { syncCampaigns: syncGoogleCampaigns, syncing: syncingGoogle } = useGoogleAdsCampaignSync();
   
   const [platformFilter, setPlatformFilter] = useState<Platform>('all');
-  const [campaignFilter, setCampaignFilter] = useState<'all' | 'active' | 'paused' | 'finished'>('active');
+  const [campaignFilter, setCampaignFilter] = useState<'all' | 'active' | 'paused' | 'finished' | 'deleted'>('active');
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [syncPeriod, setSyncPeriod] = useState<string>(() => {
     return localStorage.getItem('campaignSyncPeriod') || '30';
@@ -389,7 +389,7 @@ export function ClienteCampanhas() {
             <Plus className="w-4 h-4 mr-1" />
             Nova Campanha
           </Button>
-          <Select value={campaignFilter} onValueChange={(value: 'all' | 'active' | 'paused' | 'finished') => setCampaignFilter(value)}>
+          <Select value={campaignFilter} onValueChange={(value: 'all' | 'active' | 'paused' | 'finished' | 'deleted') => setCampaignFilter(value)}>
             <SelectTrigger className="w-[140px] h-8">
               <SelectValue placeholder="Filtrar" />
             </SelectTrigger>
@@ -397,6 +397,7 @@ export function ClienteCampanhas() {
               <SelectItem value="active">Ativas</SelectItem>
               <SelectItem value="paused">Pausadas</SelectItem>
               <SelectItem value="finished">Finalizadas</SelectItem>
+              <SelectItem value="deleted">Excluídas</SelectItem>
               <SelectItem value="all">Todas</SelectItem>
             </SelectContent>
           </Select>
