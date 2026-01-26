@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Pause, Play, X } from "lucide-react";
+import { Pause, Play, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface BulkActionsBarProps {
@@ -7,6 +7,7 @@ interface BulkActionsBarProps {
   isLoading: boolean;
   onPause: () => void;
   onActivate: () => void;
+  onDelete: () => void;
   onClear: () => void;
 }
 
@@ -15,6 +16,7 @@ export function BulkActionsBar({
   isLoading,
   onPause,
   onActivate,
+  onDelete,
   onClear,
 }: BulkActionsBarProps) {
   if (selectedCount === 0) return null;
@@ -46,6 +48,16 @@ export function BulkActionsBar({
           >
             <Play className="w-4 h-4 mr-2" />
             Ativar
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onDelete}
+            disabled={isLoading}
+            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            Excluir
           </Button>
         </div>
       </div>
