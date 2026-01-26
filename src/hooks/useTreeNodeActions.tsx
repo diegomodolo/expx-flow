@@ -103,7 +103,7 @@ export function useTreeNodeActions({ onSuccess, addSyncingItem, removeSyncingIte
           clientId,
           campaignFacebookId,
           syncCampaigns: true,
-          syncAdSets: type === "campaign" || type === "adset",
+          syncAdSets: true, // Always sync ad sets to be able to sync ads within them
           syncAds: true,
         },
       });
