@@ -1,0 +1,125 @@
+import { useParams } from "react-router-dom";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Heart, Trophy, Phone, Calendar, FileCheck, Star, Plus } from "lucide-react";
+import { useCSHealthScore360 } from "@/hooks/useCSHealthScore360";
+import { CSHealthScore360Card } from "@/components/cs/CSHealthScore360Card";
+import { CSSuccessJourney } from "@/components/cs/CSSuccessJourney";
+import { CSTouchpointLog } from "@/components/cs/CSTouchpointLog";
+import { CSQBRList } from "@/components/cs/CSQBRList";
+import { CSNPSTracker } from "@/components/cs/CSNPSTracker";
+import { CSValueStatementList } from "@/components/cs/CSValueStatementList";
+import { CSNewTouchpointModal } from "@/components/cs/CSNewTouchpointModal";
+import { useState } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
+
+export function ClienteCS() {
+  const { id: clientId } = useParams<{ id: string }>();
+  const { healthData, isLoading } = useCSHealthScore360();
+  const [showNewTouchpoint, setShowNewTouchpoint] = useState(false);
+
+  const clientHealth = healthData.find(c => c.clientId === clientId);
+
+  if (!clientId) {
+    return (
+      <Card>
+        <CardContent className="pt-6 text-center">
+          <p className="text-muted-foreground">Cliente não encontrado</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold flex items-center gap-2">
+            <Heart className="h-6 w-6 text-primary" />
+            Customer Success
+          </h2>
+          <p className="text-muted-foreground">
+            Acompanhamento de saúde, jornada e valor do cliente
+          </p>
+        </div>
+        <Button onClick={() => setShowNewTouchpoint(true)}>
+          <Plus className="h-4 w-4 mr-1" />
+          Registrar Contato
+        </Button>
+      </div>
+
+      {/* Health Score Card */}
+      {isLoading ? (
+        <Skeleton className="h-48 w-full" />
+      ) : clientHealth ? (
+        <CSHealthScore360Card data={clientHealth} />
+      ) : (
+        <Card>
+          <CardContent className="pt-6 text-center py-8">
+            <Heart className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <h3 className="font-semibold mb-2">Health Score não configurado</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Configure as metas deste cliente para calcular o Health Score 360
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Tabs */}
+      <Tabs defaultValue="journey" className="space-y-4">
+        <TabsList className="grid w-full max-w-2xl grid-cols-5">
+          <TabsTrigger value="journey" className="flex items-center gap-1">
+            <Trophy className="h-4 w-4" />
+            <span className="hidden sm:inline">Jornada</span>
+          </TabsTrigger>
+          <TabsTrigger value="touchpoints" className="flex items-center gap-1">
+            <Phone className="h-4 w-4" />
+            <span className="hidden sm:inline">Contatos</span>
+          </TabsTrigger>
+          <TabsTrigger value="nps" className="flex items-center gap-1">
+            <Star className="h-4 w-4" />
+            <span className="hidden sm:inline">NPS</span>
+          </TabsTrigger>
+          <TabsTrigger value="qbr" className="flex items-center gap-1">
+            <Calendar className="h-4 w-4" />
+            <span className="hidden sm:inline">QBR</span>
+          </TabsTrigger>
+          <TabsTrigger value="value" className="flex items-center gap-1">
+            <FileCheck className="h-4 w-4" />
+            <span className="hidden sm:inline">Valor</span>
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="journey">
+          <CSSuccessJourney clientId={clientId} />
+        </TabsContent>
+
+        <TabsContent value="touchpoints">
+          <CSTouchpointLog clientId={clientId} />
+        </TabsContent>
+
+        <TabsContent value="nps">
+          <CSNPSTracker clientId={clientId} />
+        </TabsContent>
+
+        <TabsContent value="qbr">
+          <CSQBRList clientId={clientId} />
+        </TabsContent>
+
+        <TabsContent value="value">
+          <CSValueStatementList clientId={clientId} />
+        </TabsContent>
+      </Tabs>
+
+      {/* New Touchpoint Modal */}
+      <CSNewTouchpointModal
+        open={showNewTouchpoint}
+        onOpenChange={setShowNewTouchpoint}
+        clientId={clientId}
+        clientName={clientHealth?.clientName}
+      />
+    </div>
+  );
+}

@@ -355,3 +355,12 @@ verify_jwt = false
 
 [functions.generate-element]
 verify_jwt = false
+
+[functions.calculate-cs-health-scores]
+verify_jwt = false
+
+[functions.monitor-cs-alerts]
+verify_jwt = false
+
+[functions.check-cs-milestones]
+verify_jwt = false

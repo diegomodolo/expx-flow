@@ -52,6 +52,7 @@ import {
   Target,
   PenTool,
   Presentation,
+  Heart,
 } from "lucide-react";
 
 interface ClientDetailsLayoutProps {
@@ -123,6 +124,13 @@ export function ClientDetailsLayout({ children, clientId, clientName, dashboardT
         { title: "Anotações", href: `/clientes/${clientId}/anotacoes`, icon: StickyNote },
         { title: "Contato & Dados", href: `/clientes/${clientId}/contato`, icon: User },
         { title: "Histórico", href: `/clientes/${clientId}/historico`, icon: Clock },
+      ]
+    },
+    {
+      title: "Customer Success",
+      icon: Heart,
+      items: [
+        { title: "Saúde & Jornada", href: `/clientes/${clientId}/cs`, icon: Heart },
       ]
     },
     {
