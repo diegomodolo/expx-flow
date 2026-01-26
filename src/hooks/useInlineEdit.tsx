@@ -251,12 +251,11 @@ export function useInlineEdit(options: UseInlineEditOptions = {}) {
         facebookId?: string;
         platform: Platform;
       }>,
-      newStatus: "active" | "paused"
+      newStatus: "active" | "paused",
+      clientId: string
     ) => {
       setLoading(true);
       setCurrentAction("bulk-status");
-
-      const clientIdToUse = nodes[0]?.id ? nodes[0].id.split("-")[0] : "";
 
       try {
         // Group by platform
@@ -271,7 +270,7 @@ export function useInlineEdit(options: UseInlineEditOptions = {}) {
                 await supabase.functions.invoke("manage-facebook-campaign", {
                   body: {
                     action: "toggle",
-                    client_id: clientIdToUse,
+                    client_id: clientId,
                     facebook_id: node.facebookId,
                     entity_type: node.type === "adset" ? "adset" : node.type === "ad" ? "ad" : "campaign",
                     status: newStatus === "active" ? "ACTIVE" : "PAUSED",

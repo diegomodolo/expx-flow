@@ -214,7 +214,7 @@ export function MultiCampaignTreeGrid({
         platform: node.platform,
       }));
 
-    bulkUpdateStatus(nodes, "paused");
+    bulkUpdateStatus(nodes, "paused", clientId);
     clearSelection();
   }, [selectedNodes, allNodesMap, bulkUpdateStatus, clearSelection]);
 
@@ -229,7 +229,7 @@ export function MultiCampaignTreeGrid({
         platform: node.platform,
       }));
 
-    bulkUpdateStatus(nodes, "active");
+    bulkUpdateStatus(nodes, "active", clientId);
     clearSelection();
   }, [selectedNodes, allNodesMap, bulkUpdateStatus, clearSelection]);
 
