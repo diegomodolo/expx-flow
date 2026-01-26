@@ -21,6 +21,10 @@ export interface CanvasElement {
     opacity?: number;
     textAlign?: 'left' | 'center' | 'right';
     shapeType?: 'rectangle' | 'circle' | 'line' | 'arrow';
+    // Fade/Gradient properties
+    fadeEnabled?: boolean;
+    fadeDirection?: 'to-right' | 'to-left' | 'to-bottom' | 'to-top' | 'to-bottom-right' | 'to-bottom-left' | 'to-top-right' | 'to-top-left';
+    fadeEndColor?: string; // The color to fade to (usually transparent)
   };
 }
 

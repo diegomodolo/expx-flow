@@ -3,8 +3,9 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { CanvasElement } from './hooks/useImageEditor';
-import { AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
+import { AlignLeft, AlignCenter, AlignRight, Blend } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -37,6 +38,17 @@ const FONT_WEIGHT_OPTIONS = [
 const COLOR_PRESETS = [
   '#FFFFFF', '#000000', '#8B5CF6', '#3B82F6', '#10B981', 
   '#F59E0B', '#EF4444', '#EC4899', '#6366F1', '#14B8A6',
+];
+
+const FADE_DIRECTION_OPTIONS = [
+  { value: 'to-right', label: '→ Direita' },
+  { value: 'to-left', label: '← Esquerda' },
+  { value: 'to-bottom', label: '↓ Baixo' },
+  { value: 'to-top', label: '↑ Cima' },
+  { value: 'to-bottom-right', label: '↘ Diagonal ↘' },
+  { value: 'to-bottom-left', label: '↙ Diagonal ↙' },
+  { value: 'to-top-right', label: '↗ Diagonal ↗' },
+  { value: 'to-top-left', label: '↖ Diagonal ↖' },
 ];
 
 export const ElementProperties: React.FC<ElementPropertiesProps> = ({
@@ -296,6 +308,81 @@ export const ElementProperties: React.FC<ElementPropertiesProps> = ({
             />
           </div>
         )}
+
+        {/* Fade/Gradient Section */}
+        <div className="space-y-3 pt-3 border-t border-border">
+          <div className="flex items-center justify-between">
+            <Label className="text-xs flex items-center gap-1.5">
+              <Blend className="h-3.5 w-3.5" />
+              Gradiente/Fade
+            </Label>
+            <Switch
+              checked={element.styles.fadeEnabled || false}
+              onCheckedChange={(checked) => handleStyleUpdate({ 
+                fadeEnabled: checked,
+                fadeDirection: checked ? (element.styles.fadeDirection || 'to-right') : undefined,
+                fadeEndColor: checked ? (element.styles.fadeEndColor || 'transparent') : undefined,
+              })}
+            />
+          </div>
+          
+          {element.styles.fadeEnabled && (
+            <div className="space-y-3 pl-1">
+              {/* Fade Direction */}
+              <div className="space-y-2">
+                <Label className="text-xs">Direção</Label>
+                <Select
+                  value={element.styles.fadeDirection || 'to-right'}
+                  onValueChange={(value) => handleStyleUpdate({ 
+                    fadeDirection: value as CanvasElement['styles']['fadeDirection'] 
+                  })}
+                >
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {FADE_DIRECTION_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value} className="text-xs">
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* End Color */}
+              <div className="space-y-2">
+                <Label className="text-xs">Cor Final</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="color"
+                    value={element.styles.fadeEndColor === 'transparent' ? '#000000' : (element.styles.fadeEndColor || '#000000')}
+                    onChange={(e) => handleStyleUpdate({ fadeEndColor: e.target.value })}
+                    className="w-10 h-8 p-1 cursor-pointer"
+                  />
+                  <Input
+                    type="text"
+                    value={element.styles.fadeEndColor || 'transparent'}
+                    onChange={(e) => handleStyleUpdate({ fadeEndColor: e.target.value })}
+                    className="flex-1 h-8 text-xs"
+                    placeholder="transparent"
+                  />
+                </div>
+                <button
+                  onClick={() => handleStyleUpdate({ fadeEndColor: 'transparent' })}
+                  className={cn(
+                    "text-xs px-2 py-1 rounded border transition-all",
+                    element.styles.fadeEndColor === 'transparent' 
+                      ? "border-primary bg-primary/10 text-primary" 
+                      : "border-border text-muted-foreground hover:border-primary"
+                  )}
+                >
+                  Transparente
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Opacity */}
         <div className="space-y-2">
