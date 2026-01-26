@@ -229,7 +229,7 @@ export function MultiCampaignTreeGrid({
 
       <div className="border rounded-lg overflow-hidden bg-card">
         <table className="w-full">
-          <thead className="bg-muted/50">
+          <thead className="bg-card border-b">
             <tr>
               {/* Checkbox column */}
               <th className="px-3 py-3 w-[3%]">
