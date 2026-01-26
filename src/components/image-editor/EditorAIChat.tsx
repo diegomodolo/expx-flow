@@ -79,12 +79,22 @@ export const EditorAIChat: React.FC<EditorAIChatProps> = ({
     try {
       const { data, error } = await supabase.functions.invoke('generate-visual-creative', {
         body: {
+          creativeType: 'instagram_feed',
           clientId,
           companyId,
+          theme: 'Edição de imagem',
+          context: {
+            title: '',
+            description: '',
+            copy: '',
+            contextOnly: {
+              isEditingExisting: true,
+              hasMergeImage: !!additionalImage,
+            }
+          },
           references: [currentImageUrl],
-          extraPrompt: `EDIÇÃO DE IMAGEM: ${prompt}. Mantenha o estilo e composição geral, aplicando apenas as mudanças solicitadas.`,
+          extraPrompt: prompt,
           additionalImageToMerge: additionalImage,
-          useImageAsReference: true,
         },
       });
 
