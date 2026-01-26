@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { TreeNode } from "@/hooks/useCampaignTree";
-import { MoreHorizontal, Copy, RefreshCw, Loader2 } from "lucide-react";
+import { MoreHorizontal, Copy, RefreshCw, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -9,6 +9,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { DuplicateEntityModal } from "./DuplicateEntityModal";
 import { useTreeNodeActions } from "@/hooks/useTreeNodeActions";
 import { useSyncingItems } from "@/contexts/SyncingItemsContext";
@@ -25,8 +35,9 @@ export function TreeNodeActionsDropdown({
   onRefresh,
 }: TreeNodeActionsDropdownProps) {
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const { addSyncingItem, removeSyncingItem } = useSyncingItems();
-  const { duplicateEntity, isDuplicating, syncEntity, isSyncing } = useTreeNodeActions({ 
+  const { duplicateEntity, isDuplicating, syncEntity, isSyncing, deleteEntity, isDeleting } = useTreeNodeActions({ 
     onSuccess: onRefresh,
     addSyncingItem,
     removeSyncingItem,
@@ -53,6 +64,16 @@ export function TreeNodeActionsDropdown({
     });
   };
 
+  const handleDelete = async () => {
+    await deleteEntity({
+      type: node.type,
+      id: node.id,
+      clientId,
+      facebookId: node.facebookId,
+    });
+    setShowDeleteConfirm(false);
+  };
+
   const getEntityLabel = () => {
     switch (node.type) {
       case "campaign":
@@ -63,6 +84,19 @@ export function TreeNodeActionsDropdown({
         return "Criativo";
       default:
         return "Item";
+    }
+  };
+
+  const getDeleteWarningMessage = () => {
+    switch (node.type) {
+      case "campaign":
+        return "Isso irá excluir a campanha, todos os conjuntos de anúncios e criativos associados, tanto do banco de dados local quanto do Meta. Esta ação não pode ser desfeita.";
+      case "adset":
+        return "Isso irá excluir o conjunto de anúncios e todos os criativos associados, tanto do banco de dados local quanto do Meta. Esta ação não pode ser desfeita.";
+      case "ad":
+        return "Isso irá excluir o criativo tanto do banco de dados local quanto do Meta. Esta ação não pode ser desfeita.";
+      default:
+        return "Esta ação não pode ser desfeita.";
     }
   };
 
@@ -109,6 +143,22 @@ export function TreeNodeActionsDropdown({
             <Copy className="h-4 w-4 mr-2" />
             Duplicar {getEntityLabel()}
           </DropdownMenuItem>
+
+          <DropdownMenuSeparator />
+
+          {/* Delete option */}
+          <DropdownMenuItem 
+            onClick={() => setShowDeleteConfirm(true)}
+            disabled={isDeleting || node.needsSync}
+            className="text-destructive focus:text-destructive"
+          >
+            {isDeleting ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Trash2 className="h-4 w-4 mr-2" />
+            )}
+            Excluir {getEntityLabel()}
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -123,6 +173,39 @@ export function TreeNodeActionsDropdown({
         onDuplicate={handleDuplicate}
         loading={isDuplicating}
       />
+
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir {getEntityLabel()}?</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>
+                Você está prestes a excluir <strong>"{node.name}"</strong>.
+              </p>
+              <p className="text-destructive font-medium">
+                {getDeleteWarningMessage()}
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Excluindo...
+                </>
+              ) : (
+                "Excluir"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
