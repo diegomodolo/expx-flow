@@ -42,16 +42,8 @@ export function TreeGridRow({
   onUpdateBudget,
 }: TreeGridRowProps) {
   const getLevelStyles = () => {
-    switch (node.type) {
-      case "campaign":
-        return "bg-muted/50";
-      case "adset":
-        return "bg-card";
-      case "ad":
-        return "bg-card";
-      default:
-        return "bg-card";
-    }
+    // All levels now use bg-card for consistent white background
+    return "bg-card";
   };
 
   const getIcon = () => {
