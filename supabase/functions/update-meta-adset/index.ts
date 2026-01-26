@@ -115,18 +115,41 @@ serve(async (req) => {
       console.log("Updating targeting:", JSON.stringify(targeting));
     }
 
-    // Update Ad Set in Meta
-    console.log("Sending update to Meta API...");
-    const updateResponse = await fetch(
-      `https://graph.facebook.com/v21.0/${facebookId}`,
-      { method: "POST", body: updateParams }
-    );
+    // Update Ad Set in Meta with retry logic for transient errors
+    const maxRetries = 3;
+    let lastError: any = null;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      console.log(`Sending update to Meta API (attempt ${attempt}/${maxRetries})...`);
+      
+      const updateResponse = await fetch(
+        `https://graph.facebook.com/v21.0/${facebookId}`,
+        { method: "POST", body: updateParams }
+      );
 
-    const updateResult = await updateResponse.json();
-    console.log("Meta API response:", updateResult);
+      const updateResult = await updateResponse.json();
+      console.log(`Meta API response (attempt ${attempt}):`, updateResult);
 
-    if (updateResult.error) {
+      if (!updateResult.error) {
+        // Success - continue with local database update
+        lastError = null;
+        break;
+      }
+
+      // Check if error is transient (code 2) - retry
+      if (updateResult.error.is_transient || updateResult.error.code === 2) {
+        lastError = updateResult.error;
+        console.log(`Transient error, retrying in ${attempt * 1000}ms...`);
+        await new Promise(resolve => setTimeout(resolve, attempt * 1000)); // Exponential backoff
+        continue;
+      }
+
+      // Non-transient error - throw immediately
       throw new Error(`Failed to update ad set: ${updateResult.error.message}`);
+    }
+
+    if (lastError) {
+      throw new Error(`Failed to update ad set after ${maxRetries} attempts: ${lastError.message}`);
     }
 
     // Update local database
