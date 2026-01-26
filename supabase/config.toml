@@ -346,3 +346,6 @@ verify_jwt = true
 
 [functions.update-meta-ad]
 verify_jwt = true
+
+[functions.duplicate-tree-entity]
+verify_jwt = true

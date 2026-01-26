@@ -180,12 +180,14 @@ export function TreeGridTable({
         targets={targets}
         isStatusLoading={loading && currentAction === `status-${node.id}`}
         isBudgetLoading={loading && currentAction === `budget-${node.id}`}
+        clientId={clientId}
         onToggleExpand={() => toggleExpand(node.id)}
         onSelect={() => onSelectNode(node)}
         onToggleCheck={() => toggleSelection(node.id)}
         onToggleStatus={(newStatus) => handleToggleStatus(node, newStatus)}
         onUpdateBudget={(newBudget) => handleUpdateBudget(node, newBudget)}
-      />
+        onRefresh={onRefresh}
+      />,
     ];
 
     if (isExpanded && hasChildren) {
@@ -255,8 +257,11 @@ export function TreeGridTable({
               <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-[7%]">
                 Conv.
               </th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-[14%]">
+              <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-[12%]">
                 Investido
+              </th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-[4%]">
+                
               </th>
             </tr>
           </thead>
