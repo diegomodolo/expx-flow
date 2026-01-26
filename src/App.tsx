@@ -113,7 +113,12 @@ import DashboardRadarTVPublic from "./pages/DashboardRadarTVPublic";
 import KeywordPlannerPage from "./pages/KeywordPlanner";
 import RepositorioCriativos from "./pages/RepositorioCriativos";
 import PublicContentReview from "./pages/PublicContentReview";
-import CSHub from "./pages/cs/CSHub";
+import CSLayout from "./components/cs/CSLayout";
+import CSRiskRadarPage from "./pages/cs/CSRiskRadarPage";
+import CSHealth360Page from "./pages/cs/CSHealth360Page";
+import CSJourneyPage from "./pages/cs/CSJourneyPage";
+import CSActionsPage from "./pages/cs/CSActionsPage";
+import CSClientsList from "./pages/cs/CSClientsList";
 import ValueStatementPublic from "./pages/cs/ValueStatementPublic";
 import { AuthProvider } from "@/hooks/useAuth";
 import { CompanyProvider } from "@/contexts/CompanyContext";
@@ -121,6 +126,7 @@ import { CRMAuthProvider } from "@/contexts/CRMAuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { PermissionProtectedRoute } from "@/components/PermissionProtectedRoute";
 import { ThemeProvider } from "next-themes";
+import { Navigate } from "react-router-dom";
 
 const queryClient = new QueryClient();
 
@@ -588,9 +594,16 @@ const App = () => {
                 {/* Customer Success Module */}
                 <Route path="/cs" element={
                   <ProtectedRoute>
-                    <CSHub />
+                    <CSLayout />
                   </ProtectedRoute>
-                } />
+                }>
+                  <Route index element={<Navigate to="/cs/radar" replace />} />
+                  <Route path="radar" element={<CSRiskRadarPage />} />
+                  <Route path="saude" element={<CSHealth360Page />} />
+                  <Route path="jornada" element={<CSJourneyPage />} />
+                  <Route path="acoes" element={<CSActionsPage />} />
+                  <Route path="clientes" element={<CSClientsList />} />
+                </Route>
                 
                 {/* Public CS Routes */}
                 <Route path="/cs/value-statement/:token" element={<ValueStatementPublic />} />
