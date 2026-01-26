@@ -1,178 +1,121 @@
 
-# Plano: Correção da Sincronização de Campanhas Meta
+# Plano: Menu de Ações (3 Pontinhos) para Campanhas, Conjuntos e Criativos
 
-## Problemas Identificados
+## Objetivo
 
-Ao sincronizar campanhas do Meta, o usuário reportou 3 problemas:
-
-1. **Progresso sempre em 0%**: O campo `progress` na tabela `sync_jobs` nunca é atualizado durante a sincronização porque a função `updateJobProgress` existe mas nunca é chamada
-2. **Campanhas somem durante sincronização**: A edge function deleta TODOS os dados antes de inserir novamente, causando flash visual na UI
-3. **Campanhas excluídas no Meta desaparecem**: Quando uma campanha é excluída no Meta, ela é simplesmente removida do banco sem histórico
+Adicionar um ícone de menu (⋮) na última coluna de cada linha da tabela de campanhas, conjuntos de anúncios e criativos. Ao clicar, abre um dropdown com ações disponíveis, começando pela funcionalidade de **Duplicar**.
 
 ---
 
-## Solução Proposta
-
-### Parte 1: Atualização do Progresso em Tempo Real
-
-Modificar a edge function para chamar `updateJobProgress` durante cada etapa do processamento.
-
-**Arquivo**: `supabase/functions/sync-facebook-campaigns/index.ts`
+## Arquitetura da Solução
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│  FLUXO COM PROGRESSO                                            │
-├─────────────────────────────────────────────────────────────────┤
-│  1. Buscar campanhas do Meta                                    │
-│     → updateJobProgress({ campaigns: { total: N, current: 0 }}) │
-│  2. Para cada campanha:                                         │
-│     → updateJobProgress({ campaigns: { current: i+1 }})         │
-│  3. Para cada ad set:                                           │
-│     → updateJobProgress({ adsets: { current: j+1 }})            │
-│  4. Para cada ad:                                               │
-│     → updateJobProgress({ ads: { current: k+1 }})               │
+│  MultiCampaignTreeGrid                                          │
+│  └─> TreeGridRow (campanha, adset, ad)                          │
+│       └─> Nova coluna: TreeNodeActionsDropdown                  │
+│            └─> Menu com ações (Duplicar, etc.)                  │
+│                 └─> DuplicateEntityModal                        │
+│                      └─> useTreeNodeActions hook                │
+│                           └─> Edge Function (duplicar)          │
 └─────────────────────────────────────────────────────────────────┘
-```
-
-### Parte 2: Eliminar Delete + Reinsert (Upsert Strategy)
-
-Substituir a lógica de "deletar tudo e reinserir" por uma estratégia de **upsert + soft delete**:
-
-**Fluxo Atual (problemático):**
-```text
-1. DELETE FROM campaigns WHERE client_id = X
-2. DELETE FROM ad_sets WHERE client_id = X  
-3. DELETE FROM ads WHERE client_id = X
-4. INSERT novos dados
-→ UI fica vazia durante processamento
-```
-
-**Fluxo Proposto:**
-```text
-1. Marcar todas as campanhas com sync_batch_id = novo UUID
-2. Para cada campanha do Meta:
-   - UPSERT (insert ou update se já existe)
-   - Atualizar sync_batch_id para o novo
-3. Após processamento:
-   - Campanhas com sync_batch_id antigo = não existem mais no Meta
-   - Marcar como status = 'deleted' ao invés de deletar
-→ UI mantém dados visíveis durante todo o processo
-```
-
-### Parte 3: Adicionar Status "Excluída" (deleted)
-
-Adicionar um novo valor ao enum `campaign_status` para preservar histórico.
-
-**Migration SQL:**
-```sql
--- Adicionar 'deleted' ao enum campaign_status
-ALTER TYPE campaign_status ADD VALUE IF NOT EXISTS 'deleted';
-
--- Adicionar campo para controle de sincronização
-ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS last_synced_at timestamptz;
-ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
-
--- Campos similares para ad_sets e ads
-ALTER TABLE ad_sets ADD COLUMN IF NOT EXISTS last_synced_at timestamptz;
-ALTER TABLE ad_sets ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
-
-ALTER TABLE ads ADD COLUMN IF NOT EXISTS last_synced_at timestamptz;
-ALTER TABLE ads ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
 ```
 
 ---
 
-## Implementação Detalhada
+## Componentes a Criar
 
-### Arquivo 1: Edge Function `sync-facebook-campaigns/index.ts`
+### 1. `TreeNodeActionsDropdown.tsx`
+Componente do dropdown de ações que será adicionado em cada linha da tabela.
 
-**Mudanças principais:**
+**Props:**
+- `node: TreeNode` - O nó (campanha, ad set ou ad)
+- `clientId: string` - ID do cliente para as operações
+- `onRefresh: () => void` - Callback para atualizar a lista após ação
 
-1. Remover blocos DELETE que limpam dados antes da sincronização
-2. Usar UPSERT em vez de INSERT para todas as entidades
-3. Adicionar campo `last_synced_at` em cada upsert
-4. Após processar tudo, marcar itens não sincronizados como `deleted`
-5. Chamar `updateJobProgress` em cada iteração
+**Funcionalidades:**
+- Ícone de três pontinhos (MoreHorizontal)
+- Dropdown com opções contextuais baseadas no tipo do nó
+- Para a primeira versão: opção "Duplicar"
 
-```typescript
-// Exemplo de progresso durante processamento
-const totalCampaigns = campaigns.length;
-await updateJobProgress(supabase, jobId, {
-  campaigns: { current: 0, total: totalCampaigns },
-  adsets: { current: 0, total: 0 },
-  ads: { current: 0, total: 0 },
-  current_entity: 'Iniciando...'
-});
+### 2. `DuplicateEntityModal.tsx`
+Modal genérico para duplicar qualquer entidade (campanha, ad set ou ad).
 
-for (let i = 0; i < campaigns.length; i++) {
-  const campaign = campaigns[i];
-  
-  await updateJobProgress(supabase, jobId, {
-    campaigns: { current: i + 1, total: totalCampaigns },
-    adsets: { current: 0, total: 0 },
-    ads: { current: 0, total: 0 },
-    current_entity: campaign.name
-  });
-  
-  // ... processar campanha com UPSERT ...
-}
+**Props:**
+- `isOpen: boolean`
+- `onClose: () => void`
+- `entity: { id: string; name: string; type: 'campaign' | 'adset' | 'ad' }`
+- `onDuplicate: (newName: string) => Promise<void>`
+- `loading: boolean`
 
-// Após processar tudo, marcar como deleted os que não foram sincronizados
-const syncTimestamp = new Date().toISOString();
-await supabase
-  .from('campaigns')
-  .update({ status: 'deleted', deleted_at: syncTimestamp })
-  .eq('client_id', clientId)
-  .lt('last_synced_at', syncTimestamp)
-  .neq('status', 'deleted');
-```
+**Características:**
+- Título dinâmico: "Duplicar Campanha" / "Duplicar Conjunto" / "Duplicar Criativo"
+- Mensagem explicativa adaptada ao tipo
+- Campo para nome da nova entidade
 
-### Arquivo 2: Hook `useAllCampaignsTree.tsx`
+### 3. `useTreeNodeActions.tsx`
+Hook para centralizar as ações de entidades na árvore.
 
-Filtrar campanhas com status `deleted` na query:
+**Funções:**
+- `duplicateEntity(type, id, clientId, facebookId, newName, platform)` - Duplicar qualquer entidade
 
-```typescript
-// Na query de campanhas, excluir as deletadas
-.neq('status', 'deleted')
-```
+---
 
-### Arquivo 3: Hook `useSyncJobStatus.tsx`
+## Edge Function: `duplicate-tree-entity`
 
-Adicionar realtime subscription para progresso mais fluido:
+Nova edge function para duplicar ad sets e ads (campanhas já funcionam via `manage-facebook-campaign`).
 
-```typescript
-// Usar channel subscription para atualização instantânea
-const channel = supabase
-  .channel(`sync-job-${jobId}`)
-  .on('postgres_changes', {
-    event: 'UPDATE',
-    schema: 'public',
-    table: 'sync_jobs',
-    filter: `id=eq.${jobId}`
-  }, (payload) => {
-    setJob(payload.new as SyncJob);
-  })
-  .subscribe();
-```
+**Endpoints da Meta API:**
+- **Ad Set**: `POST /{adset-id}/copies` com `deep_copy: true`
+- **Ad**: `POST /{ad-account-id}/ads` com creative_id do original
 
-### Arquivo 4: UI de Progresso na Página de Campanhas
+---
 
-Adicionar indicador visual de progresso durante sincronização:
+## Modificações em Arquivos Existentes
 
-```typescript
-// Em ClienteCampanhas.tsx
-const { job, progressPercentage, isProcessing } = useSyncJobStatus(currentJobId);
+### `TreeGridRow.tsx`
+- Adicionar nova coluna no final com o componente `TreeNodeActionsDropdown`
+- Passar `node`, `clientId` e `onRefresh` como props
 
-// Mostrar barra de progresso quando sincronizando
-{isProcessing && (
-  <div className="flex items-center gap-2">
-    <Progress value={progressPercentage} className="w-32 h-2" />
-    <span className="text-sm text-muted-foreground">
-      {progressPercentage}% - {job?.progress?.current_entity || 'Processando...'}
-    </span>
-  </div>
-)}
-```
+### `MultiCampaignTreeGrid.tsx`
+- Adicionar coluna "Ações" no cabeçalho da tabela (após "Investido")
+- Passar `clientId` e `onRefresh` para o `TreeGridRow`
+
+---
+
+## Estrutura do Dropdown por Tipo de Entidade
+
+| Tipo | Ações Disponíveis |
+|------|-------------------|
+| Campanha | Duplicar |
+| Conjunto de Anúncios | Duplicar |
+| Criativo | Duplicar |
+
+Futuramente podem ser adicionadas mais ações como Renomear, Pausar/Ativar, Editar Orçamento, etc.
+
+---
+
+## Fluxo de Duplicação
+
+1. Usuário clica no ícone ⋮ na linha
+2. Seleciona "Duplicar"
+3. Modal abre com nome sugerido: "{nome original} - Cópia"
+4. Usuário confirma
+5. Requisição vai para edge function
+6. Meta API processa a duplicação
+7. Toast de sucesso
+8. Lista é atualizada (onRefresh)
+
+---
+
+## Arquivos a Criar
+
+| Arquivo | Descrição |
+|---------|-----------|
+| `src/components/campaign-editor/TreeNodeActionsDropdown.tsx` | Dropdown de ações para cada linha |
+| `src/components/campaign-editor/DuplicateEntityModal.tsx` | Modal genérico de duplicação |
+| `src/hooks/useTreeNodeActions.tsx` | Hook com ações de duplicar |
+| `supabase/functions/duplicate-tree-entity/index.ts` | Edge function para duplicar ad sets e ads |
 
 ---
 
@@ -180,18 +123,41 @@ const { job, progressPercentage, isProcessing } = useSyncJobStatus(currentJobId)
 
 | Arquivo | Mudança |
 |---------|---------|
-| `supabase/functions/sync-facebook-campaigns/index.ts` | Remover DELETEs, usar UPSERT, adicionar updateJobProgress, marcar como deleted |
-| `src/hooks/useAllCampaignsTree.tsx` | Filtrar status = 'deleted' das queries |
-| `src/hooks/useSyncJobStatus.tsx` | Adicionar realtime subscription para progresso |
-| `src/pages/cliente/ClienteCampanhas.tsx` | Guardar jobId e mostrar progresso visual |
-| Migration SQL | Adicionar 'deleted' ao enum e campos last_synced_at/deleted_at |
+| `src/components/campaign-editor/TreeGridRow.tsx` | Adicionar nova coluna com dropdown de ações |
+| `src/components/campaign-editor/MultiCampaignTreeGrid.tsx` | Adicionar cabeçalho "Ações" e passar props extras |
 
 ---
 
-## Benefícios
+## Detalhes Técnicos da Duplicação via Meta API
 
-- **Progresso visível**: Usuário vê exatamente o que está sendo sincronizado
-- **Sem flash na UI**: Dados permanecem visíveis durante sincronização
-- **Histórico preservado**: Campanhas excluídas no Meta ficam marcadas como 'deleted' em vez de desaparecer
-- **Dados sempre atualizados**: UPSERT garante que os dados mais recentes são refletidos
-- **Auditoria**: Campo `deleted_at` permite rastrear quando campanha foi removida do Meta
+### Duplicar Ad Set
+```typescript
+POST https://graph.facebook.com/v20.0/{adset-id}/copies
+{
+  deep_copy: true,
+  status: 'ACTIVE',
+  access_token: token
+}
+```
+
+### Duplicar Ad
+```typescript
+// Primeiro buscar dados do ad original
+GET https://graph.facebook.com/v20.0/{ad-id}?fields=name,adset_id,creative
+
+// Depois criar novo ad
+POST https://graph.facebook.com/v20.0/{ad-account-id}/ads
+{
+  name: "Nome - Cópia",
+  adset_id: original.adset_id,
+  creative: { creative_id: original.creative.id },
+  status: 'ACTIVE',
+  access_token: token
+}
+```
+
+---
+
+## Resultado Esperado
+
+Cada linha da tabela de campanhas terá um ícone de menu (⋮) na última coluna. Ao clicar, um dropdown aparece com a opção "Duplicar". Ao selecionar, um modal permite definir o nome da cópia e confirmar a ação.
