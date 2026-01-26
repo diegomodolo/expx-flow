@@ -2,7 +2,6 @@ import { TreeNode, ClientTargets } from "@/hooks/useCampaignTree";
 import { MetricCell } from "./MetricCell";
 import { InlineStatusToggle } from "./InlineStatusToggle";
 import { InlineBudgetInput } from "./InlineBudgetInput";
-import { BudgetProgressCell } from "./BudgetProgressCell";
 import { CreativeThumbnail } from "./CreativeThumbnail";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ChevronRight, Layers, Target } from "lucide-react";
@@ -211,17 +210,9 @@ export function TreeGridRow({
 
       {/* Spend column */}
       <td className="px-3 py-3">
-        {node.budget ? (
-          <BudgetProgressCell
-            spent={node.metrics.spend}
-            budget={node.budget.amount}
-            budgetType={node.budget.type}
-          />
-        ) : (
-          <span className="text-sm font-medium">
-            R$ {node.metrics.spend.toFixed(2)}
-          </span>
-        )}
+        <span className="text-sm font-medium">
+          R$ {node.metrics.spend.toFixed(2)}
+        </span>
       </td>
     </tr>
   );
