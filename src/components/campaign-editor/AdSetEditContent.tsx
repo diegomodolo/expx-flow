@@ -16,7 +16,6 @@ import {
 } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
-  Loader2, 
   Layers, 
   Save, 
   Settings, 
@@ -38,6 +37,8 @@ import { PixelSelector } from '@/components/campaigns/builder/PixelSelector';
 import { ConversionEventSelector } from '@/components/campaigns/builder/ConversionEventSelector';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useSaveWithProgress } from '@/hooks/useSaveWithProgress';
+import { SaveProgressModal } from './SaveProgressModal';
 
 interface AdSetEditContentProps {
   node: TreeNode;
@@ -52,7 +53,7 @@ export function AdSetEditContent({
   companyId,
   onSuccess,
 }: AdSetEditContentProps) {
-  const [isSaving, setIsSaving] = useState(false);
+  const saveProgress = useSaveWithProgress();
   
   // Basic fields
   const [editName, setEditName] = useState('');
@@ -169,11 +170,10 @@ export function AdSetEditContent({
   const handleSave = useCallback(async () => {
     if (!clientId || !node) return;
 
-    setIsSaving(true);
     const platform = node.platform as 'meta' | 'google';
     const facebookId = (node as any).facebookId;
 
-    try {
+    const metaAction = async () => {
       if (platform === 'meta' && facebookId) {
         const { data, error } = await supabase.functions.invoke('update-meta-adset', {
           body: {
@@ -214,8 +214,6 @@ export function AdSetEditContent({
         if (!data?.success) {
           throw new Error(data?.error || 'Erro ao atualizar conjunto de anúncios');
         }
-
-        toast.success('Conjunto de anúncios atualizado com sucesso!');
       } else {
         if (editName !== node.name) {
           await updateName('adset', node.id, clientId, facebookId, editName, platform);
@@ -230,21 +228,22 @@ export function AdSetEditContent({
           }
         }
       }
+    };
 
+    const success = await saveProgress.execute(metaAction, async () => {
       setHasChanges(false);
-      onSuccess?.();
-    } catch (error: any) {
-      console.error('Error saving changes:', error);
-      toast.error(error.message || 'Erro ao salvar alterações');
-    } finally {
-      setIsSaving(false);
+      await onSuccess?.();
+    });
+
+    if (success) {
+      toast.success('Conjunto de anúncios atualizado com sucesso!');
     }
-  }, [clientId, node, editName, editStatus, editBudget, ageMin, ageMax, genders, includedAudiences, excludedAudiences, interests, pixelId, conversionEvent, updateName, updateStatus, updateBudget, onSuccess]);
+  }, [clientId, node, editName, editStatus, editBudget, ageMin, ageMax, genders, includedAudiences, excludedAudiences, interests, pixelId, conversionEvent, updateName, updateStatus, updateBudget, onSuccess, saveProgress]);
 
   if (!node || node.type !== 'adset') return null;
 
   const isGoogle = node.platform === 'google';
-  const isLoading = isSaving || inlineLoading;
+  const isLoading = saveProgress.isOpen || inlineLoading;
   const formatCurrency = (value: number) => `R$ ${value.toFixed(2)}`;
   const formatNumber = (value: number) => value.toLocaleString();
   const formatPercent = (value: number) => `${value.toFixed(2)}%`;
@@ -512,19 +511,19 @@ export function AdSetEditContent({
           onClick={handleSave} 
           disabled={isLoading || editName.trim() === '' || parseFloat(editBudget) < 1}
         >
-          {isLoading ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Salvando...
-            </>
-          ) : (
-            <>
-              <Save className="w-4 h-4 mr-2" />
-              Salvar Alterações
-            </>
-          )}
+          <Save className="w-4 h-4 mr-2" />
+          Salvar Alterações
         </Button>
       </div>
+
+      {/* Save Progress Modal */}
+      <SaveProgressModal
+        isOpen={saveProgress.isOpen}
+        steps={saveProgress.steps}
+        error={saveProgress.error}
+        onClose={saveProgress.close}
+        onRetry={handleSave}
+      />
     </div>
   );
 }
