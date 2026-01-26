@@ -78,9 +78,19 @@ const menuCategories: MenuCategory[] = [
       icon: Users,
       items: [
         { title: "Clientes", url: "/clientes", icon: Users, permission: "clientes" as MenuItemType },
-        { title: "Customer Success", url: "/cs", icon: Heart, permission: "clientes" as MenuItemType },
         { title: "Funis", url: "/editor-funil", icon: GitBranch, permission: "editor-funil" as MenuItemType },
         { title: "Lead Intelligence", url: "/lead-intelligence", icon: Database, permission: "configuracoes" as MenuItemType },
+      ].sort((a, b) => a.title.localeCompare(b.title, 'pt-BR')),
+    },
+    {
+      title: "Customer Success",
+      icon: Heart,
+      items: [
+        { title: "Radar de Risco", url: "/cs/radar", icon: Activity, permission: "clientes" as MenuItemType },
+        { title: "Saúde 360", url: "/cs/saude", icon: Heart, permission: "clientes" as MenuItemType },
+        { title: "Jornada", url: "/cs/jornada", icon: TrendingUp, permission: "clientes" as MenuItemType },
+        { title: "Ações", url: "/cs/acoes", icon: Zap, permission: "clientes" as MenuItemType },
+        { title: "Clientes CS", url: "/cs/clientes", icon: Users, permission: "clientes" as MenuItemType },
       ].sort((a, b) => a.title.localeCompare(b.title, 'pt-BR')),
     },
     {
