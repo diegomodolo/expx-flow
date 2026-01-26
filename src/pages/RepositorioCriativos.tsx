@@ -768,23 +768,26 @@ export default function RepositorioCriativos() {
                 })()}
 
                 {/* Actions */}
-                <div className="flex flex-wrap justify-end gap-2 pt-2">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-2">
                   <Button 
                     variant="outline" 
+                    size="sm"
+                    className="text-xs h-9 flex-col gap-0.5 py-1.5"
                     onClick={() => setShowScheduleModal(true)}
                   >
-                    <Calendar className="h-4 w-4 mr-2" />
-                    Enviar para Agendamento
+                    <Calendar className="h-3.5 w-3.5" />
+                    <span>Agendar</span>
                   </Button>
                   <Button 
                     variant="outline" 
+                    size="sm"
+                    className="text-xs h-9 flex-col gap-0.5 py-1.5"
                     onClick={() => setShowPresentationModal(true)}
                   >
-                    <FileText className="h-4 w-4 mr-2" />
-                    Enviar para Apresentação
+                    <FileText className="h-3.5 w-3.5" />
+                    <span>Apresentação</span>
                   </Button>
                   {(() => {
-                    // Get current image for edit button
                     const carouselImages = getCarouselImages(selectedCreative);
                     const currentImage = carouselImages.length > 1 
                       ? carouselImages[currentSlideIndex] 
@@ -794,10 +797,12 @@ export default function RepositorioCriativos() {
                       return (
                         <Button 
                           variant="outline" 
+                          size="sm"
+                          className="text-xs h-9 flex-col gap-0.5 py-1.5"
                           onClick={() => setShowImageEditorModal(true)}
                         >
-                          <Pencil className="h-4 w-4 mr-2" />
-                          Editar Imagem
+                          <Pencil className="h-3.5 w-3.5" />
+                          <span>Editar</span>
                         </Button>
                       );
                     }
@@ -806,17 +811,25 @@ export default function RepositorioCriativos() {
                   {selectedCreative.image_url && (
                     <Button 
                       variant="outline" 
+                      size="sm"
+                      className="text-xs h-9 flex-col gap-0.5 py-1.5"
                       onClick={() => handleDownload(
                         selectedCreative.image_url!, 
                         `criativo-${selectedCreative.id}.jpg`
                       )}
                     >
-                      <Download className="h-4 w-4 mr-2" />
-                      Baixar Imagem
+                      <Download className="h-3.5 w-3.5" />
+                      <span>Baixar</span>
                     </Button>
                   )}
-                  <Button variant="secondary" onClick={() => setSelectedCreative(null)}>
-                    Fechar
+                  <Button 
+                    variant="secondary" 
+                    size="sm"
+                    className="text-xs h-9 flex-col gap-0.5 py-1.5"
+                    onClick={() => setSelectedCreative(null)}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                    <span>Fechar</span>
                   </Button>
                 </div>
               </div>
