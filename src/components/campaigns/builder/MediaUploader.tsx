@@ -1,11 +1,11 @@
 import { useState, useCallback } from 'react';
-import { Upload, X, Image, Film, Loader2, Sparkles, RefreshCw, Instagram, Play, ExternalLink } from 'lucide-react';
+import { Upload, X, Image, Film, Loader2, Sparkles, Pencil, Instagram, Play, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { InstagramMediaSelector } from './InstagramMediaSelector';
-
+import { ImageEditorModal } from '@/components/image-editor/ImageEditorModal';
 interface MediaUploaderProps {
   mediaUrls: string[];
   onChange: (urls: string[]) => void;
@@ -35,6 +35,7 @@ export function MediaUploader({
   const [generatingAI, setGeneratingAI] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [showInstagramSelector, setShowInstagramSelector] = useState(false);
+  const [showImageEditor, setShowImageEditor] = useState(false);
   const { toast } = useToast();
 
   const acceptTypes = type === 'VIDEO' 
@@ -364,29 +365,33 @@ export function MediaUploader({
         </div>
       )}
 
-      {/* Regenerate AI button when image exists */}
-      {/* Regenerate AI button when image exists */}
+      {/* Edit image button when image exists */}
       {showAIButton && mediaUrls.length > 0 && type !== 'CAROUSEL' && (
         <Button
           type="button"
           variant="ghost"
           size="sm"
           className="w-full"
-          onClick={handleGenerateAIImage}
-          disabled={generatingAI}
+          onClick={() => setShowImageEditor(true)}
         >
-          {generatingAI ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Gerando...
-            </>
-          ) : (
-            <>
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Gerar outra imagem com IA
-            </>
-          )}
+          <Pencil className="h-4 w-4 mr-2" />
+          Editar a imagem
         </Button>
+      )}
+
+      {/* Image Editor Modal */}
+      {showAIButton && mediaUrls.length > 0 && (
+        <ImageEditorModal
+          open={showImageEditor}
+          onOpenChange={setShowImageEditor}
+          images={mediaUrls.filter(url => !url.match(/\.(mp4|webm|mov|avi)$/i))}
+          onSave={(newUrls) => {
+            onChange(newUrls);
+            setShowImageEditor(false);
+          }}
+          clientId={clientId || ''}
+          companyId=""
+        />
       )}
 
       {/* Instagram Media Selector Modal */}
