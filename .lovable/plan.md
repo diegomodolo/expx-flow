@@ -1,122 +1,176 @@
 
-# Plano: Inserir Item Duplicado Automaticamente no Banco Local
+# Plano: Indicador Visual de Sincronização e Botão Sincronizar Individual
 
-## Problema Atual
-Quando o usuário duplica uma campanha, conjunto ou criativo, a edge function `duplicate-tree-entity` cria o item no Meta, mas não insere no banco de dados local. O usuário precisa clicar em "Sincronizar" para ver a cópia, o que dá a impressão de que nada foi feito.
+## Contexto
 
-## Solução
-Modificar a edge function para:
-1. Após duplicar no Meta, buscar os dados completos do novo item via Meta API
-2. Inserir o novo item no banco de dados local (tabelas `campaigns`, `ad_sets` ou `ads`)
-3. Retornar os dados inseridos para o frontend
-4. O frontend então faz `invalidateAndRefetch()` para atualizar a lista imediatamente
+Quando um item é duplicado, ele é inserido no banco de dados local mas o campo `last_synced_at` fica como `null`. Isso indica que o item ainda não foi sincronizado completamente com o Meta.
+
+O usuário solicitou:
+1. Mostrar visualmente que um item não foi sincronizado (cor apagada, badge, etc.)
+2. Bloquear edição enquanto não sincronizado
+3. Adicionar botão "Sincronizar" no menu de ações (3 pontinhos)
 
 ---
 
-## Arquitetura do Fluxo
+## Arquitetura da Solução
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  1. Usuário clica em "Duplicar"                                             │
-│     ↓                                                                       │
-│  2. Edge Function chama Meta API /copies                                    │
-│     ↓                                                                       │
-│  3. Meta retorna novo ID (ex: copied_campaign_id)                           │
-│     ↓                                                                       │
-│  4. Edge Function busca dados completos via GET /{novo-id}                  │
-│     ↓                                                                       │
-│  5. Edge Function insere no banco local (campaigns/ad_sets/ads)             │
-│     ↓                                                                       │
-│  6. Edge Function retorna { success: true, data: { ... } }                  │
-│     ↓                                                                       │
-│  7. Frontend faz invalidateAndRefetch() → Lista atualizada imediatamente!   │
+│  TreeNode                                                                    │
+│  ├─ Novo campo: needsSync (boolean) - derivado de !last_synced_at           │
+│  │                                                                           │
+│  TreeGridRow                                                                 │
+│  ├─ Nome com opacidade reduzida se needsSync                                 │
+│  ├─ Badge "Não sincronizado" ao lado do nome                                 │
+│  ├─ Toggle de status DESABILITADO se needsSync                               │
+│  ├─ Input de orçamento DESABILITADO se needsSync                             │
+│  │                                                                           │
+│  TreeNodeActionsDropdown                                                     │
+│  ├─ Novo item: "Sincronizar" (RefreshCw icon)                                │
+│  │                                                                           │
+│  useTreeNodeActions                                                          │
+│  └─ Nova função: syncEntity()                                                │
+│      └─ Chama sync-facebook-campaigns com parâmetros específicos             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Modificações na Edge Function
+## Modificações
 
-### `supabase/functions/duplicate-tree-entity/index.ts`
+### 1. Interface `TreeNode` - Adicionar campo `needsSync`
 
-Para cada tipo de entidade, após duplicar:
+**Arquivo:** `src/hooks/useCampaignTree.tsx`
 
-**Campanha:**
-1. Buscar dados via `GET /{copied_campaign_id}?fields=id,name,status,daily_budget,objective,...`
-2. Inserir na tabela `campaigns` com todos os campos necessários
-3. Os ad sets e ads filhos também serão copiados pelo Meta (deep_copy: true), então precisamos buscá-los e inserir no banco também
+Adicionar novo campo opcional à interface:
+```typescript
+export interface TreeNode {
+  // ... campos existentes
+  needsSync?: boolean; // true quando last_synced_at é null
+}
+```
 
-**Conjunto de Anúncios (Ad Set):**
-1. Buscar dados via `GET /{copied_adset_id}?fields=id,name,status,daily_budget,campaign_id,targeting,...`
-2. Inserir na tabela `ad_sets`
-3. Buscar ads filhos e inserir na tabela `ads`
+### 2. Hook `useAllCampaignsTree.tsx` - Popular campo `needsSync`
 
-**Criativo (Ad):**
-1. Já temos o novo ID após criar
-2. Buscar dados completos via `GET /{new_ad_id}?fields=...`
-3. Inserir na tabela `ads`
+**Arquivo:** `src/hooks/useAllCampaignsTree.tsx`
 
----
+Ao construir cada nó da árvore, verificar se `last_synced_at` é `null`:
+```typescript
+// Para campaigns
+needsSync: !campaign.last_synced_at,
 
-## Campos Necessários para Inserção
+// Para ad sets
+needsSync: !adset.last_synced_at,
 
-### Tabela `campaigns`
-| Campo | Origem |
-|-------|--------|
-| id | UUID gerado |
-| facebook_id | copiedId do Meta |
-| name | newName |
-| client_id | Parâmetro de entrada |
-| user_id | Do JWT |
-| company_id | Do cliente |
-| status | "paused" (padrão de cópia) |
-| platforms | "Facebook Ads" |
-| daily_budget | Da API Meta |
-| objective | Da API Meta |
-| ctr, cpc, cpa, spend, etc | 0 (valores iniciais) |
+// Para ads
+needsSync: !ad.last_synced_at,
+```
 
-### Tabela `ad_sets`
-| Campo | Origem |
-|-------|--------|
-| id | UUID gerado |
-| facebook_id | copiedId do Meta |
-| campaign_id | UUID da campanha pai |
-| name | Da API Meta |
-| client_id | Parâmetro de entrada |
-| user_id | Do JWT |
-| company_id | Do cliente |
-| status | "paused" |
-| daily_budget | Da API Meta |
-| targeting | Da API Meta (JSON) |
+### 3. Componente `TreeGridRow.tsx` - Indicação Visual
 
-### Tabela `ads`
-| Campo | Origem |
-|-------|--------|
-| id | UUID gerado |
-| facebook_id | copiedId do Meta |
-| ad_set_id | UUID do ad set pai |
-| campaign_id | UUID da campanha pai |
-| name | Da API Meta |
-| client_id | Parâmetro de entrada |
-| user_id | Do JWT |
-| company_id | Do cliente |
-| status | "paused" |
-| creative_body, creative_title, etc | Da API Meta |
+**Arquivo:** `src/components/campaign-editor/TreeGridRow.tsx`
 
----
-
-## Modificações no Hook `useTreeNodeActions.tsx`
-
-Após receber sucesso da edge function:
-1. Chamar `invalidateQueries` para as query keys relevantes
-2. O React Query vai refazer as queries e a lista será atualizada
+Modificações:
+- Nome com opacidade reduzida (`opacity-50`) se `needsSync`
+- Badge "Aguardando sincronização" com ícone de alerta
+- Toggle de status desabilitado se `needsSync`
+- Input de orçamento desabilitado se `needsSync`
 
 ```typescript
-// Após sucesso
-const queryClient = useQueryClient();
-await queryClient.invalidateQueries({ queryKey: ["all-campaigns-tree-meta", clientId] });
-await queryClient.invalidateQueries({ queryKey: ["all-campaigns-tree-meta-adsets", clientId] });
-await queryClient.invalidateQueries({ queryKey: ["all-campaigns-tree-meta-ads", clientId] });
+{/* Nome com badge de sincronização */}
+<span className={cn(
+  "truncate text-sm",
+  node.needsSync && "opacity-50"
+)}>
+  {node.name}
+</span>
+
+{node.needsSync && (
+  <Badge variant="outline" className="text-xs text-amber-600 border-amber-300 bg-amber-50">
+    <AlertCircle className="w-3 h-3 mr-1" />
+    Não sincronizado
+  </Badge>
+)}
+
+{/* Status toggle desabilitado */}
+<InlineStatusToggle
+  disabled={node.platform === "google" || node.needsSync}
+  // ...
+/>
+
+{/* Budget input desabilitado */}
+<InlineBudgetInput
+  disabled={node.platform === "google" || node.needsSync}
+  // ...
+/>
+```
+
+### 4. Componente `TreeNodeActionsDropdown.tsx` - Botão Sincronizar
+
+**Arquivo:** `src/components/campaign-editor/TreeNodeActionsDropdown.tsx`
+
+Adicionar novo item no menu dropdown:
+```typescript
+<DropdownMenuItem onClick={() => handleSync()}>
+  <RefreshCw className="h-4 w-4 mr-2" />
+  Sincronizar {getEntityLabel()}
+</DropdownMenuItem>
+```
+
+A opção "Sincronizar" aparece:
+- Sempre visível para itens Meta (permitindo sincronização manual a qualquer momento)
+- Destacada visualmente quando `needsSync` é true
+
+### 5. Hook `useTreeNodeActions.tsx` - Função de Sincronização
+
+**Arquivo:** `src/hooks/useTreeNodeActions.tsx`
+
+Adicionar nova função `syncEntity`:
+```typescript
+interface SyncEntityParams {
+  type: "campaign" | "adset" | "ad";
+  id: string;
+  clientId: string;
+  facebookId: string;
+}
+
+const syncEntity = async (params: SyncEntityParams) => {
+  // Chama a edge function sync-facebook-campaigns com parâmetros específicos
+  const { data, error } = await supabase.functions.invoke("sync-facebook-campaigns", {
+    body: {
+      clientId: params.clientId,
+      campaignFacebookId: params.facebookId, // Para campanha
+      // Para ad set ou ad, precisamos identificar a campanha pai
+      syncCampaigns: params.type === "campaign",
+      syncAdSets: params.type === "adset" || params.type === "campaign",
+      syncAds: params.type === "ad" || params.type === "adset" || params.type === "campaign",
+    },
+  });
+  
+  // Atualizar last_synced_at localmente após sucesso
+  // Invalidar queries para atualizar UI
+};
+```
+
+### 6. Edge Function Existente - Já Suporta Sincronização Individual
+
+A edge function `sync-facebook-campaigns` já aceita o parâmetro `campaignFacebookId` para sincronizar apenas uma campanha específica. Para ad sets e ads, a sincronização ocorre como parte da campanha pai.
+
+---
+
+## Fluxo de Sincronização Individual
+
+```text
+1. Usuário clica nos 3 pontinhos de um item não sincronizado
+2. Seleciona "Sincronizar"
+3. Sistema busca o facebook_id do item
+4. Para campanhas: chama sync-facebook-campaigns com campaignFacebookId
+5. Para ad sets/ads: busca a campanha pai e sincroniza ela
+6. Edge function busca dados atualizados do Meta
+7. Atualiza last_synced_at no banco
+8. Invalida queries do React Query
+9. UI atualiza mostrando item sem badge de sincronização
+10. Controles de edição são liberados
 ```
 
 ---
@@ -125,54 +179,47 @@ await queryClient.invalidateQueries({ queryKey: ["all-campaigns-tree-meta-ads", 
 
 | Arquivo | Mudança |
 |---------|---------|
-| `supabase/functions/duplicate-tree-entity/index.ts` | Adicionar lógica de buscar dados do Meta e inserir no banco local |
-| `src/hooks/useTreeNodeActions.tsx` | Invalidar queries após sucesso para atualizar lista |
+| `src/hooks/useCampaignTree.tsx` | Adicionar campo `needsSync` à interface TreeNode |
+| `src/hooks/useAllCampaignsTree.tsx` | Popular `needsSync` baseado em `last_synced_at` |
+| `src/components/campaign-editor/TreeGridRow.tsx` | Adicionar indicação visual e desabilitar controles |
+| `src/components/campaign-editor/TreeNodeActionsDropdown.tsx` | Adicionar botão "Sincronizar" |
+| `src/hooks/useTreeNodeActions.tsx` | Adicionar função `syncEntity` |
 
 ---
 
-## Detalhes Técnicos
+## Detalhes de Implementação Visual
 
-### Buscar Dados Completos do Meta API
+### Badge "Não sincronizado"
+- Cor: Amber/amarelo (indica atenção, não erro)
+- Ícone: AlertCircle pequeno
+- Texto: "Não sincronizado"
+- Posição: Ao lado do nome do item
 
-**Campanha:**
-```typescript
-GET /{campaign_id}?fields=id,name,status,daily_budget,objective,created_time
-```
+### Estilo para itens não sincronizados
+- Nome com opacidade 50%
+- Métricas com opacidade 50%
+- Controles (toggle, input) desabilitados visualmente
 
-**Ad Set:**
-```typescript
-GET /{adset_id}?fields=id,name,status,campaign_id,daily_budget,lifetime_budget,targeting,optimization_goal,bid_strategy
-```
-
-**Ad:**
-```typescript
-GET /{ad_id}?fields=id,name,status,adset_id,creative{id,name,body,title,description,image_url,video_id,object_story_spec}
-```
-
-### Inserção no Banco
-
-Usar o cliente Supabase já autenticado na edge function:
-```typescript
-const { data: inserted, error } = await supabaseClient
-  .from("campaigns")
-  .insert({
-    facebook_id: copiedId,
-    client_id: clientId,
-    user_id: userId,
-    company_id: companyId,
-    name: newName,
-    status: "paused",
-    // ... demais campos
-  })
-  .select()
-  .single();
-```
+### Menu de ações
+- Opção "Sincronizar" sempre visível para itens Meta
+- Ícone: RefreshCw (seta circular)
+- Quando clicado, mostra loading state
 
 ---
 
-## Benefícios
+## Resultado Esperado
 
-1. O item duplicado aparece imediatamente na lista
-2. Não precisa de sincronização manual
-3. A UX fica muito mais fluida e responsiva
-4. Os dados ficam consistentes entre Meta e banco local
+1. Ao duplicar um item, ele aparece na lista com:
+   - Nome levemente apagado (opacity-50)
+   - Badge amarelo "Não sincronizado"
+   - Toggle de status e input de orçamento desabilitados
+   
+2. No menu de 3 pontinhos:
+   - Opção "Sincronizar [Campanha/Conjunto/Criativo]"
+   
+3. Ao clicar em Sincronizar:
+   - Loading state no botão
+   - Sistema busca dados completos do Meta
+   - Atualiza `last_synced_at` no banco
+   - Remove badge e libera controles de edição
+   - Toast de sucesso
