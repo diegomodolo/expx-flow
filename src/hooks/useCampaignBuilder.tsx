@@ -49,6 +49,7 @@ export interface CampaignBuilderState {
   adSets: AdSetData[];
   currentSection: 'ai-generator' | 'campaign' | 'adsets' | 'review';
   currentAdSetIndex: number;
+  selectedCreativeIndex?: number;
   isSubmitting: boolean;
 }
 
@@ -92,6 +93,7 @@ export function useCampaignBuilder(clientId: string) {
     adSets: [defaultAdSet()],
     currentSection: 'campaign',
     currentAdSetIndex: 0,
+    selectedCreativeIndex: undefined,
     isSubmitting: false,
   });
 
@@ -101,6 +103,7 @@ export function useCampaignBuilder(clientId: string) {
       adSets: [defaultAdSet()],
       currentSection: 'campaign',
       currentAdSetIndex: 0,
+      selectedCreativeIndex: undefined,
       isSubmitting: false,
     });
   }, []);
@@ -113,11 +116,15 @@ export function useCampaignBuilder(clientId: string) {
   }, []);
 
   const setCurrentSection = useCallback((section: CampaignBuilderState['currentSection']) => {
-    setState(prev => ({ ...prev, currentSection: section }));
+    setState(prev => ({ ...prev, currentSection: section, selectedCreativeIndex: undefined }));
   }, []);
 
   const setCurrentAdSetIndex = useCallback((index: number) => {
-    setState(prev => ({ ...prev, currentAdSetIndex: index }));
+    setState(prev => ({ ...prev, currentAdSetIndex: index, currentSection: 'adsets', selectedCreativeIndex: undefined }));
+  }, []);
+
+  const setSelectedCreativeIndex = useCallback((adSetIndex: number, creativeIndex: number) => {
+    setState(prev => ({ ...prev, currentAdSetIndex: adSetIndex, selectedCreativeIndex: creativeIndex, currentSection: 'adsets' }));
   }, []);
 
   const addAdSet = useCallback(() => {
@@ -308,6 +315,7 @@ export function useCampaignBuilder(clientId: string) {
     updateCampaign,
     setCurrentSection,
     setCurrentAdSetIndex,
+    setSelectedCreativeIndex,
     addAdSet,
     removeAdSet,
     updateAdSet,
