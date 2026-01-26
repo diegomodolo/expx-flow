@@ -144,6 +144,8 @@ export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
             onRedo={redo}
             canUndo={canUndo}
             canRedo={canRedo}
+            selectedElement={getCurrentElements().find(el => el.id === state.selectedElementId) || null}
+            onUpdateElement={updateElement}
           />
 
           <EditorCanvas
