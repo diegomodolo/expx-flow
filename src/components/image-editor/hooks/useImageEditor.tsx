@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 
 export interface CanvasElement {
   id: string;
@@ -49,7 +49,7 @@ interface UseImageEditorProps {
 }
 
 export function useImageEditor({ initialImages }: UseImageEditorProps) {
-  const [state, setState] = useState<ImageEditorState>({
+  const [state, setState] = useState<ImageEditorState>(() => ({
     images: initialImages,
     currentImageIndex: 0,
     elements: initialImages.map(() => []),
@@ -59,7 +59,24 @@ export function useImageEditor({ initialImages }: UseImageEditorProps) {
     historyIndex: 0,
     aiChatMessages: [],
     isProcessingAI: false,
-  });
+  }));
+
+  // Reset state when initialImages change (e.g., when modal opens with new images)
+  useEffect(() => {
+    if (initialImages.length > 0 && JSON.stringify(initialImages) !== JSON.stringify(state.images)) {
+      setState({
+        images: initialImages,
+        currentImageIndex: 0,
+        elements: initialImages.map(() => []),
+        selectedElementId: null,
+        zoom: 1,
+        history: [initialImages.map(() => [])],
+        historyIndex: 0,
+        aiChatMessages: [],
+        isProcessingAI: false,
+      });
+    }
+  }, [initialImages]);
 
   const getCurrentElements = useCallback(() => {
     return state.elements[state.currentImageIndex] || [];
