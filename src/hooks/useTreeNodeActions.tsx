@@ -25,9 +25,17 @@ interface SyncEntityParams {
   facebookId?: string;
 }
 
+interface DeleteEntityParams {
+  type: "campaign" | "adset" | "ad";
+  id: string;
+  clientId: string;
+  facebookId: string;
+}
+
 export function useTreeNodeActions({ onSuccess, addSyncingItem, removeSyncingItem }: UseTreeNodeActionsProps = {}) {
   const [isDuplicating, setIsDuplicating] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const queryClient = useQueryClient();
 
   const invalidateTreeQueries = useCallback(async (clientId: string) => {
@@ -304,10 +312,57 @@ export function useTreeNodeActions({ onSuccess, addSyncingItem, removeSyncingIte
     }
   };
 
+  const deleteEntity = async (params: DeleteEntityParams) => {
+    const { type, id, clientId, facebookId } = params;
+
+    setIsDeleting(true);
+
+    try {
+      const entityLabels = {
+        campaign: "Campanha",
+        adset: "Conjunto de anúncios",
+        ad: "Criativo",
+      };
+
+      toast.info(`Excluindo ${entityLabels[type].toLowerCase()}...`);
+
+      const { data, error } = await supabase.functions.invoke("delete-tree-entity", {
+        body: {
+          entityType: type,
+          entityId: id,
+          clientId,
+          facebookId,
+        },
+      });
+
+      if (error) {
+        console.error("Error deleting entity:", error);
+        toast.error(`Erro ao excluir: ${error.message}`);
+        return;
+      }
+
+      if (!data?.success) {
+        toast.error(data?.error || "Erro desconhecido ao excluir");
+        return;
+      }
+
+      toast.success(`${entityLabels[type]} excluído com sucesso!`);
+      await invalidateTreeQueries(clientId);
+      onSuccess?.();
+    } catch (err) {
+      console.error("Error deleting entity:", err);
+      toast.error("Erro ao excluir entidade");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return {
     duplicateEntity,
     isDuplicating,
     syncEntity,
     isSyncing,
+    deleteEntity,
+    isDeleting,
   };
 }

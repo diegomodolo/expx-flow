@@ -349,3 +349,6 @@ verify_jwt = true
 
 [functions.duplicate-tree-entity]
 verify_jwt = false
+
+[functions.delete-tree-entity]
+verify_jwt = true
