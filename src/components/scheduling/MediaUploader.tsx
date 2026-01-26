@@ -1,9 +1,9 @@
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Upload, X, Loader2, Image, Video, Plus } from 'lucide-react';
+import { Upload, X, Loader2, Video, Plus, Pencil } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { ImageEditorModal } from '@/components/image-editor/ImageEditorModal';
 
 type ContentType = 'image' | 'video' | 'carousel' | 'reel';
 
@@ -11,6 +11,8 @@ interface MediaUploaderProps {
   contentType: ContentType;
   mediaUrls: string[];
   onMediaChange: (urls: string[]) => void;
+  clientId?: string;
+  companyId?: string;
 }
 
 const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
@@ -22,8 +24,11 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
   contentType,
   mediaUrls,
   onMediaChange,
+  clientId = '',
+  companyId = '',
 }) => {
   const [uploading, setUploading] = useState(false);
+  const [showImageEditor, setShowImageEditor] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const getAcceptedTypes = () => {
@@ -158,46 +163,68 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
     return url.match(/\.(mp4|webm|mov|quicktime)$/i);
   };
 
+  const hasImages = mediaUrls.some(url => !isVideo(url));
+
+  const handleEditorSave = (newUrls: string[]) => {
+    onMediaChange(newUrls);
+    setShowImageEditor(false);
+  };
+
   return (
     <div className="space-y-3">
       {/* Media previews */}
       {mediaUrls.length > 0 && (
-        <div className="grid grid-cols-3 gap-2">
-          {mediaUrls.map((url, index) => (
-            <div key={index} className="relative aspect-square rounded-lg overflow-hidden bg-muted group">
-              {isVideo(url) ? (
-                <div className="w-full h-full flex items-center justify-center bg-muted">
-                  <Video className="h-8 w-8 text-muted-foreground" />
-                </div>
-              ) : (
-                <img 
-                  src={url} 
-                  alt={`Media ${index + 1}`} 
-                  className="w-full h-full object-cover"
-                />
-              )}
+        <div className="space-y-3">
+          <div className="grid grid-cols-3 gap-2">
+            {mediaUrls.map((url, index) => (
+              <div key={index} className="relative aspect-square rounded-lg overflow-hidden bg-muted group">
+                {isVideo(url) ? (
+                  <div className="w-full h-full flex items-center justify-center bg-muted">
+                    <Video className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                ) : (
+                  <img 
+                    src={url} 
+                    alt={`Media ${index + 1}`} 
+                    className="w-full h-full object-cover"
+                  />
+                )}
+                <button
+                  onClick={() => handleRemoveMedia(index)}
+                  className="absolute top-1 right-1 p-1 rounded-full bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+            
+            {/* Add more button for carousel */}
+            {canAddMore() && contentType === 'carousel' && (
               <button
-                onClick={() => handleRemoveMedia(index)}
-                className="absolute top-1 right-1 p-1 rounded-full bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={triggerFileInput}
+                disabled={uploading}
+                className="aspect-square rounded-lg border-2 border-dashed border-border hover:border-primary/50 flex items-center justify-center transition-colors"
               >
-                <X className="h-3 w-3" />
+                {uploading ? (
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                ) : (
+                  <Plus className="h-6 w-6 text-muted-foreground" />
+                )}
               </button>
-            </div>
-          ))}
-          
-          {/* Add more button for carousel */}
-          {canAddMore() && contentType === 'carousel' && (
-            <button
-              onClick={triggerFileInput}
-              disabled={uploading}
-              className="aspect-square rounded-lg border-2 border-dashed border-border hover:border-primary/50 flex items-center justify-center transition-colors"
+            )}
+          </div>
+
+          {/* Edit Creative Button */}
+          {hasImages && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowImageEditor(true)}
+              className="w-full"
             >
-              {uploading ? (
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              ) : (
-                <Plus className="h-6 w-6 text-muted-foreground" />
-              )}
-            </button>
+              <Pencil className="h-4 w-4 mr-2" />
+              Editar Criativo
+            </Button>
           )}
         </div>
       )}
@@ -232,6 +259,16 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
         multiple={isMultiple}
         onChange={handleFileSelect}
         className="hidden"
+      />
+
+      {/* Image Editor Modal */}
+      <ImageEditorModal
+        open={showImageEditor}
+        onOpenChange={setShowImageEditor}
+        images={mediaUrls.filter(url => !isVideo(url))}
+        onSave={handleEditorSave}
+        clientId={clientId}
+        companyId={companyId}
       />
     </div>
   );
