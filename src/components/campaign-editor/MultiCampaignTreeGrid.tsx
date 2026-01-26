@@ -278,11 +278,13 @@ export function MultiCampaignTreeGrid({
         targets={targets}
         isStatusLoading={loading && currentAction === `status-${node.id}`}
         isBudgetLoading={loading && currentAction === `budget-${node.id}`}
+        clientId={clientId}
         onToggleExpand={() => toggleExpand(node.id)}
         onSelect={() => onSelectNode(node)}
         onToggleCheck={() => toggleSelection(node.id)}
         onToggleStatus={(newStatus) => handleToggleStatus(node, newStatus)}
         onUpdateBudget={(newBudget) => handleUpdateBudget(node, newBudget)}
+        onRefresh={onRefresh}
       />,
     ];
 
@@ -395,11 +397,14 @@ export function MultiCampaignTreeGrid({
               <SortableHeader 
                 column="spend" 
                 label="Investido" 
-                width="14%" 
+                width="12%" 
                 sortColumn={sortColumn}
                 sortDirection={sortDirection}
                 onSort={handleSort}
               />
+              <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-[4%]">
+                
+              </th>
             </tr>
           </thead>
           <tbody className="bg-card divide-y divide-border">

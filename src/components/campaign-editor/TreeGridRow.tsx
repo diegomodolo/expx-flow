@@ -3,6 +3,7 @@ import { MetricCell } from "./MetricCell";
 import { InlineStatusToggle } from "./InlineStatusToggle";
 import { InlineBudgetInput } from "./InlineBudgetInput";
 import { CreativeThumbnail } from "./CreativeThumbnail";
+import { TreeNodeActionsDropdown } from "./TreeNodeActionsDropdown";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ChevronRight, Layers, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -17,11 +18,13 @@ interface TreeGridRowProps {
   targets: ClientTargets;
   isStatusLoading: boolean;
   isBudgetLoading: boolean;
+  clientId: string;
   onToggleExpand: () => void;
   onSelect: () => void;
   onToggleCheck: () => void;
   onToggleStatus: (newStatus: boolean) => void;
   onUpdateBudget: (newBudget: number) => void;
+  onRefresh: () => void;
 }
 
 export function TreeGridRow({
@@ -34,11 +37,13 @@ export function TreeGridRow({
   targets,
   isStatusLoading,
   isBudgetLoading,
+  clientId,
   onToggleExpand,
   onSelect,
   onToggleCheck,
   onToggleStatus,
   onUpdateBudget,
+  onRefresh,
 }: TreeGridRowProps) {
   const getLevelStyles = () => {
     // All levels now use bg-card for consistent white background
@@ -63,7 +68,7 @@ export function TreeGridRow({
   return (
     <tr
       className={cn(
-        "cursor-pointer transition-colors",
+        "group cursor-pointer transition-colors",
         getLevelStyles(),
         isSelected && "ring-2 ring-primary ring-inset",
         "hover:bg-muted/50"
@@ -213,6 +218,15 @@ export function TreeGridRow({
         <span className="text-sm font-medium">
           R$ {node.metrics.spend.toFixed(2)}
         </span>
+      </td>
+
+      {/* Actions column */}
+      <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+        <TreeNodeActionsDropdown
+          node={node}
+          clientId={clientId}
+          onRefresh={onRefresh}
+        />
       </td>
     </tr>
   );
