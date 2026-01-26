@@ -379,7 +379,11 @@ function SlideCard({
                   variant="outline"
                   size="sm"
                   className="gap-1 text-xs h-7"
-                  onClick={() => setShowImageEditor(true)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    setShowImageEditor(true);
+                  }}
                 >
                   <Pencil className="w-3 h-3" />
                   Editar
