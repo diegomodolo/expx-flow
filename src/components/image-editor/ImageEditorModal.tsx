@@ -74,16 +74,20 @@ export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
 
     setIsFinalizing(true);
     try {
-      // Export all images with their elements
       const exportedUrls: string[] = [];
 
       for (let i = 0; i < state.images.length; i++) {
-        // Switch to each image and export
-        if (i === state.currentImageIndex) {
+        // Check if this image has overlay elements (text, shapes, etc.)
+        const imageElements = state.elements[i] || [];
+        const hasOverlayElements = imageElements.length > 0;
+
+        if (hasOverlayElements && i === state.currentImageIndex) {
+          // Has elements and is the current image: export canvas with overlays
           const url = await exportAndUpload(canvasRef.current);
           exportedUrls.push(url);
         } else {
-          // For other images without elements, keep original
+          // No elements OR not current image: use the state URL directly
+          // This captures AI-edited images that are already saved in storage
           exportedUrls.push(state.images[i]);
         }
       }
@@ -104,7 +108,7 @@ export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
     } finally {
       setIsFinalizing(false);
     }
-  }, [state.images, state.currentImageIndex, onSave, onOpenChange]);
+  }, [state.images, state.elements, state.currentImageIndex, onSave, onOpenChange]);
 
   const handleSendMessage = useCallback((content: string, imageUrl?: string) => {
     addAIMessage({
