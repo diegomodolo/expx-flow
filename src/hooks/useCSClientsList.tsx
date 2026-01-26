@@ -9,6 +9,11 @@ export interface CSClientListItem {
   company: string;
   avatar: string | null;
   
+  // Squad info
+  squadId: string | null;
+  squadName: string | null;
+  squadColor: string | null;
+  
   // CS Data
   healthScore: number;
   healthScoreFinancial: number;
@@ -44,27 +49,49 @@ function calculateDaysSince(date: string | null): number | null {
   return Math.floor((Date.now() - new Date(date).getTime()) / (1000 * 60 * 60 * 24));
 }
 
-export function useCSClientsList() {
+export function useCSClientsList(squadId?: string | null) {
   const { activeCompany } = useCompany();
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['cs-clients-list', activeCompany?.company_id],
+    queryKey: ['cs-clients-list', activeCompany?.company_id, squadId],
     queryFn: async () => {
       if (!activeCompany?.company_id) return [];
 
       // Buscar todos os clientes ativos da empresa
-      const { data: clients, error: clientsError } = await supabase
+      let clientsQuery = supabase
         .from('clients')
-        .select('id, name, company, avatar, created_at')
+        .select('id, name, company, avatar, created_at, team_id')
         .eq('company_id', activeCompany.company_id)
         .eq('is_canceled', false)
         .order('name');
+      
+      // Filtrar por squad se especificado
+      if (squadId) {
+        clientsQuery = clientsQuery.eq('team_id', squadId);
+      }
+
+      const { data: clients, error: clientsError } = await clientsQuery;
 
       if (clientsError) throw clientsError;
 
       const clientIds = (clients || []).map((c: any) => c.id);
       
       if (clientIds.length === 0) return [];
+
+      // Buscar squads para mapear nomes
+      const teamIds = [...new Set((clients || []).map((c: any) => c.team_id).filter(Boolean))];
+      let teamsMap: Record<string, { name: string; color: string | null }> = {};
+      
+      if (teamIds.length > 0) {
+        const { data: teams } = await supabase
+          .from('teams')
+          .select('id, name, color')
+          .in('id', teamIds);
+        
+        (teams || []).forEach((t: any) => {
+          teamsMap[t.id] = { name: t.name, color: t.color };
+        });
+      }
 
       // Buscar health configs
       const { data: healthConfigs } = await supabase
@@ -128,6 +155,7 @@ export function useCSClientsList() {
         const healthConfig = healthConfigMap[client.id];
         const lastTouchpoint = lastTouchpointMap[client.id] || healthConfig?.last_cs_contact_at;
         const activeCampaigns = campaignCountMap[client.id] || 0;
+        const teamInfo = client.team_id ? teamsMap[client.team_id] : null;
 
         return {
           id: healthConfig?.id || client.id,
@@ -135,6 +163,11 @@ export function useCSClientsList() {
           name: client.name,
           company: client.company || '',
           avatar: client.avatar,
+          
+          // Squad info
+          squadId: client.team_id || null,
+          squadName: teamInfo?.name || null,
+          squadColor: teamInfo?.color || null,
           
           // CS Data
           healthScore: healthConfig?.health_score_total || 0,

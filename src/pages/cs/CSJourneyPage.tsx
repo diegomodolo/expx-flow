@@ -1,15 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Trophy } from 'lucide-react';
 import { useCSHealthScore360 } from '@/hooks/useCSHealthScore360';
 import { CSSuccessJourney } from '@/components/cs/CSSuccessJourney';
+import { useCSSquadFilter } from '@/contexts/CSSquadFilterContext';
 
 export default function CSJourneyPage() {
   const { healthData, isLoading } = useCSHealthScore360();
+  const { selectedSquadId } = useCSSquadFilter();
   const [selectedClientId, setSelectedClientId] = useState<string>('');
   
-  const selectedClient = healthData.find(c => c.clientId === selectedClientId);
+  // Filtrar por squad se selecionado
+  const filteredHealthData = useMemo(() => {
+    if (!selectedSquadId) return healthData;
+    return healthData.filter(c => c.squadId === selectedSquadId);
+  }, [healthData, selectedSquadId]);
+  
+  const selectedClient = filteredHealthData.find(c => c.clientId === selectedClientId);
 
   return (
     <div className="space-y-6">
@@ -37,7 +45,7 @@ export default function CSJourneyPage() {
                 <SelectValue placeholder="Selecione um cliente" />
               </SelectTrigger>
               <SelectContent>
-                {healthData.map((client) => (
+                {filteredHealthData.map((client) => (
                   <SelectItem key={client.clientId} value={client.clientId}>
                     {client.clientName}
                   </SelectItem>
