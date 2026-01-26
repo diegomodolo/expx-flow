@@ -30,6 +30,7 @@ import {
   Tv,
   ExternalLink,
   Images,
+  Heart,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useEmployeePermissions, MenuItemType } from "@/hooks/useEmployeePermissions";
@@ -77,6 +78,7 @@ const menuCategories: MenuCategory[] = [
       icon: Users,
       items: [
         { title: "Clientes", url: "/clientes", icon: Users, permission: "clientes" as MenuItemType },
+        { title: "Customer Success", url: "/cs", icon: Heart, permission: "clientes" as MenuItemType },
         { title: "Funis", url: "/editor-funil", icon: GitBranch, permission: "editor-funil" as MenuItemType },
         { title: "Lead Intelligence", url: "/lead-intelligence", icon: Database, permission: "configuracoes" as MenuItemType },
       ].sort((a, b) => a.title.localeCompare(b.title, 'pt-BR')),

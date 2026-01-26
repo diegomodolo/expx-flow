@@ -113,6 +113,7 @@ import DashboardRadarTVPublic from "./pages/DashboardRadarTVPublic";
 import KeywordPlannerPage from "./pages/KeywordPlanner";
 import RepositorioCriativos from "./pages/RepositorioCriativos";
 import PublicContentReview from "./pages/PublicContentReview";
+import CSHub from "./pages/cs/CSHub";
 import { AuthProvider } from "@/hooks/useAuth";
 import { CompanyProvider } from "@/contexts/CompanyContext";
 import { CRMAuthProvider } from "@/contexts/CRMAuthContext";
@@ -580,6 +581,13 @@ const App = () => {
                 <Route path="/perfil/*" element={
                   <ProtectedRoute>
                     <Perfil />
+                  </ProtectedRoute>
+                } />
+                
+                {/* Customer Success Module */}
+                <Route path="/cs" element={
+                  <ProtectedRoute>
+                    <CSHub />
                   </ProtectedRoute>
                 } />
               

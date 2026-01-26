@@ -2113,6 +2113,81 @@ export type Database = {
           },
         ]
       }
+      client_health_config: {
+        Row: {
+          churn_risk_level: string | null
+          client_id: string
+          company_id: string
+          created_at: string
+          cs_manager_id: string | null
+          health_score_financial: number | null
+          health_score_operational: number | null
+          health_score_relational: number | null
+          health_score_total: number | null
+          id: string
+          last_cs_contact_at: string | null
+          nps_collected_at: string | null
+          nps_score: number | null
+          onboarding_status: string | null
+          target_cpl: number | null
+          target_roas: number | null
+          updated_at: string
+        }
+        Insert: {
+          churn_risk_level?: string | null
+          client_id: string
+          company_id: string
+          created_at?: string
+          cs_manager_id?: string | null
+          health_score_financial?: number | null
+          health_score_operational?: number | null
+          health_score_relational?: number | null
+          health_score_total?: number | null
+          id?: string
+          last_cs_contact_at?: string | null
+          nps_collected_at?: string | null
+          nps_score?: number | null
+          onboarding_status?: string | null
+          target_cpl?: number | null
+          target_roas?: number | null
+          updated_at?: string
+        }
+        Update: {
+          churn_risk_level?: string | null
+          client_id?: string
+          company_id?: string
+          created_at?: string
+          cs_manager_id?: string | null
+          health_score_financial?: number | null
+          health_score_operational?: number | null
+          health_score_relational?: number | null
+          health_score_total?: number | null
+          id?: string
+          last_cs_contact_at?: string | null
+          nps_collected_at?: string | null
+          nps_score?: number | null
+          onboarding_status?: string | null
+          target_cpl?: number | null
+          target_roas?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_health_config_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: true
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_health_config_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_metric_benchmarks: {
         Row: {
           client_id: string
@@ -2182,6 +2257,75 @@ export type Database = {
           },
         ]
       }
+      client_milestones: {
+        Row: {
+          celebrated_at: string | null
+          celebration_method: string | null
+          celebration_sent: boolean | null
+          client_id: string
+          company_id: string
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          id: string
+          metrics_snapshot: Json | null
+          milestone_order: number | null
+          milestone_type: string
+          status: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          celebrated_at?: string | null
+          celebration_method?: string | null
+          celebration_sent?: boolean | null
+          client_id: string
+          company_id: string
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          metrics_snapshot?: Json | null
+          milestone_order?: number | null
+          milestone_type: string
+          status?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          celebrated_at?: string | null
+          celebration_method?: string | null
+          celebration_sent?: boolean | null
+          client_id?: string
+          company_id?: string
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          metrics_snapshot?: Json | null
+          milestone_order?: number | null
+          milestone_type?: string
+          status?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_milestones_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_milestones_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_notes: {
         Row: {
           client_id: string
@@ -2217,6 +2361,66 @@ export type Database = {
           },
           {
             foreignKeyName: "client_notes_company_fk"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_nps_responses: {
+        Row: {
+          client_id: string
+          company_id: string
+          contact_email: string | null
+          contact_name: string | null
+          created_at: string
+          feedback: string | null
+          follow_up_done: boolean | null
+          follow_up_notes: string | null
+          id: string
+          responded_at: string
+          score: number
+          trigger_type: string | null
+        }
+        Insert: {
+          client_id: string
+          company_id: string
+          contact_email?: string | null
+          contact_name?: string | null
+          created_at?: string
+          feedback?: string | null
+          follow_up_done?: boolean | null
+          follow_up_notes?: string | null
+          id?: string
+          responded_at?: string
+          score: number
+          trigger_type?: string | null
+        }
+        Update: {
+          client_id?: string
+          company_id?: string
+          contact_email?: string | null
+          contact_name?: string | null
+          created_at?: string
+          feedback?: string | null
+          follow_up_done?: boolean | null
+          follow_up_notes?: string | null
+          id?: string
+          responded_at?: string
+          score?: number
+          trigger_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_nps_responses_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_nps_responses_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
@@ -2305,6 +2509,126 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "client_status_rules_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_suggestions: {
+        Row: {
+          admin_notes: string | null
+          category: string | null
+          client_id: string
+          company_id: string
+          created_at: string
+          description: string | null
+          id: string
+          priority: string | null
+          status: string | null
+          submitted_by: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          category?: string | null
+          client_id: string
+          company_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          priority?: string | null
+          status?: string | null
+          submitted_by?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          category?: string | null
+          client_id?: string
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          priority?: string | null
+          status?: string | null
+          submitted_by?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_suggestions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_suggestions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_touchpoints: {
+        Row: {
+          ai_summary: string | null
+          client_id: string
+          company_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          next_action: string | null
+          next_action_date: string | null
+          occurred_at: string
+          participants: string[] | null
+          summary: string | null
+          touchpoint_type: string
+        }
+        Insert: {
+          ai_summary?: string | null
+          client_id: string
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          next_action?: string | null
+          next_action_date?: string | null
+          occurred_at?: string
+          participants?: string[] | null
+          summary?: string | null
+          touchpoint_type: string
+        }
+        Update: {
+          ai_summary?: string | null
+          client_id?: string
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          next_action?: string | null
+          next_action_date?: string | null
+          occurred_at?: string
+          participants?: string[] | null
+          summary?: string | null
+          touchpoint_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_touchpoints_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_touchpoints_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
@@ -8015,6 +8339,56 @@ export type Database = {
           },
         ]
       }
+      milestone_templates: {
+        Row: {
+          celebration_message_template: string | null
+          company_id: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          milestone_type: string
+          template_order: number | null
+          title: string
+          trigger_condition: Json | null
+          updated_at: string
+        }
+        Insert: {
+          celebration_message_template?: string | null
+          company_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          milestone_type: string
+          template_order?: number | null
+          title: string
+          trigger_condition?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          celebration_message_template?: string | null
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          milestone_type?: string
+          template_order?: number | null
+          title?: string
+          trigger_condition?: Json | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "milestone_templates_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       offline_conversion_webhook_tokens: {
         Row: {
           client_id: string
@@ -9044,6 +9418,75 @@ export type Database = {
         }
         Relationships: []
       }
+      qbr_reports: {
+        Row: {
+          action_plan: string | null
+          best_creatives: string[] | null
+          client_id: string
+          company_id: string
+          created_at: string
+          executive_summary: string | null
+          id: string
+          metrics_snapshot: Json | null
+          period_end: string
+          period_start: string
+          presented_at: string | null
+          public_token: string | null
+          status: string | null
+          updated_at: string
+          view_count: number | null
+        }
+        Insert: {
+          action_plan?: string | null
+          best_creatives?: string[] | null
+          client_id: string
+          company_id: string
+          created_at?: string
+          executive_summary?: string | null
+          id?: string
+          metrics_snapshot?: Json | null
+          period_end: string
+          period_start: string
+          presented_at?: string | null
+          public_token?: string | null
+          status?: string | null
+          updated_at?: string
+          view_count?: number | null
+        }
+        Update: {
+          action_plan?: string | null
+          best_creatives?: string[] | null
+          client_id?: string
+          company_id?: string
+          created_at?: string
+          executive_summary?: string | null
+          id?: string
+          metrics_snapshot?: Json | null
+          period_end?: string
+          period_start?: string
+          presented_at?: string | null
+          public_token?: string | null
+          status?: string | null
+          updated_at?: string
+          view_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qbr_reports_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "qbr_reports_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recurring_task_templates: {
         Row: {
           active_days_of_week: number[] | null
@@ -9870,6 +10313,107 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "teams_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      value_statements: {
+        Row: {
+          approval_notes: string | null
+          approved_at: string | null
+          best_campaign_id: string | null
+          best_creative_id: string | null
+          client_id: string
+          company_id: string
+          conversions: number | null
+          created_at: string
+          executive_summary: string | null
+          id: string
+          leads_generated: number | null
+          next_month_plan: string | null
+          period_month: number
+          period_year: number
+          public_token: string | null
+          sent_at: string | null
+          status: string | null
+          total_investment: number | null
+          total_return: number | null
+          updated_at: string
+          viewed_at: string | null
+        }
+        Insert: {
+          approval_notes?: string | null
+          approved_at?: string | null
+          best_campaign_id?: string | null
+          best_creative_id?: string | null
+          client_id: string
+          company_id: string
+          conversions?: number | null
+          created_at?: string
+          executive_summary?: string | null
+          id?: string
+          leads_generated?: number | null
+          next_month_plan?: string | null
+          period_month: number
+          period_year: number
+          public_token?: string | null
+          sent_at?: string | null
+          status?: string | null
+          total_investment?: number | null
+          total_return?: number | null
+          updated_at?: string
+          viewed_at?: string | null
+        }
+        Update: {
+          approval_notes?: string | null
+          approved_at?: string | null
+          best_campaign_id?: string | null
+          best_creative_id?: string | null
+          client_id?: string
+          company_id?: string
+          conversions?: number | null
+          created_at?: string
+          executive_summary?: string | null
+          id?: string
+          leads_generated?: number | null
+          next_month_plan?: string | null
+          period_month?: number
+          period_year?: number
+          public_token?: string | null
+          sent_at?: string | null
+          status?: string | null
+          total_investment?: number | null
+          total_return?: number | null
+          updated_at?: string
+          viewed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "value_statements_best_campaign_id_fkey"
+            columns: ["best_campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "value_statements_best_creative_id_fkey"
+            columns: ["best_creative_id"]
+            isOneToOne: false
+            referencedRelation: "ads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "value_statements_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "value_statements_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
