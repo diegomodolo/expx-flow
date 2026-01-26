@@ -127,6 +127,8 @@ export function useTreeNodeActions({ onSuccess, addSyncingItem, removeSyncingIte
             .single();
           
           if (job?.status === "completed") {
+            // Wait a bit for database writes to fully commit
+            await new Promise(resolve => setTimeout(resolve, 1000));
             return true;
           } else if (job?.status === "failed" || job?.status === "error") {
             return false;
