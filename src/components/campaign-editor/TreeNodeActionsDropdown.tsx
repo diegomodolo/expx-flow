@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { TreeNode } from "@/hooks/useCampaignTree";
-import { MoreHorizontal, Copy } from "lucide-react";
+import { MoreHorizontal, Copy, RefreshCw, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { DuplicateEntityModal } from "./DuplicateEntityModal";
@@ -23,7 +24,7 @@ export function TreeNodeActionsDropdown({
   onRefresh,
 }: TreeNodeActionsDropdownProps) {
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
-  const { duplicateEntity, isDuplicating } = useTreeNodeActions({ onSuccess: onRefresh });
+  const { duplicateEntity, isDuplicating, syncEntity, isSyncing } = useTreeNodeActions({ onSuccess: onRefresh });
 
   const handleDuplicate = async (newName: string) => {
     await duplicateEntity({
@@ -35,6 +36,15 @@ export function TreeNodeActionsDropdown({
       platform: node.platform,
     });
     setShowDuplicateModal(false);
+  };
+
+  const handleSync = async () => {
+    await syncEntity({
+      type: node.type,
+      id: node.id,
+      clientId,
+      facebookId: node.facebookId,
+    });
   };
 
   const getEntityLabel = () => {
@@ -50,7 +60,7 @@ export function TreeNodeActionsDropdown({
     }
   };
 
-  // Google Ads não suporta duplicação via API
+  // Google Ads não suporta ações via API
   if (node.platform === "google") {
     return null;
   }
@@ -69,7 +79,27 @@ export function TreeNodeActionsDropdown({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-          <DropdownMenuItem onClick={() => setShowDuplicateModal(true)}>
+          {/* Sync option - always visible, highlighted when needsSync */}
+          <DropdownMenuItem 
+            onClick={handleSync}
+            disabled={isSyncing}
+            className={node.needsSync ? "text-amber-600 font-medium" : ""}
+          >
+            {isSyncing ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4 mr-2" />
+            )}
+            Sincronizar {getEntityLabel()}
+          </DropdownMenuItem>
+
+          <DropdownMenuSeparator />
+
+          {/* Duplicate option */}
+          <DropdownMenuItem 
+            onClick={() => setShowDuplicateModal(true)}
+            disabled={node.needsSync}
+          >
             <Copy className="h-4 w-4 mr-2" />
             Duplicar {getEntityLabel()}
           </DropdownMenuItem>
