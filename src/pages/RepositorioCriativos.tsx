@@ -10,29 +10,144 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Images, Filter, Eye, Download, Calendar, User, Sparkles, Factory, Check, ChevronsUpDown, Megaphone, FileText, Search, X, LayoutGrid, ChevronLeft, ChevronRight, ImageOff, RefreshCw } from "lucide-react";
+import { Images, Filter, Eye, Download, Calendar, User, Sparkles, Factory, Check, ChevronsUpDown, Megaphone, FileText, Search, X, LayoutGrid, ChevronLeft, ChevronRight, ImageOff, RefreshCw, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { SendToScheduleModal } from "@/components/repositorio-criativos/SendToScheduleModal";
 import { SendToPresentationModal } from "@/components/repositorio-criativos/SendToPresentationModal";
 import { RegenerateCarouselModal } from "@/components/repositorio-criativos/RegenerateCarouselModal";
+import { ImageEditorModal } from "@/components/image-editor/ImageEditorModal";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useCompany } from "@/contexts/CompanyContext";
 
 type SourceFilter = 'all' | 'fabrica_criativos' | 'gerador_criativos' | 'fabrica_anuncios' | 'fabrica_carrosseis';
 type StatusFilter = 'all' | 'pending' | 'approved' | 'published' | 'rejected' | 'completed' | 'generating';
 
 export default function RepositorioCriativos() {
+  const { activeCompany } = useCompany();
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [comboboxOpen, setComboboxOpen] = useState(false);
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [searchQuery, setSearchQuery] = useState("");
-  const { creatives, allClients, loading, loadingMore, hasMore, loadMore, totalCounts } = useAllCreatives(selectedClientId || undefined);
+  const { creatives, allClients, loading, loadingMore, hasMore, loadMore, totalCounts, refetch } = useAllCreatives(selectedClientId || undefined);
   const [selectedCreative, setSelectedCreative] = useState<UnifiedCreative | null>(null);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [showPresentationModal, setShowPresentationModal] = useState(false);
   const [showRegenerateModal, setShowRegenerateModal] = useState(false);
+  const [showImageEditorModal, setShowImageEditorModal] = useState(false);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+
+  // Handler to update image in the correct table based on source
+  const handleImageEdited = async (newImages: string[]) => {
+    if (!selectedCreative || !newImages[0]) return;
+    
+    const newImageUrl = newImages[0];
+    
+    try {
+      let error = null;
+      
+      switch (selectedCreative.source) {
+        case 'fabrica_criativos':
+          const { error: fcError } = await supabase
+            .from('creative_generation_queue')
+            .update({ image_url: newImageUrl })
+            .eq('id', selectedCreative.id);
+          error = fcError;
+          break;
+          
+        case 'gerador_criativos':
+          const { error: gcError } = await supabase
+            .from('visual_creatives')
+            .update({ image_url: newImageUrl })
+            .eq('id', selectedCreative.id);
+          error = gcError;
+          break;
+          
+        case 'fabrica_anuncios':
+          // Need to update generated_content JSON
+          const { data: adData } = await supabase
+            .from('ad_generation_queue')
+            .select('generated_content')
+            .eq('id', selectedCreative.id)
+            .single();
+          
+          if (adData) {
+            const content = adData.generated_content as any || {};
+            content.image_url = newImageUrl;
+            content.creative_image_url = newImageUrl;
+            
+            const { error: faError } = await supabase
+              .from('ad_generation_queue')
+              .update({ generated_content: content })
+              .eq('id', selectedCreative.id);
+            error = faError;
+          }
+          break;
+          
+        case 'fabrica_carrosseis':
+          // For carousels, update the current slide's image
+          const { data: carouselData } = await supabase
+            .from('carousel_generation_queue')
+            .select('slides')
+            .eq('id', selectedCreative.id)
+            .single();
+          
+          if (carouselData && carouselData.slides) {
+            const slides = carouselData.slides as any[];
+            if (slides[currentSlideIndex]) {
+              slides[currentSlideIndex].image_url = newImageUrl;
+              
+              const { error: ccError } = await supabase
+                .from('carousel_generation_queue')
+                .update({ 
+                  slides: slides,
+                  cover_image_url: currentSlideIndex === 0 ? newImageUrl : undefined
+                })
+                .eq('id', selectedCreative.id);
+              error = ccError;
+            }
+          }
+          break;
+      }
+      
+      if (error) {
+        console.error('Error updating image:', error);
+        toast.error('Erro ao salvar imagem editada');
+        return;
+      }
+      
+      toast.success('Imagem atualizada com sucesso!');
+      setShowImageEditorModal(false);
+      
+      // Update local state
+      if (selectedCreative.source === 'fabrica_carrosseis' && selectedCreative.slides) {
+        const updatedSlides = [...selectedCreative.slides];
+        if (updatedSlides[currentSlideIndex]) {
+          updatedSlides[currentSlideIndex] = { ...updatedSlides[currentSlideIndex], image_url: newImageUrl };
+        }
+        setSelectedCreative({
+          ...selectedCreative,
+          slides: updatedSlides,
+          image_url: currentSlideIndex === 0 ? newImageUrl : selectedCreative.image_url
+        });
+      } else {
+        setSelectedCreative({
+          ...selectedCreative,
+          image_url: newImageUrl
+        });
+      }
+      
+      // Refetch to update list
+      refetch?.();
+      
+    } catch (err) {
+      console.error('Error updating image:', err);
+      toast.error('Erro ao salvar imagem editada');
+    }
+  };
 
   // Reset slide index when selecting a new creative
   const handleSelectCreative = (creative: UnifiedCreative) => {
@@ -668,6 +783,26 @@ export default function RepositorioCriativos() {
                     <FileText className="h-4 w-4 mr-2" />
                     Enviar para Apresentação
                   </Button>
+                  {(() => {
+                    // Get current image for edit button
+                    const carouselImages = getCarouselImages(selectedCreative);
+                    const currentImage = carouselImages.length > 1 
+                      ? carouselImages[currentSlideIndex] 
+                      : selectedCreative.image_url;
+                    
+                    if (currentImage && activeCompany?.company_id) {
+                      return (
+                        <Button 
+                          variant="outline" 
+                          onClick={() => setShowImageEditorModal(true)}
+                        >
+                          <Pencil className="h-4 w-4 mr-2" />
+                          Editar Imagem
+                        </Button>
+                      );
+                    }
+                    return null;
+                  })()}
                   {selectedCreative.image_url && (
                     <Button 
                       variant="outline" 
@@ -724,6 +859,27 @@ export default function RepositorioCriativos() {
             onComplete={handleRegenerateComplete}
           />
         )}
+
+        {/* Image Editor Modal */}
+        {selectedCreative && activeCompany?.company_id && (() => {
+          const carouselImages = getCarouselImages(selectedCreative);
+          const currentImage = carouselImages.length > 1 
+            ? carouselImages[currentSlideIndex] 
+            : selectedCreative.image_url;
+          
+          if (!currentImage) return null;
+          
+          return (
+            <ImageEditorModal
+              open={showImageEditorModal}
+              onOpenChange={setShowImageEditorModal}
+              images={[currentImage]}
+              onSave={handleImageEdited}
+              clientId={selectedCreative.client_id}
+              companyId={activeCompany.company_id}
+            />
+          );
+        })()}
       </div>
     </DashboardLayout>
   );
