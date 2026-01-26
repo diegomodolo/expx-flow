@@ -174,14 +174,61 @@ export function useTreeNodeActions({ onSuccess }: UseTreeNodeActionsProps = {}) 
         return;
       }
 
-      toast.success(`${entityLabels[type]} sincronizado com sucesso!`);
-      
-      // Invalidate queries to refresh the list
-      await queryClient.invalidateQueries({ queryKey: ["all-campaigns-tree-meta", clientId] });
-      await queryClient.invalidateQueries({ queryKey: ["all-campaigns-tree-meta-adsets", clientId] });
-      await queryClient.invalidateQueries({ queryKey: ["all-campaigns-tree-meta-ads", clientId] });
-      
-      onSuccess?.();
+      // The sync is async - we need to poll for job completion
+      const jobId = data.job_id;
+      if (jobId) {
+        // Poll for job completion (max 30 seconds, check every 2 seconds)
+        let attempts = 0;
+        const maxAttempts = 15;
+        
+        const pollJob = async (): Promise<boolean> => {
+          const { data: job } = await supabase
+            .from("sync_jobs")
+            .select("status")
+            .eq("id", jobId)
+            .single();
+          
+          if (job?.status === "completed") {
+            return true;
+          } else if (job?.status === "failed") {
+            toast.error("Sincronização falhou. Tente novamente.");
+            return false;
+          }
+          
+          attempts++;
+          if (attempts >= maxAttempts) {
+            toast.warning("Sincronização em andamento. Atualize a página em alguns instantes.");
+            return false;
+          }
+          
+          // Wait 2 seconds before next poll
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          return pollJob();
+        };
+
+        const success = await pollJob();
+        
+        if (success) {
+          toast.success(`${entityLabels[type]} sincronizado com sucesso!`);
+          
+          // Invalidate queries to refresh the list
+          await queryClient.invalidateQueries({ queryKey: ["all-campaigns-tree-meta", clientId] });
+          await queryClient.invalidateQueries({ queryKey: ["all-campaigns-tree-meta-adsets", clientId] });
+          await queryClient.invalidateQueries({ queryKey: ["all-campaigns-tree-meta-ads", clientId] });
+          
+          onSuccess?.();
+        }
+      } else {
+        // No job_id returned, assume sync was immediate
+        toast.success(`${entityLabels[type]} sincronizado com sucesso!`);
+        
+        // Invalidate queries to refresh the list
+        await queryClient.invalidateQueries({ queryKey: ["all-campaigns-tree-meta", clientId] });
+        await queryClient.invalidateQueries({ queryKey: ["all-campaigns-tree-meta-adsets", clientId] });
+        await queryClient.invalidateQueries({ queryKey: ["all-campaigns-tree-meta-ads", clientId] });
+        
+        onSuccess?.();
+      }
     } catch (err) {
       console.error("Error syncing entity:", err);
       toast.error("Erro ao sincronizar entidade");
