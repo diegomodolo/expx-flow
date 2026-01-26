@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMemo, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { TreeNode, TreeNodeMetrics, ClientTargets } from "./useCampaignTree";
 
@@ -16,10 +16,12 @@ export interface AllCampaignsTreeResult {
   totalMetrics: TreeNodeMetrics;
   targets: ClientTargets;
   refetch: () => void;
+  invalidateAndRefetch: () => Promise<void>;
 }
 
 export function useAllCampaignsTree(options: UseAllCampaignsTreeOptions): AllCampaignsTreeResult {
   const { clientId, companyId, platform = "all", includeInactive = true } = options;
+  const queryClient = useQueryClient();
 
   // Fetch Meta campaigns
   const { data: metaCampaigns = [], isLoading: loadingMetaCampaigns, refetch: refetchMetaCampaigns } = useQuery({
@@ -430,11 +432,24 @@ export function useAllCampaignsTree(options: UseAllCampaignsTreeOptions): AllCam
     refetchGoogleAds();
   };
 
+  // Invalidate and refetch all queries - waits for completion
+  const invalidateAndRefetch = useCallback(async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["all-campaigns-tree-meta", clientId, companyId] }),
+      queryClient.invalidateQueries({ queryKey: ["all-campaigns-tree-meta-adsets", clientId] }),
+      queryClient.invalidateQueries({ queryKey: ["all-campaigns-tree-meta-ads", clientId] }),
+      queryClient.invalidateQueries({ queryKey: ["all-campaigns-tree-google", clientId, companyId] }),
+      queryClient.invalidateQueries({ queryKey: ["all-campaigns-tree-google-adgroups", clientId] }),
+      queryClient.invalidateQueries({ queryKey: ["all-campaigns-tree-google-ads", clientId] }),
+    ]);
+  }, [queryClient, clientId, companyId]);
+
   return {
     campaigns,
     isLoading,
     totalMetrics,
     targets,
     refetch,
+    invalidateAndRefetch,
   };
 }

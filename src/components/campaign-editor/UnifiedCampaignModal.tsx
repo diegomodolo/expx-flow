@@ -16,7 +16,7 @@ interface UnifiedCampaignModalProps {
   initialSelectedNode: TreeNode | null;
   clientId: string;
   companyId?: string;
-  onSuccess?: () => void;
+  onSuccess?: () => Promise<void> | void;
 }
 
 export function UnifiedCampaignModal({
@@ -68,8 +68,8 @@ export function UnifiedCampaignModal({
     setSelectedNode(node);
   };
 
-  const handleSuccess = () => {
-    onSuccess?.();
+  const handleSuccess = async () => {
+    await onSuccess?.();
   };
 
   if (!campaignTree) return null;
