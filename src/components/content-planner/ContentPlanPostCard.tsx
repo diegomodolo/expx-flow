@@ -165,6 +165,7 @@ function SlideCard({
   const [generatingImage, setGeneratingImage] = useState(false);
   const [showExtraPromptDialog, setShowExtraPromptDialog] = useState(false);
   const [showImagePreview, setShowImagePreview] = useState(false);
+  const [showImageEditor, setShowImageEditor] = useState(false);
   const [extraPrompt, setExtraPrompt] = useState("");
   const [useCurrentImageAsReference, setUseCurrentImageAsReference] = useState(false);
   const [additionalImageToMerge, setAdditionalImageToMerge] = useState<string | null>(null);
@@ -371,6 +372,17 @@ function SlideCard({
                     <Wand2 className="w-3 h-3" />
                   )}
                   Gerar
+                </Button>
+              )}
+              {slide.image_url && clientId && activeCompany?.company_id && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1 text-xs h-7"
+                  onClick={() => setShowImageEditor(true)}
+                >
+                  <Pencil className="w-3 h-3" />
+                  Editar
                 </Button>
               )}
             </div>
@@ -585,6 +597,24 @@ function SlideCard({
         imageUrl={slide.image_url || ''}
         caption={`${localHeadline}\n\n${localContent}`.trim()}
       />
+
+      {/* Image Editor Modal */}
+      {slide.image_url && clientId && activeCompany?.company_id && (
+        <ImageEditorModal
+          open={showImageEditor}
+          onOpenChange={setShowImageEditor}
+          images={[slide.image_url]}
+          onSave={async (newImages) => {
+            if (newImages[0] && newImages[0] !== slide.image_url) {
+              await onUpdateSlide(slide.id, { image_url: newImages[0] });
+              onRefetch();
+              toast.success('Imagem do slide atualizada!');
+            }
+          }}
+          clientId={clientId}
+          companyId={activeCompany.company_id}
+        />
+      )}
     </>
   );
 }
