@@ -114,6 +114,7 @@ import KeywordPlannerPage from "./pages/KeywordPlanner";
 import RepositorioCriativos from "./pages/RepositorioCriativos";
 import PublicContentReview from "./pages/PublicContentReview";
 import CSHub from "./pages/cs/CSHub";
+import ValueStatementPublic from "./pages/cs/ValueStatementPublic";
 import { AuthProvider } from "@/hooks/useAuth";
 import { CompanyProvider } from "@/contexts/CompanyContext";
 import { CRMAuthProvider } from "@/contexts/CRMAuthContext";
@@ -590,6 +591,9 @@ const App = () => {
                     <CSHub />
                   </ProtectedRoute>
                 } />
+                
+                {/* Public CS Routes */}
+                <Route path="/cs/value-statement/:token" element={<ValueStatementPublic />} />
               
               {/* Catch-all route */}
               <Route path="*" element={<NotFound />} />
