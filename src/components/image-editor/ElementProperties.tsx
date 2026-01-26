@@ -1,15 +1,13 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { CanvasElement } from './hooks/useImageEditor';
-import { AlignLeft, AlignCenter, AlignRight, Blend, Eraser, Loader2 } from 'lucide-react';
+import { AlignLeft, AlignCenter, AlignRight, Blend } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 
 interface ElementPropertiesProps {
   element: CanvasElement | null;
@@ -417,62 +415,15 @@ export const ElementProperties: React.FC<ElementPropertiesProps> = ({
   return null;
 };
 
-// Separate component for image properties to use hooks
+// Separate component for image properties
 const ImageProperties: React.FC<{
   element: CanvasElement;
   onUpdate: (id: string, updates: Partial<CanvasElement>) => void;
   handleStyleUpdate: (styleUpdates: Partial<CanvasElement['styles']>) => void;
 }> = ({ element, onUpdate, handleStyleUpdate }) => {
-  const [isRemovingBackground, setIsRemovingBackground] = useState(false);
-
-  const handleRemoveBackground = async () => {
-    if (!element.content) return;
-
-    setIsRemovingBackground(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('remove-background', {
-        body: { imageUrl: element.content },
-      });
-
-      if (error) throw new Error(error.message);
-      if (data?.error) throw new Error(data.error);
-
-      if (data?.success && data?.imageUrl) {
-        onUpdate(element.id, { content: data.imageUrl });
-        toast.success('Fundo removido com sucesso!');
-      }
-    } catch (error) {
-      console.error('Error removing background:', error);
-      toast.error(error instanceof Error ? error.message : 'Erro ao remover fundo');
-    } finally {
-      setIsRemovingBackground(false);
-    }
-  };
-
   return (
     <div className="p-4 space-y-4">
       <h4 className="text-sm font-medium text-foreground">Propriedades da Imagem</h4>
-      
-      {/* Remove Background Button */}
-      <Button
-        variant="outline"
-        size="sm"
-        className="w-full gap-2"
-        onClick={handleRemoveBackground}
-        disabled={isRemovingBackground}
-      >
-        {isRemovingBackground ? (
-          <>
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Removendo fundo...
-          </>
-        ) : (
-          <>
-            <Eraser className="h-4 w-4" />
-            Remover Fundo
-          </>
-        )}
-      </Button>
 
       {/* Border Radius */}
       <div className="space-y-2">
