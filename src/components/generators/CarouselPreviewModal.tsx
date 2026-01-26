@@ -37,10 +37,14 @@ import {
   Eye,
   ImageOff,
   RefreshCw,
+  Pencil,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { RegenerateCarouselModal } from "@/components/repositorio-criativos/RegenerateCarouselModal";
+import { ImageEditorModal } from "@/components/image-editor/ImageEditorModal";
+import { supabase } from "@/integrations/supabase/client";
+import { Json } from "@/integrations/supabase/types";
 
 interface Slide {
   slide_number?: number;
@@ -77,6 +81,9 @@ interface CarouselPreviewModalProps {
   onSchedule?: () => void;
   onSendToPresentation?: () => void;
   onStatusChange?: (status: string) => void;
+  clientId?: string;
+  companyId?: string;
+  onCarouselUpdated?: () => void;
 }
 
 const typeLabels: Record<string, string> = {
@@ -110,14 +117,57 @@ export function CarouselPreviewModal({
   onSchedule,
   onSendToPresentation,
   onStatusChange,
+  clientId,
+  companyId,
+  onCarouselUpdated,
 }: CarouselPreviewModalProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [previewPlatform, setPreviewPlatform] = useState<'instagram' | 'facebook'>('instagram');
   const [showRegenerateModal, setShowRegenerateModal] = useState(false);
+  const [showImageEditorModal, setShowImageEditorModal] = useState(false);
+  const [editingSlideIndex, setEditingSlideIndex] = useState<number | null>(null);
 
   const slides = carousel.slides || [];
   const slide = slides[currentSlide];
   const statusConfig = STATUS_BADGES[carousel.status] || STATUS_BADGES.pending;
+
+  const handleEditSlide = (slideIndex: number) => {
+    setEditingSlideIndex(slideIndex);
+    setShowImageEditorModal(true);
+  };
+
+  const handleImageEditorSave = async (newImages: string[]) => {
+    if (editingSlideIndex === null || !newImages[0]) return;
+    
+    try {
+      // Update the specific slide in the database
+      const updatedSlides = [...slides];
+      updatedSlides[editingSlideIndex] = {
+        ...updatedSlides[editingSlideIndex],
+        image_url: newImages[0],
+      };
+
+      const { error } = await supabase
+        .from("carousel_generation_queue")
+        .update({
+          slides: updatedSlides as unknown as Json,
+          cover_image_url: editingSlideIndex === 0 ? newImages[0] : undefined,
+        })
+        .eq("id", carousel.id);
+
+      if (error) throw error;
+
+      // Notify parent to refresh
+      if (onCarouselUpdated) {
+        onCarouselUpdated();
+      } else {
+        // Fallback: reload the page
+        window.location.reload();
+      }
+    } catch (err) {
+      console.error("Error updating slide image:", err);
+    }
+  };
 
   // Check for missing images
   const getMissingImagesInfo = () => {
@@ -463,34 +513,50 @@ export function CarouselPreviewModal({
             </ScrollArea>
 
             {/* Slide Thumbnails */}
-            {slides.length > 1 && (
+            {slides.length > 0 && (
               <div className="p-4 border-t bg-muted/30">
                 <div className="flex gap-2 overflow-x-auto pb-1">
                   {slides.map((s, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => setCurrentSlide(idx)}
-                      className={`relative flex-shrink-0 w-16 h-20 rounded-lg overflow-hidden border-2 transition-all ${
-                        idx === currentSlide 
-                          ? 'border-primary ring-2 ring-primary/20' 
-                          : 'border-transparent hover:border-muted-foreground/30'
-                      }`}
-                    >
-                      {s.image_url ? (
-                        <img
-                          src={s.image_url}
-                          alt={`Slide ${idx + 1}`}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-muted flex items-center justify-center">
-                          <Layers className="h-4 w-4 text-muted-foreground" />
+                    <div key={idx} className="relative flex-shrink-0 group">
+                      <button
+                        onClick={() => setCurrentSlide(idx)}
+                        className={`relative w-16 h-20 rounded-lg overflow-hidden border-2 transition-all ${
+                          idx === currentSlide 
+                            ? 'border-primary ring-2 ring-primary/20' 
+                            : 'border-transparent hover:border-muted-foreground/30'
+                        }`}
+                      >
+                        {s.image_url ? (
+                          <img
+                            src={s.image_url}
+                            alt={`Slide ${idx + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-muted flex items-center justify-center">
+                            <Layers className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                        )}
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] text-center py-0.5">
+                          {idx + 1}
                         </div>
+                      </button>
+                      
+                      {/* Edit button overlay */}
+                      {s.image_url && clientId && companyId && (
+                        <Button
+                          variant="secondary"
+                          size="icon"
+                          className="absolute top-0.5 right-0.5 h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity bg-background/90 hover:bg-background shadow-sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditSlide(idx);
+                          }}
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </Button>
                       )}
-                      <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] text-center py-0.5">
-                        {idx + 1}
-                      </div>
-                    </button>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -508,6 +574,21 @@ export function CarouselPreviewModal({
         totalSlides={missingInfo.totalSlides}
         onComplete={handleRegenerateComplete}
       />
+
+      {/* Image Editor Modal */}
+      {editingSlideIndex !== null && slides[editingSlideIndex]?.image_url && clientId && companyId && (
+        <ImageEditorModal
+          open={showImageEditorModal}
+          onOpenChange={(open) => {
+            setShowImageEditorModal(open);
+            if (!open) setEditingSlideIndex(null);
+          }}
+          images={[slides[editingSlideIndex].image_url!]}
+          onSave={handleImageEditorSave}
+          clientId={clientId}
+          companyId={companyId}
+        />
+      )}
     </Dialog>
   );
 }

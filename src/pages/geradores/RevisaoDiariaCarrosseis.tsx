@@ -253,6 +253,11 @@ export default function RevisaoDiariaCarrosseis() {
             updateStatus.mutate({ id: selectedCarousel.id, status: 'rejected' });
             setSelectedCarousel(null);
           }}
+          clientId={selectedCarousel.client_id}
+          companyId={activeCompany?.id}
+          onCarouselUpdated={() => {
+            queryClient.invalidateQueries({ queryKey: ['daily-carousels'] });
+          }}
         />
       )}
     </div>

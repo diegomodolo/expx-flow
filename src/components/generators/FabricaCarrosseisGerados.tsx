@@ -449,6 +449,11 @@ export function FabricaCarrosseisGerados({ clientId }: Props) {
           onPublishNow={() => handlePublishNow(selectedCarousel)}
           onSchedule={() => handleSchedule(selectedCarousel.id)}
           onSendToPresentation={() => handleSendToPresentation(selectedCarousel.id)}
+          clientId={clientId}
+          companyId={activeCompany?.id}
+          onCarouselUpdated={() => {
+            queryClient.invalidateQueries({ queryKey: ["carousel-client-queue"] });
+          }}
         />
       )}
 
