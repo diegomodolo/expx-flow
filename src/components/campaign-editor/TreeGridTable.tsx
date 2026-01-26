@@ -4,6 +4,7 @@ import { TreeGridRow } from "./TreeGridRow";
 import { BulkActionsBar } from "./BulkActionsBar";
 import { useInlineEdit } from "@/hooks/useInlineEdit";
 import { Checkbox } from "@/components/ui/checkbox";
+import { supabase } from "@/integrations/supabase/client";
 
 interface TreeGridTableProps {
   campaign: TreeNode | null;
@@ -147,7 +148,39 @@ export function TreeGridTable({
 
     bulkUpdateStatus(nodes, "active", clientId);
     clearSelection();
-  }, [selectedNodes, allNodesMap, bulkUpdateStatus, clearSelection]);
+  }, [selectedNodes, allNodesMap, bulkUpdateStatus, clearSelection, clientId]);
+
+  const handleBulkDelete = useCallback(async () => {
+    const nodes = Array.from(selectedNodes)
+      .map((id) => allNodesMap.get(id))
+      .filter((node): node is TreeNode => node !== undefined);
+
+    if (nodes.length === 0) return;
+
+    const confirmMessage = nodes.length === 1
+      ? `Tem certeza que deseja excluir "${nodes[0].name}"?`
+      : `Tem certeza que deseja excluir ${nodes.length} itens selecionados?`;
+
+    if (!confirm(confirmMessage)) return;
+
+    for (const node of nodes) {
+      try {
+        await supabase.functions.invoke("delete-tree-entity", {
+          body: {
+            entityType: node.type === "adset" ? "adset" : node.type === "ad" ? "ad" : "campaign",
+            entityId: node.id,
+            clientId: clientId,
+            facebookId: node.facebookId,
+          },
+        });
+      } catch (error) {
+        console.error("Error deleting node:", node.id, error);
+      }
+    }
+
+    clearSelection();
+    onRefresh?.();
+  }, [selectedNodes, allNodesMap, clientId, clearSelection, onRefresh]);
 
   if (!campaign) {
     return (
@@ -207,6 +240,7 @@ export function TreeGridTable({
         isLoading={loading && currentAction === "bulk-status"}
         onPause={handleBulkPause}
         onActivate={handleBulkActivate}
+        onDelete={handleBulkDelete}
         onClear={clearSelection}
       />
 
