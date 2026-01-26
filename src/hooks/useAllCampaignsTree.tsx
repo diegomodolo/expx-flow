@@ -23,7 +23,7 @@ export function useAllCampaignsTree(options: UseAllCampaignsTreeOptions): AllCam
   const { clientId, companyId, platform = "all", includeInactive = true } = options;
   const queryClient = useQueryClient();
 
-  // Fetch Meta campaigns
+  // Fetch Meta campaigns (excluding deleted ones)
   const { data: metaCampaigns = [], isLoading: loadingMetaCampaigns, refetch: refetchMetaCampaigns } = useQuery({
     queryKey: ["all-campaigns-tree-meta", clientId, companyId],
     queryFn: async () => {
@@ -31,6 +31,7 @@ export function useAllCampaignsTree(options: UseAllCampaignsTreeOptions): AllCam
         .from("campaigns")
         .select("*")
         .eq("client_id", clientId)
+        .neq("status", "deleted") // Exclude soft-deleted campaigns
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data || [];
@@ -53,7 +54,7 @@ export function useAllCampaignsTree(options: UseAllCampaignsTreeOptions): AllCam
     enabled: !!clientId && (platform === "all" || platform === "google"),
   });
 
-  // Fetch all Meta ad sets for client
+  // Fetch all Meta ad sets for client (excluding deleted ones)
   const { data: allMetaAdSets = [], isLoading: loadingMetaAdSets, refetch: refetchMetaAdSets } = useQuery({
     queryKey: ["all-campaigns-tree-meta-adsets", clientId],
     queryFn: async () => {
@@ -61,6 +62,7 @@ export function useAllCampaignsTree(options: UseAllCampaignsTreeOptions): AllCam
         .from("ad_sets")
         .select("*")
         .eq("client_id", clientId)
+        .neq("status", "deleted") // Exclude soft-deleted ad sets
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data || [];
@@ -68,7 +70,7 @@ export function useAllCampaignsTree(options: UseAllCampaignsTreeOptions): AllCam
     enabled: !!clientId && (platform === "all" || platform === "meta"),
   });
 
-  // Fetch all Meta ads for client
+  // Fetch all Meta ads for client (excluding deleted ones)
   const { data: allMetaAds = [], isLoading: loadingMetaAds, refetch: refetchMetaAds } = useQuery({
     queryKey: ["all-campaigns-tree-meta-ads", clientId],
     queryFn: async () => {
@@ -76,6 +78,7 @@ export function useAllCampaignsTree(options: UseAllCampaignsTreeOptions): AllCam
         .from("ads")
         .select("*")
         .eq("client_id", clientId)
+        .neq("status", "deleted") // Exclude soft-deleted ads
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data || [];
@@ -130,7 +133,10 @@ export function useAllCampaignsTree(options: UseAllCampaignsTreeOptions): AllCam
   });
 
   // Helper to get status
-  const getStatus = (item: any): "active" | "paused" | "finished" => {
+  const getStatus = (item: any): "active" | "paused" | "finished" | "deleted" => {
+    if (item.status === "deleted" || item.status === "DELETED") {
+      return "deleted";
+    }
     if (item.status === "ACTIVE" || item.status === "active" || item.is_active === true) {
       return "active";
     }

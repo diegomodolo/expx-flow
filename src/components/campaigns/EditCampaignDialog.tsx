@@ -19,7 +19,7 @@ export function EditCampaignDialog({ campaign, isOpen, onClose, onSave }: EditCa
   const [formData, setFormData] = useState({
     name: "",
     platforms: "",
-    status: "active" as "active" | "paused" | "finished",
+    status: "active" as "active" | "paused" | "finished" | "deleted",
     period: "",
     average_ticket: 0,
   });
