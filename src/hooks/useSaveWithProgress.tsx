@@ -72,23 +72,30 @@ export function useSaveWithProgress(): UseSaveWithProgressReturn {
       // Executar a ação principal
       const result = await metaAction();
       
-      // Etapa 3: Sincronizando dados locais
+      // Etapa 3: Sincronizando dados locais (apenas visual, não faz refetch ainda)
       updateStep('waiting', 'complete');
       updateStep('syncing', 'active');
       
-      // O onSuccess geralmente faz refetch dos dados
-      if (onSuccess) {
-        await onSuccess();
-      }
+      // Pequeno delay visual para mostrar a etapa de sync
+      await new Promise(r => setTimeout(r, 500));
       
       // Etapa 4: Concluído
       updateStep('syncing', 'complete');
       updateStep('complete', 'active');
       
-      // Fechar após 1.5s
-      await new Promise(r => setTimeout(r, 1500));
+      // Esperar 1s mostrando "Concluído"
+      await new Promise(r => setTimeout(r, 1000));
       updateStep('complete', 'complete');
+      
+      // Fechar o modal PRIMEIRO
       setIsOpen(false);
+      
+      // DEPOIS de fechar o modal, fazer o refetch (isso evita o "flash" visual)
+      if (onSuccess) {
+        // Pequeno delay para garantir que o modal fechou visualmente
+        await new Promise(r => setTimeout(r, 100));
+        await onSuccess();
+      }
       
       return true;
     } catch (err) {
