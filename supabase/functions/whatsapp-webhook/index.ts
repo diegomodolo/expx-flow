@@ -212,28 +212,6 @@ serve(async (req) => {
       
       conversationId = newConversation.id;
     }
-    } else {
-      // Create new conversation
-      const { data: newConversation, error: convError } = await supabase
-        .from("whatsapp_conversations")
-        .insert({
-          company_id: companyId,
-          phone,
-          contact_name: contactName,
-          last_message_at: new Date().toISOString(),
-          last_message_preview: content.substring(0, 100),
-          unread_count: direction === "incoming" ? 1 : 0,
-        })
-        .select("id")
-        .single();
-
-      if (convError) {
-        console.error("[whatsapp-webhook] Error creating conversation:", convError);
-        throw convError;
-      }
-      
-      conversationId = newConversation.id;
-    }
 
     // Save message
     const { error: messageError } = await supabase
