@@ -70,17 +70,8 @@ serve(async (req) => {
     console.log("[configure-uazapi-webhook] Endpoint UazapiGO:", cleanEndpoint);
     console.log("[configure-uazapi-webhook] Webhook callback URL:", webhookCallbackUrl);
 
-    // Tentar configurar webhook usando diferentes endpoints possíveis
+    // Identificador da instância para endpoints por instância
     const instanceIdentifier = instance.uazapi_instance_id || instance.instance_name;
-    
-    const webhookEndpoints = [
-      // UazapiGO v2 - webhook global
-      { url: `${cleanEndpoint}/webhook`, method: "POST" },
-      // UazapiGO v2 - webhook por instância
-      { url: `${cleanEndpoint}/webhook/${instanceIdentifier}`, method: "POST" },
-      // Evolution API style
-      { url: `${cleanEndpoint}/webhook/set/${instanceIdentifier}`, method: "POST" },
-    ];
 
     // Configuração específica do UazapiGO conforme documentação:
     // - events: "messages" para escutar mensagens
@@ -95,16 +86,30 @@ serve(async (req) => {
 
     const webhookPayload = {
       url: webhookCallbackUrl,
-      events: ["messages"],  // UazapiGO espera um array
-      excludeMessages: excludeList,  // Campo correto da API UazapiGO
+      events: ["messages"],
+      excludeMessages: excludeList,
       enabled: true,
     };
+
+    console.log("[configure-uazapi-webhook] Payload enviado:", JSON.stringify(webhookPayload));
 
     let webhookConfigured = false;
     let successResponse: any = null;
     const attemptLogs: string[] = [];
 
-    for (const endpoint of webhookEndpoints) {
+    // Tentar criar/atualizar webhook usando diferentes métodos
+    const webhookEndpointsWithMethods = [
+      // PUT para atualizar webhook existente
+      { url: `${cleanEndpoint}/webhook`, method: "PUT" },
+      // POST para criar novo
+      { url: `${cleanEndpoint}/webhook`, method: "POST" },
+      // PUT por instância
+      { url: `${cleanEndpoint}/webhook/${instanceIdentifier}`, method: "PUT" },
+      // POST por instância
+      { url: `${cleanEndpoint}/webhook/${instanceIdentifier}`, method: "POST" },
+    ];
+
+    for (const endpoint of webhookEndpointsWithMethods) {
       try {
         console.log(`[configure-uazapi-webhook] Tentando: ${endpoint.method} ${endpoint.url}`);
         
