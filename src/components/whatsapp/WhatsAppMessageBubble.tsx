@@ -14,8 +14,46 @@ export function WhatsAppMessageBubble({ message }: WhatsAppMessageBubbleProps) {
   const hasMedia = !!message.media_url;
   const isMediaType = ["image", "video", "audio", "document"].includes(message.message_type);
   
-  const handleDownload = () => {
-    if (message.media_url) {
+  const extractFileName = (): string => {
+    // Try to extract filename from content (e.g., "📎 fatura_rene_tanana.pdf")
+    let fileName = message.content
+      .replace("📎 ", "")
+      .replace(/^\[.*\]\s*/, "")
+      .trim();
+    
+    // If no valid filename found, create one based on message type
+    if (!fileName || fileName.length < 2) {
+      const extension = message.message_type === "image" ? "jpg" 
+        : message.message_type === "video" ? "mp4"
+        : message.message_type === "audio" ? "mp3"
+        : message.message_type === "document" ? "pdf"
+        : "file";
+      fileName = `whatsapp_${message.message_type}_${Date.now()}.${extension}`;
+    }
+    
+    return fileName;
+  };
+
+  const handleDownload = async () => {
+    if (!message.media_url) return;
+    
+    try {
+      const response = await fetch(message.media_url);
+      const blob = await response.blob();
+      const fileName = extractFileName();
+      
+      // Create a temporary link to trigger download with correct filename
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error downloading file:", error);
+      // Fallback to opening in new tab
       window.open(message.media_url, "_blank");
     }
   };
