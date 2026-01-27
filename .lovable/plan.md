@@ -1,74 +1,186 @@
 
-## Diagnóstico (por que “não traz mensagem nenhuma”)
-Pelos logs do Edge Function `fetch-whatsapp-messages`, a API do UazapiGO está retornando mensagens (ex.: `100 mensagens encontradas`), porém o sistema está salvando **0** no banco (`Mensagens salvas: 0, Total no banco: 0`).  
-Ou seja: o problema não é a chamada ao endpoint em si — é a persistência/normalização dentro do Edge Function + banco.
 
-O motivo mais provável (e confirmado pelo schema atual) é:
-- O Edge Function faz `upsert(..., { onConflict: "external_id" })`
-- Mas a tabela `public.whatsapp_messages` **não tem nenhuma constraint UNIQUE** para `external_id` (nem índice único), então o Postgres **não consegue aplicar o ON CONFLICT**.
+# Plano: Detectar Páginas Vazias no Radar de URLs
 
-Eu validei no schema do banco que só existem PK/FKs e checks; não existe unique em `external_id`.
+## Problema Identificado
+Atualmente, a validação de URLs só verifica o código HTTP (200, 404, etc.) usando uma requisição `HEAD`. Porém, páginas que retornam código 200 podem estar completamente em branco ou sem conteúdo útil — exatamente o caso da URL `https://mkt.webersistemas.com.br/do-pdv-ao-lucro-de-verdade`.
 
-Além disso, há um segundo problema potencial:
-- A resposta do `/message/find` pode vir com mensagens de vários chats (ou com campos diferentes), então precisamos **filtrar** por `chatid === "<numero>@s.whatsapp.net"` antes de salvar, e melhorar o fallback de conteúdo para mensagens de mídia quando `msg.type` existe.
+## Solução Proposta
+Adicionar um novo status de validação chamado **"empty"** (vazio) para identificar páginas que respondem 200 mas não têm conteúdo significativo.
 
-## O que vamos implementar
-### 1) Ajuste no banco (obrigatório para salvar mensagens)
-Criar uma constraint UNIQUE (recomendado: por empresa) para suportar o upsert:
+---
 
-Opção recomendada:
-- UNIQUE `(company_id, external_id)`
+## Resumo das Alterações
 
-Por que assim:
-- Evita colisão entre empresas diferentes
-- Permite múltiplas mensagens com `external_id = NULL` (Postgres permite múltiplos NULLs em unique)
-- Mantém a deduplicação estável para re-sync
+| Componente | Alteração |
+|------------|-----------|
+| Edge Function | Adicionar verificação de conteúdo após request GET |
+| Banco de Dados | Novo status `empty` nas validações |
+| Hook `useRadarUrls` | Suporte ao novo status |
+| KPI Header | Novo contador de páginas vazias |
+| Cards de Destaque | Novo card para URLs vazias |
+| Tabela de URLs | Badge para status "vazio" |
+| Filtros | Opção de filtrar por páginas vazias |
 
-Também vamos atualizar o Edge Function para usar:
-- `onConflict: "company_id,external_id"`
+---
 
-### 2) Ajuste no Edge Function `fetch-whatsapp-messages` (para efetivamente preencher o chat)
-Mudanças principais:
-- **Filtrar mensagens** retornadas: manter apenas as mensagens cujo `msg.chatid` (ou `msg.chatId`, dependendo do payload) bate com o `chatId` solicitado.
-- **Corrigir a chave do upsert** para `company_id,external_id`.
-- **Melhorar extração de conteúdo**: se `msg.type` vier como `image/video/audio/document` e não existir `content.text`, preencher `content` com placeholder (`[Imagem]`, `[Vídeo]`, etc.) ao invés de “pular”.
-- **Logs úteis**: logar contagem de `skipped`, `saved`, e os 2–3 primeiros erros do banco (sem expor token completo).
-- (Opcional) aceitar `limit` e `offset` do frontend para “Buscar mensagens anteriores” fazer paginação real.
+## Detalhes Técnicos
 
-### 3) Ajuste leve no frontend (se necessário)
-Hoje o frontend chama `fetchMessagesFromApi(true)` sem parâmetros de paginação.  
-Se você quer que o botão “Buscar mensagens anteriores” realmente busque páginas antigas:
-- Adicionar estado local de `offset` no chat
-- Incrementar `offset` a cada clique
-- Passar `{ limit, offset }` para o Edge Function
-- Mesclar mensagens no banco (já que o banco vai deduplicar por external_id)
+### 1. Edge Function (`validate-client-urls/index.ts`)
 
-Se você só quer “trazer as mensagens desse chat”, sem paginação, dá para manter como está — desde que o backend passe a salvar corretamente.
+Alterar a lógica de validação para:
+1. Primeiro fazer `HEAD` para pegar tempo de resposta
+2. Se retornar 200, fazer `GET` para verificar o conteúdo
+3. Analisar o HTML para detectar páginas vazias
 
-## Plano de execução (passo a passo)
-1. **Criar migration** no Supabase para adicionar UNIQUE em `whatsapp_messages`:
-   - `UNIQUE (company_id, external_id)`
-2. **Atualizar o Edge Function** `supabase/functions/fetch-whatsapp-messages/index.ts`:
-   - trocar `onConflict: "external_id"` por `onConflict: "company_id,external_id"`
-   - filtrar mensagens por `chatid`
-   - melhorar parsing de conteúdo/mídia
-   - adicionar logs de `saved/skipped/errors`
-3. (Opcional, se você aprovar) **Adicionar paginação**:
-   - frontend envia `limit/offset`
-   - Edge Function repassa para UazapiGO
-4. **Teste guiado**:
-   - abrir o chat do “Miguel Viana”
-   - clicar no ícone de atualizar (🔄)
-   - confirmar no drawer:
-     - a lista deixa de mostrar “Nenhuma mensagem ainda”
-   - validar nos logs do Edge Function:
-     - `fetched > 0`, `saved > 0`, `total no banco > 0`
+```typescript
+// Critérios para considerar uma página "vazia":
+// - Body vazio ou apenas whitespace
+// - HTML com <body> vazio ou quase vazio
+// - Conteúdo de texto visível < 50 caracteres (excluindo tags)
+// - Páginas com apenas scripts e nenhum conteúdo real
+```
 
-## Perguntas rápidas (para eu alinhar sem suposições)
-- Você quer deduplicar mensagens por `external_id` **por empresa** (mais seguro) ou global (menos seguro)?
-- O botão “Buscar mensagens anteriores” precisa de paginação real (limit/offset) ou pode apenas “sincronizar tudo que tiver” sem paginação?
+**Lógica de detecção:**
+```text
+1. Extrair texto visível do HTML (remover tags, scripts, styles)
+2. Limpar whitespace e contar caracteres
+3. Se < 50 caracteres de conteúdo → status = 'empty'
+```
 
-## Resultado esperado
-- Ao clicar em um chat antigo ou no botão de atualizar, o sistema chama `POST https://plannerx.uazapi.com/message/find` com o **token da instância correta** e `chatid` do contato
-- As mensagens retornadas são filtradas para aquele chat e **salvas no banco**
-- O chat passa a exibir o histórico corretamente (em vez de “Nenhuma mensagem ainda”)
+### 2. Interface `ValidationResult`
+```typescript
+status: 'ok' | 'error' | 'timeout' | 'redirect' | 'pending' | 'empty'
+content_length?: number  // Opcional: armazenar tamanho do conteúdo
+```
+
+### 3. Tipo `ValidationStatus` (Hook)
+```typescript
+export type ValidationStatus = 'ok' | 'error' | 'timeout' | 'redirect' | 'pending' | 'empty' | null;
+```
+
+### 4. Interface `UrlStats`
+```typescript
+export interface UrlStats {
+  total: number;
+  ok: number;
+  error: number;
+  timeout: number;
+  redirect: number;
+  pending: number;
+  slow: number;
+  empty: number;  // Novo
+}
+```
+
+### 5. Novo Array de URLs Vazias
+```typescript
+const emptyUrls = urls.filter(u => u.validation_status === 'empty');
+```
+
+### 6. KPI Header — Novo Card
+```typescript
+{
+  label: "Vazias",
+  value: stats.empty,
+  icon: FileX2,  // ou AlertOctagon
+  color: "text-purple-600 dark:text-purple-500",
+  bgColor: "bg-purple-500/10"
+}
+```
+
+### 7. Novo Componente: `EmptyUrlsCard.tsx`
+Card similar ao `ProblematicUrlsCard` mas para URLs vazias, com:
+- Ícone de página vazia
+- Lista das URLs detectadas como vazias
+- Botão para revalidar
+
+### 8. Badge na Tabela
+```typescript
+case 'empty':
+  return (
+    <Badge variant="outline" className="text-purple-600 border-purple-600">
+      <FileX2 className="h-2.5 w-2.5 mr-0.5" />
+      Vazio
+    </Badge>
+  );
+```
+
+### 9. Filtro de Status na Tabela
+Adicionar opção "Vazio" no Select de filtros.
+
+---
+
+## Considerações de Performance
+
+A verificação de conteúdo requer fazer `GET` em vez de `HEAD`, o que:
+- Aumenta o tempo de validação (~2-3x mais lento)
+- Consome mais dados/bandwidth
+
+**Mitigação:**
+- Limitar o download a 100KB do body (suficiente para detectar página vazia)
+- Só fazer GET para URLs que retornaram 200 no HEAD
+- Timeout de 5s para download do conteúdo
+
+---
+
+## Fluxo Visual
+
+```text
+URL Recebida
+     │
+     ▼
+┌──────────────────┐
+│  HEAD Request    │
+│  (tempo + status)│
+└────────┬─────────┘
+         │
+    ┌────┴────┐
+    │ 200 OK? │
+    └────┬────┘
+      ┌──┴──┐
+      ▼     ▼
+     SIM   NÃO → Retorna status (error/redirect/etc)
+      │
+      ▼
+┌──────────────────┐
+│   GET Request    │
+│  (max 100KB)     │
+└────────┬─────────┘
+         │
+         ▼
+┌──────────────────┐
+│ Analisa conteúdo │
+│ < 50 chars texto │
+└────────┬─────────┘
+         │
+    ┌────┴────┐
+    │ Vazio?  │
+    └────┬────┘
+      ┌──┴──┐
+      ▼     ▼
+     SIM   NÃO
+      │     │
+      ▼     ▼
+   'empty' 'ok'
+```
+
+---
+
+## Arquivos a Modificar
+
+1. `supabase/functions/validate-client-urls/index.ts` — Lógica de validação
+2. `src/hooks/useRadarUrls.tsx` — Tipo e stats
+3. `src/components/radar/UrlsKPIHeader.tsx` — Novo KPI
+4. `src/components/radar/EmptyUrlsCard.tsx` — Novo componente
+5. `src/components/radar/UrlsTable.tsx` — Badge e filtro
+6. `src/pages/radar/RadarUrlsDashboard.tsx` — Integrar novo card
+
+---
+
+## Benefícios
+
+- Detecta landing pages quebradas/vazias automaticamente
+- Alerta proativo antes de gastar verba com anúncios que levam a páginas sem conteúdo
+- Visual consistente com os outros tipos de problema (erro, timeout, redirect)
+
