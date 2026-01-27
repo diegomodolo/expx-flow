@@ -252,26 +252,27 @@ export function WhatsAppInstanceCard({
 
       {/* Modal para configurar Webhook */}
       <AlertDialog open={showWebhookDialog} onOpenChange={setShowWebhookDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-md">
           <AlertDialogHeader>
             <AlertDialogTitle>Configurar Webhook</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogDescription className="text-base">
               Deseja receber mensagens de grupos nesta instância?
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => handleConfigureWebhook(false)}
-              className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
-            >
-              Não, apenas conversas privadas
-            </AlertDialogAction>
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
             <AlertDialogAction
               onClick={() => handleConfigureWebhook(true)}
+              className="w-full"
             >
               Sim, receber grupos
             </AlertDialogAction>
+            <AlertDialogAction
+              onClick={() => handleConfigureWebhook(false)}
+              className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/80"
+            >
+              Não, apenas conversas privadas
+            </AlertDialogAction>
+            <AlertDialogCancel className="w-full mt-2">Cancelar</AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
