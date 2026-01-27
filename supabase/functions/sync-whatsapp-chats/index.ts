@@ -305,6 +305,19 @@ serve(async (req) => {
         // Contagem de não lidas
         const unreadCount = chat.wa_unreadCount || chat.unreadCount || chat.unreadMessages || 0;
 
+        // Extrair foto de perfil do contato
+        // UazapiGO pode retornar em diferentes campos
+        const profilePicUrl = chat.imagePreview || 
+                              chat.image || 
+                              chat.profilePicUrl ||
+                              chat.profilePictureUrl ||
+                              chat.wa_profilePic ||
+                              chat.imgUrl ||
+                              chat.avatar ||
+                              chat.contact?.profilePicUrl ||
+                              chat.contact?.imgUrl ||
+                              null;
+
         // Upsert na tabela de conversas
         const { error: upsertError } = await supabase
           .from("whatsapp_conversations")
@@ -314,6 +327,7 @@ serve(async (req) => {
               instance_id,
               phone,
               contact_name: contactName,
+              profile_pic_url: profilePicUrl || null,
               last_message_preview: lastMessagePreview ? lastMessagePreview.substring(0, 255) : null,
               last_message_at: lastMessageAt || new Date().toISOString(),
               unread_count: unreadCount,
