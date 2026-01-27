@@ -33,7 +33,7 @@ serve(async (req) => {
       .from("whatsapp_configs")
       .select("uazapi_endpoint, provider")
       .eq("company_id", company_id)
-      .single();
+      .maybeSingle();
 
     if (configError || !config) {
       console.error("[sync-whatsapp-chats] Erro ao buscar config:", configError);
@@ -55,7 +55,7 @@ serve(async (req) => {
       .from("whatsapp_instances")
       .select("uazapi_token, instance_name, uazapi_instance_id")
       .eq("id", instance_id)
-      .single();
+      .maybeSingle();
 
     if (instanceError || !instance) {
       console.error("[sync-whatsapp-chats] Erro ao buscar instância:", instanceError);
@@ -67,24 +67,26 @@ serve(async (req) => {
 
     const endpoint = config.uazapi_endpoint.replace(/\/$/, "");
     const token = instance.uazapi_token;
-    const instanceId = instance.uazapi_instance_id || instance.instance_name;
+    const instanceIdentifier = instance.uazapi_instance_id || instance.instance_name;
 
     console.log(`[sync-whatsapp-chats] Buscando chats de: ${endpoint}`);
-    console.log(`[sync-whatsapp-chats] Instance ID: ${instanceId}`);
+    console.log(`[sync-whatsapp-chats] Instance ID: ${instanceIdentifier}`);
+    console.log(`[sync-whatsapp-chats] Token: ${token?.substring(0, 8)}...`);
 
     // 3. Chamar API UazapiGO para buscar chats
-    // Tentamos diferentes endpoints que a API pode ter
+    // UazapiGO v2 uses GET /chat/findChats with token header
     let chats: any[] = [];
     const attemptLogs: string[] = [];
     
-    // Lista de endpoints para tentar (UazapiGO v2 / Evolution API)
+    // Lista de endpoints para tentar (UazapiGO v2)
     const endpointsToTry = [
-      { url: `${endpoint}/chat/findChats/${instanceId}`, method: "POST", body: {} },
-      { url: `${endpoint}/chat/findChats`, method: "POST", body: { instanceName: instanceId } },
-      { url: `${endpoint}/chat/findChats`, method: "POST", body: {} },
-      { url: `${endpoint}/chats/${instanceId}`, method: "GET", body: null },
-      { url: `${endpoint}/instance/chats/${instanceId}`, method: "GET", body: null },
+      // UazapiGO v2 - GET endpoints
+      { url: `${endpoint}/chat/findChats`, method: "GET", body: null },
+      { url: `${endpoint}/chat/list`, method: "GET", body: null },
       { url: `${endpoint}/chats`, method: "GET", body: null },
+      // POST variants
+      { url: `${endpoint}/chat/findChats`, method: "POST", body: { where: { owner: instanceIdentifier } } },
+      { url: `${endpoint}/chat/findChats`, method: "POST", body: {} },
     ];
 
     for (const ep of endpointsToTry) {
@@ -95,11 +97,13 @@ serve(async (req) => {
           method: ep.method,
           headers: {
             "token": token,
+            "Authorization": `Bearer ${token}`,
             "Content-Type": "application/json",
+            "Accept": "application/json",
           },
         };
         
-        if (ep.body !== null) {
+        if (ep.body !== null && ep.method === "POST") {
           fetchOptions.body = JSON.stringify(ep.body);
         }
 
@@ -107,30 +111,35 @@ serve(async (req) => {
         const responseText = await apiResponse.text();
         
         console.log(`[sync-whatsapp-chats] Status: ${apiResponse.status}`);
+        console.log(`[sync-whatsapp-chats] Response preview: ${responseText.substring(0, 300)}`);
 
         if (apiResponse.ok) {
           try {
             const responseData = JSON.parse(responseText);
-            console.log(`[sync-whatsapp-chats] Resposta:`, JSON.stringify(responseData).substring(0, 500));
             
             // A resposta pode estar em diferentes formatos
+            let foundChats: any[] = [];
+            
             if (Array.isArray(responseData)) {
-              chats = responseData;
+              foundChats = responseData;
             } else if (responseData.data && Array.isArray(responseData.data)) {
-              chats = responseData.data;
+              foundChats = responseData.data;
             } else if (responseData.chats && Array.isArray(responseData.chats)) {
-              chats = responseData.chats;
+              foundChats = responseData.chats;
             } else if (responseData.response && Array.isArray(responseData.response)) {
-              chats = responseData.response;
+              foundChats = responseData.response;
             } else if (responseData.result && Array.isArray(responseData.result)) {
-              chats = responseData.result;
+              foundChats = responseData.result;
+            } else if (responseData.rows && Array.isArray(responseData.rows)) {
+              foundChats = responseData.rows;
             }
 
-            if (chats.length > 0) {
+            if (foundChats.length > 0) {
+              chats = foundChats;
               attemptLogs.push(`✅ ${ep.url}: ${chats.length} chats encontrados`);
               break;
             } else {
-              attemptLogs.push(`⚠️ ${ep.url}: OK mas sem chats`);
+              attemptLogs.push(`⚠️ ${ep.url}: OK mas sem chats na resposta`);
             }
           } catch (parseErr) {
             attemptLogs.push(`❌ ${ep.url}: Erro ao parsear JSON`);
@@ -145,8 +154,7 @@ serve(async (req) => {
       }
     }
 
-    console.log(`[sync-whatsapp-chats] Tentativas:`, attemptLogs)
-
+    console.log(`[sync-whatsapp-chats] Tentativas:`, attemptLogs);
     console.log(`[sync-whatsapp-chats] Total de chats encontrados: ${chats.length}`);
 
     // 4. Processar e sincronizar chats
@@ -156,18 +164,22 @@ serve(async (req) => {
     for (const chat of chats) {
       try {
         // Extrair informações do chat - diferentes formatos possíveis
-        const rawId = chat.id || chat.jid || chat.remoteJid || "";
+        // UazapiGO format: { id, phone, name, wa_chatid, ... }
+        const rawId = chat.wa_chatid || chat.id || chat.jid || chat.remoteJid || "";
+        const chatPhone = chat.phone || "";
         
         // Ignorar grupos (terminam com @g.us)
-        if (rawId.includes("@g.us") || rawId.includes("@broadcast")) {
+        if (rawId.includes("@g.us") || rawId.includes("@broadcast") || chat.wa_isGroup) {
           continue;
         }
 
         // Extrair número de telefone
-        const phone = rawId
-          .replace("@s.whatsapp.net", "")
-          .replace("@c.us", "")
-          .replace(/\D/g, "");
+        let phone = "";
+        if (rawId) {
+          phone = rawId.replace("@s.whatsapp.net", "").replace("@c.us", "").replace(/\D/g, "");
+        } else if (chatPhone) {
+          phone = chatPhone.replace(/\D/g, "");
+        }
 
         if (!phone || phone.length < 8) {
           continue;
@@ -175,6 +187,7 @@ serve(async (req) => {
 
         // Extrair nome do contato
         const contactName = chat.name || 
+                           chat.wa_contactName ||
                            chat.pushName || 
                            chat.notify || 
                            chat.verifiedName || 
@@ -182,33 +195,24 @@ serve(async (req) => {
                            null;
 
         // Extrair preview da última mensagem
-        let lastMessagePreview = null;
+        let lastMessagePreview = chat.wa_lastMessageTextVote || null;
         let lastMessageAt = null;
 
-        if (chat.lastMessage) {
-          lastMessagePreview = chat.lastMessage.content || 
-                              chat.lastMessage.body || 
-                              chat.lastMessage.message || 
-                              chat.lastMessage.text ||
-                              null;
-          
-          const timestamp = chat.lastMessage.timestamp || 
-                           chat.lastMessage.messageTimestamp ||
-                           chat.lastMessage.t;
-          
-          if (timestamp) {
-            // Timestamp pode ser em segundos ou milissegundos
-            const ts = timestamp > 9999999999 ? timestamp : timestamp * 1000;
-            lastMessageAt = new Date(ts).toISOString();
-          }
-        } else if (chat.conversationTimestamp || chat.t) {
-          const ts = chat.conversationTimestamp || chat.t;
-          const timestamp = ts > 9999999999 ? ts : ts * 1000;
-          lastMessageAt = new Date(timestamp).toISOString();
+        // Timestamp pode estar em diferentes campos
+        const timestamp = chat.wa_lastMsgTimestamp || 
+                         chat.lastMessage?.timestamp || 
+                         chat.lastMessage?.messageTimestamp ||
+                         chat.conversationTimestamp ||
+                         chat.t;
+        
+        if (timestamp) {
+          // Timestamp pode ser em segundos ou milissegundos
+          const ts = timestamp > 9999999999 ? timestamp : timestamp * 1000;
+          lastMessageAt = new Date(ts).toISOString();
         }
 
         // Contagem de não lidas
-        const unreadCount = chat.unreadCount || chat.unreadMessages || 0;
+        const unreadCount = chat.wa_unreadCount || chat.unreadCount || chat.unreadMessages || 0;
 
         // Upsert na tabela de conversas
         const { error: upsertError } = await supabase
@@ -220,9 +224,9 @@ serve(async (req) => {
               phone,
               contact_name: contactName,
               last_message_preview: lastMessagePreview ? lastMessagePreview.substring(0, 255) : null,
-              last_message_at: lastMessageAt,
+              last_message_at: lastMessageAt || new Date().toISOString(),
               unread_count: unreadCount,
-              is_archived: false,
+              is_archived: chat.wa_archived || false,
             },
             {
               onConflict: "company_id,instance_id,phone",
@@ -248,6 +252,7 @@ serve(async (req) => {
         success: true,
         synced: syncedCount,
         total_found: chats.length,
+        attempts: attemptLogs,
         errors: errors.length > 0 ? errors : undefined,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

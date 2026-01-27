@@ -21,8 +21,10 @@ serve(async (req) => {
     console.log("[whatsapp-webhook] Received webhook:", JSON.stringify(payload));
 
     // Determine provider based on payload structure
-    const isUazapi = payload.session || payload.event;
-    const isZapi = payload.instanceId || payload.phone;
+    // UazapiGO format: { EventType, instanceName, token, message, chat }
+    // Z-API format: { instanceId, phone, text, ... }
+    const isUazapi = payload.EventType || payload.instanceName || payload.token;
+    const isZapi = payload.instanceId && !payload.EventType;
 
     let phone: string | null = null;
     let content: string | null = null;
@@ -30,37 +32,61 @@ serve(async (req) => {
     let messageType = "text";
     let externalId: string | null = null;
     let session: string | null = null;
+    let instanceToken: string | null = null;
     let direction: "incoming" | "outgoing" = "incoming";
 
     if (isUazapi) {
-      // UazapiGO webhook format
-      session = payload.session;
+      // UazapiGO webhook format v2
+      // The instance is identified by instanceName or token
+      session = payload.instanceName || null;
+      instanceToken = payload.token || null;
       
-      if (payload.event === "message" || payload.data?.message) {
-        const data = payload.data || payload;
-        const key = data.key || {};
+      console.log("[whatsapp-webhook] UazapiGO detected - instanceName:", session, "token:", instanceToken?.substring(0, 8) + "...");
+
+      // Check if this is a message event
+      if (payload.EventType === "messages" || payload.message) {
+        const message = payload.message || {};
+        const chat = payload.chat || {};
         
-        // Get phone from remoteJid (format: 5511999999999@s.whatsapp.net)
-        const remoteJid = key.remoteJid || data.remoteJid || "";
-        phone = remoteJid.replace("@s.whatsapp.net", "").replace("@c.us", "");
+        // Get phone from message.chatid or chat.phone
+        // Format: 5511999999999@s.whatsapp.net or +55 11 99999-9999
+        const chatId = message.chatid || message.sender_pn || "";
+        const chatPhone = chat.phone || "";
         
-        direction = key.fromMe ? "outgoing" : "incoming";
-        externalId = key.id || data.id;
-        contactName = data.pushName || data.notify || null;
+        // Extract phone number
+        if (chatId) {
+          phone = chatId.replace("@s.whatsapp.net", "").replace("@c.us", "").replace(/\D/g, "");
+        } else if (chatPhone) {
+          phone = chatPhone.replace(/\D/g, "");
+        }
+        
+        // Ignore groups
+        if (chatId.includes("@g.us") || chat.wa_isGroup) {
+          console.log("[whatsapp-webhook] Ignoring group message");
+          return new Response(
+            JSON.stringify({ success: true, message: "Group message ignored" }),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        
+        direction = message.fromMe ? "outgoing" : "incoming";
+        externalId = message.id || message.messageid || null;
+        contactName = message.senderName || chat.name || chat.wa_contactName || null;
         
         // Get message content
-        const message = data.message || {};
-        content = message.conversation || 
-                  message.extendedTextMessage?.text ||
-                  message.imageMessage?.caption ||
-                  message.videoMessage?.caption ||
-                  "[Mídia]";
+        content = message.content || 
+                  message.text ||
+                  message.caption ||
+                  (message.messageType && message.messageType !== "Conversation" ? `[${message.messageType}]` : null) ||
+                  null;
         
         // Determine message type
-        if (message.imageMessage) messageType = "image";
-        else if (message.audioMessage) messageType = "audio";
-        else if (message.videoMessage) messageType = "video";
-        else if (message.documentMessage) messageType = "document";
+        const msgType = message.messageType?.toLowerCase() || message.mediaType?.toLowerCase() || "";
+        if (msgType.includes("image")) messageType = "image";
+        else if (msgType.includes("audio") || msgType.includes("ptt")) messageType = "audio";
+        else if (msgType.includes("video")) messageType = "video";
+        else if (msgType.includes("document")) messageType = "document";
+        else if (msgType.includes("sticker")) messageType = "sticker";
       }
     } else if (isZapi) {
       // Z-API webhook format
@@ -76,6 +102,8 @@ serve(async (req) => {
       else if (payload.document) messageType = "document";
     }
 
+    console.log("[whatsapp-webhook] Extracted data:", { phone, content: content?.substring(0, 50), direction, contactName });
+
     if (!phone || !content) {
       console.log("[whatsapp-webhook] Ignoring webhook - no phone or content");
       return new Response(
@@ -86,32 +114,54 @@ serve(async (req) => {
 
     console.log("[whatsapp-webhook] Processing message:", { phone, direction, messageType, contactName });
 
-    // Find company and instance by session (UazapiGO) or instance_id (Z-API)
+    // Find company and instance
     let companyId: string | null = null;
     let instanceId: string | null = null;
 
-    if (isUazapi && session) {
-      // First try to find by whatsapp_instances table
-      const { data: instance } = await supabase
-        .from("whatsapp_instances")
-        .select("id, company_id")
-        .eq("session_id", session)
-        .eq("is_active", true)
-        .single();
+    if (isUazapi) {
+      // Try to find by token first (most reliable)
+      if (instanceToken) {
+        const { data: instance } = await supabase
+          .from("whatsapp_instances")
+          .select("id, company_id")
+          .eq("uazapi_token", instanceToken)
+          .eq("is_active", true)
+          .maybeSingle();
+        
+        if (instance) {
+          companyId = instance.company_id;
+          instanceId = instance.id;
+          console.log("[whatsapp-webhook] Found instance by token");
+        }
+      }
       
-      if (instance) {
-        companyId = instance.company_id;
-        instanceId = instance.id;
-      } else {
-        // Fallback to whatsapp_configs (legacy)
+      // Try by instance name/session if not found
+      if (!companyId && session) {
+        const { data: instance } = await supabase
+          .from("whatsapp_instances")
+          .select("id, company_id")
+          .or(`instance_name.ilike.${session},uazapi_instance_id.eq.${session},session_id.eq.${session}`)
+          .eq("is_active", true)
+          .maybeSingle();
+        
+        if (instance) {
+          companyId = instance.company_id;
+          instanceId = instance.id;
+          console.log("[whatsapp-webhook] Found instance by name/session");
+        }
+      }
+
+      // Legacy fallback to whatsapp_configs
+      if (!companyId && session) {
         const { data: config } = await supabase
           .from("whatsapp_configs")
           .select("company_id")
           .eq("uazapi_session", session)
           .eq("provider", "uazapi")
-          .single();
+          .maybeSingle();
         
         companyId = config?.company_id || null;
+        console.log("[whatsapp-webhook] Found company by legacy config");
       }
     } else if (isZapi && payload.instanceId) {
       const { data: config } = await supabase
@@ -119,7 +169,7 @@ serve(async (req) => {
         .select("company_id")
         .eq("instance_id", payload.instanceId)
         .eq("provider", "zapi")
-        .single();
+        .maybeSingle();
       
       companyId = config?.company_id || null;
     }
@@ -145,7 +195,7 @@ serve(async (req) => {
         .eq("company_id", companyId)
         .eq("phone", phone)
         .eq("instance_id", instanceId)
-        .single();
+        .maybeSingle();
       existingConversation = data;
     }
     
@@ -157,7 +207,7 @@ serve(async (req) => {
         .eq("company_id", companyId)
         .eq("phone", phone)
         .is("instance_id", null)
-        .single();
+        .maybeSingle();
       existingConversation = data;
     }
 
@@ -232,7 +282,7 @@ serve(async (req) => {
       throw messageError;
     }
 
-    console.log("[whatsapp-webhook] Message saved successfully");
+    console.log("[whatsapp-webhook] Message saved successfully for conversation:", conversationId);
 
     return new Response(
       JSON.stringify({ success: true }),
