@@ -112,47 +112,12 @@ export function useWhatsAppMessages(conversationId: string | null, companyId: st
   const sendMessage = useCallback(async ({ phone, message }: { phone: string; message: string }) => {
     if (!companyId || !conversationId) return;
 
-    const tempId = `temp-${Date.now()}`;
     const now = new Date().toISOString();
 
-    // Create optimistic message
-    const optimisticMessage: WhatsAppMessage = {
-      id: tempId,
-      conversation_id: conversationId,
-      company_id: companyId,
-      direction: "outgoing",
-      content: message,
-      message_type: "text",
-      media_url: null,
-      cached_media_url: null,
-      status: "sending",
-      external_id: null,
-      sent_at: now,
-      reaction: null,
-    };
-
-    // Immediately add to cache (optimistic update)
-    queryClient.setQueryData<WhatsAppMessage[]>(
-      ["whatsapp-messages", conversationId],
-      (old) => [...(old || []), optimisticMessage]
-    );
-
-    // Update conversation preview optimistically
-    queryClient.setQueryData(
-      ["whatsapp-conversations", companyId],
-      (old: any) => {
-        if (!old) return old;
-        return old.map((conv: any) =>
-          conv.id === conversationId
-            ? { ...conv, last_message_at: now, last_message_preview: message.substring(0, 100) }
-            : conv
-        );
-      }
-    );
-
-    // Send in background
+    // First, save to DB to get the real ID
+    let savedMessageId: string | null = null;
+    
     try {
-      // First, save to DB immediately
       const { data: savedMessage, error: saveError } = await supabase
         .from("whatsapp_messages")
         .insert({
@@ -168,8 +133,48 @@ export function useWhatsAppMessages(conversationId: string | null, companyId: st
         .single();
 
       if (saveError) throw saveError;
+      savedMessageId = savedMessage.id;
 
-      // Update conversation
+      // Add to cache with real ID (Realtime may also add it, but this is instant)
+      const optimisticMessage: WhatsAppMessage = {
+        id: savedMessage.id,
+        conversation_id: conversationId,
+        company_id: companyId,
+        direction: "outgoing",
+        content: message,
+        message_type: "text",
+        media_url: null,
+        cached_media_url: null,
+        status: "sending",
+        external_id: null,
+        sent_at: now,
+        reaction: null,
+      };
+
+      queryClient.setQueryData<WhatsAppMessage[]>(
+        ["whatsapp-messages", conversationId],
+        (old) => {
+          if (!old) return [optimisticMessage];
+          // Avoid duplicates (Realtime might have already added it)
+          if (old.some(m => m.id === savedMessage.id)) return old;
+          return [...old, optimisticMessage];
+        }
+      );
+
+      // Update conversation preview optimistically
+      queryClient.setQueryData(
+        ["whatsapp-conversations", companyId],
+        (old: any) => {
+          if (!old) return old;
+          return old.map((conv: any) =>
+            conv.id === conversationId
+              ? { ...conv, last_message_at: now, last_message_preview: message.substring(0, 100) }
+              : conv
+          );
+        }
+      );
+
+      // Update conversation in DB
       await supabase
         .from("whatsapp_conversations")
         .update({
@@ -196,14 +201,14 @@ export function useWhatsAppMessages(conversationId: string | null, companyId: st
         .update({ status: newStatus })
         .eq("id", savedMessage.id);
 
-      // Update cache with real message
+      // Update cache with new status
       queryClient.setQueryData<WhatsAppMessage[]>(
         ["whatsapp-messages", conversationId],
         (old) => {
           if (!old) return old;
           return old.map((msg) =>
-            msg.id === tempId
-              ? { ...msg, id: savedMessage.id, status: newStatus }
+            msg.id === savedMessage.id
+              ? { ...msg, status: newStatus }
               : msg
           );
         }
@@ -217,16 +222,23 @@ export function useWhatsAppMessages(conversationId: string | null, companyId: st
         });
       }
     } catch (err: any) {
-      // Mark as failed in cache
-      queryClient.setQueryData<WhatsAppMessage[]>(
-        ["whatsapp-messages", conversationId],
-        (old) => {
-          if (!old) return old;
-          return old.map((msg) =>
-            msg.id === tempId ? { ...msg, status: "failed" } : msg
-          );
-        }
-      );
+      // If we have a saved message ID, mark it as failed
+      if (savedMessageId) {
+        await supabase
+          .from("whatsapp_messages")
+          .update({ status: "failed" })
+          .eq("id", savedMessageId);
+
+        queryClient.setQueryData<WhatsAppMessage[]>(
+          ["whatsapp-messages", conversationId],
+          (old) => {
+            if (!old) return old;
+            return old.map((msg) =>
+              msg.id === savedMessageId ? { ...msg, status: "failed" } : msg
+            );
+          }
+        );
+      }
 
       toast({
         title: "Erro ao enviar mensagem",
