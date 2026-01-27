@@ -1,285 +1,427 @@
 
-# Plano: Corrigir Gaps do Módulo CS e Torná-lo 100% Funcional
+# Plano: Integração UazapiGO + WhatsApp Web Interno
 
-## Diagnóstico Completo
+## Visão Geral
 
-Após auditoria técnica, identifiquei os seguintes gaps entre a estrutura visual e a implementação lógica:
-
-### Gaps Críticos Encontrados
-
-| Área | Problema | Impacto |
-|------|----------|---------|
-| **Cockpit - Incêndios** | Botões WhatsApp/Ligar abrem URL vazia (`wa.me/`) | CS não consegue contatar cliente |
-| **Cockpit - Tarefas** | Checkbox não persiste conclusão | Progresso do dia não funciona |
-| **Cockpit - Tarefas** | Botão "Mandar Oi" abre WhatsApp vazio | CS não consegue enviar mensagem |
-| **Ações** | Não existe botão global "Novo Touchpoint" | CS precisa buscar cliente em outra tela |
-| **Ações** | Não existe botão "Coletar NPS" | CS não consegue iniciar coleta |
-| **Carteira/Jornada** | Sem ações rápidas nos cards | Exige navegação extra |
+Este plano adiciona suporte completo à UazapiGO como provider alternativo de WhatsApp (além do Z-API já existente) e implementa uma interface de "WhatsApp Web" interno acessível pelo header do dashboard.
 
 ---
 
-## Fase 1: Integrar Telefones Reais nos Botões WhatsApp/Ligar
+## Arquitetura da Solução
 
-### O que fazer
+### Estrutura de Providers
 
-Buscar telefone do cliente da tabela `whatsapp_client_contacts` e usar no botão de ação.
-
-### Arquivos a Modificar
-
-**1. `src/hooks/useCSCockpitData.tsx`**
-- Adicionar campo `clientPhone` nas interfaces `FireAlert`, `DailyTask`, `Opportunity`
-- Na query, fazer join com `whatsapp_client_contacts` para buscar telefone principal
-- Retornar telefone formatado (5511999999999)
-
-```typescript
-// Adicionar ao select de clients:
-const { data: contacts } = await supabase
-  .from('whatsapp_client_contacts')
-  .select('client_id, phone')
-  .in('client_id', clientIds)
-  .eq('is_active', true);
-
-// Mapear por client_id
-const phonesByClient = contacts?.reduce((acc, c) => {
-  acc[c.client_id] = c.phone;
-  return acc;
-}, {} as Record<string, string>);
-
-// Adicionar ao FireAlert, DailyTask:
-clientPhone: phonesByClient[client.id] || null,
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│                    CONFIGURAÇÕES WHATSAPP                       │
+├───────────────────────────┬─────────────────────────────────────┤
+│      Tab: Z-API           │       Tab: UazapiGO                 │
+│  ┌─────────────────────┐  │  ┌─────────────────────────────┐    │
+│  │ Instance ID         │  │  │ URL Base (endpoint)         │    │
+│  │ Token               │  │  │ Token da API                │    │
+│  │ Client-Token        │  │  │ Session ID                  │    │
+│  │ [Testar] [Salvar]   │  │  │ [Ver QR] [Testar] [Salvar]  │    │
+│  └─────────────────────┘  │  └─────────────────────────────┘    │
+└───────────────────────────┴─────────────────────────────────────┘
 ```
 
-**2. `src/components/cs/CSCockpitFires.tsx`**
-- Modificar `handleAction` para usar `fire.clientPhone`
-- WhatsApp: `window.open(`https://wa.me/${fire.clientPhone}`, '_blank')`
-- Se não tiver telefone, redirecionar para página do cliente
+### Widget WhatsApp no Header
 
-**3. `src/components/cs/CSCockpitTasks.tsx`**
-- Mesma lógica para `task.clientPhone`
-
-**4. `src/components/cs/CSCockpitOpportunities.tsx`**
-- Mesma lógica para `opportunity.clientPhone`
+```text
+┌──────────────────────────────────────────────────────────────────────────┐
+│ [Logo]  Dashboard                    [🔔] [☀️] [🏢] [👤] [💬 WhatsApp]   │
+└──────────────────────────────────────────────────────────────────────────┘
+                                                          ↓ Clique
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ ┌─────────────────────────────────────────────────────────────────────────┐ │
+│ │                    WhatsApp                              [−] [×]        │ │
+│ ├─────────────────────────────────────────────────────────────────────────┤ │
+│ │ 🔍 Buscar conversa...                                                   │ │
+│ ├───────────────────────────┬─────────────────────────────────────────────┤ │
+│ │                           │                                             │ │
+│ │  CONVERSAS                │  MENSAGENS                                  │ │
+│ │                           │                                             │ │
+│ │  👤 Maria Silva     11:30 │  Maria: Preciso de ajuda...                 │ │
+│ │     Última mensagem...    │                                             │ │
+│ │                           │  Você: Olá! Como posso ajudar?              │ │
+│ │  👤 João Souza      10:15 │                                             │ │
+│ │     Ok, obrigado!         │  ───────────────────────────────────────    │ │
+│ │                           │  [Digite sua mensagem...           ] [➤]   │ │
+│ └───────────────────────────┴─────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
-## Fase 2: Implementar Marcação de Tarefas como Concluídas
+## Fase 1: Alterações no Banco de Dados
 
-### O que fazer
+### Adicionar colunas na tabela `whatsapp_configs`
 
-Criar sistema de persistência de tarefas concluídas (localStorage ou tabela) e implementar callback.
+```sql
+ALTER TABLE whatsapp_configs 
+ADD COLUMN IF NOT EXISTS provider TEXT DEFAULT 'zapi',
+ADD COLUMN IF NOT EXISTS uazapi_endpoint TEXT,
+ADD COLUMN IF NOT EXISTS uazapi_token TEXT,
+ADD COLUMN IF NOT EXISTS uazapi_session TEXT;
+
+COMMENT ON COLUMN whatsapp_configs.provider IS 'Provider de WhatsApp: zapi ou uazapi';
+COMMENT ON COLUMN whatsapp_configs.uazapi_endpoint IS 'URL base da API UazapiGO (ex: https://api.uazapi.com)';
+COMMENT ON COLUMN whatsapp_configs.uazapi_token IS 'Token de autenticação da UazapiGO';
+COMMENT ON COLUMN whatsapp_configs.uazapi_session IS 'Session ID da instância UazapiGO';
+```
+
+### Criar tabelas para conversas e mensagens
+
+```sql
+-- Tabela de conversas
+CREATE TABLE IF NOT EXISTS whatsapp_conversations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id UUID REFERENCES companies(id) ON DELETE CASCADE NOT NULL,
+  phone TEXT NOT NULL,
+  contact_name TEXT,
+  last_message_at TIMESTAMPTZ,
+  last_message_preview TEXT,
+  unread_count INTEGER DEFAULT 0,
+  is_archived BOOLEAN DEFAULT false,
+  client_id UUID REFERENCES clients(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(company_id, phone)
+);
+
+-- Tabela de mensagens
+CREATE TABLE IF NOT EXISTS whatsapp_messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  conversation_id UUID REFERENCES whatsapp_conversations(id) ON DELETE CASCADE NOT NULL,
+  company_id UUID REFERENCES companies(id) ON DELETE CASCADE NOT NULL,
+  direction TEXT NOT NULL CHECK (direction IN ('incoming', 'outgoing')),
+  content TEXT NOT NULL,
+  message_type TEXT DEFAULT 'text' CHECK (message_type IN ('text', 'image', 'audio', 'video', 'document')),
+  media_url TEXT,
+  status TEXT DEFAULT 'sent' CHECK (status IN ('pending', 'sent', 'delivered', 'read', 'failed')),
+  external_id TEXT,
+  sent_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Índices para performance
+CREATE INDEX idx_whatsapp_conversations_company ON whatsapp_conversations(company_id);
+CREATE INDEX idx_whatsapp_messages_conversation ON whatsapp_messages(conversation_id);
+CREATE INDEX idx_whatsapp_messages_sent_at ON whatsapp_messages(sent_at DESC);
+
+-- RLS
+ALTER TABLE whatsapp_conversations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE whatsapp_messages ENABLE ROW LEVEL SECURITY;
+
+-- Políticas (similar às outras tabelas do sistema)
+CREATE POLICY "Users can view conversations of their companies"
+  ON whatsapp_conversations FOR SELECT
+  USING (company_id IN (SELECT company_id FROM user_companies WHERE user_id = auth.uid()));
+
+CREATE POLICY "Users can view messages of their companies"
+  ON whatsapp_messages FOR SELECT
+  USING (company_id IN (SELECT company_id FROM user_companies WHERE user_id = auth.uid()));
+```
+
+---
+
+## Fase 2: Interface de Configuração Multi-Provider
+
+### Arquivos a Criar
+
+| Arquivo | Descrição |
+|---------|-----------|
+| `src/components/whatsapp/WhatsAppProviderTabs.tsx` | Tabs para alternar entre Z-API e UazapiGO |
+| `src/components/whatsapp/UazapiConnectionCard.tsx` | Card de configuração específico para UazapiGO |
+| `src/components/whatsapp/UazapiQRCodeModal.tsx` | Modal para exibir QR Code da UazapiGO |
 
 ### Arquivos a Modificar
 
-**1. `src/hooks/useCSCockpitData.tsx`**
-- Adicionar estado local para tarefas concluídas
-- Criar mutation `markTaskComplete` que salva no localStorage
-- Atualizar lista de tarefas para marcar como completed
+| Arquivo | Alterações |
+|---------|------------|
+| `src/components/whatsapp/WhatsAppSettings.tsx` | Adicionar tabs de provider, renderizar card correto |
+| `src/hooks/useWhatsAppConfig.tsx` | Adicionar campos da UazapiGO na interface e mutations |
 
-```typescript
-// Usar localStorage para persistir
-const completedTasksKey = `cs-completed-tasks-${new Date().toISOString().split('T')[0]}`;
-const completedTasks = JSON.parse(localStorage.getItem(completedTasksKey) || '[]');
+### Detalhes de Implementação
 
-// Marcar tarefas
-tasks.forEach(task => {
-  task.completed = completedTasks.includes(task.id);
-});
+**WhatsAppProviderTabs.tsx**
+- Tabs: "Z-API" | "UazapiGO"
+- Estado controlado para provider ativo
+- Salva escolha de provider no banco
+
+**UazapiConnectionCard.tsx**
+- Campos:
+  - URL Base (endpoint): ex: `https://api.uazapi.com`
+  - Token: token de autenticação
+  - Session ID: identificador da sessão
+- Botões:
+  - "Ver QR Code" - abre modal com QR
+  - "Testar Conexão" - verifica status
+  - "Salvar" - persiste configuração
+- Status de conexão igual ao Z-API
+
+**UazapiQRCodeModal.tsx**
+- Exibe imagem do QR Code via endpoint `/getQrCode`
+- Auto-refresh a cada 30 segundos
+- Mostra status: "Aguardando leitura" / "Conectado"
+
+---
+
+## Fase 3: Edge Functions Multi-Provider
+
+### Arquivos a Criar
+
+| Arquivo | Descrição |
+|---------|-----------|
+| `supabase/functions/test-uazapi-connection/index.ts` | Testar conexão com UazapiGO |
+| `supabase/functions/get-uazapi-qrcode/index.ts` | Obter QR Code para conexão |
+| `supabase/functions/whatsapp-webhook/index.ts` | Receber webhooks de mensagens |
+
+### Arquivos a Modificar
+
+| Arquivo | Alterações |
+|---------|------------|
+| `supabase/functions/send-whatsapp-notification/index.ts` | Adicionar lógica para UazapiGO |
+| `supabase/functions/test-whatsapp-connection/index.ts` | Redirecionar para provider correto |
+
+### Endpoints UazapiGO a Utilizar
+
+**Autenticação:**
+- Header: `Token: {uazapi_token}` ou `apitoken: {uazapi_token}`
+
+**Endpoints principais:**
+
+| Ação | Método | Endpoint |
+|------|--------|----------|
+| Obter QR Code | GET | `{endpoint}/getQrCode?session={session}` |
+| Status da sessão | POST | `{endpoint}/getSessionStatus` |
+| Verificar conexão | POST | `{endpoint}/getSessionState` |
+| Enviar texto | POST | `{endpoint}/sendText` |
+| Enviar imagem | POST | `{endpoint}/sendImage` |
+| Desconectar | POST | `{endpoint}/closeSession` |
+
+**Payload para sendText:**
+```json
+{
+  "session": "session_id",
+  "number": "5511999999999",
+  "text": "Mensagem aqui"
+}
 ```
 
-**2. `src/pages/cs/CSCockpitPage.tsx`**
-- Adicionar função `handleTaskComplete`
-- Passar para `CSCockpitTasks` via prop `onTaskComplete`
-- Invalidar query após marcar
+**Resposta de status:**
+```json
+{
+  "status": "CONNECTED",
+  "phone": "5511999999999",
+  "pushname": "Nome do Usuário"
+}
+```
+
+### Lógica send-whatsapp-notification Atualizada
 
 ```typescript
-const handleTaskComplete = (taskId: string) => {
-  const key = `cs-completed-tasks-${new Date().toISOString().split('T')[0]}`;
-  const current = JSON.parse(localStorage.getItem(key) || '[]');
-  if (!current.includes(taskId)) {
-    current.push(taskId);
-    localStorage.setItem(key, JSON.stringify(current));
+// Verificar provider e chamar API correta
+if (config.provider === 'uazapi') {
+  const uazapiUrl = `${config.uazapi_endpoint}/sendText`;
+  const response = await fetch(uazapiUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Token": config.uazapi_token,
+    },
+    body: JSON.stringify({
+      session: config.uazapi_session,
+      number: formattedPhone,
+      text: message,
+    }),
+  });
+} else {
+  // Lógica Z-API existente
+}
+```
+
+---
+
+## Fase 4: WhatsApp Web Interno (Widget)
+
+### Arquivos a Criar
+
+| Arquivo | Descrição |
+|---------|-----------|
+| `src/components/whatsapp/WhatsAppInboxDrawer.tsx` | Drawer lateral com inbox completo |
+| `src/components/whatsapp/WhatsAppConversationList.tsx` | Lista de conversas com busca |
+| `src/components/whatsapp/WhatsAppConversationItem.tsx` | Item individual de conversa |
+| `src/components/whatsapp/WhatsAppChatWindow.tsx` | Janela de chat com mensagens |
+| `src/components/whatsapp/WhatsAppMessageBubble.tsx` | Bolha de mensagem (entrada/saída) |
+| `src/components/whatsapp/WhatsAppMessageInput.tsx` | Input para enviar mensagem |
+| `src/hooks/useWhatsAppConversations.tsx` | Hook para listar conversas |
+| `src/hooks/useWhatsAppMessages.tsx` | Hook para mensagens de uma conversa |
+| `src/hooks/useWhatsAppRealtime.tsx` | Hook para real-time via Supabase |
+
+### Arquivos a Modificar
+
+| Arquivo | Alterações |
+|---------|------------|
+| `src/components/dashboard/DashboardHeader.tsx` | Adicionar botão WhatsApp que abre drawer |
+
+### Componentes em Detalhes
+
+**WhatsAppInboxDrawer.tsx**
+- Drawer do lado direito (Sheet do shadcn)
+- Largura: 600px em desktop, full em mobile
+- Divide em: lista de conversas (35%) + chat (65%)
+- Estado: conversa selecionada
+
+**WhatsAppConversationList.tsx**
+- Input de busca no topo
+- Lista de conversas ordenadas por `last_message_at`
+- Badge de não lidas
+- Click seleciona conversa
+
+**WhatsAppChatWindow.tsx**
+- Header: nome do contato, telefone, botão de ações
+- Área de mensagens com scroll
+- Input fixo no rodapé
+- Carrega mais mensagens ao scrollar
+
+**useWhatsAppRealtime.tsx**
+- Subscribe em `whatsapp_messages` e `whatsapp_conversations`
+- Atualiza lista automaticamente quando nova mensagem chega
+- Usa Supabase Realtime
+
+### Fluxo de Dados
+
+```text
+1. Usuário clica no ícone WhatsApp no header
+   ↓
+2. WhatsAppInboxDrawer abre
+   ↓
+3. useWhatsAppConversations busca conversas da company
+   ↓
+4. Usuário seleciona conversa
+   ↓
+5. useWhatsAppMessages busca mensagens da conversa
+   ↓
+6. Usuário digita e envia mensagem
+   ↓
+7. Mutation chama Edge Function send-whatsapp-notification
+   ↓
+8. Edge Function envia via provider (Z-API ou UazapiGO)
+   ↓
+9. Mensagem salva em whatsapp_messages
+   ↓
+10. Realtime atualiza UI automaticamente
+```
+
+---
+
+## Fase 5: Webhook para Sincronização de Mensagens
+
+### Edge Function: whatsapp-webhook/index.ts
+
+Recebe webhooks de ambos os providers e salva mensagens no banco.
+
+**Payload UazapiGO (wh_message):**
+```json
+{
+  "event": "message",
+  "session": "session_id",
+  "data": {
+    "key": {
+      "remoteJid": "5511999999999@s.whatsapp.net",
+      "fromMe": false,
+      "id": "ABC123"
+    },
+    "message": {
+      "conversation": "Texto da mensagem"
+    },
+    "pushName": "Nome do Contato"
   }
-  refetch();
-};
+}
 ```
 
----
+**Lógica do webhook:**
+1. Identificar company pelo session ID
+2. Buscar/criar conversa pelo telefone
+3. Salvar mensagem com direction = 'incoming'
+4. Atualizar `last_message_at` e `unread_count` da conversa
+5. Retornar 200 OK
 
-## Fase 3: Adicionar Botões Globais na Tela de Ações
-
-### O que fazer
-
-Adicionar botões "+ Novo Touchpoint" e "+ Coletar NPS" no header da página de Ações.
-
-### Arquivos a Modificar
-
-**1. `src/pages/cs/CSActionsPage.tsx`**
-- Adicionar dropdown "Selecionar Cliente" 
-- Adicionar botões de ação no header
-- Criar modal de NPS
-
-```tsx
-// Header atualizado
-<div className="flex items-start justify-between">
-  <div>
-    <h1>Ações de CS</h1>
-    <p>Touchpoints, NPS, QBR e Value Statements</p>
-  </div>
-  <div className="flex items-center gap-2">
-    <CSSquadFilter />
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button>
-          <Plus className="h-4 w-4 mr-2" />
-          Nova Ação
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent>
-        <DropdownMenuItem onClick={() => setShowClientSelector('touchpoint')}>
-          <Phone className="h-4 w-4 mr-2" />
-          Novo Touchpoint
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setShowClientSelector('nps')}>
-          <Star className="h-4 w-4 mr-2" />
-          Coletar NPS
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  </div>
-</div>
-```
-
-**2. Criar `src/components/cs/CSClientSelectorModal.tsx`**
-- Modal com lista de clientes filtrados por squad
-- Callback `onSelect(clientId)` para abrir modal específico
-
-**3. Criar `src/components/cs/CSNPSCollectModal.tsx`**
-- Modal para registrar NPS de um cliente
-- Campos: Score (0-10), Feedback (opcional)
-- Salvar na tabela `nps_responses`
-
----
-
-## Fase 4: Registrar Touchpoint Automaticamente Após Ação
-
-### O que fazer
-
-Após clicar em WhatsApp/Ligar, abrir modal de registro de touchpoint automaticamente.
-
-### Arquivos a Modificar
-
-**1. `src/components/cs/CSCockpitFires.tsx`**
-- Adicionar estado para modal de touchpoint
-- Após abrir WhatsApp, abrir modal pré-preenchido
-
-```typescript
-const [showTouchpoint, setShowTouchpoint] = useState(false);
-const [selectedFire, setSelectedFire] = useState<FireAlert | null>(null);
-
-const handleAction = (fire: FireAlert, action: string) => {
-  switch (action) {
-    case 'whatsapp':
-      if (fire.clientPhone) {
-        window.open(`https://wa.me/${fire.clientPhone}`, '_blank');
-        // Aguardar 2s e abrir modal de touchpoint
-        setTimeout(() => {
-          setSelectedFire(fire);
-          setShowTouchpoint(true);
-        }, 2000);
-      } else {
-        navigate(`/clientes/${fire.clientId}/cs`);
-      }
-      break;
-    // ...
-  }
-};
-
-// Render modal no final:
-<CSNewTouchpointModal
-  open={showTouchpoint}
-  onOpenChange={setShowTouchpoint}
-  clientId={selectedFire?.clientId || ''}
-  clientName={selectedFire?.clientName}
-  preselectedType="whatsapp" // Pré-selecionar tipo
-/>
-```
-
-**2. `src/components/cs/CSNewTouchpointModal.tsx`**
-- Aceitar prop `preselectedType` para pré-selecionar tipo
-
----
-
-## Fase 5: Ações Rápidas nos Cards de Carteira e Jornada
-
-### O que fazer
-
-Adicionar dropdown de ações rápidas nos cards de clientes.
-
-### Arquivos a Modificar
-
-**1. `src/components/cs/CSHealthScore360Card.tsx`**
-- Adicionar botão de ações no canto superior direito
-- Dropdown com: WhatsApp, Registrar Touchpoint, Ver Cliente
-
-**2. `src/pages/cs/CSJourneyKanbanPage.tsx`**
-- No `ClientCard`, adicionar ações rápidas no hover
-- Ações: WhatsApp, Ver Cliente, Avançar Etapa
+**Configuração no UazapiGO:**
+- URL do webhook: `https://ejwpfztkspbvmuwwiwmk.supabase.co/functions/v1/whatsapp-webhook`
 
 ---
 
 ## Resumo de Arquivos
 
-### Criar (2 arquivos)
-| Arquivo | Descrição |
-|---------|-----------|
-| `src/components/cs/CSClientSelectorModal.tsx` | Modal para selecionar cliente antes de ação |
-| `src/components/cs/CSNPSCollectModal.tsx` | Modal para coletar NPS de cliente |
+### Criar (14 arquivos)
 
-### Modificar (9 arquivos)
+| Tipo | Arquivo |
+|------|---------|
+| Component | `src/components/whatsapp/WhatsAppProviderTabs.tsx` |
+| Component | `src/components/whatsapp/UazapiConnectionCard.tsx` |
+| Component | `src/components/whatsapp/UazapiQRCodeModal.tsx` |
+| Component | `src/components/whatsapp/WhatsAppInboxDrawer.tsx` |
+| Component | `src/components/whatsapp/WhatsAppConversationList.tsx` |
+| Component | `src/components/whatsapp/WhatsAppConversationItem.tsx` |
+| Component | `src/components/whatsapp/WhatsAppChatWindow.tsx` |
+| Component | `src/components/whatsapp/WhatsAppMessageBubble.tsx` |
+| Component | `src/components/whatsapp/WhatsAppMessageInput.tsx` |
+| Hook | `src/hooks/useWhatsAppConversations.tsx` |
+| Hook | `src/hooks/useWhatsAppMessages.tsx` |
+| Hook | `src/hooks/useWhatsAppRealtime.tsx` |
+| Edge Fn | `supabase/functions/test-uazapi-connection/index.ts` |
+| Edge Fn | `supabase/functions/get-uazapi-qrcode/index.ts` |
+| Edge Fn | `supabase/functions/whatsapp-webhook/index.ts` |
+
+### Modificar (4 arquivos)
+
 | Arquivo | Alterações |
 |---------|------------|
-| `src/hooks/useCSCockpitData.tsx` | Buscar telefones, adicionar lógica de tarefas concluídas |
-| `src/pages/cs/CSCockpitPage.tsx` | Implementar `handleTaskComplete`, passar para componentes |
-| `src/components/cs/CSCockpitFires.tsx` | Usar telefone real, abrir modal pós-contato |
-| `src/components/cs/CSCockpitTasks.tsx` | Usar telefone real no WhatsApp |
-| `src/components/cs/CSCockpitOpportunities.tsx` | Adicionar ações com telefone |
-| `src/pages/cs/CSActionsPage.tsx` | Adicionar botões globais no header |
-| `src/components/cs/CSNewTouchpointModal.tsx` | Aceitar `preselectedType` |
-| `src/components/cs/CSHealthScore360Card.tsx` | Adicionar ações rápidas |
-| `src/pages/cs/CSJourneyKanbanPage.tsx` | Adicionar ações no ClientCard |
-
----
-
-## Fluxo Corrigido
-
-Após implementação, o fluxo da CS será:
-
-```text
-1. CS abre Cockpit
-   ↓
-2. Vê "Incêndio: NPS 4 - Cliente X"
-   ↓
-3. Clica em "WhatsApp" 
-   → Abre wa.me/5511999999999 (telefone real)
-   → 2 segundos depois, modal aparece
-   ↓
-4. CS preenche resumo da conversa
-   ↓
-5. Clica "Registrar" 
-   → Touchpoint salvo
-   → last_cs_contact_at atualizado
-   ↓
-6. Volta ao Cockpit, marca tarefa como concluída
-   → Checkbox atualiza
-   → Barra de progresso avança
-```
+| `src/components/whatsapp/WhatsAppSettings.tsx` | Adicionar tabs de provider |
+| `src/hooks/useWhatsAppConfig.tsx` | Campos e mutations da UazapiGO |
+| `src/components/dashboard/DashboardHeader.tsx` | Botão WhatsApp no header |
+| `supabase/functions/send-whatsapp-notification/index.ts` | Suporte multi-provider |
 
 ---
 
 ## Ordem de Implementação
 
-1. **Fase 1** - Telefones reais (base para todas as ações)
-2. **Fase 2** - Marcação de tarefas (gamificação funcional)
-3. **Fase 3** - Botões globais em Ações (ponto de entrada centralizado)
-4. **Fase 4** - Modal automático pós-contato (fluxo completo)
-5. **Fase 5** - Ações rápidas nos cards (conveniência)
+1. **Banco de Dados** - Adicionar colunas e criar tabelas
+2. **Edge Functions UazapiGO** - test-connection, get-qrcode
+3. **UI de Configuração** - Tabs + UazapiConnectionCard
+4. **Modificar send-notification** - Lógica multi-provider
+5. **Hooks de Conversas** - useWhatsAppConversations, useWhatsAppMessages
+6. **Widget WhatsApp** - WhatsAppInboxDrawer + componentes
+7. **Botão no Header** - Integrar no DashboardHeader
+8. **Webhook** - Receber e salvar mensagens
+9. **Realtime** - Atualização automática da UI
+
+---
+
+## Considerações Técnicas
+
+### Autenticação UazapiGO
+
+A API aceita token via header:
+```
+Token: seu_token_aqui
+```
+
+### Formato de Telefone
+
+Ambas as APIs usam formato E.164 sem símbolos:
+- Correto: `5511999999999`
+- Incorreto: `+55 (11) 99999-9999`
+
+### Limitações Conhecidas
+
+1. **Listagem de conversas**: Nenhuma API oferece endpoint para listar histórico completo. O histórico será construído via webhooks (novas mensagens) + mensagens enviadas pelo sistema.
+
+2. **Sincronização inicial**: Conversas antigas do WhatsApp não serão importadas automaticamente. Apenas novas mensagens (recebidas após configuração do webhook) aparecerão no sistema.
+
+### Segurança
+
+- Tokens armazenados criptografados no banco
+- Webhook valida origem da requisição
+- RLS aplicado em todas as tabelas
