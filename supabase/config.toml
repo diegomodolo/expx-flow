@@ -390,3 +390,6 @@ verify_jwt = true
 
 [functions.analyze-url-content]
 verify_jwt = true
+
+[functions.import-campaign-urls]
+verify_jwt = true

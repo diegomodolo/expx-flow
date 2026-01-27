@@ -1,9 +1,9 @@
-import { useState } from "react";
-import { Loader2, RefreshCw, Search } from "lucide-react";
+import { useState, useCallback } from "react";
+import { Loader2, RefreshCw, Search, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { useRadarUrls, ValidationStatus } from "@/hooks/useRadarUrls";
+import { useRadarUrls, ValidationStatus, RadarUrl } from "@/hooks/useRadarUrls";
 import { UrlsKPIHeader } from "@/components/radar/UrlsKPIHeader";
 import { ProblematicUrlsCard } from "@/components/radar/ProblematicUrlsCard";
 import { SlowUrlsCard } from "@/components/radar/SlowUrlsCard";
@@ -11,11 +11,20 @@ import { RedirectUrlsCard } from "@/components/radar/RedirectUrlsCard";
 import { EmptyUrlsCard } from "@/components/radar/EmptyUrlsCard";
 import { SuspiciousUrlsCard } from "@/components/radar/SuspiciousUrlsCard";
 import { UrlsTable } from "@/components/radar/UrlsTable";
+import { ValidationProgressModal, ValidationProgress, ValidationStep } from "@/components/radar/ValidationProgressModal";
 
 const RadarUrlsDashboard = () => {
   const [filters, setFilters] = useState<{ status?: ValidationStatus | 'all'; search?: string }>({});
   const [onlyActiveCampaigns, setOnlyActiveCampaigns] = useState(true);
   const [includeManualUrls, setIncludeManualUrls] = useState(true);
+  
+  // Progress modal state
+  const [showProgressModal, setShowProgressModal] = useState(false);
+  const [validationProgress, setValidationProgress] = useState<ValidationProgress>({
+    step: 'validating',
+    processedCount: 0,
+    totalCount: 0,
+  });
   
   const { 
     urls, 
@@ -34,13 +43,98 @@ const RadarUrlsDashboard = () => {
     analyzeContent,
     analyzeAllContent,
     analyzeSuspicious,
-    isAnalyzing
+    isAnalyzing,
+    importUrls,
+    isImporting
   } = useRadarUrls({ onlyActiveCampaigns, includeManualUrls });
 
   // Validate empty URLs
   const validateEmptyUrls = () => {
     emptyUrls.forEach(url => validateUrl(url.id));
   };
+
+  // Combined validation + analysis with progress tracking
+  const runFullValidation = useCallback(async () => {
+    const urlsToProcess = urls.filter(u => u.validation_status === 'ok' || !u.validation_status || u.validation_status === 'pending');
+    const totalUrls = urls.length;
+    
+    setShowProgressModal(true);
+    setValidationProgress({
+      step: 'validating',
+      processedCount: 0,
+      totalCount: totalUrls,
+    });
+
+    try {
+      // Step 1: Validate all URLs
+      let processedValidation = 0;
+      
+      // Simulate progress for validation (since it's a batch operation)
+      const validationInterval = setInterval(() => {
+        processedValidation = Math.min(processedValidation + Math.ceil(totalUrls / 10), totalUrls);
+        setValidationProgress(prev => ({
+          ...prev,
+          step: 'validating',
+          processedCount: processedValidation,
+          currentUrl: urls[Math.min(processedValidation, urls.length - 1)]?.url,
+          currentClient: urls[Math.min(processedValidation, urls.length - 1)]?.client_name,
+        }));
+      }, 500);
+
+      await validateAll();
+      clearInterval(validationInterval);
+      
+      // Update to show validation complete
+      setValidationProgress(prev => ({
+        ...prev,
+        step: 'analyzing',
+        processedCount: 0,
+        currentUrl: undefined,
+        currentClient: undefined,
+      }));
+
+      // Wait a bit for data to refresh
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      await refetch();
+
+      // Step 2: Analyze content
+      let processedAnalysis = 0;
+      const analysisInterval = setInterval(() => {
+        processedAnalysis = Math.min(processedAnalysis + Math.ceil(totalUrls / 15), totalUrls);
+        setValidationProgress(prev => ({
+          ...prev,
+          step: 'analyzing',
+          processedCount: processedAnalysis,
+          currentUrl: urls[Math.min(processedAnalysis, urls.length - 1)]?.url,
+          currentClient: urls[Math.min(processedAnalysis, urls.length - 1)]?.client_name,
+        }));
+      }, 800);
+
+      const analysisResult = await analyzeAllContent();
+      clearInterval(analysisInterval);
+
+      // Complete
+      setValidationProgress({
+        step: 'complete',
+        processedCount: totalUrls,
+        totalCount: totalUrls,
+        suspiciousCount: (analysisResult as any)?.suspicious || 0,
+        errorCount: stats.error + stats.timeout,
+      });
+
+      // Refresh data
+      await refetch();
+
+      // Close modal after 3 seconds
+      setTimeout(() => {
+        setShowProgressModal(false);
+      }, 3000);
+
+    } catch (error) {
+      console.error('Validation error:', error);
+      setShowProgressModal(false);
+    }
+  }, [urls, validateAll, analyzeAllContent, refetch, stats]);
 
   // Filter URLs based on table filters
   const getFilteredUrls = () => {
@@ -70,6 +164,12 @@ const RadarUrlsDashboard = () => {
 
   return (
     <div className="space-y-3">
+      {/* Progress Modal */}
+      <ValidationProgressModal 
+        isOpen={showProgressModal} 
+        progress={validationProgress} 
+      />
+
       {/* Header - Compact */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="min-w-0">
@@ -118,31 +218,21 @@ const RadarUrlsDashboard = () => {
           <Button 
             variant="outline" 
             size="sm" 
-            onClick={() => refetch()}
-            disabled={isValidating}
+            onClick={() => importUrls()}
+            disabled={isImporting || isValidating || isAnalyzing}
             className="h-8 px-2 lg:px-3"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isValidating ? 'animate-spin' : ''}`} />
-            <span className="hidden sm:inline ml-1.5">Atualizar</span>
+            <Download className={`w-3.5 h-3.5 ${isImporting ? 'animate-bounce' : ''}`} />
+            <span className="hidden sm:inline ml-1.5">Importar</span>
           </Button>
           <Button 
             size="sm" 
-            onClick={() => validateAll()}
-            disabled={isValidating}
+            onClick={runFullValidation}
+            disabled={isValidating || isAnalyzing || showProgressModal}
             className="h-8 px-2 lg:px-3"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isValidating ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${isValidating || isAnalyzing ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline ml-1.5">Validar</span>
-          </Button>
-          <Button 
-            size="sm" 
-            variant="outline"
-            onClick={() => analyzeAllContent()}
-            disabled={isAnalyzing}
-            className="h-8 px-2 lg:px-3"
-          >
-            <Search className={`w-3.5 h-3.5 ${isAnalyzing ? 'animate-pulse' : ''}`} />
-            <span className="hidden sm:inline ml-1.5">Analisar Conteúdo</span>
           </Button>
         </div>
       </div>
