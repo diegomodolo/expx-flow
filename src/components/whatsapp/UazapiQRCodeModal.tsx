@@ -56,7 +56,11 @@ export function UazapiQRCodeModal({
       }
 
       if (data.success && data.qrcode) {
-        setQrCode(data.qrcode);
+        // Ensure qrcode is a string
+        const qrCodeValue = typeof data.qrcode === 'string' 
+          ? data.qrcode 
+          : JSON.stringify(data.qrcode);
+        setQrCode(qrCodeValue);
         setIsConnected(false);
       } else {
         throw new Error(data.error || "Erro ao obter QR Code");
@@ -151,7 +155,7 @@ export function UazapiQRCodeModal({
                 Tentar novamente
               </Button>
             </div>
-          ) : qrCode ? (
+          ) : qrCode && typeof qrCode === 'string' ? (
             <div className="flex flex-col items-center gap-4">
               <div className="p-4 bg-white rounded-lg">
                 <img
