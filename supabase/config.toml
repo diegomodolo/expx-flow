@@ -387,3 +387,6 @@ verify_jwt = false
 
 [functions.fetch-whatsapp-messages]
 verify_jwt = true
+
+[functions.analyze-url-content]
+verify_jwt = true
