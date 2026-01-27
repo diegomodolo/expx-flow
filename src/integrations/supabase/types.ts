@@ -11676,6 +11676,7 @@ export type Database = {
           client_avatar: string
           client_id: string
           client_name: string
+          content_match_score: number
           url: string
           url_id: string
           validation_status: string
