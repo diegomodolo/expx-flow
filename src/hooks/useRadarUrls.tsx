@@ -11,6 +11,7 @@ export interface RadarUrl {
   company_id: string;
   url: string;
   domain: string;
+  source: 'manual' | 'meta_sync' | 'google_sync';
   label: string | null;
   is_active: boolean;
   validation_status: ValidationStatus;
@@ -37,6 +38,7 @@ export interface UrlFilters {
   onlyActive?: boolean;
   onlyProblematic?: boolean;
   onlyActiveCampaigns?: boolean;
+  includeManualUrls?: boolean;
 }
 
 export interface UrlStats {
@@ -140,9 +142,15 @@ export function useRadarUrls(filters: UrlFilters = {}) {
     };
   });
 
-  // Apply campaign filter
+  // Apply campaign filter (include manual URLs if toggle is enabled)
   const urls = filters.onlyActiveCampaigns !== false
-    ? urlsWithCampaignStatus.filter(url => url.has_active_campaign)
+    ? urlsWithCampaignStatus.filter(url => {
+        // If includeManualUrls is true, keep manual URLs regardless of campaign status
+        if (filters.includeManualUrls && url.source === 'manual') {
+          return true;
+        }
+        return url.has_active_campaign;
+      })
     : urlsWithCampaignStatus;
 
   // Calculate stats
