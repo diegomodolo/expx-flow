@@ -69,20 +69,29 @@ export function WhatsAppInstanceUsersModal({
       // Fetch company members
       const { data: members, error: membersError } = await supabase
         .from("company_members")
-        .select(`
-          user_id,
-          role,
-          profiles:user_id (
-            full_name
-          )
-        `)
+        .select("user_id, role")
         .eq("company_id", activeCompany.company_id);
 
       if (membersError) throw membersError;
 
+      // Fetch profiles separately
+      const userIds = members?.map(m => m.user_id) || [];
+      let profilesMap: Record<string, string> = {};
+      
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, full_name")
+          .in("id", userIds);
+        
+        profiles?.forEach(p => {
+          profilesMap[p.id] = p.full_name || "Usuário";
+        });
+      }
+
       const users: CompanyUser[] = members?.map(m => ({
         user_id: m.user_id,
-        full_name: (m.profiles as any)?.full_name || "Usuário",
+        full_name: profilesMap[m.user_id] || "Usuário",
         role: m.role,
       })) || [];
 
