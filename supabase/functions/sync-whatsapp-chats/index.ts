@@ -86,6 +86,13 @@ serve(async (req) => {
     const baseCandidates = uniq(
       [
         endpoint,
+        // Alguns provedores expõem a API sob /whatsapp (ex.: /whatsapp/chat/findChats)
+        `${endpoint}/whatsapp`,
+        `${endpoint}/whatsapp/api`,
+        `${endpoint}/whatsapp/api/v1`,
+        `${endpoint}/whatsapp/api/v2`,
+        `${endpoint}/whatsapp/v1`,
+        `${endpoint}/whatsapp/v2`,
         `${endpoint}/api`,
         `${endpoint}/api/v1`,
         `${endpoint}/api/v2`,
