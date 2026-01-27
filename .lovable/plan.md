@@ -1,12 +1,13 @@
 
+# Plano: Detectar Conteúdo Suspeito em URLs
 
-# Plano: Detectar Páginas Vazias no Radar de URLs
+## Problema
+Páginas de destino podem ser hackeadas ou ter seu conteúdo alterado sem que o gestor perceba. A URL retorna código 200 (OK), mas o conteúdo não tem nada a ver com o cliente/produto.
 
-## Problema Identificado
-Atualmente, a validação de URLs só verifica o código HTTP (200, 404, etc.) usando uma requisição `HEAD`. Porém, páginas que retornam código 200 podem estar completamente em branco ou sem conteúdo útil — exatamente o caso da URL `https://mkt.webersistemas.com.br/do-pdv-ao-lucro-de-verdade`.
+Exemplo real: `https://mkt.jamsoft.com.br/` mostra conteúdo completamente diferente do esperado para o cliente.
 
 ## Solução Proposta
-Adicionar um novo status de validação chamado **"empty"** (vazio) para identificar páginas que respondem 200 mas não têm conteúdo significativo.
+Adicionar um novo status de validação **"suspicious"** (suspeito) que usa IA para comparar o conteúdo da página com o briefing/perfil do cliente.
 
 ---
 
@@ -14,173 +15,227 @@ Adicionar um novo status de validação chamado **"empty"** (vazio) para identif
 
 | Componente | Alteração |
 |------------|-----------|
-| Edge Function | Adicionar verificação de conteúdo após request GET |
-| Banco de Dados | Novo status `empty` nas validações |
-| Hook `useRadarUrls` | Suporte ao novo status |
-| KPI Header | Novo contador de páginas vazias |
-| Cards de Destaque | Novo card para URLs vazias |
-| Tabela de URLs | Badge para status "vazio" |
-| Filtros | Opção de filtrar por páginas vazias |
+| Banco de Dados | Novos campos para análise de conteúdo |
+| Edge Function | Análise via Firecrawl + OpenAI |
+| Hook useRadarUrls | Suporte ao novo status |
+| UI (KPI, Cards, Tabela) | Exibição de URLs suspeitas |
 
 ---
 
-## Detalhes Técnicos
+## 1. Alterações no Banco de Dados
 
-### 1. Edge Function (`validate-client-urls/index.ts`)
+Novos campos na tabela `client_urls`:
 
-Alterar a lógica de validação para:
-1. Primeiro fazer `HEAD` para pegar tempo de resposta
-2. Se retornar 200, fazer `GET` para verificar o conteúdo
-3. Analisar o HTML para detectar páginas vazias
-
-```typescript
-// Critérios para considerar uma página "vazia":
-// - Body vazio ou apenas whitespace
-// - HTML com <body> vazio ou quase vazio
-// - Conteúdo de texto visível < 50 caracteres (excluindo tags)
-// - Páginas com apenas scripts e nenhum conteúdo real
+```sql
+ALTER TABLE client_urls ADD COLUMN IF NOT EXISTS content_match_score numeric;
+ALTER TABLE client_urls ADD COLUMN IF NOT EXISTS content_analysis_summary text;
+ALTER TABLE client_urls ADD COLUMN IF NOT EXISTS content_analyzed_at timestamptz;
 ```
 
-**Lógica de detecção:**
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| `content_match_score` | numeric | Score de 0-100 de compatibilidade com o briefing |
+| `content_analysis_summary` | text | Resumo da análise da IA |
+| `content_analyzed_at` | timestamptz | Quando foi analisado |
+
+---
+
+## 2. Nova Edge Function: `analyze-url-content`
+
+Função separada da validação básica (mais lenta e consome créditos de IA).
+
+### Fluxo:
+1. Recebe URL + client_id
+2. Busca o `ai_briefing` do cliente
+3. Usa Firecrawl para extrair conteúdo em markdown (formato limpo)
+4. Envia para OpenAI comparar com o briefing
+5. Retorna score (0-100) e resumo
+
+### Critérios de Análise:
+- **Score 80-100**: Conteúdo compatível (OK)
+- **Score 50-79**: Conteúdo parcialmente compatível (aviso)
+- **Score 0-49**: Conteúdo suspeito/incompatível (alerta)
+
+### Prompt para OpenAI:
 ```text
-1. Extrair texto visível do HTML (remover tags, scripts, styles)
-2. Limpar whitespace e contar caracteres
-3. Se < 50 caracteres de conteúdo → status = 'empty'
+Você é um analista de segurança de marketing digital.
+
+BRIEFING DO CLIENTE:
+{ai_briefing}
+
+CONTEÚDO DA PÁGINA:
+{page_content}
+
+Analise se o conteúdo da página é compatível com o briefing do cliente.
+Considere:
+1. O conteúdo fala sobre o mesmo produto/serviço?
+2. A linguagem/tom está adequada ao cliente?
+3. Há sinais de hacking (conteúdo de apostas, farmácias, spam)?
+4. Os elementos visuais descritos fazem sentido para o negócio?
+
+Responda em JSON:
+{
+  "score": 0-100,
+  "compatible": true/false,
+  "summary": "Resumo em 1-2 frases",
+  "issues": ["lista de problemas encontrados"]
+}
 ```
 
-### 2. Interface `ValidationResult`
+---
+
+## 3. Atualização do Hook `useRadarUrls`
+
+### Novo tipo de status:
 ```typescript
-status: 'ok' | 'error' | 'timeout' | 'redirect' | 'pending' | 'empty'
-content_length?: number  // Opcional: armazenar tamanho do conteúdo
+export type ValidationStatus = 'ok' | 'error' | 'timeout' | 'redirect' | 'pending' | 'empty' | 'suspicious' | null;
 ```
 
-### 3. Tipo `ValidationStatus` (Hook)
+### Novos campos na interface:
 ```typescript
-export type ValidationStatus = 'ok' | 'error' | 'timeout' | 'redirect' | 'pending' | 'empty' | null;
+export interface RadarUrl {
+  // ... campos existentes
+  content_match_score: number | null;
+  content_analysis_summary: string | null;
+  content_analyzed_at: string | null;
+}
 ```
 
-### 4. Interface `UrlStats`
+### Novas estatísticas:
 ```typescript
 export interface UrlStats {
-  total: number;
-  ok: number;
-  error: number;
-  timeout: number;
-  redirect: number;
-  pending: number;
-  slow: number;
-  empty: number;  // Novo
+  // ... existentes
+  suspicious: number;
 }
 ```
 
-### 5. Novo Array de URLs Vazias
+### Nova mutation para análise de conteúdo:
 ```typescript
-const emptyUrls = urls.filter(u => u.validation_status === 'empty');
+analyzeContent: (urlId: string) => void
+analyzeAllContent: () => void
 ```
 
-### 6. KPI Header — Novo Card
-```typescript
-{
-  label: "Vazias",
-  value: stats.empty,
-  icon: FileX2,  // ou AlertOctagon
-  color: "text-purple-600 dark:text-purple-500",
-  bgColor: "bg-purple-500/10"
-}
-```
+---
 
-### 7. Novo Componente: `EmptyUrlsCard.tsx`
-Card similar ao `ProblematicUrlsCard` mas para URLs vazias, com:
-- Ícone de página vazia
-- Lista das URLs detectadas como vazias
-- Botão para revalidar
+## 4. Atualizações de UI
 
-### 8. Badge na Tabela
+### KPI Header
+Novo card "Suspeitas" com ícone `ShieldAlert` em cor laranja/vermelho.
+
+### Novo Card: `SuspiciousUrlsCard.tsx`
+Similar ao ProblematicUrlsCard, mas para URLs suspeitas:
+- Mostra cliente + URL
+- Score de compatibilidade
+- Resumo da análise
+- Botão para reanalisar
+
+### Badge na Tabela
 ```typescript
-case 'empty':
+case 'suspicious':
   return (
-    <Badge variant="outline" className="text-purple-600 border-purple-600">
-      <FileX2 className="h-2.5 w-2.5 mr-0.5" />
-      Vazio
+    <Badge variant="outline" className="text-orange-600 border-orange-600">
+      <ShieldAlert className="h-2.5 w-2.5 mr-0.5" />
+      Suspeito
     </Badge>
   );
 ```
 
-### 9. Filtro de Status na Tabela
-Adicionar opção "Vazio" no Select de filtros.
+### Tooltip com Detalhes
+Ao passar o mouse no badge, mostrar:
+- Score de compatibilidade
+- Resumo da análise
+- Data da última análise
+
+### Novo Filtro
+Adicionar "Suspeito" no dropdown de filtros de status.
 
 ---
 
-## Considerações de Performance
+## 5. Botão de Ação Manual
 
-A verificação de conteúdo requer fazer `GET` em vez de `HEAD`, o que:
-- Aumenta o tempo de validação (~2-3x mais lento)
-- Consome mais dados/bandwidth
+Como a análise de conteúdo consome créditos (Firecrawl + OpenAI), não será automática. Adicionar:
 
-**Mitigação:**
-- Limitar o download a 100KB do body (suficiente para detectar página vazia)
-- Só fazer GET para URLs que retornaram 200 no HEAD
-- Timeout de 5s para download do conteúdo
+1. **Botão individual** em cada URL: "Analisar Conteúdo"
+2. **Botão global** no dashboard: "Analisar Conteúdo de Todas"
+3. **Indicador** de quais URLs nunca foram analisadas
+
+---
+
+## 6. Dependências Necessárias
+
+1. **Firecrawl** - Já configurado (FIRECRAWL_API_KEY)
+2. **OpenAI** - Precisa verificar/adicionar OPENAI_API_KEY
+
+---
+
+## Arquivos a Criar/Modificar
+
+| Arquivo | Ação |
+|---------|------|
+| `supabase/functions/analyze-url-content/index.ts` | Criar |
+| `src/hooks/useRadarUrls.tsx` | Modificar |
+| `src/components/radar/UrlsKPIHeader.tsx` | Modificar |
+| `src/components/radar/SuspiciousUrlsCard.tsx` | Criar |
+| `src/components/radar/UrlsTable.tsx` | Modificar |
+| `src/pages/radar/RadarUrlsDashboard.tsx` | Modificar |
+| `supabase/config.toml` | Adicionar função |
+| Migration SQL | Adicionar colunas |
 
 ---
 
 ## Fluxo Visual
 
 ```text
-URL Recebida
-     │
-     ▼
-┌──────────────────┐
-│  HEAD Request    │
-│  (tempo + status)│
-└────────┬─────────┘
-         │
-    ┌────┴────┐
-    │ 200 OK? │
-    └────┬────┘
-      ┌──┴──┐
-      ▼     ▼
-     SIM   NÃO → Retorna status (error/redirect/etc)
-      │
-      ▼
-┌──────────────────┐
-│   GET Request    │
-│  (max 100KB)     │
-└────────┬─────────┘
-         │
-         ▼
-┌──────────────────┐
-│ Analisa conteúdo │
-│ < 50 chars texto │
-└────────┬─────────┘
-         │
-    ┌────┴────┐
-    │ Vazio?  │
-    └────┬────┘
-      ┌──┴──┐
-      ▼     ▼
-     SIM   NÃO
-      │     │
-      ▼     ▼
-   'empty' 'ok'
+┌─────────────────────────────────────────────────────────────┐
+│                    ANÁLISE DE CONTEÚDO                      │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│  1. Buscar ai_briefing do cliente                           │
+│     (tabela clients)                                        │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│  2. Scrape da URL via Firecrawl                             │
+│     (formato: markdown)                                      │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│  3. Enviar para OpenAI                                       │
+│     briefing + conteúdo → análise                           │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│  4. Atualizar client_urls                                    │
+│     - content_match_score                                    │
+│     - content_analysis_summary                               │
+│     - validation_status = 'suspicious' se score < 50        │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Arquivos a Modificar
+## Considerações de Custo
 
-1. `supabase/functions/validate-client-urls/index.ts` — Lógica de validação
-2. `src/hooks/useRadarUrls.tsx` — Tipo e stats
-3. `src/components/radar/UrlsKPIHeader.tsx` — Novo KPI
-4. `src/components/radar/EmptyUrlsCard.tsx` — Novo componente
-5. `src/components/radar/UrlsTable.tsx` — Badge e filtro
-6. `src/pages/radar/RadarUrlsDashboard.tsx` — Integrar novo card
+| Serviço | Consumo por URL |
+|---------|-----------------|
+| Firecrawl | 1 crédito (scrape) |
+| OpenAI GPT-4o-mini | ~500-1000 tokens |
+
+Recomendação: Analisar apenas URLs que:
+- Já passaram na validação básica (status = 'ok')
+- Têm cliente com `ai_briefing` preenchido
+- Não foram analisadas nos últimos 7 dias
 
 ---
 
 ## Benefícios
 
-- Detecta landing pages quebradas/vazias automaticamente
-- Alerta proativo antes de gastar verba com anúncios que levam a páginas sem conteúdo
-- Visual consistente com os outros tipos de problema (erro, timeout, redirect)
-
+- Detecta páginas hackeadas/comprometidas automaticamente
+- Alerta proativo antes de gastar verba em landing pages incorretas
+- Histórico de análises para auditoria
+- Score numérico permite priorização
