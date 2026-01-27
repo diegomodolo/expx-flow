@@ -6,7 +6,8 @@ import {
   Clock, 
   ArrowRightLeft,
   HelpCircle,
-  Gauge
+  Gauge,
+  FileX2
 } from "lucide-react";
 import { UrlStats } from "@/hooks/useRadarUrls";
 
@@ -64,11 +65,18 @@ export function UrlsKPIHeader({ stats }: UrlsKPIHeaderProps) {
       icon: Gauge,
       color: "text-yellow-600 dark:text-yellow-500",
       bgColor: "bg-yellow-500/10"
+    },
+    {
+      label: "Vazias",
+      value: stats.empty,
+      icon: FileX2,
+      color: "text-purple-600 dark:text-purple-500",
+      bgColor: "bg-purple-500/10"
     }
   ];
 
   return (
-    <div className="grid grid-cols-4 lg:grid-cols-7 gap-2">
+    <div className="grid grid-cols-4 lg:grid-cols-8 gap-2">
       {kpis.map((kpi) => {
         const Icon = kpi.icon;
         return (

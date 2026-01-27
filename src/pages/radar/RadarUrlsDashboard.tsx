@@ -8,6 +8,7 @@ import { UrlsKPIHeader } from "@/components/radar/UrlsKPIHeader";
 import { ProblematicUrlsCard } from "@/components/radar/ProblematicUrlsCard";
 import { SlowUrlsCard } from "@/components/radar/SlowUrlsCard";
 import { RedirectUrlsCard } from "@/components/radar/RedirectUrlsCard";
+import { EmptyUrlsCard } from "@/components/radar/EmptyUrlsCard";
 import { UrlsTable } from "@/components/radar/UrlsTable";
 
 const RadarUrlsDashboard = () => {
@@ -21,6 +22,7 @@ const RadarUrlsDashboard = () => {
     problematicUrls, 
     slowUrls, 
     redirectUrls,
+    emptyUrls,
     isLoading, 
     refetch,
     validateUrl,
@@ -28,6 +30,11 @@ const RadarUrlsDashboard = () => {
     validateProblematic,
     isValidating
   } = useRadarUrls({ onlyActiveCampaigns, includeManualUrls });
+
+  // Validate empty URLs
+  const validateEmptyUrls = () => {
+    emptyUrls.forEach(url => validateUrl(url.id));
+  };
 
   // Filter URLs based on table filters
   const getFilteredUrls = () => {
@@ -127,8 +134,8 @@ const RadarUrlsDashboard = () => {
       {/* KPIs - Compact */}
       <UrlsKPIHeader stats={stats} />
 
-      {/* Cards Row - 2 columns on medium, 3 on large */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+      {/* Cards Row - 2 columns on medium, 4 on large */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
         <ProblematicUrlsCard 
           urls={problematicUrls}
           onValidate={validateUrl}
@@ -137,6 +144,12 @@ const RadarUrlsDashboard = () => {
         />
         <SlowUrlsCard urls={slowUrls} />
         <RedirectUrlsCard urls={redirectUrls} />
+        <EmptyUrlsCard 
+          urls={emptyUrls}
+          onValidate={validateUrl}
+          onValidateAll={validateEmptyUrls}
+          isValidating={isValidating}
+        />
       </div>
 
       {/* Table */}

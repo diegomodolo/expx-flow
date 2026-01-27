@@ -7,11 +7,41 @@ const corsHeaders = {
 
 interface ValidationResult {
   url_id: string
-  status: 'ok' | 'error' | 'timeout' | 'redirect' | 'pending'
+  status: 'ok' | 'error' | 'timeout' | 'redirect' | 'pending' | 'empty'
   status_code: number | null
   load_time_ms: number | null
   error_message: string | null
   final_url: string | null
+  content_length?: number | null
+}
+
+// Extract visible text from HTML (removes scripts, styles, tags)
+function extractVisibleText(html: string): string {
+  // Remove script tags and their content
+  let text = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+  // Remove style tags and their content
+  text = text.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
+  // Remove HTML comments
+  text = text.replace(/<!--[\s\S]*?-->/g, '')
+  // Remove all HTML tags
+  text = text.replace(/<[^>]+>/g, ' ')
+  // Decode common HTML entities
+  text = text.replace(/&nbsp;/g, ' ')
+  text = text.replace(/&amp;/g, '&')
+  text = text.replace(/&lt;/g, '<')
+  text = text.replace(/&gt;/g, '>')
+  text = text.replace(/&quot;/g, '"')
+  text = text.replace(/&#39;/g, "'")
+  // Collapse whitespace
+  text = text.replace(/\s+/g, ' ').trim()
+  return text
+}
+
+// Check if page content is effectively empty
+function isPageEmpty(html: string): boolean {
+  const visibleText = extractVisibleText(html)
+  // Consider page empty if visible text is less than 50 characters
+  return visibleText.length < 50
 }
 
 async function validateUrl(url: string, urlId: string): Promise<ValidationResult> {
@@ -21,7 +51,8 @@ async function validateUrl(url: string, urlId: string): Promise<ValidationResult
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 10000) // 10s timeout
     
-    const response = await fetch(url, {
+    // First do HEAD request for quick status check
+    const headResponse = await fetch(url, {
       method: 'HEAD',
       signal: controller.signal,
       redirect: 'follow',
@@ -30,27 +61,109 @@ async function validateUrl(url: string, urlId: string): Promise<ValidationResult
       },
     })
     
-    clearTimeout(timeoutId)
-    const loadTime = Date.now() - startTime
+    const headTime = Date.now() - startTime
     
     // Check for redirects
-    const finalUrl = response.url !== url ? response.url : null
+    const finalUrl = headResponse.url !== url ? headResponse.url : null
     
-    // Determine status based on HTTP code
-    let status: ValidationResult['status'] = 'ok'
-    if (response.status >= 400) {
-      status = 'error'
-    } else if (response.status >= 300 || finalUrl) {
-      status = 'redirect'
+    // Handle non-200 responses
+    if (headResponse.status >= 400) {
+      clearTimeout(timeoutId)
+      return {
+        url_id: urlId,
+        status: 'error',
+        status_code: headResponse.status,
+        load_time_ms: headTime,
+        error_message: null,
+        final_url: finalUrl,
+      }
     }
     
-    return {
-      url_id: urlId,
-      status,
-      status_code: response.status,
-      load_time_ms: loadTime,
-      error_message: null,
-      final_url: finalUrl,
+    if (headResponse.status >= 300 || finalUrl) {
+      clearTimeout(timeoutId)
+      return {
+        url_id: urlId,
+        status: 'redirect',
+        status_code: headResponse.status,
+        load_time_ms: headTime,
+        error_message: null,
+        final_url: finalUrl,
+      }
+    }
+    
+    // For 200 responses, do GET to check content
+    const getController = new AbortController()
+    const getTimeoutId = setTimeout(() => getController.abort(), 5000) // 5s timeout for content check
+    
+    try {
+      const getResponse = await fetch(url, {
+        method: 'GET',
+        signal: getController.signal,
+        redirect: 'follow',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; URLValidator/1.0)',
+          'Accept': 'text/html',
+        },
+      })
+      
+      clearTimeout(getTimeoutId)
+      clearTimeout(timeoutId)
+      
+      // Read only first 100KB of content
+      const reader = getResponse.body?.getReader()
+      let content = ''
+      let totalBytes = 0
+      const maxBytes = 100 * 1024 // 100KB limit
+      
+      if (reader) {
+        const decoder = new TextDecoder()
+        while (totalBytes < maxBytes) {
+          const { done, value } = await reader.read()
+          if (done) break
+          content += decoder.decode(value, { stream: true })
+          totalBytes += value?.length || 0
+        }
+        reader.cancel() // Cancel remaining content
+      }
+      
+      const loadTime = Date.now() - startTime
+      
+      // Check if content is empty
+      if (isPageEmpty(content)) {
+        return {
+          url_id: urlId,
+          status: 'empty',
+          status_code: getResponse.status,
+          load_time_ms: loadTime,
+          error_message: 'Página sem conteúdo visível',
+          final_url: finalUrl,
+          content_length: totalBytes,
+        }
+      }
+      
+      return {
+        url_id: urlId,
+        status: 'ok',
+        status_code: getResponse.status,
+        load_time_ms: loadTime,
+        error_message: null,
+        final_url: finalUrl,
+        content_length: totalBytes,
+      }
+    } catch (getError: any) {
+      clearTimeout(getTimeoutId)
+      clearTimeout(timeoutId)
+      
+      // If GET fails but HEAD succeeded, still mark as OK
+      // The page might block GET but serve content via browser
+      return {
+        url_id: urlId,
+        status: 'ok',
+        status_code: headResponse.status,
+        load_time_ms: headTime,
+        error_message: null,
+        final_url: finalUrl,
+      }
     }
   } catch (error: any) {
     const loadTime = Date.now() - startTime
@@ -201,6 +314,7 @@ Deno.serve(async (req) => {
       error: results.filter(r => r.status === 'error').length,
       timeout: results.filter(r => r.status === 'timeout').length,
       redirect: results.filter(r => r.status === 'redirect').length,
+      empty: results.filter(r => r.status === 'empty').length,
     }
 
     console.log(`Validation complete. Summary:`, JSON.stringify(summary))

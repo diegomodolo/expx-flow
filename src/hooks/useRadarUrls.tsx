@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/CompanyContext";
 import { toast } from "sonner";
 
-export type ValidationStatus = 'ok' | 'error' | 'timeout' | 'redirect' | 'pending' | null;
+export type ValidationStatus = 'ok' | 'error' | 'timeout' | 'redirect' | 'pending' | 'empty' | null;
 
 export interface RadarUrl {
   id: string;
@@ -49,6 +49,7 @@ export interface UrlStats {
   redirect: number;
   pending: number;
   slow: number;
+  empty: number;
 }
 
 interface CampaignStatusData {
@@ -162,6 +163,7 @@ export function useRadarUrls(filters: UrlFilters = {}) {
     redirect: urls.filter(u => u.validation_status === 'redirect').length,
     pending: urls.filter(u => !u.validation_status || u.validation_status === 'pending').length,
     slow: urls.filter(u => u.validation_load_time_ms && u.validation_load_time_ms > 3000).length,
+    empty: urls.filter(u => u.validation_status === 'empty').length,
   };
 
   // Get problematic URLs (error or timeout)
@@ -176,6 +178,9 @@ export function useRadarUrls(filters: UrlFilters = {}) {
 
   // Get redirect URLs
   const redirectUrls = urls.filter(u => u.validation_status === 'redirect');
+
+  // Get empty URLs
+  const emptyUrls = urls.filter(u => u.validation_status === 'empty');
 
   // Validate single URL
   const validateUrlMutation = useMutation({
@@ -242,6 +247,7 @@ export function useRadarUrls(filters: UrlFilters = {}) {
     problematicUrls,
     slowUrls,
     redirectUrls,
+    emptyUrls,
     isLoading,
     refetch,
     validateUrl: validateUrlMutation.mutate,
