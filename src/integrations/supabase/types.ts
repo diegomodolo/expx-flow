@@ -6405,7 +6405,7 @@ export type Database = {
           id: string
           storage_path: string
           updated_at: string | null
-          uploaded_by: string
+          uploaded_by: string | null
         }
         Insert: {
           agent_id: string
@@ -6418,7 +6418,7 @@ export type Database = {
           id?: string
           storage_path: string
           updated_at?: string | null
-          uploaded_by: string
+          uploaded_by?: string | null
         }
         Update: {
           agent_id?: string
@@ -6431,7 +6431,7 @@ export type Database = {
           id?: string
           storage_path?: string
           updated_at?: string | null
-          uploaded_by?: string
+          uploaded_by?: string | null
         }
         Relationships: [
           {

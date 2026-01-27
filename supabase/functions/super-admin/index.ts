@@ -172,48 +172,8 @@ const handler = async (req: Request): Promise<Response> => {
         });
       }
 
-      // IMPORTANTE:
-      // O supabase.auth.admin.deleteUser pode falhar com "Database error deleting user"
-      // quando existem FKs em tabelas do schema public apontando para auth.users sem ON DELETE CASCADE.
-      // Então, antes de deletar o usuário no Auth, limpamos/neutralizamos essas referências.
-      const safeUpdateNull = async (table: string, column: string) => {
-        const payload: Record<string, null> = { [column]: null };
-        const { error } = await supabase.from(table).update(payload).eq(column, userId);
-        if (error) {
-          console.warn(`Aviso: falha ao NULL em ${table}.${column} para user ${userId}:`, error);
-        }
-      };
-
-      const safeDeleteWhere = async (table: string, column: string) => {
-        const { error } = await supabase.from(table).delete().eq(column, userId);
-        if (error) {
-          console.warn(`Aviso: falha ao deletar em ${table} onde ${column}=${userId}:`, error);
-        }
-      };
-
-      // Colunas NULLABLE com FK NO ACTION => setar NULL para preservar registros
-      await safeUpdateNull("super_admins", "created_by");
-      await safeUpdateNull("client_health_config", "cs_manager_id");
-      await safeUpdateNull("client_touchpoints", "created_by");
-      await safeUpdateNull("creative_versions", "replaced_by");
-      await safeUpdateNull("crm_boards", "created_by");
-      await safeUpdateNull("crm_contacts", "created_by");
-      await safeUpdateNull("crm_deal_activities", "created_by");
-      await safeUpdateNull("crm_deals", "created_by");
-      await safeUpdateNull("crm_lead_links", "created_by");
-      await safeUpdateNull("crm_workspace_goals", "created_by");
-      await safeUpdateNull("crm_workspaces", "created_by");
-      await safeUpdateNull("editor_element_library", "created_by");
-      await safeUpdateNull("instagram_autopost_knowledge_files", "created_by");
-      await safeUpdateNull("instagram_autopost_knowledge_videos", "created_by");
-
-      // Colunas NOT NULL com FK NO ACTION => precisa deletar para liberar a exclusão do Auth
-      await safeDeleteWhere("acquisition_funnels", "user_id");
-      await safeDeleteWhere("change_audit_log", "changed_by");
-      await safeDeleteWhere("ia_agent_knowledge_documents", "uploaded_by");
-      await safeDeleteWhere("wordpress_auto_post_configs", "created_by");
-      await safeDeleteWhere("wordpress_sites", "created_by");
-
+      // As FKs agora têm ON DELETE CASCADE ou SET NULL, então só precisamos limpar
+      // tabelas que não têm FK direta ao auth.users mas têm user_id como referência lógica.
       // 1. Remover de company_members
       await supabase
         .from("company_members")
