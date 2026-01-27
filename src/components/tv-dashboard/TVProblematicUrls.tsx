@@ -70,7 +70,7 @@ export function TVProblematicUrls({ urls }: TVProblematicUrlsProps) {
         </div>
         
         <div className="flex items-center gap-3">
-          {urls.slice(0, 6).map((url) => {
+          {urls.map((url) => {
             const config = getStatusConfig(url.status, url.statusCode, url.contentMatchScore);
             const StatusIcon = config.icon;
             
@@ -96,11 +96,6 @@ export function TVProblematicUrls({ urls }: TVProblematicUrlsProps) {
               </div>
             );
           })}
-          {urls.length > 6 && (
-            <span className="text-[10px] text-red-500 shrink-0">
-              +{urls.length - 6} mais
-            </span>
-          )}
         </div>
       </div>
     </div>
