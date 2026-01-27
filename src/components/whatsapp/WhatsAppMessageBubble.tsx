@@ -8,13 +8,16 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { WhatsAppAudioPlayer } from "./WhatsAppAudioPlayer";
 import { WhatsAppImageViewer } from "./WhatsAppImageViewer";
+import { WhatsAppReactionPicker } from "./WhatsAppReactionPicker";
 
 interface WhatsAppMessageBubbleProps {
   message: WhatsAppMessage;
   instanceId?: string | null;
+  companyId?: string;
+  remoteJid?: string; // phone@s.whatsapp.net format
 }
 
-export function WhatsAppMessageBubble({ message, instanceId }: WhatsAppMessageBubbleProps) {
+export function WhatsAppMessageBubble({ message, instanceId, companyId, remoteJid }: WhatsAppMessageBubbleProps) {
   const [isDownloading, setIsDownloading] = useState(false);
   const isOutgoing = message.direction === "outgoing";
   const isFailed = message.status === "failed";
@@ -126,8 +129,24 @@ export function WhatsAppMessageBubble({ message, instanceId }: WhatsAppMessageBu
     }
   };
   
+  // Build remoteJid if not provided
+  const messageRemoteJid = remoteJid || `${message.company_id}@s.whatsapp.net`;
+  
   return (
-    <div className={cn("flex", isOutgoing ? "justify-end" : "justify-start")}>
+    <div className={cn("flex group", isOutgoing ? "justify-end" : "justify-start")}>
+      {/* Reaction picker for outgoing messages - show on left */}
+      {isOutgoing && companyId && instanceId && message.external_id && (
+        <div className="flex items-center mr-1">
+          <WhatsAppReactionPicker
+            messageId={message.external_id}
+            remoteJid={messageRemoteJid}
+            companyId={companyId}
+            instanceId={instanceId}
+            isOutgoing={isOutgoing}
+          />
+        </div>
+      )}
+      
       <div
         className={cn(
           "max-w-[75%] rounded-lg px-3 py-2 shadow-sm",
@@ -216,6 +235,19 @@ export function WhatsAppMessageBubble({ message, instanceId }: WhatsAppMessageBu
           </p>
         )}
       </div>
+      
+      {/* Reaction picker for incoming messages - show on right */}
+      {!isOutgoing && companyId && instanceId && message.external_id && (
+        <div className="flex items-center ml-1">
+          <WhatsAppReactionPicker
+            messageId={message.external_id}
+            remoteJid={messageRemoteJid}
+            companyId={companyId}
+            instanceId={instanceId}
+            isOutgoing={isOutgoing}
+          />
+        </div>
+      )}
     </div>
   );
 }

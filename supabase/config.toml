@@ -393,3 +393,6 @@ verify_jwt = true
 
 [functions.import-campaign-urls]
 verify_jwt = true
+
+[functions.send-whatsapp-reaction]
+verify_jwt = true
