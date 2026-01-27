@@ -43,13 +43,14 @@ export function useWhatsAppMessages(conversationId: string | null, companyId: st
     },
     enabled: !!conversationId,
   });
-
-  // Fetch messages from API when we have no local messages
-  const fetchMessagesFromApi = useCallback(async () => {
-    if (!conversationId || !companyId || isFetchingFromApi || hasFetchedFromApi) return;
+  // Fetch messages from API - can be called manually to refresh
+  const fetchMessagesFromApi = useCallback(async (forceRefresh = false) => {
+    // Block if already fetching, but allow manual refresh (forceRefresh = true)
+    if (!conversationId || !companyId || isFetchingFromApi) return;
+    if (!forceRefresh && hasFetchedFromApi) return;
 
     setIsFetchingFromApi(true);
-    console.log("[useWhatsAppMessages] Buscando mensagens da API para:", conversationId);
+    console.log("[useWhatsAppMessages] Buscando mensagens da API para:", conversationId, "forceRefresh:", forceRefresh);
 
     try {
       const { data, error } = await supabase.functions.invoke("fetch-whatsapp-messages", {
@@ -61,18 +62,42 @@ export function useWhatsAppMessages(conversationId: string | null, companyId: st
 
       if (error) {
         console.error("[useWhatsAppMessages] Erro ao buscar mensagens da API:", error);
+        toast({
+          title: "Erro ao buscar mensagens",
+          description: error.message || "Falha ao carregar mensagens",
+          variant: "destructive",
+        });
       } else if (data?.success) {
         console.log(`[useWhatsAppMessages] Mensagens obtidas: ${data.fetched}, salvas: ${data.saved}`);
         // Invalidate to reload from DB with new messages
         queryClient.invalidateQueries({ queryKey: ["whatsapp-messages", conversationId] });
+        
+        if (data.fetched > 0) {
+          toast({
+            title: "Mensagens atualizadas",
+            description: `${data.saved} novas mensagens carregadas`,
+          });
+        }
+      } else if (data?.error) {
+        console.error("[useWhatsAppMessages] Erro da API:", data.error);
+        toast({
+          title: "Erro ao buscar mensagens",
+          description: data.error,
+          variant: "destructive",
+        });
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("[useWhatsAppMessages] Exceção ao buscar mensagens:", err);
+      toast({
+        title: "Erro ao buscar mensagens",
+        description: err.message || "Erro inesperado",
+        variant: "destructive",
+      });
     } finally {
       setIsFetchingFromApi(false);
       setHasFetchedFromApi(true);
     }
-  }, [conversationId, companyId, isFetchingFromApi, hasFetchedFromApi, queryClient]);
+  }, [conversationId, companyId, isFetchingFromApi, hasFetchedFromApi, queryClient, toast]);
 
   // Auto-fetch from API when we first load a conversation with no messages
   useEffect(() => {

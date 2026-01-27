@@ -63,7 +63,7 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId }: What
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => fetchMessagesFromApi()}
+          onClick={() => fetchMessagesFromApi(true)}
           disabled={isFetchingFromApi}
           title="Atualizar mensagens"
         >
@@ -84,7 +84,7 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId }: What
             <Button
               variant="outline"
               size="sm"
-              onClick={() => fetchMessagesFromApi()}
+              onClick={() => fetchMessagesFromApi(true)}
               disabled={isFetchingFromApi}
               className="mt-4"
             >

@@ -97,41 +97,72 @@ serve(async (req) => {
     // Formatar número para o formato correto
     const formattedPhone = targetPhone.replace(/\D/g, "");
     const chatId = `${formattedPhone}@s.whatsapp.net`;
+    const instanceName = instance.instance_name || instance.uazapi_instance_id || "";
 
     let messages: any[] = [];
     const attemptLogs: string[] = [];
 
-    // Endpoints para tentar (UazapiGO v2)
+    console.log(`[fetch-whatsapp-messages] Instance name: ${instanceName}, chatId: ${chatId}`);
+
+    // Endpoints para tentar (UazapiGO v2 / Evolution API style)
     const endpointsToTry = [
-      // GET /chat/findMessages com query params
+      // POST /chat/findMessages/{instance} - Formato Evolution API / UazapiGO v2
       { 
-        url: `${endpoint}/chat/findMessages?key=${chatId}&count=100`, 
-        method: "GET", 
-        body: null 
+        url: `${endpoint}/chat/findMessages/${instanceName}`, 
+        method: "POST", 
+        body: { 
+          where: { 
+            key: { 
+              remoteJid: chatId 
+            } 
+          },
+          limit: 100
+        } 
       },
-      // POST /chat/findMessages
+      // POST /message/find - Formato UazapiGO conforme documentação
+      { 
+        url: `${endpoint}/message/find`, 
+        method: "POST", 
+        body: { 
+          where: { 
+            key: { 
+              remoteJid: chatId 
+            } 
+          },
+          limit: 100
+        } 
+      },
+      // POST /chat/findMessages (sem instance no path)
+      { 
+        url: `${endpoint}/chat/findMessages`, 
+        method: "POST", 
+        body: { 
+          where: { 
+            key: { 
+              remoteJid: chatId 
+            } 
+          },
+          limit: 100
+        } 
+      },
+      // POST /message/findMessages
+      { 
+        url: `${endpoint}/message/findMessages`, 
+        method: "POST", 
+        body: { 
+          where: { 
+            key: { 
+              remoteJid: chatId 
+            } 
+          },
+          limit: 100
+        } 
+      },
+      // Fallback: formato simples
       { 
         url: `${endpoint}/chat/findMessages`, 
         method: "POST", 
         body: { key: chatId, count: 100 } 
-      },
-      // Alternative: messages endpoint
-      { 
-        url: `${endpoint}/messages/${chatId}`, 
-        method: "GET", 
-        body: null 
-      },
-      // Alternative: chat/messages
-      { 
-        url: `${endpoint}/chat/messages`, 
-        method: "POST", 
-        body: { chatId, limit: 100 } 
-      },
-      // UazapiGO v2: /message/findMessages
-      { 
-        url: `${endpoint}/message/findMessages`, 
-        method: "POST", 
-        body: { where: { key: { remoteJid: chatId } }, count: 100 } 
       },
     ];
 
