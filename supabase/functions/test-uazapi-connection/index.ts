@@ -37,18 +37,16 @@ serve(async (req) => {
     const cleanEndpoint = endpoint.replace(/\/$/, "");
 
     // Call UazapiGO to get session status
-    const uazapiUrl = `${cleanEndpoint}/getSessionState`;
+    // UazapiGO uses: /session/status/{sessionId} with GET method
+    const uazapiUrl = `${cleanEndpoint}/session/status/${session}`;
     console.log("[test-uazapi-connection] Calling UazapiGO:", uazapiUrl);
 
     const response = await fetch(uazapiUrl, {
-      method: "POST",
+      method: "GET",
       headers: {
         "Content-Type": "application/json",
         "Token": token,
       },
-      body: JSON.stringify({
-        session: session,
-      }),
     });
 
     const responseText = await response.text();
@@ -87,10 +85,12 @@ serve(async (req) => {
     }
 
     // Check connection status - UazapiGO returns state as "CONNECTED" or other values
-    const isConnected = data.state === "CONNECTED" || data.status === "CONNECTED";
-    const connectedPhone = data.phone || data.id?.user?.replace("@c.us", "") || null;
+    const isConnected = data.state === "CONNECTED" || 
+                       data.status === "CONNECTED" || 
+                       data.connected === true;
+    const connectedPhone = data.phoneNumber || data.phone || data.jid?.replace("@s.whatsapp.net", "") || data.id?.user?.replace("@c.us", "") || null;
 
-    console.log("[test-uazapi-connection] Connection status:", { isConnected, connectedPhone });
+    console.log("[test-uazapi-connection] Connection status:", { isConnected, connectedPhone, state: data.state || data.status });
 
     // Update config in database if company_id provided
     if (company_id) {
