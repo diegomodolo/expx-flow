@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { useWhatsAppConfig } from "@/hooks/useWhatsAppConfig";
 import { useCompany } from "@/contexts/CompanyContext";
 import { WhatsAppProviderTabs } from "./WhatsAppProviderTabs";
@@ -21,10 +22,17 @@ export function WhatsAppSettings() {
     isTestingUazapiConnection,
   } = useWhatsAppConfig(activeCompany?.company_id);
 
-  const currentProvider = config?.provider || "zapi";
+  const [activeProvider, setActiveProvider] = useState<string>("zapi");
+
+  // Sync with config when loaded
+  useEffect(() => {
+    if (config?.provider) {
+      setActiveProvider(config.provider);
+    }
+  }, [config?.provider]);
 
   const handleProviderChange = (provider: string) => {
-    // Provider change is handled by save operations
+    setActiveProvider(provider);
   };
 
   const handleSaveZapi = (data: { instance_id: string; token: string; client_token?: string }) => {
@@ -60,7 +68,7 @@ export function WhatsAppSettings() {
       </div>
 
       <WhatsAppProviderTabs
-        provider={currentProvider}
+        provider={activeProvider}
         onProviderChange={handleProviderChange}
         config={config}
         companyId={activeCompany?.company_id}
