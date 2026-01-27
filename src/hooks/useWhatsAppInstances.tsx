@@ -225,6 +225,33 @@ export function useWhatsAppInstances(companyId: string | undefined) {
     },
   });
 
+  // Configure webhook for an instance
+  const configureWebhookMutation = useMutation({
+    mutationFn: async (instanceId: string) => {
+      const { data, error } = await supabase.functions.invoke("configure-uazapi-webhook", {
+        body: { instance_id: instanceId },
+      });
+
+      if (error) throw error;
+      if (!data.success) throw new Error(data.error || "Erro ao configurar webhook");
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["whatsapp-instances", companyId] });
+      toast({ 
+        title: "Webhook configurado!", 
+        description: `URL: ${data.webhook_url}` 
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao configurar webhook",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   // Fetch users assigned to an instance
   const fetchInstanceUsers = async (instanceId: string): Promise<WhatsAppInstanceUser[]> => {
     const { data, error } = await supabase
@@ -316,6 +343,8 @@ export function useWhatsAppInstances(companyId: string | undefined) {
     isDeleting: deleteInstanceMutation.isPending,
     testConnection: testConnectionMutation.mutate,
     isTesting: testConnectionMutation.isPending,
+    configureWebhook: configureWebhookMutation.mutate,
+    isConfiguringWebhook: configureWebhookMutation.isPending,
     fetchInstanceUsers,
     assignUser: assignUserMutation.mutate,
     isAssigning: assignUserMutation.isPending,

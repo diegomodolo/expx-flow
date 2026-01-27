@@ -150,19 +150,13 @@ serve(async (req) => {
     console.log("[create-uazapi-instance] Configurando webhook:", webhookCallbackUrl);
 
     let webhookConfigured = false;
+    // Configuração específica do UazapiGO conforme documentação:
+    // - events: "messages" para escutar mensagens
+    // - exclude: evitar loops (wasSentByApi) e grupos (isGroupYes)
     const webhookPayload = {
       url: webhookCallbackUrl,
-      events: [
-        "MESSAGES_UPSERT",
-        "MESSAGES_UPDATE",
-        "MESSAGES_DELETE",
-        "CONNECTION_UPDATE",
-        "QRCODE_UPDATED",
-        "PRESENCE_UPDATE",
-        "CHATS_UPDATE",
-        "CHATS_UPSERT",
-      ],
-      webhook_by_events: false,
+      events: "messages",
+      exclude: ["wasSentByApi", "isGroupYes"],
       enabled: true,
     };
 
