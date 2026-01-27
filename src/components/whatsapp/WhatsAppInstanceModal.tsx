@@ -16,8 +16,8 @@ interface WhatsAppInstanceModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   instance: WhatsAppInstance | null;
-  onSave: (data: { instance_name: string; session_id: string }) => void;
-  onUpdate: (data: { id: string; instance_name: string; session_id: string }) => void;
+  onSave: (data: { instance_name: string }) => void;
+  onUpdate: (data: { id: string; instance_name: string }) => void;
   isSaving: boolean;
 }
 
@@ -30,35 +30,24 @@ export function WhatsAppInstanceModal({
   isSaving,
 }: WhatsAppInstanceModalProps) {
   const [instanceName, setInstanceName] = useState("");
-  const [sessionId, setSessionId] = useState("");
-  const [errors, setErrors] = useState<{ name?: string; session?: string }>({});
+  const [errors, setErrors] = useState<{ name?: string }>({});
 
   const isEditing = !!instance;
 
   useEffect(() => {
     if (instance) {
       setInstanceName(instance.instance_name);
-      setSessionId(instance.session_id);
     } else {
       setInstanceName("");
-      setSessionId("");
     }
     setErrors({});
   }, [instance, open]);
 
   const validateForm = () => {
-    const newErrors: { name?: string; session?: string } = {};
+    const newErrors: { name?: string } = {};
 
     if (!instanceName.trim()) {
       newErrors.name = "Nome da instância é obrigatório";
-    }
-
-    if (!sessionId.trim()) {
-      newErrors.session = "Session ID é obrigatório";
-    } else if (/\s/.test(sessionId)) {
-      newErrors.session = "Session ID não pode conter espaços";
-    } else if (!/^[a-zA-Z0-9_-]+$/.test(sessionId)) {
-      newErrors.session = "Session ID deve conter apenas letras, números, - ou _";
     }
 
     setErrors(newErrors);
@@ -74,12 +63,10 @@ export function WhatsAppInstanceModal({
       onUpdate({
         id: instance.id,
         instance_name: instanceName.trim(),
-        session_id: sessionId.trim(),
       });
     } else {
       onSave({
         instance_name: instanceName.trim(),
-        session_id: sessionId.trim(),
       });
     }
   };
@@ -109,26 +96,10 @@ export function WhatsAppInstanceModal({
                 {errors.name}
               </p>
             )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="session-id">Session ID *</Label>
-            <Input
-              id="session-id"
-              placeholder="Ex: comercial-01"
-              value={sessionId}
-              onChange={(e) => setSessionId(e.target.value.toLowerCase().replace(/\s/g, "-"))}
-              className={errors.session ? "border-destructive" : ""}
-              disabled={isEditing}
-            />
-            {errors.session && (
-              <p className="text-sm text-destructive flex items-center gap-1">
-                <AlertCircle className="h-3 w-3" />
-                {errors.session}
-              </p>
-            )}
             <p className="text-xs text-muted-foreground">
-              Identificador único da sessão. Não pode ser alterado após criação.
+              {isEditing 
+                ? "Edite o nome amigável desta instância"
+                : "O sistema criará automaticamente uma nova instância na UazapiGO"}
             </p>
           </div>
 

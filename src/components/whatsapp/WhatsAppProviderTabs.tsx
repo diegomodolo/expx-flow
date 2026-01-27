@@ -14,12 +14,13 @@ interface WhatsAppProviderTabsProps {
     last_connection_test: string | null;
     uazapi_endpoint?: string | null;
     uazapi_token?: string | null;
+    uazapi_admintoken?: string | null;
     uazapi_session?: string | null;
   } | null;
   companyId: string | undefined;
   onSaveZapi: (data: { instance_id: string; token: string; client_token?: string }) => void;
   onTestZapi: (data: { instance_id: string; token: string; client_token?: string }) => void;
-  onSaveUazapi: (data: { endpoint: string; token: string }) => void;
+  onSaveUazapi: (data: { endpoint: string; token: string; admintoken: string }) => void;
   onTestUazapi: (data: { endpoint: string; token: string; session: string }) => void;
   isSaving: boolean;
   isTesting: boolean;

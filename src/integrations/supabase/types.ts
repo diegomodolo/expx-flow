@@ -10660,6 +10660,7 @@ export type Database = {
           last_connection_test: string | null
           provider: string | null
           token: string | null
+          uazapi_admintoken: string | null
           uazapi_endpoint: string | null
           uazapi_session: string | null
           uazapi_token: string | null
@@ -10677,6 +10678,7 @@ export type Database = {
           last_connection_test?: string | null
           provider?: string | null
           token?: string | null
+          uazapi_admintoken?: string | null
           uazapi_endpoint?: string | null
           uazapi_session?: string | null
           uazapi_token?: string | null
@@ -10694,6 +10696,7 @@ export type Database = {
           last_connection_test?: string | null
           provider?: string | null
           token?: string | null
+          uazapi_admintoken?: string | null
           uazapi_endpoint?: string | null
           uazapi_session?: string | null
           uazapi_token?: string | null
@@ -10894,7 +10897,12 @@ export type Database = {
           is_active: boolean | null
           is_connected: boolean | null
           last_connection_test: string | null
+          profile_name: string | null
+          profile_pic_url: string | null
           session_id: string
+          status: string | null
+          uazapi_instance_id: string | null
+          uazapi_token: string | null
           updated_at: string | null
         }
         Insert: {
@@ -10906,7 +10914,12 @@ export type Database = {
           is_active?: boolean | null
           is_connected?: boolean | null
           last_connection_test?: string | null
+          profile_name?: string | null
+          profile_pic_url?: string | null
           session_id: string
+          status?: string | null
+          uazapi_instance_id?: string | null
+          uazapi_token?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -10918,7 +10931,12 @@ export type Database = {
           is_active?: boolean | null
           is_connected?: boolean | null
           last_connection_test?: string | null
+          profile_name?: string | null
+          profile_pic_url?: string | null
           session_id?: string
+          status?: string | null
+          uazapi_instance_id?: string | null
+          uazapi_token?: string | null
           updated_at?: string | null
         }
         Relationships: [

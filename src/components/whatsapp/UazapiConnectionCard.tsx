@@ -9,9 +9,10 @@ interface UazapiBaseConfigCardProps {
   config: {
     uazapi_endpoint: string | null;
     uazapi_token: string | null;
+    uazapi_admintoken?: string | null;
   } | null;
   companyId: string | undefined;
-  onSave: (data: { endpoint: string; token: string }) => void;
+  onSave: (data: { endpoint: string; token: string; admintoken: string }) => void;
   isSaving: boolean;
 }
 
@@ -23,7 +24,9 @@ export function UazapiConnectionCard({
 }: UazapiBaseConfigCardProps) {
   const [endpoint, setEndpoint] = useState("");
   const [token, setToken] = useState("");
+  const [admintoken, setAdmintoken] = useState("");
   const [showToken, setShowToken] = useState(false);
+  const [showAdminToken, setShowAdminToken] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
 
   // Sincronizar apenas na carga inicial
@@ -31,6 +34,7 @@ export function UazapiConnectionCard({
     if (config && !isInitialized) {
       setEndpoint(config.uazapi_endpoint || "");
       setToken(config.uazapi_token || "");
+      setAdmintoken(config.uazapi_admintoken || "");
       setIsInitialized(true);
     }
   }, [config, isInitialized]);
@@ -39,10 +43,11 @@ export function UazapiConnectionCard({
     onSave({
       endpoint,
       token,
+      admintoken,
     });
   };
 
-  const isConfigured = endpoint && token;
+  const isConfigured = endpoint && admintoken;
 
   return (
     <Card>
@@ -52,9 +57,9 @@ export function UazapiConnectionCard({
             <Settings className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <CardTitle className="text-lg">Configuração Base</CardTitle>
+            <CardTitle className="text-lg">Configuração Base UazapiGO</CardTitle>
             <CardDescription>
-              URL Base e Token da sua instância UazapiGO (compartilhado entre todas as sessões)
+              URL Base e Admin Token da sua instância UazapiGO (API v2)
             </CardDescription>
           </div>
         </div>
@@ -74,12 +79,38 @@ export function UazapiConnectionCard({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="uazapi_token">Token *</Label>
+          <Label htmlFor="uazapi_admintoken">Admin Token *</Label>
+          <div className="relative">
+            <Input
+              id="uazapi_admintoken"
+              type={showAdminToken ? "text" : "password"}
+              placeholder="Seu admin token para criar instâncias"
+              value={admintoken}
+              onChange={(e) => setAdmintoken(e.target.value)}
+              className="pr-10"
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="absolute right-0 top-0 h-full"
+              onClick={() => setShowAdminToken(!showAdminToken)}
+            >
+              {showAdminToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Token administrativo para criar e gerenciar instâncias automaticamente
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="uazapi_token">Token Legado (Opcional)</Label>
           <div className="relative">
             <Input
               id="uazapi_token"
               type={showToken ? "text" : "password"}
-              placeholder="Seu token de autenticação"
+              placeholder="Token de autenticação antigo"
               value={token}
               onChange={(e) => setToken(e.target.value)}
               className="pr-10"
@@ -95,7 +126,7 @@ export function UazapiConnectionCard({
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
-            Token encontrado no painel da UazapiGO
+            Apenas para compatibilidade com instâncias antigas
           </p>
         </div>
 
