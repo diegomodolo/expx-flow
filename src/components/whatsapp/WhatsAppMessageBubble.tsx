@@ -1,7 +1,7 @@
 import { WhatsAppMessage } from "@/hooks/useWhatsAppMessages";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { Check, CheckCheck, Clock, AlertCircle, Download, FileText, Image, Video, Headphones, Loader2 } from "lucide-react";
+import { Check, CheckCheck, Clock, AlertCircle, Download, FileText, Image, Video, Headphones, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
@@ -9,6 +9,17 @@ import { toast } from "sonner";
 import { WhatsAppAudioPlayer } from "./WhatsAppAudioPlayer";
 import { WhatsAppImageViewer } from "./WhatsAppImageViewer";
 import { WhatsAppReactionPicker } from "./WhatsAppReactionPicker";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface WhatsAppMessageBubbleProps {
   message: WhatsAppMessage;
@@ -19,6 +30,8 @@ interface WhatsAppMessageBubbleProps {
 
 export function WhatsAppMessageBubble({ message, instanceId, companyId, remoteJid }: WhatsAppMessageBubbleProps) {
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isDeleted, setIsDeleted] = useState(message.status === "deleted");
   const isOutgoing = message.direction === "outgoing";
   const isFailed = message.status === "failed";
   const hasMedia = !!message.media_url;
@@ -99,6 +112,42 @@ export function WhatsAppMessageBubble({ message, instanceId, companyId, remoteJi
     }
   };
 
+  const handleDeleteMessage = async () => {
+    if (!instanceId || !message.external_id || !companyId) {
+      toast.error("Não foi possível apagar a mensagem");
+      return;
+    }
+
+    setIsDeleting(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("delete-whatsapp-message", {
+        body: {
+          company_id: companyId,
+          instance_id: instanceId,
+          message_id: message.external_id,
+          remote_jid: messageRemoteJid,
+          from_me: isOutgoing,
+          supabase_message_id: message.id,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        setIsDeleted(true);
+        toast.success("Mensagem apagada");
+      } else {
+        throw new Error(data?.error || "Erro ao apagar mensagem");
+      }
+    } catch (err: any) {
+      console.error("[WhatsAppMessageBubble] Delete error:", err);
+      toast.error(err.message || "Erro ao apagar mensagem");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const getMediaIcon = () => {
     switch (message.message_type) {
       case "image":
@@ -131,12 +180,62 @@ export function WhatsAppMessageBubble({ message, instanceId, companyId, remoteJi
   
   // Build remoteJid if not provided
   const messageRemoteJid = remoteJid || `${message.company_id}@s.whatsapp.net`;
+
+  // If message is deleted, show simplified view
+  if (isDeleted) {
+    return (
+      <div className={cn("flex", isOutgoing ? "justify-end" : "justify-start")}>
+        <div className={cn(
+          "rounded-lg px-3 py-2 shadow-sm italic text-muted-foreground",
+          isOutgoing ? "bg-muted/50 rounded-br-none" : "bg-muted/50 rounded-bl-none"
+        )}>
+          <span className="text-sm">🚫 Mensagem apagada</span>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className={cn("flex group", isOutgoing ? "justify-end" : "justify-start")}>
-      {/* Reaction picker for outgoing messages - show on left */}
+      {/* Action buttons for outgoing messages - show on left */}
       {isOutgoing && companyId && instanceId && message.external_id && (
-        <div className="flex items-center mr-1">
+        <div className="flex items-center gap-1 mr-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          {/* Delete button */}
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                disabled={isDeleting}
+              >
+                {isDeleting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4" />
+                )}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Apagar mensagem?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Esta ação irá apagar a mensagem para todos os participantes da conversa. Esta ação não pode ser desfeita.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction 
+                  onClick={handleDeleteMessage}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Apagar
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          {/* Reaction picker */}
           <WhatsAppReactionPicker
             messageId={message.external_id}
             remoteJid={messageRemoteJid}
