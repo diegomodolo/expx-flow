@@ -35,19 +35,32 @@ serve(async (req) => {
 
     // First, start the session if not already started
     console.log("[get-uazapi-qrcode] Starting session...");
-    const startResponse = await fetch(`${cleanEndpoint}/start`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Token": token,
-      },
-      body: JSON.stringify({
-        session: session,
-      }),
-    });
+    try {
+      const startResponse = await fetch(`${cleanEndpoint}/start`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Token": token,
+        },
+        body: JSON.stringify({
+          session: session,
+        }),
+      });
 
-    const startData = await startResponse.json();
-    console.log("[get-uazapi-qrcode] Start session response:", startData);
+      const startText = await startResponse.text();
+      console.log("[get-uazapi-qrcode] Start session raw response:", startText);
+      
+      // Try to parse as JSON for logging, but don't fail if it's not JSON
+      try {
+        const startData = JSON.parse(startText);
+        console.log("[get-uazapi-qrcode] Start session parsed:", startData);
+      } catch {
+        console.log("[get-uazapi-qrcode] Start response is not JSON, continuing...");
+      }
+    } catch (startError) {
+      console.log("[get-uazapi-qrcode] Start session failed (non-critical):", startError.message);
+      // Continue anyway - the session might already be started
+    }
 
     // Get QR Code
     const qrCodeUrl = `${cleanEndpoint}/getQrCode?session=${session}`;
