@@ -50,10 +50,10 @@ serve(async (req) => {
       );
     }
 
-    // 2. Buscar token da instância
+    // 2. Buscar token e ID da instância
     const { data: instance, error: instanceError } = await supabase
       .from("whatsapp_instances")
-      .select("uazapi_token, instance_name")
+      .select("uazapi_token, instance_name, uazapi_instance_id")
       .eq("id", instance_id)
       .single();
 
@@ -67,79 +67,85 @@ serve(async (req) => {
 
     const endpoint = config.uazapi_endpoint.replace(/\/$/, "");
     const token = instance.uazapi_token;
+    const instanceId = instance.uazapi_instance_id || instance.instance_name;
 
     console.log(`[sync-whatsapp-chats] Buscando chats de: ${endpoint}`);
+    console.log(`[sync-whatsapp-chats] Instance ID: ${instanceId}`);
 
     // 3. Chamar API UazapiGO para buscar chats
     // Tentamos diferentes endpoints que a API pode ter
     let chats: any[] = [];
-    let apiResponse: Response;
+    const attemptLogs: string[] = [];
     
-    // Tentar endpoint /chats primeiro
-    try {
-      apiResponse = await fetch(`${endpoint}/chats`, {
-        method: "GET",
-        headers: {
-          "token": token,
-          "Content-Type": "application/json",
-        },
-      });
+    // Lista de endpoints para tentar (UazapiGO v2 / Evolution API)
+    const endpointsToTry = [
+      { url: `${endpoint}/chat/findChats/${instanceId}`, method: "POST", body: {} },
+      { url: `${endpoint}/chat/findChats`, method: "POST", body: { instanceName: instanceId } },
+      { url: `${endpoint}/chat/findChats`, method: "POST", body: {} },
+      { url: `${endpoint}/chats/${instanceId}`, method: "GET", body: null },
+      { url: `${endpoint}/instance/chats/${instanceId}`, method: "GET", body: null },
+      { url: `${endpoint}/chats`, method: "GET", body: null },
+    ];
 
-      if (apiResponse.ok) {
-        const responseData = await apiResponse.json();
-        console.log(`[sync-whatsapp-chats] Resposta /chats:`, JSON.stringify(responseData).substring(0, 500));
-        
-        // A resposta pode ser um array direto ou um objeto com propriedade data/chats
-        if (Array.isArray(responseData)) {
-          chats = responseData;
-        } else if (responseData.data && Array.isArray(responseData.data)) {
-          chats = responseData.data;
-        } else if (responseData.chats && Array.isArray(responseData.chats)) {
-          chats = responseData.chats;
-        } else if (responseData.response && Array.isArray(responseData.response)) {
-          chats = responseData.response;
-        }
-      } else {
-        console.log(`[sync-whatsapp-chats] /chats retornou ${apiResponse.status}, tentando /chat/findChats`);
-        await apiResponse.text(); // Consume body
-      }
-    } catch (err) {
-      console.log(`[sync-whatsapp-chats] Erro em /chats:`, err);
-    }
-
-    // Se /chats não funcionou, tentar /chat/findChats (POST)
-    if (chats.length === 0) {
+    for (const ep of endpointsToTry) {
       try {
-        apiResponse = await fetch(`${endpoint}/chat/findChats`, {
-          method: "POST",
+        console.log(`[sync-whatsapp-chats] Tentando: ${ep.method} ${ep.url}`);
+        
+        const fetchOptions: RequestInit = {
+          method: ep.method,
           headers: {
             "token": token,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({}),
-        });
+        };
+        
+        if (ep.body !== null) {
+          fetchOptions.body = JSON.stringify(ep.body);
+        }
+
+        const apiResponse = await fetch(ep.url, fetchOptions);
+        const responseText = await apiResponse.text();
+        
+        console.log(`[sync-whatsapp-chats] Status: ${apiResponse.status}`);
 
         if (apiResponse.ok) {
-          const responseData = await apiResponse.json();
-          console.log(`[sync-whatsapp-chats] Resposta /chat/findChats:`, JSON.stringify(responseData).substring(0, 500));
-          
-          if (Array.isArray(responseData)) {
-            chats = responseData;
-          } else if (responseData.data && Array.isArray(responseData.data)) {
-            chats = responseData.data;
-          } else if (responseData.chats && Array.isArray(responseData.chats)) {
-            chats = responseData.chats;
-          } else if (responseData.response && Array.isArray(responseData.response)) {
-            chats = responseData.response;
+          try {
+            const responseData = JSON.parse(responseText);
+            console.log(`[sync-whatsapp-chats] Resposta:`, JSON.stringify(responseData).substring(0, 500));
+            
+            // A resposta pode estar em diferentes formatos
+            if (Array.isArray(responseData)) {
+              chats = responseData;
+            } else if (responseData.data && Array.isArray(responseData.data)) {
+              chats = responseData.data;
+            } else if (responseData.chats && Array.isArray(responseData.chats)) {
+              chats = responseData.chats;
+            } else if (responseData.response && Array.isArray(responseData.response)) {
+              chats = responseData.response;
+            } else if (responseData.result && Array.isArray(responseData.result)) {
+              chats = responseData.result;
+            }
+
+            if (chats.length > 0) {
+              attemptLogs.push(`✅ ${ep.url}: ${chats.length} chats encontrados`);
+              break;
+            } else {
+              attemptLogs.push(`⚠️ ${ep.url}: OK mas sem chats`);
+            }
+          } catch (parseErr) {
+            attemptLogs.push(`❌ ${ep.url}: Erro ao parsear JSON`);
           }
         } else {
-          console.log(`[sync-whatsapp-chats] /chat/findChats retornou ${apiResponse.status}`);
-          await apiResponse.text(); // Consume body
+          attemptLogs.push(`❌ ${ep.url}: ${apiResponse.status}`);
         }
       } catch (err) {
-        console.log(`[sync-whatsapp-chats] Erro em /chat/findChats:`, err);
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        attemptLogs.push(`❌ ${ep.url}: ${errorMsg}`);
+        console.log(`[sync-whatsapp-chats] Erro em ${ep.url}:`, err);
       }
     }
+
+    console.log(`[sync-whatsapp-chats] Tentativas:`, attemptLogs)
 
     console.log(`[sync-whatsapp-chats] Total de chats encontrados: ${chats.length}`);
 

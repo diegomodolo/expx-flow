@@ -145,6 +145,59 @@ serve(async (req) => {
 
     console.log("[create-uazapi-instance] Instance created successfully:", dbInstance.id);
 
+    // Configurar webhook automaticamente
+    const webhookCallbackUrl = `${supabaseUrl}/functions/v1/whatsapp-webhook`;
+    console.log("[create-uazapi-instance] Configurando webhook:", webhookCallbackUrl);
+
+    let webhookConfigured = false;
+    const webhookPayload = {
+      url: webhookCallbackUrl,
+      events: [
+        "MESSAGES_UPSERT",
+        "MESSAGES_UPDATE",
+        "MESSAGES_DELETE",
+        "CONNECTION_UPDATE",
+        "QRCODE_UPDATED",
+        "PRESENCE_UPDATE",
+        "CHATS_UPDATE",
+        "CHATS_UPSERT",
+      ],
+      webhook_by_events: false,
+      enabled: true,
+    };
+
+    // Tentar diferentes endpoints de webhook
+    const webhookEndpoints = [
+      `${cleanEndpoint}/webhook`,
+      `${cleanEndpoint}/webhook/${uazapiInstanceId}`,
+    ];
+
+    for (const webhookUrl of webhookEndpoints) {
+      try {
+        console.log(`[create-uazapi-instance] Tentando configurar webhook em: ${webhookUrl}`);
+        
+        const webhookResponse = await fetch(webhookUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "token": uazapiToken,
+          },
+          body: JSON.stringify(webhookPayload),
+        });
+
+        const webhookText = await webhookResponse.text();
+        console.log(`[create-uazapi-instance] Webhook response (${webhookResponse.status}):`, webhookText);
+
+        if (webhookResponse.ok) {
+          webhookConfigured = true;
+          console.log("[create-uazapi-instance] Webhook configurado com sucesso!");
+          break;
+        }
+      } catch (webhookErr) {
+        console.error(`[create-uazapi-instance] Erro ao configurar webhook em ${webhookUrl}:`, webhookErr);
+      }
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -154,6 +207,8 @@ serve(async (req) => {
           uazapi_instance_id: uazapiInstanceId,
           status: instanceInfo.status || "disconnected",
         },
+        webhook_configured: webhookConfigured,
+        webhook_url: webhookCallbackUrl,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
