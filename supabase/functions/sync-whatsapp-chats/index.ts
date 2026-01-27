@@ -31,7 +31,7 @@ serve(async (req) => {
     // 1. Buscar configuração da empresa (endpoint UazapiGO)
     const { data: config, error: configError } = await supabase
       .from("whatsapp_configs")
-      .select("uazapi_endpoint, provider")
+      .select("uazapi_endpoint, provider, instance_id, token")
       .eq("company_id", company_id)
       .maybeSingle();
 
@@ -79,41 +79,74 @@ serve(async (req) => {
     let chats: any[] = [];
     const attemptLogs: string[] = [];
     
-    // Lista de endpoints para tentar (UazapiGO v2)
-    // Baseado na documentação: https://docs.uazapi.com/
-    const endpointsToTry = [
-      // UazapiGO internal DB - buscar chats armazenados
-      { url: `${endpoint}/chat/findChats`, method: "GET", body: null },
-      // POST com where clause para filtrar
-      { url: `${endpoint}/chat/findChats`, method: "POST", body: { where: {} } },
-      { url: `${endpoint}/chat/findChats`, method: "POST", body: {} },
-      // Endpoints alternativos
-      { url: `${endpoint}/chat`, method: "GET", body: null },
-      { url: `${endpoint}/chats`, method: "GET", body: null },
-      { url: `${endpoint}/chat/list`, method: "GET", body: null },
-      { url: `${endpoint}/chat/getAll`, method: "GET", body: null },
-      // wuzapi style - contacts pode ter histórico de chat
-      { url: `${endpoint}/user/contacts`, method: "GET", body: null },
-      // Buscar histórico do CRM interno
-      { url: `${endpoint}/crm/findContacts`, method: "POST", body: { where: {} } },
-      { url: `${endpoint}/crm/findContacts`, method: "GET", body: null },
-      // Instance-based endpoints (Evolution API style)
-      { url: `${endpoint}/chat/findChats/${instanceIdentifier}`, method: "POST", body: {} },
-      { url: `${endpoint}/chat/findChats/${instance.instance_name}`, method: "POST", body: {} },
-    ];
+    // Lista de endpoints para tentar (UazapiGO / proxies / variações de basePath)
+    // Observação: em alguns servidores o endpoint real fica atrás de /api, /v1, /v2, etc.
+    const uniq = <T,>(arr: T[]) => Array.from(new Set(arr));
+
+    const baseCandidates = uniq(
+      [
+        endpoint,
+        `${endpoint}/api`,
+        `${endpoint}/api/v1`,
+        `${endpoint}/api/v2`,
+        `${endpoint}/v1`,
+        `${endpoint}/v2`,
+      ].filter(Boolean)
+    );
+
+    const instanceCandidates = uniq(
+      [
+        instanceIdentifier,
+        instance.instance_name,
+        instance.uazapi_instance_id,
+        config.instance_id,
+      ].filter(Boolean)
+    );
+
+    type EndpointAttempt = { url: string; method: "GET" | "POST"; body: any | null };
+    const endpointsToTry: EndpointAttempt[] = [];
+    const add = (url: string, method: "GET" | "POST", body: any | null) => {
+      endpointsToTry.push({ url, method, body });
+    };
+
+    for (const base of baseCandidates) {
+      // Sem instância na URL (algumas APIs inferem pelo token)
+      add(`${base}/chat/findChats`, "GET", null);
+      add(`${base}/chat/findChats`, "POST", { where: {} });
+      add(`${base}/chat/findChats`, "POST", {});
+      add(`${base}/chat/list`, "GET", null);
+      add(`${base}/chat/getAll`, "GET", null);
+      add(`${base}/chats`, "GET", null);
+      add(`${base}/chat`, "GET", null);
+      add(`${base}/user/contacts`, "GET", null);
+
+      // Com instância na URL/body (Evolution API / proxies compatíveis)
+      for (const inst of instanceCandidates) {
+        add(`${base}/chat/findChats/${inst}`, "GET", null); // ex.: GET /chat/findChats/:instanceName
+        add(`${base}/chat/findChats/${inst}`, "POST", {});
+        add(`${base}/chat/findChats`, "POST", { instanceName: inst });
+        add(`${base}/chat/findChats`, "POST", { instance: inst });
+        add(`${base}/chat/findChats`, "POST", { instanceName: inst, where: {} });
+      }
+    }
 
     for (const ep of endpointsToTry) {
       try {
         console.log(`[sync-whatsapp-chats] Tentando: ${ep.method} ${ep.url}`);
         
+        const apiKeyHeader = (config as any)?.token || token;
+
         const fetchOptions: RequestInit = {
           method: ep.method,
           headers: {
             "token": token,
-            "apikey": token,
+            "apikey": apiKeyHeader,
             "Authorization": `Bearer ${token}`,
             "Content-Type": "application/json",
             "Accept": "application/json",
+            // Alguns proxies/implementações olham instância via header
+            "x-instance-name": String(instance.instance_name || ""),
+            "x-instance-id": String(instanceIdentifier || ""),
           },
         };
         
@@ -181,6 +214,19 @@ serve(async (req) => {
 
     console.log(`[sync-whatsapp-chats] Tentativas:`, attemptLogs);
     console.log(`[sync-whatsapp-chats] Total de chats encontrados: ${chats.length}`);
+
+    if (chats.length === 0) {
+      // Se não achou chats, devolve erro explícito (pra UI conseguir orientar)
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error:
+            "Não consegui listar suas conversas antigas na API do UazapiGO. Normalmente isso acontece quando o uazapi_endpoint precisa incluir /api (ou /api/v1, /api/v2) ou quando o servidor não expõe endpoint de listagem de chats.",
+          attempts: attemptLogs,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // 4. Processar e sincronizar chats
     let syncedCount = 0;
