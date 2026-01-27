@@ -21,16 +21,19 @@ export function UazapiConnectionCard({
   onSave,
   isSaving,
 }: UazapiBaseConfigCardProps) {
-  const [endpoint, setEndpoint] = useState(config?.uazapi_endpoint || "");
-  const [token, setToken] = useState(config?.uazapi_token || "");
+  const [endpoint, setEndpoint] = useState("");
+  const [token, setToken] = useState("");
   const [showToken, setShowToken] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
+  // Sincronizar apenas na carga inicial
   useEffect(() => {
-    if (config) {
+    if (config && !isInitialized) {
       setEndpoint(config.uazapi_endpoint || "");
       setToken(config.uazapi_token || "");
+      setIsInitialized(true);
     }
-  }, [config]);
+  }, [config, isInitialized]);
 
   const handleSave = () => {
     onSave({
