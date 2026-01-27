@@ -384,3 +384,6 @@ verify_jwt = false
 
 [functions.check-cs-milestones]
 verify_jwt = false
+
+[functions.fetch-whatsapp-messages]
+verify_jwt = true

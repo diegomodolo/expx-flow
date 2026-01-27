@@ -3,9 +3,11 @@ import { WhatsAppConversation } from "@/hooks/useWhatsAppConversations";
 import { useWhatsAppMessages } from "@/hooks/useWhatsAppMessages";
 import { WhatsAppMessageBubble } from "./WhatsAppMessageBubble";
 import { WhatsAppMessageInput } from "./WhatsAppMessageInput";
+import { WhatsAppMessagesLoading } from "./WhatsAppMessagesLoading";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Loader2, Phone } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Phone, RefreshCw } from "lucide-react";
 
 interface WhatsAppChatWindowProps {
   conversation: WhatsAppConversation;
@@ -14,7 +16,7 @@ interface WhatsAppChatWindowProps {
 }
 
 export function WhatsAppChatWindow({ conversation, companyId, instanceId }: WhatsAppChatWindowProps) {
-  const { messages, isLoading, sendMessage } = useWhatsAppMessages(
+  const { messages, isLoading, isFetchingFromApi, sendMessage, fetchMessagesFromApi } = useWhatsAppMessages(
     conversation.id,
     companyId
   );
@@ -56,20 +58,39 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId }: What
             {formatPhoneNumber(conversation.phone)}
           </p>
         </div>
+        
+        {/* Refresh messages button */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => fetchMessagesFromApi()}
+          disabled={isFetchingFromApi}
+          title="Atualizar mensagens"
+        >
+          <RefreshCw className={`h-4 w-4 ${isFetchingFromApi ? 'animate-spin' : ''}`} />
+        </Button>
       </div>
 
       {/* Messages */}
       <ScrollArea className="flex-1 px-4">
         {isLoading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
+          <WhatsAppMessagesLoading />
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <p className="text-sm text-muted-foreground">Nenhuma mensagem ainda</p>
             <p className="text-xs text-muted-foreground mt-1">
               Envie uma mensagem para iniciar a conversa
             </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fetchMessagesFromApi()}
+              disabled={isFetchingFromApi}
+              className="mt-4"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isFetchingFromApi ? 'animate-spin' : ''}`} />
+              Buscar mensagens anteriores
+            </Button>
           </div>
         ) : (
           <div className="py-4 space-y-2">
@@ -81,7 +102,7 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId }: What
         )}
       </ScrollArea>
 
-      {/* Input - always enabled now */}
+      {/* Input */}
       <WhatsAppMessageInput onSend={handleSend} isSending={false} />
     </div>
   );
