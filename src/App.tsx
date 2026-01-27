@@ -125,6 +125,7 @@ import { CompanyProvider } from "@/contexts/CompanyContext";
 import { CRMAuthProvider } from "@/contexts/CRMAuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { PermissionProtectedRoute } from "@/components/PermissionProtectedRoute";
+import SuperAdmin from "@/pages/SuperAdmin";
 import { ThemeProvider } from "next-themes";
 import { Navigate } from "react-router-dom";
 
@@ -161,6 +162,7 @@ const App = () => {
               <Route path="/social-tv/:token" element={<DashboardSocialTVPublic />} />
               <Route path="/radar-tv/:token" element={<DashboardRadarTVPublic />} />
               <Route path="/content-review" element={<PublicContentReview />} />
+              <Route path="/super-admin" element={<SuperAdmin />} />
               
                {/* Protected routes */}
                <Route path="/dashboard" element={
