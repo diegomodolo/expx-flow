@@ -95,8 +95,8 @@ serve(async (req) => {
 
     const webhookPayload = {
       url: webhookCallbackUrl,
-      events: ["messages"],  // UazapiGO espera um array, não string
-      exclude: excludeList,
+      events: ["messages"],  // UazapiGO espera um array
+      excludeMessages: excludeList,  // Campo correto da API UazapiGO
       enabled: true,
     };
 
