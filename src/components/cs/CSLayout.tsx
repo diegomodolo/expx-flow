@@ -3,8 +3,8 @@ import { Outlet, NavLink, useLocation } from 'react-router-dom';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { cn } from '@/lib/utils';
 import { 
-  AlertTriangle, 
-  Heart, 
+  Rocket,
+  Briefcase,
   Trophy, 
   Target, 
   Users,
@@ -22,22 +22,22 @@ interface CSMenuItem {
 
 const csMenuItems: CSMenuItem[] = [
   { 
-    title: "Radar de Risco", 
-    url: "/cs/radar", 
-    icon: AlertTriangle,
-    description: "Clientes em risco de churn"
+    title: "Cockpit", 
+    url: "/cs/cockpit", 
+    icon: Rocket,
+    description: "Painel operacional do dia"
   },
   { 
-    title: "Saúde 360", 
-    url: "/cs/saude", 
-    icon: Heart,
-    description: "Health Score completo"
+    title: "Carteira", 
+    url: "/cs/carteira", 
+    icon: Briefcase,
+    description: "Saúde da carteira de clientes"
   },
   { 
     title: "Jornada", 
     url: "/cs/jornada", 
     icon: Trophy,
-    description: "Jornada da Vitória"
+    description: "Pipeline de sucesso"
   },
   { 
     title: "Ações", 
@@ -49,7 +49,7 @@ const csMenuItems: CSMenuItem[] = [
     title: "Clientes CS", 
     url: "/cs/clientes", 
     icon: Users,
-    description: "Lista de clientes"
+    description: "Lista detalhada de clientes"
   },
 ];
 
@@ -63,7 +63,7 @@ function CSLayoutContent() {
         <TooltipProvider>
           <nav className="w-14 hover:w-56 transition-all duration-200 ease-in-out border-r bg-card flex flex-col gap-1 py-4 px-2 group overflow-hidden">
             <div className="mb-2 px-2 group-hover:px-3 transition-all">
-              <Heart className="h-6 w-6 text-primary" />
+              <Rocket className="h-6 w-6 text-primary" />
               <span className="hidden group-hover:block text-sm font-semibold mt-1 whitespace-nowrap">
                 Customer Success
               </span>

@@ -31,6 +31,8 @@ import { useCSClientsList, CSClientListItem } from '@/hooks/useCSClientsList';
 import { CSNewTouchpointModal } from '@/components/cs/CSNewTouchpointModal';
 import { useCSSquadFilter } from '@/contexts/CSSquadFilterContext';
 import { CSSquadFilter } from '@/components/cs/CSSquadFilter';
+import { CSHealthScoreTooltip } from '@/components/cs/CSHealthScoreTooltip';
+import { CSCampaignTrafficLight } from '@/components/cs/CSCampaignTrafficLight';
 
 type SortField = 'name' | 'healthScore' | 'churnRiskLevel' | 'npsScore' | 'lastTouchpointAt' | 'activeCampaigns' | 'onboardingStatus' | 'squadName';
 type SortDirection = 'asc' | 'desc';
@@ -365,15 +367,31 @@ export default function CSClientsList() {
                       )}
                     </TableCell>
                     <TableCell>
-                      <div className="space-y-1">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium">{client.healthScore}%</span>
+                      <CSHealthScoreTooltip
+                        clientId={client.clientId}
+                        healthScore={client.healthScore}
+                        pillarData={{
+                          financial: client.healthScoreFinancial,
+                          operational: client.healthScoreOperational,
+                          relational: client.healthScoreRelational,
+                          total: client.healthScore,
+                          activeCampaigns: client.activeCampaigns,
+                          daysSinceContact: client.daysSinceLastContact,
+                          npsScore: client.npsScore,
+                        }}
+                      >
+                        <div className="space-y-1 cursor-pointer">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium">{client.healthScore}%</span>
+                          </div>
+                          <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                            <div 
+                              className={cn("h-full transition-all", getHealthScoreColor(client.healthScore))}
+                              style={{ width: `${client.healthScore}%` }}
+                            />
+                          </div>
                         </div>
-                        <Progress 
-                          value={client.healthScore} 
-                          className={cn("h-2", getHealthScoreColor(client.healthScore))}
-                        />
-                      </div>
+                      </CSHealthScoreTooltip>
                     </TableCell>
                     <TableCell>
                       <Badge className={cn("border", riskConfig[client.churnRiskLevel].color)}>
@@ -399,7 +417,14 @@ export default function CSClientsList() {
                       )}
                     </TableCell>
                     <TableCell>
-                      <span className="text-sm">{client.activeCampaigns}</span>
+                      <CSCampaignTrafficLight
+                        performance={{
+                          active: client.activeCampaigns,
+                          onTarget: Math.ceil(client.activeCampaigns * 0.7), // Placeholder - would need real data
+                          warning: Math.floor(client.activeCampaigns * 0.2),
+                          critical: Math.floor(client.activeCampaigns * 0.1),
+                        }}
+                      />
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className={onboardingConfig[client.onboardingStatus].color}>

@@ -31,6 +31,8 @@ import {
   ExternalLink,
   Images,
   Heart,
+  Rocket,
+  Briefcase,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useEmployeePermissions, MenuItemType } from "@/hooks/useEmployeePermissions";
@@ -86,8 +88,8 @@ const menuCategories: MenuCategory[] = [
       title: "Customer Success",
       icon: Heart,
       items: [
-        { title: "Radar de Risco", url: "/cs/radar", icon: Activity, permission: "clientes" as MenuItemType },
-        { title: "Saúde 360", url: "/cs/saude", icon: Heart, permission: "clientes" as MenuItemType },
+        { title: "Cockpit", url: "/cs/cockpit", icon: Rocket, permission: "clientes" as MenuItemType },
+        { title: "Carteira", url: "/cs/carteira", icon: Briefcase, permission: "clientes" as MenuItemType },
         { title: "Jornada", url: "/cs/jornada", icon: TrendingUp, permission: "clientes" as MenuItemType },
         { title: "Ações", url: "/cs/acoes", icon: Zap, permission: "clientes" as MenuItemType },
         { title: "Clientes CS", url: "/cs/clientes", icon: Users, permission: "clientes" as MenuItemType },
