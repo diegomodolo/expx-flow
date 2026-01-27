@@ -47,11 +47,13 @@ interface CompanyUser {
   user_id: string;
   full_name: string;
   role: string;
+  avatar_url: string | null;
 }
 
 interface AssignedUserWithProfile extends WhatsAppInstanceUser {
   full_name: string;
   role: string;
+  avatar_url: string | null;
 }
 
 export function WhatsAppInstanceUsersModal({
@@ -87,25 +89,29 @@ export function WhatsAppInstanceUsersModal({
 
       if (membersError) throw membersError;
 
-      // Fetch profiles separately
+      // Fetch profiles separately using user_id field
       const userIds = members?.map(m => m.user_id) || [];
-      let profilesMap: Record<string, string> = {};
+      let profilesMap: Record<string, { full_name: string; avatar_url: string | null }> = {};
       
       if (userIds.length > 0) {
         const { data: profiles } = await supabase
           .from("profiles")
-          .select("id, full_name")
-          .in("id", userIds);
+          .select("user_id, full_name, avatar_url")
+          .in("user_id", userIds);
         
         profiles?.forEach(p => {
-          profilesMap[p.id] = p.full_name || "Usuário";
+          profilesMap[p.user_id] = {
+            full_name: p.full_name || "Usuário",
+            avatar_url: p.avatar_url,
+          };
         });
       }
 
       const users: CompanyUser[] = members?.map(m => ({
         user_id: m.user_id,
-        full_name: profilesMap[m.user_id] || "Usuário",
+        full_name: profilesMap[m.user_id]?.full_name || "Usuário",
         role: m.role,
+        avatar_url: profilesMap[m.user_id]?.avatar_url || null,
       })) || [];
 
       setCompanyUsers(users);
@@ -120,6 +126,7 @@ export function WhatsAppInstanceUsersModal({
           ...a,
           full_name: companyUser?.full_name || "Usuário",
           role: companyUser?.role || "member",
+          avatar_url: companyUser?.avatar_url || null,
         };
       });
       
@@ -161,6 +168,7 @@ export function WhatsAppInstanceUsersModal({
         created_at: new Date().toISOString(),
         full_name: user.full_name,
         role: user.role,
+        avatar_url: user.avatar_url,
       },
     ]);
 
@@ -236,7 +244,15 @@ export function WhatsAppInstanceUsersModal({
                           onSelect={() => handleAddUser(user)}
                           className="cursor-pointer"
                         >
-                          <User className="h-4 w-4 mr-2 text-muted-foreground" />
+                          {user.avatar_url ? (
+                            <img 
+                              src={user.avatar_url} 
+                              alt={user.full_name}
+                              className="h-6 w-6 rounded-full object-cover mr-2"
+                            />
+                          ) : (
+                            <User className="h-4 w-4 mr-2 text-muted-foreground" />
+                          )}
                           <span>{user.full_name}</span>
                           <span className="ml-2 text-xs text-muted-foreground capitalize">
                             ({user.role})
@@ -268,10 +284,18 @@ export function WhatsAppInstanceUsersModal({
                         className="p-3 rounded-lg border bg-card"
                       >
                         <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-2">
-                            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                              <User className="h-4 w-4 text-primary" />
-                            </div>
+                          <div className="flex items-center gap-3">
+                            {user.avatar_url ? (
+                              <img 
+                                src={user.avatar_url} 
+                                alt={user.full_name}
+                                className="h-9 w-9 rounded-full object-cover"
+                              />
+                            ) : (
+                              <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">
+                                <User className="h-4 w-4 text-primary" />
+                              </div>
+                            )}
                             <div>
                               <p className="font-medium text-sm">{user.full_name}</p>
                               <p className="text-xs text-muted-foreground capitalize">{user.role}</p>
