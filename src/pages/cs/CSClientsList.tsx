@@ -30,6 +30,7 @@ import { cn } from '@/lib/utils';
 import { useCSClientsList, CSClientListItem } from '@/hooks/useCSClientsList';
 import { CSNewTouchpointModal } from '@/components/cs/CSNewTouchpointModal';
 import { useCSSquadFilter } from '@/contexts/CSSquadFilterContext';
+import { CSSquadFilter } from '@/components/cs/CSSquadFilter';
 
 type SortField = 'name' | 'healthScore' | 'churnRiskLevel' | 'npsScore' | 'lastTouchpointAt' | 'activeCampaigns' | 'onboardingStatus' | 'squadName';
 type SortDirection = 'asc' | 'desc';
@@ -212,6 +213,8 @@ export default function CSClientsList() {
                 />
               </div>
             </div>
+            
+            <CSSquadFilter />
             
             <Select value={riskFilter} onValueChange={setRiskFilter}>
               <SelectTrigger className="w-[180px]">

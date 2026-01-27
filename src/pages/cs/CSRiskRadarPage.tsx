@@ -4,6 +4,7 @@ import { AlertTriangle, Activity, Star, Users } from 'lucide-react';
 import { useCSHealthScore360 } from '@/hooks/useCSHealthScore360';
 import { CSRiskRadar } from '@/components/cs/CSRiskRadar';
 import { useCSSquadFilter } from '@/contexts/CSSquadFilterContext';
+import { CSSquadFilter } from '@/components/cs/CSSquadFilter';
 
 export default function CSRiskRadarPage() {
   const { healthData, stats, isLoading } = useCSHealthScore360();
@@ -35,14 +36,17 @@ export default function CSRiskRadarPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <AlertTriangle className="h-6 w-6 text-destructive" />
-          Radar de Risco
-        </h1>
-        <p className="text-muted-foreground">
-          Clientes em risco de churn que precisam de atenção imediata
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+            <AlertTriangle className="h-6 w-6 text-destructive" />
+            Radar de Risco
+          </h1>
+          <p className="text-muted-foreground">
+            Clientes em risco de churn que precisam de atenção imediata
+          </p>
+        </div>
+        <CSSquadFilter />
       </div>
 
       {/* KPIs */}

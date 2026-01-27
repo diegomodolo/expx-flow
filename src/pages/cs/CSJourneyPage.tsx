@@ -5,6 +5,7 @@ import { Trophy } from 'lucide-react';
 import { useCSHealthScore360 } from '@/hooks/useCSHealthScore360';
 import { CSSuccessJourney } from '@/components/cs/CSSuccessJourney';
 import { useCSSquadFilter } from '@/contexts/CSSquadFilterContext';
+import { CSSquadFilter } from '@/components/cs/CSSquadFilter';
 
 export default function CSJourneyPage() {
   const { healthData, isLoading } = useCSHealthScore360();
@@ -22,14 +23,17 @@ export default function CSJourneyPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <Trophy className="h-6 w-6 text-yellow-500" />
-          Jornada da Vitória
-        </h1>
-        <p className="text-muted-foreground">
-          Acompanhe o progresso dos clientes em direção ao sucesso
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+            <Trophy className="h-6 w-6 text-yellow-500" />
+            Jornada da Vitória
+          </h1>
+          <p className="text-muted-foreground">
+            Acompanhe o progresso dos clientes em direção ao sucesso
+          </p>
+        </div>
+        <CSSquadFilter />
       </div>
 
       {/* Journey Card */}

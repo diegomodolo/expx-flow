@@ -8,14 +8,10 @@ import {
   Trophy, 
   Target, 
   Users,
-  LucideIcon,
-  Building2,
-  ChevronDown
+  LucideIcon
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { CSSquadFilterProvider, useCSSquadFilter } from '@/contexts/CSSquadFilterContext';
+import { CSSquadFilterProvider } from '@/contexts/CSSquadFilterContext';
 
 interface CSMenuItem {
   title: string;
@@ -57,97 +53,8 @@ const csMenuItems: CSMenuItem[] = [
   },
 ];
 
-function SquadSelector() {
-  const { selectedSquadId, setSelectedSquadId, squads, isLoading, mySquadId, mySquadName } = useCSSquadFilter();
-
-  const getDisplayValue = () => {
-    if (selectedSquadId === null) return 'all';
-    if (selectedSquadId === mySquadId) return 'my-squad';
-    return selectedSquadId;
-  };
-
-  const handleChange = (value: string) => {
-    if (value === 'all') {
-      setSelectedSquadId(null);
-    } else if (value === 'my-squad') {
-      setSelectedSquadId(mySquadId);
-    } else {
-      setSelectedSquadId(value);
-    }
-  };
-
-  const selectedSquad = squads.find(s => s.id === selectedSquadId);
-
-  return (
-    <div className="px-2 mb-4">
-      <div className="hidden group-hover:block">
-        <Select value={getDisplayValue()} onValueChange={handleChange} disabled={isLoading}>
-          <SelectTrigger className="w-full h-9 text-xs">
-            <div className="flex items-center gap-2">
-              <Building2 className="h-4 w-4 shrink-0" />
-              <SelectValue placeholder="Selecionar Squad" />
-            </div>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">
-              <span className="flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                Todos os Squads
-              </span>
-            </SelectItem>
-            {mySquadId && (
-              <SelectItem value="my-squad">
-                <span className="flex items-center gap-2">
-                  <Heart className="h-4 w-4 text-primary" />
-                  Meu Squad ({mySquadName})
-                </span>
-              </SelectItem>
-            )}
-            {squads.map((squad) => (
-              <SelectItem key={squad.id} value={squad.id}>
-                <span className="flex items-center gap-2">
-                  <div 
-                    className="h-3 w-3 rounded-full" 
-                    style={{ backgroundColor: squad.color || '#6B7280' }} 
-                  />
-                  {squad.name}
-                </span>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      
-      {/* Collapsed view - just icon */}
-      <div className="group-hover:hidden flex justify-center">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className={cn(
-              "p-1.5 rounded-md cursor-pointer hover:bg-muted",
-              selectedSquadId && "bg-primary/10"
-            )}>
-              <Building2 className={cn("h-5 w-5", selectedSquadId && "text-primary")} />
-            </div>
-          </TooltipTrigger>
-          <TooltipContent side="right">
-            <p className="font-medium">
-              {selectedSquadId === null 
-                ? 'Todos os Squads' 
-                : selectedSquad?.name || 'Squad selecionado'
-              }
-            </p>
-          </TooltipContent>
-        </Tooltip>
-      </div>
-    </div>
-  );
-}
-
 function CSLayoutContent() {
   const location = useLocation();
-  const { selectedSquadId, squads } = useCSSquadFilter();
-  
-  const selectedSquad = squads.find(s => s.id === selectedSquadId);
   
   return (
     <DashboardLayout>
@@ -161,25 +68,6 @@ function CSLayoutContent() {
                 Customer Success
               </span>
             </div>
-            
-            {/* Squad Selector */}
-            <SquadSelector />
-            
-            {/* Active Squad Badge (when squad is selected) */}
-            {selectedSquadId && selectedSquad && (
-              <div className="hidden group-hover:block px-2 mb-2">
-                <Badge 
-                  variant="outline" 
-                  className="w-full justify-center text-xs"
-                  style={{ 
-                    borderColor: selectedSquad.color || undefined,
-                    backgroundColor: selectedSquad.color ? `${selectedSquad.color}20` : undefined 
-                  }}
-                >
-                  {selectedSquad.name}
-                </Badge>
-              </div>
-            )}
             
             {csMenuItems.map((item) => {
               const isActive = location.pathname === item.url;
