@@ -155,7 +155,7 @@ serve(async (req) => {
     // - exclude: evitar loops (wasSentByApi) e grupos (isGroupYes)
     const webhookPayload = {
       url: webhookCallbackUrl,
-      events: "messages",
+      events: ["messages"],  // UazapiGO espera um array, não string
       exclude: ["wasSentByApi", "isGroupYes"],
       enabled: true,
     };
