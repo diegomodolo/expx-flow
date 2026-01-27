@@ -318,6 +318,29 @@ export function useRadarUrls(filters: UrlFilters = {}) {
     }
   });
 
+  // Import URLs from campaigns
+  const importUrlsMutation = useMutation({
+    mutationFn: async () => {
+      if (!companyId) throw new Error('Company not found');
+      const { data, error } = await supabase.functions.invoke('import-campaign-urls', {
+        body: { company_id: companyId }
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['radar-urls'] });
+      if (data?.imported > 0) {
+        toast.success(`${data.imported} novas URLs importadas de ${data.scanned_campaigns} campanhas`);
+      } else {
+        toast.info('Nenhuma nova URL encontrada nas campanhas ativas');
+      }
+    },
+    onError: (error) => {
+      toast.error(`Erro ao importar URLs: ${error.message}`);
+    }
+  });
+
   return {
     urls,
     stats,
@@ -329,13 +352,16 @@ export function useRadarUrls(filters: UrlFilters = {}) {
     isLoading,
     refetch,
     validateUrl: validateUrlMutation.mutate,
-    validateAll: validateAllMutation.mutate,
+    validateAll: validateAllMutation.mutateAsync,
     validateProblematic: validateProblematicMutation.mutate,
     isValidating: validateUrlMutation.isPending || validateAllMutation.isPending || validateProblematicMutation.isPending,
     // Content analysis
     analyzeContent: analyzeContentMutation.mutate,
-    analyzeAllContent: analyzeAllContentMutation.mutate,
+    analyzeAllContent: analyzeAllContentMutation.mutateAsync,
     analyzeSuspicious: analyzeSuspiciousMutation.mutate,
     isAnalyzing: analyzeContentMutation.isPending || analyzeAllContentMutation.isPending || analyzeSuspiciousMutation.isPending,
+    // Import URLs
+    importUrls: importUrlsMutation.mutate,
+    isImporting: importUrlsMutation.isPending,
   };
 }
