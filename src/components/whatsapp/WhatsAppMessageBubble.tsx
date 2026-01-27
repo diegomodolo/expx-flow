@@ -143,96 +143,113 @@ export function WhatsAppMessageBubble({ message, instanceId, companyId, remoteJi
             companyId={companyId}
             instanceId={instanceId}
             isOutgoing={isOutgoing}
+            currentReaction={message.reaction}
           />
         </div>
       )}
       
-      <div
-        className={cn(
-          "max-w-[75%] rounded-lg px-3 py-2 shadow-sm",
-          isOutgoing
-            ? isFailed 
-              ? "bg-destructive/20 text-foreground rounded-br-none border border-destructive/30"
-              : "bg-primary text-primary-foreground rounded-br-none"
-            : "bg-muted rounded-bl-none"
-        )}
-      >
-        {/* Media preview/download area */}
-        {isMediaType && (hasMedia || message.external_id) && (
-          <div className="mb-2">
-            {message.message_type === "image" ? (
-              <WhatsAppImageViewer
-                mediaUrl={message.media_url}
-                messageId={message.external_id}
-                instanceId={instanceId ?? null}
-                isOutgoing={isOutgoing && !isFailed}
-              />
-            ) : message.message_type === "audio" ? (
-              <WhatsAppAudioPlayer
-                mediaUrl={message.media_url}
-                messageId={message.external_id}
-                instanceId={instanceId ?? null}
-                isOutgoing={isOutgoing && !isFailed}
-              />
-            ) : (
-              <Button
-                variant={isOutgoing && !isFailed ? "secondary" : "outline"}
-                size="sm"
-                className="w-full justify-start gap-2"
-                onClick={handleDownload}
-                disabled={isDownloading}
-              >
-                {isDownloading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  getMediaIcon()
-                )}
-                <span className="flex-1 text-left truncate">
-                  {isDownloading 
-                    ? "Baixando..." 
-                    : message.content.startsWith("📎") || message.content.startsWith("[") 
-                      ? message.content.replace("📎 ", "").replace(/^\[.*\]$/, getMediaLabel())
-                      : message.content.substring(0, 30)}
-                </span>
-                {!isDownloading && <Download className="h-4 w-4 shrink-0" />}
-              </Button>
+      <div className="relative">
+        <div
+          className={cn(
+            "max-w-[75%] rounded-lg px-3 py-2 shadow-sm",
+            isOutgoing
+              ? isFailed 
+                ? "bg-destructive/20 text-foreground rounded-br-none border border-destructive/30"
+                : "bg-primary text-primary-foreground rounded-br-none"
+              : "bg-muted rounded-bl-none",
+            // Add bottom margin if there's a reaction to make room for the badge
+            message.reaction && "mb-4"
+          )}
+        >
+          {/* Media preview/download area */}
+          {isMediaType && (hasMedia || message.external_id) && (
+            <div className="mb-2">
+              {message.message_type === "image" ? (
+                <WhatsAppImageViewer
+                  mediaUrl={message.media_url}
+                  messageId={message.external_id}
+                  instanceId={instanceId ?? null}
+                  isOutgoing={isOutgoing && !isFailed}
+                />
+              ) : message.message_type === "audio" ? (
+                <WhatsAppAudioPlayer
+                  mediaUrl={message.media_url}
+                  messageId={message.external_id}
+                  instanceId={instanceId ?? null}
+                  isOutgoing={isOutgoing && !isFailed}
+                />
+              ) : (
+                <Button
+                  variant={isOutgoing && !isFailed ? "secondary" : "outline"}
+                  size="sm"
+                  className="w-full justify-start gap-2"
+                  onClick={handleDownload}
+                  disabled={isDownloading}
+                >
+                  {isDownloading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    getMediaIcon()
+                  )}
+                  <span className="flex-1 text-left truncate">
+                    {isDownloading 
+                      ? "Baixando..." 
+                      : message.content.startsWith("📎") || message.content.startsWith("[") 
+                        ? message.content.replace("📎 ", "").replace(/^\[.*\]$/, getMediaLabel())
+                        : message.content.substring(0, 30)}
+                  </span>
+                  {!isDownloading && <Download className="h-4 w-4 shrink-0" />}
+                </Button>
+              )}
+            </div>
+          )}
+
+          {/* Text content - hide if it's just a placeholder for media with download button */}
+          {!(isMediaType && hasMedia && (message.content.startsWith("📎") || message.content.startsWith("["))) && (
+            <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+          )}
+
+          {/* Media without URL - show content as is */}
+          {isMediaType && !hasMedia && (
+            <div className="flex items-center gap-2 text-sm opacity-80">
+              {getMediaIcon()}
+              <span>{message.content}</span>
+            </div>
+          )}
+
+          <div className={cn(
+            "flex items-center justify-end gap-1 mt-1",
+            isOutgoing 
+              ? isFailed 
+                ? "text-destructive" 
+                : "text-primary-foreground/70" 
+              : "text-muted-foreground"
+          )}>
+            <span className="text-xs">
+              {format(new Date(message.sent_at), "HH:mm")}
+            </span>
+            {isOutgoing && (
+              <MessageStatus status={message.status} />
             )}
           </div>
-        )}
-
-        {/* Text content - hide if it's just a placeholder for media with download button */}
-        {!(isMediaType && hasMedia && (message.content.startsWith("📎") || message.content.startsWith("["))) && (
-          <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
-        )}
-
-        {/* Media without URL - show content as is */}
-        {isMediaType && !hasMedia && (
-          <div className="flex items-center gap-2 text-sm opacity-80">
-            {getMediaIcon()}
-            <span>{message.content}</span>
-          </div>
-        )}
-
-        <div className={cn(
-          "flex items-center justify-end gap-1 mt-1",
-          isOutgoing 
-            ? isFailed 
-              ? "text-destructive" 
-              : "text-primary-foreground/70" 
-            : "text-muted-foreground"
-        )}>
-          <span className="text-xs">
-            {format(new Date(message.sent_at), "HH:mm")}
-          </span>
-          {isOutgoing && (
-            <MessageStatus status={message.status} />
+          {isFailed && (
+            <p className="text-xs text-destructive mt-1 flex items-center gap-1">
+              <AlertCircle className="h-3 w-3" />
+              Falha ao enviar
+            </p>
           )}
         </div>
-        {isFailed && (
-          <p className="text-xs text-destructive mt-1 flex items-center gap-1">
-            <AlertCircle className="h-3 w-3" />
-            Falha ao enviar
-          </p>
+        
+        {/* Persistent reaction badge - WhatsApp style */}
+        {message.reaction && (
+          <div 
+            className={cn(
+              "absolute -bottom-3 bg-background border rounded-full px-1.5 py-0.5 shadow-sm text-sm",
+              isOutgoing ? "right-2" : "left-2"
+            )}
+          >
+            {message.reaction}
+          </div>
         )}
       </div>
       
@@ -245,6 +262,7 @@ export function WhatsAppMessageBubble({ message, instanceId, companyId, remoteJi
             companyId={companyId}
             instanceId={instanceId}
             isOutgoing={isOutgoing}
+            currentReaction={message.reaction}
           />
         </div>
       )}
