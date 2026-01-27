@@ -44,7 +44,7 @@ interface WhatsAppInstanceCardProps {
   onEdit: (instance: WhatsAppInstance) => void;
   onManageUsers: (instance: WhatsAppInstance) => void;
   onTestConnection: (instanceId: string) => void;
-  onConfigureWebhook: (instanceId: string) => void;
+  onConfigureWebhook: (instanceId: string, receiveGroupMessages: boolean) => void;
   onDelete: (instanceId: string) => void;
   isTesting: boolean;
   isConfiguringWebhook: boolean;
@@ -64,6 +64,12 @@ export function WhatsAppInstanceCard({
 }: WhatsAppInstanceCardProps) {
   const [showQRModal, setShowQRModal] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showWebhookDialog, setShowWebhookDialog] = useState(false);
+
+  const handleConfigureWebhook = (receiveGroups: boolean) => {
+    setShowWebhookDialog(false);
+    onConfigureWebhook(instance.id, receiveGroups);
+  };
 
   const getStatusBadge = () => {
     const status = instance.status || (instance.is_connected ? "connected" : "disconnected");
@@ -172,7 +178,7 @@ export function WhatsAppInstanceCard({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => onConfigureWebhook(instance.id)}
+                onClick={() => setShowWebhookDialog(true)}
                 disabled={isConfiguringWebhook}
                 title="Configurar Webhook"
               >
@@ -239,6 +245,32 @@ export function WhatsAppInstanceCard({
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Modal para configurar Webhook */}
+      <AlertDialog open={showWebhookDialog} onOpenChange={setShowWebhookDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Configurar Webhook</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deseja receber mensagens de grupos nesta instância?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => handleConfigureWebhook(false)}
+              className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
+            >
+              Não, apenas conversas privadas
+            </AlertDialogAction>
+            <AlertDialogAction
+              onClick={() => handleConfigureWebhook(true)}
+            >
+              Sim, receber grupos
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
