@@ -57,14 +57,50 @@ export function UrlsTable({ urls, onValidate, isValidating, onFilterChange }: Ur
     onFilterChange({ status: value as ValidationStatus | 'all' });
   };
 
-  const filteredUrls = urls.filter(url => {
-    const matchesSearch = !search || 
-      url.url.toLowerCase().includes(search.toLowerCase()) ||
-      url.client_name.toLowerCase().includes(search.toLowerCase()) ||
-      url.label?.toLowerCase().includes(search.toLowerCase());
+  // Priority order for severity sorting
+  const getStatusPriority = (url: RadarUrl): number => {
+    const status = url.validation_status;
+    const loadTime = url.validation_load_time_ms;
     
-    return matchesSearch;
-  });
+    switch (status) {
+      case 'error': return 1;
+      case 'suspicious': return 2;
+      case 'empty': return 3;
+      case 'timeout': return 4;
+      case 'ok':
+        // Slow pages (>3s) get priority 5, normal OK gets priority 7
+        if (loadTime && loadTime > 3000) return 5;
+        return 7;
+      case 'redirect': return 6;
+      case 'pending':
+      default: return 8;
+    }
+  };
+
+  const filteredUrls = urls
+    .filter(url => {
+      const matchesSearch = !search || 
+        url.url.toLowerCase().includes(search.toLowerCase()) ||
+        url.client_name.toLowerCase().includes(search.toLowerCase()) ||
+        url.label?.toLowerCase().includes(search.toLowerCase());
+      
+      return matchesSearch;
+    })
+    .sort((a, b) => {
+      const priorityA = getStatusPriority(a);
+      const priorityB = getStatusPriority(b);
+      
+      if (priorityA !== priorityB) {
+        return priorityA - priorityB;
+      }
+      
+      // Secondary sort: slower pages first within same priority
+      if (a.validation_load_time_ms && b.validation_load_time_ms) {
+        return b.validation_load_time_ms - a.validation_load_time_ms;
+      }
+      
+      return 0;
+    });
 
   const getStatusBadge = (status: ValidationStatus) => {
     switch (status) {
