@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import { toast } from "sonner";
 import { WhatsAppAudioPlayer } from "./WhatsAppAudioPlayer";
+import { WhatsAppImageViewer } from "./WhatsAppImageViewer";
 
 interface WhatsAppMessageBubbleProps {
   message: WhatsAppMessage;
@@ -140,28 +141,13 @@ export function WhatsAppMessageBubble({ message, instanceId }: WhatsAppMessageBu
         {/* Media preview/download area */}
         {isMediaType && (hasMedia || message.external_id) && (
           <div className="mb-2">
-            {message.message_type === "image" && hasMedia ? (
-              <div className="relative">
-                <img 
-                  src={message.media_url!} 
-                  alt="Imagem" 
-                  className="rounded max-w-full max-h-60 object-cover cursor-pointer"
-                  onClick={handleDownload}
-                />
-                <Button
-                  size="icon"
-                  variant="secondary"
-                  className="absolute bottom-2 right-2 h-8 w-8 opacity-80 hover:opacity-100"
-                  onClick={handleDownload}
-                  disabled={isDownloading}
-                >
-                  {isDownloading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Download className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
+            {message.message_type === "image" ? (
+              <WhatsAppImageViewer
+                mediaUrl={message.media_url}
+                messageId={message.external_id}
+                instanceId={instanceId ?? null}
+                isOutgoing={isOutgoing && !isFailed}
+              />
             ) : message.message_type === "audio" ? (
               <WhatsAppAudioPlayer
                 mediaUrl={message.media_url}
