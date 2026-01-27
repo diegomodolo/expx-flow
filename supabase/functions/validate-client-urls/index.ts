@@ -113,6 +113,16 @@ function isPageEmpty(html: string): boolean {
 
 async function validateUrl(url: string, urlId: string): Promise<ValidationResult> {
   const startTime = Date.now()
+
+  // Use a real browser-like user agent to avoid bot-blocked “blank HTML” responses.
+  const browserHeaders = {
+    'User-Agent':
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+    'Cache-Control': 'no-cache',
+    'Pragma': 'no-cache',
+  }
   
   try {
     const controller = new AbortController()
@@ -124,7 +134,7 @@ async function validateUrl(url: string, urlId: string): Promise<ValidationResult
       signal: controller.signal,
       redirect: 'follow',
       headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; URLValidator/1.0)',
+        ...browserHeaders,
       },
     })
     
@@ -168,8 +178,7 @@ async function validateUrl(url: string, urlId: string): Promise<ValidationResult
         signal: getController.signal,
         redirect: 'follow',
         headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; URLValidator/1.0)',
-          'Accept': 'text/html',
+          ...browserHeaders,
         },
       })
       
@@ -180,7 +189,11 @@ async function validateUrl(url: string, urlId: string): Promise<ValidationResult
       const reader = getResponse.body?.getReader()
       let content = ''
       let totalBytes = 0
-      const maxBytes = 100 * 1024 // 100KB limit
+      // Some pages place meaningful content late in the HTML (after heavy scripts/styles).
+      // We read up to 300KB to reduce false positives, but avoid downloading full pages.
+      const maxBytes = 300 * 1024 // 300KB limit
+      let reachedLimit = false
+      let lastCheckBytes = 0
       
       if (reader) {
         const decoder = new TextDecoder()
@@ -189,14 +202,26 @@ async function validateUrl(url: string, urlId: string): Promise<ValidationResult
           if (done) break
           content += decoder.decode(value, { stream: true })
           totalBytes += value?.length || 0
+
+          // Periodically check if we already have enough visible text to decide it's not empty
+          if (totalBytes - lastCheckBytes >= 32 * 1024) {
+            lastCheckBytes = totalBytes
+            const sampleText = extractVisibleText(content)
+            if (sampleText.length >= 80) {
+              break
+            }
+          }
         }
+        if (totalBytes >= maxBytes) reachedLimit = true
         reader.cancel() // Cancel remaining content
       }
       
       const loadTime = Date.now() - startTime
       
-      // Check if content is empty
-      if (isPageEmpty(content)) {
+      // Check if content is empty.
+      // IMPORTANT: only mark as "empty" if we didn't hit the size cap;
+      // if we hit the cap, the page may have content later and we avoid false positives.
+      if (!reachedLimit && isPageEmpty(content)) {
         return {
           url_id: urlId,
           status: 'empty',
