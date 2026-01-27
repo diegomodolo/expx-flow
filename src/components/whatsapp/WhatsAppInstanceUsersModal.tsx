@@ -81,37 +81,20 @@ export function WhatsAppInstanceUsersModal({
 
     setIsLoading(true);
     try {
-      // Fetch company members
-      const { data: members, error: membersError } = await supabase
-        .from("company_members")
-        .select("user_id, role")
-        .eq("company_id", activeCompany.company_id);
+      // Fetch employees (mesma fonte da tela de Colaboradores) ordenados por nome
+      const { data: employeesData, error: employeesError } = await supabase
+        .from("employees")
+        .select("id, user_id, name, role, avatar")
+        .eq("company_id", activeCompany.company_id)
+        .order("name");
 
-      if (membersError) throw membersError;
+      if (employeesError) throw employeesError;
 
-      // Fetch profiles separately using user_id field
-      const userIds = members?.map(m => m.user_id) || [];
-      let profilesMap: Record<string, { full_name: string; avatar_url: string | null }> = {};
-      
-      if (userIds.length > 0) {
-        const { data: profiles } = await supabase
-          .from("profiles")
-          .select("user_id, full_name, avatar_url")
-          .in("user_id", userIds);
-        
-        profiles?.forEach(p => {
-          profilesMap[p.user_id] = {
-            full_name: p.full_name || "Usuário",
-            avatar_url: p.avatar_url,
-          };
-        });
-      }
-
-      const users: CompanyUser[] = members?.map(m => ({
-        user_id: m.user_id,
-        full_name: profilesMap[m.user_id]?.full_name || "Usuário",
-        role: m.role,
-        avatar_url: profilesMap[m.user_id]?.avatar_url || null,
+      const users: CompanyUser[] = employeesData?.map(emp => ({
+        user_id: emp.user_id,
+        full_name: emp.name || "Colaborador",
+        role: emp.role || "member",
+        avatar_url: emp.avatar || null,
       })) || [];
 
       setCompanyUsers(users);
@@ -119,14 +102,14 @@ export function WhatsAppInstanceUsersModal({
       // Fetch assigned users
       const assigned = await fetchInstanceUsers(instance.id);
       
-      // Merge with profile data
+      // Merge with employee data
       const assignedWithProfiles: AssignedUserWithProfile[] = assigned.map(a => {
-        const companyUser = users.find(u => u.user_id === a.user_id);
+        const employee = users.find(u => u.user_id === a.user_id);
         return {
           ...a,
-          full_name: companyUser?.full_name || "Usuário",
-          role: companyUser?.role || "member",
-          avatar_url: companyUser?.avatar_url || null,
+          full_name: employee?.full_name || "Colaborador",
+          role: employee?.role || "member",
+          avatar_url: employee?.avatar_url || null,
         };
       });
       
