@@ -1,7 +1,7 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useCallback } from "react";
+import { useCallback, useState, useEffect } from "react";
 
 export interface WhatsAppMessage {
   id: string;
@@ -19,8 +19,15 @@ export interface WhatsAppMessage {
 export function useWhatsAppMessages(conversationId: string | null, companyId: string | undefined) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [isFetchingFromApi, setIsFetchingFromApi] = useState(false);
+  const [hasFetchedFromApi, setHasFetchedFromApi] = useState(false);
 
-  const { data: messages, isLoading, error } = useQuery({
+  // Reset fetch state when conversation changes
+  useEffect(() => {
+    setHasFetchedFromApi(false);
+  }, [conversationId]);
+
+  const { data: messages, isLoading: isLoadingFromDb, error } = useQuery({
     queryKey: ["whatsapp-messages", conversationId],
     queryFn: async () => {
       if (!conversationId) return [];
@@ -36,6 +43,43 @@ export function useWhatsAppMessages(conversationId: string | null, companyId: st
     },
     enabled: !!conversationId,
   });
+
+  // Fetch messages from API when we have no local messages
+  const fetchMessagesFromApi = useCallback(async () => {
+    if (!conversationId || !companyId || isFetchingFromApi || hasFetchedFromApi) return;
+
+    setIsFetchingFromApi(true);
+    console.log("[useWhatsAppMessages] Buscando mensagens da API para:", conversationId);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("fetch-whatsapp-messages", {
+        body: {
+          conversation_id: conversationId,
+          company_id: companyId,
+        },
+      });
+
+      if (error) {
+        console.error("[useWhatsAppMessages] Erro ao buscar mensagens da API:", error);
+      } else if (data?.success) {
+        console.log(`[useWhatsAppMessages] Mensagens obtidas: ${data.fetched}, salvas: ${data.saved}`);
+        // Invalidate to reload from DB with new messages
+        queryClient.invalidateQueries({ queryKey: ["whatsapp-messages", conversationId] });
+      }
+    } catch (err) {
+      console.error("[useWhatsAppMessages] Exceção ao buscar mensagens:", err);
+    } finally {
+      setIsFetchingFromApi(false);
+      setHasFetchedFromApi(true);
+    }
+  }, [conversationId, companyId, isFetchingFromApi, hasFetchedFromApi, queryClient]);
+
+  // Auto-fetch from API when we first load a conversation with no messages
+  useEffect(() => {
+    if (conversationId && companyId && !isLoadingFromDb && messages?.length === 0 && !hasFetchedFromApi && !isFetchingFromApi) {
+      fetchMessagesFromApi();
+    }
+  }, [conversationId, companyId, isLoadingFromDb, messages, hasFetchedFromApi, isFetchingFromApi, fetchMessagesFromApi]);
 
   // Optimistic send - shows message immediately
   const sendMessage = useCallback(async ({ phone, message }: { phone: string; message: string }) => {
@@ -165,9 +209,11 @@ export function useWhatsAppMessages(conversationId: string | null, companyId: st
 
   return {
     messages: messages || [],
-    isLoading,
+    isLoading: isLoadingFromDb || isFetchingFromApi,
+    isFetchingFromApi,
     error,
     sendMessage,
-    isSending: false, // Always false now since we use optimistic updates
+    fetchMessagesFromApi,
+    isSending: false,
   };
 }
