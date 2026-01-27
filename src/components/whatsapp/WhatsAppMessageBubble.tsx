@@ -148,10 +148,10 @@ export function WhatsAppMessageBubble({ message, instanceId, companyId, remoteJi
         </div>
       )}
       
-      <div className="relative">
+      <div className="relative max-w-[75%]">
         <div
           className={cn(
-            "max-w-[75%] rounded-lg px-3 py-2 shadow-sm",
+            "rounded-lg px-3 py-2 shadow-sm overflow-hidden",
             isOutgoing
               ? isFailed 
                 ? "bg-destructive/20 text-foreground rounded-br-none border border-destructive/30"

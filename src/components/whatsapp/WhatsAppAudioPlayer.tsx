@@ -185,7 +185,7 @@ export function WhatsAppAudioPlayer({
 
   return (
     <div className={cn(
-      "flex items-center gap-2 p-2 rounded-lg min-w-[200px] max-w-[280px]",
+      "flex items-center gap-2 p-2 rounded-lg w-full",
       isOutgoing ? "bg-primary-foreground/10" : "bg-background/50"
     )}>
       {audioSrc && (
@@ -197,7 +197,7 @@ export function WhatsAppAudioPlayer({
         size="icon"
         variant="ghost"
         className={cn(
-          "h-10 w-10 rounded-full shrink-0",
+          "h-9 w-9 rounded-full shrink-0",
           isOutgoing 
             ? "bg-primary-foreground/20 hover:bg-primary-foreground/30 text-primary-foreground" 
             : "bg-primary/10 hover:bg-primary/20 text-primary"
@@ -206,16 +206,16 @@ export function WhatsAppAudioPlayer({
         disabled={isLoading}
       >
         {isLoading ? (
-          <Loader2 className="h-5 w-5 animate-spin" />
+          <Loader2 className="h-4 w-4 animate-spin" />
         ) : isPlaying ? (
-          <Pause className="h-5 w-5" />
+          <Pause className="h-4 w-4" />
         ) : (
-          <Play className="h-5 w-5 ml-0.5" />
+          <Play className="h-4 w-4 ml-0.5" />
         )}
       </Button>
 
       {/* Progress and controls */}
-      <div className="flex-1 flex flex-col gap-1 min-w-0">
+      <div className="flex-1 flex flex-col gap-0.5 min-w-0 overflow-hidden">
         {/* Slider */}
         <Slider
           value={[progress]}
@@ -224,14 +224,15 @@ export function WhatsAppAudioPlayer({
           onValueChange={handleSeek}
           disabled={!audioSrc || duration === 0}
           className={cn(
-            "cursor-pointer",
+            "cursor-pointer w-full",
             isOutgoing ? "[&_[role=slider]]:bg-primary-foreground" : ""
           )}
         />
 
         {/* Time and speed */}
-        <div className="flex items-center justify-between text-xs">
+        <div className="flex items-center justify-between text-[10px] gap-1">
           <span className={cn(
+            "truncate",
             isOutgoing ? "text-primary-foreground/70" : "text-muted-foreground"
           )}>
             {formatTime(currentTime)} / {formatTime(duration)}
@@ -241,7 +242,7 @@ export function WhatsAppAudioPlayer({
             variant="ghost"
             size="sm"
             className={cn(
-              "h-5 px-1.5 text-xs font-medium",
+              "h-4 px-1 text-[10px] font-medium shrink-0",
               isOutgoing 
                 ? "text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10" 
                 : "text-muted-foreground hover:text-foreground hover:bg-muted"
@@ -256,7 +257,7 @@ export function WhatsAppAudioPlayer({
 
       {/* Error state */}
       {error && (
-        <span className="text-xs text-destructive">{error}</span>
+        <span className="text-xs text-destructive shrink-0">{error}</span>
       )}
     </div>
   );
