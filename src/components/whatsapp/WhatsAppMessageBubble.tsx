@@ -1,14 +1,18 @@
 import { WhatsAppMessage } from "@/hooks/useWhatsAppMessages";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { Check, CheckCheck, Clock, AlertCircle, Download, FileText, Image, Video, Headphones } from "lucide-react";
+import { Check, CheckCheck, Clock, AlertCircle, Download, FileText, Image, Video, Headphones, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
+import { toast } from "sonner";
 
 interface WhatsAppMessageBubbleProps {
   message: WhatsAppMessage;
 }
 
 export function WhatsAppMessageBubble({ message }: WhatsAppMessageBubbleProps) {
+  const [isDownloading, setIsDownloading] = useState(false);
   const isOutgoing = message.direction === "outgoing";
   const isFailed = message.status === "failed";
   const hasMedia = !!message.media_url;
@@ -37,12 +41,21 @@ export function WhatsAppMessageBubble({ message }: WhatsAppMessageBubbleProps) {
   const handleDownload = async () => {
     if (!message.media_url) return;
     
+    setIsDownloading(true);
+    const fileName = extractFileName();
+    
     try {
-      const response = await fetch(message.media_url);
-      const blob = await response.blob();
-      const fileName = extractFileName();
+      // Use edge function as proxy to avoid CORS issues
+      const { data, error } = await supabase.functions.invoke("download-whatsapp-media", {
+        body: { mediaUrl: message.media_url, fileName },
+      });
       
-      // Create a temporary link to trigger download with correct filename
+      if (error) throw error;
+      
+      // Convert the response to blob
+      const blob = new Blob([data], { type: data.type || "application/octet-stream" });
+      
+      // Create download link
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -51,10 +64,34 @@ export function WhatsAppMessageBubble({ message }: WhatsAppMessageBubbleProps) {
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
+      
+      toast.success("Download concluído!");
     } catch (error) {
       console.error("Error downloading file:", error);
-      // Fallback to opening in new tab
-      window.open(message.media_url, "_blank");
+      // Fallback: try direct download
+      try {
+        const response = await fetch(message.media_url);
+        if (response.ok) {
+          const blob = await response.blob();
+          const url = window.URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = fileName;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          window.URL.revokeObjectURL(url);
+          toast.success("Download concluído!");
+        } else {
+          throw new Error("Failed to download");
+        }
+      } catch (fallbackError) {
+        console.error("Fallback download failed:", fallbackError);
+        toast.error("Erro ao baixar arquivo. Abrindo em nova aba...");
+        window.open(message.media_url, "_blank");
+      }
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -116,8 +153,13 @@ export function WhatsAppMessageBubble({ message }: WhatsAppMessageBubbleProps) {
                   variant="secondary"
                   className="absolute bottom-2 right-2 h-8 w-8 opacity-80 hover:opacity-100"
                   onClick={handleDownload}
+                  disabled={isDownloading}
                 >
-                  <Download className="h-4 w-4" />
+                  {isDownloading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4" />
+                  )}
                 </Button>
               </div>
             ) : (
@@ -126,14 +168,21 @@ export function WhatsAppMessageBubble({ message }: WhatsAppMessageBubbleProps) {
                 size="sm"
                 className="w-full justify-start gap-2"
                 onClick={handleDownload}
+                disabled={isDownloading}
               >
-                {getMediaIcon()}
+                {isDownloading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  getMediaIcon()
+                )}
                 <span className="flex-1 text-left truncate">
-                  {message.content.startsWith("📎") || message.content.startsWith("[") 
-                    ? message.content.replace("📎 ", "").replace(/^\[.*\]$/, getMediaLabel())
-                    : message.content.substring(0, 30)}
+                  {isDownloading 
+                    ? "Baixando..." 
+                    : message.content.startsWith("📎") || message.content.startsWith("[") 
+                      ? message.content.replace("📎 ", "").replace(/^\[.*\]$/, getMediaLabel())
+                      : message.content.substring(0, 30)}
                 </span>
-                <Download className="h-4 w-4 shrink-0" />
+                {!isDownloading && <Download className="h-4 w-4 shrink-0" />}
               </Button>
             )}
           </div>
