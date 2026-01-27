@@ -13,6 +13,7 @@ import { UrlsTable } from "@/components/radar/UrlsTable";
 const RadarUrlsDashboard = () => {
   const [filters, setFilters] = useState<{ status?: ValidationStatus | 'all'; search?: string }>({});
   const [onlyActiveCampaigns, setOnlyActiveCampaigns] = useState(true);
+  const [includeManualUrls, setIncludeManualUrls] = useState(true);
   
   const { 
     urls, 
@@ -26,7 +27,7 @@ const RadarUrlsDashboard = () => {
     validateAll,
     validateProblematic,
     isValidating
-  } = useRadarUrls({ onlyActiveCampaigns });
+  } = useRadarUrls({ onlyActiveCampaigns, includeManualUrls });
 
   // Filter URLs based on table filters
   const getFilteredUrls = () => {
@@ -65,21 +66,40 @@ const RadarUrlsDashboard = () => {
           </p>
         </div>
         <div className="flex items-center gap-1.5">
-          {/* Campaign filter toggle */}
-          <div className="flex items-center gap-2 mr-2 px-2 py-1 rounded-md bg-muted/50">
-            <Switch
-              id="active-campaigns"
-              checked={onlyActiveCampaigns}
-              onCheckedChange={setOnlyActiveCampaigns}
-              className="scale-75"
-            />
-            <Label 
-              htmlFor="active-campaigns" 
-              className="text-xs text-muted-foreground cursor-pointer whitespace-nowrap"
-            >
-              <span className="hidden sm:inline">Só campanhas ativas</span>
-              <span className="sm:hidden">Ativas</span>
-            </Label>
+          {/* Filter toggles */}
+          <div className="flex items-center gap-3 mr-2 px-2 py-1 rounded-md bg-muted/50">
+            <div className="flex items-center gap-1.5">
+              <Switch
+                id="active-campaigns"
+                checked={onlyActiveCampaigns}
+                onCheckedChange={setOnlyActiveCampaigns}
+                className="scale-75"
+              />
+              <Label 
+                htmlFor="active-campaigns" 
+                className="text-xs text-muted-foreground cursor-pointer whitespace-nowrap"
+              >
+                <span className="hidden sm:inline">Só ativas</span>
+                <span className="sm:hidden">Ativas</span>
+              </Label>
+            </div>
+            {onlyActiveCampaigns && (
+              <div className="flex items-center gap-1.5 border-l pl-3 border-border/50">
+                <Switch
+                  id="include-manual"
+                  checked={includeManualUrls}
+                  onCheckedChange={setIncludeManualUrls}
+                  className="scale-75"
+                />
+                <Label 
+                  htmlFor="include-manual" 
+                  className="text-xs text-muted-foreground cursor-pointer whitespace-nowrap"
+                >
+                  <span className="hidden sm:inline">+ Manuais</span>
+                  <span className="sm:hidden">Manuais</span>
+                </Label>
+              </div>
+            )}
           </div>
           
           <Button 
