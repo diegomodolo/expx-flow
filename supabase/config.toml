@@ -54,7 +54,9 @@ verify_jwt = true
 [functions.whatsapp-webhook]
 verify_jwt = false
 
-[api]
+[functions.manage-whatsapp-instance]
+verify_jwt = true
+
 enabled = true
 port = 54321
 schemas = ["public", "graphql_public"]

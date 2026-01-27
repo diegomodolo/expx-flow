@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 export interface WhatsAppConversation {
   id: string;
   company_id: string;
+  instance_id: string | null;
   phone: string;
   contact_name: string | null;
   last_message_at: string | null;
@@ -15,20 +16,27 @@ export interface WhatsAppConversation {
   updated_at: string;
 }
 
-export function useWhatsAppConversations(companyId: string | undefined) {
+export function useWhatsAppConversations(companyId: string | undefined, instanceId?: string | null) {
   const queryClient = useQueryClient();
 
   const { data: conversations, isLoading, error } = useQuery({
-    queryKey: ["whatsapp-conversations", companyId],
+    queryKey: ["whatsapp-conversations", companyId, instanceId],
     queryFn: async () => {
       if (!companyId) return [];
       
-      const { data, error } = await supabase
+      let query = supabase
         .from("whatsapp_conversations")
         .select("*")
         .eq("company_id", companyId)
         .eq("is_archived", false)
         .order("last_message_at", { ascending: false, nullsFirst: false });
+
+      // Filter by instance if provided
+      if (instanceId) {
+        query = query.eq("instance_id", instanceId);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       return data as WhatsAppConversation[];
@@ -42,7 +50,7 @@ export function useWhatsAppConversations(companyId: string | undefined) {
       .update({ unread_count: 0 })
       .eq("id", conversationId);
     
-    queryClient.invalidateQueries({ queryKey: ["whatsapp-conversations", companyId] });
+    queryClient.invalidateQueries({ queryKey: ["whatsapp-conversations", companyId, instanceId] });
   };
 
   const archiveConversation = async (conversationId: string) => {
@@ -51,7 +59,7 @@ export function useWhatsAppConversations(companyId: string | undefined) {
       .update({ is_archived: true })
       .eq("id", conversationId);
     
-    queryClient.invalidateQueries({ queryKey: ["whatsapp-conversations", companyId] });
+    queryClient.invalidateQueries({ queryKey: ["whatsapp-conversations", companyId, instanceId] });
   };
 
   return {

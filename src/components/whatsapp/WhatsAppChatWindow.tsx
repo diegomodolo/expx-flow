@@ -10,9 +10,10 @@ import { Loader2, Phone } from "lucide-react";
 interface WhatsAppChatWindowProps {
   conversation: WhatsAppConversation;
   companyId: string | undefined;
+  instanceId?: string | null;
 }
 
-export function WhatsAppChatWindow({ conversation, companyId }: WhatsAppChatWindowProps) {
+export function WhatsAppChatWindow({ conversation, companyId, instanceId }: WhatsAppChatWindowProps) {
   const { messages, isLoading, sendMessage, isSending } = useWhatsAppMessages(
     conversation.id,
     companyId

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useWhatsAppConfig } from "@/hooks/useWhatsAppConfig";
 import { useCompany } from "@/contexts/CompanyContext";
 import { WhatsAppProviderTabs } from "./WhatsAppProviderTabs";
+import { WhatsAppInstancesList } from "./WhatsAppInstancesList";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, ArrowRight, Bell } from "lucide-react";
@@ -44,8 +45,13 @@ export function WhatsAppSettings() {
     });
   };
 
-  const handleSaveUazapi = (data: { endpoint: string; token: string; session: string }) => {
-    saveUazapiConfig(data);
+  const handleSaveUazapiBase = (data: { endpoint: string; token: string }) => {
+    // Save only base config (endpoint + token), not session
+    saveUazapiConfig({
+      endpoint: data.endpoint,
+      token: data.token,
+      session: config?.uazapi_session || "", // Keep existing session if any
+    });
   };
 
   if (isLoadingCompany || isLoading) {
@@ -74,11 +80,20 @@ export function WhatsAppSettings() {
         companyId={activeCompany?.company_id}
         onSaveZapi={handleSaveZapi}
         onTestZapi={testConnection}
-        onSaveUazapi={handleSaveUazapi}
+        onSaveUazapi={handleSaveUazapiBase}
         onTestUazapi={testUazapiConnection}
         isSaving={isSavingConfig || isSavingUazapiConfig}
         isTesting={isTestingConnection || isTestingUazapiConnection}
       />
+
+      {/* Instances List - Only show for UazapiGO */}
+      {activeProvider === "uazapi" && config?.uazapi_endpoint && config?.uazapi_token && (
+        <WhatsAppInstancesList
+          companyId={activeCompany?.company_id}
+          baseEndpoint={config.uazapi_endpoint}
+          baseToken={config.uazapi_token}
+        />
+      )}
 
       {/* Link to Notifications Module */}
       <Card>

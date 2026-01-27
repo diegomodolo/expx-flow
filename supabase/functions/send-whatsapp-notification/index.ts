@@ -13,6 +13,7 @@ interface NotificationPayload {
   notification_type: string;
   related_entity_type?: string;
   related_entity_id?: string;
+  instance_id?: string; // Optional: specific instance to use
 }
 
 serve(async (req) => {
@@ -33,12 +34,14 @@ serve(async (req) => {
       message, 
       notification_type,
       related_entity_type,
-      related_entity_id 
+      related_entity_id,
+      instance_id,
     } = payload;
 
     console.log("[send-whatsapp-notification] Sending notification for company:", company_id);
     console.log("[send-whatsapp-notification] Type:", notification_type);
     console.log("[send-whatsapp-notification] Recipient:", recipient_phone);
+    console.log("[send-whatsapp-notification] Instance ID:", instance_id || "default");
 
     if (!company_id || !recipient_phone || !message) {
       console.error("[send-whatsapp-notification] Missing required fields");
@@ -145,15 +148,66 @@ serve(async (req) => {
 
     let apiResponse;
     let apiData;
+    let usedInstanceId: string | null = null;
 
     // Determine provider and send message accordingly
     const provider = config.provider || "zapi";
     console.log("[send-whatsapp-notification] Using provider:", provider);
 
     if (provider === "uazapi") {
+      // For UazapiGO, find the instance to use
+      let session: string;
+      
+      if (instance_id) {
+        // Use specific instance
+        const { data: instance, error: instanceError } = await supabase
+          .from("whatsapp_instances")
+          .select("session_id")
+          .eq("id", instance_id)
+          .eq("is_active", true)
+          .single();
+        
+        if (instanceError || !instance) {
+          console.error("[send-whatsapp-notification] Instance not found:", instanceError);
+          return new Response(
+            JSON.stringify({ success: false, error: "Instância não encontrada ou inativa" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        session = instance.session_id;
+        usedInstanceId = instance_id;
+      } else {
+        // Find first active instance for the company
+        const { data: instance, error: instanceError } = await supabase
+          .from("whatsapp_instances")
+          .select("id, session_id")
+          .eq("company_id", company_id)
+          .eq("is_active", true)
+          .eq("is_connected", true)
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .single();
+        
+        if (instanceError || !instance) {
+          // Fallback to config's uazapi_session if no instances
+          if (config.uazapi_session) {
+            session = config.uazapi_session;
+          } else {
+            console.error("[send-whatsapp-notification] No active instance found:", instanceError);
+            return new Response(
+              JSON.stringify({ success: false, error: "Nenhuma instância ativa encontrada" }),
+              { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+        } else {
+          session = instance.session_id;
+          usedInstanceId = instance.id;
+        }
+      }
+
       // Send via UazapiGO
       const uazapiUrl = `${config.uazapi_endpoint}/sendText`;
-      console.log("[send-whatsapp-notification] Calling UazapiGO:", uazapiUrl);
+      console.log("[send-whatsapp-notification] Calling UazapiGO:", uazapiUrl, "Session:", session);
 
       apiResponse = await fetch(uazapiUrl, {
         method: "POST",
@@ -162,7 +216,7 @@ serve(async (req) => {
           "Token": config.uazapi_token,
         },
         body: JSON.stringify({
-          session: config.uazapi_session,
+          session: session,
           number: formattedPhone,
           text: message,
         }),
