@@ -9,9 +9,10 @@ import { toast } from "sonner";
 
 interface WhatsAppMessageBubbleProps {
   message: WhatsAppMessage;
+  instanceId?: string | null;
 }
 
-export function WhatsAppMessageBubble({ message }: WhatsAppMessageBubbleProps) {
+export function WhatsAppMessageBubble({ message, instanceId }: WhatsAppMessageBubbleProps) {
   const [isDownloading, setIsDownloading] = useState(false);
   const isOutgoing = message.direction === "outgoing";
   const isFailed = message.status === "failed";
@@ -39,21 +40,19 @@ export function WhatsAppMessageBubble({ message }: WhatsAppMessageBubbleProps) {
   };
 
   const handleDownload = async () => {
-    if (!message.media_url) return;
+    if (!message.media_url && !message.external_id) return;
     
     setIsDownloading(true);
     const fileName = extractFileName();
     
     try {
-      // Use edge function as proxy to avoid CORS issues
-      const { data, error } = await supabase.functions.invoke("download-whatsapp-media", {
-        body: { mediaUrl: message.media_url, fileName },
+      // Use edge function as proxy (UazapiGO requires /message/download before getting the real file)
+      const { data: blob, error } = await supabase.functions.invoke("download-whatsapp-media", {
+        body: { instanceId, messageId: message.external_id, mediaUrl: message.media_url, fileName },
       });
       
       if (error) throw error;
-      
-      // Convert the response to blob
-      const blob = new Blob([data], { type: data.type || "application/octet-stream" });
+      if (!(blob instanceof Blob)) throw new Error("Resposta inválida do download");
       
       // Create download link
       const url = window.URL.createObjectURL(blob);
