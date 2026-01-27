@@ -9906,6 +9906,27 @@ export type Database = {
         }
         Relationships: []
       }
+      super_admins: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          email: string
+          id: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          email: string
+          id?: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          email?: string
+          id?: string
+        }
+        Relationships: []
+      }
       sync_jobs: {
         Row: {
           client_id: string | null
@@ -11668,6 +11689,7 @@ export type Database = {
         Args: { _company_id: string; _user_id: string }
         Returns: boolean
       }
+      is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       log_activity: {
         Args: {
           p_activity_type: string
