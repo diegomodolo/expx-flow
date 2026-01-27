@@ -95,7 +95,13 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId }: What
         ) : (
           <div className="py-4 space-y-2">
             {messages.map((message) => (
-              <WhatsAppMessageBubble key={message.id} message={message} instanceId={instanceId ?? null} />
+              <WhatsAppMessageBubble 
+                key={message.id} 
+                message={message} 
+                instanceId={instanceId ?? null}
+                companyId={companyId}
+                remoteJid={`${conversation.phone}@s.whatsapp.net`}
+              />
             ))}
             <div ref={scrollRef} />
           </div>
