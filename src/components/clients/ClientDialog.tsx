@@ -2003,7 +2003,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         return client && activeCompany ? (
           <ClientUrlsTab 
             clientId={client.id} 
-            companyId={activeCompany.id}
+            companyId={activeCompany.company_id}
           />
         ) : null;
 
