@@ -74,19 +74,32 @@ serve(async (req) => {
     console.log(`[sync-whatsapp-chats] Token: ${token?.substring(0, 8)}...`);
 
     // 3. Chamar API UazapiGO para buscar chats
-    // UazapiGO v2 uses GET /chat/findChats with token header
+    // A UazapiGO v2 usa o header "token" para autenticar
+    // O token identifica automaticamente a instância, então não precisa de instância na URL
     let chats: any[] = [];
     const attemptLogs: string[] = [];
     
     // Lista de endpoints para tentar (UazapiGO v2)
+    // Baseado na documentação: https://docs.uazapi.com/
     const endpointsToTry = [
-      // UazapiGO v2 - GET endpoints
+      // UazapiGO internal DB - buscar chats armazenados
       { url: `${endpoint}/chat/findChats`, method: "GET", body: null },
-      { url: `${endpoint}/chat/list`, method: "GET", body: null },
-      { url: `${endpoint}/chats`, method: "GET", body: null },
-      // POST variants
-      { url: `${endpoint}/chat/findChats`, method: "POST", body: { where: { owner: instanceIdentifier } } },
+      // POST com where clause para filtrar
+      { url: `${endpoint}/chat/findChats`, method: "POST", body: { where: {} } },
       { url: `${endpoint}/chat/findChats`, method: "POST", body: {} },
+      // Endpoints alternativos
+      { url: `${endpoint}/chat`, method: "GET", body: null },
+      { url: `${endpoint}/chats`, method: "GET", body: null },
+      { url: `${endpoint}/chat/list`, method: "GET", body: null },
+      { url: `${endpoint}/chat/getAll`, method: "GET", body: null },
+      // wuzapi style - contacts pode ter histórico de chat
+      { url: `${endpoint}/user/contacts`, method: "GET", body: null },
+      // Buscar histórico do CRM interno
+      { url: `${endpoint}/crm/findContacts`, method: "POST", body: { where: {} } },
+      { url: `${endpoint}/crm/findContacts`, method: "GET", body: null },
+      // Instance-based endpoints (Evolution API style)
+      { url: `${endpoint}/chat/findChats/${instanceIdentifier}`, method: "POST", body: {} },
+      { url: `${endpoint}/chat/findChats/${instance.instance_name}`, method: "POST", body: {} },
     ];
 
     for (const ep of endpointsToTry) {
@@ -97,6 +110,7 @@ serve(async (req) => {
           method: ep.method,
           headers: {
             "token": token,
+            "apikey": token,
             "Authorization": `Bearer ${token}`,
             "Content-Type": "application/json",
             "Accept": "application/json",
@@ -111,7 +125,7 @@ serve(async (req) => {
         const responseText = await apiResponse.text();
         
         console.log(`[sync-whatsapp-chats] Status: ${apiResponse.status}`);
-        console.log(`[sync-whatsapp-chats] Response preview: ${responseText.substring(0, 300)}`);
+        console.log(`[sync-whatsapp-chats] Response preview: ${responseText.substring(0, 500)}`);
 
         if (apiResponse.ok) {
           try {
@@ -132,13 +146,24 @@ serve(async (req) => {
               foundChats = responseData.result;
             } else if (responseData.rows && Array.isArray(responseData.rows)) {
               foundChats = responseData.rows;
+            } else if (responseData.contacts && Array.isArray(responseData.contacts)) {
+              foundChats = responseData.contacts;
+            } else if (typeof responseData === 'object' && !Array.isArray(responseData)) {
+              // Pode ser um objeto com JIDs como chaves (formato wuzapi /user/contacts)
+              const keys = Object.keys(responseData).filter(k => k.includes('@'));
+              if (keys.length > 0) {
+                foundChats = keys.map(jid => ({ jid, ...responseData[jid] }));
+              }
             }
 
             if (foundChats.length > 0) {
               chats = foundChats;
               attemptLogs.push(`✅ ${ep.url}: ${chats.length} chats encontrados`);
+              console.log(`[sync-whatsapp-chats] Primeiro chat exemplo:`, JSON.stringify(foundChats[0]).substring(0, 500));
               break;
             } else {
+              // Log da resposta completa para debug
+              console.log(`[sync-whatsapp-chats] Resposta completa (sem chats):`, responseText.substring(0, 1000));
               attemptLogs.push(`⚠️ ${ep.url}: OK mas sem chats na resposta`);
             }
           } catch (parseErr) {
