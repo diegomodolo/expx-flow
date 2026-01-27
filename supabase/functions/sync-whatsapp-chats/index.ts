@@ -178,7 +178,7 @@ serve(async (req) => {
         const responseText = await apiResponse.text();
         
         console.log(`[sync-whatsapp-chats] Status: ${apiResponse.status}`);
-        console.log(`[sync-whatsapp-chats] Response preview: ${responseText.substring(0, 500)}`);
+        console.log(`[sync-whatsapp-chats] Response preview: ${responseText.substring(0, 2000)}`);
 
         if (apiResponse.ok) {
           try {
@@ -212,7 +212,9 @@ serve(async (req) => {
             if (foundChats.length > 0) {
               chats = foundChats;
               attemptLogs.push(`✅ ${ep.url}: ${chats.length} chats encontrados`);
-              console.log(`[sync-whatsapp-chats] Primeiro chat exemplo:`, JSON.stringify(foundChats[0]).substring(0, 500));
+              // Log detalhado das chaves do primeiro chat para identificar campos de timestamp
+              console.log(`[sync-whatsapp-chats] Primeiro chat KEYS:`, Object.keys(foundChats[0]).join(', '));
+              console.log(`[sync-whatsapp-chats] Primeiro chat FULL:`, JSON.stringify(foundChats[0]));
               break;
             } else {
               // Log da resposta completa para debug
