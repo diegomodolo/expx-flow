@@ -29,6 +29,7 @@ serve(async (req) => {
     let phone: string | null = null;
     let content: string | null = null;
     let contactName: string | null = null;
+    let profilePicUrl: string | null = null;
     let messageType = "text";
     let externalId: string | null = null;
     let session: string | null = null;
@@ -73,6 +74,9 @@ serve(async (req) => {
         externalId = message.id || message.messageid || null;
         contactName = message.senderName || chat.name || chat.wa_contactName || null;
         
+        // Extract profile picture URL from chat object
+        profilePicUrl = chat.imagePreview || chat.image || null;
+        
         // Get message content
         content = message.content || 
                   message.text ||
@@ -95,6 +99,7 @@ serve(async (req) => {
       contactName = payload.senderName || payload.chatName || null;
       externalId = payload.messageId || payload.zapiMessageId;
       direction = payload.fromMe ? "outgoing" : "incoming";
+      profilePicUrl = payload.profilePicUrl || payload.photo || null;
       
       if (payload.image) messageType = "image";
       else if (payload.audio) messageType = "audio";
@@ -102,7 +107,7 @@ serve(async (req) => {
       else if (payload.document) messageType = "document";
     }
 
-    console.log("[whatsapp-webhook] Extracted data:", { phone, content: content?.substring(0, 50), direction, contactName });
+    console.log("[whatsapp-webhook] Extracted data:", { phone, content: content?.substring(0, 50), direction, contactName, profilePicUrl: profilePicUrl?.substring(0, 50) });
 
     if (!phone || !content) {
       console.log("[whatsapp-webhook] Ignoring webhook - no phone or content");
@@ -191,7 +196,7 @@ serve(async (req) => {
       // Look for conversation with this specific instance
       const { data } = await supabase
         .from("whatsapp_conversations")
-        .select("id, unread_count")
+        .select("id, unread_count, profile_pic_url")
         .eq("company_id", companyId)
         .eq("phone", phone)
         .eq("instance_id", instanceId)
@@ -203,7 +208,7 @@ serve(async (req) => {
     if (!existingConversation) {
       const { data } = await supabase
         .from("whatsapp_conversations")
-        .select("id, unread_count")
+        .select("id, unread_count, profile_pic_url")
         .eq("company_id", companyId)
         .eq("phone", phone)
         .is("instance_id", null)
@@ -226,6 +231,11 @@ serve(async (req) => {
         updateData.contact_name = contactName;
       }
 
+      // Update profile picture if available and different
+      if (profilePicUrl && profilePicUrl !== existingConversation.profile_pic_url) {
+        updateData.profile_pic_url = profilePicUrl;
+      }
+
       // Update instance_id if it was null before
       if (instanceId && !existingConversation.instance_id) {
         updateData.instance_id = instanceId;
@@ -240,7 +250,7 @@ serve(async (req) => {
         .update(updateData)
         .eq("id", conversationId);
     } else {
-      // Create new conversation with instance_id
+      // Create new conversation with instance_id and profile pic
       const { data: newConversation, error: convError } = await supabase
         .from("whatsapp_conversations")
         .insert({
@@ -248,6 +258,7 @@ serve(async (req) => {
           instance_id: instanceId,
           phone,
           contact_name: contactName,
+          profile_pic_url: profilePicUrl,
           last_message_at: new Date().toISOString(),
           last_message_preview: content.substring(0, 100),
           unread_count: direction === "incoming" ? 1 : 0,
