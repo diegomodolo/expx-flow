@@ -1,28 +1,41 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Image as ImageIcon, Download, Loader2, X, ZoomIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogClose } from "@/components/ui/dialog";
-import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { downloadAndCacheMedia, hasCachedMedia } from "@/hooks/useWhatsAppMediaCache";
 
 interface WhatsAppImageViewerProps {
   mediaUrl: string | null;
-  messageId: string | null;
+  messageId: string | null; // external_id (UazapiGO)
+  supabaseMessageId: string | null; // Supabase message ID for caching
   instanceId: string | null;
   isOutgoing: boolean;
+  cachedMediaUrl?: string | null;
 }
 
 export function WhatsAppImageViewer({
   mediaUrl,
   messageId,
+  supabaseMessageId,
   instanceId,
   isOutgoing,
+  cachedMediaUrl,
 }: WhatsAppImageViewerProps) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Check if we have cached media on mount
+  useEffect(() => {
+    if (hasCachedMedia(cachedMediaUrl)) {
+      console.log("[WhatsAppImageViewer] Using cached image URL:", cachedMediaUrl);
+      setImageSrc(cachedMediaUrl!);
+      setImageLoaded(true);
+    }
+  }, [cachedMediaUrl]);
 
   const handleDownload = useCallback(async () => {
     if (imageSrc) {
@@ -53,60 +66,39 @@ export function WhatsAppImageViewer({
     setError(null);
 
     try {
-      // Get Supabase session for auth
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData?.session?.access_token;
+      console.log("[WhatsAppImageViewer] Downloading and caching image...");
 
-      if (!accessToken) {
-        setError("Sessão expirada");
-        setIsDownloading(false);
-        return;
-      }
-
-      // Use fetch directly to get binary response as blob
-      const functionUrl = `https://ejwpfztkspbvmuwwiwmk.supabase.co/functions/v1/download-whatsapp-media`;
-
-      console.log("[WhatsAppImageViewer] Fetching image via proxy", { instanceId, messageId });
-
-      const response = await fetch(functionUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({
-          instanceId,
-          messageId,
-          fileName: "image.jpg",
-        }),
+      const result = await downloadAndCacheMedia({
+        instanceId,
+        externalMessageId: messageId,
+        supabaseMessageId: supabaseMessageId || "",
+        fileName: "image.jpg",
+        shouldCache: !!supabaseMessageId,
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("[WhatsAppImageViewer] Download failed:", response.status, errorText);
+      if (!result) {
         throw new Error("Falha ao baixar imagem");
       }
 
-      // Get blob from response
-      const blob = await response.blob();
+      const { blob, cachedUrl } = result;
 
-      if (blob.size === 0) {
-        throw new Error("Arquivo de imagem vazio");
+      // If we got a cached URL, use it directly. Otherwise create blob URL
+      if (cachedUrl) {
+        setImageSrc(cachedUrl);
+      } else {
+        const objectUrl = URL.createObjectURL(blob);
+        setImageSrc(objectUrl);
       }
 
-      console.log("[WhatsAppImageViewer] Image loaded, size:", blob.size);
-
-      // Create object URL for image
-      const objectUrl = URL.createObjectURL(blob);
-      setImageSrc(objectUrl);
       setImageLoaded(true);
+      console.log("[WhatsAppImageViewer] Image ready, cached:", !!cachedUrl);
     } catch (err: any) {
       console.error("[WhatsAppImageViewer] Error:", err);
       setError(err.message || "Erro ao carregar imagem");
     } finally {
       setIsDownloading(false);
     }
-  }, [imageSrc, instanceId, messageId, mediaUrl]);
+  }, [imageSrc, instanceId, messageId, supabaseMessageId, mediaUrl]);
 
   const handleSaveImage = useCallback(() => {
     if (!imageSrc) return;
@@ -118,9 +110,6 @@ export function WhatsAppImageViewer({
     link.click();
     document.body.removeChild(link);
   }, [imageSrc]);
-
-  // Cleanup object URL on unmount
-  // Note: We don't cleanup here because the image might be viewed multiple times
 
   if (error) {
     return (

@@ -11,6 +11,7 @@ export interface WhatsAppMessage {
   content: string;
   message_type: string;
   media_url: string | null;
+  cached_media_url: string | null;
   status: string;
   external_id: string | null;
   sent_at: string;
@@ -123,6 +124,7 @@ export function useWhatsAppMessages(conversationId: string | null, companyId: st
       content: message,
       message_type: "text",
       media_url: null,
+      cached_media_url: null,
       status: "sending",
       external_id: null,
       sent_at: now,

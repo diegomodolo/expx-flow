@@ -11022,6 +11022,7 @@ export type Database = {
       }
       whatsapp_messages: {
         Row: {
+          cached_media_url: string | null
           company_id: string
           content: string
           conversation_id: string
@@ -11035,6 +11036,7 @@ export type Database = {
           status: string | null
         }
         Insert: {
+          cached_media_url?: string | null
           company_id: string
           content: string
           conversation_id: string
@@ -11048,6 +11050,7 @@ export type Database = {
           status?: string | null
         }
         Update: {
+          cached_media_url?: string | null
           company_id?: string
           content?: string
           conversation_id?: string
