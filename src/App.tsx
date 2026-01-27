@@ -114,9 +114,9 @@ import KeywordPlannerPage from "./pages/KeywordPlanner";
 import RepositorioCriativos from "./pages/RepositorioCriativos";
 import PublicContentReview from "./pages/PublicContentReview";
 import CSLayout from "./components/cs/CSLayout";
-import CSRiskRadarPage from "./pages/cs/CSRiskRadarPage";
-import CSHealth360Page from "./pages/cs/CSHealth360Page";
-import CSJourneyPage from "./pages/cs/CSJourneyPage";
+import CSCockpitPage from "./pages/cs/CSCockpitPage";
+import CSPortfolioPage from "./pages/cs/CSPortfolioPage";
+import CSJourneyKanbanPage from "./pages/cs/CSJourneyKanbanPage";
 import CSActionsPage from "./pages/cs/CSActionsPage";
 import CSClientsList from "./pages/cs/CSClientsList";
 import ValueStatementPublic from "./pages/cs/ValueStatementPublic";
@@ -597,10 +597,10 @@ const App = () => {
                     <CSLayout />
                   </ProtectedRoute>
                 }>
-                  <Route index element={<Navigate to="/cs/radar" replace />} />
-                  <Route path="radar" element={<CSRiskRadarPage />} />
-                  <Route path="saude" element={<CSHealth360Page />} />
-                  <Route path="jornada" element={<CSJourneyPage />} />
+                  <Route index element={<Navigate to="/cs/cockpit" replace />} />
+                  <Route path="cockpit" element={<CSCockpitPage />} />
+                  <Route path="carteira" element={<CSPortfolioPage />} />
+                  <Route path="jornada" element={<CSJourneyKanbanPage />} />
                   <Route path="acoes" element={<CSActionsPage />} />
                   <Route path="clientes" element={<CSClientsList />} />
                 </Route>
