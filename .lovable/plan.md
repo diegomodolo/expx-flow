@@ -1,308 +1,285 @@
 
-# Plano: Transformar CS de Dashboard Passivo para Ferramenta de Trabalho Ativa
+# Plano: Corrigir Gaps do Módulo CS e Torná-lo 100% Funcional
 
-## Visão Geral
+## Diagnóstico Completo
 
-Evolução do módulo CS para o "Melhor Módulo do Mundo para Agências", focando em:
-1. **Cockpit da CS** - Nova tela operacional "Minha Mesa"
-2. **Drill-down de Saúde** - Tooltip explicando o "porquê" do score
-3. **Semáforos de Performance** - Indicadores visuais de CPA/ROAS nas listagens
-4. **Unificação Radar + Saúde 360** - Eliminar redundância
-5. **Jornada em Kanban** - Visualização de pipeline de clientes
+Após auditoria técnica, identifiquei os seguintes gaps entre a estrutura visual e a implementação lógica:
 
----
+### Gaps Críticos Encontrados
 
-## Fase 1: Nova Tela "Cockpit da CS" (Minha Mesa)
-
-### Estrutura da Tela
-
-A nova home do módulo CS será dividida em 3 colunas:
-
-```text
-┌──────────────────────────────────────────────────────────────────────────────────┐
-│ Cockpit da CS - Bom dia, [Nome]!                                    [Squad Filter]│
-├─────────────────────┬─────────────────────┬──────────────────────────────────────┤
-│  🔥 INCÊNDIOS       │  📋 TAREFAS DO DIA  │  💰 OPORTUNIDADES                   │
-│  Alertas Críticos   │  Playbook Automático│  Upsell & Vitórias                  │
-├─────────────────────┼─────────────────────┼──────────────────────────────────────┤
-│ ⚠️ Apollo: NPS 4    │ ☐ Onboarding       │ 💎 Codemed: 3 meses no teto          │
-│ [WhatsApp] [Ligar]  │    ControlSis 2/5   │    [Oferecer Gold]                  │
-│                     │    [Fazer Call]     │                                      │
-│ 🔴 Açougue: -40%    │                     │ 🏆 ACP: Recorde de vendas!           │
-│    leads hoje       │ ☐ QBR vence hoje    │    [Enviar Parabéns]                │
-│ [Ver Campanha]      │    Certtus          │                                      │
-│                     │    [Enviar QBR]     │                                      │
-│                     │                     │                                      │
-│                     │ ☐ Touchpoint        │                                      │
-│                     │    Andes (15 dias)  │                                      │
-│                     │    [Mandar Oi]      │                                      │
-└─────────────────────┴─────────────────────┴──────────────────────────────────────┘
-│                      Progresso do Dia: ████████░░ 6/10 tarefas                   │
-└──────────────────────────────────────────────────────────────────────────────────┘
-```
-
-### Lógica de Priorização (Regras de Negócio)
-
-**Coluna A - Incêndios (Alertas que não podem esperar):**
-| Prioridade | Tipo | Critério | Exemplo |
-|------------|------|----------|---------|
-| 1 | Queda Brusca de Leads | Variação > -30% em 24h | "Leads caíram 40% hoje" |
-| 2 | NPS Detrator | Score <= 6 coletado nos últimos 3 dias | "NPS 4 ontem" |
-| 3 | Campanha Pausada | Status mudou para paused/ended inesperadamente | "Campanha principal pausou" |
-| 4 | CPA Explodindo | CPA > 200% da meta por 3+ dias | "CPA 3x acima do target" |
-| 5 | Cliente Crítico | churn_risk_level = 'critical' | "Risco crítico detectado" |
-
-**Coluna B - Tarefas do Dia (Playbook Automático):**
-| Tipo | Critério | Ação Sugerida |
-|------|----------|---------------|
-| Onboarding | Milestone pendente do tipo 'onboarding' | "Call de Onboarding (Etapa X/Y)" |
-| QBR | Próximo QBR vence em <= 7 dias | "Enviar QBR para [Cliente]" |
-| Touchpoint | Sem contato há > 10 dias | "Mandar 'Oi' para [Cliente]" |
-| NPS Coleta | NPS não coletado há > 30 dias | "Coletar NPS de [Cliente]" |
-| Follow-up | Milestone concluído não celebrado | "Celebrar vitória com [Cliente]" |
-
-**Coluna C - Oportunidades (Ouro na Mesa):**
-| Tipo | Critério | Ação Sugerida |
-|------|----------|---------------|
-| Upsell Verba | Spend > 90% do teto por 3+ meses | "Oferecer plano superior" |
-| Upsell ROAS | ROAS > 150% da meta consistente | "Expandir investimento" |
-| Vitória | Conversões bateram recorde ou meta | "Enviar parabéns" |
-| Renovação | Contrato vence em 30-60 dias + Health >= 70 | "Iniciar renovação" |
-
-### Gamificação
-
-- Barra de progresso "Meta do Dia" com contador de tarefas concluídas
-- Animação de celebração ao completar 100% das tarefas
-- Histórico de dias com 100% no perfil da CS
+| Área | Problema | Impacto |
+|------|----------|---------|
+| **Cockpit - Incêndios** | Botões WhatsApp/Ligar abrem URL vazia (`wa.me/`) | CS não consegue contatar cliente |
+| **Cockpit - Tarefas** | Checkbox não persiste conclusão | Progresso do dia não funciona |
+| **Cockpit - Tarefas** | Botão "Mandar Oi" abre WhatsApp vazio | CS não consegue enviar mensagem |
+| **Ações** | Não existe botão global "Novo Touchpoint" | CS precisa buscar cliente em outra tela |
+| **Ações** | Não existe botão "Coletar NPS" | CS não consegue iniciar coleta |
+| **Carteira/Jornada** | Sem ações rápidas nos cards | Exige navegação extra |
 
 ---
 
-## Fase 2: Drill-down de Saúde (Tooltip/Popover)
+## Fase 1: Integrar Telefones Reais nos Botões WhatsApp/Ligar
 
-### Na Tela Clientes CS
+### O que fazer
 
-Ao passar o mouse sobre a barra de Health Score, exibir HoverCard com:
+Buscar telefone do cliente da tabela `whatsapp_client_contacts` e usar no botão de ação.
 
-```text
-┌────────────────────────────────────────────┐
-│ 🔍 Análise do Health Score: 45%            │
-├────────────────────────────────────────────┤
-│ Pilar              Score    Status         │
-│ ────────────────────────────────────────── │
-│ 💰 Financeiro      30%      ⚠️ Problema    │
-│    → ROI caiu 15% vs meta                  │
-│                                            │
-│ ⚙️ Operacional     60%      ✓ OK          │
-│    → 3 campanhas ativas                    │
-│                                            │
-│ 💬 Relacional      45%      ⚠️ Atenção    │
-│    → Sem contato há 20 dias                │
-├────────────────────────────────────────────┤
-│ [Ver detalhes completos →]                 │
-└────────────────────────────────────────────┘
-```
+### Arquivos a Modificar
 
-Implementação: Adicionar `HoverCard` do Radix ao redor da Progress bar na tabela.
-
----
-
-## Fase 3: Semáforos de Performance nas Campanhas
-
-### Na Coluna "Campanhas" da Tela Clientes CS
-
-Substituir o número simples por um indicador visual:
-
-```text
-Antes: "3"
-
-Depois: 
-┌──────────────────┐
-│ 🟢 3 campanhas   │  ← Verde: CPA/ROAS batendo meta
-│ 🟡 2 campanhas   │  ← Amarelo: 80-100% da meta
-│ 🔴 1 campanha    │  ← Vermelho: < 80% da meta
-└──────────────────┘
-```
-
-Lógica do Semáforo:
-- **Verde**: CPA <= target_cpa OU ROAS >= target_roas
-- **Amarelo**: CPA entre 100-120% do target OU ROAS entre 80-100%
-- **Vermelho**: CPA > 120% do target OU ROAS < 80%
-
-Hover mostra resumo: "CPA: R$45 (meta: R$50) | ROAS: 3.2x (meta: 3x)"
-
----
-
-## Fase 4: Unificar Radar de Risco + Saúde 360
-
-### Proposta: "Painel de Controle da Carteira"
-
-Renomear e unificar as telas:
-- **Antes**: Radar de Risco (tela separada) + Saúde 360 (tela separada)
-- **Depois**: Uma única tela "Saúde da Carteira" com filtros por nível de risco
-
-```text
-┌──────────────────────────────────────────────────────────────────────────┐
-│ Saúde da Carteira                                      [Squad] [Período] │
-├──────────────────────────────────────────────────────────────────────────┤
-│ [Todos] [🔴 Críticos: 2] [🟠 Alto: 5] [🟡 Médio: 8] [🟢 Baixo: 15]       │
-├──────────────────────────────────────────────────────────────────────────┤
-│                                                                          │
-│  Cards de clientes filtrados pelo tab selecionado                        │
-│  (Reutiliza CSRiskRadar e CSHealthScore360Card)                          │
-│                                                                          │
-└──────────────────────────────────────────────────────────────────────────┘
-```
-
-A sidebar do CS mudará:
-- **Remove**: "Radar de Risco" e "Saúde 360" como itens separados
-- **Adiciona**: "Carteira" (nova tela unificada)
-
----
-
-## Fase 5: Jornada em Kanban
-
-### Transformar Jornada da Vitória em Pipeline Visual
-
-```text
-┌──────────────────────────────────────────────────────────────────────────────────┐
-│ Pipeline de Sucesso                                               [Squad Filter] │
-├───────────────┬───────────────┬───────────────┬───────────────┬──────────────────┤
-│  ONBOARDING   │ SETUP CAMP.   │ PRIMEIROS     │  OTIMIZAÇÃO   │     ESCALA       │
-│     (10)      │     (5)       │  LEADS (8)    │     (12)      │      (7)         │
-├───────────────┼───────────────┼───────────────┼───────────────┼──────────────────┤
-│ ┌───────────┐ │ ┌───────────┐ │ ┌───────────┐ │ ┌───────────┐ │ ┌───────────────┐│
-│ │ Cliente A │ │ │ Cliente D │ │ │ Cliente G │ │ │ Cliente J │ │ │   Cliente M   ││
-│ │ 🟡 45%    │ │ │ 🟢 78%    │ │ │ 🟢 82%    │ │ │ 🟢 90%    │ │ │   🟢 95%      ││
-│ │ [Ação]    │ │ │ [Ação]    │ │ │ [Ação]    │ │ │ [Ação]    │ │ │   [Ação]      ││
-│ └───────────┘ │ └───────────┘ │ └───────────┘ │ └───────────┘ │ └───────────────┘│
-│ ┌───────────┐ │               │ ┌───────────┐ │               │                  │
-│ │ Cliente B │ │               │ │ Cliente H │ │               │                  │
-│ │ 🔴 25%    │ │               │ │ 🟡 65%    │ │               │                  │
-│ └───────────┘ │               │ └───────────┘ │               │                  │
-└───────────────┴───────────────┴───────────────┴───────────────┴──────────────────┘
-│ 💡 Insight: 10 clientes travados no Onboarding. Verificar gargalos.              │
-└──────────────────────────────────────────────────────────────────────────────────┘
-```
-
-### Stages do Pipeline (baseado em milestone_type)
-
-| Coluna | Critério | Descrição |
-|--------|----------|-----------|
-| Onboarding | milestones de tipo 'onboarding' pendentes | Fase inicial |
-| Setup de Campanha | milestone 'first_campaign' pendente | Configurando campanhas |
-| Primeiros Leads | milestone 'first_lead' pendente | Aguardando resultados |
-| Otimização | milestone 'monthly_goal' pendente | Ajustando performance |
-| Escala | milestone 'quarterly_goal' ou todos concluídos | Expandindo resultados |
-
----
-
-## Arquivos a Criar
-
-| Arquivo | Descrição |
-|---------|-----------|
-| `src/pages/cs/CSCockpitPage.tsx` | Nova tela "Minha Mesa" - Home operacional da CS |
-| `src/components/cs/CSCockpitFires.tsx` | Coluna de Incêndios/Alertas |
-| `src/components/cs/CSCockpitTasks.tsx` | Coluna de Tarefas do Dia |
-| `src/components/cs/CSCockpitOpportunities.tsx` | Coluna de Oportunidades |
-| `src/components/cs/CSHealthScoreTooltip.tsx` | Tooltip/HoverCard com drill-down de saúde |
-| `src/components/cs/CSCampaignTrafficLight.tsx` | Semáforo de performance de campanhas |
-| `src/components/cs/CSPortfolioPage.tsx` | Tela unificada Carteira (Radar + Saúde) |
-| `src/components/cs/CSJourneyKanban.tsx` | Kanban visual do pipeline de sucesso |
-| `src/hooks/useCSCockpitData.tsx` | Hook para buscar dados do cockpit (alertas, tarefas, oportunidades) |
-| `src/hooks/useCSCampaignPerformance.tsx` | Hook para métricas de campanha por cliente |
-
-## Arquivos a Modificar
-
-| Arquivo | Alterações |
-|---------|------------|
-| `src/components/dashboard/DashboardSidebar.tsx` | Adicionar "Cockpit" como primeiro item, renomear/unificar Radar+Saúde |
-| `src/App.tsx` | Adicionar rota `/cs/cockpit` e `/cs/carteira` |
-| `src/components/cs/CSLayout.tsx` | Atualizar navegação interna |
-| `src/pages/cs/CSClientsList.tsx` | Adicionar HoverCard no Health Score + Semáforo nas campanhas |
-| `src/pages/cs/CSJourneyPage.tsx` | Transformar em visualização Kanban |
-| `src/hooks/useCSClientsList.tsx` | Incluir métricas de performance de campanha |
-
----
-
-## Reorganização do Menu CS
-
-**Novo menu lateral:**
-```
-Customer Success
-├── 🏠 Cockpit (NOVO - Home operacional)
-├── 📊 Carteira (Unificação Radar + Saúde 360)
-├── 🏆 Jornada (Kanban visual)
-├── ⚡ Ações (Touchpoints, NPS, QBR)
-└── 👥 Clientes CS (Lista com drill-down)
-```
-
----
-
-## Detalhes Técnicos
-
-### Hook useCSCockpitData
+**1. `src/hooks/useCSCockpitData.tsx`**
+- Adicionar campo `clientPhone` nas interfaces `FireAlert`, `DailyTask`, `Opportunity`
+- Na query, fazer join com `whatsapp_client_contacts` para buscar telefone principal
+- Retornar telefone formatado (5511999999999)
 
 ```typescript
-interface CockpitData {
-  fires: FireAlert[];      // Alertas críticos
-  tasks: DailyTask[];      // Tarefas do dia
-  opportunities: Opportunity[]; // Oportunidades
-  progress: {
-    completed: number;
-    total: number;
-  };
-}
+// Adicionar ao select de clients:
+const { data: contacts } = await supabase
+  .from('whatsapp_client_contacts')
+  .select('client_id, phone')
+  .in('client_id', clientIds)
+  .eq('is_active', true);
 
-interface FireAlert {
-  id: string;
-  clientId: string;
-  clientName: string;
-  type: 'nps_detractor' | 'leads_drop' | 'campaign_paused' | 'cpa_exploding' | 'critical_risk';
-  severity: 'critical' | 'high';
-  message: string;
-  detectedAt: string;
-  actions: Array<{ label: string; action: 'whatsapp' | 'call' | 'view_campaign' | 'view_client' }>;
-}
+// Mapear por client_id
+const phonesByClient = contacts?.reduce((acc, c) => {
+  acc[c.client_id] = c.phone;
+  return acc;
+}, {} as Record<string, string>);
 
-interface DailyTask {
-  id: string;
-  clientId: string;
-  clientName: string;
-  type: 'onboarding' | 'qbr' | 'touchpoint' | 'nps_collect' | 'celebrate';
-  title: string;
-  subtitle: string;
-  dueType: 'overdue' | 'today' | 'upcoming';
-  completed: boolean;
-  primaryAction: { label: string; action: string };
-}
-
-interface Opportunity {
-  id: string;
-  clientId: string;
-  clientName: string;
-  type: 'upsell_budget' | 'upsell_roas' | 'victory' | 'renewal';
-  title: string;
-  description: string;
-  value?: number;
-  primaryAction: { label: string; action: string };
-}
+// Adicionar ao FireAlert, DailyTask:
+clientPhone: phonesByClient[client.id] || null,
 ```
 
-### Lógica de Detecção de Alertas
+**2. `src/components/cs/CSCockpitFires.tsx`**
+- Modificar `handleAction` para usar `fire.clientPhone`
+- WhatsApp: `window.open(`https://wa.me/${fire.clientPhone}`, '_blank')`
+- Se não tiver telefone, redirecionar para página do cliente
 
-O hook buscará:
-1. **NPS Detrator**: `client_health_config` onde `nps_score <= 6` AND `nps_collected_at` nos últimos 3 dias
-2. **Queda de Leads**: Comparar `campaigns.conversions` das últimas 24h vs média dos 7 dias anteriores
-3. **CPA Explodindo**: `campaigns` onde CPA atual > 200% do `client_benchmarks.target_cpa`
-4. **Cliente Crítico**: `client_health_config.churn_risk_level = 'critical'`
+**3. `src/components/cs/CSCockpitTasks.tsx`**
+- Mesma lógica para `task.clientPhone`
+
+**4. `src/components/cs/CSCockpitOpportunities.tsx`**
+- Mesma lógica para `opportunity.clientPhone`
 
 ---
 
-## Resultado Final
+## Fase 2: Implementar Marcação de Tarefas como Concluídas
 
-1. **Cockpit operacional**: CS sabe exatamente o que fazer ao abrir o sistema
-2. **Drill-down de saúde**: Causa raiz visível sem navegar para outra tela
-3. **Semáforos de performance**: "Cheiro de agência" com métricas de tráfego
-4. **Painel unificado**: Visão consolidada da carteira sem fragmentação
-5. **Pipeline visual**: Gestora identifica gargalos rapidamente
-6. **Gamificação**: Motivação para completar tarefas diárias
+### O que fazer
+
+Criar sistema de persistência de tarefas concluídas (localStorage ou tabela) e implementar callback.
+
+### Arquivos a Modificar
+
+**1. `src/hooks/useCSCockpitData.tsx`**
+- Adicionar estado local para tarefas concluídas
+- Criar mutation `markTaskComplete` que salva no localStorage
+- Atualizar lista de tarefas para marcar como completed
+
+```typescript
+// Usar localStorage para persistir
+const completedTasksKey = `cs-completed-tasks-${new Date().toISOString().split('T')[0]}`;
+const completedTasks = JSON.parse(localStorage.getItem(completedTasksKey) || '[]');
+
+// Marcar tarefas
+tasks.forEach(task => {
+  task.completed = completedTasks.includes(task.id);
+});
+```
+
+**2. `src/pages/cs/CSCockpitPage.tsx`**
+- Adicionar função `handleTaskComplete`
+- Passar para `CSCockpitTasks` via prop `onTaskComplete`
+- Invalidar query após marcar
+
+```typescript
+const handleTaskComplete = (taskId: string) => {
+  const key = `cs-completed-tasks-${new Date().toISOString().split('T')[0]}`;
+  const current = JSON.parse(localStorage.getItem(key) || '[]');
+  if (!current.includes(taskId)) {
+    current.push(taskId);
+    localStorage.setItem(key, JSON.stringify(current));
+  }
+  refetch();
+};
+```
+
+---
+
+## Fase 3: Adicionar Botões Globais na Tela de Ações
+
+### O que fazer
+
+Adicionar botões "+ Novo Touchpoint" e "+ Coletar NPS" no header da página de Ações.
+
+### Arquivos a Modificar
+
+**1. `src/pages/cs/CSActionsPage.tsx`**
+- Adicionar dropdown "Selecionar Cliente" 
+- Adicionar botões de ação no header
+- Criar modal de NPS
+
+```tsx
+// Header atualizado
+<div className="flex items-start justify-between">
+  <div>
+    <h1>Ações de CS</h1>
+    <p>Touchpoints, NPS, QBR e Value Statements</p>
+  </div>
+  <div className="flex items-center gap-2">
+    <CSSquadFilter />
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button>
+          <Plus className="h-4 w-4 mr-2" />
+          Nova Ação
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent>
+        <DropdownMenuItem onClick={() => setShowClientSelector('touchpoint')}>
+          <Phone className="h-4 w-4 mr-2" />
+          Novo Touchpoint
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setShowClientSelector('nps')}>
+          <Star className="h-4 w-4 mr-2" />
+          Coletar NPS
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  </div>
+</div>
+```
+
+**2. Criar `src/components/cs/CSClientSelectorModal.tsx`**
+- Modal com lista de clientes filtrados por squad
+- Callback `onSelect(clientId)` para abrir modal específico
+
+**3. Criar `src/components/cs/CSNPSCollectModal.tsx`**
+- Modal para registrar NPS de um cliente
+- Campos: Score (0-10), Feedback (opcional)
+- Salvar na tabela `nps_responses`
+
+---
+
+## Fase 4: Registrar Touchpoint Automaticamente Após Ação
+
+### O que fazer
+
+Após clicar em WhatsApp/Ligar, abrir modal de registro de touchpoint automaticamente.
+
+### Arquivos a Modificar
+
+**1. `src/components/cs/CSCockpitFires.tsx`**
+- Adicionar estado para modal de touchpoint
+- Após abrir WhatsApp, abrir modal pré-preenchido
+
+```typescript
+const [showTouchpoint, setShowTouchpoint] = useState(false);
+const [selectedFire, setSelectedFire] = useState<FireAlert | null>(null);
+
+const handleAction = (fire: FireAlert, action: string) => {
+  switch (action) {
+    case 'whatsapp':
+      if (fire.clientPhone) {
+        window.open(`https://wa.me/${fire.clientPhone}`, '_blank');
+        // Aguardar 2s e abrir modal de touchpoint
+        setTimeout(() => {
+          setSelectedFire(fire);
+          setShowTouchpoint(true);
+        }, 2000);
+      } else {
+        navigate(`/clientes/${fire.clientId}/cs`);
+      }
+      break;
+    // ...
+  }
+};
+
+// Render modal no final:
+<CSNewTouchpointModal
+  open={showTouchpoint}
+  onOpenChange={setShowTouchpoint}
+  clientId={selectedFire?.clientId || ''}
+  clientName={selectedFire?.clientName}
+  preselectedType="whatsapp" // Pré-selecionar tipo
+/>
+```
+
+**2. `src/components/cs/CSNewTouchpointModal.tsx`**
+- Aceitar prop `preselectedType` para pré-selecionar tipo
+
+---
+
+## Fase 5: Ações Rápidas nos Cards de Carteira e Jornada
+
+### O que fazer
+
+Adicionar dropdown de ações rápidas nos cards de clientes.
+
+### Arquivos a Modificar
+
+**1. `src/components/cs/CSHealthScore360Card.tsx`**
+- Adicionar botão de ações no canto superior direito
+- Dropdown com: WhatsApp, Registrar Touchpoint, Ver Cliente
+
+**2. `src/pages/cs/CSJourneyKanbanPage.tsx`**
+- No `ClientCard`, adicionar ações rápidas no hover
+- Ações: WhatsApp, Ver Cliente, Avançar Etapa
+
+---
+
+## Resumo de Arquivos
+
+### Criar (2 arquivos)
+| Arquivo | Descrição |
+|---------|-----------|
+| `src/components/cs/CSClientSelectorModal.tsx` | Modal para selecionar cliente antes de ação |
+| `src/components/cs/CSNPSCollectModal.tsx` | Modal para coletar NPS de cliente |
+
+### Modificar (9 arquivos)
+| Arquivo | Alterações |
+|---------|------------|
+| `src/hooks/useCSCockpitData.tsx` | Buscar telefones, adicionar lógica de tarefas concluídas |
+| `src/pages/cs/CSCockpitPage.tsx` | Implementar `handleTaskComplete`, passar para componentes |
+| `src/components/cs/CSCockpitFires.tsx` | Usar telefone real, abrir modal pós-contato |
+| `src/components/cs/CSCockpitTasks.tsx` | Usar telefone real no WhatsApp |
+| `src/components/cs/CSCockpitOpportunities.tsx` | Adicionar ações com telefone |
+| `src/pages/cs/CSActionsPage.tsx` | Adicionar botões globais no header |
+| `src/components/cs/CSNewTouchpointModal.tsx` | Aceitar `preselectedType` |
+| `src/components/cs/CSHealthScore360Card.tsx` | Adicionar ações rápidas |
+| `src/pages/cs/CSJourneyKanbanPage.tsx` | Adicionar ações no ClientCard |
+
+---
+
+## Fluxo Corrigido
+
+Após implementação, o fluxo da CS será:
+
+```text
+1. CS abre Cockpit
+   ↓
+2. Vê "Incêndio: NPS 4 - Cliente X"
+   ↓
+3. Clica em "WhatsApp" 
+   → Abre wa.me/5511999999999 (telefone real)
+   → 2 segundos depois, modal aparece
+   ↓
+4. CS preenche resumo da conversa
+   ↓
+5. Clica "Registrar" 
+   → Touchpoint salvo
+   → last_cs_contact_at atualizado
+   ↓
+6. Volta ao Cockpit, marca tarefa como concluída
+   → Checkbox atualiza
+   → Barra de progresso avança
+```
+
+---
+
+## Ordem de Implementação
+
+1. **Fase 1** - Telefones reais (base para todas as ações)
+2. **Fase 2** - Marcação de tarefas (gamificação funcional)
+3. **Fase 3** - Botões globais em Ações (ponto de entrada centralizado)
+4. **Fase 4** - Modal automático pós-contato (fluxo completo)
+5. **Fase 5** - Ações rápidas nos cards (conveniência)
