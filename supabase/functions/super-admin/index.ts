@@ -15,6 +15,15 @@ interface RequestBody {
 const describeError = (err: unknown) => {
   try {
     if (!err) return { raw: err };
+
+    // Supabase/auth-js errors often have non-enumerable props -> JSON.stringify becomes "{}".
+    // We always extract own properties to surface status/code/url when present.
+    // deno-lint-ignore no-explicit-any
+    const e: any = err;
+    const keys = Object.getOwnPropertyNames(e);
+    const picked: Record<string, unknown> = {};
+    for (const k of keys) picked[k] = e[k];
+
     if (err instanceof Error) {
       return {
         name: err.name,
@@ -22,15 +31,10 @@ const describeError = (err: unknown) => {
         stack: err.stack,
         // deno-lint-ignore no-explicit-any
         cause: (err as any).cause,
+        keys,
+        picked,
       };
     }
-
-    // Supabase errors sometimes have non-enumerable props -> JSON.stringify becomes {}
-    // deno-lint-ignore no-explicit-any
-    const e: any = err;
-    const keys = Object.getOwnPropertyNames(e);
-    const picked: Record<string, unknown> = {};
-    for (const k of keys) picked[k] = e[k];
 
     return {
       type: typeof err,
@@ -42,6 +46,8 @@ const describeError = (err: unknown) => {
     return { fallback: String(err), describeErrorError: String(e) };
   }
 };
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
@@ -240,13 +246,34 @@ const handler = async (req: Request): Promise<Response> => {
         .eq("user_id", userId);
 
       // 4. Deletar usuário do auth
-      const { error: deleteError } = await supabase.auth.admin.deleteUser(userId);
-      
-      if (deleteError) {
+      let lastDeleteError: unknown = null;
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        const { error: deleteError } = await supabase.auth.admin.deleteUser(userId, {
+          shouldSoftDelete: false,
+        });
+
+        if (!deleteError) {
+          lastDeleteError = null;
+          break;
+        }
+
+        lastDeleteError = deleteError;
         const details = describeError(deleteError);
-        console.error("Erro no super-admin: deleteUser falhou", details);
+        console.error(`Erro no super-admin: deleteUser falhou (tentativa ${attempt}/3)`, details);
+
+        // auth-js usa AuthRetryableFetchError para falhas transitórias (ex.: 5xx/timeout)
+        // então damos backoff e tentamos novamente.
+        if (attempt < 3 && (details as any)?.name === "AuthRetryableFetchError") {
+          await sleep(350 * Math.pow(2, attempt - 1));
+          continue;
+        }
+
+        break;
+      }
+
+      if (lastDeleteError) {
         return new Response(
-          JSON.stringify({ error: "Erro ao deletar usuário", details }),
+          JSON.stringify({ error: "Erro ao deletar usuário", details: describeError(lastDeleteError) }),
           { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } },
         );
       }
