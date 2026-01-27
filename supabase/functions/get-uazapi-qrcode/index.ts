@@ -34,23 +34,24 @@ serve(async (req) => {
     const cleanEndpoint = endpoint.replace(/\/$/, "");
 
     // First, start the session if not already started
-    console.log("[get-uazapi-qrcode] Starting session...");
+    // UazapiGO uses: /session/start/{sessionId}
+    const startUrl = `${cleanEndpoint}/session/start/${session}`;
+    console.log("[get-uazapi-qrcode] Starting session:", startUrl);
+    
     try {
-      const startResponse = await fetch(`${cleanEndpoint}/start`, {
+      const startResponse = await fetch(startUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Token": token,
         },
-        body: JSON.stringify({
-          session: session,
-        }),
       });
 
       const startText = await startResponse.text();
+      console.log("[get-uazapi-qrcode] Start session response status:", startResponse.status);
       console.log("[get-uazapi-qrcode] Start session raw response:", startText);
       
-      // Try to parse as JSON for logging, but don't fail if it's not JSON
+      // Try to parse as JSON for logging
       try {
         const startData = JSON.parse(startText);
         console.log("[get-uazapi-qrcode] Start session parsed:", startData);
@@ -62,9 +63,10 @@ serve(async (req) => {
       // Continue anyway - the session might already be started
     }
 
-    // Get QR Code
-    const qrCodeUrl = `${cleanEndpoint}/getQrCode?session=${session}`;
-    console.log("[get-uazapi-qrcode] Calling UazapiGO:", qrCodeUrl);
+    // Get QR Code image
+    // UazapiGO uses: /session/qrcode/image/{sessionId}
+    const qrCodeUrl = `${cleanEndpoint}/session/qrcode/image/${session}`;
+    console.log("[get-uazapi-qrcode] Getting QR code from:", qrCodeUrl);
 
     const response = await fetch(qrCodeUrl, {
       method: "GET",
@@ -84,6 +86,8 @@ serve(async (req) => {
       const arrayBuffer = await response.arrayBuffer();
       const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
       const imageDataUrl = `data:${contentType};base64,${base64}`;
+
+      console.log("[get-uazapi-qrcode] Successfully got QR code image");
 
       return new Response(
         JSON.stringify({
@@ -107,14 +111,27 @@ serve(async (req) => {
       data = JSON.parse(responseText);
     } catch {
       // If not JSON and not image, return the text as qrcode (might be base64)
+      if (responseText && responseText.length > 0) {
+        return new Response(
+          JSON.stringify({
+            success: true,
+            qrcode: responseText,
+            is_image: false,
+          }),
+          { 
+            status: 200, 
+            headers: { ...corsHeaders, "Content-Type": "application/json" } 
+          }
+        );
+      }
+      
       return new Response(
-        JSON.stringify({
-          success: true,
-          qrcode: responseText,
-          is_image: false,
+        JSON.stringify({ 
+          success: false, 
+          error: "Resposta inválida da API" 
         }),
         { 
-          status: 200, 
+          status: 400, 
           headers: { ...corsHeaders, "Content-Type": "application/json" } 
         }
       );
@@ -136,11 +153,11 @@ serve(async (req) => {
     }
 
     // Return QR code from response
-    if (data.qrcode || data.qr || data.base64) {
+    if (data.qrcode || data.qr || data.base64 || data.data) {
       return new Response(
         JSON.stringify({
           success: true,
-          qrcode: data.qrcode || data.qr || data.base64,
+          qrcode: data.qrcode || data.qr || data.base64 || data.data,
           is_image: false,
         }),
         { 
