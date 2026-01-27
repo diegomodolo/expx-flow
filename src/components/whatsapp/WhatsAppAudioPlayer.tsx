@@ -3,13 +3,15 @@ import { Play, Pause, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
+import { downloadAndCacheMedia, hasCachedMedia } from "@/hooks/useWhatsAppMediaCache";
 
 interface WhatsAppAudioPlayerProps {
   mediaUrl: string | null;
-  messageId: string | null;
+  messageId: string | null; // external_id (UazapiGO)
+  supabaseMessageId: string | null; // Supabase message ID for caching
   instanceId: string | null;
   isOutgoing: boolean;
+  cachedMediaUrl?: string | null;
 }
 
 const PLAYBACK_SPEEDS = [1, 1.5, 2];
@@ -17,8 +19,10 @@ const PLAYBACK_SPEEDS = [1, 1.5, 2];
 export function WhatsAppAudioPlayer({
   mediaUrl,
   messageId,
+  supabaseMessageId,
   instanceId,
   isOutgoing,
+  cachedMediaUrl,
 }: WhatsAppAudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -29,7 +33,15 @@ export function WhatsAppAudioPlayer({
   const [audioSrc, setAudioSrc] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch audio URL via edge function proxy (same logic as documents/images)
+  // Check if we have cached media on mount
+  useEffect(() => {
+    if (hasCachedMedia(cachedMediaUrl)) {
+      console.log("[WhatsAppAudioPlayer] Using cached audio URL:", cachedMediaUrl);
+      setAudioSrc(cachedMediaUrl!);
+    }
+  }, [cachedMediaUrl]);
+
+  // Fetch audio URL via edge function proxy and cache it
   const loadAudio = useCallback(async () => {
     if (audioSrc) return; // Already loaded
     
@@ -53,61 +65,40 @@ export function WhatsAppAudioPlayer({
         return;
       }
 
-      // Get Supabase session for auth
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData?.session?.access_token;
+      console.log("[WhatsAppAudioPlayer] Downloading and caching audio...");
 
-      if (!accessToken) {
-        setError("Sessão expirada");
-        setIsLoading(false);
-        return;
-      }
-
-      // Use fetch directly to get binary response as blob
-      const functionUrl = `${import.meta.env.VITE_SUPABASE_URL || "https://ejwpfztkspbvmuwwiwmk.supabase.co"}/functions/v1/download-whatsapp-media`;
-
-      console.log("[WhatsAppAudioPlayer] Fetching audio via proxy", { instanceId, messageId });
-
-      const response = await fetch(functionUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({
-          instanceId,
-          messageId,
-          fileName: "audio.mp3",
-        }),
+      const result = await downloadAndCacheMedia({
+        instanceId,
+        externalMessageId: messageId,
+        supabaseMessageId: supabaseMessageId || "",
+        fileName: "audio.mp3",
+        shouldCache: !!supabaseMessageId,
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("[WhatsAppAudioPlayer] Download failed:", response.status, errorText);
+      if (!result) {
         throw new Error("Falha ao baixar áudio");
       }
 
-      // Get blob from response
-      const blob = await response.blob();
-      
-      if (blob.size === 0) {
-        throw new Error("Arquivo de áudio vazio");
+      const { blob, cachedUrl } = result;
+
+      // If we got a cached URL, use it directly. Otherwise create blob URL
+      if (cachedUrl) {
+        setAudioSrc(cachedUrl);
+      } else {
+        const objectUrl = URL.createObjectURL(blob);
+        setAudioSrc(objectUrl);
       }
 
-      console.log("[WhatsAppAudioPlayer] Audio loaded, size:", blob.size);
-
-      // Create object URL for audio element
-      const objectUrl = URL.createObjectURL(blob);
-      setAudioSrc(objectUrl);
+      console.log("[WhatsAppAudioPlayer] Audio ready, cached:", !!cachedUrl);
     } catch (err: any) {
       console.error("[WhatsAppAudioPlayer] Error loading audio:", err);
       setError("Erro ao carregar áudio");
     } finally {
       setIsLoading(false);
     }
-  }, [mediaUrl, instanceId, messageId, audioSrc]);
+  }, [mediaUrl, instanceId, messageId, supabaseMessageId, audioSrc]);
 
-  // Cleanup object URL on unmount
+  // Cleanup object URL on unmount (only if it's a blob URL)
   useEffect(() => {
     return () => {
       if (audioSrc && audioSrc.startsWith("blob:")) {

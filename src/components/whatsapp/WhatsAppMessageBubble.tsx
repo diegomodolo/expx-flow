@@ -168,15 +168,19 @@ export function WhatsAppMessageBubble({ message, instanceId, companyId, remoteJi
                 <WhatsAppImageViewer
                   mediaUrl={message.media_url}
                   messageId={message.external_id}
+                  supabaseMessageId={message.id}
                   instanceId={instanceId ?? null}
                   isOutgoing={isOutgoing && !isFailed}
+                  cachedMediaUrl={message.cached_media_url}
                 />
               ) : message.message_type === "audio" ? (
                 <WhatsAppAudioPlayer
                   mediaUrl={message.media_url}
                   messageId={message.external_id}
+                  supabaseMessageId={message.id}
                   instanceId={instanceId ?? null}
                   isOutgoing={isOutgoing && !isFailed}
+                  cachedMediaUrl={message.cached_media_url}
                 />
               ) : (
                 <Button
