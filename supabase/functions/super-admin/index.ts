@@ -12,6 +12,37 @@ interface RequestBody {
   companyId?: string;
 }
 
+const describeError = (err: unknown) => {
+  try {
+    if (!err) return { raw: err };
+    if (err instanceof Error) {
+      return {
+        name: err.name,
+        message: err.message,
+        stack: err.stack,
+        // deno-lint-ignore no-explicit-any
+        cause: (err as any).cause,
+      };
+    }
+
+    // Supabase errors sometimes have non-enumerable props -> JSON.stringify becomes {}
+    // deno-lint-ignore no-explicit-any
+    const e: any = err;
+    const keys = Object.getOwnPropertyNames(e);
+    const picked: Record<string, unknown> = {};
+    for (const k of keys) picked[k] = e[k];
+
+    return {
+      type: typeof err,
+      keys,
+      picked,
+      toString: typeof e?.toString === "function" ? e.toString() : undefined,
+    };
+  } catch (e) {
+    return { fallback: String(err), describeErrorError: String(e) };
+  }
+};
+
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -172,6 +203,22 @@ const handler = async (req: Request): Promise<Response> => {
         });
       }
 
+      // Sanity-check: user exists in Auth
+      const { data: userLookup, error: userLookupError } = await supabase.auth.admin.getUserById(userId);
+      if (userLookupError) {
+        console.error("Erro no super-admin: getUserById falhou", describeError(userLookupError));
+        return new Response(
+          JSON.stringify({ error: "Erro ao buscar usuário no Auth", details: describeError(userLookupError) }),
+          { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } },
+        );
+      }
+      if (!userLookup?.user) {
+        return new Response(JSON.stringify({ error: "Usuário não encontrado no Auth" }), {
+          status: 404,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+
       // As FKs agora têm ON DELETE CASCADE ou SET NULL, então só precisamos limpar
       // tabelas que não têm FK direta ao auth.users mas têm user_id como referência lógica.
       // 1. Remover de company_members
@@ -196,8 +243,12 @@ const handler = async (req: Request): Promise<Response> => {
       const { error: deleteError } = await supabase.auth.admin.deleteUser(userId);
       
       if (deleteError) {
-        const details = typeof deleteError === "object" ? JSON.stringify(deleteError) : String(deleteError);
-        throw new Error(`Erro ao deletar usuário: ${deleteError.message || details}`);
+        const details = describeError(deleteError);
+        console.error("Erro no super-admin: deleteUser falhou", details);
+        return new Response(
+          JSON.stringify({ error: "Erro ao deletar usuário", details }),
+          { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } },
+        );
       }
 
       return new Response(JSON.stringify({
