@@ -7,6 +7,7 @@ export interface WhatsAppConversation {
   instance_id: string | null;
   phone: string;
   contact_name: string | null;
+  profile_pic_url: string | null;
   last_message_at: string | null;
   last_message_preview: string | null;
   unread_count: number;
