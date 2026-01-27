@@ -45,6 +45,15 @@ verify_jwt = true
 [functions.send-whatsapp-notification]
 verify_jwt = true
 
+[functions.test-uazapi-connection]
+verify_jwt = true
+
+[functions.get-uazapi-qrcode]
+verify_jwt = true
+
+[functions.whatsapp-webhook]
+verify_jwt = false
+
 [api]
 enabled = true
 port = 54321
