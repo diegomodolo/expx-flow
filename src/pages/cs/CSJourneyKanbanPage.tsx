@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -12,13 +12,29 @@ import {
   Crown,
   AlertTriangle,
   Eye,
-  Lightbulb
+  Lightbulb,
+  MoreVertical,
+  MessageCircle,
+  Phone,
+  Star,
+  ChevronRight
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { useCSHealthScore360, HealthScore360Data } from '@/hooks/useCSHealthScore360';
 import { useCSSquadFilter } from '@/contexts/CSSquadFilterContext';
 import { CSSquadFilter } from '@/components/cs/CSSquadFilter';
+import { CSNewTouchpointModal } from '@/components/cs/CSNewTouchpointModal';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface PipelineStage {
   id: string;
@@ -106,46 +122,143 @@ interface ClientCardProps {
 
 function ClientCard({ client }: ClientCardProps) {
   const navigate = useNavigate();
+  const [showTouchpoint, setShowTouchpoint] = useState(false);
+  const [preselectedType, setPreselectedType] = useState<string>('whatsapp');
+
+  // Fetch client phone
+  const { data: phoneData } = useQuery({
+    queryKey: ['client-phone', client.clientId],
+    queryFn: async () => {
+      const { data: contacts } = await supabase
+        .from('whatsapp_client_contacts')
+        .select('phone')
+        .eq('client_id', client.clientId)
+        .eq('is_active', true)
+        .limit(1);
+      
+      return contacts?.[0]?.phone?.replace(/\D/g, '') || null;
+    },
+    enabled: !!client.clientId,
+    staleTime: 1000 * 60 * 10,
+  });
+
+  const handleWhatsApp = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (phoneData) {
+      window.open(`https://wa.me/${phoneData}`, '_blank');
+      setTimeout(() => {
+        setPreselectedType('whatsapp');
+        setShowTouchpoint(true);
+      }, 2000);
+    } else {
+      toast.error('Telefone não cadastrado');
+    }
+  };
+
+  const handleCall = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (phoneData) {
+      window.open(`tel:+${phoneData}`, '_blank');
+      setTimeout(() => {
+        setPreselectedType('call');
+        setShowTouchpoint(true);
+      }, 2000);
+    } else {
+      toast.error('Telefone não cadastrado');
+    }
+  };
+
+  const handleViewClient = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigate(`/clientes/${client.clientId}/cs`);
+  };
+
+  const handleTouchpoint = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowTouchpoint(true);
+  };
   
   return (
-    <div 
-      className="p-3 bg-card border rounded-lg shadow-sm hover:shadow-md transition-all cursor-pointer group"
-      onClick={() => navigate(`/clientes/${client.clientId}/cs`)}
-    >
-      <div className="flex items-start gap-2">
-        <Avatar className="h-8 w-8 border">
-          <AvatarImage src={client.clientAvatar || undefined} />
-          <AvatarFallback className="text-xs">
-            {client.clientName.charAt(0)}
-          </AvatarFallback>
-        </Avatar>
-        <div className="flex-1 min-w-0">
-          <p className="font-medium text-sm truncate group-hover:text-primary transition-colors">
-            {client.clientName}
-          </p>
-          <div className="flex items-center gap-1 mt-1">
-            <Badge variant="outline" className={cn("text-xs", getHealthBadgeColor(client.healthScoreTotal))}>
-              {client.healthScoreTotal}%
-            </Badge>
-            {client.churnRiskLevel === 'critical' && (
-              <AlertTriangle className="h-3 w-3 text-red-500" />
-            )}
+    <>
+      <div 
+        className="p-3 bg-card border rounded-lg shadow-sm hover:shadow-md transition-all cursor-pointer group relative"
+        onClick={() => navigate(`/clientes/${client.clientId}/cs`)}
+      >
+        {/* Quick Actions */}
+        <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+              <Button variant="ghost" size="icon" className="h-6 w-6">
+                <MoreVertical className="h-3 w-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleWhatsApp}>
+                <MessageCircle className="h-4 w-4 mr-2" />
+                WhatsApp
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleCall}>
+                <Phone className="h-4 w-4 mr-2" />
+                Ligar
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleTouchpoint}>
+                <MessageCircle className="h-4 w-4 mr-2" />
+                Registrar Touchpoint
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleViewClient}>
+                <Eye className="h-4 w-4 mr-2" />
+                Ver Cliente
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        <div className="flex items-start gap-2">
+          <Avatar className="h-8 w-8 border">
+            <AvatarImage src={client.clientAvatar || undefined} />
+            <AvatarFallback className="text-xs">
+              {client.clientName.charAt(0)}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex-1 min-w-0">
+            <p className="font-medium text-sm truncate group-hover:text-primary transition-colors">
+              {client.clientName}
+            </p>
+            <div className="flex items-center gap-1 mt-1">
+              <Badge variant="outline" className={cn("text-xs", getHealthBadgeColor(client.healthScoreTotal))}>
+                {client.healthScoreTotal}%
+              </Badge>
+              {client.churnRiskLevel === 'critical' && (
+                <AlertTriangle className="h-3 w-3 text-red-500" />
+              )}
+            </div>
           </div>
         </div>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="w-full mt-2 h-7 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+          onClick={(e) => {
+            e.stopPropagation();
+            navigate(`/clientes/${client.clientId}/cs`);
+          }}
+        >
+          <Eye className="h-3 w-3 mr-1" />
+          Ver detalhes
+        </Button>
       </div>
-      <Button 
-        variant="ghost" 
-        size="sm" 
-        className="w-full mt-2 h-7 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-        onClick={(e) => {
-          e.stopPropagation();
-          navigate(`/clientes/${client.clientId}/cs`);
-        }}
-      >
-        <Eye className="h-3 w-3 mr-1" />
-        Ver detalhes
-      </Button>
-    </div>
+
+      {/* Touchpoint Modal */}
+      <CSNewTouchpointModal
+        open={showTouchpoint}
+        onOpenChange={setShowTouchpoint}
+        clientId={client.clientId}
+        clientName={client.clientName}
+        preselectedType={preselectedType}
+      />
+    </>
   );
 }
 

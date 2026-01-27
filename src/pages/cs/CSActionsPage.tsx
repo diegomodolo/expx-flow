@@ -5,22 +5,41 @@ import {
   Target, 
   Phone, 
   TrendingUp,
-  ArrowUpRight
+  ArrowUpRight,
+  Plus,
+  Star,
+  MessageCircle
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useCSHealthScore360 } from '@/hooks/useCSHealthScore360';
 import { CSNPSTracker } from '@/components/cs/CSNPSTracker';
 import { CSTouchpointLog } from '@/components/cs/CSTouchpointLog';
 import { CSQBRList } from '@/components/cs/CSQBRList';
 import { CSValueStatementList } from '@/components/cs/CSValueStatementList';
 import { CSNewTouchpointModal } from '@/components/cs/CSNewTouchpointModal';
+import { CSClientSelectorModal } from '@/components/cs/CSClientSelectorModal';
+import { CSNPSCollectModal } from '@/components/cs/CSNPSCollectModal';
 import { useCSSquadFilter } from '@/contexts/CSSquadFilterContext';
 import { CSSquadFilter } from '@/components/cs/CSSquadFilter';
+
+type ActionType = 'touchpoint' | 'nps' | null;
 
 export default function CSActionsPage() {
   const { healthData } = useCSHealthScore360();
   const { selectedSquadId } = useCSSquadFilter();
+  
+  // State for modals
+  const [showClientSelector, setShowClientSelector] = useState(false);
+  const [actionType, setActionType] = useState<ActionType>(null);
   const [selectedClientId, setSelectedClientId] = useState<string>('');
-  const [showNewTouchpoint, setShowNewTouchpoint] = useState(false);
+  const [selectedClientName, setSelectedClientName] = useState<string>('');
+  const [showTouchpointModal, setShowTouchpointModal] = useState(false);
+  const [showNPSModal, setShowNPSModal] = useState(false);
   
   // Filtrar por squad se selecionado
   const filteredHealthData = useMemo(() => {
@@ -40,9 +59,36 @@ export default function CSActionsPage() {
     c.churnRiskLevel === 'low' && c.healthScoreTotal >= 80
   );
 
+  // Handle action from dropdown
+  const handleNewAction = (type: ActionType) => {
+    setActionType(type);
+    setShowClientSelector(true);
+  };
+
+  // Handle client selection
+  const handleClientSelect = (clientId: string, clientName: string) => {
+    setSelectedClientId(clientId);
+    setSelectedClientName(clientName);
+    setShowClientSelector(false);
+    
+    // Open the appropriate modal
+    if (actionType === 'touchpoint') {
+      setShowTouchpointModal(true);
+    } else if (actionType === 'nps') {
+      setShowNPSModal(true);
+    }
+  };
+
+  // Quick register from pending contacts
+  const handleQuickTouchpoint = (clientId: string, clientName: string) => {
+    setSelectedClientId(clientId);
+    setSelectedClientName(clientName);
+    setShowTouchpointModal(true);
+  };
+
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header with action buttons */}
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
@@ -53,7 +99,27 @@ export default function CSActionsPage() {
             Touchpoints, NPS, QBR e Value Statements
           </p>
         </div>
-        <CSSquadFilter />
+        <div className="flex items-center gap-2">
+          <CSSquadFilter />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Nova Ação
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleNewAction('touchpoint')}>
+                <MessageCircle className="h-4 w-4 mr-2" />
+                Novo Touchpoint
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleNewAction('nps')}>
+                <Star className="h-4 w-4 mr-2" />
+                Coletar NPS
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       {/* Quick Actions */}
@@ -81,10 +147,7 @@ export default function CSActionsPage() {
                   <Button 
                     size="sm" 
                     variant="outline"
-                    onClick={() => {
-                      setSelectedClientId(client.clientId);
-                      setShowNewTouchpoint(true);
-                    }}
+                    onClick={() => handleQuickTouchpoint(client.clientId, client.clientName)}
                   >
                     <Phone className="h-3 w-3 mr-1" />
                     Registrar
@@ -145,15 +208,33 @@ export default function CSActionsPage() {
         <CSValueStatementList />
       </div>
 
-      {/* New Touchpoint Modal */}
-      {selectedClientId && (
-        <CSNewTouchpointModal
-          open={showNewTouchpoint}
-          onOpenChange={setShowNewTouchpoint}
-          clientId={selectedClientId}
-          clientName={selectedClient?.clientName}
-        />
-      )}
+      {/* Client Selector Modal */}
+      <CSClientSelectorModal
+        open={showClientSelector}
+        onOpenChange={setShowClientSelector}
+        onSelect={handleClientSelect}
+        title={actionType === 'touchpoint' ? 'Selecionar Cliente para Touchpoint' : 'Selecionar Cliente para NPS'}
+        description={actionType === 'touchpoint' 
+          ? 'Escolha o cliente para registrar um novo touchpoint' 
+          : 'Escolha o cliente para coletar o NPS'
+        }
+      />
+
+      {/* Touchpoint Modal */}
+      <CSNewTouchpointModal
+        open={showTouchpointModal}
+        onOpenChange={setShowTouchpointModal}
+        clientId={selectedClientId}
+        clientName={selectedClientName}
+      />
+
+      {/* NPS Collection Modal */}
+      <CSNPSCollectModal
+        open={showNPSModal}
+        onOpenChange={setShowNPSModal}
+        clientId={selectedClientId}
+        clientName={selectedClientName}
+      />
     </div>
   );
 }

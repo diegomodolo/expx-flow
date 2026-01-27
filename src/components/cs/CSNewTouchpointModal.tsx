@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -13,6 +13,7 @@ interface CSNewTouchpointModalProps {
   onOpenChange: (open: boolean) => void;
   clientId: string;
   clientName?: string;
+  preselectedType?: string;
 }
 
 const touchpointTypes = [
@@ -23,12 +24,19 @@ const touchpointTypes = [
   { value: 'whatsapp', label: 'WhatsApp', icon: MessageCircle },
 ];
 
-export function CSNewTouchpointModal({ open, onOpenChange, clientId, clientName }: CSNewTouchpointModalProps) {
+export function CSNewTouchpointModal({ open, onOpenChange, clientId, clientName, preselectedType }: CSNewTouchpointModalProps) {
   const { createTouchpoint } = useClientTouchpoints();
-  const [type, setType] = useState<string>('call');
+  const [type, setType] = useState<string>(preselectedType || 'call');
   const [summary, setSummary] = useState('');
   const [nextAction, setNextAction] = useState('');
   const [nextActionDate, setNextActionDate] = useState('');
+
+  // Update type when preselectedType changes
+  useEffect(() => {
+    if (preselectedType) {
+      setType(preselectedType);
+    }
+  }, [preselectedType]);
 
   const handleSubmit = () => {
     if (!summary.trim()) return;

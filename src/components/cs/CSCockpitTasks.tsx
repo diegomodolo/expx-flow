@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -19,6 +19,8 @@ import {
 import { DailyTask } from '@/hooks/useCSCockpitData';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { CSNewTouchpointModal } from './CSNewTouchpointModal';
+import { toast } from 'sonner';
 
 interface CSCockpitTasksProps {
   tasks: DailyTask[];
@@ -44,14 +46,38 @@ const dueTypeConfig = {
 export function CSCockpitTasks({ tasks, progress, isLoading, onTaskComplete }: CSCockpitTasksProps) {
   const navigate = useNavigate();
   const progressPercent = progress.total > 0 ? Math.round((progress.completed / progress.total) * 100) : 0;
+  
+  const [showTouchpoint, setShowTouchpoint] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<DailyTask | null>(null);
+  const [preselectedType, setPreselectedType] = useState<string>('whatsapp');
 
   const handleAction = (task: DailyTask) => {
     switch (task.primaryAction.action) {
       case 'call':
-        navigate(`/clientes/${task.clientId}/cs`);
+        if (task.clientPhone) {
+          window.open(`tel:+${task.clientPhone}`, '_blank');
+          setTimeout(() => {
+            setSelectedTask(task);
+            setPreselectedType('call');
+            setShowTouchpoint(true);
+          }, 2000);
+        } else {
+          toast.error('Telefone não cadastrado');
+          navigate(`/clientes/${task.clientId}/cs`);
+        }
         break;
       case 'whatsapp':
-        window.open('https://wa.me/', '_blank');
+        if (task.clientPhone) {
+          window.open(`https://wa.me/${task.clientPhone}`, '_blank');
+          setTimeout(() => {
+            setSelectedTask(task);
+            setPreselectedType('whatsapp');
+            setShowTouchpoint(true);
+          }, 2000);
+        } else {
+          toast.error('Telefone não cadastrado');
+          navigate(`/clientes/${task.clientId}/cs`);
+        }
         break;
       case 'send_nps':
         navigate(`/clientes/${task.clientId}/cs`);
@@ -61,6 +87,13 @@ export function CSCockpitTasks({ tasks, progress, isLoading, onTaskComplete }: C
         break;
       default:
         navigate(`/clientes/${task.clientId}/cs`);
+    }
+  };
+
+  const handleTaskCheck = (taskId: string, completed: boolean) => {
+    if (!completed && onTaskComplete) {
+      onTaskComplete(taskId);
+      toast.success('Tarefa concluída! 🎉');
     }
   };
 
@@ -83,98 +116,109 @@ export function CSCockpitTasks({ tasks, progress, isLoading, onTaskComplete }: C
   }
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center justify-between">
-          <span className="flex items-center gap-2">
-            <ClipboardList className="h-5 w-5 text-primary" />
-            Tarefas do Dia
-          </span>
-          <Badge variant="outline" className="rounded-full">
-            {progress.completed}/{progress.total}
-          </Badge>
-        </CardTitle>
+    <>
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center justify-between">
+            <span className="flex items-center gap-2">
+              <ClipboardList className="h-5 w-5 text-primary" />
+              Tarefas do Dia
+            </span>
+            <Badge variant="outline" className="rounded-full">
+              {progress.completed}/{progress.total}
+            </Badge>
+          </CardTitle>
+          
+          {/* Progress Bar */}
+          <div className="space-y-1 pt-2">
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>Progresso</span>
+              <span>{progressPercent}%</span>
+            </div>
+            <Progress value={progressPercent} className="h-2" />
+          </div>
+        </CardHeader>
         
-        {/* Progress Bar */}
-        <div className="space-y-1 pt-2">
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>Progresso</span>
-            <span>{progressPercent}%</span>
-          </div>
-          <Progress value={progressPercent} className="h-2" />
-        </div>
-      </CardHeader>
-      
-      <CardContent className="space-y-2">
-        {tasks.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            <ClipboardList className="h-10 w-10 mx-auto mb-2 opacity-20" />
-            <p className="text-sm">Nenhuma tarefa pendente! 🎉</p>
-          </div>
-        ) : (
-          tasks.map((task) => {
-            const typeConfig = taskTypeConfig[task.type];
-            const Icon = typeConfig.icon;
-            const dueConfig = dueTypeConfig[task.dueType];
-            
-            return (
-              <div
-                key={task.id}
-                className={cn(
-                  "p-3 rounded-lg border bg-card transition-all hover:shadow-sm",
-                  task.completed && "opacity-60"
-                )}
-              >
-                <div className="flex items-start gap-3">
-                  <Checkbox
-                    checked={task.completed}
-                    onCheckedChange={() => onTaskComplete?.(task.id)}
-                    className="mt-1"
-                  />
-                  
-                  <Avatar className="h-8 w-8 border">
-                    <AvatarImage src={task.clientAvatar || undefined} />
-                    <AvatarFallback className="text-xs">
-                      {task.clientName.charAt(0)}
-                    </AvatarFallback>
-                  </Avatar>
-                  
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <Icon className={cn("h-3.5 w-3.5 flex-shrink-0", typeConfig.color)} />
-                      <span className={cn(
-                        "font-medium text-sm truncate",
-                        task.completed && "line-through"
-                      )}>
-                        {task.title}
-                      </span>
-                      <Badge variant="outline" className={cn("text-xs", dueConfig.color)}>
-                        {task.dueType === 'overdue' && <AlertCircle className="h-3 w-3 mr-1" />}
-                        {task.dueType === 'today' && <Clock className="h-3 w-3 mr-1" />}
-                        {task.dueType === 'upcoming' && <Calendar className="h-3 w-3 mr-1" />}
-                        {dueConfig.label}
-                      </Badge>
+        <CardContent className="space-y-2">
+          {tasks.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <ClipboardList className="h-10 w-10 mx-auto mb-2 opacity-20" />
+              <p className="text-sm">Nenhuma tarefa pendente! 🎉</p>
+            </div>
+          ) : (
+            tasks.map((task) => {
+              const typeConfig = taskTypeConfig[task.type];
+              const Icon = typeConfig.icon;
+              const dueConfig = dueTypeConfig[task.dueType];
+              
+              return (
+                <div
+                  key={task.id}
+                  className={cn(
+                    "p-3 rounded-lg border bg-card transition-all hover:shadow-sm",
+                    task.completed && "opacity-60"
+                  )}
+                >
+                  <div className="flex items-start gap-3">
+                    <Checkbox
+                      checked={task.completed}
+                      onCheckedChange={() => handleTaskCheck(task.id, task.completed)}
+                      className="mt-1"
+                    />
+                    
+                    <Avatar className="h-8 w-8 border">
+                      <AvatarImage src={task.clientAvatar || undefined} />
+                      <AvatarFallback className="text-xs">
+                        {task.clientName.charAt(0)}
+                      </AvatarFallback>
+                    </Avatar>
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <Icon className={cn("h-3.5 w-3.5 flex-shrink-0", typeConfig.color)} />
+                        <span className={cn(
+                          "font-medium text-sm truncate",
+                          task.completed && "line-through"
+                        )}>
+                          {task.title}
+                        </span>
+                        <Badge variant="outline" className={cn("text-xs", dueConfig.color)}>
+                          {task.dueType === 'overdue' && <AlertCircle className="h-3 w-3 mr-1" />}
+                          {task.dueType === 'today' && <Clock className="h-3 w-3 mr-1" />}
+                          {task.dueType === 'upcoming' && <Calendar className="h-3 w-3 mr-1" />}
+                          {dueConfig.label}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {task.clientName} • {task.subtitle}
+                      </p>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      {task.clientName} • {task.subtitle}
-                    </p>
+                    
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs flex-shrink-0"
+                      onClick={() => handleAction(task)}
+                      disabled={task.completed}
+                    >
+                      {task.primaryAction.label}
+                    </Button>
                   </div>
-                  
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-7 text-xs flex-shrink-0"
-                    onClick={() => handleAction(task)}
-                    disabled={task.completed}
-                  >
-                    {task.primaryAction.label}
-                  </Button>
                 </div>
-              </div>
-            );
-          })
-        )}
-      </CardContent>
-    </Card>
+              );
+            })
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Touchpoint Modal */}
+      <CSNewTouchpointModal
+        open={showTouchpoint}
+        onOpenChange={setShowTouchpoint}
+        clientId={selectedTask?.clientId || ''}
+        clientName={selectedTask?.clientName}
+        preselectedType={preselectedType}
+      />
+    </>
   );
 }

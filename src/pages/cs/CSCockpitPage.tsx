@@ -21,7 +21,7 @@ function getGreeting(): { text: string; icon: React.ElementType } {
 export default function CSCockpitPage() {
   const { user } = useAuth();
   const { selectedSquadId } = useCSSquadFilter();
-  const { cockpitData, isLoading } = useCSCockpitData(selectedSquadId);
+  const { cockpitData, isLoading, markTaskComplete } = useCSCockpitData(selectedSquadId);
   
   const greeting = getGreeting();
   const GreetingIcon = greeting.icon;
@@ -119,7 +119,8 @@ export default function CSCockpitPage() {
         <CSCockpitTasks 
           tasks={cockpitData.tasks} 
           progress={cockpitData.progress}
-          isLoading={isLoading} 
+          isLoading={isLoading}
+          onTaskComplete={markTaskComplete}
         />
         <CSCockpitOpportunities opportunities={cockpitData.opportunities} isLoading={isLoading} />
       </div>

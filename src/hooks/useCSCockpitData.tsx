@@ -1,8 +1,11 @@
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useCompany } from '@/contexts/CompanyContext';
 import { format, subDays, differenceInDays } from 'date-fns';
+
+// Helper to get today's completed tasks key
+const getCompletedTasksKey = () => `cs-completed-tasks-${new Date().toISOString().split('T')[0]}`;
 
 // Types
 export interface FireAlert {
@@ -10,6 +13,7 @@ export interface FireAlert {
   clientId: string;
   clientName: string;
   clientAvatar: string | null;
+  clientPhone: string | null;
   type: 'nps_detractor' | 'leads_drop' | 'campaign_paused' | 'cpa_exploding' | 'critical_risk';
   severity: 'critical' | 'high';
   message: string;
@@ -22,6 +26,7 @@ export interface DailyTask {
   clientId: string;
   clientName: string;
   clientAvatar: string | null;
+  clientPhone: string | null;
   type: 'onboarding' | 'qbr' | 'touchpoint' | 'nps_collect' | 'celebrate';
   title: string;
   subtitle: string;
@@ -35,6 +40,7 @@ export interface Opportunity {
   clientId: string;
   clientName: string;
   clientAvatar: string | null;
+  clientPhone: string | null;
   type: 'upsell_budget' | 'upsell_roas' | 'victory' | 'renewal';
   title: string;
   description: string;
@@ -106,6 +112,27 @@ export function useCSCockpitData(squadId?: string | null) {
         .in('client_id', clientIds)
         .order('period_end', { ascending: false });
 
+      // Fetch WhatsApp contacts for phone numbers
+      const { data: contacts } = await supabase
+        .from('whatsapp_client_contacts')
+        .select('client_id, phone')
+        .in('client_id', clientIds)
+        .eq('is_active', true);
+
+      // Map phones by client_id (use first active contact)
+      const phonesByClient = (contacts || []).reduce((acc: Record<string, string>, c: any) => {
+        if (!acc[c.client_id] && c.phone) {
+          // Clean phone number: remove non-digits
+          const cleanPhone = c.phone.replace(/\D/g, '');
+          acc[c.client_id] = cleanPhone;
+        }
+        return acc;
+      }, {} as Record<string, string>);
+
+      // Get completed tasks from localStorage
+      const completedTasksKey = getCompletedTasksKey();
+      const completedTasks: string[] = JSON.parse(localStorage.getItem(completedTasksKey) || '[]');
+
       const fires: FireAlert[] = [];
       const tasks: DailyTask[] = [];
       const opportunities: Opportunity[] = [];
@@ -120,6 +147,8 @@ export function useCSCockpitData(squadId?: string | null) {
 
         // === FIRES (Alertas Críticos) ===
 
+        const clientPhone = phonesByClient[client.id] || null;
+
         // 1. NPS Detrator (score <= 6 nos últimos 3 dias)
         if (healthConfig?.nps_score !== null && healthConfig.nps_score <= 6) {
           const collectedAt = healthConfig.nps_collected_at ? new Date(healthConfig.nps_collected_at) : null;
@@ -131,6 +160,7 @@ export function useCSCockpitData(squadId?: string | null) {
               clientId: client.id,
               clientName: client.name,
               clientAvatar: client.avatar,
+              clientPhone,
               type: 'nps_detractor',
               severity: healthConfig.nps_score <= 4 ? 'critical' : 'high',
               message: `NPS ${healthConfig.nps_score} registrado`,
@@ -150,6 +180,7 @@ export function useCSCockpitData(squadId?: string | null) {
             clientId: client.id,
             clientName: client.name,
             clientAvatar: client.avatar,
+            clientPhone,
             type: 'critical_risk',
             severity: 'critical',
             message: 'Risco de churn crítico detectado',
@@ -169,6 +200,7 @@ export function useCSCockpitData(squadId?: string | null) {
             clientId: client.id,
             clientName: client.name,
             clientAvatar: client.avatar,
+            clientPhone,
             type: 'campaign_paused',
             severity: 'high',
             message: `${pausedCampaigns.length} campanha(s) pausada(s)`,
@@ -192,6 +224,7 @@ export function useCSCockpitData(squadId?: string | null) {
               clientId: client.id,
               clientName: client.name,
               clientAvatar: client.avatar,
+              clientPhone,
               type: 'cpa_exploding',
               severity: 'high',
               message: `CPA ${Math.round(avgCPA / healthConfig.target_cpl * 100)}% acima da meta`,
@@ -210,17 +243,19 @@ export function useCSCockpitData(squadId?: string | null) {
         if (onboardingMilestones.length > 0 || healthConfig?.onboarding_status === 'in_progress') {
           const totalOnboarding = 5; // Assumindo 5 etapas de onboarding
           const completedOnboarding = totalOnboarding - onboardingMilestones.length;
+          const taskId = `onboarding-${client.id}`;
           
           tasks.push({
-            id: `onboarding-${client.id}`,
+            id: taskId,
             clientId: client.id,
             clientName: client.name,
             clientAvatar: client.avatar,
+            clientPhone,
             type: 'onboarding',
             title: 'Call de Onboarding',
             subtitle: `Etapa ${completedOnboarding + 1}/${totalOnboarding}`,
             dueType: 'today',
-            completed: false,
+            completed: completedTasks.includes(taskId),
             primaryAction: { label: 'Fazer Call', action: 'call' },
           });
         }
@@ -232,16 +267,18 @@ export function useCSCockpitData(squadId?: string | null) {
         const daysSinceContact = lastContact ? differenceInDays(today, lastContact) : 999;
         
         if (daysSinceContact > 10) {
+          const taskId = `touchpoint-${client.id}`;
           tasks.push({
-            id: `touchpoint-${client.id}`,
+            id: taskId,
             clientId: client.id,
             clientName: client.name,
             clientAvatar: client.avatar,
+            clientPhone,
             type: 'touchpoint',
             title: 'Registrar Touchpoint',
             subtitle: lastContact ? `${daysSinceContact} dias sem contato` : 'Nunca contatado',
             dueType: daysSinceContact > 14 ? 'overdue' : 'upcoming',
-            completed: false,
+            completed: completedTasks.includes(taskId),
             primaryAction: { label: 'Mandar Oi', action: 'whatsapp' },
           });
         }
@@ -253,16 +290,18 @@ export function useCSCockpitData(squadId?: string | null) {
         const daysSinceNPS = npsCollectedAt ? differenceInDays(today, npsCollectedAt) : 999;
         
         if (daysSinceNPS > 30) {
+          const taskId = `nps-collect-${client.id}`;
           tasks.push({
-            id: `nps-collect-${client.id}`,
+            id: taskId,
             clientId: client.id,
             clientName: client.name,
             clientAvatar: client.avatar,
+            clientPhone,
             type: 'nps_collect',
             title: 'Coletar NPS',
             subtitle: npsCollectedAt ? `Último: ${daysSinceNPS} dias atrás` : 'Nunca coletado',
             dueType: daysSinceNPS > 45 ? 'overdue' : 'upcoming',
-            completed: false,
+            completed: completedTasks.includes(taskId),
             primaryAction: { label: 'Enviar Pesquisa', action: 'send_nps' },
           });
         }
@@ -273,16 +312,18 @@ export function useCSCockpitData(squadId?: string | null) {
         const daysSinceQBR = lastQBRDate ? differenceInDays(today, lastQBRDate) : 999;
         
         if (daysSinceQBR > 90) {
+          const taskId = `qbr-${client.id}`;
           tasks.push({
-            id: `qbr-${client.id}`,
+            id: taskId,
             clientId: client.id,
             clientName: client.name,
             clientAvatar: client.avatar,
+            clientPhone,
             type: 'qbr',
             title: 'Enviar QBR',
             subtitle: lastQBRDate ? `Último há ${daysSinceQBR} dias` : 'Nunca enviado',
             dueType: daysSinceQBR > 120 ? 'overdue' : 'upcoming',
-            completed: false,
+            completed: completedTasks.includes(taskId),
             primaryAction: { label: 'Gerar QBR', action: 'generate_qbr' },
           });
         }
@@ -302,6 +343,7 @@ export function useCSCockpitData(squadId?: string | null) {
             clientId: client.id,
             clientName: client.name,
             clientAvatar: client.avatar,
+            clientPhone,
             type: 'upsell_roas',
             title: 'Expandir Investimento',
             description: `ROAS ${Math.round(currentROAS / healthConfig.target_roas * 100)}% acima da meta`,
@@ -316,6 +358,7 @@ export function useCSCockpitData(squadId?: string | null) {
             clientId: client.id,
             clientName: client.name,
             clientAvatar: client.avatar,
+            clientPhone,
             type: 'victory',
             title: 'Cliente em Excelência!',
             description: 'Resultados acima da expectativa',
@@ -349,10 +392,22 @@ export function useCSCockpitData(squadId?: string | null) {
     staleTime: 1000 * 60 * 2, // 2 minutes
   });
 
+  // Function to mark task as completed
+  const markTaskComplete = useCallback((taskId: string) => {
+    const key = getCompletedTasksKey();
+    const current: string[] = JSON.parse(localStorage.getItem(key) || '[]');
+    if (!current.includes(taskId)) {
+      current.push(taskId);
+      localStorage.setItem(key, JSON.stringify(current));
+    }
+    refetch();
+  }, [refetch]);
+
   return {
     cockpitData: data || { fires: [], tasks: [], opportunities: [], progress: { completed: 0, total: 0 } },
     isLoading,
     error,
     refetch,
+    markTaskComplete,
   };
 }
