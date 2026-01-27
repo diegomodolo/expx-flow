@@ -215,19 +215,21 @@ export function WhatsAppAudioPlayer({
       </Button>
 
       {/* Progress and controls */}
-      <div className="flex-1 flex flex-col gap-1 min-w-0 overflow-hidden">
+      <div className="flex-1 flex flex-col gap-1 min-w-0">
         {/* Slider */}
-        <Slider
-          value={[progress]}
-          max={100}
-          step={0.1}
-          onValueChange={handleSeek}
-          disabled={!audioSrc || duration === 0}
-          className={cn(
-            "cursor-pointer w-full",
-            isOutgoing ? "[&_[role=slider]]:bg-primary-foreground" : ""
-          )}
-        />
+        <div className="px-1 py-1">
+          <Slider
+            value={[progress]}
+            max={100}
+            step={0.1}
+            onValueChange={handleSeek}
+            disabled={!audioSrc || duration === 0}
+            className={cn(
+              "cursor-pointer w-full",
+              isOutgoing ? "[&_[role=slider]]:bg-primary-foreground" : ""
+            )}
+          />
+        </div>
 
         {/* Time and speed */}
         <div className="flex items-center justify-between text-xs gap-2">
