@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCompany } from "@/contexts/CompanyContext";
 import { useWhatsAppConfig } from "@/hooks/useWhatsAppConfig";
@@ -9,7 +9,7 @@ import { useWhatsAppRealtime } from "@/hooks/useWhatsAppRealtime";
 import { useSyncWhatsAppChats } from "@/hooks/useSyncWhatsAppChats";
 import { WhatsAppConversationList } from "./WhatsAppConversationList";
 import { WhatsAppChatWindow } from "./WhatsAppChatWindow";
-import { MessageSquare, Settings, AlertCircle, Phone, CheckCircle2, XCircle, RefreshCw } from "lucide-react";
+import { MessageSquare, Settings, AlertCircle, Phone, CheckCircle2, XCircle, RefreshCw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 
@@ -47,14 +47,14 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
     }
   }, [availableInstances, selectedInstanceId]);
 
-  // Sincronizar chats quando abrir o drawer ou trocar instância
+  // Sincronizar chats quando abrir o modal ou trocar instância
   useEffect(() => {
     if (isOpen && selectedInstanceId && !hasTriggeredSync.current) {
       hasTriggeredSync.current = true;
       syncChats(selectedInstanceId);
     }
     
-    // Reset flag quando fechar o drawer
+    // Reset flag quando fechar o modal
     if (!isOpen) {
       hasTriggeredSync.current = false;
     }
@@ -91,13 +91,13 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
 
 
   return (
-    <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent side="right" className="w-full sm:max-w-2xl lg:max-w-4xl p-0">
-        <SheetHeader className="px-4 py-3 border-b">
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-[90vw] w-[90vw] h-[90vh] max-h-[90vh] p-0 gap-0 flex flex-col">
+        <DialogHeader className="px-4 py-3 border-b flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <MessageSquare className="h-5 w-5 text-primary" />
-              <SheetTitle>WhatsApp</SheetTitle>
+              <DialogTitle>WhatsApp</DialogTitle>
             </div>
             <div className="flex items-center gap-1">
               {selectedInstanceId && (
@@ -120,10 +120,10 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
               </Button>
             </div>
           </div>
-        </SheetHeader>
+        </DialogHeader>
 
         {!isConnected && !isUazapi ? (
-          <div className="flex flex-col items-center justify-center h-[calc(100vh-80px)] gap-4 p-4">
+          <div className="flex flex-col items-center justify-center flex-1 gap-4 p-4">
             <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
               <AlertCircle className="h-8 w-8 text-muted-foreground" />
             </div>
@@ -138,7 +138,7 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
             </Button>
           </div>
         ) : isUazapi && availableInstances.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-[calc(100vh-80px)] gap-4 p-4">
+          <div className="flex flex-col items-center justify-center flex-1 gap-4 p-4">
             <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
               <Phone className="h-8 w-8 text-muted-foreground" />
             </div>
@@ -153,12 +153,12 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
             </Button>
           </div>
         ) : (
-          <div className="flex flex-col h-[calc(100vh-65px)]">
+          <div className="flex flex-col flex-1 overflow-hidden">
             {/* Instance Selector - Only show for UazapiGO with multiple instances */}
             {isUazapi && availableInstances.length > 0 && (
-              <div className="px-4 py-2 border-b bg-muted/30">
+              <div className="px-4 py-2 border-b bg-muted/30 flex-shrink-0">
                 <Select value={selectedInstanceId || ""} onValueChange={handleInstanceChange}>
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger className="w-full max-w-md">
                     <SelectValue placeholder="Selecione uma instância">
                       {selectedInstance && (
                         <div className="flex items-center gap-2">
@@ -204,7 +204,7 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
 
             <div className="flex flex-1 overflow-hidden">
               {/* Conversation List */}
-              <div className="w-1/3 border-r overflow-hidden flex flex-col">
+              <div className="w-80 min-w-80 border-r overflow-hidden flex flex-col">
                 <WhatsAppConversationList
                   conversations={conversations}
                   isLoading={isLoadingConversations}
@@ -231,7 +231,7 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
             </div>
           </div>
         )}
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 }
