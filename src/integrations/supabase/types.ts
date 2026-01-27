@@ -10716,6 +10716,7 @@ export type Database = {
           contact_name: string | null
           created_at: string | null
           id: string
+          instance_id: string | null
           is_archived: boolean | null
           last_message_at: string | null
           last_message_preview: string | null
@@ -10729,6 +10730,7 @@ export type Database = {
           contact_name?: string | null
           created_at?: string | null
           id?: string
+          instance_id?: string | null
           is_archived?: boolean | null
           last_message_at?: string | null
           last_message_preview?: string | null
@@ -10742,6 +10744,7 @@ export type Database = {
           contact_name?: string | null
           created_at?: string | null
           id?: string
+          instance_id?: string | null
           is_archived?: boolean | null
           last_message_at?: string | null
           last_message_preview?: string | null
@@ -10762,6 +10765,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_conversations_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_instances"
             referencedColumns: ["id"]
           },
         ]
@@ -10832,6 +10842,91 @@ export type Database = {
             columns: ["trigger_id"]
             isOneToOne: false
             referencedRelation: "whatsapp_notification_triggers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_instance_users: {
+        Row: {
+          can_send: boolean | null
+          can_view: boolean | null
+          created_at: string | null
+          id: string
+          instance_id: string
+          is_default: boolean | null
+          user_id: string
+        }
+        Insert: {
+          can_send?: boolean | null
+          can_view?: boolean | null
+          created_at?: string | null
+          id?: string
+          instance_id: string
+          is_default?: boolean | null
+          user_id: string
+        }
+        Update: {
+          can_send?: boolean | null
+          can_view?: boolean | null
+          created_at?: string | null
+          id?: string
+          instance_id?: string
+          is_default?: boolean | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_instance_users_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_instances: {
+        Row: {
+          company_id: string
+          connected_phone: string | null
+          created_at: string | null
+          id: string
+          instance_name: string
+          is_active: boolean | null
+          is_connected: boolean | null
+          last_connection_test: string | null
+          session_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          company_id: string
+          connected_phone?: string | null
+          created_at?: string | null
+          id?: string
+          instance_name: string
+          is_active?: boolean | null
+          is_connected?: boolean | null
+          last_connection_test?: string | null
+          session_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          company_id?: string
+          connected_phone?: string | null
+          created_at?: string | null
+          id?: string
+          instance_name?: string
+          is_active?: boolean | null
+          is_connected?: boolean | null
+          last_connection_test?: string | null
+          session_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_instances_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]
@@ -11066,6 +11161,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          instance_id: string | null
           is_active: boolean
           trigger_name: string
           trigger_type: string
@@ -11077,6 +11173,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          instance_id?: string | null
           is_active?: boolean
           trigger_name: string
           trigger_type: string
@@ -11088,6 +11185,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          instance_id?: string | null
           is_active?: boolean
           trigger_name?: string
           trigger_type?: string
@@ -11099,6 +11197,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_notification_triggers_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_instances"
             referencedColumns: ["id"]
           },
         ]

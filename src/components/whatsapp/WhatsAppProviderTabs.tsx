@@ -19,7 +19,7 @@ interface WhatsAppProviderTabsProps {
   companyId: string | undefined;
   onSaveZapi: (data: { instance_id: string; token: string; client_token?: string }) => void;
   onTestZapi: (data: { instance_id: string; token: string; client_token?: string }) => void;
-  onSaveUazapi: (data: { endpoint: string; token: string; session: string }) => void;
+  onSaveUazapi: (data: { endpoint: string; token: string }) => void;
   onTestUazapi: (data: { endpoint: string; token: string; session: string }) => void;
   isSaving: boolean;
   isTesting: boolean;
@@ -59,16 +59,10 @@ export function WhatsAppProviderTabs({
           config={{
             uazapi_endpoint: config?.uazapi_endpoint || null,
             uazapi_token: config?.uazapi_token || null,
-            uazapi_session: config?.uazapi_session || null,
-            is_connected: provider === "uazapi" ? config?.is_connected || false : false,
-            connected_phone: provider === "uazapi" ? config?.connected_phone || null : null,
-            last_connection_test: provider === "uazapi" ? config?.last_connection_test || null : null,
           }}
           companyId={companyId}
           onSave={onSaveUazapi}
-          onTestConnection={onTestUazapi}
           isSaving={isSaving}
-          isTesting={isTesting}
         />
       </TabsContent>
     </Tabs>

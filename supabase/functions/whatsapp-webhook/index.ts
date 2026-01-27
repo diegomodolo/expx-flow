@@ -86,18 +86,33 @@ serve(async (req) => {
 
     console.log("[whatsapp-webhook] Processing message:", { phone, direction, messageType, contactName });
 
-    // Find company by session (UazapiGO) or instance_id (Z-API)
+    // Find company and instance by session (UazapiGO) or instance_id (Z-API)
     let companyId: string | null = null;
+    let instanceId: string | null = null;
 
     if (isUazapi && session) {
-      const { data: config } = await supabase
-        .from("whatsapp_configs")
-        .select("company_id")
-        .eq("uazapi_session", session)
-        .eq("provider", "uazapi")
+      // First try to find by whatsapp_instances table
+      const { data: instance } = await supabase
+        .from("whatsapp_instances")
+        .select("id, company_id")
+        .eq("session_id", session)
+        .eq("is_active", true)
         .single();
       
-      companyId = config?.company_id || null;
+      if (instance) {
+        companyId = instance.company_id;
+        instanceId = instance.id;
+      } else {
+        // Fallback to whatsapp_configs (legacy)
+        const { data: config } = await supabase
+          .from("whatsapp_configs")
+          .select("company_id")
+          .eq("uazapi_session", session)
+          .eq("provider", "uazapi")
+          .single();
+        
+        companyId = config?.company_id || null;
+      }
     } else if (isZapi && payload.instanceId) {
       const { data: config } = await supabase
         .from("whatsapp_configs")
@@ -117,13 +132,34 @@ serve(async (req) => {
       );
     }
 
-    // Find or create conversation
-    const { data: existingConversation } = await supabase
-      .from("whatsapp_conversations")
-      .select("id")
-      .eq("company_id", companyId)
-      .eq("phone", phone)
-      .single();
+    console.log("[whatsapp-webhook] Found company:", companyId, "instance:", instanceId);
+
+    // Find or create conversation (considering instance_id)
+    let existingConversation;
+    
+    if (instanceId) {
+      // Look for conversation with this specific instance
+      const { data } = await supabase
+        .from("whatsapp_conversations")
+        .select("id, unread_count")
+        .eq("company_id", companyId)
+        .eq("phone", phone)
+        .eq("instance_id", instanceId)
+        .single();
+      existingConversation = data;
+    }
+    
+    // If not found by instance, try by phone only (for backward compatibility)
+    if (!existingConversation) {
+      const { data } = await supabase
+        .from("whatsapp_conversations")
+        .select("id, unread_count")
+        .eq("company_id", companyId)
+        .eq("phone", phone)
+        .is("instance_id", null)
+        .single();
+      existingConversation = data;
+    }
 
     let conversationId: string;
 
@@ -139,22 +175,43 @@ serve(async (req) => {
       if (contactName && contactName !== phone) {
         updateData.contact_name = contactName;
       }
+
+      // Update instance_id if it was null before
+      if (instanceId && !existingConversation.instance_id) {
+        updateData.instance_id = instanceId;
+      }
       
       if (direction === "incoming") {
-        // Increment unread count
-        await supabase.rpc("increment_unread_count", { conv_id: conversationId }).catch(() => {
-          // Fallback if RPC doesn't exist
-          supabase
-            .from("whatsapp_conversations")
-            .update({ unread_count: (existingConversation as any).unread_count + 1 })
-            .eq("id", conversationId);
-        });
+        updateData.unread_count = (existingConversation.unread_count || 0) + 1;
       }
       
       await supabase
         .from("whatsapp_conversations")
         .update(updateData)
         .eq("id", conversationId);
+    } else {
+      // Create new conversation with instance_id
+      const { data: newConversation, error: convError } = await supabase
+        .from("whatsapp_conversations")
+        .insert({
+          company_id: companyId,
+          instance_id: instanceId,
+          phone,
+          contact_name: contactName,
+          last_message_at: new Date().toISOString(),
+          last_message_preview: content.substring(0, 100),
+          unread_count: direction === "incoming" ? 1 : 0,
+        })
+        .select("id")
+        .single();
+
+      if (convError) {
+        console.error("[whatsapp-webhook] Error creating conversation:", convError);
+        throw convError;
+      }
+      
+      conversationId = newConversation.id;
+    }
     } else {
       // Create new conversation
       const { data: newConversation, error: convError } = await supabase
