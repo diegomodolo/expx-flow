@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import { toast } from "sonner";
+import { WhatsAppAudioPlayer } from "./WhatsAppAudioPlayer";
 
 interface WhatsAppMessageBubbleProps {
   message: WhatsAppMessage;
@@ -137,9 +138,9 @@ export function WhatsAppMessageBubble({ message, instanceId }: WhatsAppMessageBu
         )}
       >
         {/* Media preview/download area */}
-        {isMediaType && hasMedia && (
+        {isMediaType && (hasMedia || message.external_id) && (
           <div className="mb-2">
-            {message.message_type === "image" ? (
+            {message.message_type === "image" && hasMedia ? (
               <div className="relative">
                 <img 
                   src={message.media_url!} 
@@ -161,6 +162,13 @@ export function WhatsAppMessageBubble({ message, instanceId }: WhatsAppMessageBu
                   )}
                 </Button>
               </div>
+            ) : message.message_type === "audio" ? (
+              <WhatsAppAudioPlayer
+                mediaUrl={message.media_url}
+                messageId={message.external_id}
+                instanceId={instanceId ?? null}
+                isOutgoing={isOutgoing && !isFailed}
+              />
             ) : (
               <Button
                 variant={isOutgoing && !isFailed ? "secondary" : "outline"}
