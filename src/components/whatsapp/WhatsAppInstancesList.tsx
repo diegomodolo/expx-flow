@@ -28,6 +28,8 @@ export function WhatsAppInstancesList({
     deleteInstance,
     testConnection,
     isTesting,
+    configureWebhook,
+    isConfiguringWebhook,
     fetchInstanceUsers,
     assignUser,
     removeUser,
@@ -128,8 +130,10 @@ export function WhatsAppInstancesList({
                   onEdit={handleEditClick}
                   onManageUsers={handleManageUsersClick}
                   onTestConnection={testConnection}
+                  onConfigureWebhook={configureWebhook}
                   onDelete={deleteInstance}
                   isTesting={isTesting}
+                  isConfiguringWebhook={isConfiguringWebhook}
                 />
               ))}
             </div>

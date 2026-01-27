@@ -32,6 +32,7 @@ import {
   CheckCircle2,
   XCircle,
   WifiOff,
+  Webhook,
 } from "lucide-react";
 import { WhatsAppInstance } from "@/hooks/useWhatsAppInstances";
 import { UazapiQRCodeModal } from "./UazapiQRCodeModal";
@@ -43,8 +44,10 @@ interface WhatsAppInstanceCardProps {
   onEdit: (instance: WhatsAppInstance) => void;
   onManageUsers: (instance: WhatsAppInstance) => void;
   onTestConnection: (instanceId: string) => void;
+  onConfigureWebhook: (instanceId: string) => void;
   onDelete: (instanceId: string) => void;
   isTesting: boolean;
+  isConfiguringWebhook: boolean;
 }
 
 export function WhatsAppInstanceCard({
@@ -54,8 +57,10 @@ export function WhatsAppInstanceCard({
   onEdit,
   onManageUsers,
   onTestConnection,
+  onConfigureWebhook,
   onDelete,
   isTesting,
+  isConfiguringWebhook,
 }: WhatsAppInstanceCardProps) {
   const [showQRModal, setShowQRModal] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -155,11 +160,26 @@ export function WhatsAppInstanceCard({
                 size="sm"
                 onClick={() => onTestConnection(instance.id)}
                 disabled={isTesting}
+                title="Testar conexão"
               >
                 {isTesting ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <Wifi className="h-4 w-4" />
+                )}
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onConfigureWebhook(instance.id)}
+                disabled={isConfiguringWebhook}
+                title="Configurar Webhook"
+              >
+                {isConfiguringWebhook ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Webhook className="h-4 w-4" />
                 )}
               </Button>
 

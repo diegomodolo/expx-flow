@@ -9,7 +9,7 @@ import { useWhatsAppRealtime } from "@/hooks/useWhatsAppRealtime";
 import { useSyncWhatsAppChats } from "@/hooks/useSyncWhatsAppChats";
 import { WhatsAppConversationList } from "./WhatsAppConversationList";
 import { WhatsAppChatWindow } from "./WhatsAppChatWindow";
-import { MessageSquare, Settings, AlertCircle, Phone, CheckCircle2, XCircle, RefreshCw, Webhook } from "lucide-react";
+import { MessageSquare, Settings, AlertCircle, Phone, CheckCircle2, XCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 
@@ -27,8 +27,8 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const hasTriggeredSync = useRef(false);
 
-  // Hook para sincronização de chats e configuração de webhook
-  const { syncChats, isSyncing, configureWebhook, isConfiguringWebhook } = useSyncWhatsAppChats(activeCompany?.company_id);
+  // Hook para sincronização de chats
+  const { syncChats, isSyncing } = useSyncWhatsAppChats(activeCompany?.company_id);
 
   // Determine which instances to show (user's assigned instances, or all if admin)
   const availableInstances = userInstances.length > 0 ? userInstances : instances;
@@ -102,15 +102,6 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
             <div className="flex items-center gap-1">
               {selectedInstanceId && (
                 <>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={() => configureWebhook(selectedInstanceId)}
-                    disabled={isConfiguringWebhook}
-                    title="Configurar Webhook"
-                  >
-                    <Webhook className={`h-4 w-4 ${isConfiguringWebhook ? "animate-pulse" : ""}`} />
-                  </Button>
                   <Button 
                     variant="ghost" 
                     size="icon" 
