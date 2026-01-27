@@ -91,210 +91,176 @@ serve(async (req) => {
     const token = instance.uazapi_token;
 
     console.log(`[fetch-whatsapp-messages] Buscando mensagens de: ${endpoint}`);
-    console.log(`[fetch-whatsapp-messages] Phone: ${targetPhone}`);
+    console.log(`[fetch-whatsapp-messages] Phone: ${targetPhone}, Token: ${token?.substring(0, 8)}...`);
 
     // 4. Buscar mensagens da API UazapiGO
     // Formatar número para o formato correto
     const formattedPhone = targetPhone.replace(/\D/g, "");
     const chatId = `${formattedPhone}@s.whatsapp.net`;
-    const instanceName = instance.instance_name || instance.uazapi_instance_id || "";
 
     let messages: any[] = [];
     const attemptLogs: string[] = [];
 
-    console.log(`[fetch-whatsapp-messages] Instance name: ${instanceName}, chatId: ${chatId}`);
+    console.log(`[fetch-whatsapp-messages] chatId: ${chatId}`);
 
-    // Endpoints para tentar (UazapiGO v2 / Evolution API style)
-    const endpointsToTry = [
-      // POST /chat/findMessages/{instance} - Formato Evolution API / UazapiGO v2
-      { 
-        url: `${endpoint}/chat/findMessages/${instanceName}`, 
-        method: "POST", 
-        body: { 
-          where: { 
-            key: { 
-              remoteJid: chatId 
-            } 
-          },
-          limit: 100
-        } 
-      },
-      // POST /message/find - Formato UazapiGO conforme documentação
-      { 
-        url: `${endpoint}/message/find`, 
-        method: "POST", 
-        body: { 
-          where: { 
-            key: { 
-              remoteJid: chatId 
-            } 
-          },
-          limit: 100
-        } 
-      },
-      // POST /chat/findMessages (sem instance no path)
-      { 
-        url: `${endpoint}/chat/findMessages`, 
-        method: "POST", 
-        body: { 
-          where: { 
-            key: { 
-              remoteJid: chatId 
-            } 
-          },
-          limit: 100
-        } 
-      },
-      // POST /message/findMessages
-      { 
-        url: `${endpoint}/message/findMessages`, 
-        method: "POST", 
-        body: { 
-          where: { 
-            key: { 
-              remoteJid: chatId 
-            } 
-          },
-          limit: 100
-        } 
-      },
-      // Fallback: formato simples
-      { 
-        url: `${endpoint}/chat/findMessages`, 
-        method: "POST", 
-        body: { key: chatId, count: 100 } 
-      },
-    ];
+    // Formato correto da UazapiGO conforme documentação: POST /message/find
+    // Body: { "chatid": "...", "limit": 20, "offset": 0 }
+    const requestBody = {
+      chatid: chatId,
+      limit: 100,
+      offset: 0
+    };
 
-    for (const ep of endpointsToTry) {
-      try {
-        console.log(`[fetch-whatsapp-messages] Tentando: ${ep.method} ${ep.url}`);
-        
-        const fetchOptions: RequestInit = {
-          method: ep.method,
-          headers: {
-            "token": token,
-            "Authorization": `Bearer ${token}`,
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-          },
-        };
-        
-        if (ep.body !== null && ep.method === "POST") {
-          fetchOptions.body = JSON.stringify(ep.body);
-        }
+    console.log(`[fetch-whatsapp-messages] Request body: ${JSON.stringify(requestBody)}`);
 
-        const apiResponse = await fetch(ep.url, fetchOptions);
-        const responseText = await apiResponse.text();
-        
-        console.log(`[fetch-whatsapp-messages] Status: ${apiResponse.status}`);
-        console.log(`[fetch-whatsapp-messages] Response preview: ${responseText.substring(0, 500)}`);
+    try {
+      const apiResponse = await fetch(`${endpoint}/message/find`, {
+        method: "POST",
+        headers: {
+          "token": token,
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      });
 
-        if (apiResponse.ok) {
-          try {
-            const responseData = JSON.parse(responseText);
-            
-            let foundMessages: any[] = [];
-            
-            if (Array.isArray(responseData)) {
-              foundMessages = responseData;
-            } else if (responseData.data && Array.isArray(responseData.data)) {
-              foundMessages = responseData.data;
-            } else if (responseData.messages && Array.isArray(responseData.messages)) {
-              foundMessages = responseData.messages;
-            } else if (responseData.response && Array.isArray(responseData.response)) {
-              foundMessages = responseData.response;
-            } else if (responseData.result && Array.isArray(responseData.result)) {
-              foundMessages = responseData.result;
-            } else if (responseData.rows && Array.isArray(responseData.rows)) {
-              foundMessages = responseData.rows;
-            }
+      const responseText = await apiResponse.text();
+      
+      console.log(`[fetch-whatsapp-messages] Status: ${apiResponse.status}`);
+      console.log(`[fetch-whatsapp-messages] Response preview: ${responseText.substring(0, 1000)}`);
 
-            if (foundMessages.length > 0) {
-              messages = foundMessages;
-              attemptLogs.push(`✅ ${ep.url}: ${messages.length} mensagens encontradas`);
-              break;
-            } else {
-              attemptLogs.push(`⚠️ ${ep.url}: OK mas sem mensagens`);
-            }
-          } catch (parseErr) {
-            attemptLogs.push(`❌ ${ep.url}: Erro ao parsear JSON`);
+      if (apiResponse.ok) {
+        try {
+          const responseData = JSON.parse(responseText);
+          
+          // UazapiGO retorna: { hasMore, limit, messages: [...] }
+          if (responseData.messages && Array.isArray(responseData.messages)) {
+            messages = responseData.messages;
+            attemptLogs.push(`✅ /message/find: ${messages.length} mensagens encontradas`);
+          } else if (Array.isArray(responseData)) {
+            messages = responseData;
+            attemptLogs.push(`✅ /message/find: ${messages.length} mensagens (array direto)`);
+          } else {
+            attemptLogs.push(`⚠️ /message/find: Formato inesperado - ${Object.keys(responseData).join(', ')}`);
+            console.log(`[fetch-whatsapp-messages] Resposta completa:`, JSON.stringify(responseData).substring(0, 2000));
           }
-        } else {
-          attemptLogs.push(`❌ ${ep.url}: ${apiResponse.status}`);
+        } catch (parseErr) {
+          attemptLogs.push(`❌ /message/find: Erro ao parsear JSON`);
+          console.error(`[fetch-whatsapp-messages] Parse error:`, parseErr);
         }
-      } catch (err) {
-        const errorMsg = err instanceof Error ? err.message : String(err);
-        attemptLogs.push(`❌ ${ep.url}: ${errorMsg}`);
-        console.log(`[fetch-whatsapp-messages] Erro em ${ep.url}:`, err);
+      } else {
+        attemptLogs.push(`❌ /message/find: ${apiResponse.status} - ${responseText.substring(0, 200)}`);
       }
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      attemptLogs.push(`❌ /message/find: ${errorMsg}`);
+      console.error(`[fetch-whatsapp-messages] Erro:`, err);
     }
 
     console.log(`[fetch-whatsapp-messages] Tentativas:`, attemptLogs);
     console.log(`[fetch-whatsapp-messages] Total de mensagens encontradas: ${messages.length}`);
 
+    // Log primeira mensagem para debug
+    if (messages.length > 0) {
+      console.log(`[fetch-whatsapp-messages] Primeira mensagem (keys): ${Object.keys(messages[0]).join(', ')}`);
+      console.log(`[fetch-whatsapp-messages] Primeira mensagem: ${JSON.stringify(messages[0]).substring(0, 1500)}`);
+    }
+
     // 5. Processar e salvar mensagens no banco
     let savedCount = 0;
-    const processedMessages: any[] = [];
+    let skippedCount = 0;
+    const errors: string[] = [];
 
     for (const msg of messages) {
       try {
-        // Extrair informações da mensagem - diferentes formatos possíveis
-        const externalId = msg.id || msg.key?.id || msg.messageId || null;
-        const timestamp = msg.messageTimestamp || msg.timestamp || msg.t || msg.key?.timestamp;
+        // Formato UazapiGO:
+        // { 
+        //   "chatid": "5522999534424@s.whatsapp.net",
+        //   "content": { "text": "mensagem aqui" },
+        //   "fromMe": false,
+        //   "id": "xxx",
+        //   "timestamp": 1234567890,
+        //   ...
+        // }
         
-        // Determinar direção
-        const fromMe = msg.key?.fromMe || msg.fromMe || msg.isFromMe || false;
+        // Extrair ID da mensagem
+        const externalId = msg.id || msg.key?.id || msg.messageId || null;
+        
+        // Extrair timestamp
+        let timestamp = msg.timestamp || msg.messageTimestamp || msg.t || null;
+        
+        // Determinar direção - formato UazapiGO usa "fromMe" diretamente
+        const fromMe = msg.fromMe === true || msg.key?.fromMe === true;
         const direction = fromMe ? "outgoing" : "incoming";
         
-        // Extrair conteúdo
+        // Extrair conteúdo - formato UazapiGO: content.text
         let content = "";
         let messageType = "text";
         let mediaUrl = null;
 
-        // Mensagem de texto
-        if (msg.message?.conversation) {
-          content = msg.message.conversation;
-        } else if (msg.message?.extendedTextMessage?.text) {
-          content = msg.message.extendedTextMessage.text;
-        } else if (msg.content) {
-          content = msg.content;
-        } else if (msg.body) {
-          content = msg.body;
-        } else if (msg.text) {
-          content = msg.text;
+        // UazapiGO format: content object with text property
+        if (msg.content) {
+          if (typeof msg.content === "string") {
+            content = msg.content;
+          } else if (msg.content.text) {
+            content = msg.content.text;
+          } else if (msg.content.caption) {
+            content = msg.content.caption;
+          }
+        }
+        
+        // Fallback para outros formatos
+        if (!content) {
+          if (msg.message?.conversation) {
+            content = msg.message.conversation;
+          } else if (msg.message?.extendedTextMessage?.text) {
+            content = msg.message.extendedTextMessage.text;
+          } else if (msg.body) {
+            content = msg.body;
+          } else if (msg.text) {
+            content = msg.text;
+          }
         }
 
-        // Mensagem de mídia
-        if (msg.message?.imageMessage) {
+        // Detectar tipo de mídia
+        if (msg.type) {
+          messageType = msg.type;
+        } else if (msg.message?.imageMessage || msg.content?.JPEGThumbnail) {
           messageType = "image";
-          content = msg.message.imageMessage.caption || "[Imagem]";
-          mediaUrl = msg.message.imageMessage.url || null;
+          if (!content) content = "[Imagem]";
+          mediaUrl = msg.message?.imageMessage?.url || msg.content?.url || null;
         } else if (msg.message?.videoMessage) {
           messageType = "video";
-          content = msg.message.videoMessage.caption || "[Vídeo]";
-          mediaUrl = msg.message.videoMessage.url || null;
+          if (!content) content = "[Vídeo]";
+          mediaUrl = msg.message?.videoMessage?.url || null;
         } else if (msg.message?.audioMessage) {
           messageType = "audio";
-          content = "[Áudio]";
-          mediaUrl = msg.message.audioMessage.url || null;
+          if (!content) content = "[Áudio]";
+          mediaUrl = msg.message?.audioMessage?.url || null;
         } else if (msg.message?.documentMessage) {
           messageType = "document";
-          content = msg.message.documentMessage.fileName || "[Documento]";
-          mediaUrl = msg.message.documentMessage.url || null;
+          if (!content) content = msg.message.documentMessage.fileName || "[Documento]";
+          mediaUrl = msg.message?.documentMessage?.url || null;
         } else if (msg.message?.stickerMessage) {
           messageType = "sticker";
-          content = "[Sticker]";
+          if (!content) content = "[Sticker]";
         }
 
-        // Se não conseguiu extrair conteúdo, pular
-        if (!content) continue;
+        // Se não conseguiu extrair conteúdo, pular mas logar
+        if (!content) {
+          skippedCount++;
+          continue;
+        }
 
         // Calcular timestamp
-        let sentAt = new Date().toISOString();
+        let sentAt: string;
         if (timestamp) {
+          // Timestamp pode vir em segundos ou milissegundos
           const ts = timestamp > 9999999999 ? timestamp : timestamp * 1000;
           sentAt = new Date(ts).toISOString();
+        } else {
+          // Usar data antiga como fallback para não bagunçar ordenação
+          sentAt = "2000-01-01T00:00:00.000Z";
         }
 
         // Status da mensagem
@@ -312,7 +278,7 @@ serve(async (req) => {
           conversation_id,
           company_id,
           direction,
-          content,
+          content: content.substring(0, 5000), // Limitar tamanho
           message_type: messageType,
           media_url: mediaUrl,
           status,
@@ -326,10 +292,13 @@ serve(async (req) => {
             .from("whatsapp_messages")
             .upsert(messageData, {
               onConflict: "external_id",
-              ignoreDuplicates: true,
+              ignoreDuplicates: false, // Atualizar se já existir
             });
 
-          if (!upsertError) {
+          if (upsertError) {
+            errors.push(`Upsert error: ${upsertError.message}`);
+            console.error(`[fetch-whatsapp-messages] Erro upsert:`, upsertError);
+          } else {
             savedCount++;
           }
         } else {
@@ -338,15 +307,22 @@ serve(async (req) => {
             .from("whatsapp_messages")
             .insert(messageData);
 
-          if (!insertError) {
+          if (insertError) {
+            errors.push(`Insert error: ${insertError.message}`);
+          } else {
             savedCount++;
           }
         }
-
-        processedMessages.push(messageData);
       } catch (msgError) {
+        const errMsg = msgError instanceof Error ? msgError.message : String(msgError);
+        errors.push(`Process error: ${errMsg}`);
         console.error(`[fetch-whatsapp-messages] Erro ao processar mensagem:`, msgError);
       }
+    }
+
+    console.log(`[fetch-whatsapp-messages] Salvos: ${savedCount}, Pulados: ${skippedCount}, Erros: ${errors.length}`);
+    if (errors.length > 0) {
+      console.log(`[fetch-whatsapp-messages] Primeiros erros:`, errors.slice(0, 5));
     }
 
     // 6. Retornar mensagens do banco (mais confiável)
@@ -367,6 +343,8 @@ serve(async (req) => {
         success: true,
         fetched: messages.length,
         saved: savedCount,
+        skipped: skippedCount,
+        errors: errors.slice(0, 10),
         messages: dbMessages || [],
         attempts: attemptLogs,
       }),
