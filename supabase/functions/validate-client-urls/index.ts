@@ -38,10 +38,77 @@ function extractVisibleText(html: string): string {
 }
 
 // Check if page content is effectively empty
+// Returns true only for truly empty pages, not SPAs
 function isPageEmpty(html: string): boolean {
+  const lowerHtml = html.toLowerCase()
+  
+  // If page has React/Vue/Angular root elements with JS bundles, it's likely an SPA - NOT empty
+  // These frameworks render content client-side, so the HTML may look empty but isn't
+  const spaIndicators = [
+    'id="root"',
+    'id="app"',
+    'id="__next"',
+    'id="__nuxt"',
+    'ng-app',
+    'data-reactroot',
+    'data-v-',
+    '__NEXT_DATA__',
+    '__NUXT__',
+    'window.__INITIAL_STATE__',
+    'type="module"',
+    'vite',
+    'webpack',
+    'bundle.js',
+    'main.js',
+    'app.js',
+  ]
+  
+  for (const indicator of spaIndicators) {
+    if (lowerHtml.includes(indicator.toLowerCase())) {
+      console.log(`SPA detected via indicator: ${indicator}`)
+      return false // It's an SPA, not empty
+    }
+  }
+  
+  // Check for meaningful content indicators
+  const contentIndicators = [
+    '<main',
+    '<article',
+    '<section',
+    '<header',
+    '<nav',
+    '<h1',
+    '<h2',
+    '<p>',
+    '<img',
+    '<video',
+    '<form',
+  ]
+  
+  let contentElementCount = 0
+  for (const indicator of contentIndicators) {
+    if (lowerHtml.includes(indicator)) {
+      contentElementCount++
+    }
+  }
+  
+  // If page has multiple content elements, it's not empty
+  if (contentElementCount >= 2) {
+    return false
+  }
+  
+  // Extract visible text and check length
   const visibleText = extractVisibleText(html)
+  
   // Consider page empty if visible text is less than 50 characters
-  return visibleText.length < 50
+  // AND there are no content indicators
+  const isEmpty = visibleText.length < 50 && contentElementCount === 0
+  
+  if (isEmpty) {
+    console.log(`Page detected as empty. Visible text length: ${visibleText.length}, Content elements: ${contentElementCount}`)
+  }
+  
+  return isEmpty
 }
 
 async function validateUrl(url: string, urlId: string): Promise<ValidationResult> {
