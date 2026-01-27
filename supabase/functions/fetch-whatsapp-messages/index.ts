@@ -312,14 +312,33 @@ serve(async (req) => {
           sentAt = "2000-01-01T00:00:00.000Z";
         }
 
-        // Status da mensagem
-        let status = "received";
+        // Normalizar message_type para respeitar CHECK constraint (text/image/audio/video/document)
+        const rawType = String(
+          msg.messageType ?? msg.type ?? msg.message?.type ?? "text"
+        ).toLowerCase();
+
+        if (rawType.includes("image")) messageType = "image";
+        else if (rawType.includes("video")) messageType = "video";
+        else if (rawType.includes("audio") || rawType.includes("ptt") || rawType.includes("voice")) messageType = "audio";
+        else if (rawType.includes("document") || rawType.includes("file")) messageType = "document";
+        else messageType = "text";
+
+        // Uazapi costuma retornar fileURL
+        mediaUrl = mediaUrl ?? msg.fileURL ?? null;
+
+        // Status precisa respeitar CHECK constraint (pending/sent/delivered/read/failed)
+        // NOTA: "received" não existe na constraint, usamos "delivered" para incoming
+        let status: "pending" | "sent" | "delivered" | "read" | "failed" = "delivered";
+
         if (direction === "outgoing") {
-          const msgStatus = msg.status || msg.ack;
-          if (msgStatus === 0 || msgStatus === "pending") status = "pending";
-          else if (msgStatus === 1 || msgStatus === "sent" || msgStatus === "SERVER_ACK") status = "sent";
-          else if (msgStatus === 2 || msgStatus === "delivered" || msgStatus === "DELIVERY_ACK") status = "delivered";
-          else if (msgStatus === 3 || msgStatus === 4 || msgStatus === "read" || msgStatus === "READ" || msgStatus === "PLAYED") status = "read";
+          const msgStatus = (msg.status ?? msg.ack ?? "sent");
+          const s = String(msgStatus).toLowerCase();
+
+          if (msgStatus === 0 || s.includes("pending")) status = "pending";
+          else if (msgStatus === 1 || s.includes("sent") || s.includes("server_ack")) status = "sent";
+          else if (msgStatus === 2 || s.includes("delivered") || s.includes("delivery_ack")) status = "delivered";
+          else if (msgStatus === 3 || msgStatus === 4 || s.includes("read") || s.includes("played")) status = "read";
+          else if (s.includes("fail") || s.includes("error")) status = "failed";
           else status = "sent";
         }
 

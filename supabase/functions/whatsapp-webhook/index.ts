@@ -30,7 +30,8 @@ serve(async (req) => {
     let content: string | null = null;
     let contactName: string | null = null;
     let profilePicUrl: string | null = null;
-    let messageType = "text";
+    let messageType: "text" | "image" | "audio" | "video" | "document" = "text";
+    let mediaUrl: string | null = null;
     let externalId: string | null = null;
     let session: string | null = null;
     let instanceToken: string | null = null;
@@ -77,20 +78,71 @@ serve(async (req) => {
         // Extract profile picture URL from chat object
         profilePicUrl = chat.imagePreview || chat.image || null;
         
-        // Get message content
-        content = message.content || 
-                  message.text ||
-                  message.caption ||
-                  (message.messageType && message.messageType !== "Conversation" ? `[${message.messageType}]` : null) ||
-                  null;
+        // Determine message type from messageType/mediaType
+        const rawMsgType = (message.messageType || message.mediaType || "").toLowerCase();
         
-        // Determine message type
-        const msgType = message.messageType?.toLowerCase() || message.mediaType?.toLowerCase() || "";
-        if (msgType.includes("image")) messageType = "image";
-        else if (msgType.includes("audio") || msgType.includes("ptt")) messageType = "audio";
-        else if (msgType.includes("video")) messageType = "video";
-        else if (msgType.includes("document")) messageType = "document";
-        else if (msgType.includes("sticker")) messageType = "sticker";
+        if (rawMsgType.includes("image")) {
+          messageType = "image";
+        } else if (rawMsgType.includes("audio") || rawMsgType.includes("ptt") || rawMsgType.includes("voice")) {
+          messageType = "audio";
+        } else if (rawMsgType.includes("video")) {
+          messageType = "video";
+        } else if (rawMsgType.includes("document") || rawMsgType.includes("file")) {
+          messageType = "document";
+        } else {
+          messageType = "text";
+        }
+        
+        // Extract media URL from content object or fileURL
+        if (message.content && typeof message.content === "object") {
+          mediaUrl = message.content.URL || message.content.url || null;
+        }
+        if (!mediaUrl && message.fileURL) {
+          mediaUrl = message.fileURL;
+        }
+        
+        // Get message content - prioritize actual text content
+        if (message.content) {
+          if (typeof message.content === "string") {
+            content = message.content;
+          } else if (message.content.text) {
+            content = message.content.text;
+          } else if (message.content.caption) {
+            content = message.content.caption;
+          } else if (message.content.fileName) {
+            // For documents, use file name as content
+            content = message.content.fileName;
+          }
+        }
+        
+        // Fallback to text field or body
+        if (!content && message.text) {
+          content = message.text;
+        }
+        
+        // If still no content, create placeholder based on message type
+        if (!content) {
+          switch (messageType) {
+            case "image":
+              content = "[Imagem]";
+              break;
+            case "video":
+              content = "[Vídeo]";
+              break;
+            case "audio":
+              content = "[Áudio]";
+              break;
+            case "document":
+              // Try to get filename from content object
+              const fileName = message.content?.fileName || message.fileName;
+              content = fileName ? `📎 ${fileName}` : "[Documento]";
+              break;
+            default:
+              content = "[Mensagem]";
+          }
+        }
+        
+        console.log("[whatsapp-webhook] Media info:", { messageType, mediaUrl: mediaUrl?.substring(0, 50), content: content?.substring(0, 50) });
       }
     } else if (isZapi) {
       // Z-API webhook format
@@ -101,13 +153,25 @@ serve(async (req) => {
       direction = payload.fromMe ? "outgoing" : "incoming";
       profilePicUrl = payload.profilePicUrl || payload.photo || null;
       
-      if (payload.image) messageType = "image";
-      else if (payload.audio) messageType = "audio";
-      else if (payload.video) messageType = "video";
-      else if (payload.document) messageType = "document";
+      if (payload.image) {
+        messageType = "image";
+        mediaUrl = payload.image.imageUrl || payload.image.url;
+      } else if (payload.audio) {
+        messageType = "audio";
+        mediaUrl = payload.audio.audioUrl || payload.audio.url;
+      } else if (payload.video) {
+        messageType = "video";
+        mediaUrl = payload.video.videoUrl || payload.video.url;
+      } else if (payload.document) {
+        messageType = "document";
+        mediaUrl = payload.document.documentUrl || payload.document.url;
+        if (payload.document.fileName) {
+          content = `📎 ${payload.document.fileName}`;
+        }
+      }
     }
 
-    console.log("[whatsapp-webhook] Extracted data:", { phone, content: content?.substring(0, 50), direction, contactName, profilePicUrl: profilePicUrl?.substring(0, 50) });
+    console.log("[whatsapp-webhook] Extracted data:", { phone, content: content?.substring(0, 50), direction, contactName, messageType, mediaUrl: mediaUrl?.substring(0, 50) });
 
     if (!phone || !content) {
       console.log("[whatsapp-webhook] Ignoring webhook - no phone or content");
@@ -274,7 +338,7 @@ serve(async (req) => {
       conversationId = newConversation.id;
     }
 
-    // Save message
+    // Save message with media_url
     const { error: messageError } = await supabase
       .from("whatsapp_messages")
       .insert({
@@ -283,6 +347,7 @@ serve(async (req) => {
         direction,
         content,
         message_type: messageType,
+        media_url: mediaUrl,
         external_id: externalId,
         status: direction === "outgoing" ? "sent" : "delivered",
         sent_at: new Date().toISOString(),
@@ -293,7 +358,7 @@ serve(async (req) => {
       throw messageError;
     }
 
-    console.log("[whatsapp-webhook] Message saved successfully for conversation:", conversationId);
+    console.log("[whatsapp-webhook] Message saved successfully for conversation:", conversationId, "type:", messageType, "hasMedia:", !!mediaUrl);
 
     return new Response(
       JSON.stringify({ success: true }),
