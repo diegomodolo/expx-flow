@@ -16,7 +16,7 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { conversation_id, company_id, phone, instance_id } = await req.json();
+    const { conversation_id, company_id, phone, instance_id, limit = 100, offset = 0 } = await req.json();
 
     if (!company_id) {
       return new Response(
@@ -107,8 +107,8 @@ serve(async (req) => {
     // Body: { "chatid": "...", "limit": 20, "offset": 0 }
     const requestBody = {
       chatid: chatId,
-      limit: 100,
-      offset: 0
+      limit: limit,
+      offset: offset
     };
 
     console.log(`[fetch-whatsapp-messages] Request body: ${JSON.stringify(requestBody)}`);
@@ -167,12 +167,20 @@ serve(async (req) => {
     }
 
     // 5. Processar e salvar mensagens no banco
+    // IMPORTANTE: Filtrar mensagens apenas para o chatId solicitado
     let savedCount = 0;
     let skippedCount = 0;
     const errors: string[] = [];
 
     for (const msg of messages) {
       try {
+        // Filtrar mensagens para garantir que são do chat correto
+        const msgChatId = msg.chatid || msg.chatId || msg.key?.remoteJid || "";
+        if (msgChatId && msgChatId !== chatId) {
+          skippedCount++;
+          continue;
+        }
+
         // Formato UazapiGO:
         // { 
         //   "chatid": "5522999534424@s.whatsapp.net",
@@ -185,6 +193,12 @@ serve(async (req) => {
         
         // Extrair ID da mensagem
         const externalId = msg.id || msg.key?.id || msg.messageId || null;
+        
+        // Se não tem ID externo válido, pular para evitar duplicados
+        if (!externalId) {
+          skippedCount++;
+          continue;
+        }
         
         // Extrair timestamp
         let timestamp = msg.timestamp || msg.messageTimestamp || msg.t || null;
@@ -222,9 +236,45 @@ serve(async (req) => {
           }
         }
 
-        // Detectar tipo de mídia
+        // Detectar tipo de mídia e definir placeholder se não tiver conteúdo
         if (msg.type) {
           messageType = msg.type;
+          // Placeholder para mídias sem conteúdo textual
+          if (!content) {
+            switch (msg.type.toLowerCase()) {
+              case "image":
+              case "imageMessage":
+                content = "[Imagem]";
+                break;
+              case "video":
+              case "videoMessage":
+                content = "[Vídeo]";
+                break;
+              case "audio":
+              case "audioMessage":
+              case "ptt":
+                content = "[Áudio]";
+                break;
+              case "document":
+              case "documentMessage":
+                content = "[Documento]";
+                break;
+              case "sticker":
+              case "stickerMessage":
+                content = "[Sticker]";
+                break;
+              case "location":
+              case "locationMessage":
+                content = "[Localização]";
+                break;
+              case "contact":
+              case "contactMessage":
+                content = "[Contato]";
+                break;
+              default:
+                content = `[${msg.type}]`;
+            }
+          }
         } else if (msg.message?.imageMessage || msg.content?.JPEGThumbnail) {
           messageType = "image";
           if (!content) content = "[Imagem]";
@@ -246,10 +296,9 @@ serve(async (req) => {
           if (!content) content = "[Sticker]";
         }
 
-        // Se não conseguiu extrair conteúdo, pular mas logar
+        // Se não conseguiu extrair conteúdo mesmo com placeholders, usar fallback
         if (!content) {
-          skippedCount++;
-          continue;
+          content = "[Mensagem]";
         }
 
         // Calcular timestamp
@@ -286,36 +335,27 @@ serve(async (req) => {
           sent_at: sentAt,
         };
 
-        // Upsert mensagem (evitar duplicados)
-        if (externalId) {
-          const { error: upsertError } = await supabase
-            .from("whatsapp_messages")
-            .upsert(messageData, {
-              onConflict: "external_id",
-              ignoreDuplicates: false, // Atualizar se já existir
-            });
+        // Upsert mensagem usando a constraint (company_id, external_id)
+        const { error: upsertError } = await supabase
+          .from("whatsapp_messages")
+          .upsert(messageData, {
+            onConflict: "company_id,external_id",
+            ignoreDuplicates: false, // Atualizar se já existir
+          });
 
-          if (upsertError) {
+        if (upsertError) {
+          if (errors.length < 5) {
             errors.push(`Upsert error: ${upsertError.message}`);
-            console.error(`[fetch-whatsapp-messages] Erro upsert:`, upsertError);
-          } else {
-            savedCount++;
           }
+          console.error(`[fetch-whatsapp-messages] Erro upsert:`, upsertError);
         } else {
-          // Sem external_id, tentar insert
-          const { error: insertError } = await supabase
-            .from("whatsapp_messages")
-            .insert(messageData);
-
-          if (insertError) {
-            errors.push(`Insert error: ${insertError.message}`);
-          } else {
-            savedCount++;
-          }
+          savedCount++;
         }
       } catch (msgError) {
         const errMsg = msgError instanceof Error ? msgError.message : String(msgError);
-        errors.push(`Process error: ${errMsg}`);
+        if (errors.length < 5) {
+          errors.push(`Process error: ${errMsg}`);
+        }
         console.error(`[fetch-whatsapp-messages] Erro ao processar mensagem:`, msgError);
       }
     }
