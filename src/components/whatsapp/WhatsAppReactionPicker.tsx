@@ -84,6 +84,9 @@ export function WhatsAppReactionPicker({
     return null;
   }
 
+  // If there's a reaction but we're not showing the picker, just show the reaction
+  // (reaction is shown on the bubble itself, picker is for adding/changing)
+
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
@@ -91,8 +94,12 @@ export function WhatsAppReactionPicker({
           variant="ghost"
           size="icon"
           className={cn(
-            "h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity",
-            isOutgoing ? "text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10" : "text-muted-foreground hover:text-foreground hover:bg-muted"
+            "h-6 w-6 transition-opacity",
+            // Show if there's a current reaction or on hover
+            selectedEmoji ? "opacity-100" : "opacity-0 group-hover:opacity-100",
+            isOutgoing 
+              ? "text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10" 
+              : "text-muted-foreground hover:text-foreground hover:bg-muted"
           )}
           disabled={isSending}
         >

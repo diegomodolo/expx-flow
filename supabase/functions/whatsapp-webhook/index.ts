@@ -26,6 +26,12 @@ serve(async (req) => {
     const isUazapi = payload.EventType || payload.instanceName || payload.token;
     const isZapi = payload.instanceId && !payload.EventType;
 
+    // Check if this is a reaction event (UazapiGO)
+    if (isUazapi && (payload.EventType === "reaction" || payload.reaction)) {
+      console.log("[whatsapp-webhook] Processing reaction event");
+      return await handleReactionEvent(supabase, payload);
+    }
+
     let phone: string | null = null;
     let content: string | null = null;
     let contactName: string | null = null;
@@ -373,3 +379,71 @@ serve(async (req) => {
     );
   }
 });
+
+// Handle reaction events from UazapiGO
+async function handleReactionEvent(supabase: any, payload: any): Promise<Response> {
+  try {
+    const reaction = payload.reaction || payload.message?.reaction || {};
+    const instanceToken = payload.token || null;
+    
+    // Extract reaction data
+    // UazapiGO reaction format: { key: { id, remoteJid, fromMe }, emoji }
+    const reactedMessageId = reaction.key?.id || reaction.messageId || reaction.id;
+    const emoji = reaction.emoji || reaction.text || "";
+    const fromMe = reaction.key?.fromMe ?? reaction.fromMe ?? false;
+    
+    console.log("[whatsapp-webhook] Reaction data:", { reactedMessageId, emoji, fromMe });
+
+    if (!reactedMessageId) {
+      console.log("[whatsapp-webhook] No message ID in reaction event");
+      return new Response(
+        JSON.stringify({ success: true, message: "No message ID in reaction" }),
+        { status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
+      );
+    }
+
+    // Find the message by external_id
+    const { data: message, error: findError } = await supabase
+      .from("whatsapp_messages")
+      .select("id, conversation_id, company_id")
+      .eq("external_id", reactedMessageId)
+      .maybeSingle();
+
+    if (findError) {
+      console.error("[whatsapp-webhook] Error finding message:", findError);
+      throw findError;
+    }
+
+    if (!message) {
+      console.log("[whatsapp-webhook] Message not found for reaction:", reactedMessageId);
+      return new Response(
+        JSON.stringify({ success: true, message: "Message not found" }),
+        { status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
+      );
+    }
+
+    // Update the message with the reaction (empty emoji = remove reaction)
+    const { error: updateError } = await supabase
+      .from("whatsapp_messages")
+      .update({ reaction: emoji || null })
+      .eq("id", message.id);
+
+    if (updateError) {
+      console.error("[whatsapp-webhook] Error updating reaction:", updateError);
+      throw updateError;
+    }
+
+    console.log("[whatsapp-webhook] Reaction updated successfully:", { messageId: message.id, emoji });
+
+    return new Response(
+      JSON.stringify({ success: true, message: "Reaction updated" }),
+      { status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
+    );
+  } catch (error) {
+    console.error("[whatsapp-webhook] Error handling reaction:", error);
+    return new Response(
+      JSON.stringify({ success: false, error: error.message }),
+      { status: 500, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
+    );
+  }
+}

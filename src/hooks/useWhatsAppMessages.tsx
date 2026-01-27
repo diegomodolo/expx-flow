@@ -14,6 +14,7 @@ export interface WhatsAppMessage {
   status: string;
   external_id: string | null;
   sent_at: string;
+  reaction: string | null;
 }
 
 export function useWhatsAppMessages(conversationId: string | null, companyId: string | undefined) {
@@ -125,6 +126,7 @@ export function useWhatsAppMessages(conversationId: string | null, companyId: st
       status: "sending",
       external_id: null,
       sent_at: now,
+      reaction: null,
     };
 
     // Immediately add to cache (optimistic update)
