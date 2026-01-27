@@ -1,5 +1,5 @@
 import { WhatsAppConversation } from "@/hooks/useWhatsAppConversations";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
@@ -29,6 +29,13 @@ export function WhatsAppConversationItem({
       )}
     >
       <Avatar className="h-10 w-10 shrink-0">
+        {conversation.profile_pic_url && (
+          <AvatarImage 
+            src={conversation.profile_pic_url} 
+            alt={displayName}
+            className="object-cover"
+          />
+        )}
         <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
           {initials}
         </AvatarFallback>

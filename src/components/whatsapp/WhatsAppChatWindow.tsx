@@ -4,7 +4,7 @@ import { useWhatsAppMessages } from "@/hooks/useWhatsAppMessages";
 import { WhatsAppMessageBubble } from "./WhatsAppMessageBubble";
 import { WhatsAppMessageInput } from "./WhatsAppMessageInput";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Loader2, Phone } from "lucide-react";
 
 interface WhatsAppChatWindowProps {
@@ -14,7 +14,7 @@ interface WhatsAppChatWindowProps {
 }
 
 export function WhatsAppChatWindow({ conversation, companyId, instanceId }: WhatsAppChatWindowProps) {
-  const { messages, isLoading, sendMessage, isSending } = useWhatsAppMessages(
+  const { messages, isLoading, sendMessage } = useWhatsAppMessages(
     conversation.id,
     companyId
   );
@@ -38,6 +38,13 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId }: What
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b bg-muted/30">
         <Avatar className="h-10 w-10">
+          {conversation.profile_pic_url && (
+            <AvatarImage 
+              src={conversation.profile_pic_url} 
+              alt={displayName}
+              className="object-cover"
+            />
+          )}
           <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
             {getInitials(displayName)}
           </AvatarFallback>
@@ -74,8 +81,8 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId }: What
         )}
       </ScrollArea>
 
-      {/* Input */}
-      <WhatsAppMessageInput onSend={handleSend} isSending={isSending} />
+      {/* Input - always enabled now */}
+      <WhatsAppMessageInput onSend={handleSend} isSending={false} />
     </div>
   );
 }
