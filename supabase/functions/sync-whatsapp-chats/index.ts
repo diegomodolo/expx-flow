@@ -110,11 +110,17 @@ serve(async (req) => {
     };
 
     for (const base of baseCandidates) {
-      // Sem instância na URL (algumas APIs inferem pelo token)
-      add(`${base}/chat/findChats`, "GET", null);
-      add(`${base}/chat/findChats`, "POST", { where: {} });
+      // *** ENDPOINT PRIORITÁRIO: POST /chat/find conforme docs.uazapi.com ***
+      add(`${base}/chat/find`, "POST", {});
+      add(`${base}/chat/find`, "POST", { where: {} });
+      add(`${base}/chat/find`, "GET", null);
+
+      // Outros endpoints de listagem de chats
       add(`${base}/chat/findChats`, "POST", {});
+      add(`${base}/chat/findChats`, "POST", { where: {} });
+      add(`${base}/chat/findChats`, "GET", null);
       add(`${base}/chat/list`, "GET", null);
+      add(`${base}/chat/list`, "POST", {});
       add(`${base}/chat/getAll`, "GET", null);
       add(`${base}/chats`, "GET", null);
       add(`${base}/chat`, "GET", null);
@@ -122,8 +128,15 @@ serve(async (req) => {
 
       // Com instância na URL/body (Evolution API / proxies compatíveis)
       for (const inst of instanceCandidates) {
-        add(`${base}/chat/findChats/${inst}`, "GET", null); // ex.: GET /chat/findChats/:instanceName
+        // POST /chat/find com instância (caso precise)
+        add(`${base}/chat/find/${inst}`, "POST", {});
+        add(`${base}/chat/find/${inst}`, "GET", null);
+        add(`${base}/chat/find`, "POST", { instanceName: inst });
+        add(`${base}/chat/find`, "POST", { instance: inst });
+
+        // findChats com instância
         add(`${base}/chat/findChats/${inst}`, "POST", {});
+        add(`${base}/chat/findChats/${inst}`, "GET", null);
         add(`${base}/chat/findChats`, "POST", { instanceName: inst });
         add(`${base}/chat/findChats`, "POST", { instance: inst });
         add(`${base}/chat/findChats`, "POST", { instanceName: inst, where: {} });
