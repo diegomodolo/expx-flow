@@ -29,7 +29,7 @@ export function WhatsAppAudioPlayer({
   const [audioSrc, setAudioSrc] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch audio URL if needed
+  // Fetch audio URL via edge function proxy (same logic as documents/images)
   const loadAudio = useCallback(async () => {
     if (audioSrc) return; // Already loaded
     
@@ -37,38 +37,66 @@ export function WhatsAppAudioPlayer({
     setError(null);
 
     try {
-      // Try direct URL first
-      if (mediaUrl) {
-        // Test if URL is accessible
-        const testResponse = await fetch(mediaUrl, { method: "HEAD" }).catch(() => null);
-        if (testResponse?.ok) {
-          setAudioSrc(mediaUrl);
-          setIsLoading(false);
-          return;
-        }
-      }
-
-      // Need to fetch via edge function (UazapiGO /message/download)
+      // Need instanceId and messageId for UazapiGO download
       if (!instanceId || !messageId) {
+        // Try direct URL as fallback
+        if (mediaUrl) {
+          const testResponse = await fetch(mediaUrl, { method: "HEAD" }).catch(() => null);
+          if (testResponse?.ok) {
+            setAudioSrc(mediaUrl);
+            setIsLoading(false);
+            return;
+          }
+        }
         setError("Áudio não disponível");
         setIsLoading(false);
         return;
       }
 
-      const { data: blob, error: fetchError } = await supabase.functions.invoke(
-        "download-whatsapp-media",
-        {
-          body: {
-            instanceId,
-            messageId,
-            fileName: "audio.mp3",
-          },
-        }
-      );
+      // Get Supabase session for auth
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
 
-      if (fetchError) throw fetchError;
-      if (!(blob instanceof Blob)) throw new Error("Resposta inválida");
+      if (!accessToken) {
+        setError("Sessão expirada");
+        setIsLoading(false);
+        return;
+      }
 
+      // Use fetch directly to get binary response as blob
+      const functionUrl = `${import.meta.env.VITE_SUPABASE_URL || "https://ejwpfztkspbvmuwwiwmk.supabase.co"}/functions/v1/download-whatsapp-media`;
+
+      console.log("[WhatsAppAudioPlayer] Fetching audio via proxy", { instanceId, messageId });
+
+      const response = await fetch(functionUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          instanceId,
+          messageId,
+          fileName: "audio.mp3",
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("[WhatsAppAudioPlayer] Download failed:", response.status, errorText);
+        throw new Error("Falha ao baixar áudio");
+      }
+
+      // Get blob from response
+      const blob = await response.blob();
+      
+      if (blob.size === 0) {
+        throw new Error("Arquivo de áudio vazio");
+      }
+
+      console.log("[WhatsAppAudioPlayer] Audio loaded, size:", blob.size);
+
+      // Create object URL for audio element
       const objectUrl = URL.createObjectURL(blob);
       setAudioSrc(objectUrl);
     } catch (err: any) {
