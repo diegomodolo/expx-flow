@@ -10745,6 +10745,7 @@ export type Database = {
           last_message_at: string | null
           last_message_preview: string | null
           phone: string
+          profile_pic_url: string | null
           unread_count: number | null
           updated_at: string | null
         }
@@ -10759,6 +10760,7 @@ export type Database = {
           last_message_at?: string | null
           last_message_preview?: string | null
           phone: string
+          profile_pic_url?: string | null
           unread_count?: number | null
           updated_at?: string | null
         }
@@ -10773,6 +10775,7 @@ export type Database = {
           last_message_at?: string | null
           last_message_preview?: string | null
           phone?: string
+          profile_pic_url?: string | null
           unread_count?: number | null
           updated_at?: string | null
         }
