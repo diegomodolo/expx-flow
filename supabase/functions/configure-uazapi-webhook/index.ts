@@ -8,6 +8,7 @@ const corsHeaders = {
 
 interface ConfigureWebhookPayload {
   instance_id: string;
+  receive_group_messages?: boolean;
 }
 
 serve(async (req) => {
@@ -22,7 +23,7 @@ serve(async (req) => {
 
   try {
     const payload: ConfigureWebhookPayload = await req.json();
-    const { instance_id } = payload;
+    const { instance_id, receive_group_messages = false } = payload;
 
     console.log("[configure-uazapi-webhook] Configurando webhook para instância:", instance_id);
 
@@ -83,11 +84,19 @@ serve(async (req) => {
 
     // Configuração específica do UazapiGO conforme documentação:
     // - events: "messages" para escutar mensagens
-    // - exclude: evitar loops (wasSentByApi) e grupos (isGroupYes)
+    // - exclude: evitar loops (wasSentByApi) e opcionalmente grupos (isGroupYes)
+    const excludeList = ["wasSentByApi"];
+    if (!receive_group_messages) {
+      excludeList.push("isGroupYes");
+    }
+    
+    console.log("[configure-uazapi-webhook] Receber grupos:", receive_group_messages);
+    console.log("[configure-uazapi-webhook] Exclude list:", excludeList);
+
     const webhookPayload = {
       url: webhookCallbackUrl,
       events: "messages",
-      exclude: ["wasSentByApi", "isGroupYes"],
+      exclude: excludeList,
       enabled: true,
     };
 

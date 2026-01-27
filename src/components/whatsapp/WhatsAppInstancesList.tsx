@@ -130,7 +130,9 @@ export function WhatsAppInstancesList({
                   onEdit={handleEditClick}
                   onManageUsers={handleManageUsersClick}
                   onTestConnection={testConnection}
-                  onConfigureWebhook={configureWebhook}
+                  onConfigureWebhook={(instanceId, receiveGroupMessages) => 
+                    configureWebhook({ instanceId, receiveGroupMessages })
+                  }
                   onDelete={deleteInstance}
                   isTesting={isTesting}
                   isConfiguringWebhook={isConfiguringWebhook}

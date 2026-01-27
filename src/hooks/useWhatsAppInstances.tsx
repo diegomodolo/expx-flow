@@ -227,9 +227,12 @@ export function useWhatsAppInstances(companyId: string | undefined) {
 
   // Configure webhook for an instance
   const configureWebhookMutation = useMutation({
-    mutationFn: async (instanceId: string) => {
+    mutationFn: async ({ instanceId, receiveGroupMessages }: { instanceId: string; receiveGroupMessages: boolean }) => {
       const { data, error } = await supabase.functions.invoke("configure-uazapi-webhook", {
-        body: { instance_id: instanceId },
+        body: { 
+          instance_id: instanceId,
+          receive_group_messages: receiveGroupMessages,
+        },
       });
 
       if (error) throw error;
