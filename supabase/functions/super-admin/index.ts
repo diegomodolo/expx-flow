@@ -248,9 +248,9 @@ const handler = async (req: Request): Promise<Response> => {
       // 4. Deletar usuário do auth
       let lastDeleteError: unknown = null;
       for (let attempt = 1; attempt <= 3; attempt++) {
-        const { error: deleteError } = await supabase.auth.admin.deleteUser(userId, {
-          shouldSoftDelete: false,
-        });
+        // auth-js expects the 2nd parameter as boolean (shouldSoftDelete)
+        // Passing an object causes: "cannot unmarshal object into ... should_soft_delete of type bool"
+        const { error: deleteError } = await supabase.auth.admin.deleteUser(userId, false);
 
         if (!deleteError) {
           lastDeleteError = null;
