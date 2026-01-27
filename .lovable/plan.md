@@ -1,135 +1,129 @@
 
-# Plano: Sincronizar Conversas do WhatsApp na Abertura do Modal
+# Plano: Sincronizar Conversas e Configurar Webhook Automaticamente
 
-## Problema Identificado
-Quando o modal do WhatsApp e aberto, a lista de conversas esta vazia porque:
-1. A tabela `whatsapp_conversations` nao possui nenhum registro
-2. As conversas so sao criadas quando chegam mensagens via webhook
-3. Nao existe uma funcao para buscar e sincronizar os chats existentes da instancia WhatsApp (UazapiGO)
+## Problemas Identificados
+
+### 1. Sincronizacao de Chats Falhando
+Os logs mostram:
+- `/chats` retornou **404** (endpoint nao existe)
+- `/chat/findChats` retornou **405** (metodo nao permitido)
+
+A API UazapiGO v2 provavelmente usa um endpoint diferente ou requer o nome da instancia na URL (como na Evolution API).
+
+### 2. Webhook Nao Configurado
+Quando a instancia foi criada (`create-uazapi-instance`), o webhook NAO foi configurado automaticamente. Isso significa que:
+- Mensagens novas nao sao recebidas
+- Conversas nao sao criadas automaticamente
+- O sistema depende 100% da sincronizacao manual
+
+---
 
 ## Solucao
 
-Criar uma edge function e um mecanismo no frontend para sincronizar os chats existentes na instancia UazapiGO com a tabela `whatsapp_conversations`.
+### Etapa 1: Corrigir a Edge Function `sync-whatsapp-chats`
 
----
+Atualizar para usar os endpoints corretos da UazapiGO v2:
 
-## Etapa 1: Criar Edge Function `sync-whatsapp-chats`
+**Endpoints a testar (em ordem de prioridade):**
+1. `POST /chat/findChats` com corpo vazio (sem path param)
+2. `GET /chat/findChats` (alternativa)
+3. `POST /chat/findChats/{instanceName}` (padrao Evolution API)
+4. `GET /instance/chats` (possivel endpoint UazapiGO)
 
-**Arquivo:** `supabase/functions/sync-whatsapp-chats/index.ts`
+**Alteracoes necessarias:**
+- Buscar o `uazapi_instance_id` da tabela `whatsapp_instances` para usar como path param
+- Adicionar logs detalhados para cada tentativa
+- Testar multiplos formatos de resposta
 
-Esta funcao ira:
-1. Receber `company_id` e `instance_id`
-2. Buscar a configuracao da empresa e token da instancia
-3. Chamar a API UazapiGO no endpoint `/chats` (ou similar como `/chat/findChats`)
-4. Para cada chat retornado, inserir ou atualizar na tabela `whatsapp_conversations`
+### Etapa 2: Configurar Webhook Automaticamente na Criacao da Instancia
 
-**Endpoints UazapiGO provaveis (baseado na Evolution API):**
-- `GET /chats` - Lista todos os chats
-- `POST /chat/findChats` - Busca chats com filtros
+Modificar `create-uazapi-instance` para configurar o webhook apos criar a instancia:
 
-**Exemplo de resposta esperada:**
-```json
-[
-  {
-    "id": "5511999999999@s.whatsapp.net",
-    "name": "Contato Nome",
-    "unreadCount": 2,
-    "lastMessage": {
-      "content": "Ultima mensagem...",
-      "timestamp": 1706789456
-    }
-  }
-]
+```
+Endpoint: POST /webhook
+Header: token (token da instancia)
+Body: {
+  "url": "https://ejwpfztkspbvmuwwiwmk.supabase.co/functions/v1/whatsapp-webhook",
+  "events": ["MESSAGES_UPSERT", "MESSAGES_UPDATE", "CONNECTION_UPDATE", "QRCODE_UPDATED"]
+}
 ```
 
----
+### Etapa 3: Criar funcao para Configurar Webhook em Instancias Existentes
 
-## Etapa 2: Criar Hook `useSyncWhatsAppChats`
-
-**Arquivo:** `src/hooks/useSyncWhatsAppChats.ts`
-
-Hook que expoe uma funcao `syncChats(instanceId)` para chamar a edge function e atualizar o cache de conversas.
-
----
-
-## Etapa 3: Integrar Sincronizacao no `WhatsAppInboxDrawer`
-
-**Arquivo:** `src/components/whatsapp/WhatsAppInboxDrawer.tsx`
-
-Alteracoes:
-1. Importar o novo hook `useSyncWhatsAppChats`
-2. Chamar `syncChats` automaticamente quando:
-   - O drawer abrir (`isOpen` mudar para `true`)
-   - A instancia selecionada mudar
-3. Adicionar botao de "Atualizar" manual para re-sincronizar
-4. Mostrar indicador de loading durante a sincronizacao
+Uma nova edge function `configure-uazapi-webhook` que permite configurar o webhook em instancias ja criadas (como a sua atual).
 
 ---
 
 ## Detalhes Tecnicos
 
-### Edge Function: sync-whatsapp-chats
+### Arquivo 1: `supabase/functions/sync-whatsapp-chats/index.ts`
 
+**Correcoes:**
 ```typescript
-// Estrutura basica
-serve(async (req) => {
-  const { company_id, instance_id } = await req.json();
-  
-  // 1. Buscar config e token da instancia
-  const { data: config } = await supabase
-    .from("whatsapp_configs")
-    .select("uazapi_endpoint")
-    .eq("company_id", company_id)
-    .single();
-    
-  const { data: instance } = await supabase
-    .from("whatsapp_instances")
-    .select("uazapi_token")
-    .eq("id", instance_id)
-    .single();
-  
-  // 2. Chamar API UazapiGO
-  const response = await fetch(`${config.uazapi_endpoint}/chats`, {
-    headers: { "token": instance.uazapi_token }
+// Buscar instanceName/uazapi_instance_id para usar na URL
+const { data: instance } = await supabase
+  .from("whatsapp_instances")
+  .select("uazapi_token, uazapi_instance_id")
+  .eq("id", instance_id)
+  .single();
+
+// Tentar diferentes endpoints
+const endpoints = [
+  { url: `${endpoint}/chat/findChats`, method: "POST" },
+  { url: `${endpoint}/chat/findChats/${instance.uazapi_instance_id}`, method: "POST" },
+  { url: `${endpoint}/instance/chats`, method: "GET" },
+];
+
+for (const ep of endpoints) {
+  const response = await fetch(ep.url, {
+    method: ep.method,
+    headers: { "token": instance.uazapi_token, "Content-Type": "application/json" },
+    ...(ep.method === "POST" ? { body: JSON.stringify({}) } : {}),
   });
-  const chats = await response.json();
   
-  // 3. Upsert nas conversas
-  for (const chat of chats) {
-    await supabase
-      .from("whatsapp_conversations")
-      .upsert({
-        company_id,
-        instance_id,
-        phone: chat.id.replace("@s.whatsapp.net", ""),
-        contact_name: chat.name,
-        unread_count: chat.unreadCount || 0,
-        last_message_preview: chat.lastMessage?.content,
-        last_message_at: new Date(chat.lastMessage?.timestamp * 1000)
-      }, { onConflict: "company_id,instance_id,phone" });
+  if (response.ok) {
+    // Processar resposta...
+    break;
   }
-  
-  return Response({ success: true, synced: chats.length });
-});
+  console.log(`[sync] ${ep.url} retornou ${response.status}`);
+}
 ```
 
-### Alteracoes no WhatsAppInboxDrawer
+### Arquivo 2: `supabase/functions/create-uazapi-instance/index.ts`
+
+**Adicionar apos criar a instancia:**
+```typescript
+// Configurar webhook automaticamente
+const webhookUrl = `${cleanEndpoint}/webhook`;
+const supabaseFunctionsUrl = Deno.env.get("SUPABASE_URL")?.replace(".supabase.co", ".supabase.co/functions/v1");
+const webhookCallbackUrl = `${supabaseFunctionsUrl}/whatsapp-webhook`;
+
+console.log("[create-uazapi-instance] Configurando webhook:", webhookCallbackUrl);
+
+const webhookResponse = await fetch(webhookUrl, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "token": uazapiToken,
+  },
+  body: JSON.stringify({
+    url: webhookCallbackUrl,
+    events: ["MESSAGES_UPSERT", "MESSAGES_UPDATE", "CONNECTION_UPDATE", "QRCODE_UPDATED"],
+    webhook_by_events: false,
+    enabled: true,
+  }),
+});
+
+const webhookData = await webhookResponse.json();
+console.log("[create-uazapi-instance] Webhook configurado:", webhookData);
+```
+
+### Arquivo 3: Nova edge function `supabase/functions/configure-uazapi-webhook/index.ts`
 
 ```typescript
-// Adicionar ao componente
-const { syncChats, isSyncing } = useSyncWhatsAppChats(activeCompany?.company_id);
-
-// Sincronizar ao abrir ou trocar instancia
-useEffect(() => {
-  if (isOpen && selectedInstanceId) {
-    syncChats(selectedInstanceId);
-  }
-}, [isOpen, selectedInstanceId]);
-
-// Botao de refresh no header
-<Button onClick={() => syncChats(selectedInstanceId)} disabled={isSyncing}>
-  <RefreshCw className={isSyncing ? "animate-spin" : ""} />
-</Button>
+// Permite configurar webhook em instancias existentes
+// Recebe: { instance_id: string }
+// Configura o webhook para a instancia especificada
 ```
 
 ---
@@ -138,10 +132,26 @@ useEffect(() => {
 
 | Arquivo | Acao |
 |---------|------|
-| `supabase/functions/sync-whatsapp-chats/index.ts` | Criar |
-| `src/hooks/useSyncWhatsAppChats.ts` | Criar |
-| `src/components/whatsapp/WhatsAppInboxDrawer.tsx` | Modificar |
+| `supabase/functions/sync-whatsapp-chats/index.ts` | Modificar - testar multiplos endpoints |
+| `supabase/functions/create-uazapi-instance/index.ts` | Modificar - adicionar config de webhook |
+| `supabase/functions/configure-uazapi-webhook/index.ts` | Criar - config webhook para instancias existentes |
+| `supabase/config.toml` | Modificar - adicionar nova funcao |
 
-## Observacao Importante
+---
 
-A API UazapiGO possui um endpoint `/chats` (conforme documentacao com 6 endpoints na categoria Chats). Durante a implementacao, irei verificar o formato exato da resposta e ajustar o mapeamento conforme necessario. Se a API retornar um formato diferente, adaptarei a logica de sincronizacao.
+## Ordem de Execucao
+
+1. **Primeiro**: Criar `configure-uazapi-webhook` para configurar o webhook na sua instancia existente
+2. **Segundo**: Atualizar `sync-whatsapp-chats` para testar multiplos endpoints
+3. **Terceiro**: Atualizar `create-uazapi-instance` para futuras instancias terem webhook configurado automaticamente
+
+---
+
+## Teste Apos Implementacao
+
+Apos aprovar o plano:
+1. Chamar `configure-uazapi-webhook` para sua instancia existente
+2. Testar `sync-whatsapp-chats` novamente
+3. Verificar os logs para ver qual endpoint funcionou
+4. Se nenhum endpoint funcionar, investigar a documentacao especifica do seu servidor UazapiGO
+
