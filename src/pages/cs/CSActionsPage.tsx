@@ -14,6 +14,7 @@ import { CSQBRList } from '@/components/cs/CSQBRList';
 import { CSValueStatementList } from '@/components/cs/CSValueStatementList';
 import { CSNewTouchpointModal } from '@/components/cs/CSNewTouchpointModal';
 import { useCSSquadFilter } from '@/contexts/CSSquadFilterContext';
+import { CSSquadFilter } from '@/components/cs/CSSquadFilter';
 
 export default function CSActionsPage() {
   const { healthData } = useCSHealthScore360();
@@ -42,14 +43,17 @@ export default function CSActionsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <Target className="h-6 w-6 text-primary" />
-          Ações de CS
-        </h1>
-        <p className="text-muted-foreground">
-          Touchpoints, NPS, QBR e Value Statements
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+            <Target className="h-6 w-6 text-primary" />
+            Ações de CS
+          </h1>
+          <p className="text-muted-foreground">
+            Touchpoints, NPS, QBR e Value Statements
+          </p>
+        </div>
+        <CSSquadFilter />
       </div>
 
       {/* Quick Actions */}

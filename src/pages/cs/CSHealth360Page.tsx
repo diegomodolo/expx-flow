@@ -4,6 +4,7 @@ import { Heart, Activity, Star, Users } from 'lucide-react';
 import { useCSHealthScore360 } from '@/hooks/useCSHealthScore360';
 import { CSHealthScore360Card } from '@/components/cs/CSHealthScore360Card';
 import { useCSSquadFilter } from '@/contexts/CSSquadFilterContext';
+import { CSSquadFilter } from '@/components/cs/CSSquadFilter';
 
 export default function CSHealth360Page() {
   const { healthData, stats, isLoading } = useCSHealthScore360();
@@ -32,14 +33,17 @@ export default function CSHealth360Page() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <Heart className="h-6 w-6 text-primary" />
-          Saúde 360
-        </h1>
-        <p className="text-muted-foreground">
-          Visão completa da saúde de todos os clientes
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+            <Heart className="h-6 w-6 text-primary" />
+            Saúde 360
+          </h1>
+          <p className="text-muted-foreground">
+            Visão completa da saúde de todos os clientes
+          </p>
+        </div>
+        <CSSquadFilter />
       </div>
 
       {/* KPIs */}
