@@ -29,7 +29,8 @@ import {
   Clock,
   ArrowRightLeft,
   HelpCircle,
-  FileX2
+  FileX2,
+  ShieldAlert
 } from "lucide-react";
 import { RadarUrl, ValidationStatus } from "@/hooks/useRadarUrls";
 import { formatDistanceToNow } from "date-fns";
@@ -102,6 +103,13 @@ export function UrlsTable({ urls, onValidate, isValidating, onFilterChange }: Ur
             Vazio
           </Badge>
         );
+      case 'suspicious':
+        return (
+          <Badge variant="outline" className="text-amber-600 dark:text-amber-500 border-amber-600 text-[10px] h-5 px-1.5">
+            <ShieldAlert className="h-2.5 w-2.5 mr-0.5" />
+            Suspeito
+          </Badge>
+        );
       default:
         return (
           <Badge variant="secondary" className="text-[10px] h-5 px-1.5">
@@ -152,6 +160,7 @@ export function UrlsTable({ urls, onValidate, isValidating, onFilterChange }: Ur
                 <SelectItem value="timeout">Timeout</SelectItem>
                 <SelectItem value="redirect">Redirect</SelectItem>
                 <SelectItem value="empty">Vazio</SelectItem>
+                <SelectItem value="suspicious">Suspeito</SelectItem>
                 <SelectItem value="pending">Pendente</SelectItem>
               </SelectContent>
             </Select>

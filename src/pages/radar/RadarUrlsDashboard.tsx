@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Loader2, RefreshCw } from "lucide-react";
+import { Loader2, RefreshCw, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -9,6 +9,7 @@ import { ProblematicUrlsCard } from "@/components/radar/ProblematicUrlsCard";
 import { SlowUrlsCard } from "@/components/radar/SlowUrlsCard";
 import { RedirectUrlsCard } from "@/components/radar/RedirectUrlsCard";
 import { EmptyUrlsCard } from "@/components/radar/EmptyUrlsCard";
+import { SuspiciousUrlsCard } from "@/components/radar/SuspiciousUrlsCard";
 import { UrlsTable } from "@/components/radar/UrlsTable";
 
 const RadarUrlsDashboard = () => {
@@ -23,12 +24,17 @@ const RadarUrlsDashboard = () => {
     slowUrls, 
     redirectUrls,
     emptyUrls,
+    suspiciousUrls,
     isLoading, 
     refetch,
     validateUrl,
     validateAll,
     validateProblematic,
-    isValidating
+    isValidating,
+    analyzeContent,
+    analyzeAllContent,
+    analyzeSuspicious,
+    isAnalyzing
   } = useRadarUrls({ onlyActiveCampaigns, includeManualUrls });
 
   // Validate empty URLs
@@ -126,7 +132,17 @@ const RadarUrlsDashboard = () => {
             className="h-8 px-2 lg:px-3"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isValidating ? 'animate-spin' : ''}`} />
-            <span className="hidden sm:inline ml-1.5">Validar Todas</span>
+            <span className="hidden sm:inline ml-1.5">Validar</span>
+          </Button>
+          <Button 
+            size="sm" 
+            variant="outline"
+            onClick={() => analyzeAllContent()}
+            disabled={isAnalyzing}
+            className="h-8 px-2 lg:px-3"
+          >
+            <Search className={`w-3.5 h-3.5 ${isAnalyzing ? 'animate-pulse' : ''}`} />
+            <span className="hidden sm:inline ml-1.5">Analisar Conteúdo</span>
           </Button>
         </div>
       </div>
@@ -134,13 +150,19 @@ const RadarUrlsDashboard = () => {
       {/* KPIs - Compact */}
       <UrlsKPIHeader stats={stats} />
 
-      {/* Cards Row - 2 columns on medium, 4 on large */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+      {/* Cards Row - 2 columns on medium, 5 on large */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
         <ProblematicUrlsCard 
           urls={problematicUrls}
           onValidate={validateUrl}
           onValidateAll={validateProblematic}
           isValidating={isValidating}
+        />
+        <SuspiciousUrlsCard 
+          urls={suspiciousUrls}
+          onAnalyze={analyzeContent}
+          onAnalyzeAll={analyzeSuspicious}
+          isAnalyzing={isAnalyzing}
         />
         <SlowUrlsCard urls={slowUrls} />
         <RedirectUrlsCard urls={redirectUrls} />

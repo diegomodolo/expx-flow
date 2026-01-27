@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/CompanyContext";
 import { toast } from "sonner";
 
-export type ValidationStatus = 'ok' | 'error' | 'timeout' | 'redirect' | 'pending' | 'empty' | null;
+export type ValidationStatus = 'ok' | 'error' | 'timeout' | 'redirect' | 'pending' | 'empty' | 'suspicious' | null;
 
 export interface RadarUrl {
   id: string;
@@ -30,6 +30,10 @@ export interface RadarUrl {
   has_active_campaign?: boolean;
   active_campaign_count?: number;
   total_campaign_count?: number;
+  // Content analysis fields
+  content_match_score: number | null;
+  content_analysis_summary: string | null;
+  content_analyzed_at: string | null;
 }
 
 export interface UrlFilters {
@@ -50,6 +54,7 @@ export interface UrlStats {
   pending: number;
   slow: number;
   empty: number;
+  suspicious: number;
 }
 
 interface CampaignStatusData {
@@ -164,6 +169,7 @@ export function useRadarUrls(filters: UrlFilters = {}) {
     pending: urls.filter(u => !u.validation_status || u.validation_status === 'pending').length,
     slow: urls.filter(u => u.validation_load_time_ms && u.validation_load_time_ms > 3000).length,
     empty: urls.filter(u => u.validation_status === 'empty').length,
+    suspicious: urls.filter(u => u.validation_status === 'suspicious').length,
   };
 
   // Get problematic URLs (error or timeout)
@@ -181,6 +187,77 @@ export function useRadarUrls(filters: UrlFilters = {}) {
 
   // Get empty URLs
   const emptyUrls = urls.filter(u => u.validation_status === 'empty');
+
+  // Get suspicious URLs
+  const suspiciousUrls = urls.filter(u => u.validation_status === 'suspicious');
+
+  // Analyze single URL content
+  const analyzeContentMutation = useMutation({
+    mutationFn: async (urlId: string) => {
+      const { data, error } = await supabase.functions.invoke('analyze-url-content', {
+        body: { url_id: urlId }
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['radar-urls'] });
+      if (data?.results?.[0]?.score !== undefined) {
+        const score = data.results[0].score;
+        if (score < 50) {
+          toast.warning(`Conteúdo suspeito detectado! Score: ${score}%`);
+        } else {
+          toast.success(`Análise concluída. Score: ${score}%`);
+        }
+      } else {
+        toast.success('Análise de conteúdo concluída');
+      }
+    },
+    onError: (error) => {
+      toast.error(`Erro ao analisar conteúdo: ${error.message}`);
+    }
+  });
+
+  // Analyze all URLs content
+  const analyzeAllContentMutation = useMutation({
+    mutationFn: async () => {
+      if (!companyId) throw new Error('Company not found');
+      const { data, error } = await supabase.functions.invoke('analyze-url-content', {
+        body: { company_id: companyId }
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['radar-urls'] });
+      toast.success(`Análise concluída: ${data?.analyzed || 0} URLs analisadas, ${data?.suspicious || 0} suspeitas`);
+    },
+    onError: (error) => {
+      toast.error(`Erro ao analisar URLs: ${error.message}`);
+    }
+  });
+
+  // Analyze suspicious URLs only
+  const analyzeSuspiciousMutation = useMutation({
+    mutationFn: async () => {
+      const suspiciousIds = suspiciousUrls.map(u => u.id);
+      if (suspiciousIds.length === 0) {
+        throw new Error('Nenhuma URL suspeita encontrada');
+      }
+      const { data, error } = await supabase.functions.invoke('analyze-url-content', {
+        body: { url_ids: suspiciousIds }
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['radar-urls'] });
+      toast.success(`Reanálise concluída: ${data?.analyzed || 0} URLs`);
+    },
+    onError: (error) => {
+      toast.error(`Erro: ${error.message}`);
+    }
+  });
 
   // Validate single URL
   const validateUrlMutation = useMutation({
@@ -248,11 +325,17 @@ export function useRadarUrls(filters: UrlFilters = {}) {
     slowUrls,
     redirectUrls,
     emptyUrls,
+    suspiciousUrls,
     isLoading,
     refetch,
     validateUrl: validateUrlMutation.mutate,
     validateAll: validateAllMutation.mutate,
     validateProblematic: validateProblematicMutation.mutate,
     isValidating: validateUrlMutation.isPending || validateAllMutation.isPending || validateProblematicMutation.isPending,
+    // Content analysis
+    analyzeContent: analyzeContentMutation.mutate,
+    analyzeAllContent: analyzeAllContentMutation.mutate,
+    analyzeSuspicious: analyzeSuspiciousMutation.mutate,
+    isAnalyzing: analyzeContentMutation.isPending || analyzeAllContentMutation.isPending || analyzeSuspiciousMutation.isPending,
   };
 }

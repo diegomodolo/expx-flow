@@ -2641,6 +2641,9 @@ export type Database = {
           campaign_count: number | null
           client_id: string
           company_id: string
+          content_analysis_summary: string | null
+          content_analyzed_at: string | null
+          content_match_score: number | null
           created_at: string | null
           domain: string
           first_seen_at: string | null
@@ -2662,6 +2665,9 @@ export type Database = {
           campaign_count?: number | null
           client_id: string
           company_id: string
+          content_analysis_summary?: string | null
+          content_analyzed_at?: string | null
+          content_match_score?: number | null
           created_at?: string | null
           domain: string
           first_seen_at?: string | null
@@ -2683,6 +2689,9 @@ export type Database = {
           campaign_count?: number | null
           client_id?: string
           company_id?: string
+          content_analysis_summary?: string | null
+          content_analyzed_at?: string | null
+          content_match_score?: number | null
           created_at?: string | null
           domain?: string
           first_seen_at?: string | null

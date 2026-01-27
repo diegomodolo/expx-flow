@@ -7,7 +7,8 @@ import {
   ArrowRightLeft,
   HelpCircle,
   Gauge,
-  FileX2
+  FileX2,
+  ShieldAlert
 } from "lucide-react";
 import { UrlStats } from "@/hooks/useRadarUrls";
 
@@ -53,11 +54,11 @@ export function UrlsKPIHeader({ stats }: UrlsKPIHeaderProps) {
       bgColor: "bg-blue-500/10"
     },
     {
-      label: "Pendente",
-      value: stats.pending,
-      icon: HelpCircle,
-      color: "text-muted-foreground",
-      bgColor: "bg-muted"
+      label: "Suspeitas",
+      value: stats.suspicious,
+      icon: ShieldAlert,
+      color: "text-amber-600 dark:text-amber-500",
+      bgColor: "bg-amber-500/10"
     },
     {
       label: "Lentas",
