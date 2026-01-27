@@ -331,7 +331,8 @@ serve(async (req) => {
               contact_name: contactName,
               profile_pic_url: profilePicUrl || null,
               last_message_preview: lastMessagePreview ? lastMessagePreview.substring(0, 255) : null,
-              last_message_at: lastMessageAt || new Date().toISOString(),
+              // Se não houver timestamp, usar data antiga (2000-01-01) para que fiquem no final da lista
+              last_message_at: lastMessageAt || "2000-01-01T00:00:00.000Z",
               unread_count: unreadCount,
               is_archived: chat.wa_archived || false,
             },
