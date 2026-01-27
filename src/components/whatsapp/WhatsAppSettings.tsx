@@ -1,6 +1,6 @@
 import { useWhatsAppConfig } from "@/hooks/useWhatsAppConfig";
 import { useCompany } from "@/contexts/CompanyContext";
-import { WhatsAppConnectionCard } from "./WhatsAppConnectionCard";
+import { WhatsAppProviderTabs } from "./WhatsAppProviderTabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, ArrowRight, Bell } from "lucide-react";
@@ -13,9 +13,32 @@ export function WhatsAppSettings() {
     isLoading,
     saveConfig,
     isSavingConfig,
+    saveUazapiConfig,
+    isSavingUazapiConfig,
     testConnection,
     isTestingConnection,
+    testUazapiConnection,
+    isTestingUazapiConnection,
   } = useWhatsAppConfig(activeCompany?.company_id);
+
+  const currentProvider = config?.provider || "zapi";
+
+  const handleProviderChange = (provider: string) => {
+    // Provider change is handled by save operations
+  };
+
+  const handleSaveZapi = (data: { instance_id: string; token: string; client_token?: string }) => {
+    saveConfig({
+      instance_id: data.instance_id,
+      token: data.token,
+      client_token: data.client_token,
+      provider: "zapi",
+    });
+  };
+
+  const handleSaveUazapi = (data: { endpoint: string; token: string; session: string }) => {
+    saveUazapiConfig(data);
+  };
 
   if (isLoadingCompany || isLoading) {
     return (
@@ -30,18 +53,23 @@ export function WhatsAppSettings() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-foreground">WhatsApp (Z-API)</h2>
+        <h2 className="text-xl font-semibold text-foreground">Integração WhatsApp</h2>
         <p className="text-sm text-muted-foreground">
-          Configure a conexão com Z-API para envio de notificações via WhatsApp
+          Configure a conexão com Z-API ou UazapiGO para envio de notificações via WhatsApp
         </p>
       </div>
 
-      <WhatsAppConnectionCard
+      <WhatsAppProviderTabs
+        provider={currentProvider}
+        onProviderChange={handleProviderChange}
         config={config}
-        onSave={saveConfig}
-        onTestConnection={testConnection}
-        isSaving={isSavingConfig}
-        isTesting={isTestingConnection}
+        companyId={activeCompany?.company_id}
+        onSaveZapi={handleSaveZapi}
+        onTestZapi={testConnection}
+        onSaveUazapi={handleSaveUazapi}
+        onTestUazapi={testUazapiConnection}
+        isSaving={isSavingConfig || isSavingUazapiConfig}
+        isTesting={isTestingConnection || isTestingUazapiConnection}
       />
 
       {/* Link to Notifications Module */}

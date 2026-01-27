@@ -1,4 +1,4 @@
-import { AlertTriangle, Sun, Moon, LogOut, User, ChevronDown } from "lucide-react";
+import { AlertTriangle, Sun, Moon, LogOut, User, ChevronDown, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
@@ -9,6 +9,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useLeadDisqualificationNotifications } from "@/hooks/useLeadDisqualificationNotifications";
 import { Badge } from "@/components/ui/badge";
 import { PendingAdsNotification } from "@/components/notifications/PendingAdsNotification";
+import { WhatsAppInboxDrawer } from "@/components/whatsapp/WhatsAppInboxDrawer";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -48,6 +49,7 @@ export function DashboardHeader() {
 
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [isWhatsAppOpen, setIsWhatsAppOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -130,6 +132,17 @@ export function DashboardHeader() {
 
           {/* Pending Ads Notification */}
           <PendingAdsNotification />
+
+          {/* WhatsApp Chat */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsWhatsAppOpen(true)}
+            className="w-10 h-10 rounded-full hover:bg-muted/60"
+            title="WhatsApp"
+          >
+            <MessageSquare className="h-5 w-5 text-muted-foreground" />
+          </Button>
           
           {/* Theme Toggle */}
           {mounted && (
@@ -197,6 +210,12 @@ export function DashboardHeader() {
           </DropdownMenu>
         </div>
       </div>
+
+      {/* WhatsApp Inbox Drawer */}
+      <WhatsAppInboxDrawer
+        isOpen={isWhatsAppOpen}
+        onClose={() => setIsWhatsAppOpen(false)}
+      />
     </header>
   );
 }

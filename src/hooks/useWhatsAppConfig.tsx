@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-interface WhatsAppConfig {
+export interface WhatsAppConfig {
   id: string;
   company_id: string;
   instance_id: string | null;
@@ -13,6 +13,10 @@ interface WhatsAppConfig {
   is_connected: boolean;
   connected_phone: string | null;
   last_connection_test: string | null;
+  provider: string;
+  uazapi_endpoint: string | null;
+  uazapi_token: string | null;
+  uazapi_session: string | null;
 }
 
 interface WhatsAppPreferences {
@@ -93,7 +97,7 @@ export function useWhatsAppConfig(companyId: string | undefined) {
     enabled: !!companyId,
   });
 
-  // Save config mutation
+  // Save config mutation (Z-API)
   const saveConfigMutation = useMutation({
     mutationFn: async (configData: Partial<WhatsAppConfig>) => {
       if (!companyId) throw new Error("Company ID required");
@@ -102,6 +106,7 @@ export function useWhatsAppConfig(companyId: string | undefined) {
         .from("whatsapp_configs")
         .upsert({
           company_id: companyId,
+          provider: "zapi",
           ...configData,
         }, { onConflict: "company_id" });
       
@@ -120,7 +125,37 @@ export function useWhatsAppConfig(companyId: string | undefined) {
     },
   });
 
-  // Test connection mutation
+  // Save UazapiGO config mutation
+  const saveUazapiConfigMutation = useMutation({
+    mutationFn: async (configData: { endpoint: string; token: string; session: string }) => {
+      if (!companyId) throw new Error("Company ID required");
+      
+      const { error } = await supabase
+        .from("whatsapp_configs")
+        .upsert({
+          company_id: companyId,
+          provider: "uazapi",
+          uazapi_endpoint: configData.endpoint,
+          uazapi_token: configData.token,
+          uazapi_session: configData.session,
+        }, { onConflict: "company_id" });
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["whatsapp-config", companyId] });
+      toast({ title: "Configuração UazapiGO salva com sucesso" });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Erro ao salvar configuração", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    },
+  });
+
+  // Test Z-API connection mutation
   const testConnectionMutation = useMutation({
     mutationFn: async (credentials: { instance_id: string; token: string; client_token?: string }) => {
       const { data, error } = await supabase.functions.invoke("test-whatsapp-connection", {
@@ -144,6 +179,43 @@ export function useWhatsAppConfig(companyId: string | undefined) {
         toast({ 
           title: "WhatsApp não conectado", 
           description: "Escaneie o QR Code no painel da Z-API",
+          variant: "destructive" 
+        });
+      }
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Erro ao testar conexão", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    },
+  });
+
+  // Test UazapiGO connection mutation
+  const testUazapiConnectionMutation = useMutation({
+    mutationFn: async (credentials: { endpoint: string; token: string; session: string }) => {
+      const { data, error } = await supabase.functions.invoke("test-uazapi-connection", {
+        body: {
+          ...credentials,
+          company_id: companyId,
+        },
+      });
+      if (error) throw error;
+      if (!data.success) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["whatsapp-config", companyId] });
+      if (data.is_connected) {
+        toast({ 
+          title: "Conexão estabelecida!", 
+          description: data.connected_phone ? `Conectado: ${data.connected_phone}` : "WhatsApp conectado" 
+        });
+      } else {
+        toast({ 
+          title: "WhatsApp não conectado", 
+          description: "Use o botão 'Ver QR Code' para conectar",
           variant: "destructive" 
         });
       }
@@ -291,8 +363,12 @@ export function useWhatsAppConfig(companyId: string | undefined) {
     isLoading: isLoadingConfig || isLoadingPrefs || isLoadingRecipients,
     saveConfig: saveConfigMutation.mutate,
     isSavingConfig: saveConfigMutation.isPending,
+    saveUazapiConfig: saveUazapiConfigMutation.mutate,
+    isSavingUazapiConfig: saveUazapiConfigMutation.isPending,
     testConnection: testConnectionMutation.mutate,
     isTestingConnection: testConnectionMutation.isPending,
+    testUazapiConnection: testUazapiConnectionMutation.mutate,
+    isTestingUazapiConnection: testUazapiConnectionMutation.isPending,
     savePreferences: savePreferencesMutation.mutate,
     isSavingPreferences: savePreferencesMutation.isPending,
     addRecipient: addRecipientMutation.mutate,

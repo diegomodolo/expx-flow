@@ -143,34 +143,63 @@ serve(async (req) => {
       console.error("[send-whatsapp-notification] Log creation error:", logError);
     }
 
-    // Send via Z-API
-    const zapiUrl = `https://api.z-api.io/instances/${config.instance_id}/token/${config.token}/send-text`;
-    console.log("[send-whatsapp-notification] Calling Z-API:", zapiUrl);
+    let apiResponse;
+    let apiData;
 
-    const zapiResponse = await fetch(zapiUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(config.client_token ? { "Client-Token": config.client_token } : {}),
-      },
-      body: JSON.stringify({
-        phone: formattedPhone,
-        message: message,
-      }),
-    });
+    // Determine provider and send message accordingly
+    const provider = config.provider || "zapi";
+    console.log("[send-whatsapp-notification] Using provider:", provider);
 
-    const zapiData = await zapiResponse.json();
-    console.log("[send-whatsapp-notification] Z-API response:", zapiData);
+    if (provider === "uazapi") {
+      // Send via UazapiGO
+      const uazapiUrl = `${config.uazapi_endpoint}/sendText`;
+      console.log("[send-whatsapp-notification] Calling UazapiGO:", uazapiUrl);
+
+      apiResponse = await fetch(uazapiUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Token": config.uazapi_token,
+        },
+        body: JSON.stringify({
+          session: config.uazapi_session,
+          number: formattedPhone,
+          text: message,
+        }),
+      });
+
+      apiData = await apiResponse.json();
+      console.log("[send-whatsapp-notification] UazapiGO response:", apiData);
+    } else {
+      // Send via Z-API (default)
+      const zapiUrl = `https://api.z-api.io/instances/${config.instance_id}/token/${config.token}/send-text`;
+      console.log("[send-whatsapp-notification] Calling Z-API:", zapiUrl);
+
+      apiResponse = await fetch(zapiUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(config.client_token ? { "Client-Token": config.client_token } : {}),
+        },
+        body: JSON.stringify({
+          phone: formattedPhone,
+          message: message,
+        }),
+      });
+
+      apiData = await apiResponse.json();
+      console.log("[send-whatsapp-notification] Z-API response:", apiData);
+    }
 
     // Update log entry
     if (logEntry) {
       const updateData: any = {
-        status: zapiResponse.ok ? "sent" : "failed",
-        zapi_message_id: zapiData.messageId || zapiData.zapiMessageId || null,
+        status: apiResponse.ok ? "sent" : "failed",
+        zapi_message_id: apiData.messageId || apiData.zapiMessageId || apiData.id || null,
       };
 
-      if (!zapiResponse.ok) {
-        updateData.error_message = zapiData.message || zapiData.error || "Erro desconhecido";
+      if (!apiResponse.ok) {
+        updateData.error_message = apiData.message || apiData.error || "Erro desconhecido";
       }
 
       await supabase
@@ -179,12 +208,12 @@ serve(async (req) => {
         .eq("id", logEntry.id);
     }
 
-    if (!zapiResponse.ok) {
-      console.error("[send-whatsapp-notification] Z-API error:", zapiData);
+    if (!apiResponse.ok) {
+      console.error("[send-whatsapp-notification] API error:", apiData);
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: zapiData.message || "Erro ao enviar mensagem" 
+          error: apiData.message || apiData.error || "Erro ao enviar mensagem" 
         }),
         { 
           status: 400, 
@@ -198,7 +227,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message_id: zapiData.messageId || zapiData.zapiMessageId,
+        message_id: apiData.messageId || apiData.zapiMessageId || apiData.id,
         log_id: logEntry?.id,
       }),
       { 
