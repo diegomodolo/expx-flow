@@ -34,14 +34,10 @@ serve(async (req) => {
 
     // If instance_id is provided, fetch credentials from database
     if (instance_id) {
+      // Fetch instance data
       const { data: instance, error: instanceError } = await supabase
         .from("whatsapp_instances")
-        .select(`
-          *,
-          whatsapp_configs!inner (
-            uazapi_endpoint
-          )
-        `)
+        .select("*")
         .eq("id", instance_id)
         .single();
 
@@ -53,7 +49,22 @@ serve(async (req) => {
         );
       }
 
-      endpoint = (instance.whatsapp_configs as any).uazapi_endpoint;
+      // Fetch config separately to get the endpoint
+      const { data: config, error: configError } = await supabase
+        .from("whatsapp_configs")
+        .select("uazapi_endpoint")
+        .eq("company_id", instance.company_id)
+        .single();
+
+      if (configError || !config) {
+        console.error("[get-uazapi-qrcode] Config not found:", configError);
+        return new Response(
+          JSON.stringify({ success: false, error: "Configuração UazapiGO não encontrada" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      endpoint = config.uazapi_endpoint;
       token = instance.uazapi_token;
       company_id = instance.company_id;
     } else if (company_id && session) {
