@@ -63,6 +63,9 @@ verify_jwt = true
 [functions.sync-whatsapp-chats]
 verify_jwt = true
 
+[functions.configure-uazapi-webhook]
+verify_jwt = true
+
 enabled = true
 port = 54321
 schemas = ["public", "graphql_public"]
