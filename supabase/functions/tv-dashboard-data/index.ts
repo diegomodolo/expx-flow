@@ -252,9 +252,10 @@ serve(async (req) => {
       url: url.url,
       clientName: url.client_name,
       clientAvatar: url.client_avatar,
-      status: url.validation_status as 'error' | 'timeout',
+      status: url.validation_status as 'error' | 'timeout' | 'suspicious' | 'empty',
       statusCode: url.validation_status_code,
       activeCampaigns: url.active_campaign_count,
+      contentMatchScore: url.content_match_score,
     }));
 
     if (problematicUrlsResult.error) {
