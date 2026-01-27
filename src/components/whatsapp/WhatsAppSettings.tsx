@@ -45,11 +45,12 @@ export function WhatsAppSettings() {
     });
   };
 
-  const handleSaveUazapiBase = (data: { endpoint: string; token: string }) => {
-    // Save only base config (endpoint + token), not session
+  const handleSaveUazapiBase = (data: { endpoint: string; token: string; admintoken: string }) => {
+    // Save base config (endpoint + token + admintoken)
     saveUazapiConfig({
       endpoint: data.endpoint,
       token: data.token,
+      admintoken: data.admintoken,
       session: config?.uazapi_session || "", // Keep existing session if any
     });
   };
@@ -87,11 +88,11 @@ export function WhatsAppSettings() {
       />
 
       {/* Instances List - Only show for UazapiGO */}
-      {activeProvider === "uazapi" && config?.uazapi_endpoint && config?.uazapi_token && (
+      {activeProvider === "uazapi" && config?.uazapi_endpoint && config?.uazapi_admintoken && (
         <WhatsAppInstancesList
           companyId={activeCompany?.company_id}
           baseEndpoint={config.uazapi_endpoint}
-          baseToken={config.uazapi_token}
+          baseToken={config.uazapi_admintoken}
         />
       )}
 

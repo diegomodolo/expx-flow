@@ -13,6 +13,12 @@ export interface WhatsAppInstance {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  // New v2 fields
+  uazapi_instance_id?: string | null;
+  uazapi_token?: string | null;
+  status?: string | null;
+  profile_name?: string | null;
+  profile_pic_url?: string | null;
 }
 
 export interface WhatsAppInstanceUser {
@@ -89,27 +95,27 @@ export function useWhatsAppInstances(companyId: string | undefined) {
     enabled: !!companyId,
   });
 
-  // Create instance mutation
+  // Create instance mutation - now uses edge function to create on UazapiGO
   const createInstanceMutation = useMutation({
-    mutationFn: async (data: { instance_name: string; session_id: string }) => {
+    mutationFn: async (data: { instance_name: string }) => {
       if (!companyId) throw new Error("Company ID required");
 
-      const { data: result, error } = await supabase
-        .from("whatsapp_instances")
-        .insert({
+      // Call edge function to create instance on UazapiGO
+      const { data: result, error } = await supabase.functions.invoke("create-uazapi-instance", {
+        body: {
           company_id: companyId,
           instance_name: data.instance_name,
-          session_id: data.session_id,
-        })
-        .select()
-        .single();
+        },
+      });
 
       if (error) throw error;
-      return result;
+      if (!result.success) throw new Error(result.error || "Erro ao criar instância");
+      
+      return result.instance;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["whatsapp-instances", companyId] });
-      toast({ title: "Instância criada com sucesso" });
+      toast({ title: "Instância criada com sucesso na UazapiGO" });
     },
     onError: (error: any) => {
       toast({

@@ -16,6 +16,7 @@ export interface WhatsAppConfig {
   provider: string;
   uazapi_endpoint: string | null;
   uazapi_token: string | null;
+  uazapi_admintoken: string | null;
   uazapi_session: string | null;
 }
 
@@ -127,7 +128,7 @@ export function useWhatsAppConfig(companyId: string | undefined) {
 
   // Save UazapiGO config mutation
   const saveUazapiConfigMutation = useMutation({
-    mutationFn: async (configData: { endpoint: string; token: string; session: string }) => {
+    mutationFn: async (configData: { endpoint: string; token: string; admintoken: string; session: string }) => {
       if (!companyId) throw new Error("Company ID required");
       
       const { error } = await supabase
@@ -137,6 +138,7 @@ export function useWhatsAppConfig(companyId: string | undefined) {
           provider: "uazapi",
           uazapi_endpoint: configData.endpoint,
           uazapi_token: configData.token,
+          uazapi_admintoken: configData.admintoken,
           uazapi_session: configData.session,
         }, { onConflict: "company_id" });
       

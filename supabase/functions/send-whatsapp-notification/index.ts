@@ -79,21 +79,6 @@ serve(async (req) => {
       );
     }
 
-    // Check if connected
-    if (!config.is_connected) {
-      console.error("[send-whatsapp-notification] WhatsApp not connected");
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: "WhatsApp não está conectado" 
-        }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, "Content-Type": "application/json" } 
-        }
-      );
-    }
-
     // Check notification preferences
     const { data: prefs } = await supabase
       .from("whatsapp_notification_preferences")
@@ -155,14 +140,14 @@ serve(async (req) => {
     console.log("[send-whatsapp-notification] Using provider:", provider);
 
     if (provider === "uazapi") {
-      // For UazapiGO, find the instance to use
-      let session: string;
+      // For UazapiGO v2, find the instance to use and get its token
+      let instanceToken: string | null = null;
       
       if (instance_id) {
         // Use specific instance
         const { data: instance, error: instanceError } = await supabase
           .from("whatsapp_instances")
-          .select("session_id")
+          .select("id, uazapi_token, is_connected")
           .eq("id", instance_id)
           .eq("is_active", true)
           .single();
@@ -174,13 +159,21 @@ serve(async (req) => {
             { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
-        session = instance.session_id;
-        usedInstanceId = instance_id;
+
+        if (!instance.is_connected) {
+          return new Response(
+            JSON.stringify({ success: false, error: "Instância não está conectada" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        instanceToken = instance.uazapi_token;
+        usedInstanceId = instance.id;
       } else {
-        // Find first active instance for the company
+        // Find first active and connected instance for the company
         const { data: instance, error: instanceError } = await supabase
           .from("whatsapp_instances")
-          .select("id, session_id")
+          .select("id, uazapi_token")
           .eq("company_id", company_id)
           .eq("is_active", true)
           .eq("is_connected", true)
@@ -189,34 +182,37 @@ serve(async (req) => {
           .single();
         
         if (instanceError || !instance) {
-          // Fallback to config's uazapi_session if no instances
-          if (config.uazapi_session) {
-            session = config.uazapi_session;
-          } else {
-            console.error("[send-whatsapp-notification] No active instance found:", instanceError);
-            return new Response(
-              JSON.stringify({ success: false, error: "Nenhuma instância ativa encontrada" }),
-              { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-            );
-          }
-        } else {
-          session = instance.session_id;
-          usedInstanceId = instance.id;
+          console.error("[send-whatsapp-notification] No active connected instance found:", instanceError);
+          return new Response(
+            JSON.stringify({ success: false, error: "Nenhuma instância ativa e conectada encontrada" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
         }
+        
+        instanceToken = instance.uazapi_token;
+        usedInstanceId = instance.id;
       }
 
-      // Send via UazapiGO
-      const uazapiUrl = `${config.uazapi_endpoint}/sendText`;
-      console.log("[send-whatsapp-notification] Calling UazapiGO:", uazapiUrl, "Session:", session);
+      if (!instanceToken) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Token da instância não encontrado" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Send via UazapiGO v2 API
+      // POST /send/text with instance token header
+      const cleanEndpoint = config.uazapi_endpoint?.replace(/\/$/, "");
+      const uazapiUrl = `${cleanEndpoint}/send/text`;
+      console.log("[send-whatsapp-notification] Calling UazapiGO:", uazapiUrl);
 
       apiResponse = await fetch(uazapiUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Token": config.uazapi_token,
+          "token": instanceToken,
         },
         body: JSON.stringify({
-          session: session,
           number: formattedPhone,
           text: message,
         }),
@@ -249,7 +245,7 @@ serve(async (req) => {
     if (logEntry) {
       const updateData: any = {
         status: apiResponse.ok ? "sent" : "failed",
-        zapi_message_id: apiData.messageId || apiData.zapiMessageId || apiData.id || null,
+        zapi_message_id: apiData.messageId || apiData.zapiMessageId || apiData.id || apiData.key?.id || null,
       };
 
       if (!apiResponse.ok) {
@@ -281,7 +277,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message_id: apiData.messageId || apiData.zapiMessageId || apiData.id,
+        message_id: apiData.messageId || apiData.zapiMessageId || apiData.id || apiData.key?.id,
         log_id: logEntry?.id,
       }),
       { 

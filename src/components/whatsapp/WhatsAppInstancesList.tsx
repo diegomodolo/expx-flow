@@ -53,14 +53,14 @@ export function WhatsAppInstancesList({
     setIsUsersModalOpen(true);
   };
 
-  const handleSave = (data: { instance_name: string; session_id: string }) => {
+  const handleSave = (data: { instance_name: string }) => {
     createInstance(data, {
       onSuccess: () => setIsModalOpen(false),
     });
   };
 
-  const handleUpdate = (data: { id: string; instance_name: string; session_id: string }) => {
-    updateInstance(data, {
+  const handleUpdate = (data: { id: string; instance_name: string }) => {
+    updateInstance({ id: data.id, instance_name: data.instance_name }, {
       onSuccess: () => setIsModalOpen(false),
     });
   };

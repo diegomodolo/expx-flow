@@ -57,6 +57,9 @@ verify_jwt = false
 [functions.manage-whatsapp-instance]
 verify_jwt = true
 
+[functions.create-uazapi-instance]
+verify_jwt = true
+
 enabled = true
 port = 54321
 schemas = ["public", "graphql_public"]

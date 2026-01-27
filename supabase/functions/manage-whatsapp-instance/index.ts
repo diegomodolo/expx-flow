@@ -7,12 +7,9 @@ const corsHeaders = {
 };
 
 interface InstancePayload {
-  action: "test" | "get_qrcode" | "update_status";
+  action: "test" | "get_qrcode" | "update_status" | "disconnect" | "delete";
   company_id: string;
   instance_id?: string;
-  endpoint?: string;
-  token?: string;
-  session?: string;
 }
 
 serve(async (req) => {
@@ -27,9 +24,9 @@ serve(async (req) => {
 
   try {
     const payload: InstancePayload = await req.json();
-    const { action, company_id, instance_id, endpoint, token, session } = payload;
+    const { action, company_id, instance_id } = payload;
 
-    console.log("[manage-whatsapp-instance] Action:", action, "Company:", company_id);
+    console.log("[manage-whatsapp-instance] Action:", action, "Company:", company_id, "Instance:", instance_id);
 
     if (!company_id || !action) {
       return new Response(
@@ -38,39 +35,33 @@ serve(async (req) => {
       );
     }
 
-    // Get base config if endpoint/token not provided
-    let baseEndpoint = endpoint;
-    let baseToken = token;
+    // Get base config
+    const { data: config, error: configError } = await supabase
+      .from("whatsapp_configs")
+      .select("uazapi_endpoint, uazapi_admintoken")
+      .eq("company_id", company_id)
+      .single();
 
-    if (!baseEndpoint || !baseToken) {
-      const { data: config, error: configError } = await supabase
-        .from("whatsapp_configs")
-        .select("uazapi_endpoint, uazapi_token")
-        .eq("company_id", company_id)
-        .single();
-
-      if (configError || !config) {
-        console.error("[manage-whatsapp-instance] Config not found:", configError);
-        return new Response(
-          JSON.stringify({ success: false, error: "Configuração base não encontrada" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      baseEndpoint = config.uazapi_endpoint;
-      baseToken = config.uazapi_token;
+    if (configError || !config) {
+      console.error("[manage-whatsapp-instance] Config not found:", configError);
+      return new Response(
+        JSON.stringify({ success: false, error: "Configuração base não encontrada" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    // Get session from instance if not provided
-    let sessionId = session;
-    if (!sessionId && instance_id) {
-      const { data: instance, error: instanceError } = await supabase
+    const cleanEndpoint = config.uazapi_endpoint?.replace(/\/$/, "");
+
+    // Get instance if instance_id provided
+    let instance: any = null;
+    if (instance_id) {
+      const { data: instanceData, error: instanceError } = await supabase
         .from("whatsapp_instances")
-        .select("session_id")
+        .select("*")
         .eq("id", instance_id)
         .single();
 
-      if (instanceError || !instance) {
+      if (instanceError || !instanceData) {
         console.error("[manage-whatsapp-instance] Instance not found:", instanceError);
         return new Response(
           JSON.stringify({ success: false, error: "Instância não encontrada" }),
@@ -78,12 +69,12 @@ serve(async (req) => {
         );
       }
 
-      sessionId = instance.session_id;
+      instance = instanceData;
     }
 
-    if (!sessionId) {
+    if (!instance?.uazapi_token && action !== "delete") {
       return new Response(
-        JSON.stringify({ success: false, error: "Session ID é obrigatório" }),
+        JSON.stringify({ success: false, error: "Token da instância não encontrado. Recrie a instância." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -92,122 +83,132 @@ serve(async (req) => {
 
     switch (action) {
       case "test": {
-        // Test connection
-        const testUrl = `${baseEndpoint}/session/status/${sessionId}`;
-        console.log("[manage-whatsapp-instance] Testing:", testUrl);
+        // Test connection via GET /instance/status with instance token
+        const statusUrl = `${cleanEndpoint}/instance/status`;
+        console.log("[manage-whatsapp-instance] Testing:", statusUrl);
 
-        const response = await fetch(testUrl, {
+        const response = await fetch(statusUrl, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-            "Token": baseToken,
+            "token": instance.uazapi_token,
           },
         });
 
-        const data = await response.json();
-        console.log("[manage-whatsapp-instance] Test response:", data);
+        const responseText = await response.text();
+        console.log("[manage-whatsapp-instance] Test response:", responseText.substring(0, 500));
 
-        const isConnected = data.state === "CONNECTED" || 
-                           data.status === "CONNECTED" || 
+        let data;
+        try {
+          data = JSON.parse(responseText);
+        } catch {
+          return new Response(
+            JSON.stringify({ success: false, error: "Resposta inválida da UazapiGO" }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        const isConnected = data.instance?.status === "connected" || 
+                           data.status?.connected === true || 
                            data.connected === true;
-        const connectedPhone = data.phoneNumber || data.phone || data.jid?.replace("@s.whatsapp.net", "") || null;
+        const connectedPhone = data.status?.jid?.user || data.instance?.phone || null;
+        const profileName = data.instance?.profileName || null;
+        const profilePicUrl = data.instance?.profilePicUrl || null;
 
         // Update instance status
-        if (instance_id) {
-          await supabase
-            .from("whatsapp_instances")
-            .update({
-              is_connected: isConnected,
-              connected_phone: connectedPhone,
-              last_connection_test: new Date().toISOString(),
-            })
-            .eq("id", instance_id);
-        }
+        await supabase
+          .from("whatsapp_instances")
+          .update({
+            is_connected: isConnected,
+            connected_phone: connectedPhone,
+            profile_name: profileName,
+            profile_pic_url: profilePicUrl,
+            status: isConnected ? "connected" : "disconnected",
+            last_connection_test: new Date().toISOString(),
+          })
+          .eq("id", instance_id);
 
         result = {
           success: true,
           is_connected: isConnected,
           connected_phone: connectedPhone,
-          state: data.state || data.status,
+          profile_name: profileName,
+          profile_pic_url: profilePicUrl,
+          status: isConnected ? "connected" : "disconnected",
         };
         break;
       }
 
       case "get_qrcode": {
-        // Start session and get QR code
-        const startUrl = `${baseEndpoint}/session/start/${sessionId}`;
-        console.log("[manage-whatsapp-instance] Starting session:", startUrl);
+        // Get QR code via POST /instance/connect with instance token
+        const connectUrl = `${cleanEndpoint}/instance/connect`;
+        console.log("[manage-whatsapp-instance] Getting QR code:", connectUrl);
 
-        // First, try to start the session
-        const startResponse = await fetch(startUrl, {
+        const response = await fetch(connectUrl, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Token": baseToken,
-          },
-          body: JSON.stringify({
-            webhook: `${supabaseUrl}/functions/v1/whatsapp-webhook`,
-          }),
-        });
-
-        const startData = await startResponse.json();
-        console.log("[manage-whatsapp-instance] Start response:", startData);
-
-        // Get QR code
-        const qrUrl = `${baseEndpoint}/session/qrcode/image/${sessionId}`;
-        console.log("[manage-whatsapp-instance] Getting QR code:", qrUrl);
-
-        const qrResponse = await fetch(qrUrl, {
-          method: "GET",
-          headers: {
-            "Token": baseToken,
+            "token": instance.uazapi_token,
           },
         });
 
-        if (qrResponse.ok) {
-          const contentType = qrResponse.headers.get("content-type");
-          
-          if (contentType?.includes("image")) {
-            // Convert image to base64
-            const imageBuffer = await qrResponse.arrayBuffer();
-            const base64 = btoa(String.fromCharCode(...new Uint8Array(imageBuffer)));
-            result = {
-              success: true,
-              qr_code: `data:${contentType};base64,${base64}`,
-              state: startData.state || "STARTING",
-            };
-          } else {
-            const qrData = await qrResponse.json();
-            result = {
-              success: true,
-              qr_code: qrData.qrcode || qrData.base64 || qrData.data,
-              state: startData.state || qrData.state || "STARTING",
-            };
-          }
-        } else {
-          // Session might already be connected
-          const statusUrl = `${baseEndpoint}/session/status/${sessionId}`;
-          const statusResponse = await fetch(statusUrl, {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-              "Token": baseToken,
-            },
-          });
-          const statusData = await statusResponse.json();
+        const responseText = await response.text();
+        console.log("[manage-whatsapp-instance] QR response:", responseText.substring(0, 500));
 
-          if (statusData.state === "CONNECTED" || statusData.status === "CONNECTED") {
-            result = {
-              success: true,
+        let data;
+        try {
+          data = JSON.parse(responseText);
+        } catch {
+          return new Response(
+            JSON.stringify({ success: false, error: "Resposta inválida da UazapiGO" }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        // Check if already connected
+        if (data.connected === true || data.loggedIn === true) {
+          await supabase
+            .from("whatsapp_instances")
+            .update({
               is_connected: true,
-              connected_phone: statusData.phoneNumber || statusData.phone,
-              state: "CONNECTED",
+              status: "connected",
+              profile_name: data.instance?.profileName || null,
+              profile_pic_url: data.instance?.profilePicUrl || null,
+              connected_phone: data.status?.jid?.user || null,
+              last_connection_test: new Date().toISOString(),
+            })
+            .eq("id", instance_id);
+
+          result = {
+            success: true,
+            is_connected: true,
+            connected_phone: data.status?.jid?.user,
+            profile_name: data.instance?.profileName,
+          };
+        } else {
+          const qrcode = data.instance?.qrcode || data.qrcode;
+          const paircode = data.instance?.paircode || data.paircode;
+
+          if (qrcode) {
+            await supabase
+              .from("whatsapp_instances")
+              .update({
+                status: "connecting",
+                is_connected: false,
+                last_connection_test: new Date().toISOString(),
+              })
+              .eq("id", instance_id);
+
+            result = {
+              success: true,
+              qr_code: qrcode.startsWith("data:") ? qrcode : `data:image/png;base64,${qrcode}`,
+              paircode: paircode,
+              status: "connecting",
             };
           } else {
             result = {
               success: false,
               error: "Não foi possível obter o QR Code",
-              state: statusData.state || "UNKNOWN",
             };
           }
         }
@@ -215,36 +216,106 @@ serve(async (req) => {
       }
 
       case "update_status": {
-        // Just check and update status
-        const statusUrl = `${baseEndpoint}/session/status/${sessionId}`;
+        // Just check and update status via GET /instance/status
+        const statusUrl = `${cleanEndpoint}/instance/status`;
         const response = await fetch(statusUrl, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-            "Token": baseToken,
+            "token": instance.uazapi_token,
           },
         });
 
         const data = await response.json();
-        const isConnected = data.state === "CONNECTED" || data.status === "CONNECTED";
-        const connectedPhone = data.phoneNumber || data.phone || null;
+        const isConnected = data.instance?.status === "connected" || data.status?.connected === true;
+        const connectedPhone = data.status?.jid?.user || data.instance?.phone || null;
 
-        if (instance_id) {
-          await supabase
-            .from("whatsapp_instances")
-            .update({
-              is_connected: isConnected,
-              connected_phone: connectedPhone,
-              last_connection_test: new Date().toISOString(),
-            })
-            .eq("id", instance_id);
-        }
+        await supabase
+          .from("whatsapp_instances")
+          .update({
+            is_connected: isConnected,
+            connected_phone: connectedPhone,
+            profile_name: data.instance?.profileName || null,
+            profile_pic_url: data.instance?.profilePicUrl || null,
+            status: isConnected ? "connected" : "disconnected",
+            last_connection_test: new Date().toISOString(),
+          })
+          .eq("id", instance_id);
 
         result = {
           success: true,
           is_connected: isConnected,
           connected_phone: connectedPhone,
-          state: data.state || data.status,
+          status: isConnected ? "connected" : "disconnected",
+        };
+        break;
+      }
+
+      case "disconnect": {
+        // Disconnect via POST /instance/disconnect with instance token
+        const disconnectUrl = `${cleanEndpoint}/instance/disconnect`;
+        console.log("[manage-whatsapp-instance] Disconnecting:", disconnectUrl);
+
+        const response = await fetch(disconnectUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "token": instance.uazapi_token,
+          },
+        });
+
+        const data = await response.json();
+        console.log("[manage-whatsapp-instance] Disconnect response:", data);
+
+        await supabase
+          .from("whatsapp_instances")
+          .update({
+            is_connected: false,
+            connected_phone: null,
+            profile_name: null,
+            profile_pic_url: null,
+            status: "disconnected",
+            last_connection_test: new Date().toISOString(),
+          })
+          .eq("id", instance_id);
+
+        result = {
+          success: true,
+          message: "Instância desconectada",
+          status: "disconnected",
+        };
+        break;
+      }
+
+      case "delete": {
+        // Delete instance from UazapiGO via DELETE /instance with admintoken
+        if (instance?.uazapi_instance_id && config.uazapi_admintoken) {
+          const deleteUrl = `${cleanEndpoint}/instance`;
+          console.log("[manage-whatsapp-instance] Deleting from UazapiGO:", deleteUrl);
+
+          try {
+            await fetch(deleteUrl, {
+              method: "DELETE",
+              headers: {
+                "Content-Type": "application/json",
+                "admintoken": config.uazapi_admintoken,
+              },
+              body: JSON.stringify({ instanceId: instance.uazapi_instance_id }),
+            });
+          } catch (deleteError) {
+            console.log("[manage-whatsapp-instance] UazapiGO delete failed (non-critical):", deleteError);
+          }
+        }
+
+        // Soft delete from database
+        await supabase
+          .from("whatsapp_instances")
+          .update({ is_active: false })
+          .eq("id", instance_id);
+
+        result = {
+          success: true,
+          message: "Instância removida",
         };
         break;
       }
