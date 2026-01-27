@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCompany } from "@/contexts/CompanyContext";
@@ -6,9 +6,10 @@ import { useWhatsAppConfig } from "@/hooks/useWhatsAppConfig";
 import { useWhatsAppConversations } from "@/hooks/useWhatsAppConversations";
 import { useWhatsAppInstances } from "@/hooks/useWhatsAppInstances";
 import { useWhatsAppRealtime } from "@/hooks/useWhatsAppRealtime";
+import { useSyncWhatsAppChats } from "@/hooks/useSyncWhatsAppChats";
 import { WhatsAppConversationList } from "./WhatsAppConversationList";
 import { WhatsAppChatWindow } from "./WhatsAppChatWindow";
-import { MessageSquare, Settings, AlertCircle, Phone, CheckCircle2, XCircle } from "lucide-react";
+import { MessageSquare, Settings, AlertCircle, Phone, CheckCircle2, XCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 
@@ -24,6 +25,10 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
   
   const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
+  const hasTriggeredSync = useRef(false);
+
+  // Hook para sincronização de chats
+  const { syncChats, isSyncing } = useSyncWhatsAppChats(activeCompany?.company_id);
 
   // Determine which instances to show (user's assigned instances, or all if admin)
   const availableInstances = userInstances.length > 0 ? userInstances : instances;
@@ -41,6 +46,26 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
       }
     }
   }, [availableInstances, selectedInstanceId]);
+
+  // Sincronizar chats quando abrir o drawer ou trocar instância
+  useEffect(() => {
+    if (isOpen && selectedInstanceId && !hasTriggeredSync.current) {
+      hasTriggeredSync.current = true;
+      syncChats(selectedInstanceId);
+    }
+    
+    // Reset flag quando fechar o drawer
+    if (!isOpen) {
+      hasTriggeredSync.current = false;
+    }
+  }, [isOpen, selectedInstanceId, syncChats]);
+
+  // Sincronizar quando trocar de instância
+  const handleInstanceChange = (instanceId: string) => {
+    setSelectedInstanceId(instanceId);
+    setSelectedConversationId(null); // Reset selected conversation when changing instance
+    syncChats(instanceId); // Sincronizar chats da nova instância
+  };
 
   const { conversations, isLoading: isLoadingConversations, markAsRead } = useWhatsAppConversations(
     activeCompany?.company_id,
@@ -64,10 +89,6 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
     markAsRead(id);
   };
 
-  const handleInstanceChange = (instanceId: string) => {
-    setSelectedInstanceId(instanceId);
-    setSelectedConversationId(null); // Reset selected conversation when changing instance
-  };
 
   return (
     <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -78,11 +99,24 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
               <MessageSquare className="h-5 w-5 text-primary" />
               <SheetTitle>WhatsApp</SheetTitle>
             </div>
-            <Button variant="ghost" size="icon" asChild>
-              <Link to="/configuracoes/whatsapp" onClick={onClose}>
-                <Settings className="h-4 w-4" />
-              </Link>
-            </Button>
+            <div className="flex items-center gap-1">
+              {selectedInstanceId && (
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => syncChats(selectedInstanceId)}
+                  disabled={isSyncing}
+                  title="Atualizar conversas"
+                >
+                  <RefreshCw className={`h-4 w-4 ${isSyncing ? "animate-spin" : ""}`} />
+                </Button>
+              )}
+              <Button variant="ghost" size="icon" asChild>
+                <Link to="/configuracoes/whatsapp" onClick={onClose}>
+                  <Settings className="h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
           </div>
         </SheetHeader>
 
