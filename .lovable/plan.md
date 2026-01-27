@@ -1,157 +1,74 @@
 
-# Plano: Sincronizar Conversas e Configurar Webhook Automaticamente
+## Diagnóstico (por que “não traz mensagem nenhuma”)
+Pelos logs do Edge Function `fetch-whatsapp-messages`, a API do UazapiGO está retornando mensagens (ex.: `100 mensagens encontradas`), porém o sistema está salvando **0** no banco (`Mensagens salvas: 0, Total no banco: 0`).  
+Ou seja: o problema não é a chamada ao endpoint em si — é a persistência/normalização dentro do Edge Function + banco.
 
-## Problemas Identificados
+O motivo mais provável (e confirmado pelo schema atual) é:
+- O Edge Function faz `upsert(..., { onConflict: "external_id" })`
+- Mas a tabela `public.whatsapp_messages` **não tem nenhuma constraint UNIQUE** para `external_id` (nem índice único), então o Postgres **não consegue aplicar o ON CONFLICT**.
 
-### 1. Sincronizacao de Chats Falhando
-Os logs mostram:
-- `/chats` retornou **404** (endpoint nao existe)
-- `/chat/findChats` retornou **405** (metodo nao permitido)
+Eu validei no schema do banco que só existem PK/FKs e checks; não existe unique em `external_id`.
 
-A API UazapiGO v2 provavelmente usa um endpoint diferente ou requer o nome da instancia na URL (como na Evolution API).
+Além disso, há um segundo problema potencial:
+- A resposta do `/message/find` pode vir com mensagens de vários chats (ou com campos diferentes), então precisamos **filtrar** por `chatid === "<numero>@s.whatsapp.net"` antes de salvar, e melhorar o fallback de conteúdo para mensagens de mídia quando `msg.type` existe.
 
-### 2. Webhook Nao Configurado
-Quando a instancia foi criada (`create-uazapi-instance`), o webhook NAO foi configurado automaticamente. Isso significa que:
-- Mensagens novas nao sao recebidas
-- Conversas nao sao criadas automaticamente
-- O sistema depende 100% da sincronizacao manual
+## O que vamos implementar
+### 1) Ajuste no banco (obrigatório para salvar mensagens)
+Criar uma constraint UNIQUE (recomendado: por empresa) para suportar o upsert:
 
----
+Opção recomendada:
+- UNIQUE `(company_id, external_id)`
 
-## Solucao
+Por que assim:
+- Evita colisão entre empresas diferentes
+- Permite múltiplas mensagens com `external_id = NULL` (Postgres permite múltiplos NULLs em unique)
+- Mantém a deduplicação estável para re-sync
 
-### Etapa 1: Corrigir a Edge Function `sync-whatsapp-chats`
+Também vamos atualizar o Edge Function para usar:
+- `onConflict: "company_id,external_id"`
 
-Atualizar para usar os endpoints corretos da UazapiGO v2:
+### 2) Ajuste no Edge Function `fetch-whatsapp-messages` (para efetivamente preencher o chat)
+Mudanças principais:
+- **Filtrar mensagens** retornadas: manter apenas as mensagens cujo `msg.chatid` (ou `msg.chatId`, dependendo do payload) bate com o `chatId` solicitado.
+- **Corrigir a chave do upsert** para `company_id,external_id`.
+- **Melhorar extração de conteúdo**: se `msg.type` vier como `image/video/audio/document` e não existir `content.text`, preencher `content` com placeholder (`[Imagem]`, `[Vídeo]`, etc.) ao invés de “pular”.
+- **Logs úteis**: logar contagem de `skipped`, `saved`, e os 2–3 primeiros erros do banco (sem expor token completo).
+- (Opcional) aceitar `limit` e `offset` do frontend para “Buscar mensagens anteriores” fazer paginação real.
 
-**Endpoints a testar (em ordem de prioridade):**
-1. `POST /chat/findChats` com corpo vazio (sem path param)
-2. `GET /chat/findChats` (alternativa)
-3. `POST /chat/findChats/{instanceName}` (padrao Evolution API)
-4. `GET /instance/chats` (possivel endpoint UazapiGO)
+### 3) Ajuste leve no frontend (se necessário)
+Hoje o frontend chama `fetchMessagesFromApi(true)` sem parâmetros de paginação.  
+Se você quer que o botão “Buscar mensagens anteriores” realmente busque páginas antigas:
+- Adicionar estado local de `offset` no chat
+- Incrementar `offset` a cada clique
+- Passar `{ limit, offset }` para o Edge Function
+- Mesclar mensagens no banco (já que o banco vai deduplicar por external_id)
 
-**Alteracoes necessarias:**
-- Buscar o `uazapi_instance_id` da tabela `whatsapp_instances` para usar como path param
-- Adicionar logs detalhados para cada tentativa
-- Testar multiplos formatos de resposta
+Se você só quer “trazer as mensagens desse chat”, sem paginação, dá para manter como está — desde que o backend passe a salvar corretamente.
 
-### Etapa 2: Configurar Webhook Automaticamente na Criacao da Instancia
+## Plano de execução (passo a passo)
+1. **Criar migration** no Supabase para adicionar UNIQUE em `whatsapp_messages`:
+   - `UNIQUE (company_id, external_id)`
+2. **Atualizar o Edge Function** `supabase/functions/fetch-whatsapp-messages/index.ts`:
+   - trocar `onConflict: "external_id"` por `onConflict: "company_id,external_id"`
+   - filtrar mensagens por `chatid`
+   - melhorar parsing de conteúdo/mídia
+   - adicionar logs de `saved/skipped/errors`
+3. (Opcional, se você aprovar) **Adicionar paginação**:
+   - frontend envia `limit/offset`
+   - Edge Function repassa para UazapiGO
+4. **Teste guiado**:
+   - abrir o chat do “Miguel Viana”
+   - clicar no ícone de atualizar (🔄)
+   - confirmar no drawer:
+     - a lista deixa de mostrar “Nenhuma mensagem ainda”
+   - validar nos logs do Edge Function:
+     - `fetched > 0`, `saved > 0`, `total no banco > 0`
 
-Modificar `create-uazapi-instance` para configurar o webhook apos criar a instancia:
+## Perguntas rápidas (para eu alinhar sem suposições)
+- Você quer deduplicar mensagens por `external_id` **por empresa** (mais seguro) ou global (menos seguro)?
+- O botão “Buscar mensagens anteriores” precisa de paginação real (limit/offset) ou pode apenas “sincronizar tudo que tiver” sem paginação?
 
-```
-Endpoint: POST /webhook
-Header: token (token da instancia)
-Body: {
-  "url": "https://ejwpfztkspbvmuwwiwmk.supabase.co/functions/v1/whatsapp-webhook",
-  "events": ["MESSAGES_UPSERT", "MESSAGES_UPDATE", "CONNECTION_UPDATE", "QRCODE_UPDATED"]
-}
-```
-
-### Etapa 3: Criar funcao para Configurar Webhook em Instancias Existentes
-
-Uma nova edge function `configure-uazapi-webhook` que permite configurar o webhook em instancias ja criadas (como a sua atual).
-
----
-
-## Detalhes Tecnicos
-
-### Arquivo 1: `supabase/functions/sync-whatsapp-chats/index.ts`
-
-**Correcoes:**
-```typescript
-// Buscar instanceName/uazapi_instance_id para usar na URL
-const { data: instance } = await supabase
-  .from("whatsapp_instances")
-  .select("uazapi_token, uazapi_instance_id")
-  .eq("id", instance_id)
-  .single();
-
-// Tentar diferentes endpoints
-const endpoints = [
-  { url: `${endpoint}/chat/findChats`, method: "POST" },
-  { url: `${endpoint}/chat/findChats/${instance.uazapi_instance_id}`, method: "POST" },
-  { url: `${endpoint}/instance/chats`, method: "GET" },
-];
-
-for (const ep of endpoints) {
-  const response = await fetch(ep.url, {
-    method: ep.method,
-    headers: { "token": instance.uazapi_token, "Content-Type": "application/json" },
-    ...(ep.method === "POST" ? { body: JSON.stringify({}) } : {}),
-  });
-  
-  if (response.ok) {
-    // Processar resposta...
-    break;
-  }
-  console.log(`[sync] ${ep.url} retornou ${response.status}`);
-}
-```
-
-### Arquivo 2: `supabase/functions/create-uazapi-instance/index.ts`
-
-**Adicionar apos criar a instancia:**
-```typescript
-// Configurar webhook automaticamente
-const webhookUrl = `${cleanEndpoint}/webhook`;
-const supabaseFunctionsUrl = Deno.env.get("SUPABASE_URL")?.replace(".supabase.co", ".supabase.co/functions/v1");
-const webhookCallbackUrl = `${supabaseFunctionsUrl}/whatsapp-webhook`;
-
-console.log("[create-uazapi-instance] Configurando webhook:", webhookCallbackUrl);
-
-const webhookResponse = await fetch(webhookUrl, {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    "token": uazapiToken,
-  },
-  body: JSON.stringify({
-    url: webhookCallbackUrl,
-    events: ["MESSAGES_UPSERT", "MESSAGES_UPDATE", "CONNECTION_UPDATE", "QRCODE_UPDATED"],
-    webhook_by_events: false,
-    enabled: true,
-  }),
-});
-
-const webhookData = await webhookResponse.json();
-console.log("[create-uazapi-instance] Webhook configurado:", webhookData);
-```
-
-### Arquivo 3: Nova edge function `supabase/functions/configure-uazapi-webhook/index.ts`
-
-```typescript
-// Permite configurar webhook em instancias existentes
-// Recebe: { instance_id: string }
-// Configura o webhook para a instancia especificada
-```
-
----
-
-## Resumo de Arquivos
-
-| Arquivo | Acao |
-|---------|------|
-| `supabase/functions/sync-whatsapp-chats/index.ts` | Modificar - testar multiplos endpoints |
-| `supabase/functions/create-uazapi-instance/index.ts` | Modificar - adicionar config de webhook |
-| `supabase/functions/configure-uazapi-webhook/index.ts` | Criar - config webhook para instancias existentes |
-| `supabase/config.toml` | Modificar - adicionar nova funcao |
-
----
-
-## Ordem de Execucao
-
-1. **Primeiro**: Criar `configure-uazapi-webhook` para configurar o webhook na sua instancia existente
-2. **Segundo**: Atualizar `sync-whatsapp-chats` para testar multiplos endpoints
-3. **Terceiro**: Atualizar `create-uazapi-instance` para futuras instancias terem webhook configurado automaticamente
-
----
-
-## Teste Apos Implementacao
-
-Apos aprovar o plano:
-1. Chamar `configure-uazapi-webhook` para sua instancia existente
-2. Testar `sync-whatsapp-chats` novamente
-3. Verificar os logs para ver qual endpoint funcionou
-4. Se nenhum endpoint funcionar, investigar a documentacao especifica do seu servidor UazapiGO
-
+## Resultado esperado
+- Ao clicar em um chat antigo ou no botão de atualizar, o sistema chama `POST https://plannerx.uazapi.com/message/find` com o **token da instância correta** e `chatid` do contato
+- As mensagens retornadas são filtradas para aquele chat e **salvas no banco**
+- O chat passa a exibir o histórico corretamente (em vez de “Nenhuma mensagem ainda”)
