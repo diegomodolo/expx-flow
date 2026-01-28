@@ -63,6 +63,9 @@ export function useWhatsAppRealtimeAnalysis({
   const [isLoadingStored, setIsLoadingStored] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const lastAnalyzedMessageId = useRef<string | null>(null);
+  // Prevent running multiple analyses concurrently for the same last message.
+  // This was causing duplicated analysis blocks being saved to whatsapp_ai_chat_messages.
+  const inFlightMessageId = useRef<string | null>(null);
   const currentConversationId = useRef<string | null>(null);
   
   const { config } = useWhatsAppAIAgentConfig(companyId, instanceId);
@@ -217,6 +220,7 @@ export function useWhatsAppRealtimeAnalysis({
     setAnalysis(null);
     setIsNewAnalysis(false);
     lastAnalyzedMessageId.current = null;
+    inFlightMessageId.current = null;
     currentConversationId.current = conversationId;
 
     // Load stored analysis for new conversation
@@ -241,6 +245,12 @@ export function useWhatsAppRealtimeAnalysis({
     // Don't re-analyze if we already analyzed this message
     if (lastMessage.id === lastAnalyzedMessageId.current) return;
 
+    // Avoid duplicate parallel analyses for the same message id
+    if (inFlightMessageId.current === lastMessage.id) {
+      console.log("[useWhatsAppRealtimeAnalysis] Analysis already in-flight for message:", lastMessage.id);
+      return;
+    }
+
     // Check if last message is audio and waiting for transcription
     const isAudioMessage = lastMessage.message_type === "audio" || lastMessage.message_type === "ptt";
     const isTranscriptionPending = lastMessage.transcription_status === "processing" || 
@@ -252,6 +262,7 @@ export function useWhatsAppRealtimeAnalysis({
       return; // Wait for transcription to be ready
     }
 
+    inFlightMessageId.current = lastMessage.id;
     setIsAnalyzing(true);
     setError(null);
 
@@ -313,6 +324,10 @@ export function useWhatsAppRealtimeAnalysis({
       setError("Erro ao analisar conversa");
     } finally {
       setIsAnalyzing(false);
+      // Clear in-flight lock (only if it still refers to the same message)
+      if (inFlightMessageId.current === lastMessage.id) {
+        inFlightMessageId.current = null;
+      }
     }
   }, [companyId, conversationId, config, saveAnalysis]);
 
@@ -323,7 +338,7 @@ export function useWhatsAppRealtimeAnalysis({
     const lastMessage = messages[messages.length - 1];
     
     // Only analyze if there's a new message
-    if (lastMessage.id !== lastAnalyzedMessageId.current) {
+    if (lastMessage.id !== lastAnalyzedMessageId.current && inFlightMessageId.current !== lastMessage.id) {
       // Small debounce to avoid multiple rapid calls
       const timeoutId = setTimeout(() => {
         analyzeConversation(messages);
@@ -339,12 +354,14 @@ export function useWhatsAppRealtimeAnalysis({
       setAnalysis(null);
       setIsNewAnalysis(false);
       lastAnalyzedMessageId.current = null;
+      inFlightMessageId.current = null;
     }
   }, [enabled]);
 
   const triggerAnalysis = useCallback(() => {
     if (messages.length > 0) {
       lastAnalyzedMessageId.current = null; // Force re-analysis
+      inFlightMessageId.current = null;
       analyzeConversation(messages);
     }
   }, [messages, analyzeConversation]);
