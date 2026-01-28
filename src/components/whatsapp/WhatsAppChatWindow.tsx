@@ -11,6 +11,7 @@ import { WhatsAppAIAssistant } from "./WhatsAppAIAssistant";
 import { WhatsAppAISendDialog } from "./WhatsAppAISendDialog";
 import { useWhatsAppLabels } from "@/hooks/useWhatsAppLabels";
 import { useWhatsAppQuickReplies } from "@/hooks/useWhatsAppQuickReplies";
+import { useWhatsAppPanelSizes } from "@/hooks/useWhatsAppPanelSizes";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -72,6 +73,7 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
   
   const { labels } = useWhatsAppLabels(companyId, instanceId ?? null);
   const { quickReplies, isLoading: quickRepliesLoading } = useWhatsAppQuickReplies(instanceId ?? null);
+  const { sizes, setAiAssistantSize } = useWhatsAppPanelSizes();
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -188,9 +190,18 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
   };
 
   return (
-    <ResizablePanelGroup direction="horizontal" className="h-full">
+    <ResizablePanelGroup 
+      direction="horizontal" 
+      className="h-full"
+      onLayout={(panelSizes) => {
+        // When AI assistant is open, save the AI panel size (second panel)
+        if (aiAssistantOpen && panelSizes[1]) {
+          setAiAssistantSize(panelSizes[1]);
+        }
+      }}
+    >
       {/* Main chat area */}
-      <ResizablePanel defaultSize={aiAssistantOpen ? 65 : 100} minSize={50}>
+      <ResizablePanel defaultSize={aiAssistantOpen ? (100 - sizes.aiAssistant) : 100} minSize={50}>
         <div className="flex flex-col h-full min-w-0">
       <div className="flex items-center gap-3 px-4 py-3 border-b bg-muted/30">
         <Avatar 
@@ -440,7 +451,7 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
       {aiAssistantOpen && (
         <>
           <ResizableHandle withHandle />
-          <ResizablePanel defaultSize={35} minSize={20} maxSize={50}>
+          <ResizablePanel defaultSize={sizes.aiAssistant} minSize={20} maxSize={50}>
             <WhatsAppAIAssistant
               isOpen={aiAssistantOpen}
               onClose={() => setAiAssistantOpen(false)}
