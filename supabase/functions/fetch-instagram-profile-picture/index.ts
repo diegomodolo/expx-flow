@@ -40,7 +40,7 @@ serve(async (req) => {
         facebook_page_id,
         facebook_pages!inner (
           page_id,
-          access_token,
+          page_access_token,
           company_id
         )
       `)
@@ -50,18 +50,18 @@ serve(async (req) => {
     if (accountError || !instagramAccount) {
       console.error('Error fetching Instagram account:', accountError);
       return new Response(
-        JSON.stringify({ success: false, error: 'Instagram account not found' }),
+        JSON.stringify({ success: false, error: 'Instagram account not found', details: accountError?.message }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const accessToken = (instagramAccount.facebook_pages as any)?.access_token;
+    const accessToken = (instagramAccount.facebook_pages as any)?.page_access_token;
     const igUserId = instagramAccount.instagram_id;
 
     if (!accessToken) {
       console.error('No access token found for Instagram account');
       return new Response(
-        JSON.stringify({ success: false, error: 'No access token available' }),
+        JSON.stringify({ success: false, error: 'No page access token available' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
