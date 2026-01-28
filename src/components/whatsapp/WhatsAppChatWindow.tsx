@@ -16,7 +16,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
-import { Phone, RefreshCw, Trash2, MoreVertical, Loader2, CheckCheck, Sparkles, Archive, ArchiveRestore, Circle, CircleDot } from "lucide-react";
+import { Phone, RefreshCw, Trash2, MoreVertical, Loader2, CheckCheck, Sparkles, Archive, ArchiveRestore, Circle, CircleDot, BellOff, Bell } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -25,6 +25,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -64,6 +67,7 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
   const [showProfilePic, setShowProfilePic] = useState(false);
   const [isMarkingRead, setIsMarkingRead] = useState(false);
   const [isTogglingRead, setIsTogglingRead] = useState(false);
+  const [isMuting, setIsMuting] = useState(false);
   
   // AI Assistant state
   const [aiAssistantOpen, setAiAssistantOpen] = useState(false);
@@ -235,6 +239,39 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
     }
   };
 
+  const handleMuteChat = async (muteEndTime: number) => {
+    if (!companyId || !instanceId) {
+      toast.error("Não foi possível silenciar o chat");
+      return;
+    }
+
+    setIsMuting(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("mute-whatsapp-chat", {
+        body: {
+          company_id: companyId,
+          instance_id: instanceId,
+          phone: conversation.phone,
+          mute_end_time: muteEndTime,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        toast.success(data.message);
+      } else {
+        throw new Error(data?.error || "Erro ao silenciar chat");
+      }
+    } catch (err: any) {
+      console.error("[WhatsAppChatWindow] Mute chat error:", err);
+      toast.error(err.message || "Erro ao silenciar chat");
+    } finally {
+      setIsMuting(false);
+    }
+  };
+
   const handleOpenAIAssistant = (messageContent: string) => {
     setAiSelectedMessage(messageContent);
     setAiAssistantOpen(true);
@@ -402,6 +439,32 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
               )}
               {conversation.is_archived ? "Desarquivar chat" : "Arquivar chat"}
             </DropdownMenuItem>
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger disabled={isMuting}>
+                {isMuting ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <BellOff className="h-4 w-4 mr-2" />
+                )}
+                Silenciar notificações
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent>
+                <DropdownMenuItem onClick={() => handleMuteChat(8)}>
+                  Por 8 horas
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleMuteChat(168)}>
+                  Por 1 semana
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleMuteChat(-1)}>
+                  Permanentemente
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => handleMuteChat(0)}>
+                  <Bell className="h-4 w-4 mr-2" />
+                  Remover silenciamento
+                </DropdownMenuItem>
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
             <DropdownMenuSeparator />
             <DropdownMenuItem 
               onClick={() => setIsDeleteDialogOpen(true)}
