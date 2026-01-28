@@ -38,7 +38,7 @@ export function ClientContactsTab({ clientId, readOnly = false }: ClientContacts
     updateContact,
     isUpdating,
     deleteContact 
-  } = useClientContacts(activeCompany?.id, clientId);
+  } = useClientContacts(activeCompany?.company_id, clientId);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<ClientContact | null>(null);
