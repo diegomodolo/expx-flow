@@ -59,12 +59,10 @@ export function WhatsAppAudioPlayer({
     }
   }, [cachedMediaUrl]);
 
-  // Auto-transcribe incoming audio messages
+  // Auto-transcribe all audio messages (incoming AND outgoing)
   useEffect(() => {
-    // Only auto-transcribe incoming messages (not outgoing)
-    // Only if not already transcribed and has required IDs
+    // Transcribe if not already transcribed and has required IDs
     if (
-      !isOutgoing &&
       !audioTranscription &&
       transcriptionStatus !== "processing" &&
       transcriptionStatus !== "completed" &&
@@ -73,10 +71,10 @@ export function WhatsAppAudioPlayer({
       instanceId &&
       messageId
     ) {
-      console.log("[WhatsAppAudioPlayer] Auto-triggering transcription for incoming audio");
+      console.log("[WhatsAppAudioPlayer] Auto-triggering transcription for audio:", isOutgoing ? "outgoing" : "incoming");
       triggerTranscription();
     }
-  }, [isOutgoing, audioTranscription, transcriptionStatus, supabaseMessageId, instanceId, messageId]);
+  }, [audioTranscription, transcriptionStatus, supabaseMessageId, instanceId, messageId]);
 
   const triggerTranscription = async () => {
     if (!supabaseMessageId || !instanceId || !messageId) {
@@ -389,21 +387,32 @@ export function WhatsAppAudioPlayer({
         )}
       </div>
 
-      {/* Transcription Section - Only for incoming messages */}
-      {!isOutgoing && showTranscription && (
+      {/* Transcription Section - For both incoming and outgoing messages */}
+      {showTranscription && (
         <div className={cn(
           "flex items-start gap-2 px-3 py-2 rounded-lg text-sm",
-          "bg-muted/50 border border-border/50"
+          isOutgoing 
+            ? "bg-primary-foreground/10 border border-primary-foreground/20" 
+            : "bg-muted/50 border border-border/50"
         )}>
-          <FileText className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+          <FileText className={cn(
+            "h-4 w-4 shrink-0 mt-0.5",
+            isOutgoing ? "text-primary-foreground/70" : "text-muted-foreground"
+          )} />
           <div className="flex-1 min-w-0">
             {isTranscribing ? (
-              <div className="flex items-center gap-2 text-muted-foreground">
+              <div className={cn(
+                "flex items-center gap-2",
+                isOutgoing ? "text-primary-foreground/70" : "text-muted-foreground"
+              )}>
                 <Loader2 className="h-3 w-3 animate-spin" />
                 <span className="text-xs">Transcrevendo áudio...</span>
               </div>
             ) : transcription ? (
-              <p className="text-foreground/90 whitespace-pre-wrap break-words text-xs leading-relaxed">
+              <p className={cn(
+                "whitespace-pre-wrap break-words text-xs leading-relaxed",
+                isOutgoing ? "text-primary-foreground/90" : "text-foreground/90"
+              )}>
                 {transcription}
               </p>
             ) : null}
