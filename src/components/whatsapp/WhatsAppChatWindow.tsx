@@ -1,4 +1,5 @@
 import { useRef, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { WhatsAppConversation } from "@/hooks/useWhatsAppConversations";
 import { useWhatsAppMessages, MediaAttachment } from "@/hooks/useWhatsAppMessages";
 import { WhatsAppMessageBubble } from "./WhatsAppMessageBubble";
@@ -58,6 +59,7 @@ interface WhatsAppChatWindowProps {
 }
 
 export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChatDeleted, onChatArchived }: WhatsAppChatWindowProps) {
+  const navigate = useNavigate();
   const { messages, isLoading, isFetchingFromApi, isSyncingInBackground, isSendingMedia, sendMessage, sendMedia, fetchMessagesFromApi } = useWhatsAppMessages(
     conversation.id,
     companyId
@@ -426,11 +428,14 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
             </AvatarFallback>
           </Avatar>
           
-          {/* Client logo overlay */}
+          {/* Client logo overlay - clickable to navigate to client */}
           {linkedClientId && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full border-2 border-background bg-background overflow-hidden shadow-sm cursor-default">
+                <button 
+                  onClick={() => navigate(`/clientes/${linkedClientId}`)}
+                  className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full border-2 border-background bg-background overflow-hidden shadow-sm cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
+                >
                   {linkedClientLogo ? (
                     <img 
                       src={linkedClientLogo} 
@@ -442,10 +447,10 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
                       <Building2 className="h-3 w-3 text-primary" />
                     </div>
                   )}
-                </div>
+                </button>
               </TooltipTrigger>
               <TooltipContent side="right" className="text-xs">
-                {linkedClientName}
+                <span>Abrir cadastro: {linkedClientName}</span>
               </TooltipContent>
             </Tooltip>
           )}
