@@ -442,7 +442,7 @@ export function WhatsAppMessageInput({
   return (
     <div className="flex flex-col border-t bg-background relative">
       {/* Quick replies dropdown */}
-      {showQuickReplies && quickReplies.length > 0 && (
+      {showQuickReplies && (
         <div className="absolute bottom-full left-0 right-0 mb-1 mx-3 z-50">
           <WhatsAppQuickReplyPicker
             quickReplies={quickReplies}
@@ -453,6 +453,7 @@ export function WhatsAppMessageInput({
             onClose={() => {
               setShowQuickReplies(false);
               setQuickReplySearch("");
+              setMessage("");
             }}
           />
         </div>
