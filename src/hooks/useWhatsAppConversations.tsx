@@ -15,6 +15,7 @@ export interface WhatsAppConversation {
   is_muted: boolean;
   is_pinned: boolean;
   client_id: string | null;
+  client_name?: string | null; // Joined from clients table
   label_ids: string[] | null; // Labels assigned to this conversation
   created_at: string;
   updated_at: string;
@@ -30,7 +31,10 @@ export function useWhatsAppConversations(companyId: string | undefined, instance
       
       let query = supabase
         .from("whatsapp_conversations")
-        .select("*")
+        .select(`
+          *,
+          clients:client_id (name)
+        `)
         .eq("company_id", companyId)
         .order("is_pinned", { ascending: false })
         .order("last_message_at", { ascending: false, nullsFirst: false });
@@ -48,7 +52,15 @@ export function useWhatsAppConversations(companyId: string | undefined, instance
       const { data, error } = await query;
 
       if (error) throw error;
-      return data as WhatsAppConversation[];
+      
+      // Transform data to flatten client name
+      const transformed = (data || []).map((conv: any) => ({
+        ...conv,
+        client_name: conv.clients?.name || null,
+        clients: undefined, // Remove nested object
+      }));
+      
+      return transformed as WhatsAppConversation[];
     },
     enabled: !!companyId,
   });

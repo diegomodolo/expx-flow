@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { parseWhatsAppFormatting } from "@/lib/whatsappFormatting";
-import { Mic, Image, Video, FileText, Camera, BellOff, Pin } from "lucide-react";
+import { Mic, Image, Video, FileText, Camera, BellOff, Pin, Building2 } from "lucide-react";
 
 interface WhatsAppConversationItemProps {
   conversation: WhatsAppConversation;
@@ -159,12 +159,21 @@ export function WhatsAppConversationItem({
             )}
           </div>
           <div className="flex items-center justify-between gap-2">
-            <p className={cn(
-              "text-xs truncate",
-              hasUnread ? "text-foreground font-medium" : "text-muted-foreground"
-            )}>
-              {renderMessagePreview()}
-            </p>
+            <div className="flex items-center gap-1.5 min-w-0 flex-1">
+              <p className={cn(
+                "text-xs truncate flex-1",
+                hasUnread ? "text-foreground font-medium" : "text-muted-foreground"
+              )}>
+                {renderMessagePreview()}
+              </p>
+              {/* Client badge */}
+              {conversation.client_name && (
+                <span className="flex items-center gap-0.5 text-[10px] text-primary bg-primary/10 px-1.5 py-0.5 rounded-full shrink-0 max-w-[80px] truncate">
+                  <Building2 className="h-2.5 w-2.5 shrink-0" />
+                  <span className="truncate">{conversation.client_name}</span>
+                </span>
+              )}
+            </div>
             {hasUnread && (
               <Badge className="h-5 min-w-[20px] rounded-full px-1.5 text-xs shrink-0">
                 {conversation.unread_count}
