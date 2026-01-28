@@ -1,171 +1,226 @@
 
-# Plano: Modo de Análise em Tempo Real do Assistente de IA
+# Sistema de Atendentes e Squads para WhatsApp
 
-## Visão Geral
+## Resumo
 
-Implementar um novo modo no Assistente de IA do WhatsApp que analisa automaticamente cada nova mensagem (enviada ou recebida) da conversa, fornecendo feedback em tempo real sobre:
+Implementar um sistema de atribuicao de conversas que integra com a estrutura de Squads existente, permitindo atribuir conversas tanto a atendentes individuais quanto a squads inteiros.
 
-- **Contexto e Interpretação**: O que o cliente está querendo dizer
-- **Temperatura da Conversa**: Se está indo bem, neutro ou negativo
-- **Sugestões de Resposta**: O que você deveria falar a seguir
-- **Insights Específicos**: Baseados no tipo de departamento configurado (vendas, pós-venda, suporte, etc.)
+## Arquitetura de Dados
+
+### Nova coluna na tabela `teams` (Squads)
+
+Adicionar campo para definir quem e o responsavel pelo WhatsApp de cada squad:
+
+| Campo | Tipo | Descricao |
+|-------|------|-----------|
+| whatsapp_responsible_id | uuid | FK para employees.id - responsavel pelo WhatsApp do squad |
+
+### Nova tabela: `whatsapp_conversation_assignments`
+
+Tabela central para gerenciar atribuicoes de conversas:
+
+| Campo | Tipo | Descricao |
+|-------|------|-----------|
+| id | uuid | PK |
+| conversation_id | uuid | FK para whatsapp_conversations |
+| company_id | uuid | FK para companies |
+| assigned_type | text | `individual` ou `squad` |
+| assigned_to_user_id | uuid | FK para auth.users (quando individual) |
+| assigned_to_team_id | uuid | FK para teams (quando squad) |
+| assigned_by | uuid | Quem fez a atribuicao |
+| assigned_at | timestamp | Data/hora da atribuicao |
+| status | text | `active`, `transferred`, `closed` |
+| notes | text | Observacoes |
+
+### Nova tabela: `whatsapp_assignment_history`
+
+Historico completo para auditoria e relatorios de performance:
+
+| Campo | Tipo | Descricao |
+|-------|------|-----------|
+| id | uuid | PK |
+| conversation_id | uuid | FK |
+| company_id | uuid | FK |
+| from_user_id | uuid | Atendente anterior |
+| from_team_id | uuid | Squad anterior |
+| to_user_id | uuid | Novo atendente |
+| to_team_id | uuid | Novo squad |
+| action | text | `assigned`, `transferred`, `closed`, `reopened` |
+| reason | text | Motivo |
+| created_at | timestamp | |
+| created_by | uuid | Quem realizou |
+
+### Adicionar coluna em `whatsapp_messages`
+
+| Campo | Tipo | Descricao |
+|-------|------|-----------|
+| sent_by_user_id | uuid | FK - qual colaborador enviou a mensagem |
+
+## Logica de Atribuicao
+
+### Hierarquia de Visibilidade
+
+1. **Conversa atribuida a individuo**: Apenas aquele usuario ve
+2. **Conversa atribuida a squad**: O `whatsapp_responsible_id` do squad ve
+3. **Conversa nao atribuida**: Todos veem (ou apenas admins, configuravel)
+
+### Atribuicao Automatica via Cliente
+
+Se uma conversa esta vinculada a um `client_id`, e esse cliente tem `team_id`, a conversa pode herdar a atribuicao do squad automaticamente.
+
+### Fluxo de Troca de Responsavel
+
+Quando alguem muda o `whatsapp_responsible_id` de um squad:
+- Automaticamente o novo responsavel passa a ver todas as conversas daquele squad
+- Nao precisa reatribuir cada conversa individualmente
+
+## Interface de Usuario
+
+### Filtros na Lista de Conversas
+
+Adicionar ao sidebar lateral:
+- **Todas**: Todas as conversas visiveis para o usuario
+- **Minhas**: Apenas atribuidas diretamente ao usuario
+- **Meu Squad**: Conversas do squad do usuario (se aplicavel)
+- **Nao atribuidas**: Conversas sem atendente/squad
+- **Por Squad**: Dropdown para filtrar por squad especifico (admin)
+- **Por Atendente**: Dropdown para filtrar por pessoa (admin)
+
+### Indicadores Visuais no Item da Conversa
+
+No componente `WhatsAppConversationItem`:
+- Avatar pequeno do atendente responsavel (canto inferior esquerdo)
+- Badge colorido do squad (se atribuido a squad)
+- Icone de "sem atribuicao" para conversas livres
+
+### Controles no Cabecalho do Chat
+
+No componente `WhatsAppChatWindow`:
+- Dropdown para atribuir/transferir conversa
+- Opcoes: Atribuir a mim, Atribuir a squad, Atribuir a colega
+- Botao "Encerrar atendimento"
+
+### Modal de Transferencia
+
+- Tabs: "Para Pessoa" e "Para Squad"
+- Lista de colaboradores ou squads disponiveis
+- Campo para motivo da transferencia
+
+### Configuracao de Responsavel do Squad
+
+Na tela de configuracao do squad (ou nova tela):
+- Campo para selecionar "Responsavel pelo WhatsApp"
+- Ao mudar, historico e registrado
+
+## Metricas para Relatorios Futuros
+
+Com esta estrutura sera possivel extrair:
+
+- Tempo de primeira resposta por atendente/squad
+- Volume de conversas por atendente/squad
+- Taxa de transferencia entre atendentes
+- Satisfacao cruzando com temperatura da analise
+- Tempo medio de resolucao
+- Conversas por status (ativa, encerrada, aguardando)
+- Historico de quem atendeu cada cliente
 
 ---
 
-## Como Vai Funcionar
+## Detalhes Tecnicos
 
-1. **Toggle para Ativar/Desativar**: Um switch no painel do Assistente IA para ligar o modo "Análise em Tempo Real"
+### Migracao SQL
 
-2. **Análise Automática**: Quando ativado, toda nova mensagem (recebida ou enviada) dispara automaticamente uma análise da IA
+```sql
+-- 1. Adicionar responsavel WhatsApp nos squads
+ALTER TABLE teams
+ADD COLUMN whatsapp_responsible_id UUID REFERENCES employees(id);
 
-3. **Feedback Estruturado**: A IA retorna cards de análise com:
-   - Temperatura (emoji + cor indicativa)
-   - Interpretação do cliente
-   - Sugestões contextuais
-   - Alertas se necessário
+-- 2. Tabela de atribuicoes
+CREATE TABLE whatsapp_conversation_assignments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  conversation_id UUID NOT NULL REFERENCES whatsapp_conversations(id) ON DELETE CASCADE,
+  company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  assigned_type TEXT NOT NULL CHECK (assigned_type IN ('individual', 'squad')),
+  assigned_to_user_id UUID REFERENCES auth.users(id),
+  assigned_to_team_id UUID REFERENCES teams(id),
+  assigned_by UUID REFERENCES auth.users(id),
+  assigned_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'transferred', 'closed')),
+  notes TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(conversation_id)
+);
 
-4. **Contexto por Departamento**: A análise é adaptada ao tipo de atendimento configurado:
-   - **Vendas**: Foco em sinais de compra, objeções, oportunidades de fechamento
-   - **Pós-Venda**: Satisfação, retenção, upsell
-   - **Suporte Técnico**: Urgência, complexidade do problema
-   - **Financeiro**: Inadimplência, negociação
-   - **Atendimento Geral**: Resolutividade, cordialidade
+-- 3. Historico para auditoria e relatorios
+CREATE TABLE whatsapp_assignment_history (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  conversation_id UUID NOT NULL REFERENCES whatsapp_conversations(id) ON DELETE CASCADE,
+  company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  from_user_id UUID REFERENCES auth.users(id),
+  from_team_id UUID REFERENCES teams(id),
+  to_user_id UUID REFERENCES auth.users(id),
+  to_team_id UUID REFERENCES teams(id),
+  action TEXT NOT NULL CHECK (action IN ('assigned', 'transferred', 'closed', 'reopened')),
+  reason TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_by UUID REFERENCES auth.users(id)
+);
 
----
+-- 4. Rastrear quem enviou cada mensagem
+ALTER TABLE whatsapp_messages
+ADD COLUMN sent_by_user_id UUID REFERENCES auth.users(id);
 
-## Fluxo Visual
-
-```text
-┌─────────────────────────────────────────────────────────────────┐
-│                    Painel do Assistente IA                       │
-├─────────────────────────────────────────────────────────────────┤
-│  ┌─────────────────────────────────────────────────────────┐    │
-│  │  ⚡ Análise em Tempo Real    [═══════○] Ativado        │    │
-│  └─────────────────────────────────────────────────────────┘    │
-│                                                                  │
-│  ┌─────────────────────────────────────────────────────────┐    │
-│  │ 🟢 TEMPERATURA: Positiva                                │    │
-│  │ ─────────────────────────────────────────────────────── │    │
-│  │ 📋 INTERPRETAÇÃO:                                       │    │
-│  │ O cliente demonstrou interesse no produto e está        │    │
-│  │ buscando informações sobre preço e condições.           │    │
-│  │ ─────────────────────────────────────────────────────── │    │
-│  │ 💡 SUGESTÃO:                                            │    │
-│  │ Apresente as opções de pagamento e destaque os          │    │
-│  │ benefícios exclusivos. Bom momento para avançar.        │    │
-│  │ ─────────────────────────────────────────────────────── │    │
-│  │ 🎯 INSIGHT (VENDAS):                                    │    │
-│  │ Cliente em fase de consideração. Sinal de compra        │    │
-│  │ detectado. Evite prolongar - apresente proposta.        │    │
-│  └─────────────────────────────────────────────────────────┘    │
-│                                                                  │
-│  [Chat normal continua abaixo...]                               │
-└─────────────────────────────────────────────────────────────────┘
+-- 5. Indices para performance
+CREATE INDEX idx_assignments_conversation ON whatsapp_conversation_assignments(conversation_id);
+CREATE INDEX idx_assignments_user ON whatsapp_conversation_assignments(assigned_to_user_id, status);
+CREATE INDEX idx_assignments_team ON whatsapp_conversation_assignments(assigned_to_team_id, status);
+CREATE INDEX idx_assignments_company ON whatsapp_conversation_assignments(company_id, status);
+CREATE INDEX idx_assignment_history_conv ON whatsapp_assignment_history(conversation_id);
+CREATE INDEX idx_messages_sent_by ON whatsapp_messages(sent_by_user_id);
 ```
 
----
+### Novos Componentes
 
-## Componentes a Serem Criados/Modificados
+1. `useWhatsAppAssignments.tsx` - Hook para gerenciar atribuicoes
+2. `WhatsAppAssignmentPicker.tsx` - Dropdown de atribuicao (pessoa ou squad)
+3. `WhatsAppTransferDialog.tsx` - Modal de transferencia
+4. `WhatsAppSquadResponsiblePicker.tsx` - Componente para configurar responsavel do squad
 
-### 1. Novo Componente: Card de Análise em Tempo Real
-Exibe a análise estruturada com temperatura, interpretação, sugestões e insights.
+### Modificacoes em Componentes Existentes
 
-### 2. Modificar: Painel do Assistente IA
-Adicionar:
-- Toggle para ativar/desativar modo análise
-- Área para exibir o card de análise
-- Indicador de "analisando..." durante processamento
-
-### 3. Modificar: Hook de Mensagens
-Detectar novas mensagens em tempo real e disparar a análise automaticamente.
-
-### 4. Modificar: Edge Function
-Adicionar modo de análise com prompt especializado que retorna dados estruturados.
-
-### 5. Novo Hook: useRealtimeAnalysis
-Gerenciar o estado do modo de análise e processar mensagens.
+1. `useWhatsAppConversations.tsx` - Incluir dados de atribuicao no fetch
+2. `WhatsAppConversationItem.tsx` - Mostrar avatar/badge do atendente/squad
+3. `WhatsAppConversationList.tsx` - Adicionar filtros
+4. `WhatsAppInboxDrawer.tsx` - Adicionar botoes de filtro no sidebar
+5. `WhatsAppChatWindow.tsx` - Adicionar controles de atribuicao no cabecalho
 
 ---
 
-## Detalhes Técnicos
+## Fases de Implementacao
 
-### Estrutura do Prompt de Análise
+### Fase 1 - Infraestrutura
+1. Criar tabelas no banco (migracao)
+2. Adicionar coluna `whatsapp_responsible_id` em teams
+3. Criar hook `useWhatsAppAssignments`
+4. Modificar envio de mensagens para registrar `sent_by_user_id`
 
-O sistema montará um prompt dinâmico baseado no departamento configurado:
+### Fase 2 - Interface Basica
+1. Indicador visual de atendente/squad na lista
+2. Dropdown de atribuicao no cabecalho do chat
+3. Filtro "Minhas conversas" no sidebar
 
-```
-Para um agente de VENDAS:
-- Foco em: identificar sinais de compra, objeções, interesse, urgência
-- Métricas: probabilidade de conversão, estágio do funil
+### Fase 3 - Squad Integration
+1. UI para configurar responsavel WhatsApp do squad
+2. Atribuicao automatica baseada no cliente/squad
+3. Filtro "Meu Squad" no sidebar
 
-Para SUPORTE TÉCNICO:
-- Foco em: gravidade do problema, frustração do cliente, complexidade
-- Métricas: SLA, necessidade de escalação
+### Fase 4 - Recursos Avancados
+1. Modal de transferencia completo
+2. Filtros por atendente/squad especifico (admin)
+3. Encerramento de atendimento
 
-Para PÓS-VENDA:
-- Foco em: satisfação, risco de churn, oportunidades de upsell
-- Métricas: NPS implícito, fidelização
-```
-
-### Resposta Estruturada da IA
-
-A Edge Function retornará JSON estruturado:
-
-```json
-{
-  "temperature": "positive" | "neutral" | "negative",
-  "interpretation": "O cliente está...",
-  "suggestion": "Você deveria...",
-  "departmentInsight": {
-    "type": "vendas",
-    "insight": "Sinal de compra detectado...",
-    "actionItems": ["Apresentar proposta", "Não demorar"]
-  },
-  "alerts": ["Cliente mencionou prazo urgente"]
-}
-```
-
-### Fluxo de Dados
-
-1. Nova mensagem chega (via Realtime do Supabase)
-2. Se modo análise ativo, dispara chamada à Edge Function
-3. Edge Function monta prompt com:
-   - Últimas N mensagens da conversa
-   - Configuração do agente (departamento, objetivos)
-   - Instrução para análise estruturada
-4. Retorna análise em JSON
-5. Frontend renderiza card de análise
-
-### Persistência (Opcional)
-
-O estado "modo análise ativo" pode ser:
-- Apenas em memória (resetado ao fechar)
-- Salvo por conversa no banco
-
----
-
-## Arquivos a Serem Modificados
-
-| Arquivo | Ação |
-|---------|------|
-| `src/components/whatsapp/WhatsAppAIAssistant.tsx` | Adicionar toggle e área de análise |
-| `src/hooks/useWhatsAppAIAgentConfig.tsx` | Buscar config do departamento |
-| `supabase/functions/whatsapp-ai-assistant/index.ts` | Adicionar modo "analyze" |
-| Novo: `src/components/whatsapp/WhatsAppRealtimeAnalysisCard.tsx` | Card de análise |
-| Novo: `src/hooks/useWhatsAppRealtimeAnalysis.tsx` | Lógica do modo análise |
-
----
-
-## Benefícios
-
-- **Para Vendas**: Identifica oportunidades e evita perder timing de fechamento
-- **Para Suporte**: Alerta sobre clientes frustrados que precisam de atenção especial
-- **Para Pós-Venda**: Detecta riscos de churn e oportunidades de fidelização
-- **Para Financeiro**: Auxilia em negociações sensíveis
-- **Geral**: Funciona como um "gestor virtual" acompanhando o atendimento
-
----
-
-## Resultado Esperado
-
-O atendente terá um painel inteligente que funciona como um coach em tempo real, dando feedback instantâneo sobre cada interação e orientando as melhores ações baseado no contexto e no tipo de atendimento configurado.
+### Fase 5 - Relatorios (Futura)
+1. Dashboard de performance por atendente
+2. Metricas de tempo de resposta
+3. Analise de satisfacao
