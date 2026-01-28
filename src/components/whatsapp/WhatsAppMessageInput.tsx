@@ -533,14 +533,6 @@ export function WhatsAppMessageInput({
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* Quick replies button */}
-        <WhatsAppQuickReplyPicker
-          quickReplies={quickReplies}
-          isLoading={quickRepliesLoading}
-          onSelect={handleQuickReplySelect}
-          showAsPopover={true}
-        />
-
         <Textarea
           placeholder={attachment ? "Adicione uma legenda..." : "Digite / para respostas rápidas..."}
           value={message}
