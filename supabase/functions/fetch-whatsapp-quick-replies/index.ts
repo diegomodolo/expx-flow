@@ -44,7 +44,7 @@ serve(async (req) => {
       });
     }
 
-    // Get instance configuration
+    // Get instance
     const { data: instance, error: instanceError } = await supabase
       .from('whatsapp_instances')
       .select('*')
@@ -59,25 +59,19 @@ serve(async (req) => {
       });
     }
 
-    // Get the config for this instance
+    // Get the global config for this company (contains the UazapiGO base URL)
     const { data: config, error: configError } = await supabase
       .from('whatsapp_configs')
       .select('*')
-      .eq('id', instance.config_id)
+      .eq('company_id', instance.company_id)
       .maybeSingle();
 
-    if (configError || !config) {
-      console.error('Config not found:', configError);
-      return new Response(JSON.stringify({ error: 'Config not found' }), {
-        status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-
-    const baseUrl = config.uazapi_url?.replace(/\/$/, '');
-    const apiToken = instance.api_token;
+    // Use uazapi_endpoint from config, or fallback to a default pattern if needed
+    const baseUrl = config?.uazapi_endpoint?.replace(/\/$/, '');
+    const apiToken = instance.uazapi_token;
 
     if (!baseUrl || !apiToken) {
+      console.error('Missing config:', { baseUrl: !!baseUrl, apiToken: !!apiToken });
       return new Response(JSON.stringify({ error: 'Instance not configured properly' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
