@@ -21,7 +21,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
-import { Phone, RefreshCw, Trash2, MoreVertical, Loader2, CheckCheck, Sparkles, Archive, ArchiveRestore, Circle, CircleDot, BellOff, Bell, Pin, PinOff, Ban, Building2 } from "lucide-react";
+import { Phone, RefreshCw, Trash2, MoreVertical, Loader2, CheckCheck, Sparkles, Archive, ArchiveRestore, Circle, CircleDot, BellOff, Bell, Pin, PinOff, Ban, Building2, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -510,6 +510,23 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
           instanceId={instanceId ?? null}
           onLabelsChange={setChatLabelIds}
         />
+        
+        {/* Open client button - only shows when a client is linked */}
+        {linkedClientId && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate(`/clientes/${linkedClientId}`)}
+                title="Abrir cadastro do cliente"
+              >
+                <ExternalLink className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Abrir cadastro: {linkedClientName}</TooltipContent>
+          </Tooltip>
+        )}
         
         {/* AI Assistant button */}
         <Tooltip>
