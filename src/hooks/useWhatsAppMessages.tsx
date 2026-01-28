@@ -16,6 +16,8 @@ export interface WhatsAppMessage {
   external_id: string | null;
   sent_at: string;
   reaction: string | null;
+  is_edited: boolean | null;
+  edited_at: string | null;
 }
 
 export interface MediaAttachment {
@@ -156,6 +158,8 @@ export function useWhatsAppMessages(conversationId: string | null, companyId: st
         external_id: null,
         sent_at: now,
         reaction: null,
+        is_edited: null,
+        edited_at: null,
       };
 
       queryClient.setQueryData<WhatsAppMessage[]>(
@@ -330,6 +334,8 @@ export function useWhatsAppMessages(conversationId: string | null, companyId: st
         external_id: null,
         sent_at: now,
         reaction: null,
+        is_edited: null,
+        edited_at: null,
       };
 
       queryClient.setQueryData<WhatsAppMessage[]>(

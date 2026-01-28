@@ -32,6 +32,12 @@ serve(async (req) => {
       return await handleReactionEvent(supabase, payload);
     }
 
+    // Check if this is a message edit event (UazapiGO)
+    if (isUazapi && (payload.EventType === "messages.update" || payload.message?.editedMessage)) {
+      console.log("[whatsapp-webhook] Processing message edit event");
+      return await handleMessageEditEvent(supabase, payload);
+    }
+
     let phone: string | null = null;
     let content: string | null = null;
     let contactName: string | null = null;
@@ -441,6 +447,85 @@ async function handleReactionEvent(supabase: any, payload: any): Promise<Respons
     );
   } catch (error) {
     console.error("[whatsapp-webhook] Error handling reaction:", error);
+    return new Response(
+      JSON.stringify({ success: false, error: error.message }),
+      { status: 500, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
+    );
+  }
+}
+
+// Handle message edit events from UazapiGO
+async function handleMessageEditEvent(supabase: any, payload: any): Promise<Response> {
+  try {
+    const message = payload.message || {};
+    const editedMessage = message.editedMessage || message;
+    
+    // Get the original message ID that was edited
+    // UazapiGO format: message.key.id or message.id contains the original message ID
+    const originalMessageId = message.key?.id || message.id || editedMessage.key?.id;
+    const newContent = editedMessage.text || editedMessage.content?.text || editedMessage.content || "";
+    
+    console.log("[whatsapp-webhook] Edit data:", { originalMessageId, newContent: newContent?.substring(0, 50) });
+
+    if (!originalMessageId) {
+      console.log("[whatsapp-webhook] No original message ID in edit event");
+      return new Response(
+        JSON.stringify({ success: true, message: "No message ID in edit event" }),
+        { status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
+      );
+    }
+
+    // Find the original message by external_id
+    const { data: existingMessage, error: findError } = await supabase
+      .from("whatsapp_messages")
+      .select("id, conversation_id, company_id, content")
+      .eq("external_id", originalMessageId)
+      .maybeSingle();
+
+    if (findError) {
+      console.error("[whatsapp-webhook] Error finding message for edit:", findError);
+      throw findError;
+    }
+
+    if (!existingMessage) {
+      console.log("[whatsapp-webhook] Original message not found for edit:", originalMessageId);
+      return new Response(
+        JSON.stringify({ success: true, message: "Original message not found" }),
+        { status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
+      );
+    }
+
+    // Update the original message with new content and mark as edited
+    const { error: updateError } = await supabase
+      .from("whatsapp_messages")
+      .update({ 
+        content: newContent,
+        is_edited: true,
+        edited_at: new Date().toISOString()
+      })
+      .eq("id", existingMessage.id);
+
+    if (updateError) {
+      console.error("[whatsapp-webhook] Error updating edited message:", updateError);
+      throw updateError;
+    }
+
+    // Update conversation preview if this is the last message
+    await supabase
+      .from("whatsapp_conversations")
+      .update({ 
+        last_message_preview: newContent.substring(0, 100) 
+      })
+      .eq("id", existingMessage.conversation_id);
+
+    console.log("[whatsapp-webhook] Message edited successfully:", { messageId: existingMessage.id });
+
+    return new Response(
+      JSON.stringify({ success: true, message: "Message edited" }),
+      { status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
+    );
+  } catch (error) {
+    console.error("[whatsapp-webhook] Error handling message edit:", error);
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
       { status: 500, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
