@@ -264,7 +264,7 @@ Siga as instruções do atendente para ajustar a resposta.`;
                   )}
                 >
                   {message.role === "assistant" ? (
-                    <div className="prose prose-sm dark:prose-invert max-w-none">
+                    <div className="prose prose-sm dark:prose-invert max-w-none text-sm [&>p]:text-sm [&>ul]:text-sm [&>ol]:text-sm [&>li]:text-sm">
                       <ReactMarkdown>{message.content}</ReactMarkdown>
                     </div>
                   ) : (
