@@ -450,6 +450,9 @@ export function WhatsAppMessageBubble({ message, instanceId, companyId, remoteJi
                 : "text-primary-foreground/70" 
               : "text-muted-foreground"
           )}>
+            {message.is_edited && (
+              <span className="text-xs italic">editada</span>
+            )}
             <span className="text-xs">
               {format(new Date(message.sent_at), "HH:mm")}
             </span>

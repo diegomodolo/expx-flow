@@ -11027,10 +11027,13 @@ export type Database = {
           content: string
           conversation_id: string
           direction: string
+          edited_at: string | null
           external_id: string | null
           id: string
+          is_edited: boolean | null
           media_url: string | null
           message_type: string | null
+          original_message_id: string | null
           reaction: string | null
           sent_at: string | null
           status: string | null
@@ -11041,10 +11044,13 @@ export type Database = {
           content: string
           conversation_id: string
           direction: string
+          edited_at?: string | null
           external_id?: string | null
           id?: string
+          is_edited?: boolean | null
           media_url?: string | null
           message_type?: string | null
+          original_message_id?: string | null
           reaction?: string | null
           sent_at?: string | null
           status?: string | null
@@ -11055,10 +11061,13 @@ export type Database = {
           content?: string
           conversation_id?: string
           direction?: string
+          edited_at?: string | null
           external_id?: string | null
           id?: string
+          is_edited?: boolean | null
           media_url?: string | null
           message_type?: string | null
+          original_message_id?: string | null
           reaction?: string | null
           sent_at?: string | null
           status?: string | null
