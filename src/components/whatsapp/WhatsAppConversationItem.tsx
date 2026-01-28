@@ -6,6 +6,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { parseWhatsAppFormatting } from "@/lib/whatsappFormatting";
 
 interface WhatsAppConversationItemProps {
   conversation: WhatsAppConversation;
@@ -77,7 +78,9 @@ export function WhatsAppConversationItem({
               "text-xs truncate",
               hasUnread ? "text-foreground font-medium" : "text-muted-foreground"
             )}>
-              {conversation.last_message_preview || "Sem mensagens"}
+              {conversation.last_message_preview 
+                ? parseWhatsAppFormatting(conversation.last_message_preview) 
+                : "Sem mensagens"}
             </p>
             {hasUnread && (
               <Badge className="h-5 min-w-[20px] rounded-full px-1.5 text-xs shrink-0">
