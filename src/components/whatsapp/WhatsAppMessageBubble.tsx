@@ -9,6 +9,7 @@ import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
 import { WhatsAppAudioPlayer } from "./WhatsAppAudioPlayer";
 import { WhatsAppImageViewer } from "./WhatsAppImageViewer";
+import { WhatsAppVideoViewer } from "./WhatsAppVideoViewer";
 import { WhatsAppReactionPicker } from "./WhatsAppReactionPicker";
 import {
   AlertDialog,
@@ -377,6 +378,15 @@ export function WhatsAppMessageBubble({ message, instanceId, companyId, remoteJi
             <div className="mb-2">
               {message.message_type === "image" ? (
                 <WhatsAppImageViewer
+                  mediaUrl={message.media_url}
+                  messageId={message.external_id}
+                  supabaseMessageId={message.id}
+                  instanceId={instanceId ?? null}
+                  isOutgoing={isOutgoing && !isFailed}
+                  cachedMediaUrl={message.cached_media_url}
+                />
+              ) : message.message_type === "video" ? (
+                <WhatsAppVideoViewer
                   mediaUrl={message.media_url}
                   messageId={message.external_id}
                   supabaseMessageId={message.id}
