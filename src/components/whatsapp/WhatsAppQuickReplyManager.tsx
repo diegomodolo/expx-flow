@@ -13,6 +13,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { WhatsAppVoiceRecorder } from './WhatsAppVoiceRecorder';
 
 interface WhatsAppQuickReplyManagerProps {
   instanceId: string | null;
@@ -71,9 +72,11 @@ export const WhatsAppQuickReplyManager: React.FC<WhatsAppQuickReplyManagerProps>
   const [editingReply, setEditingReply] = useState<QuickReply | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
-  const [mediaMode, setMediaMode] = useState<'upload' | 'url'>('upload');
+  const [mediaMode, setMediaMode] = useState<'upload' | 'url' | 'record'>('upload');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
+  const [recordedDuration, setRecordedDuration] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
@@ -156,9 +159,47 @@ export const WhatsAppQuickReplyManager: React.FC<WhatsAppQuickReplyManagerProps>
     setEditingReply(null);
     setIsFormOpen(false);
     setSelectedFile(null);
+    setRecordedBlob(null);
+    setRecordedDuration(0);
     setMediaMode('upload');
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+  };
+
+  const handleRecordingComplete = (blob: Blob, duration: number) => {
+    setRecordedBlob(blob);
+    setRecordedDuration(duration);
+  };
+
+  const uploadBlobToStorage = async (blob: Blob, fileName: string): Promise<string | null> => {
+    try {
+      const timestamp = Date.now();
+      const filePath = `${instanceId}/${timestamp}_${fileName}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('whatsapp-quick-replies')
+        .upload(filePath, blob, {
+          cacheControl: '31536000',
+          upsert: true,
+          contentType: blob.type,
+        });
+
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        toast.error('Erro ao fazer upload do arquivo');
+        return null;
+      }
+
+      const { data: urlData } = supabase.storage
+        .from('whatsapp-quick-replies')
+        .getPublicUrl(filePath);
+
+      return urlData.publicUrl;
+    } catch (err) {
+      console.error('Upload failed:', err);
+      toast.error('Erro ao fazer upload do arquivo');
+      return null;
     }
   };
 
@@ -188,8 +229,19 @@ export const WhatsAppQuickReplyManager: React.FC<WhatsAppQuickReplyManagerProps>
     try {
       let fileUrl = formData.file;
 
+      // Upload recorded audio
+      if (recordedBlob && mediaMode === 'record') {
+        setIsUploading(true);
+        const uploadedUrl = await uploadBlobToStorage(recordedBlob, 'voice_message.webm');
+        if (!uploadedUrl) {
+          setIsUploading(false);
+          return;
+        }
+        fileUrl = uploadedUrl;
+        setIsUploading(false);
+      }
       // Upload file if selected
-      if (selectedFile && mediaMode === 'upload') {
+      else if (selectedFile && mediaMode === 'upload') {
         setIsUploading(true);
         const uploadedUrl = await uploadFileToStorage(selectedFile);
         if (!uploadedUrl) {
@@ -396,20 +448,53 @@ export const WhatsAppQuickReplyManager: React.FC<WhatsAppQuickReplyManagerProps>
                       <div className="space-y-3">
                         <Label>Arquivo *</Label>
                         
-                        <Tabs value={mediaMode} onValueChange={(v) => setMediaMode(v as 'upload' | 'url')} className="w-full">
-                          <TabsList className="grid w-full grid-cols-2">
-                            <TabsTrigger value="upload" className="flex items-center gap-2">
-                              <Upload className="h-4 w-4" />
-                              Upload
-                            </TabsTrigger>
-                            <TabsTrigger value="url" className="flex items-center gap-2">
-                              <Link className="h-4 w-4" />
-                              URL
-                            </TabsTrigger>
-                          </TabsList>
-                        </Tabs>
+                        {/* Show record option for audio types */}
+                        {(formData.type === 'audio' || formData.type === 'ptt') ? (
+                          <Tabs value={mediaMode} onValueChange={(v) => setMediaMode(v as 'upload' | 'url' | 'record')} className="w-full">
+                            <TabsList className="grid w-full grid-cols-3">
+                              <TabsTrigger value="record" className="flex items-center gap-2">
+                                <Mic className="h-4 w-4" />
+                                Gravar
+                              </TabsTrigger>
+                              <TabsTrigger value="upload" className="flex items-center gap-2">
+                                <Upload className="h-4 w-4" />
+                                Upload
+                              </TabsTrigger>
+                              <TabsTrigger value="url" className="flex items-center gap-2">
+                                <Link className="h-4 w-4" />
+                                URL
+                              </TabsTrigger>
+                            </TabsList>
+                          </Tabs>
+                        ) : (
+                          <Tabs value={mediaMode === 'record' ? 'upload' : mediaMode} onValueChange={(v) => setMediaMode(v as 'upload' | 'url')} className="w-full">
+                            <TabsList className="grid w-full grid-cols-2">
+                              <TabsTrigger value="upload" className="flex items-center gap-2">
+                                <Upload className="h-4 w-4" />
+                                Upload
+                              </TabsTrigger>
+                              <TabsTrigger value="url" className="flex items-center gap-2">
+                                <Link className="h-4 w-4" />
+                                URL
+                              </TabsTrigger>
+                            </TabsList>
+                          </Tabs>
+                        )}
 
-                        {mediaMode === 'upload' ? (
+                        {/* Record mode - only for audio types */}
+                        {mediaMode === 'record' && (formData.type === 'audio' || formData.type === 'ptt') && (
+                          <WhatsAppVoiceRecorder
+                            onRecordingComplete={handleRecordingComplete}
+                            onCancel={() => {
+                              setRecordedBlob(null);
+                              setRecordedDuration(0);
+                            }}
+                            isUploading={isUploading}
+                          />
+                        )}
+
+                        {/* Upload mode */}
+                        {mediaMode === 'upload' && (
                           <div className="space-y-2">
                             <input
                               ref={fileInputRef}
@@ -465,7 +550,10 @@ export const WhatsAppQuickReplyManager: React.FC<WhatsAppQuickReplyManagerProps>
                               )}
                             </div>
                           </div>
-                        ) : (
+                        )}
+
+                        {/* URL mode */}
+                        {mediaMode === 'url' && (
                           <div className="space-y-2">
                             <Input
                               id="file"
@@ -493,16 +581,19 @@ export const WhatsAppQuickReplyManager: React.FC<WhatsAppQuickReplyManagerProps>
                         </div>
                       )}
 
-                      <div className="space-y-2">
-                        <Label htmlFor="caption">Legenda (opcional)</Label>
-                        <Textarea
-                          id="caption"
-                          value={formData.text || ''}
-                          onChange={(e) => setFormData(prev => ({ ...prev, text: e.target.value }))}
-                          placeholder="Legenda da mídia..."
-                          rows={2}
-                        />
-                      </div>
+                      {/* Hide caption for voice messages in record mode */}
+                      {!(mediaMode === 'record' && formData.type === 'ptt') && (
+                        <div className="space-y-2">
+                          <Label htmlFor="caption">Legenda (opcional)</Label>
+                          <Textarea
+                            id="caption"
+                            value={formData.text || ''}
+                            onChange={(e) => setFormData(prev => ({ ...prev, text: e.target.value }))}
+                            placeholder="Legenda da mídia..."
+                            rows={2}
+                          />
+                        </div>
+                      )}
                     </>
                   )}
                 </div>
@@ -513,7 +604,19 @@ export const WhatsAppQuickReplyManager: React.FC<WhatsAppQuickReplyManagerProps>
                   <Button type="button" variant="outline" onClick={resetForm} disabled={isUploading}>
                     Cancelar
                   </Button>
-                  <Button type="submit" disabled={isCreating || isUpdating || isUploading || (mediaMode === 'upload' && !selectedFile && formData.type !== 'text' && !formData.file)}>
+                  <Button 
+                    type="submit" 
+                    disabled={
+                      isCreating || 
+                      isUpdating || 
+                      isUploading || 
+                      (formData.type !== 'text' && (
+                        (mediaMode === 'upload' && !selectedFile && !formData.file) ||
+                        (mediaMode === 'record' && !recordedBlob && !formData.file) ||
+                        (mediaMode === 'url' && !formData.file)
+                      ))
+                    }
+                  >
                     {(isCreating || isUpdating || isUploading) && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                     {isUploading ? 'Enviando...' : editingReply ? 'Salvar' : 'Criar'}
                   </Button>
