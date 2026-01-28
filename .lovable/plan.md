@@ -1,241 +1,165 @@
 
-# Plano: Detectar Conteúdo Suspeito em URLs
 
-## Problema
-Páginas de destino podem ser hackeadas ou ter seu conteúdo alterado sem que o gestor perceba. A URL retorna código 200 (OK), mas o conteúdo não tem nada a ver com o cliente/produto.
+# Tela de Configuracao do Agente de IA para WhatsApp
 
-Exemplo real: `https://mkt.jamsoft.com.br/` mostra conteúdo completamente diferente do esperado para o cliente.
+## Resumo
 
-## Solução Proposta
-Adicionar um novo status de validação **"suspicious"** (suspeito) que usa IA para comparar o conteúdo da página com o briefing/perfil do cliente.
+Vamos criar uma tela de configuracao completa e profissional para o agente de IA do WhatsApp, acessivel atraves de um icone de IA (Sparkles) na barra lateral esquerda do inbox. Esta tela permitira configurar todos os aspectos do comportamento do agente: identidade, tom de voz, base de conhecimento, formatacao de respostas e regras de seguranca.
 
 ---
 
-## Resumo das Alterações
+## 1. Nova Tabela no Banco de Dados
 
-| Componente | Alteração |
-|------------|-----------|
-| Banco de Dados | Novos campos para análise de conteúdo |
-| Edge Function | Análise via Firecrawl + OpenAI |
-| Hook useRadarUrls | Suporte ao novo status |
-| UI (KPI, Cards, Tabela) | Exibição de URLs suspeitas |
+Criar uma tabela `whatsapp_ai_agent_config` para armazenar as configuracoes do agente por empresa:
+
+**Campos:**
+- `id` (UUID, PK)
+- `company_id` (UUID, FK para companies)
+- `instance_id` (UUID, FK para whatsapp_instances, nullable - para config global ou por instancia)
+
+**Painel Identidade e Funcao:**
+- `agent_name` (VARCHAR) - Nome do agente
+- `department` (VARCHAR) - Suporte Tecnico, Vendas, Pos-venda, Atendimento Geral
+- `primary_objective` (VARCHAR) - Resolver duvida, Agendar reuniao, Acalmar, Vender, Informar
+
+**Equalizador de Tom e Voz (valores 0-100):**
+- `formality_level` (INTEGER) - Casual <-> Formal
+- `empathy_level` (INTEGER) - Objetividade <-> Empatia
+- `enthusiasm_level` (INTEGER) - Calmo <-> Energetico
+- `emoji_usage` (VARCHAR) - none, moderate, intense
+
+**Formatacao da Resposta:**
+- `response_length` (VARCHAR) - short, medium, long
+- `use_bold` (BOOLEAN) - Usar negrito em palavras-chave
+- `use_lists` (BOOLEAN) - Usar listas/bullet points
+- `use_short_paragraphs` (BOOLEAN) - Quebrar em paragrafos curtos
+- `mandatory_cta` (TEXT) - Chamada para acao obrigatoria
+
+**Regras e Guardrails:**
+- `blacklist_words` (TEXT[]) - Lista de palavras proibidas
+- `min_confidence_threshold` (INTEGER) - Limite para transbordo humano (0-100)
+- `escalation_message` (TEXT) - Mensagem quando precisar de humano
+
+**Contexto do Cliente (checkboxes):**
+- `use_purchase_history` (BOOLEAN)
+- `use_client_name` (BOOLEAN)
+- `use_satisfaction_score` (BOOLEAN)
+- `use_conversation_history` (BOOLEAN)
+
+**Metadata:**
+- `created_at`, `updated_at`
 
 ---
 
-## 1. Alterações no Banco de Dados
+## 2. Alteracoes na Interface
 
-Novos campos na tabela `client_urls`:
+### 2.1 Botao na Sidebar do Inbox
 
-```sql
-ALTER TABLE client_urls ADD COLUMN IF NOT EXISTS content_match_score numeric;
-ALTER TABLE client_urls ADD COLUMN IF NOT EXISTS content_analysis_summary text;
-ALTER TABLE client_urls ADD COLUMN IF NOT EXISTS content_analyzed_at timestamptz;
-```
+Adicionar um icone `Sparkles` na barra lateral esquerda do `WhatsAppInboxDrawer.tsx`, abaixo dos filtros existentes (Silenciados), que abre o modal de configuracao do agente.
 
-| Campo | Tipo | Descrição |
-|-------|------|-----------|
-| `content_match_score` | numeric | Score de 0-100 de compatibilidade com o briefing |
-| `content_analysis_summary` | text | Resumo da análise da IA |
-| `content_analyzed_at` | timestamptz | Quando foi analisado |
+### 2.2 Modal de Configuracao (3 colunas)
 
----
+O modal sera uma Dialog grande (`max-w-6xl`) dividida em 3 areas conforme a especificacao:
 
-## 2. Nova Edge Function: `analyze-url-content`
-
-Função separada da validação básica (mais lenta e consome créditos de IA).
-
-### Fluxo:
-1. Recebe URL + client_id
-2. Busca o `ai_briefing` do cliente
-3. Usa Firecrawl para extrair conteúdo em markdown (formato limpo)
-4. Envia para OpenAI comparar com o briefing
-5. Retorna score (0-100) e resumo
-
-### Critérios de Análise:
-- **Score 80-100**: Conteúdo compatível (OK)
-- **Score 50-79**: Conteúdo parcialmente compatível (aviso)
-- **Score 0-49**: Conteúdo suspeito/incompatível (alerta)
-
-### Prompt para OpenAI:
 ```text
-Você é um analista de segurança de marketing digital.
-
-BRIEFING DO CLIENTE:
-{ai_briefing}
-
-CONTEÚDO DA PÁGINA:
-{page_content}
-
-Analise se o conteúdo da página é compatível com o briefing do cliente.
-Considere:
-1. O conteúdo fala sobre o mesmo produto/serviço?
-2. A linguagem/tom está adequada ao cliente?
-3. Há sinais de hacking (conteúdo de apostas, farmácias, spam)?
-4. Os elementos visuais descritos fazem sentido para o negócio?
-
-Responda em JSON:
-{
-  "score": 0-100,
-  "compatible": true/false,
-  "summary": "Resumo em 1-2 frases",
-  "issues": ["lista de problemas encontrados"]
-}
++-------------------+----------------------+------------------+
+|  PERSONA E TOM    |  CONHECIMENTO E      |   PLAYGROUND     |
+|                   |  REGRAS              |   (Preview)      |
+| - Departamento    |                      |                  |
+| - Objetivo        | - Upload docs        | [Input cliente]  |
+| - Nome agente     | - Checkboxes ctx     |                  |
+|                   | - Blacklist          | [Output IA]      |
+| Sliders:          | - Transbordo         |                  |
+| - Formalidade     |                      | [Botao Testar]   |
+| - Empatia         | Formatacao:          |                  |
+| - Entusiasmo      | - Tamanho            |                  |
+| - Emojis          | - Negrito            |                  |
+|                   | - Listas             |                  |
+|                   | - CTA                |                  |
++-------------------+----------------------+------------------+
 ```
 
 ---
 
-## 3. Atualização do Hook `useRadarUrls`
+## 3. Componentes a Criar
 
-### Novo tipo de status:
-```typescript
-export type ValidationStatus = 'ok' | 'error' | 'timeout' | 'redirect' | 'pending' | 'empty' | 'suspicious' | null;
-```
+### 3.1 `WhatsAppAIAgentConfigModal.tsx`
+Modal principal que organiza as 3 colunas e gerencia o estado.
 
-### Novos campos na interface:
-```typescript
-export interface RadarUrl {
-  // ... campos existentes
-  content_match_score: number | null;
-  content_analysis_summary: string | null;
-  content_analyzed_at: string | null;
-}
-```
+### 3.2 `WhatsAppAIAgentIdentityPanel.tsx`
+Coluna esquerda com:
+- Select para Departamento/Persona
+- Select para Objetivo Primario
+- Input para Nome do Agente
+- Sliders (0-100) para: Formalidade, Empatia, Entusiasmo
+- Radio group para Uso de Emojis
 
-### Novas estatísticas:
-```typescript
-export interface UrlStats {
-  // ... existentes
-  suspicious: number;
-}
-```
+### 3.3 `WhatsAppAIAgentKnowledgePanel.tsx`
+Coluna do meio com:
+- Upload de documentos (reutilizar logica do `KnowledgeDocumentsManager`)
+- Checkboxes de contexto do cliente
+- Textarea para palavras na blacklist
+- Slider para limite de confianca (transbordo)
+- Textarea para mensagem de escalacao
 
-### Nova mutation para análise de conteúdo:
-```typescript
-analyzeContent: (urlId: string) => void
-analyzeAllContent: () => void
-```
+### 3.4 `WhatsAppAIAgentFormatPanel.tsx`
+Secao de formatacao da resposta:
+- Radio group para tamanho (Curta/Media/Longa)
+- Checkboxes para negrito, listas, paragrafos curtos
+- Textarea para CTA obrigatoria
 
----
+### 3.5 `WhatsAppAIAgentPlayground.tsx`
+Coluna direita (preview) com:
+- Textarea para simular mensagem do cliente
+- Botao "Testar Resposta"
+- Area de preview mostrando a resposta gerada
+- Visual estilo bolha de WhatsApp
 
-## 4. Atualizações de UI
-
-### KPI Header
-Novo card "Suspeitas" com ícone `ShieldAlert` em cor laranja/vermelho.
-
-### Novo Card: `SuspiciousUrlsCard.tsx`
-Similar ao ProblematicUrlsCard, mas para URLs suspeitas:
-- Mostra cliente + URL
-- Score de compatibilidade
-- Resumo da análise
-- Botão para reanalisar
-
-### Badge na Tabela
-```typescript
-case 'suspicious':
-  return (
-    <Badge variant="outline" className="text-orange-600 border-orange-600">
-      <ShieldAlert className="h-2.5 w-2.5 mr-0.5" />
-      Suspeito
-    </Badge>
-  );
-```
-
-### Tooltip com Detalhes
-Ao passar o mouse no badge, mostrar:
-- Score de compatibilidade
-- Resumo da análise
-- Data da última análise
-
-### Novo Filtro
-Adicionar "Suspeito" no dropdown de filtros de status.
+### 3.6 `useWhatsAppAIAgentConfig.tsx`
+Hook para gerenciar CRUD das configuracoes:
+- Buscar configuracao por company_id
+- Salvar/atualizar configuracao
+- Valores padrao quando nao existir
 
 ---
 
-## 5. Botão de Ação Manual
+## 4. Integracao com Edge Function
 
-Como a análise de conteúdo consome créditos (Firecrawl + OpenAI), não será automática. Adicionar:
-
-1. **Botão individual** em cada URL: "Analisar Conteúdo"
-2. **Botão global** no dashboard: "Analisar Conteúdo de Todas"
-3. **Indicador** de quais URLs nunca foram analisadas
+Atualizar `whatsapp-ai-assistant/index.ts` para:
+1. Receber o `companyId` junto com as mensagens
+2. Buscar a configuracao do agente no banco
+3. Construir o system prompt dinamicamente baseado nas configuracoes:
+   - Tom de voz conforme sliders
+   - Regras de formatacao
+   - Blacklist de palavras
+   - Instrucoes de CTA
+4. Incluir documentos da base de conhecimento quando existirem
 
 ---
 
-## 6. Dependências Necessárias
+## 5. Fluxo de Uso
 
-1. **Firecrawl** - Já configurado (FIRECRAWL_API_KEY)
-2. **OpenAI** - Precisa verificar/adicionar OPENAI_API_KEY
+1. Usuario clica no icone ✨ na sidebar esquerda do inbox
+2. Modal abre mostrando as configuracoes atuais (ou valores padrao)
+3. Usuario ajusta sliders, seleciona opcoes e faz upload de docs
+4. Na coluna direita, pode testar com uma mensagem exemplo
+5. Ao clicar "Salvar", configuracoes sao persistidas
+6. Proximo uso do assistente de IA aplica as novas configuracoes
 
 ---
 
 ## Arquivos a Criar/Modificar
 
-| Arquivo | Ação |
+| Arquivo | Acao |
 |---------|------|
-| `supabase/functions/analyze-url-content/index.ts` | Criar |
-| `src/hooks/useRadarUrls.tsx` | Modificar |
-| `src/components/radar/UrlsKPIHeader.tsx` | Modificar |
-| `src/components/radar/SuspiciousUrlsCard.tsx` | Criar |
-| `src/components/radar/UrlsTable.tsx` | Modificar |
-| `src/pages/radar/RadarUrlsDashboard.tsx` | Modificar |
-| `supabase/config.toml` | Adicionar função |
-| Migration SQL | Adicionar colunas |
+| `supabase/migrations/xxx_whatsapp_ai_agent_config.sql` | Criar tabela |
+| `src/hooks/useWhatsAppAIAgentConfig.tsx` | Novo hook |
+| `src/components/whatsapp/WhatsAppAIAgentConfigModal.tsx` | Modal principal |
+| `src/components/whatsapp/WhatsAppAIAgentIdentityPanel.tsx` | Painel identidade |
+| `src/components/whatsapp/WhatsAppAIAgentKnowledgePanel.tsx` | Painel conhecimento |
+| `src/components/whatsapp/WhatsAppAIAgentFormatPanel.tsx` | Painel formatacao |
+| `src/components/whatsapp/WhatsAppAIAgentPlayground.tsx` | Preview/teste |
+| `src/components/whatsapp/WhatsAppInboxDrawer.tsx` | Adicionar botao IA |
+| `supabase/functions/whatsapp-ai-assistant/index.ts` | Aplicar config |
+| `src/integrations/supabase/types.ts` | Tipos atualizados |
 
----
-
-## Fluxo Visual
-
-```text
-┌─────────────────────────────────────────────────────────────┐
-│                    ANÁLISE DE CONTEÚDO                      │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│  1. Buscar ai_briefing do cliente                           │
-│     (tabela clients)                                        │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│  2. Scrape da URL via Firecrawl                             │
-│     (formato: markdown)                                      │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│  3. Enviar para OpenAI                                       │
-│     briefing + conteúdo → análise                           │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│  4. Atualizar client_urls                                    │
-│     - content_match_score                                    │
-│     - content_analysis_summary                               │
-│     - validation_status = 'suspicious' se score < 50        │
-└─────────────────────────────────────────────────────────────┘
-```
-
----
-
-## Considerações de Custo
-
-| Serviço | Consumo por URL |
-|---------|-----------------|
-| Firecrawl | 1 crédito (scrape) |
-| OpenAI GPT-4o-mini | ~500-1000 tokens |
-
-Recomendação: Analisar apenas URLs que:
-- Já passaram na validação básica (status = 'ok')
-- Têm cliente com `ai_briefing` preenchido
-- Não foram analisadas nos últimos 7 dias
-
----
-
-## Benefícios
-
-- Detecta páginas hackeadas/comprometidas automaticamente
-- Alerta proativo antes de gastar verba em landing pages incorretas
-- Histórico de análises para auditoria
-- Score numérico permite priorização
