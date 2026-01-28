@@ -47,9 +47,9 @@ serve(async (req) => {
     // Get instance configuration
     const { data: instance, error: instanceError } = await supabase
       .from('whatsapp_instances')
-      .select('*, whatsapp_configs!inner(*)')
+      .select('*')
       .eq('id', instanceId)
-      .single();
+      .maybeSingle();
 
     if (instanceError || !instance) {
       console.error('Instance not found:', instanceError);
@@ -59,7 +59,22 @@ serve(async (req) => {
       });
     }
 
-    const baseUrl = instance.whatsapp_configs.uazapi_url?.replace(/\/$/, '');
+    // Get the config for this instance
+    const { data: config, error: configError } = await supabase
+      .from('whatsapp_configs')
+      .select('*')
+      .eq('id', instance.config_id)
+      .maybeSingle();
+
+    if (configError || !config) {
+      console.error('Config not found:', configError);
+      return new Response(JSON.stringify({ error: 'Config not found' }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    const baseUrl = config.uazapi_url?.replace(/\/$/, '');
     const apiToken = instance.api_token;
 
     if (!baseUrl || !apiToken) {
