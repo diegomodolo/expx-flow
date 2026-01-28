@@ -167,12 +167,14 @@ export function useWhatsAppMessages(conversationId: string | null, companyId: st
     }
   }, [conversationId, companyId, isFetchingFromApi, hasFetchedFromApi, queryClient, toast]);
 
-  // Auto-fetch from API when we first load a conversation with no messages
+  // Auto-fetch from API in background
+  // If we have cached messages, sync silently in background
+  // If no cached messages, fetch from API (will show loading state only then)
   useEffect(() => {
-    if (conversationId && companyId && !isLoadingFromDb && messages?.length === 0 && !hasFetchedFromApi && !isFetchingFromApi) {
+    if (conversationId && companyId && !isLoadingFromDb && !hasFetchedFromApi && !isFetchingFromApi) {
       fetchMessagesFromApi();
     }
-  }, [conversationId, companyId, isLoadingFromDb, messages, hasFetchedFromApi, isFetchingFromApi, fetchMessagesFromApi]);
+  }, [conversationId, companyId, isLoadingFromDb, hasFetchedFromApi, isFetchingFromApi, fetchMessagesFromApi]);
 
   // Optimistic send - shows message immediately
   const sendMessage = useCallback(async ({ phone, message, instanceId }: { phone: string; message: string; instanceId?: string | null }) => {
@@ -497,10 +499,16 @@ export function useWhatsAppMessages(conversationId: string | null, companyId: st
     }
   }, [companyId, conversationId, queryClient, toast]);
 
+  // Only show loading skeleton if we have NO cached messages AND we're loading from DB
+  // This implements "stale-while-revalidate" - show cached data immediately
+  const hasCachedMessages = (messages?.length ?? 0) > 0;
+  const showLoadingSkeleton = isLoadingFromDb && !hasCachedMessages;
+
   return {
     messages: messages || [],
-    isLoading: isLoadingFromDb || isFetchingFromApi,
+    isLoading: showLoadingSkeleton,
     isFetchingFromApi,
+    isSyncingInBackground: isFetchingFromApi && hasCachedMessages,
     isSendingMedia,
     error,
     sendMessage,
