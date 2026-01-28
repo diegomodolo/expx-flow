@@ -91,7 +91,9 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
 
   // Fetch conversations - include archived when viewing archived filter
   const includeArchived = activeFilter === "archived";
-  const squadFilterId = squadFilterActive ? userSquad?.squadId : undefined;
+  // Only apply squad filter if both the filter is active AND we have the squad data
+  const squadFilterId = squadFilterActive && userSquad?.squadId ? userSquad.squadId : null;
+  
   const { conversations, isLoading: isLoadingConversations, markAsRead, refetchConversations } = useWhatsAppConversations(
     activeCompany?.company_id,
     selectedInstanceId,
@@ -236,8 +238,9 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
                         icon={Heart}
                         label={`Meu Squad (${userSquad.squadName})`}
                         isActive={squadFilterActive}
-                        onClick={() => setSquadFilterActive(!squadFilterActive)}
+                        onClick={() => setSquadFilterActive(prev => !prev)}
                         badgeColor={userSquad.squadColor || undefined}
+                        count={squadFilterActive ? conversations.length : undefined}
                       />
                     </>
                   )}
