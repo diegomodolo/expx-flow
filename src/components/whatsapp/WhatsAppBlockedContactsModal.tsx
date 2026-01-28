@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Loader2, ShieldOff, RefreshCw, UserX } from "lucide-react";
+import { Loader2, ShieldOff, RefreshCw, UserX, Unlock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -28,6 +28,7 @@ export function WhatsAppBlockedContactsModal({
 }: WhatsAppBlockedContactsModalProps) {
   const [blockedContacts, setBlockedContacts] = useState<BlockedContact[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [unblockingPhone, setUnblockingPhone] = useState<string | null>(null);
 
   const fetchBlockedContacts = async () => {
     if (!companyId || !instanceId) return;
@@ -53,6 +54,37 @@ export function WhatsAppBlockedContactsModal({
       toast.error(err.message || "Erro ao buscar contatos bloqueados");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleUnblockContact = async (contact: BlockedContact) => {
+    if (!companyId || !instanceId) return;
+
+    setUnblockingPhone(contact.phone);
+    try {
+      const { data, error } = await supabase.functions.invoke("block-whatsapp-contact", {
+        body: {
+          company_id: companyId,
+          instance_id: instanceId,
+          phone: contact.phone,
+          block: false,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        toast.success("Contato desbloqueado com sucesso");
+        // Remove from local list
+        setBlockedContacts((prev) => prev.filter((c) => c.phone !== contact.phone));
+      } else {
+        throw new Error(data?.error || "Erro ao desbloquear contato");
+      }
+    } catch (err: any) {
+      console.error("[WhatsAppBlockedContactsModal] Unblock error:", err);
+      toast.error(err.message || "Erro ao desbloquear contato");
+    } finally {
+      setUnblockingPhone(null);
     }
   };
 
@@ -112,6 +144,22 @@ export function WhatsAppBlockedContactsModal({
                     <p className="text-sm font-medium">{contact.formatted_phone}</p>
                     <p className="text-xs text-muted-foreground truncate">+{contact.phone}</p>
                   </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleUnblockContact(contact)}
+                    disabled={unblockingPhone === contact.phone}
+                    className="text-primary hover:text-primary"
+                  >
+                    {unblockingPhone === contact.phone ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <>
+                        <Unlock className="h-4 w-4 mr-1" />
+                        Desbloquear
+                      </>
+                    )}
+                  </Button>
                 </div>
               ))}
             </div>
