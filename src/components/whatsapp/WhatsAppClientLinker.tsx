@@ -25,7 +25,7 @@ interface WhatsAppClientLinkerProps {
   conversationId: string;
   currentClientId: string | null;
   companyId: string | undefined;
-  onClientChange?: (clientId: string | null, clientName: string | null) => void;
+  onClientChange?: (clientId: string | null, clientName: string | null, clientLogoUrl?: string | null) => void;
   variant?: "badge" | "button" | "compact";
 }
 
@@ -70,13 +70,15 @@ export function WhatsAppClientLinker({
 
       if (error) throw error;
 
-      const clientName = clientId 
-        ? clients.find((c) => c.id === clientId)?.name || null 
+      const selectedClient = clientId 
+        ? clients.find((c) => c.id === clientId) 
         : null;
+      const clientName = selectedClient?.name || null;
+      const clientLogoUrl = selectedClient?.avatar || null;
 
       setSelectedClientId(clientId);
       setSelectedClientName(clientName);
-      onClientChange?.(clientId, clientName);
+      onClientChange?.(clientId, clientName, clientLogoUrl);
 
       if (clientId) {
         toast.success(`Contato vinculado a ${clientName}`);

@@ -17,7 +17,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
-import { Phone, RefreshCw, Trash2, MoreVertical, Loader2, CheckCheck, Sparkles, Archive, ArchiveRestore, Circle, CircleDot, BellOff, Bell, Pin, PinOff, Ban } from "lucide-react";
+import { Phone, RefreshCw, Trash2, MoreVertical, Loader2, CheckCheck, Sparkles, Archive, ArchiveRestore, Circle, CircleDot, BellOff, Bell, Pin, PinOff, Ban, Building2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -71,7 +71,9 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
   const [isMuting, setIsMuting] = useState(false);
   const [isPinning, setIsPinning] = useState(false);
   const [isBlocking, setIsBlocking] = useState(false);
+  const [linkedClientId, setLinkedClientId] = useState<string | null>(conversation.client_id || null);
   const [linkedClientName, setLinkedClientName] = useState<string | null>(conversation.client_name || null);
+  const [linkedClientLogo, setLinkedClientLogo] = useState<string | null>(conversation.client_logo_url || null);
   
   // AI Assistant state
   const [aiAssistantOpen, setAiAssistantOpen] = useState(false);
@@ -384,24 +386,50 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
       <ResizablePanel defaultSize={aiAssistantOpen ? (100 - sizes.aiAssistant) : 100} minSize={50}>
         <div className="flex flex-col h-full min-w-0">
       <div className="flex items-center gap-3 px-4 py-3 border-b bg-muted/30">
-        <Avatar 
-          className={cn(
-            "h-10 w-10",
-            conversation.profile_pic_url && "cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
+        <div className="relative shrink-0">
+          <Avatar 
+            className={cn(
+              "h-10 w-10",
+              conversation.profile_pic_url && "cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
+            )}
+            onClick={() => conversation.profile_pic_url && setShowProfilePic(true)}
+          >
+            {conversation.profile_pic_url && (
+              <AvatarImage 
+                src={conversation.profile_pic_url} 
+                alt={displayName}
+                className="object-cover"
+              />
+            )}
+            <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
+              {getInitials(displayName)}
+            </AvatarFallback>
+          </Avatar>
+          
+          {/* Client logo overlay */}
+          {linkedClientId && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full border-2 border-background bg-background overflow-hidden shadow-sm cursor-default">
+                  {linkedClientLogo ? (
+                    <img 
+                      src={linkedClientLogo} 
+                      alt={linkedClientName || "Cliente"}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="h-full w-full bg-primary/10 flex items-center justify-center">
+                      <Building2 className="h-3 w-3 text-primary" />
+                    </div>
+                  )}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="text-xs">
+                {linkedClientName}
+              </TooltipContent>
+            </Tooltip>
           )}
-          onClick={() => conversation.profile_pic_url && setShowProfilePic(true)}
-        >
-          {conversation.profile_pic_url && (
-            <AvatarImage 
-              src={conversation.profile_pic_url} 
-              alt={displayName}
-              className="object-cover"
-            />
-          )}
-          <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
-            {getInitials(displayName)}
-          </AvatarFallback>
-        </Avatar>
+        </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <h3 className="font-medium text-sm truncate">{displayName}</h3>
@@ -431,7 +459,11 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
           conversationId={conversation.id}
           currentClientId={conversation.client_id}
           companyId={companyId}
-          onClientChange={(clientId, clientName) => setLinkedClientName(clientName)}
+          onClientChange={(clientId, clientName, clientLogoUrl) => {
+            setLinkedClientId(clientId);
+            setLinkedClientName(clientName);
+            setLinkedClientLogo(clientLogoUrl || null);
+          }}
         />
         
         {/* Label picker */}
