@@ -9,10 +9,12 @@ import { WhatsAppLabelList } from "./WhatsAppLabelBadge";
 import { WhatsAppAIAssistant } from "./WhatsAppAIAssistant";
 import { WhatsAppAISendDialog } from "./WhatsAppAISendDialog";
 import { WhatsAppClientLinker } from "./WhatsAppClientLinker";
+import { WhatsAppAssignmentPicker } from "./WhatsAppAssignmentPicker";
 import { useWhatsAppLabels } from "@/hooks/useWhatsAppLabels";
 import { useWhatsAppQuickReplies } from "@/hooks/useWhatsAppQuickReplies";
 import { useWhatsAppPanelSizes } from "@/hooks/useWhatsAppPanelSizes";
 import { useWhatsAppAIAgentConfig } from "@/hooks/useWhatsAppAIAgentConfig";
+import { useConversationAssignment } from "@/hooks/useWhatsAppAssignments";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -45,6 +47,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface WhatsAppChatWindowProps {
   conversation: WhatsAppConversation;
@@ -87,6 +90,8 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
   const { quickReplies, isLoading: quickRepliesLoading } = useWhatsAppQuickReplies(instanceId ?? null);
   const { sizes, setAiAssistantSize } = useWhatsAppPanelSizes();
   const { config: aiAgentConfig } = useWhatsAppAIAgentConfig(companyId, instanceId);
+  const { assignment: currentAssignment } = useConversationAssignment(conversation.id, companyId);
+  const queryClient = useQueryClient();
 
   // Check if realtime analysis is forced globally
   const forceRealtimeAnalysis = aiAgentConfig?.force_realtime_analysis ?? false;
@@ -471,6 +476,17 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
             setLinkedClientId(clientId);
             setLinkedClientName(clientName);
             setLinkedClientLogo(clientLogoUrl || null);
+          }}
+        />
+        
+        {/* Assignment picker */}
+        <WhatsAppAssignmentPicker
+          conversationId={conversation.id}
+          companyId={companyId}
+          currentAssignment={currentAssignment || null}
+          onAssignmentChange={() => {
+            queryClient.invalidateQueries({ queryKey: ["whatsapp-assignments", companyId] });
+            queryClient.invalidateQueries({ queryKey: ["whatsapp-assignment", conversation.id] });
           }}
         />
         
