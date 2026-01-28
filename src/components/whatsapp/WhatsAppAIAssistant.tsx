@@ -159,12 +159,11 @@ export function WhatsAppAIAssistant({
   const inputRef = useRef<HTMLInputElement>(null);
   const hasGeneratedSuggestion = useRef(false);
   const lastCustomerMessage = useRef<string | null>(null);
-  const lastSavedAnalysisTimestamp = useRef<string | null>(null);
 
   // If force is enabled, always keep analysis on
   const isAnalysisActive = forceRealtimeAnalysis || realtimeAnalysisEnabled;
 
-  const { analysis, isAnalyzing, error: analysisError, triggerAnalysis } = useWhatsAppRealtimeAnalysis({
+  const { analysis, isNewAnalysis, isAnalyzing, error: analysisError, triggerAnalysis, markAnalysisConsumed } = useWhatsAppRealtimeAnalysis({
     conversationId,
     companyId,
     instanceId,
@@ -172,10 +171,10 @@ export function WhatsAppAIAssistant({
     enabled: isAnalysisActive,
   });
 
-  // Save new analysis as a message in the chat
+  // Save new analysis as a message in the chat (only when it's freshly generated)
   useEffect(() => {
-    if (analysis && analysis.timestamp !== lastSavedAnalysisTimestamp.current) {
-      lastSavedAnalysisTimestamp.current = analysis.timestamp;
+    if (analysis && isNewAnalysis) {
+      console.log("[WhatsAppAIAssistant] Saving new analysis as chat message");
       
       // Save analysis as a chat message
       const analysisContent: AnalysisMessageContent = {
@@ -188,11 +187,15 @@ export function WhatsAppAIAssistant({
         readyMessage: analysis.readyMessage,
       };
       
-      addAnalysisMessage(analysisContent).catch((err) => {
-        console.error("Error saving analysis message:", err);
-      });
+      addAnalysisMessage(analysisContent)
+        .then(() => {
+          markAnalysisConsumed(); // Mark as consumed after saving
+        })
+        .catch((err) => {
+          console.error("Error saving analysis message:", err);
+        });
     }
-  }, [analysis, addAnalysisMessage]);
+  }, [analysis, isNewAnalysis, addAnalysisMessage, markAnalysisConsumed]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -229,12 +232,6 @@ export function WhatsAppAIAssistant({
       lastCustomerMessage.current = null;
     }
   }, [isOpen]);
-
-  // Reset lastSavedAnalysisTimestamp when conversation changes
-  useEffect(() => {
-    lastSavedAnalysisTimestamp.current = null;
-  }, [conversationId]);
-
   const generateSuggestion = async (messageToRespond: string) => {
     setIsGenerating(true);
     
@@ -357,7 +354,6 @@ Siga as instruções do atendente para ajustar a resposta.`;
   const handleClearHistory = async () => {
     try {
       await clearMessages();
-      lastSavedAnalysisTimestamp.current = null;
       toast.success("Histórico limpo");
     } catch {
       toast.error("Erro ao limpar histórico");
