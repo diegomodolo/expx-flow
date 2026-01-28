@@ -9,6 +9,8 @@ import { useWhatsAppInstances } from "@/hooks/useWhatsAppInstances";
 import { useWhatsAppRealtime } from "@/hooks/useWhatsAppRealtime";
 import { useSyncWhatsAppChats } from "@/hooks/useSyncWhatsAppChats";
 import { useWhatsAppPanelSizes } from "@/hooks/useWhatsAppPanelSizes";
+import { useWhatsAppAssignments } from "@/hooks/useWhatsAppAssignments";
+import { useAuth } from "@/hooks/useAuth";
 import { WhatsAppConversationList } from "./WhatsAppConversationList";
 import { WhatsAppChatWindow } from "./WhatsAppChatWindow";
 import { WhatsAppAIAgentConfigModal } from "./WhatsAppAIAgentConfigModal";
@@ -27,8 +29,10 @@ interface WhatsAppInboxDrawerProps {
 
 export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProps) {
   const { activeCompany } = useCompany();
+  const { user } = useAuth();
   const { config, isLoading: isLoadingConfig } = useWhatsAppConfig(activeCompany?.company_id);
   const { instances, userInstances, isLoading: isLoadingInstances } = useWhatsAppInstances(activeCompany?.company_id);
+  const { assignments } = useWhatsAppAssignments(activeCompany?.company_id);
   const navigate = useNavigate();
   
   const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
@@ -325,6 +329,9 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
                     isLoading={isLoadingConversations}
                     selectedId={selectedConversationId}
                     onSelect={handleSelectConversation}
+                    assignments={assignments}
+                    currentUserId={user?.id}
+                    currentUserTeamId={undefined}
                     instanceSelector={isUazapi && availableInstances.length > 0 ? (
                       <Select value={selectedInstanceId || ""} onValueChange={handleInstanceChange}>
                         <SelectTrigger className="w-full">
