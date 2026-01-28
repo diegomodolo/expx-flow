@@ -87,7 +87,16 @@ serve(async (req) => {
         
         direction = message.fromMe ? "outgoing" : "incoming";
         externalId = message.id || message.messageid || null;
-        contactName = message.senderName || chat.name || chat.wa_contactName || null;
+        
+        // Extract contact name from chat object (not message.senderName which is the sender, not the contact)
+        // For outgoing messages, message.senderName would be OUR name, not the contact's name
+        // So we should only use chat.name or chat.wa_contactName for the contact name
+        contactName = chat.name || chat.wa_contactName || chat.pushName || chat.notify || null;
+        
+        // If still no contact name and this is an incoming message, we can use senderName as fallback
+        if (!contactName && !message.fromMe) {
+          contactName = message.senderName || message.pushName || null;
+        }
         
         // Extract profile picture URL from chat object
         profilePicUrl = chat.imagePreview || chat.image || null;
