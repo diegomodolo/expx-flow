@@ -56,9 +56,10 @@ interface WhatsAppChatWindowProps {
   instanceId?: string | null;
   onChatDeleted?: (conversationId: string) => void;
   onChatArchived?: (conversationId: string, archived: boolean) => void;
+  onNavigateAway?: () => void; // Called when navigating away (e.g., to client page)
 }
 
-export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChatDeleted, onChatArchived }: WhatsAppChatWindowProps) {
+export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChatDeleted, onChatArchived, onNavigateAway }: WhatsAppChatWindowProps) {
   const navigate = useNavigate();
   const { messages, isLoading, isFetchingFromApi, isSyncingInBackground, isSendingMedia, sendMessage, sendMedia, fetchMessagesFromApi } = useWhatsAppMessages(
     conversation.id,
@@ -393,6 +394,13 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
     }
   };
 
+  const handleNavigateToClient = () => {
+    if (linkedClientId) {
+      onNavigateAway?.(); // Close the drawer first
+      navigate(`/clientes/${linkedClientId}`);
+    }
+  };
+
   return (
     <ResizablePanelGroup 
       direction="horizontal" 
@@ -433,7 +441,7 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
             <Tooltip>
               <TooltipTrigger asChild>
                 <button 
-                  onClick={() => navigate(`/clientes/${linkedClientId}`)}
+                  onClick={handleNavigateToClient}
                   className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full border-2 border-background bg-background overflow-hidden shadow-sm cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
                 >
                   {linkedClientLogo ? (
@@ -518,7 +526,7 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => navigate(`/clientes/${linkedClientId}`)}
+                onClick={handleNavigateToClient}
                 title="Abrir cadastro do cliente"
               >
                 <ExternalLink className="h-4 w-4" />
