@@ -2,21 +2,31 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { X, Send, Loader2, Sparkles, Copy, Check, MessageSquare, Trash2 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { X, Send, Loader2, Sparkles, Copy, Check, MessageSquare, Trash2, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import ReactMarkdown from "react-markdown";
 import { useWhatsAppAIChatMessages, AIMessage } from "@/hooks/useWhatsAppAIChatMessages";
+import { useWhatsAppRealtimeAnalysis } from "@/hooks/useWhatsAppRealtimeAnalysis";
+import { WhatsAppRealtimeAnalysisCard } from "./WhatsAppRealtimeAnalysisCard";
 
 interface WhatsAppAIAssistantProps {
   isOpen: boolean;
   onClose: () => void;
   conversationId: string;
   companyId: string | undefined;
+  instanceId?: string | null;
   customerMessage?: string;
   contactName: string;
   onUseResponse: (response: string) => void;
+  conversationMessages?: Array<{
+    id: string;
+    content: string;
+    direction: string;
+    created_at: string;
+  }>;
 }
 
 export function WhatsAppAIAssistant({
@@ -24,9 +34,11 @@ export function WhatsAppAIAssistant({
   onClose,
   conversationId,
   companyId,
+  instanceId,
   customerMessage,
   contactName,
   onUseResponse,
+  conversationMessages = [],
 }: WhatsAppAIAssistantProps) {
   const { messages, isLoading: isLoadingHistory, addMessage, clearMessages } = useWhatsAppAIChatMessages(
     conversationId,
@@ -35,10 +47,19 @@ export function WhatsAppAIAssistant({
   const [input, setInput] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [realtimeAnalysisEnabled, setRealtimeAnalysisEnabled] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const hasGeneratedSuggestion = useRef(false);
   const lastCustomerMessage = useRef<string | null>(null);
+
+  const { analysis, isAnalyzing, error: analysisError, triggerAnalysis } = useWhatsAppRealtimeAnalysis({
+    conversationId,
+    companyId,
+    instanceId,
+    messages: conversationMessages,
+    enabled: realtimeAnalysisEnabled,
+  });
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -201,6 +222,13 @@ Siga as instruções do atendente para ajustar a resposta.`;
     }
   };
 
+  const handleToggleRealtimeAnalysis = (checked: boolean) => {
+    setRealtimeAnalysisEnabled(checked);
+    if (checked) {
+      toast.success("Análise em tempo real ativada");
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -234,6 +262,35 @@ Siga as instruções do atendente para ajustar a resposta.`;
           </Button>
         </div>
       </div>
+
+      {/* Realtime Analysis Toggle */}
+      <div className="px-4 py-2 border-b bg-muted/30">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Zap className={cn(
+              "h-4 w-4",
+              realtimeAnalysisEnabled ? "text-amber-500" : "text-muted-foreground"
+            )} />
+            <span className="text-sm font-medium">Análise em Tempo Real</span>
+          </div>
+          <Switch
+            checked={realtimeAnalysisEnabled}
+            onCheckedChange={handleToggleRealtimeAnalysis}
+          />
+        </div>
+      </div>
+
+      {/* Realtime Analysis Card */}
+      {realtimeAnalysisEnabled && (
+        <div className="px-4 py-3 border-b bg-muted/20 max-h-[45%] overflow-y-auto">
+          <WhatsAppRealtimeAnalysisCard
+            analysis={analysis}
+            isAnalyzing={isAnalyzing}
+            error={analysisError}
+            onRefresh={triggerAnalysis}
+          />
+        </div>
+      )}
 
       {/* Messages */}
       <ScrollArea className="flex-1 px-4">

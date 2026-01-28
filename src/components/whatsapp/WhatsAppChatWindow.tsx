@@ -750,9 +750,16 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
               onClose={() => setAiAssistantOpen(false)}
               conversationId={conversation.id}
               companyId={companyId}
+              instanceId={instanceId}
               customerMessage={aiSelectedMessage}
               contactName={displayName}
               onUseResponse={handleUseAIResponse}
+              conversationMessages={messages.map((m) => ({
+                id: m.id,
+                content: m.content || "",
+                direction: m.direction === "incoming" ? "inbound" : "outbound",
+                created_at: m.sent_at,
+              }))}
             />
           </ResizablePanel>
         </>
