@@ -353,6 +353,15 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
               <WhatsAppRemindersPanel
                 open={isRemindersPanelOpen}
                 onOpenChange={setIsRemindersPanelOpen}
+                onNavigateToChat={(conversationId, instanceId) => {
+                  // Switch to the correct instance if needed
+                  if (instanceId !== selectedInstanceId) {
+                    setSelectedInstanceId(instanceId);
+                  }
+                  // Select the conversation
+                  setSelectedConversationId(conversationId);
+                  markAsRead(conversationId);
+                }}
               />
 
               {/* Resizable panels for conversation list and chat */}
