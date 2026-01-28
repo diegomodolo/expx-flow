@@ -18,6 +18,8 @@ export interface WhatsAppMessage {
   reaction: string | null;
   is_edited: boolean | null;
   edited_at: string | null;
+  audio_transcription?: string | null;
+  transcription_status?: string | null;
 }
 
 export interface MediaAttachment {

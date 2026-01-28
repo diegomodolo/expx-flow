@@ -24,6 +24,9 @@ interface UseWhatsAppRealtimeAnalysisProps {
     content: string;
     direction: string;
     created_at: string;
+    message_type?: string;
+    audio_transcription?: string | null;
+    transcription_status?: string | null;
   }>;
   enabled: boolean;
 }
@@ -50,16 +53,35 @@ export function useWhatsAppRealtimeAnalysis({
     // Don't re-analyze if we already analyzed this message
     if (lastMessage.id === lastAnalyzedMessageId.current) return;
 
+    // Check if last message is audio and waiting for transcription
+    const isAudioMessage = lastMessage.message_type === "audio" || lastMessage.message_type === "ptt";
+    const isTranscriptionPending = lastMessage.transcription_status === "processing" || 
+                                   lastMessage.transcription_status === "pending";
+    const hasNoTranscription = isAudioMessage && !lastMessage.audio_transcription;
+
+    if (isAudioMessage && (isTranscriptionPending || hasNoTranscription)) {
+      console.log("[useWhatsAppRealtimeAnalysis] Waiting for audio transcription...");
+      return; // Wait for transcription to be ready
+    }
+
     setIsAnalyzing(true);
     setError(null);
 
     try {
-      // Get last 15 messages for context
-      const contextMessages = latestMessages.slice(-15).map((m) => ({
-        role: m.direction === "inbound" ? "customer" : "agent",
-        content: m.content,
-        timestamp: m.created_at,
-      }));
+      // Get last 15 messages for context, using transcription for audio messages
+      const contextMessages = latestMessages.slice(-15).map((m) => {
+        const isAudio = m.message_type === "audio" || m.message_type === "ptt";
+        // Use transcription for audio messages, otherwise use content
+        const messageContent = isAudio && m.audio_transcription 
+          ? `[Áudio] ${m.audio_transcription}` 
+          : m.content;
+
+        return {
+          role: m.direction === "inbound" ? "customer" : "agent",
+          content: messageContent,
+          timestamp: m.created_at,
+        };
+      });
 
       const agentConfig = config || defaultConfig;
 

@@ -759,6 +759,9 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
                 content: m.content || "",
                 direction: m.direction === "incoming" ? "inbound" : "outbound",
                 created_at: m.sent_at,
+                message_type: m.message_type,
+                audio_transcription: m.audio_transcription,
+                transcription_status: m.transcription_status,
               }))}
             />
           </ResizablePanel>
