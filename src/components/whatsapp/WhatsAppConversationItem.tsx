@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { parseWhatsAppFormatting } from "@/lib/whatsappFormatting";
-import { Mic, Image, Video, FileText, Camera } from "lucide-react";
+import { Mic, Image, Video, FileText, Camera, BellOff } from "lucide-react";
 
 interface WhatsAppConversationItemProps {
   conversation: WhatsAppConversation;
@@ -138,9 +138,14 @@ export function WhatsAppConversationItem({
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
-            <span className={cn("font-medium text-sm truncate", hasUnread && "font-semibold")}>
-              {displayName}
-            </span>
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className={cn("font-medium text-sm truncate", hasUnread && "font-semibold")}>
+                {displayName}
+              </span>
+              {conversation.is_muted && (
+                <BellOff className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              )}
+            </div>
             {conversation.last_message_at && (
               <span className="text-xs text-muted-foreground shrink-0">
                 {formatDistanceToNow(new Date(conversation.last_message_at), {
