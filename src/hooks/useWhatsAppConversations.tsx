@@ -13,6 +13,7 @@ export interface WhatsAppConversation {
   unread_count: number;
   is_archived: boolean;
   client_id: string | null;
+  label_ids: string[] | null; // Labels assigned to this conversation
   created_at: string;
   updated_at: string;
 }

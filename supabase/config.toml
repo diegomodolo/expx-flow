@@ -411,3 +411,12 @@ verify_jwt = true
 
 [functions.send-whatsapp-media]
 verify_jwt = true
+
+[functions.fetch-whatsapp-labels]
+verify_jwt = true
+
+[functions.edit-whatsapp-label]
+verify_jwt = true
+
+[functions.manage-whatsapp-chat-labels]
+verify_jwt = true
