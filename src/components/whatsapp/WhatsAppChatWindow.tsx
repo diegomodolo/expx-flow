@@ -4,6 +4,9 @@ import { useWhatsAppMessages, MediaAttachment } from "@/hooks/useWhatsAppMessage
 import { WhatsAppMessageBubble } from "./WhatsAppMessageBubble";
 import { WhatsAppMessageInput } from "./WhatsAppMessageInput";
 import { WhatsAppMessagesLoading } from "./WhatsAppMessagesLoading";
+import { WhatsAppLabelPicker } from "./WhatsAppLabelPicker";
+import { WhatsAppLabelList } from "./WhatsAppLabelBadge";
+import { useWhatsAppLabels, WhatsAppLabel } from "@/hooks/useWhatsAppLabels";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -47,6 +50,9 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteFromWhatsApp, setDeleteFromWhatsApp] = useState(true);
   const [deleteLocal, setDeleteLocal] = useState(true);
+  const [chatLabelIds, setChatLabelIds] = useState<string[]>(conversation.label_ids || []);
+  
+  const { labels } = useWhatsAppLabels(companyId, instanceId ?? null);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -121,12 +127,30 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
           </AvatarFallback>
         </Avatar>
         <div className="flex-1 min-w-0">
-          <h3 className="font-medium text-sm truncate">{displayName}</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="font-medium text-sm truncate">{displayName}</h3>
+            {/* Label badges */}
+            {chatLabelIds.length > 0 && (
+              <WhatsAppLabelList 
+                labels={labels.filter(l => chatLabelIds.includes(l.id))} 
+                maxVisible={2}
+              />
+            )}
+          </div>
           <p className="text-xs text-muted-foreground flex items-center gap-1">
             <Phone className="h-3 w-3" />
             {formatPhoneNumber(conversation.phone)}
           </p>
         </div>
+        
+        {/* Label picker */}
+        <WhatsAppLabelPicker
+          phone={conversation.phone}
+          currentLabelIds={chatLabelIds}
+          companyId={companyId}
+          instanceId={instanceId ?? null}
+          onLabelsChange={setChatLabelIds}
+        />
         
         {/* Refresh messages button */}
         <Button
