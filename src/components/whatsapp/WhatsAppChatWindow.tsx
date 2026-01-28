@@ -523,6 +523,48 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
           onLabelsChange={setChatLabelIds}
         />
         
+        {/* CS Tools - only shows when a client is linked */}
+        {linkedClientId && (
+          <>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setReminderModalOpen(true)}
+                >
+                  <Clock className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Adicionar Lembrete</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setTaskModalOpen(true)}
+                >
+                  <ListTodo className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Criar Tarefa</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setNoteModalOpen(true)}
+                >
+                  <StickyNote className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Adicionar Observação</TooltipContent>
+            </Tooltip>
+          </>
+        )}
+        
         {/* Open client button - only shows when a client is linked */}
         {linkedClientId && (
           <Tooltip>
