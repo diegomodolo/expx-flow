@@ -11,6 +11,7 @@ import { WhatsAppAudioPlayer } from "./WhatsAppAudioPlayer";
 import { WhatsAppImageViewer } from "./WhatsAppImageViewer";
 import { WhatsAppVideoViewer } from "./WhatsAppVideoViewer";
 import { WhatsAppReactionPicker } from "./WhatsAppReactionPicker";
+import { parseWhatsAppFormatting } from "@/lib/whatsappFormatting";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -441,7 +442,7 @@ export function WhatsAppMessageBubble({ message, instanceId, companyId, remoteJi
 
           {/* Text content - hide if it's just a placeholder for media with download button */}
           {!(isMediaType && hasMedia && (message.content.startsWith("📎") || message.content.startsWith("["))) && (
-            <p className="text-sm whitespace-pre-wrap break-words">{displayContent}</p>
+            <p className="text-sm whitespace-pre-wrap break-words">{parseWhatsAppFormatting(displayContent)}</p>
           )}
 
           {/* Media without URL - show content as is */}
