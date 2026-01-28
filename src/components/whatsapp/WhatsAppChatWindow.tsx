@@ -21,7 +21,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
-import { Phone, RefreshCw, Trash2, MoreVertical, Loader2, CheckCheck, Sparkles, Archive, ArchiveRestore, Circle, CircleDot, BellOff, Bell, Pin, PinOff, Ban, Building2, ExternalLink } from "lucide-react";
+import { Phone, RefreshCw, Trash2, MoreVertical, Loader2, CheckCheck, Sparkles, Archive, ArchiveRestore, Circle, CircleDot, BellOff, Bell, Pin, PinOff, Ban, Building2, ExternalLink, Clock, ListTodo, StickyNote } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -49,6 +49,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useQueryClient } from "@tanstack/react-query";
+import { WhatsAppReminderModal } from "./WhatsAppReminderModal";
+import { WhatsAppQuickTaskModal } from "./WhatsAppQuickTaskModal";
+import { WhatsAppNoteModal } from "./WhatsAppNoteModal";
 
 interface WhatsAppChatWindowProps {
   conversation: WhatsAppConversation;
@@ -95,6 +98,11 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
   const [aiSendDialogOpen, setAiSendDialogOpen] = useState(false);
   const [aiSuggestedResponse, setAiSuggestedResponse] = useState("");
   const [isSendingAiResponse, setIsSendingAiResponse] = useState(false);
+  
+  // CS Tools modals state
+  const [reminderModalOpen, setReminderModalOpen] = useState(false);
+  const [taskModalOpen, setTaskModalOpen] = useState(false);
+  const [noteModalOpen, setNoteModalOpen] = useState(false);
   
   const { labels } = useWhatsAppLabels(companyId, instanceId ?? null);
   const { quickReplies, isLoading: quickRepliesLoading } = useWhatsAppQuickReplies(instanceId ?? null);
@@ -647,6 +655,44 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
               </DropdownMenuSubContent>
             </DropdownMenuSub>
             <DropdownMenuSeparator />
+            {/* CS Tools Section */}
+            <DropdownMenuItem 
+              onClick={() => {
+                if (!linkedClientId) {
+                  toast.error("Vincule este chat a um cliente primeiro");
+                  return;
+                }
+                setReminderModalOpen(true);
+              }}
+            >
+              <Clock className="h-4 w-4 mr-2" />
+              Adicionar Lembrete
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={() => {
+                if (!linkedClientId) {
+                  toast.error("Vincule este chat a um cliente primeiro");
+                  return;
+                }
+                setTaskModalOpen(true);
+              }}
+            >
+              <ListTodo className="h-4 w-4 mr-2" />
+              Criar Tarefa
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={() => {
+                if (!linkedClientId) {
+                  toast.error("Vincule este chat a um cliente primeiro");
+                  return;
+                }
+                setNoteModalOpen(true);
+              }}
+            >
+              <StickyNote className="h-4 w-4 mr-2" />
+              Adicionar Observação
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
             <DropdownMenuItem 
               onClick={handleBlockContact}
               disabled={isBlocking}
@@ -834,6 +880,30 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
         onSend={handleSendAIResponse}
         isSending={isSendingAiResponse}
       />
+
+      {/* CS Tools Modals */}
+      {linkedClientId && linkedClientName && (
+        <>
+          <WhatsAppReminderModal
+            open={reminderModalOpen}
+            onOpenChange={setReminderModalOpen}
+            clientId={linkedClientId}
+            clientName={linkedClientName}
+          />
+          <WhatsAppQuickTaskModal
+            open={taskModalOpen}
+            onOpenChange={setTaskModalOpen}
+            clientId={linkedClientId}
+            clientName={linkedClientName}
+          />
+          <WhatsAppNoteModal
+            open={noteModalOpen}
+            onOpenChange={setNoteModalOpen}
+            clientId={linkedClientId}
+            clientName={linkedClientName}
+          />
+        </>
+      )}
     </ResizablePanelGroup>
   );
 }
