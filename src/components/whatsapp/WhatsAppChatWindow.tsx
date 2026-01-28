@@ -6,7 +6,6 @@ import { WhatsAppMessageInput } from "./WhatsAppMessageInput";
 import { WhatsAppMessagesLoading } from "./WhatsAppMessagesLoading";
 import { WhatsAppLabelPicker } from "./WhatsAppLabelPicker";
 import { WhatsAppLabelList } from "./WhatsAppLabelBadge";
-import { WhatsAppQuickReplyManager } from "./WhatsAppQuickReplyManager";
 import { WhatsAppAIAssistant } from "./WhatsAppAIAssistant";
 import { WhatsAppAISendDialog } from "./WhatsAppAISendDialog";
 import { useWhatsAppLabels } from "@/hooks/useWhatsAppLabels";
@@ -17,7 +16,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
-import { Phone, RefreshCw, Trash2, MoreVertical, Loader2, Zap, CheckCheck, Sparkles } from "lucide-react";
+import { Phone, RefreshCw, Trash2, MoreVertical, Loader2, CheckCheck, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -61,7 +60,6 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
   const [deleteLocal, setDeleteLocal] = useState(true);
   const [chatLabelIds, setChatLabelIds] = useState<string[]>(conversation.label_ids || []);
   const [showProfilePic, setShowProfilePic] = useState(false);
-  const [quickReplyManagerOpen, setQuickReplyManagerOpen] = useState(false);
   const [isMarkingRead, setIsMarkingRead] = useState(false);
   
   // AI Assistant state
@@ -282,10 +280,6 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => setQuickReplyManagerOpen(true)}>
-              <Zap className="h-4 w-4 mr-2" />
-              Respostas rápidas
-            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => fetchMessagesFromApi(true)}>
               <RefreshCw className="h-4 w-4 mr-2" />
               Atualizar mensagens
@@ -390,13 +384,6 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Quick reply manager dialog */}
-      <WhatsAppQuickReplyManager 
-        instanceId={instanceId ?? null}
-        open={quickReplyManagerOpen}
-        onOpenChange={setQuickReplyManagerOpen}
-      />
 
       {/* Messages */}
       <ScrollArea className="flex-1 px-4">

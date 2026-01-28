@@ -12,7 +12,8 @@ import { useWhatsAppPanelSizes } from "@/hooks/useWhatsAppPanelSizes";
 import { WhatsAppConversationList } from "./WhatsAppConversationList";
 import { WhatsAppChatWindow } from "./WhatsAppChatWindow";
 import { WhatsAppAIAgentConfigModal } from "./WhatsAppAIAgentConfigModal";
-import { MessageSquare, Settings, AlertCircle, Phone, CheckCircle2, XCircle, RefreshCw, Archive, Star, Users, MessageCircle, BellOff, Sparkles } from "lucide-react";
+import { WhatsAppQuickReplyManager } from "./WhatsAppQuickReplyManager";
+import { MessageSquare, Settings, AlertCircle, Phone, CheckCircle2, XCircle, RefreshCw, Archive, Star, Users, MessageCircle, BellOff, Sparkles, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -32,6 +33,7 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<string>("all");
   const [isAIConfigOpen, setIsAIConfigOpen] = useState(false);
+  const [isQuickReplyManagerOpen, setIsQuickReplyManagerOpen] = useState(false);
   const hasTriggeredSync = useRef(false);
   
   // Panel sizes persistence
@@ -293,6 +295,13 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
                   <div className="h-px w-8 bg-border my-2" />
                   
                   <SidebarFilterButton
+                    icon={Zap}
+                    label="Respostas Rápidas"
+                    isActive={isQuickReplyManagerOpen}
+                    onClick={() => setIsQuickReplyManagerOpen(true)}
+                  />
+                  
+                  <SidebarFilterButton
                     icon={Sparkles}
                     label="Configurar IA"
                     isActive={isAIConfigOpen}
@@ -300,6 +309,13 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
                   />
                 </div>
               </TooltipProvider>
+
+              {/* Quick Reply Manager Modal */}
+              <WhatsAppQuickReplyManager
+                instanceId={selectedInstanceId}
+                open={isQuickReplyManagerOpen}
+                onOpenChange={setIsQuickReplyManagerOpen}
+              />
 
               {/* AI Config Modal */}
               <WhatsAppAIAgentConfigModal
