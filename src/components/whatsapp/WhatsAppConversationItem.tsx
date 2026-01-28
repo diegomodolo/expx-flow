@@ -41,11 +41,14 @@ export function WhatsAppConversationItem({
     }
 
     // Check for audio/voice message patterns
+    // Normalize to lowercase for comparison but also check for accented versions
+    const previewLower = preview.toLowerCase();
     if (
-      preview.toLowerCase().includes("[audio]") ||
-      preview.toLowerCase().includes("mensagem de voz") ||
-      preview.toLowerCase().includes("voice_message") ||
-      preview.toLowerCase().includes("[ptt]") ||
+      previewLower.includes("[audio]") ||
+      previewLower.includes("[áudio]") ||
+      previewLower.includes("mensagem de voz") ||
+      previewLower.includes("voice_message") ||
+      previewLower.includes("[ptt]") ||
       preview.startsWith("🎤")
     ) {
       return (
@@ -58,8 +61,8 @@ export function WhatsAppConversationItem({
 
     // Check for image patterns
     if (
-      preview.toLowerCase().includes("[image]") ||
-      preview.toLowerCase().includes("[imagem]") ||
+      previewLower.includes("[image]") ||
+      previewLower.includes("[imagem]") ||
       preview.startsWith("📷") ||
       preview.startsWith("🖼")
     ) {
@@ -73,8 +76,8 @@ export function WhatsAppConversationItem({
 
     // Check for video patterns
     if (
-      preview.toLowerCase().includes("[video]") ||
-      preview.toLowerCase().includes("[vídeo]") ||
+      previewLower.includes("[video]") ||
+      previewLower.includes("[vídeo]") ||
       preview.startsWith("🎥") ||
       preview.startsWith("📹")
     ) {
@@ -88,8 +91,8 @@ export function WhatsAppConversationItem({
 
     // Check for document patterns
     if (
-      preview.toLowerCase().includes("[document]") ||
-      preview.toLowerCase().includes("[documento]") ||
+      previewLower.includes("[document]") ||
+      previewLower.includes("[documento]") ||
       preview.startsWith("📎") ||
       preview.startsWith("📄")
     ) {
