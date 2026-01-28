@@ -378,20 +378,14 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
     setAiSendDialogOpen(true);
   };
 
-  const handleSendAIResponse = async (message: string) => {
-    setIsSendingAiResponse(true);
-    try {
-      await sendMessage({ phone: conversation.phone, message, instanceId: instanceId ?? null });
-      setAiSendDialogOpen(false);
-      setAiAssistantOpen(false);
-      setAiSuggestedResponse("");
-      toast.success("Mensagem enviada!");
-    } catch (error) {
-      console.error("Error sending AI response:", error);
-      toast.error("Erro ao enviar mensagem");
-    } finally {
-      setIsSendingAiResponse(false);
-    }
+  const handleSendAIResponse = (message: string) => {
+    // Close modal immediately - message will appear via optimistic UI
+    setAiSendDialogOpen(false);
+    setAiAssistantOpen(false);
+    setAiSuggestedResponse("");
+    
+    // Fire and forget - sendMessage already handles optimistic UI and error states
+    sendMessage({ phone: conversation.phone, message, instanceId: instanceId ?? null });
   };
 
   const handleNavigateToClient = () => {
