@@ -35,10 +35,8 @@ export function useSyncWhatsAppChats(companyId: string | undefined) {
           queryKey: ["whatsapp-conversations", companyId, instanceId] 
         });
 
-        if (data.synced > 0) {
-          toast.success(`${data.synced} conversas sincronizadas`);
-        } else {
-          // Se nenhuma conversa foi encontrada, sugerir configurar webhook
+        if (data.synced === 0) {
+          // Se nenhuma conversa foi encontrada, apenas log (sem toast)
           console.log("[useSyncWhatsAppChats] Nenhuma conversa encontrada. Tentativas:", data.attempts);
         }
 
