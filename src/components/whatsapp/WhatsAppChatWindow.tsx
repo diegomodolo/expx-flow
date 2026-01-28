@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState } from "react";
 import { WhatsAppConversation } from "@/hooks/useWhatsAppConversations";
-import { useWhatsAppMessages } from "@/hooks/useWhatsAppMessages";
+import { useWhatsAppMessages, MediaAttachment } from "@/hooks/useWhatsAppMessages";
 import { WhatsAppMessageBubble } from "./WhatsAppMessageBubble";
 import { WhatsAppMessageInput } from "./WhatsAppMessageInput";
 import { WhatsAppMessagesLoading } from "./WhatsAppMessagesLoading";
@@ -38,7 +38,7 @@ interface WhatsAppChatWindowProps {
 }
 
 export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChatDeleted }: WhatsAppChatWindowProps) {
-  const { messages, isLoading, isFetchingFromApi, sendMessage, fetchMessagesFromApi } = useWhatsAppMessages(
+  const { messages, isLoading, isFetchingFromApi, isSendingMedia, sendMessage, sendMedia, fetchMessagesFromApi } = useWhatsAppMessages(
     conversation.id,
     companyId
   );
@@ -59,6 +59,10 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
 
   const handleSend = (message: string) => {
     sendMessage({ phone: conversation.phone, message, instanceId: instanceId ?? null });
+  };
+
+  const handleSendMedia = (media: MediaAttachment, caption: string) => {
+    sendMedia({ phone: conversation.phone, media, caption, instanceId: instanceId ?? null });
   };
 
   const handleDeleteChat = async () => {
@@ -257,7 +261,11 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
       </ScrollArea>
 
       {/* Input */}
-      <WhatsAppMessageInput onSend={handleSend} isSending={false} />
+      <WhatsAppMessageInput 
+        onSend={handleSend} 
+        onSendMedia={handleSendMedia}
+        isSending={isSendingMedia} 
+      />
     </div>
   );
 }
