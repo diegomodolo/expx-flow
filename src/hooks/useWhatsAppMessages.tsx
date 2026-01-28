@@ -54,6 +54,63 @@ export function useWhatsAppMessages(conversationId: string | null, companyId: st
     },
     enabled: !!conversationId,
   });
+
+  // Realtime subscription for INSERT and UPDATE events on whatsapp_messages
+  useEffect(() => {
+    if (!conversationId) return;
+
+    const channel = supabase
+      .channel(`messages-realtime-${conversationId}`)
+      .on<WhatsAppMessage>(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "whatsapp_messages",
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        (payload) => {
+          const newMessage = payload.new as WhatsAppMessage;
+          console.log("[useWhatsAppMessages] Realtime INSERT:", newMessage.id);
+          queryClient.setQueryData<WhatsAppMessage[]>(
+            ["whatsapp-messages", conversationId],
+            (old) => {
+              if (!old) return [newMessage];
+              // Avoid duplicates
+              if (old.some((m) => m.id === newMessage.id)) return old;
+              return [...old, newMessage];
+            }
+          );
+        }
+      )
+      .on<WhatsAppMessage>(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "whatsapp_messages",
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        (payload) => {
+          const updated = payload.new as WhatsAppMessage;
+          console.log("[useWhatsAppMessages] Realtime UPDATE:", updated.id, "content:", updated.content?.substring(0, 30));
+          queryClient.setQueryData<WhatsAppMessage[]>(
+            ["whatsapp-messages", conversationId],
+            (old) => {
+              if (!old) return old;
+              return old.map((msg) =>
+                msg.id === updated.id ? { ...msg, ...updated } : msg
+              );
+            }
+          );
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [conversationId, queryClient]);
   // Fetch messages from API - can be called manually to refresh
   const fetchMessagesFromApi = useCallback(async (forceRefresh = false) => {
     // Block if already fetching, but allow manual refresh (forceRefresh = true)
