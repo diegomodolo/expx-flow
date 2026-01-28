@@ -13,6 +13,7 @@ export interface WhatsAppConversation {
   unread_count: number;
   is_archived: boolean;
   is_muted: boolean;
+  is_pinned: boolean;
   client_id: string | null;
   label_ids: string[] | null; // Labels assigned to this conversation
   created_at: string;
@@ -31,6 +32,7 @@ export function useWhatsAppConversations(companyId: string | undefined, instance
         .from("whatsapp_conversations")
         .select("*")
         .eq("company_id", companyId)
+        .order("is_pinned", { ascending: false })
         .order("last_message_at", { ascending: false, nullsFirst: false });
 
       // Filter by archived status
