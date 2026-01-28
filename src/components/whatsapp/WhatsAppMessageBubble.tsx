@@ -414,6 +414,8 @@ export function WhatsAppMessageBubble({ message, instanceId, companyId, remoteJi
                   instanceId={instanceId ?? null}
                   isOutgoing={isOutgoing && !isFailed}
                   cachedMediaUrl={message.cached_media_url}
+                  audioTranscription={(message as any).audio_transcription}
+                  transcriptionStatus={(message as any).transcription_status}
                 />
               ) : (
                 <Button
