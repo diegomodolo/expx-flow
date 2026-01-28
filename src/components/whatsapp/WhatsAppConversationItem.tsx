@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { WhatsAppConversation } from "@/hooks/useWhatsAppConversations";
+import { WhatsAppConversation, ConversationTemperature } from "@/hooks/useWhatsAppConversations";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -9,6 +9,13 @@ import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { parseWhatsAppFormatting } from "@/lib/whatsappFormatting";
 import { Mic, Image, Video, FileText, Camera, BellOff, Pin, Building2 } from "lucide-react";
+
+// Temperature color mapping
+const temperatureStyles: Record<string, { ring: string; label: string }> = {
+  fria: { ring: "ring-2 ring-blue-400", label: "Temperatura fria" },
+  morna: { ring: "ring-2 ring-amber-400", label: "Temperatura morna" },
+  quente: { ring: "ring-2 ring-red-500", label: "Temperatura quente" },
+};
 
 interface WhatsAppConversationItemProps {
   conversation: WhatsAppConversation;
@@ -25,6 +32,7 @@ export function WhatsAppConversationItem({
   const displayName = conversation.contact_name || formatPhoneNumber(conversation.phone);
   const initials = getInitials(displayName);
   const hasUnread = conversation.unread_count > 0;
+  const tempStyle = conversation.temperature ? temperatureStyles[conversation.temperature] : null;
 
   const handleAvatarClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -119,24 +127,34 @@ export function WhatsAppConversationItem({
         )}
       >
         <div className="relative shrink-0">
-          <Avatar 
-            className={cn(
-              "h-10 w-10",
-              conversation.profile_pic_url && "cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Avatar 
+                className={cn(
+                  "h-10 w-10 transition-all",
+                  tempStyle?.ring,
+                  conversation.profile_pic_url && "cursor-pointer hover:opacity-90"
+                )}
+                onClick={handleAvatarClick}
+              >
+                {conversation.profile_pic_url && (
+                  <AvatarImage 
+                    src={conversation.profile_pic_url} 
+                    alt={displayName}
+                    className="object-cover"
+                  />
+                )}
+                <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+            </TooltipTrigger>
+            {tempStyle && (
+              <TooltipContent side="right" className="text-xs">
+                {tempStyle.label}
+              </TooltipContent>
             )}
-            onClick={handleAvatarClick}
-          >
-            {conversation.profile_pic_url && (
-              <AvatarImage 
-                src={conversation.profile_pic_url} 
-                alt={displayName}
-                className="object-cover"
-              />
-            )}
-            <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
-              {initials}
-            </AvatarFallback>
-          </Avatar>
+          </Tooltip>
           
           {/* Client logo overlay */}
           {conversation.client_id && (
