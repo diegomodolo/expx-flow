@@ -19,6 +19,7 @@ export interface WhatsAppConversation {
   client_id: string | null;
   client_name?: string | null; // Joined from clients table
   client_logo_url?: string | null; // Joined from clients table
+  client_team_id?: string | null; // Joined from clients table
   label_ids: string[] | null; // Labels assigned to this conversation
   temperature?: ConversationTemperature; // From realtime analysis
   created_at: string;

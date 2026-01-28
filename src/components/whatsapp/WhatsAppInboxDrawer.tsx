@@ -103,9 +103,6 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
 
   // Enable realtime updates
   useWhatsAppRealtime(activeCompany?.company_id);
-
-  const selectedConversation = conversations.find(c => c.id === selectedConversationId);
-  const selectedInstance = availableInstances.find(i => i.id === selectedInstanceId);
   
   // Filter conversations based on active filter
   const filteredConversations = conversations.filter(c => {
@@ -128,6 +125,14 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
         return !c.is_archived;
     }
   });
+
+  // Apply "Meu Squad" filter at UI level as a safety net (prevents showing all chats if the query cache doesn't refresh)
+  const squadScopedConversations = squadFilterActive && userSquad?.squadId
+    ? filteredConversations.filter(c => !!c.client_id && c.client_team_id === userSquad.squadId)
+    : filteredConversations;
+
+  const selectedConversation = squadScopedConversations.find(c => c.id === selectedConversationId);
+  const selectedInstance = availableInstances.find(i => i.id === selectedInstanceId);
   
   // Check if connected (for UazapiGO, check instance; for Z-API, check config)
   const isUazapi = config?.provider === "uazapi";
@@ -240,7 +245,7 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
                         isActive={squadFilterActive}
                         onClick={() => setSquadFilterActive(prev => !prev)}
                         badgeColor={userSquad.squadColor || undefined}
-                        count={squadFilterActive ? conversations.length : undefined}
+                        count={squadFilterActive ? squadScopedConversations.length : undefined}
                       />
                     </>
                   )}
@@ -347,13 +352,13 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
                   className="border-r"
                 >
                   <WhatsAppConversationList
-                    conversations={filteredConversations}
+                    conversations={squadScopedConversations}
                     isLoading={isLoadingConversations}
                     selectedId={selectedConversationId}
                     onSelect={handleSelectConversation}
                     assignments={assignments}
                     currentUserId={user?.id}
-                    currentUserTeamId={undefined}
+                    currentUserTeamId={userSquad?.squadId}
                     instanceSelector={isUazapi && availableInstances.length > 0 ? (
                       <Select value={selectedInstanceId || ""} onValueChange={handleInstanceChange}>
                         <SelectTrigger className="w-full">
