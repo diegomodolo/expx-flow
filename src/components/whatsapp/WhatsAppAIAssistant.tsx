@@ -191,7 +191,7 @@ Siga as instruções do atendente para ajustar a resposta.`;
   if (!isOpen) return null;
 
   return (
-    <div className="w-80 min-w-80 border-l bg-background flex flex-col h-full">
+    <div className="w-full h-full border-l bg-background flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b bg-gradient-to-r from-primary/10 to-primary/5">
         <div className="flex items-center gap-2">
