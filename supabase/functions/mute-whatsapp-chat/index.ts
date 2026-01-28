@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
     // Get instance token
     const { data: instance, error: instanceError } = await supabase
       .from("whatsapp_instances")
-      .select("uazapi_token, instance_token")
+      .select("uazapi_token")
       .eq("id", instance_id)
       .maybeSingle();
 
@@ -68,7 +68,7 @@ Deno.serve(async (req) => {
     }
 
     const baseUrl = config.uazapi_endpoint?.replace(/\/$/, "");
-    const instanceToken = instance.uazapi_token || instance.instance_token;
+    const instanceToken = instance.uazapi_token;
 
     if (!baseUrl || !instanceToken) {
       return new Response(
