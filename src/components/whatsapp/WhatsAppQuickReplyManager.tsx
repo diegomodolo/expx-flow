@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,9 +7,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { Settings, Plus, Pencil, Trash2, FileText, Image, Video, Mic, File, Loader2, X } from 'lucide-react';
+import { Settings, Plus, Pencil, Trash2, FileText, Image, Video, Mic, File, Loader2, X, Upload, Link } from 'lucide-react';
 import { QuickReply, QuickReplyInput, useWhatsAppQuickReplies } from '@/hooks/useWhatsAppQuickReplies';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface WhatsAppQuickReplyManagerProps {
   instanceId: string | null;
@@ -68,6 +71,10 @@ export const WhatsAppQuickReplyManager: React.FC<WhatsAppQuickReplyManagerProps>
   const [editingReply, setEditingReply] = useState<QuickReply | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [mediaMode, setMediaMode] = useState<'upload' | 'url'>('upload');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
     quickReplies,
@@ -86,6 +93,60 @@ export const WhatsAppQuickReplyManager: React.FC<WhatsAppQuickReplyManagerProps>
     text: ''
   });
 
+  const getAcceptedFileTypes = (type: QuickReply['type']): string => {
+    switch (type) {
+      case 'image': return 'image/jpeg,image/png,image/gif,image/webp';
+      case 'video': return 'video/mp4,video/quicktime,video/webm';
+      case 'audio':
+      case 'ptt':
+        return 'audio/mpeg,audio/ogg,audio/wav,audio/mp4,audio/webm';
+      case 'document': return '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip';
+      default: return '*/*';
+    }
+  };
+
+  const uploadFileToStorage = async (file: File): Promise<string | null> => {
+    try {
+      const timestamp = Date.now();
+      const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const filePath = `${instanceId}/${timestamp}_${sanitizedName}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('whatsapp-quick-replies')
+        .upload(filePath, file, {
+          cacheControl: '31536000',
+          upsert: true,
+        });
+
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        toast.error('Erro ao fazer upload do arquivo');
+        return null;
+      }
+
+      const { data: urlData } = supabase.storage
+        .from('whatsapp-quick-replies')
+        .getPublicUrl(filePath);
+
+      return urlData.publicUrl;
+    } catch (err) {
+      console.error('Upload failed:', err);
+      toast.error('Erro ao fazer upload do arquivo');
+      return null;
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      // Auto-set docName for documents
+      if (formData.type === 'document' && !formData.docName) {
+        setFormData(prev => ({ ...prev, docName: file.name }));
+      }
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       shortCut: '',
@@ -94,6 +155,11 @@ export const WhatsAppQuickReplyManager: React.FC<WhatsAppQuickReplyManagerProps>
     });
     setEditingReply(null);
     setIsFormOpen(false);
+    setSelectedFile(null);
+    setMediaMode('upload');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const handleEdit = (reply: QuickReply) => {
@@ -106,6 +172,13 @@ export const WhatsAppQuickReplyManager: React.FC<WhatsAppQuickReplyManagerProps>
       file: reply.file || '',
       docName: reply.docName || ''
     });
+    // If editing a media reply with existing URL, default to URL mode
+    if (reply.file && reply.type !== 'text') {
+      setMediaMode('url');
+    } else {
+      setMediaMode('upload');
+    }
+    setSelectedFile(null);
     setIsFormOpen(true);
   };
 
@@ -113,14 +186,34 @@ export const WhatsAppQuickReplyManager: React.FC<WhatsAppQuickReplyManagerProps>
     e.preventDefault();
     
     try {
+      let fileUrl = formData.file;
+
+      // Upload file if selected
+      if (selectedFile && mediaMode === 'upload') {
+        setIsUploading(true);
+        const uploadedUrl = await uploadFileToStorage(selectedFile);
+        if (!uploadedUrl) {
+          setIsUploading(false);
+          return;
+        }
+        fileUrl = uploadedUrl;
+        setIsUploading(false);
+      }
+
+      const dataToSave = {
+        ...formData,
+        file: fileUrl
+      };
+
       if (editingReply) {
-        await updateQuickReply(formData);
+        await updateQuickReply(dataToSave);
       } else {
-        await createQuickReply(formData);
+        await createQuickReply(dataToSave);
       }
       resetForm();
     } catch (error) {
       console.error('Error saving quick reply:', error);
+      setIsUploading(false);
     }
   };
 
@@ -300,18 +393,92 @@ export const WhatsAppQuickReplyManager: React.FC<WhatsAppQuickReplyManagerProps>
                     </div>
                   ) : (
                     <>
-                      <div className="space-y-2">
-                        <Label htmlFor="file">URL do Arquivo *</Label>
-                        <Input
-                          id="file"
-                          value={formData.file || ''}
-                          onChange={(e) => setFormData(prev => ({ ...prev, file: e.target.value }))}
-                          placeholder="https://exemplo.com/arquivo.pdf"
-                          required
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          URL pública do arquivo ou Base64
-                        </p>
+                      <div className="space-y-3">
+                        <Label>Arquivo *</Label>
+                        
+                        <Tabs value={mediaMode} onValueChange={(v) => setMediaMode(v as 'upload' | 'url')} className="w-full">
+                          <TabsList className="grid w-full grid-cols-2">
+                            <TabsTrigger value="upload" className="flex items-center gap-2">
+                              <Upload className="h-4 w-4" />
+                              Upload
+                            </TabsTrigger>
+                            <TabsTrigger value="url" className="flex items-center gap-2">
+                              <Link className="h-4 w-4" />
+                              URL
+                            </TabsTrigger>
+                          </TabsList>
+                        </Tabs>
+
+                        {mediaMode === 'upload' ? (
+                          <div className="space-y-2">
+                            <input
+                              ref={fileInputRef}
+                              type="file"
+                              accept={getAcceptedFileTypes(formData.type)}
+                              onChange={handleFileSelect}
+                              className="hidden"
+                              id="file-upload"
+                            />
+                            
+                            <div 
+                              className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                              onClick={() => fileInputRef.current?.click()}
+                            >
+                              {selectedFile ? (
+                                <div className="space-y-2">
+                                  <div className="flex items-center justify-center gap-2 text-primary">
+                                    {getTypeIcon(formData.type)}
+                                    <span className="font-medium">{selectedFile.name}</span>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground">
+                                    {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                                  </p>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedFile(null);
+                                      if (fileInputRef.current) {
+                                        fileInputRef.current.value = '';
+                                      }
+                                    }}
+                                  >
+                                    <X className="h-4 w-4 mr-1" />
+                                    Remover
+                                  </Button>
+                                </div>
+                              ) : (
+                                <div className="space-y-2">
+                                  <Upload className="h-8 w-8 mx-auto text-muted-foreground" />
+                                  <p className="text-sm text-muted-foreground">
+                                    Clique para selecionar um arquivo
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {formData.type === 'image' && 'JPG, PNG, GIF, WebP (máx. 50MB)'}
+                                    {formData.type === 'video' && 'MP4, MOV, WebM (máx. 50MB)'}
+                                    {(formData.type === 'audio' || formData.type === 'ptt') && 'MP3, OGG, WAV (máx. 50MB)'}
+                                    {formData.type === 'document' && 'PDF, DOC, XLS, PPT, TXT, ZIP (máx. 50MB)'}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <Input
+                              id="file"
+                              value={formData.file || ''}
+                              onChange={(e) => setFormData(prev => ({ ...prev, file: e.target.value }))}
+                              placeholder="https://exemplo.com/arquivo.pdf"
+                              required={mediaMode === 'url'}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              URL pública do arquivo
+                            </p>
+                          </div>
+                        )}
                       </div>
 
                       {formData.type === 'document' && (
@@ -343,12 +510,12 @@ export const WhatsAppQuickReplyManager: React.FC<WhatsAppQuickReplyManagerProps>
                 <Separator />
 
                 <div className="flex justify-end gap-2">
-                  <Button type="button" variant="outline" onClick={resetForm}>
+                  <Button type="button" variant="outline" onClick={resetForm} disabled={isUploading}>
                     Cancelar
                   </Button>
-                  <Button type="submit" disabled={isCreating || isUpdating}>
-                    {(isCreating || isUpdating) && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                    {editingReply ? 'Salvar' : 'Criar'}
+                  <Button type="submit" disabled={isCreating || isUpdating || isUploading || (mediaMode === 'upload' && !selectedFile && formData.type !== 'text' && !formData.file)}>
+                    {(isCreating || isUpdating || isUploading) && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                    {isUploading ? 'Enviando...' : editingReply ? 'Salvar' : 'Criar'}
                   </Button>
                 </div>
               </form>
