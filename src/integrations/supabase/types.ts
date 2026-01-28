@@ -11442,6 +11442,7 @@ export type Database = {
           id: string
           insight: string | null
           interpretation: string | null
+          ready_message: string | null
           score: number | null
           sentiment_score: number | null
           suggestion: string | null
@@ -11456,6 +11457,7 @@ export type Database = {
           id?: string
           insight?: string | null
           interpretation?: string | null
+          ready_message?: string | null
           score?: number | null
           sentiment_score?: number | null
           suggestion?: string | null
@@ -11470,6 +11472,7 @@ export type Database = {
           id?: string
           insight?: string | null
           interpretation?: string | null
+          ready_message?: string | null
           score?: number | null
           sentiment_score?: number | null
           suggestion?: string | null
