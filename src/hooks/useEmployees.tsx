@@ -61,7 +61,7 @@ export const useEmployees = () => {
         .from("employees")
         .select(`
           *,
-          team:teams (
+          team:teams!employees_team_id_fkey (
             id,
             name,
             color
