@@ -113,7 +113,7 @@ export function WhatsAppMessageBubble({ message, instanceId, companyId, remoteJi
   };
 
   const handleDeleteMessage = async () => {
-    if (!instanceId || !message.external_id || !companyId) {
+    if (!companyId) {
       toast.error("Não foi possível apagar a mensagem");
       return;
     }
@@ -121,24 +121,38 @@ export function WhatsAppMessageBubble({ message, instanceId, companyId, remoteJi
     setIsDeleting(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke("delete-whatsapp-message", {
-        body: {
-          company_id: companyId,
-          instance_id: instanceId,
-          message_id: message.external_id,
-          remote_jid: messageRemoteJid,
-          from_me: isOutgoing,
-          supabase_message_id: message.id,
-        },
-      });
+      // If we have external_id and instanceId, delete from provider too
+      if (instanceId && message.external_id) {
+        const { data, error } = await supabase.functions.invoke("delete-whatsapp-message", {
+          body: {
+            company_id: companyId,
+            instance_id: instanceId,
+            message_id: message.external_id,
+            remote_jid: messageRemoteJid,
+            from_me: isOutgoing,
+            supabase_message_id: message.id,
+          },
+        });
 
-      if (error) throw error;
+        if (error) throw error;
 
-      if (data?.success) {
-        setIsDeleted(true);
-        toast.success("Mensagem apagada");
+        if (data?.success) {
+          setIsDeleted(true);
+          toast.success("Mensagem apagada");
+        } else {
+          throw new Error(data?.error || "Erro ao apagar mensagem");
+        }
       } else {
-        throw new Error(data?.error || "Erro ao apagar mensagem");
+        // Only delete locally (message doesn't have external_id yet)
+        const { error } = await supabase
+          .from("whatsapp_messages")
+          .update({ status: "deleted", content: "🚫 Mensagem apagada" })
+          .eq("id", message.id);
+
+        if (error) throw error;
+
+        setIsDeleted(true);
+        toast.success("Mensagem apagada localmente");
       }
     } catch (err: any) {
       console.error("[WhatsAppMessageBubble] Delete error:", err);
@@ -195,10 +209,15 @@ export function WhatsAppMessageBubble({ message, instanceId, companyId, remoteJi
     );
   }
   
+  // Check if delete action is available (needs external_id to delete from provider)
+  const canDeleteFromProvider = !!message.external_id && !!instanceId && !!companyId;
+  // Always allow showing delete button for outgoing messages (will delete locally if no external_id)
+  const canShowDeleteButton = isOutgoing && !!companyId;
+  
   return (
     <div className={cn("flex group", isOutgoing ? "justify-end" : "justify-start")}>
       {/* Action buttons for outgoing messages - show on left */}
-      {isOutgoing && companyId && instanceId && message.external_id && (
+      {canShowDeleteButton && (
         <div className="flex items-center gap-1 mr-1 opacity-0 group-hover:opacity-100 transition-opacity">
           {/* Delete button */}
           <AlertDialog>
@@ -220,7 +239,10 @@ export function WhatsAppMessageBubble({ message, instanceId, companyId, remoteJi
               <AlertDialogHeader>
                 <AlertDialogTitle>Apagar mensagem?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Esta ação irá apagar a mensagem para todos os participantes da conversa. Esta ação não pode ser desfeita.
+                  {canDeleteFromProvider 
+                    ? "Esta ação irá apagar a mensagem para todos os participantes da conversa. Esta ação não pode ser desfeita."
+                    : "Esta ação irá apagar a mensagem localmente. Esta ação não pode ser desfeita."
+                  }
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -235,15 +257,17 @@ export function WhatsAppMessageBubble({ message, instanceId, companyId, remoteJi
             </AlertDialogContent>
           </AlertDialog>
 
-          {/* Reaction picker */}
-          <WhatsAppReactionPicker
-            messageId={message.external_id}
-            remoteJid={messageRemoteJid}
-            companyId={companyId}
-            instanceId={instanceId}
-            isOutgoing={isOutgoing}
-            currentReaction={message.reaction}
-          />
+          {/* Reaction picker - only if has external_id */}
+          {message.external_id && instanceId && (
+            <WhatsAppReactionPicker
+              messageId={message.external_id}
+              remoteJid={messageRemoteJid}
+              companyId={companyId}
+              instanceId={instanceId}
+              isOutgoing={isOutgoing}
+              currentReaction={message.reaction}
+            />
+          )}
         </div>
       )}
       
