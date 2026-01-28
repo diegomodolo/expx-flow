@@ -18,11 +18,11 @@ export interface WhatsAppConversation {
   updated_at: string;
 }
 
-export function useWhatsAppConversations(companyId: string | undefined, instanceId?: string | null) {
+export function useWhatsAppConversations(companyId: string | undefined, instanceId?: string | null, includeArchived: boolean = false) {
   const queryClient = useQueryClient();
 
   const { data: conversations, isLoading, error } = useQuery({
-    queryKey: ["whatsapp-conversations", companyId, instanceId],
+    queryKey: ["whatsapp-conversations", companyId, instanceId, includeArchived],
     queryFn: async () => {
       if (!companyId) return [];
       
@@ -30,8 +30,12 @@ export function useWhatsAppConversations(companyId: string | undefined, instance
         .from("whatsapp_conversations")
         .select("*")
         .eq("company_id", companyId)
-        .eq("is_archived", false)
         .order("last_message_at", { ascending: false, nullsFirst: false });
+
+      // Filter by archived status
+      if (!includeArchived) {
+        query = query.eq("is_archived", false);
+      }
 
       // Filter by instance if provided
       if (instanceId) {
@@ -52,7 +56,8 @@ export function useWhatsAppConversations(companyId: string | undefined, instance
       .update({ unread_count: 0 })
       .eq("id", conversationId);
     
-    queryClient.invalidateQueries({ queryKey: ["whatsapp-conversations", companyId, instanceId] });
+    // Invalidate both archived and non-archived queries
+    queryClient.invalidateQueries({ queryKey: ["whatsapp-conversations", companyId] });
   };
 
   const archiveConversation = async (conversationId: string) => {
@@ -61,11 +66,13 @@ export function useWhatsAppConversations(companyId: string | undefined, instance
       .update({ is_archived: true })
       .eq("id", conversationId);
     
-    queryClient.invalidateQueries({ queryKey: ["whatsapp-conversations", companyId, instanceId] });
+    // Invalidate both archived and non-archived queries
+    queryClient.invalidateQueries({ queryKey: ["whatsapp-conversations", companyId] });
   };
 
   const refetchConversations = () => {
-    queryClient.invalidateQueries({ queryKey: ["whatsapp-conversations", companyId, instanceId] });
+    // Invalidate all conversation queries for this company
+    queryClient.invalidateQueries({ queryKey: ["whatsapp-conversations", companyId] });
   };
 
   return {

@@ -16,7 +16,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
-import { Phone, RefreshCw, Trash2, MoreVertical, Loader2, CheckCheck, Sparkles } from "lucide-react";
+import { Phone, RefreshCw, Trash2, MoreVertical, Loader2, CheckCheck, Sparkles, Archive, ArchiveRestore } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -46,9 +46,10 @@ interface WhatsAppChatWindowProps {
   companyId: string | undefined;
   instanceId?: string | null;
   onChatDeleted?: (conversationId: string) => void;
+  onChatArchived?: (conversationId: string, archived: boolean) => void;
 }
 
-export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChatDeleted }: WhatsAppChatWindowProps) {
+export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChatDeleted, onChatArchived }: WhatsAppChatWindowProps) {
   const { messages, isLoading, isFetchingFromApi, isSyncingInBackground, isSendingMedia, sendMessage, sendMedia, fetchMessagesFromApi } = useWhatsAppMessages(
     conversation.id,
     companyId
@@ -56,6 +57,7 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isArchiving, setIsArchiving] = useState(false);
   const [deleteFromWhatsApp, setDeleteFromWhatsApp] = useState(true);
   const [deleteLocal, setDeleteLocal] = useState(true);
   const [chatLabelIds, setChatLabelIds] = useState<string[]>(conversation.label_ids || []);
@@ -158,6 +160,42 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
       toast.error(err.message || "Erro ao marcar como lida");
     } finally {
       setIsMarkingRead(false);
+    }
+  };
+
+  const handleArchiveChat = async () => {
+    if (!companyId || !instanceId) {
+      toast.error("Não foi possível arquivar o chat");
+      return;
+    }
+
+    setIsArchiving(true);
+    const newArchiveState = !conversation.is_archived;
+
+    try {
+      const { data, error } = await supabase.functions.invoke("archive-whatsapp-chat", {
+        body: {
+          company_id: companyId,
+          instance_id: instanceId,
+          phone: conversation.phone,
+          conversation_id: conversation.id,
+          archive: newArchiveState,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        toast.success(newArchiveState ? "Chat arquivado" : "Chat desarquivado");
+        onChatArchived?.(conversation.id, newArchiveState);
+      } else {
+        throw new Error(data?.error || "Erro ao arquivar chat");
+      }
+    } catch (err: any) {
+      console.error("[WhatsAppChatWindow] Archive chat error:", err);
+      toast.error(err.message || "Erro ao arquivar chat");
+    } finally {
+      setIsArchiving(false);
     }
   };
 
@@ -301,6 +339,19 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
                 <CheckCheck className="h-4 w-4 mr-2" />
               )}
               Marcar tudo como lido
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={handleArchiveChat}
+              disabled={isArchiving}
+            >
+              {isArchiving ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : conversation.is_archived ? (
+                <ArchiveRestore className="h-4 w-4 mr-2" />
+              ) : (
+                <Archive className="h-4 w-4 mr-2" />
+              )}
+              {conversation.is_archived ? "Desarquivar chat" : "Arquivar chat"}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem 
