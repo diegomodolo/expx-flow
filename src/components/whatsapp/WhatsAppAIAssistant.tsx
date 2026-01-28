@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
-import { X, Send, Loader2, Sparkles, Copy, Check, MessageSquare, Trash2, Zap, Lightbulb, Target, MessageCircle } from "lucide-react";
+import { X, Send, Loader2, Sparkles, Copy, Check, MessageSquare, Trash2, Zap, Lightbulb, Target, MessageCircle, MessageSquareText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -42,7 +42,13 @@ const departmentLabels: Record<string, string> = {
 };
 
 // Component for displaying analysis as chat message
-function AnalysisChatMessage({ analysis }: { analysis: RealtimeAnalysis }) {
+function AnalysisChatMessage({ 
+  analysis, 
+  onSendReadyMessage 
+}: { 
+  analysis: RealtimeAnalysis;
+  onSendReadyMessage?: (message: string) => void;
+}) {
   const departmentLabel = departmentLabels[analysis.departmentInsight.type] || analysis.departmentInsight.type;
   
   return (
@@ -91,6 +97,31 @@ function AnalysisChatMessage({ analysis }: { analysis: RealtimeAnalysis }) {
           </div>
         </div>
       </div>
+
+      {/* Ready Message */}
+      {analysis.readyMessage && (
+        <div className="rounded-lg px-3 py-2 bg-emerald-500/10 border border-emerald-500/20 mr-4">
+          <div className="flex items-start gap-2">
+            <MessageSquareText className="h-3.5 w-3.5 text-emerald-500 mt-0.5 shrink-0" />
+            <div className="flex-1">
+              <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400 mb-0.5">
+                Mensagem Pronta
+              </p>
+              <p className="text-sm whitespace-pre-wrap">{analysis.readyMessage}</p>
+              {onSendReadyMessage && (
+                <Button
+                  size="sm"
+                  className="h-7 mt-2 text-xs gap-1.5"
+                  onClick={() => onSendReadyMessage(analysis.readyMessage)}
+                >
+                  <Send className="h-3 w-3" />
+                  Revisar e Enviar
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Timestamp */}
       <p className="text-[10px] text-muted-foreground ml-2">
@@ -372,7 +403,6 @@ Siga as instruções do atendente para ajustar a resposta.`;
             isAnalyzing={isAnalyzing}
             error={analysisError}
             onRefresh={triggerAnalysis}
-            onSendReadyMessage={(message) => onUseResponse(message)}
           />
         )}
       </div>
@@ -447,7 +477,10 @@ Siga as instruções do atendente para ajustar a resposta.`;
 
               {/* Analysis as chat messages */}
               {isAnalysisActive && analysis && (
-                <AnalysisChatMessage analysis={analysis} />
+                <AnalysisChatMessage 
+                  analysis={analysis} 
+                  onSendReadyMessage={(message) => onUseResponse(message)}
+                />
               )}
             </>
           )}
