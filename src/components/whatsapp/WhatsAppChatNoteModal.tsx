@@ -11,45 +11,33 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Loader2 } from "lucide-react";
-import { useClientNotes } from "@/hooks/useClientNotes";
-import { toast } from "sonner";
+import { useWhatsAppConversationNotes } from "@/hooks/useWhatsAppConversationNotes";
 
-interface WhatsAppNoteModalProps {
+interface WhatsAppChatNoteModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  clientId: string;
-  clientName: string;
+  conversationId: string;
+  chatName: string;
 }
 
-export function WhatsAppNoteModal({
+export function WhatsAppChatNoteModal({
   open,
   onOpenChange,
-  clientId,
-  clientName,
-}: WhatsAppNoteModalProps) {
+  conversationId,
+  chatName,
+}: WhatsAppChatNoteModalProps) {
   const [content, setContent] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  const { addNote } = useClientNotes(clientId);
+  const { addNote } = useWhatsAppConversationNotes(conversationId);
 
   const handleSubmit = async () => {
     if (!content.trim()) return;
 
-    setIsSubmitting(true);
-
-    try {
-      await addNote(content.trim());
-      toast.success("Observação adicionada!");
-
-      // Reset form and close
-      setContent("");
-      onOpenChange(false);
-    } catch (error) {
-      console.error("Error adding note:", error);
-      toast.error("Erro ao adicionar observação");
-    } finally {
-      setIsSubmitting(false);
-    }
+    addNote.mutate(content.trim(), {
+      onSuccess: () => {
+        setContent("");
+        onOpenChange(false);
+      },
+    });
   };
 
   const isValid = content.trim();
@@ -60,15 +48,15 @@ export function WhatsAppNoteModal({
         <DialogHeader>
           <DialogTitle>Adicionar Observação</DialogTitle>
           <DialogDescription>
-            Nota privada sobre {clientName} (visível apenas no sistema)
+            Nota privada sobre o chat com {chatName} (visível apenas no sistema)
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
-            <Label htmlFor="note-content">Observação *</Label>
+            <Label htmlFor="chat-note-content">Observação *</Label>
             <Textarea
-              id="note-content"
+              id="chat-note-content"
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder="Ex: Cliente prefere contato no período da manhã..."
@@ -81,8 +69,8 @@ export function WhatsAppNoteModal({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button onClick={handleSubmit} disabled={!isValid || isSubmitting}>
-            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          <Button onClick={handleSubmit} disabled={!isValid || addNote.isPending}>
+            {addNote.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Salvar Observação
           </Button>
         </DialogFooter>

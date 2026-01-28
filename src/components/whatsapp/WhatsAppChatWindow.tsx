@@ -51,8 +51,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { useQueryClient } from "@tanstack/react-query";
 import { WhatsAppReminderModal } from "./WhatsAppReminderModal";
 import { WhatsAppQuickTaskModal } from "./WhatsAppQuickTaskModal";
-import { WhatsAppNoteModal } from "./WhatsAppNoteModal";
-import { WhatsAppClientNotes } from "./WhatsAppClientNotes";
+import { WhatsAppChatNoteModal } from "./WhatsAppChatNoteModal";
+import { WhatsAppChatNotes } from "./WhatsAppChatNotes";
 
 interface WhatsAppChatWindowProps {
   conversation: WhatsAppConversation;
@@ -524,7 +524,7 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
           onLabelsChange={setChatLabelIds}
         />
         
-        {/* CS Tools - only shows when a client is linked */}
+        {/* CS Tools - Lembrete e Tarefa: only shows when a client is linked */}
         {linkedClientId && (
           <>
             <Tooltip>
@@ -551,20 +551,22 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
               </TooltipTrigger>
               <TooltipContent>Criar Tarefa</TooltipContent>
             </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setNoteModalOpen(true)}
-                >
-                  <StickyNote className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Adicionar Observação</TooltipContent>
-            </Tooltip>
           </>
         )}
+        
+        {/* Observação - sempre disponível (é por chat, não por cliente) */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setNoteModalOpen(true)}
+            >
+              <StickyNote className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Adicionar Observação</TooltipContent>
+        </Tooltip>
         
         {/* Open client button - only shows when a client is linked */}
         {linkedClientId && (
@@ -724,13 +726,7 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
               Criar Tarefa
             </DropdownMenuItem>
             <DropdownMenuItem 
-              onClick={() => {
-                if (!linkedClientId) {
-                  toast.error("Vincule este chat a um cliente primeiro");
-                  return;
-                }
-                setNoteModalOpen(true);
-              }}
+              onClick={() => setNoteModalOpen(true)}
             >
               <StickyNote className="h-4 w-4 mr-2" />
               Adicionar Observação
@@ -837,13 +833,11 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
         </DialogContent>
       </Dialog>
 
-      {/* Client notes - fixed at top */}
-      {linkedClientId && linkedClientName && (
-        <WhatsAppClientNotes 
-          clientId={linkedClientId} 
-          clientName={linkedClientName} 
-        />
-      )}
+      {/* Chat notes - fixed at top (specific to this conversation/chat) */}
+      <WhatsAppChatNotes 
+        conversationId={conversation.id} 
+        chatName={displayName}
+      />
 
       {/* Messages */}
       <ScrollArea className="flex-1 px-4">
@@ -933,6 +927,15 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
       />
 
       {/* CS Tools Modals */}
+      {/* Note modal - always available (per conversation) */}
+      <WhatsAppChatNoteModal
+        open={noteModalOpen}
+        onOpenChange={setNoteModalOpen}
+        conversationId={conversation.id}
+        chatName={displayName}
+      />
+      
+      {/* Reminder and Task modals - only when client is linked */}
       {linkedClientId && linkedClientName && (
         <>
           <WhatsAppReminderModal
@@ -944,12 +947,6 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
           <WhatsAppQuickTaskModal
             open={taskModalOpen}
             onOpenChange={setTaskModalOpen}
-            clientId={linkedClientId}
-            clientName={linkedClientName}
-          />
-          <WhatsAppNoteModal
-            open={noteModalOpen}
-            onOpenChange={setNoteModalOpen}
             clientId={linkedClientId}
             clientName={linkedClientName}
           />
