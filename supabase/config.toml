@@ -408,3 +408,6 @@ verify_jwt = true
 
 [functions.download-whatsapp-media]
 verify_jwt = true
+
+[functions.send-whatsapp-media]
+verify_jwt = true

@@ -18,11 +18,18 @@ export interface WhatsAppMessage {
   reaction: string | null;
 }
 
+export interface MediaAttachment {
+  file: File;
+  type: "image" | "video" | "document" | "audio";
+  preview?: string;
+}
+
 export function useWhatsAppMessages(conversationId: string | null, companyId: string | undefined) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isFetchingFromApi, setIsFetchingFromApi] = useState(false);
   const [hasFetchedFromApi, setHasFetchedFromApi] = useState(false);
+  const [isSendingMedia, setIsSendingMedia] = useState(false);
 
   // Reset fetch state when conversation changes
   useEffect(() => {
@@ -255,13 +262,196 @@ export function useWhatsAppMessages(conversationId: string | null, companyId: st
     }
   }, [companyId, conversationId, queryClient, toast]);
 
+  // Send media with optimistic UI
+  const sendMedia = useCallback(async ({ 
+    phone, 
+    media, 
+    caption, 
+    instanceId 
+  }: { 
+    phone: string; 
+    media: MediaAttachment; 
+    caption: string; 
+    instanceId?: string | null 
+  }) => {
+    if (!companyId || !conversationId) return;
+
+    setIsSendingMedia(true);
+    const now = new Date().toISOString();
+
+    // Determine message_type from media type
+    const messageTypeMap: Record<string, string> = {
+      image: "image",
+      video: "video",
+      document: "document",
+      audio: "audio",
+    };
+    const messageType = messageTypeMap[media.type] || "document";
+
+    let savedMessageId: string | null = null;
+
+    try {
+      // Convert file to base64
+      const base64 = await fileToBase64(media.file);
+
+      // Save to DB first
+      const { data: savedMessage, error: saveError } = await supabase
+        .from("whatsapp_messages")
+        .insert({
+          conversation_id: conversationId,
+          company_id: companyId,
+          direction: "outgoing",
+          content: caption || `[${media.type}] ${media.file.name}`,
+          message_type: messageType,
+          status: "sending",
+          sent_at: now,
+        })
+        .select("id")
+        .single();
+
+      if (saveError) throw saveError;
+      savedMessageId = savedMessage.id;
+
+      // Add to cache immediately
+      const optimisticMessage: WhatsAppMessage = {
+        id: savedMessage.id,
+        conversation_id: conversationId,
+        company_id: companyId,
+        direction: "outgoing",
+        content: caption || `[${media.type}] ${media.file.name}`,
+        message_type: messageType,
+        media_url: media.preview || null,
+        cached_media_url: media.preview || null,
+        status: "sending",
+        external_id: null,
+        sent_at: now,
+        reaction: null,
+      };
+
+      queryClient.setQueryData<WhatsAppMessage[]>(
+        ["whatsapp-messages", conversationId],
+        (old) => {
+          if (!old) return [optimisticMessage];
+          if (old.some(m => m.id === savedMessage.id)) return old;
+          return [...old, optimisticMessage];
+        }
+      );
+
+      // Update conversation preview
+      const preview = caption || `📎 ${media.type === "image" ? "Imagem" : media.type === "video" ? "Vídeo" : media.type === "audio" ? "Áudio" : "Documento"}`;
+      queryClient.setQueryData(
+        ["whatsapp-conversations", companyId],
+        (old: any) => {
+          if (!old) return old;
+          return old.map((conv: any) =>
+            conv.id === conversationId
+              ? { ...conv, last_message_at: now, last_message_preview: preview.substring(0, 100) }
+              : conv
+          );
+        }
+      );
+
+      await supabase
+        .from("whatsapp_conversations")
+        .update({
+          last_message_at: now,
+          last_message_preview: preview.substring(0, 100),
+        })
+        .eq("id", conversationId);
+
+      // Send via API
+      const { data, error } = await supabase.functions.invoke("send-whatsapp-media", {
+        body: {
+          company_id: companyId,
+          recipient_phone: phone,
+          type: media.type,
+          file: base64,
+          caption: caption || undefined,
+          doc_name: media.type === "document" ? media.file.name : undefined,
+          instance_id: instanceId ?? undefined,
+        },
+      });
+
+      const newStatus = (error || !data?.success) ? "failed" : "sent";
+      const externalIdFromProvider: string | null = data?.message_id || null;
+
+      await supabase
+        .from("whatsapp_messages")
+        .update({
+          status: newStatus,
+          ...(externalIdFromProvider ? { external_id: externalIdFromProvider } : {}),
+        })
+        .eq("id", savedMessage.id);
+
+      queryClient.setQueryData<WhatsAppMessage[]>(
+        ["whatsapp-messages", conversationId],
+        (old) => {
+          if (!old) return old;
+          return old.map((msg) =>
+            msg.id === savedMessage.id
+              ? { ...msg, status: newStatus, ...(externalIdFromProvider ? { external_id: externalIdFromProvider } : {}) }
+              : msg
+          );
+        }
+      );
+
+      if (error || !data?.success) {
+        toast({
+          title: "Erro ao enviar mídia",
+          description: data?.error || error?.message || "Falha no envio",
+          variant: "destructive",
+        });
+      }
+    } catch (err: any) {
+      if (savedMessageId) {
+        await supabase
+          .from("whatsapp_messages")
+          .update({ status: "failed" })
+          .eq("id", savedMessageId);
+
+        queryClient.setQueryData<WhatsAppMessage[]>(
+          ["whatsapp-messages", conversationId],
+          (old) => {
+            if (!old) return old;
+            return old.map((msg) =>
+              msg.id === savedMessageId ? { ...msg, status: "failed" } : msg
+            );
+          }
+        );
+      }
+
+      toast({
+        title: "Erro ao enviar mídia",
+        description: err.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSendingMedia(false);
+    }
+  }, [companyId, conversationId, queryClient, toast]);
+
   return {
     messages: messages || [],
     isLoading: isLoadingFromDb || isFetchingFromApi,
     isFetchingFromApi,
+    isSendingMedia,
     error,
     sendMessage,
+    sendMedia,
     fetchMessagesFromApi,
     isSending: false,
   };
+}
+
+// Helper to convert file to base64
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      resolve(result);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }
