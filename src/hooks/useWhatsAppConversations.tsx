@@ -12,6 +12,7 @@ export interface WhatsAppConversation {
   last_message_preview: string | null;
   unread_count: number;
   is_archived: boolean;
+  is_muted: boolean;
   client_id: string | null;
   label_ids: string[] | null; // Labels assigned to this conversation
   created_at: string;

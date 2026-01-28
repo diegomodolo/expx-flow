@@ -10895,6 +10895,7 @@ export type Database = {
           id: string
           instance_id: string | null
           is_archived: boolean | null
+          is_muted: boolean | null
           last_message_at: string | null
           last_message_preview: string | null
           phone: string
@@ -10910,6 +10911,7 @@ export type Database = {
           id?: string
           instance_id?: string | null
           is_archived?: boolean | null
+          is_muted?: boolean | null
           last_message_at?: string | null
           last_message_preview?: string | null
           phone: string
@@ -10925,6 +10927,7 @@ export type Database = {
           id?: string
           instance_id?: string | null
           is_archived?: boolean | null
+          is_muted?: boolean | null
           last_message_at?: string | null
           last_message_preview?: string | null
           phone?: string
