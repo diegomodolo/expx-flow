@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { Loader2, AlertTriangle, TrendingUp, TrendingDown, Minus, Bell, RefreshCw, Star, Send, MessageSquareText } from "lucide-react";
+import { Loader2, AlertTriangle, TrendingUp, TrendingDown, Minus, Bell, RefreshCw, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RealtimeAnalysis } from "@/hooks/useWhatsAppRealtimeAnalysis";
 
@@ -8,7 +8,6 @@ interface WhatsAppRealtimeAnalysisCardProps {
   isAnalyzing: boolean;
   error: string | null;
   onRefresh: () => void;
-  onSendReadyMessage?: (message: string) => void;
 }
 
 const temperatureConfig = {
@@ -52,7 +51,6 @@ export function WhatsAppRealtimeAnalysisCard({
   isAnalyzing,
   error,
   onRefresh,
-  onSendReadyMessage,
 }: WhatsAppRealtimeAnalysisCardProps) {
   if (error) {
     return (
@@ -133,33 +131,6 @@ export function WhatsAppRealtimeAnalysisCard({
                   {alert}
                 </p>
               ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Ready Message Card */}
-      {analysis.readyMessage && (
-        <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2">
-          <div className="flex items-start gap-2">
-            <MessageSquareText className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400 mb-1">
-                Mensagem Pronta
-              </p>
-              <p className="text-xs text-emerald-800 dark:text-emerald-200 whitespace-pre-wrap break-words">
-                {analysis.readyMessage}
-              </p>
-              {onSendReadyMessage && (
-                <Button
-                  size="sm"
-                  className="h-7 mt-2 text-xs gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
-                  onClick={() => onSendReadyMessage(analysis.readyMessage)}
-                >
-                  <Send className="h-3 w-3" />
-                  Revisar e Enviar
-                </Button>
-              )}
             </div>
           </div>
         </div>
