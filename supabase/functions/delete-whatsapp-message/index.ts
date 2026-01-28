@@ -10,8 +10,8 @@ interface DeleteMessagePayload {
   company_id: string;
   instance_id: string;
   message_id: string; // external_id from UazapiGO
-  remote_jid: string; // phone@s.whatsapp.net
-  from_me: boolean;
+  remote_jid?: string; // phone@s.whatsapp.net (optional)
+  from_me?: boolean;
   supabase_message_id?: string; // Optional: to delete from local DB too
 }
 
@@ -38,15 +38,16 @@ serve(async (req) => {
 
     console.log("[delete-whatsapp-message] Deleting message:", message_id);
     console.log("[delete-whatsapp-message] Instance:", instance_id);
-    console.log("[delete-whatsapp-message] Remote JID:", remote_jid);
-    console.log("[delete-whatsapp-message] From me:", from_me);
+    console.log("[delete-whatsapp-message] Remote JID:", remote_jid || "(not provided)");
+    console.log("[delete-whatsapp-message] From me:", typeof from_me === "boolean" ? from_me : "(not provided)");
 
-    if (!company_id || !instance_id || !message_id || !remote_jid) {
+    // Only these are required by the provider endpoint
+    if (!company_id || !instance_id || !message_id) {
       console.error("[delete-whatsapp-message] Missing required fields");
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: "company_id, instance_id, message_id e remote_jid são obrigatórios" 
+          error: "company_id, instance_id e message_id são obrigatórios" 
         }),
         { 
           status: 400, 
@@ -100,7 +101,8 @@ serve(async (req) => {
     }
 
     const instanceToken = instance.uazapi_token;
-    const baseUrl = config.uazapi_base_url?.replace(/\/$/, "");
+    // Prefer uazapi_endpoint (same one used by send-whatsapp-notification). Fallback to uazapi_base_url.
+    const baseUrl = (config.uazapi_endpoint || config.uazapi_base_url)?.replace(/\/$/, "");
 
     if (!baseUrl || !instanceToken) {
       console.error("[delete-whatsapp-message] Missing base URL or token");
@@ -133,12 +135,18 @@ serve(async (req) => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${instanceToken}`,
+        // UazapiGO uses the `token` header (same as /send/text)
+        "token": instanceToken,
       },
       body: JSON.stringify(deletePayload),
     });
 
-    const apiData = await apiResponse.json();
+    let apiData: any = null;
+    try {
+      apiData = await apiResponse.json();
+    } catch {
+      apiData = null;
+    }
     console.log("[delete-whatsapp-message] API Response:", apiResponse.status, JSON.stringify(apiData));
 
     if (!apiResponse.ok) {
@@ -146,7 +154,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: apiData.message || apiData.error || "Erro ao deletar mensagem na API" 
+          error: apiData?.message || apiData?.error || "Erro ao deletar mensagem na API" 
         }),
         { 
           status: apiResponse.status, 

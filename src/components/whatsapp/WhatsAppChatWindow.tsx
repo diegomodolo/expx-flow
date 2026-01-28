@@ -32,7 +32,7 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId }: What
   const displayName = conversation.contact_name || formatPhoneNumber(conversation.phone);
 
   const handleSend = (message: string) => {
-    sendMessage({ phone: conversation.phone, message });
+    sendMessage({ phone: conversation.phone, message, instanceId: instanceId ?? null });
   };
 
   return (

@@ -109,7 +109,7 @@ export function useWhatsAppMessages(conversationId: string | null, companyId: st
   }, [conversationId, companyId, isLoadingFromDb, messages, hasFetchedFromApi, isFetchingFromApi, fetchMessagesFromApi]);
 
   // Optimistic send - shows message immediately
-  const sendMessage = useCallback(async ({ phone, message }: { phone: string; message: string }) => {
+  const sendMessage = useCallback(async ({ phone, message, instanceId }: { phone: string; message: string; instanceId?: string | null }) => {
     if (!companyId || !conversationId) return;
 
     const now = new Date().toISOString();
@@ -190,15 +190,22 @@ export function useWhatsAppMessages(conversationId: string | null, companyId: st
           recipient_phone: phone,
           message,
           notification_type: "chat",
+          instance_id: instanceId ?? undefined,
         },
       });
 
       // Update message status based on result
       const newStatus = (error || !data?.success) ? "failed" : "sent";
+
+      // If provider returned the message id, persist it so we can delete/react later
+      const externalIdFromProvider: string | null = data?.message_id || null;
       
       await supabase
         .from("whatsapp_messages")
-        .update({ status: newStatus })
+        .update({
+          status: newStatus,
+          ...(externalIdFromProvider ? { external_id: externalIdFromProvider } : {}),
+        })
         .eq("id", savedMessage.id);
 
       // Update cache with new status
@@ -208,7 +215,7 @@ export function useWhatsAppMessages(conversationId: string | null, companyId: st
           if (!old) return old;
           return old.map((msg) =>
             msg.id === savedMessage.id
-              ? { ...msg, status: newStatus }
+              ? { ...msg, status: newStatus, ...(externalIdFromProvider ? { external_id: externalIdFromProvider } : {}) }
               : msg
           );
         }
