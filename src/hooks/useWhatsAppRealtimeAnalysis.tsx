@@ -58,6 +58,7 @@ export function useWhatsAppRealtimeAnalysis({
   enabled,
 }: UseWhatsAppRealtimeAnalysisProps) {
   const [analysis, setAnalysis] = useState<RealtimeAnalysis | null>(null);
+  const [isNewAnalysis, setIsNewAnalysis] = useState(false); // Flag to indicate if analysis was just generated
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isLoadingStored, setIsLoadingStored] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -214,6 +215,7 @@ export function useWhatsAppRealtimeAnalysis({
     
     // Clear current analysis immediately when switching
     setAnalysis(null);
+    setIsNewAnalysis(false);
     lastAnalyzedMessageId.current = null;
     currentConversationId.current = conversationId;
 
@@ -221,6 +223,7 @@ export function useWhatsAppRealtimeAnalysis({
     loadStoredAnalysis(conversationId).then((result) => {
       if (result.analysis) {
         setAnalysis(result.analysis);
+        setIsNewAnalysis(false); // Restored analysis, not new
         // Set the lastAnalyzedMessageId from the stored value to prevent re-analysis
         if (result.lastMessageId) {
           lastAnalyzedMessageId.current = result.lastMessageId;
@@ -293,6 +296,7 @@ export function useWhatsAppRealtimeAnalysis({
         };
         
         setAnalysis(newAnalysis);
+        setIsNewAnalysis(true); // This is a newly generated analysis
         lastAnalyzedMessageId.current = lastMessage.id;
 
         // Save to database (both current and history) with the message ID
@@ -333,6 +337,7 @@ export function useWhatsAppRealtimeAnalysis({
   useEffect(() => {
     if (!enabled) {
       setAnalysis(null);
+      setIsNewAnalysis(false);
       lastAnalyzedMessageId.current = null;
     }
   }, [enabled]);
@@ -344,10 +349,17 @@ export function useWhatsAppRealtimeAnalysis({
     }
   }, [messages, analyzeConversation]);
 
+  // Function to mark analysis as consumed (no longer new)
+  const markAnalysisConsumed = useCallback(() => {
+    setIsNewAnalysis(false);
+  }, []);
+
   return {
     analysis,
+    isNewAnalysis,
     isAnalyzing: isAnalyzing || isLoadingStored,
     error,
     triggerAnalysis,
+    markAnalysisConsumed,
   };
 }
