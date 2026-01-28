@@ -13,7 +13,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Phone, RefreshCw, Trash2, MoreVertical, Loader2, Zap } from "lucide-react";
+import { Phone, RefreshCw, Trash2, MoreVertical, Loader2, Zap, CheckCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -57,6 +57,7 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
   const [chatLabelIds, setChatLabelIds] = useState<string[]>(conversation.label_ids || []);
   const [showProfilePic, setShowProfilePic] = useState(false);
   const [quickReplyManagerOpen, setQuickReplyManagerOpen] = useState(false);
+  const [isMarkingRead, setIsMarkingRead] = useState(false);
   
   const { labels } = useWhatsAppLabels(companyId, instanceId ?? null);
   const { quickReplies, isLoading: quickRepliesLoading } = useWhatsAppQuickReplies(instanceId ?? null);
@@ -114,6 +115,38 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
       toast.error(err.message || "Erro ao deletar chat");
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleMarkAllRead = async () => {
+    if (!companyId || !instanceId) {
+      toast.error("Não foi possível marcar como lida");
+      return;
+    }
+
+    setIsMarkingRead(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("mark-whatsapp-read", {
+        body: {
+          company_id: companyId,
+          instance_id: instanceId,
+          conversation_id: conversation.id,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        toast.success(`${data.marked || 0} mensagens marcadas como lidas`);
+      } else {
+        throw new Error(data?.error || "Erro ao marcar mensagens");
+      }
+    } catch (err: any) {
+      console.error("[WhatsAppChatWindow] Mark read error:", err);
+      toast.error(err.message || "Erro ao marcar como lida");
+    } finally {
+      setIsMarkingRead(false);
     }
   };
 
@@ -191,6 +224,17 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
             <DropdownMenuItem onClick={() => fetchMessagesFromApi(true)}>
               <RefreshCw className="h-4 w-4 mr-2" />
               Atualizar mensagens
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={handleMarkAllRead}
+              disabled={isMarkingRead}
+            >
+              {isMarkingRead ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <CheckCheck className="h-4 w-4 mr-2" />
+              )}
+              Marcar tudo como lido
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem 
