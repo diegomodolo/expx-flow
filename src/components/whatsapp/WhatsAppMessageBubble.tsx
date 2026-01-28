@@ -449,8 +449,8 @@ export function WhatsAppMessageBubble({ message, instanceId, companyId, remoteJi
             <p className="text-sm whitespace-pre-wrap break-words">{parseWhatsAppFormatting(displayContent)}</p>
           )}
 
-          {/* Media without URL - show content as is */}
-          {isMediaType && !hasMedia && (
+          {/* Media without URL - show content as is (but not for audio which has the player) */}
+          {isMediaType && !hasMedia && !isAudioMessage && (
             <div className="flex items-center gap-2 text-sm opacity-80">
               {getMediaIcon()}
               <span>{message.content}</span>
