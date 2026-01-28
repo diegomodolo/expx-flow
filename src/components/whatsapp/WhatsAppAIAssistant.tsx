@@ -3,13 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
-import { X, Send, Loader2, Sparkles, Copy, Check, MessageSquare, Trash2, Zap } from "lucide-react";
+import { X, Send, Loader2, Sparkles, Copy, Check, MessageSquare, Trash2, Zap, Lightbulb, Target, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import ReactMarkdown from "react-markdown";
 import { useWhatsAppAIChatMessages, AIMessage } from "@/hooks/useWhatsAppAIChatMessages";
-import { useWhatsAppRealtimeAnalysis } from "@/hooks/useWhatsAppRealtimeAnalysis";
+import { useWhatsAppRealtimeAnalysis, RealtimeAnalysis } from "@/hooks/useWhatsAppRealtimeAnalysis";
 import { WhatsAppRealtimeAnalysisCard } from "./WhatsAppRealtimeAnalysisCard";
 
 interface WhatsAppAIAssistantProps {
@@ -27,6 +27,73 @@ interface WhatsAppAIAssistantProps {
     direction: string;
     created_at: string;
   }>;
+}
+
+const departmentLabels: Record<string, string> = {
+  atendimento_geral: "Atendimento",
+  suporte_tecnico: "Suporte",
+  vendas: "Vendas",
+  pos_venda: "Pós-Venda",
+  financeiro: "Financeiro",
+};
+
+// Component for displaying analysis as chat message
+function AnalysisChatMessage({ analysis }: { analysis: RealtimeAnalysis }) {
+  const departmentLabel = departmentLabels[analysis.departmentInsight.type] || analysis.departmentInsight.type;
+  
+  return (
+    <div className="space-y-2">
+      {/* Interpretation */}
+      <div className="rounded-lg px-3 py-2 bg-blue-500/10 border border-blue-500/20 mr-4">
+        <div className="flex items-start gap-2">
+          <MessageCircle className="h-3.5 w-3.5 text-blue-500 mt-0.5 shrink-0" />
+          <div>
+            <p className="text-xs font-medium text-blue-600 dark:text-blue-400 mb-0.5">Interpretação</p>
+            <p className="text-sm">{analysis.interpretation}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Suggestion */}
+      <div className="rounded-lg px-3 py-2 bg-primary/10 border border-primary/20 mr-4">
+        <div className="flex items-start gap-2">
+          <Lightbulb className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
+          <div>
+            <p className="text-xs font-medium text-primary mb-0.5">Sugestão</p>
+            <p className="text-sm">{analysis.suggestion}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Department Insight */}
+      <div className="rounded-lg px-3 py-2 bg-violet-500/10 border border-violet-500/20 mr-4">
+        <div className="flex items-start gap-2">
+          <Target className="h-3.5 w-3.5 text-violet-500 mt-0.5 shrink-0" />
+          <div className="flex-1">
+            <p className="text-xs font-medium text-violet-600 dark:text-violet-400 mb-0.5">
+              Insight ({departmentLabel})
+            </p>
+            <p className="text-sm mb-1">{analysis.departmentInsight.insight}</p>
+            {analysis.departmentInsight.actionItems.length > 0 && (
+              <ul className="space-y-0.5">
+                {analysis.departmentInsight.actionItems.map((item, index) => (
+                  <li key={index} className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    <span className="h-1 w-1 rounded-full bg-violet-500 shrink-0" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Timestamp */}
+      <p className="text-[10px] text-muted-foreground ml-2">
+        Análise • {new Date(analysis.timestamp).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+      </p>
+    </div>
+  );
 }
 
 export function WhatsAppAIAssistant({
@@ -61,12 +128,12 @@ export function WhatsAppAIAssistant({
     enabled: realtimeAnalysisEnabled,
   });
 
-  // Scroll to bottom when messages change
+  // Scroll to bottom when messages change or analysis updates
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages]);
+  }, [messages, analysis]);
 
   // Auto-focus input when opened
   useEffect(() => {
@@ -263,9 +330,9 @@ Siga as instruções do atendente para ajustar a resposta.`;
         </div>
       </div>
 
-      {/* Realtime Analysis Toggle */}
+      {/* Realtime Analysis Toggle + Fixed Temperature/Alerts */}
       <div className="px-4 py-2 border-b bg-muted/30">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <Zap className={cn(
               "h-4 w-4",
@@ -278,19 +345,17 @@ Siga as instruções do atendente para ajustar a resposta.`;
             onCheckedChange={handleToggleRealtimeAnalysis}
           />
         </div>
-      </div>
-
-      {/* Realtime Analysis Card */}
-      {realtimeAnalysisEnabled && (
-        <div className="px-4 py-3 border-b bg-muted/20 max-h-[45%] overflow-y-auto">
+        
+        {/* Fixed Temperature + Alerts */}
+        {realtimeAnalysisEnabled && (
           <WhatsAppRealtimeAnalysisCard
             analysis={analysis}
             isAnalyzing={isAnalyzing}
             error={analysisError}
             onRefresh={triggerAnalysis}
           />
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Messages */}
       <ScrollArea className="flex-1 px-4">
@@ -299,7 +364,7 @@ Siga as instruções do atendente para ajustar a resposta.`;
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
-          ) : messages.length === 0 ? (
+          ) : messages.length === 0 && !analysis ? (
             <div className="flex flex-col items-center justify-center py-8 text-center">
               <Sparkles className="h-8 w-8 text-muted-foreground/50 mb-2" />
               <p className="text-sm text-muted-foreground">
@@ -310,60 +375,74 @@ Siga as instruções do atendente para ajustar a resposta.`;
               </p>
             </div>
           ) : (
-            messages.map((message) => (
-              <div key={message.id} className="space-y-2">
-                <div
-                  className={cn(
-                    "rounded-lg px-3 py-2",
-                    message.role === "user"
-                      ? "bg-primary text-primary-foreground ml-8"
-                      : "bg-muted mr-4"
-                  )}
-                >
-                  {message.role === "assistant" ? (
-                    <div className="prose prose-sm dark:prose-invert max-w-none text-sm [&>p]:text-sm [&>ul]:text-sm [&>ol]:text-sm [&>li]:text-sm">
-                      <ReactMarkdown>{message.content}</ReactMarkdown>
+            <>
+              {messages.map((message) => (
+                <div key={message.id} className="space-y-2">
+                  <div
+                    className={cn(
+                      "rounded-lg px-3 py-2",
+                      message.role === "user"
+                        ? "bg-primary text-primary-foreground ml-8"
+                        : "bg-muted mr-4"
+                    )}
+                  >
+                    {message.role === "assistant" ? (
+                      <div className="prose prose-sm dark:prose-invert max-w-none text-sm [&>p]:text-sm [&>ul]:text-sm [&>ol]:text-sm [&>li]:text-sm">
+                        <ReactMarkdown>{message.content}</ReactMarkdown>
+                      </div>
+                    ) : (
+                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                    )}
+                  </div>
+
+                  {/* Action buttons for assistant messages */}
+                  {message.role === "assistant" && !message.content.startsWith("Desculpe") && (
+                    <div className="flex items-center gap-2 ml-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs gap-1"
+                        onClick={() => handleCopy(message.content, message.id)}
+                      >
+                        {copiedId === message.id ? (
+                          <Check className="h-3 w-3" />
+                        ) : (
+                          <Copy className="h-3 w-3" />
+                        )}
+                        Copiar
+                      </Button>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        className="h-7 text-xs gap-1"
+                        onClick={() => handleUseResponse(message.content)}
+                      >
+                        <MessageSquare className="h-3 w-3" />
+                        Usar resposta
+                      </Button>
                     </div>
-                  ) : (
-                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                   )}
                 </div>
+              ))}
 
-                {/* Action buttons for assistant messages */}
-                {message.role === "assistant" && !message.content.startsWith("Desculpe") && (
-                  <div className="flex items-center gap-2 ml-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 text-xs gap-1"
-                      onClick={() => handleCopy(message.content, message.id)}
-                    >
-                      {copiedId === message.id ? (
-                        <Check className="h-3 w-3" />
-                      ) : (
-                        <Copy className="h-3 w-3" />
-                      )}
-                      Copiar
-                    </Button>
-                    <Button
-                      variant="default"
-                      size="sm"
-                      className="h-7 text-xs gap-1"
-                      onClick={() => handleUseResponse(message.content)}
-                    >
-                      <MessageSquare className="h-3 w-3" />
-                      Usar resposta
-                    </Button>
-                  </div>
-                )}
-              </div>
-            ))
+              {/* Analysis as chat messages */}
+              {realtimeAnalysisEnabled && analysis && (
+                <AnalysisChatMessage analysis={analysis} />
+              )}
+            </>
           )}
 
           {isGenerating && (
             <div className="flex items-center gap-2 text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
               <span className="text-sm">Gerando resposta...</span>
+            </div>
+          )}
+
+          {isAnalyzing && realtimeAnalysisEnabled && (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="text-sm">Analisando conversa...</span>
             </div>
           )}
 
