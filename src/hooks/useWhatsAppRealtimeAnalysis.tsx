@@ -124,38 +124,72 @@ export function useWhatsAppRealtimeAnalysis({
     }
   }, [companyId]);
 
-  // Save analysis to database
-  const saveAnalysis = useCallback(async (analysisData: RealtimeAnalysis, convId: string) => {
+  // Save analysis to database (both current and history)
+  const saveAnalysis = useCallback(async (
+    analysisData: RealtimeAnalysis, 
+    convId: string,
+    messageCount: number = 0,
+    lastMessageDirection: string = "inbound"
+  ) => {
     if (!companyId || !convId) return;
 
     try {
       console.log("[useWhatsAppRealtimeAnalysis] Saving analysis for conversation:", convId);
 
-      const dataToSave = {
+      const now = new Date().toISOString();
+
+      // Data for current analysis (upsert - keeps only latest)
+      const currentDataToSave = {
         conversation_id: convId,
         company_id: companyId,
         temperature: analysisData.temperature,
-        sentiment_score: 0, // Could be calculated from temperature
+        sentiment_score: 0,
         score: analysisData.score,
         alerts: analysisData.alerts,
         interpretation: analysisData.interpretation,
         suggestion: analysisData.suggestion,
         insight: JSON.stringify(analysisData.departmentInsight),
         ready_message: analysisData.readyMessage || null,
-        updated_at: new Date().toISOString(),
+        updated_at: now,
       };
 
-      // Use upsert to insert or update
-      const { error } = await supabase
-        .from("whatsapp_realtime_analysis")
-        .upsert(dataToSave, {
-          onConflict: "conversation_id",
-        });
+      // Data for history (always insert - keeps all records)
+      const historyDataToSave = {
+        conversation_id: convId,
+        company_id: companyId,
+        temperature: analysisData.temperature,
+        score: analysisData.score,
+        alerts: analysisData.alerts,
+        interpretation: analysisData.interpretation,
+        suggestion: analysisData.suggestion,
+        insight: analysisData.departmentInsight, // JSONB directly
+        ready_message: analysisData.readyMessage || null,
+        message_count: messageCount,
+        last_message_direction: lastMessageDirection,
+        analyzed_at: now,
+      };
 
-      if (error) {
-        console.error("[useWhatsAppRealtimeAnalysis] Error saving analysis:", error);
-      } else {
-        console.log("[useWhatsAppRealtimeAnalysis] Analysis saved successfully");
+      // Save both in parallel
+      const [currentResult, historyResult] = await Promise.all([
+        // Update current analysis
+        supabase
+          .from("whatsapp_realtime_analysis")
+          .upsert(currentDataToSave, { onConflict: "conversation_id" }),
+        // Insert into history
+        supabase
+          .from("whatsapp_realtime_analysis_history")
+          .insert(historyDataToSave),
+      ]);
+
+      if (currentResult.error) {
+        console.error("[useWhatsAppRealtimeAnalysis] Error saving current analysis:", currentResult.error);
+      }
+      if (historyResult.error) {
+        console.error("[useWhatsAppRealtimeAnalysis] Error saving analysis history:", historyResult.error);
+      }
+      
+      if (!currentResult.error && !historyResult.error) {
+        console.log("[useWhatsAppRealtimeAnalysis] Analysis saved to both tables successfully");
       }
     } catch (err) {
       console.error("[useWhatsAppRealtimeAnalysis] Failed to save analysis:", err);
@@ -248,8 +282,13 @@ export function useWhatsAppRealtimeAnalysis({
         setAnalysis(newAnalysis);
         lastAnalyzedMessageId.current = lastMessage.id;
 
-        // Save to database
-        await saveAnalysis(newAnalysis, conversationId);
+        // Save to database (both current and history)
+        await saveAnalysis(
+          newAnalysis, 
+          conversationId, 
+          latestMessages.length,
+          lastMessage.direction
+        );
       }
     } catch (err) {
       console.error("[useWhatsAppRealtimeAnalysis] Error:", err);

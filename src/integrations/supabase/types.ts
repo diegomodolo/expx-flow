@@ -11489,6 +11489,65 @@ export type Database = {
           },
         ]
       }
+      whatsapp_realtime_analysis_history: {
+        Row: {
+          alerts: string[] | null
+          analyzed_at: string
+          company_id: string
+          conversation_id: string
+          created_at: string
+          id: string
+          insight: Json | null
+          interpretation: string | null
+          last_message_direction: string | null
+          message_count: number | null
+          ready_message: string | null
+          score: number | null
+          suggestion: string | null
+          temperature: string
+        }
+        Insert: {
+          alerts?: string[] | null
+          analyzed_at?: string
+          company_id: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          insight?: Json | null
+          interpretation?: string | null
+          last_message_direction?: string | null
+          message_count?: number | null
+          ready_message?: string | null
+          score?: number | null
+          suggestion?: string | null
+          temperature: string
+        }
+        Update: {
+          alerts?: string[] | null
+          analyzed_at?: string
+          company_id?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          insight?: Json | null
+          interpretation?: string | null
+          last_message_direction?: string | null
+          message_count?: number | null
+          ready_message?: string | null
+          score?: number | null
+          suggestion?: string | null
+          temperature?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_realtime_analysis_history_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       whatsapp_recipients: {
         Row: {
           client_id: string | null
