@@ -9,9 +9,11 @@ import { useWhatsAppRealtime } from "@/hooks/useWhatsAppRealtime";
 import { useSyncWhatsAppChats } from "@/hooks/useSyncWhatsAppChats";
 import { WhatsAppConversationList } from "./WhatsAppConversationList";
 import { WhatsAppChatWindow } from "./WhatsAppChatWindow";
-import { MessageSquare, Settings, AlertCircle, Phone, CheckCircle2, XCircle, RefreshCw, X } from "lucide-react";
+import { MessageSquare, Settings, AlertCircle, Phone, CheckCircle2, XCircle, RefreshCw, Archive, Star, Users, MessageCircle, BellOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface WhatsAppInboxDrawerProps {
   isOpen: boolean;
@@ -25,6 +27,7 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
   
   const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState<string>("all");
   const hasTriggeredSync = useRef(false);
 
   // Hook para sincronização de chats
@@ -77,6 +80,29 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
 
   const selectedConversation = conversations.find(c => c.id === selectedConversationId);
   const selectedInstance = availableInstances.find(i => i.id === selectedInstanceId);
+  
+  // Filter conversations based on active filter
+  const filteredConversations = conversations.filter(c => {
+    switch (activeFilter) {
+      case "unread":
+        return (c.unread_count || 0) > 0;
+      case "favorites":
+        // TODO: Implement favorites when field is added
+        return false;
+      case "groups":
+        // TODO: Implement groups detection
+        return false;
+      case "archived":
+        // TODO: Implement archived when field is added
+        return false;
+      case "muted":
+        // TODO: Implement muted when field is added
+        return false;
+      case "all":
+      default:
+        return true;
+    }
+  });
   
   // Check if connected (for UazapiGO, check instance; for Z-API, check config)
   const isUazapi = config?.provider === "uazapi";
@@ -212,10 +238,57 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
             )}
 
             <div className="flex flex-1 overflow-hidden">
+              {/* Sidebar with filter icons - WhatsApp Web style */}
+              <TooltipProvider delayDuration={300}>
+                <div className="w-14 min-w-14 border-r bg-muted/30 flex flex-col items-center py-3 gap-1">
+                  <SidebarFilterButton
+                    icon={MessageCircle}
+                    label="Todas"
+                    isActive={activeFilter === "all"}
+                    onClick={() => setActiveFilter("all")}
+                    count={conversations.length}
+                  />
+                  <SidebarFilterButton
+                    icon={MessageSquare}
+                    label="Não lidas"
+                    isActive={activeFilter === "unread"}
+                    onClick={() => setActiveFilter("unread")}
+                    count={conversations.filter(c => (c.unread_count || 0) > 0).length}
+                  />
+                  <SidebarFilterButton
+                    icon={Star}
+                    label="Favoritos"
+                    isActive={activeFilter === "favorites"}
+                    onClick={() => setActiveFilter("favorites")}
+                  />
+                  <SidebarFilterButton
+                    icon={Users}
+                    label="Grupos"
+                    isActive={activeFilter === "groups"}
+                    onClick={() => setActiveFilter("groups")}
+                  />
+                  
+                  <div className="flex-1" />
+                  
+                  <SidebarFilterButton
+                    icon={Archive}
+                    label="Arquivados"
+                    isActive={activeFilter === "archived"}
+                    onClick={() => setActiveFilter("archived")}
+                  />
+                  <SidebarFilterButton
+                    icon={BellOff}
+                    label="Silenciados"
+                    isActive={activeFilter === "muted"}
+                    onClick={() => setActiveFilter("muted")}
+                  />
+                </div>
+              </TooltipProvider>
+
               {/* Conversation List */}
               <div className="w-80 min-w-80 border-r overflow-hidden flex flex-col">
                 <WhatsAppConversationList
-                  conversations={conversations}
+                  conversations={filteredConversations}
                   isLoading={isLoadingConversations}
                   selectedId={selectedConversationId}
                   onSelect={handleSelectConversation}
@@ -243,5 +316,47 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+// Sidebar filter button component
+interface SidebarFilterButtonProps {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  isActive: boolean;
+  onClick: () => void;
+  count?: number;
+}
+
+function SidebarFilterButton({ icon: Icon, label, isActive, onClick, count }: SidebarFilterButtonProps) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          onClick={onClick}
+          className={cn(
+            "relative w-10 h-10 rounded-full flex items-center justify-center transition-colors",
+            isActive 
+              ? "bg-primary text-primary-foreground" 
+              : "text-muted-foreground hover:bg-muted hover:text-foreground"
+          )}
+        >
+          <Icon className="h-5 w-5" />
+          {count !== undefined && count > 0 && (
+            <span className={cn(
+              "absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] rounded-full text-[10px] font-medium flex items-center justify-center px-1",
+              isActive 
+                ? "bg-background text-foreground" 
+                : "bg-primary text-primary-foreground"
+            )}>
+              {count > 99 ? "99+" : count}
+            </span>
+          )}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="right">
+        <p>{label}</p>
+      </TooltipContent>
+    </Tooltip>
   );
 }
