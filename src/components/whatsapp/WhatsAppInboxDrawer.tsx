@@ -234,7 +234,6 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
                     label="Todas"
                     isActive={activeFilter === "all"}
                     onClick={() => setActiveFilter("all")}
-                    count={conversations.length}
                   />
                   <SidebarFilterButton
                     icon={MessageSquare}
