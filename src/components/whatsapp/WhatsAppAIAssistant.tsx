@@ -165,6 +165,7 @@ export function WhatsAppAIAssistant({
   const inputRef = useRef<HTMLInputElement>(null);
   const hasGeneratedSuggestion = useRef(false);
   const lastCustomerMessage = useRef<string | null>(null);
+  const lastSavedAnalysisTimestamp = useRef<string | null>(null); // Track saved analysis to prevent duplicates
 
   // If force is enabled, always keep analysis on
   const isAnalysisActive = forceRealtimeAnalysis || realtimeAnalysisEnabled;
@@ -178,9 +179,19 @@ export function WhatsAppAIAssistant({
   });
 
   // Save new analysis as a message in the chat (only when it's freshly generated)
+  // Use a ref to prevent duplicate saves
   useEffect(() => {
-    if (analysis && isNewAnalysis) {
-      console.log("[WhatsAppAIAssistant] Saving new analysis as chat message");
+    if (analysis && isNewAnalysis && analysis.timestamp) {
+      // Check if we already saved this exact analysis (by timestamp)
+      if (lastSavedAnalysisTimestamp.current === analysis.timestamp) {
+        console.log("[WhatsAppAIAssistant] Analysis already saved, skipping duplicate");
+        return;
+      }
+
+      console.log("[WhatsAppAIAssistant] Saving new analysis as chat message, timestamp:", analysis.timestamp);
+      
+      // Mark as saving immediately to prevent race conditions
+      lastSavedAnalysisTimestamp.current = analysis.timestamp;
       
       // Save analysis as a chat message
       const analysisContent: AnalysisMessageContent = {
@@ -199,6 +210,8 @@ export function WhatsAppAIAssistant({
         })
         .catch((err) => {
           console.error("Error saving analysis message:", err);
+          // Reset on error so we can retry
+          lastSavedAnalysisTimestamp.current = null;
         });
     }
   }, [analysis, isNewAnalysis, addAnalysisMessage, markAnalysisConsumed]);
