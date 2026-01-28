@@ -33,8 +33,10 @@ serve(async (req) => {
     }
 
     // Check if this is a message edit event (UazapiGO)
-    if (isUazapi && (payload.EventType === "messages.update" || payload.message?.editedMessage)) {
-      console.log("[whatsapp-webhook] Processing message edit event");
+    // UazapiGO sends edited messages with EventType: "messages" but includes an "edited" field
+    // containing the original message ID
+    if (isUazapi && payload.message?.edited) {
+      console.log("[whatsapp-webhook] Processing message edit event - edited field:", payload.message.edited);
       return await handleMessageEditEvent(supabase, payload);
     }
 
@@ -455,17 +457,29 @@ async function handleReactionEvent(supabase: any, payload: any): Promise<Respons
 }
 
 // Handle message edit events from UazapiGO
+// UazapiGO sends: message.edited = "ORIGINAL_MESSAGE_ID" and message.content = "new text"
 async function handleMessageEditEvent(supabase: any, payload: any): Promise<Response> {
   try {
     const message = payload.message || {};
-    const editedMessage = message.editedMessage || message;
+    const instanceToken = payload.token || null;
     
-    // Get the original message ID that was edited
-    // UazapiGO format: message.key.id or message.id contains the original message ID
-    const originalMessageId = message.key?.id || message.id || editedMessage.key?.id;
-    const newContent = editedMessage.text || editedMessage.content?.text || editedMessage.content || "";
+    // UazapiGO format: message.edited contains the ORIGINAL message ID
+    // message.id is the NEW message ID (which we should ignore)
+    // message.content or message.text contains the new content
+    const originalMessageId = message.edited;
+    const newContent = message.content || message.text || "";
     
-    console.log("[whatsapp-webhook] Edit data:", { originalMessageId, newContent: newContent?.substring(0, 50) });
+    // Build the full external_id format used in the database
+    // UazapiGO stores external_id as "owner:messageId", e.g., "5521996087371:A570C5FBC84B..."
+    const owner = message.owner || payload.owner || "";
+    const fullOriginalExternalId = owner ? `${owner}:${originalMessageId}` : originalMessageId;
+    
+    console.log("[whatsapp-webhook] Edit data:", { 
+      originalMessageId, 
+      fullOriginalExternalId,
+      newContent: newContent?.substring(0, 50),
+      newMessageId: message.id || message.messageid
+    });
 
     if (!originalMessageId) {
       console.log("[whatsapp-webhook] No original message ID in edit event");
@@ -475,12 +489,30 @@ async function handleMessageEditEvent(supabase: any, payload: any): Promise<Resp
       );
     }
 
-    // Find the original message by external_id
-    const { data: existingMessage, error: findError } = await supabase
+    // Find the original message by external_id (try full format first, then just the ID)
+    let existingMessage = null;
+    let findError = null;
+    
+    // Try with full external_id format first (owner:messageId)
+    const { data: msg1, error: err1 } = await supabase
       .from("whatsapp_messages")
       .select("id, conversation_id, company_id, content")
-      .eq("external_id", originalMessageId)
+      .eq("external_id", fullOriginalExternalId)
       .maybeSingle();
+    
+    if (msg1) {
+      existingMessage = msg1;
+    } else {
+      // Try with just the message ID (in case it was stored differently)
+      const { data: msg2, error: err2 } = await supabase
+        .from("whatsapp_messages")
+        .select("id, conversation_id, company_id, content")
+        .ilike("external_id", `%${originalMessageId}`)
+        .maybeSingle();
+      
+      existingMessage = msg2;
+      findError = err2;
+    }
 
     if (findError) {
       console.error("[whatsapp-webhook] Error finding message for edit:", findError);
@@ -488,7 +520,7 @@ async function handleMessageEditEvent(supabase: any, payload: any): Promise<Resp
     }
 
     if (!existingMessage) {
-      console.log("[whatsapp-webhook] Original message not found for edit:", originalMessageId);
+      console.log("[whatsapp-webhook] Original message not found for edit:", fullOriginalExternalId, "or", originalMessageId);
       return new Response(
         JSON.stringify({ success: true, message: "Original message not found" }),
         { status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
