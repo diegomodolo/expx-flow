@@ -148,8 +148,10 @@ serve(async (req) => {
     }
 
     // Build the API URL for UazapiGO
-    const baseUrl = config.uazapi_url?.replace(/\/$/, "");
-    const instanceToken = instance.instance_token;
+    // NOTE: This project stores UazapiGO endpoint/token in these columns.
+    // Keep fallbacks for backward compatibility with older schemas.
+    const baseUrl = (config.uazapi_endpoint || config.uazapi_base_url || config.uazapi_url)?.replace(/\/$/, "");
+    const instanceToken = (instance.uazapi_token || instance.instance_token) as string | undefined;
 
     if (!baseUrl || !instanceToken) {
       console.error("[archive-whatsapp-chat] Missing API configuration");
@@ -173,10 +175,11 @@ serve(async (req) => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${instanceToken}`,
+        // UazapiGO v2 expects the instance token in the `token` header (same pattern used in other functions).
+        "token": instanceToken,
       },
       body: JSON.stringify({
-        number: phone,
+        number: String(phone).replace(/\D/g, ""),
         archive: archive,
       }),
     });
