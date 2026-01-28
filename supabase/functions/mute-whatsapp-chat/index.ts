@@ -121,6 +121,18 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Update conversation muted status in database
+    const isMuted = muteEndTime !== 0;
+    const { error: updateError } = await supabase
+      .from("whatsapp_conversations")
+      .update({ is_muted: isMuted })
+      .eq("company_id", company_id)
+      .eq("phone", phone);
+
+    if (updateError) {
+      console.warn("[mute-whatsapp-chat] Failed to update DB:", updateError);
+    }
+
     const muteLabel = muteEndTime === 0 ? "removido" : 
                       muteEndTime === 8 ? "8 horas" :
                       muteEndTime === 168 ? "1 semana" : "permanente";
@@ -130,6 +142,7 @@ Deno.serve(async (req) => {
         success: true, 
         message: muteEndTime === 0 ? "Silenciamento removido" : `Chat silenciado por ${muteLabel}`,
         mute_end_time: muteEndTime,
+        is_muted: isMuted,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
