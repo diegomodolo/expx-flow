@@ -101,17 +101,36 @@ export function WhatsAppAudioPlayer({
       if (error) {
         console.error("[WhatsAppAudioPlayer] Transcription error:", error);
         setTranscription("Erro na transcrição");
+        setIsTranscribing(false);
+        return;
       } else if (data?.transcription) {
         console.log("[WhatsAppAudioPlayer] Transcription received:", data.transcription.substring(0, 50));
         setTranscription(data.transcription);
+        setIsTranscribing(false);
+        return;
+      } else if (data?.success === false) {
+        if (data?.error_code === "SERVICE_DISABLED") {
+          setTranscription(
+            `Transcrição indisponível: ative a API "Cloud Speech-to-Text" no Google Cloud e tente novamente.\n${
+              data?.activation_url ? `Link: ${data.activation_url}` : ""
+            }`
+          );
+        } else {
+          setTranscription(data?.error || "Erro na transcrição");
+        }
+        setIsTranscribing(false);
+        return;
       } else if (data?.status === "processing") {
         // Already processing, poll for result
         pollForTranscription();
+        return;
       }
+
+      // Fallback
+      setIsTranscribing(false);
     } catch (err) {
       console.error("[WhatsAppAudioPlayer] Transcription failed:", err);
       setTranscription("Erro na transcrição");
-    } finally {
       setIsTranscribing(false);
     }
   };
