@@ -7,10 +7,25 @@ export interface AIMessage {
   conversation_id: string;
   company_id: string;
   user_id: string;
-  role: "user" | "assistant";
+  role: "user" | "assistant" | "analysis";
   content: string;
   source_message_id: string | null;
   created_at: string;
+  // For analysis messages, the content will be a JSON string with the analysis data
+}
+
+export interface AnalysisMessageContent {
+  temperature: "positive" | "neutral" | "negative";
+  interpretation: string;
+  suggestion: string;
+  departmentInsight: {
+    type: string;
+    insight: string;
+    actionItems: string[];
+  };
+  alerts: string[];
+  score: number;
+  readyMessage: string;
 }
 
 export function useWhatsAppAIChatMessages(
@@ -38,7 +53,7 @@ export function useWhatsAppAIChatMessages(
 
   const addMessageMutation = useMutation({
     mutationFn: async (message: {
-      role: "user" | "assistant";
+      role: "user" | "assistant" | "analysis";
       content: string;
       sourceMessageId?: string;
     }) => {
@@ -87,8 +102,18 @@ export function useWhatsAppAIChatMessages(
   });
 
   const addMessage = useCallback(
-    (message: { role: "user" | "assistant"; content: string; sourceMessageId?: string }) => {
+    (message: { role: "user" | "assistant" | "analysis"; content: string; sourceMessageId?: string }) => {
       return addMessageMutation.mutateAsync(message);
+    },
+    [addMessageMutation]
+  );
+
+  const addAnalysisMessage = useCallback(
+    (analysisContent: AnalysisMessageContent) => {
+      return addMessageMutation.mutateAsync({
+        role: "analysis",
+        content: JSON.stringify(analysisContent),
+      });
     },
     [addMessageMutation]
   );
@@ -101,6 +126,7 @@ export function useWhatsAppAIChatMessages(
     messages: messages || [],
     isLoading,
     addMessage,
+    addAnalysisMessage,
     clearMessages,
     isAdding: addMessageMutation.isPending,
   };
