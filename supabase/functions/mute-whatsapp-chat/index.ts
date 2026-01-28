@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
     // Get company config for base URL
     const { data: config, error: configError } = await supabase
       .from("whatsapp_configs")
-      .select("uazapi_endpoint, uazapi_url")
+      .select("uazapi_endpoint")
       .eq("company_id", company_id)
       .maybeSingle();
 
@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const baseUrl = (config.uazapi_endpoint || config.uazapi_url)?.replace(/\/$/, "");
+    const baseUrl = config.uazapi_endpoint?.replace(/\/$/, "");
     const instanceToken = instance.uazapi_token || instance.instance_token;
 
     if (!baseUrl || !instanceToken) {
