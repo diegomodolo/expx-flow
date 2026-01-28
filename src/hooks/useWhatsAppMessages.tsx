@@ -348,6 +348,25 @@ export function useWhatsAppMessages(conversationId: string | null, companyId: st
     // For API call, use the original type (ptt for voice messages)
     const apiMediaType = media.type;
 
+    // Generate user-friendly content for media messages (used in DB and UI)
+    const getMediaContentLabel = (type: string, fileName: string, hasCaption: boolean): string => {
+      if (hasCaption) return caption;
+      switch (type) {
+        case "ptt":
+        case "audio":
+          return "🎤 Mensagem de voz";
+        case "image":
+          return "📷 Foto";
+        case "video":
+          return "🎥 Vídeo";
+        case "document":
+          return `📄 ${fileName}`;
+        default:
+          return `📎 Arquivo`;
+      }
+    };
+    const mediaContentLabel = getMediaContentLabel(media.type, media.file.name, !!caption);
+
     let savedMessageId: string | null = null;
 
     try {
@@ -361,7 +380,7 @@ export function useWhatsAppMessages(conversationId: string | null, companyId: st
           conversation_id: conversationId,
           company_id: companyId,
           direction: "outgoing",
-          content: caption || `[${media.type}] ${media.file.name}`,
+          content: mediaContentLabel,
           message_type: messageType,
           status: "sending",
           sent_at: now,
@@ -378,7 +397,7 @@ export function useWhatsAppMessages(conversationId: string | null, companyId: st
         conversation_id: conversationId,
         company_id: companyId,
         direction: "outgoing",
-        content: caption || `[${media.type}] ${media.file.name}`,
+        content: mediaContentLabel,
         message_type: messageType,
         media_url: media.preview || null,
         cached_media_url: media.preview || null,
