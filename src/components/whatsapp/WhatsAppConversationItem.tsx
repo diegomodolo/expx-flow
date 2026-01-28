@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { WhatsAppConversation, ConversationTemperature } from "@/hooks/useWhatsAppConversations";
+import { WhatsAppAssignment } from "@/hooks/useWhatsAppAssignments";
+import { WhatsAppAssignmentIndicator } from "./WhatsAppAssignmentIndicator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -21,12 +23,14 @@ interface WhatsAppConversationItemProps {
   conversation: WhatsAppConversation;
   isSelected: boolean;
   onClick: () => void;
+  assignment?: WhatsAppAssignment | null;
 }
 
 export function WhatsAppConversationItem({
   conversation,
   isSelected,
   onClick,
+  assignment,
 }: WhatsAppConversationItemProps) {
   const [showProfilePic, setShowProfilePic] = useState(false);
   const displayName = conversation.contact_name || formatPhoneNumber(conversation.phone);
@@ -179,6 +183,15 @@ export function WhatsAppConversationItem({
               </TooltipContent>
             </Tooltip>
           )}
+
+          {/* Assignment indicator */}
+          <div className="absolute -top-1 -left-1">
+            <WhatsAppAssignmentIndicator 
+              assignment={assignment || null} 
+              size="sm"
+              showUnassigned={true}
+            />
+          </div>
         </div>
 
         <div className="flex-1 min-w-0">

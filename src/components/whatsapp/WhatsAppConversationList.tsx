@@ -4,6 +4,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, Search } from "lucide-react";
 import { WhatsAppConversationItem } from "./WhatsAppConversationItem";
 import { WhatsAppConversation } from "@/hooks/useWhatsAppConversations";
+import { WhatsAppAssignmentFilters, AssignmentFilter } from "./WhatsAppAssignmentFilters";
+import { WhatsAppAssignment } from "@/hooks/useWhatsAppAssignments";
 
 interface WhatsAppConversationListProps {
   conversations: WhatsAppConversation[];
@@ -11,6 +13,9 @@ interface WhatsAppConversationListProps {
   selectedId: string | null;
   onSelect: (id: string) => void;
   instanceSelector?: ReactNode;
+  assignments?: WhatsAppAssignment[];
+  currentUserId?: string;
+  currentUserTeamId?: string;
 }
 
 export function WhatsAppConversationList({
@@ -19,10 +24,18 @@ export function WhatsAppConversationList({
   selectedId,
   onSelect,
   instanceSelector,
+  assignments = [],
+  currentUserId,
+  currentUserTeamId,
 }: WhatsAppConversationListProps) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [assignmentFilter, setAssignmentFilter] = useState<AssignmentFilter>("all");
 
-  const filteredConversations = conversations.filter((conv) => {
+  // Create a map for quick assignment lookup
+  const assignmentMap = new Map(assignments.map(a => [a.conversation_id, a]));
+
+  // Filter by search query
+  const searchFilteredConversations = conversations.filter((conv) => {
     const searchLower = searchQuery.toLowerCase();
     return (
       conv.phone.includes(searchQuery) ||
@@ -30,6 +43,38 @@ export function WhatsAppConversationList({
       conv.last_message_preview?.toLowerCase().includes(searchLower)
     );
   });
+
+  // Filter by assignment
+  const filteredConversations = searchFilteredConversations.filter((conv) => {
+    const assignment = assignmentMap.get(conv.id);
+
+    switch (assignmentFilter) {
+      case "mine":
+        return assignment?.assigned_to_user_id === currentUserId;
+      case "my-squad":
+        return assignment?.assigned_to_team_id === currentUserTeamId;
+      case "unassigned":
+        return !assignment;
+      case "all":
+      default:
+        return true;
+    }
+  });
+
+  // Calculate counts for filters
+  const myConversationsCount = searchFilteredConversations.filter(
+    c => assignmentMap.get(c.id)?.assigned_to_user_id === currentUserId
+  ).length;
+  
+  const mySquadConversationsCount = currentUserTeamId
+    ? searchFilteredConversations.filter(
+        c => assignmentMap.get(c.id)?.assigned_to_team_id === currentUserTeamId
+      ).length
+    : 0;
+  
+  const unassignedCount = searchFilteredConversations.filter(
+    c => !assignmentMap.get(c.id)
+  ).length;
 
   return (
     <div className="flex flex-col h-full">
@@ -39,6 +84,15 @@ export function WhatsAppConversationList({
           {instanceSelector}
         </div>
       )}
+
+      {/* Assignment filters */}
+      <WhatsAppAssignmentFilters
+        activeFilter={assignmentFilter}
+        onFilterChange={setAssignmentFilter}
+        myConversationsCount={myConversationsCount}
+        mySquadConversationsCount={mySquadConversationsCount}
+        unassignedCount={unassignedCount}
+      />
       
       {/* Search */}
       <div className="p-3 border-b">
@@ -78,6 +132,7 @@ export function WhatsAppConversationList({
                 conversation={conversation}
                 isSelected={selectedId === conversation.id}
                 onClick={() => onSelect(conversation.id)}
+                assignment={assignmentMap.get(conversation.id) || null}
               />
             ))}
           </div>
