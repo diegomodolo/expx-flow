@@ -10,11 +10,11 @@ import { ptBR } from "date-fns/locale";
 import { parseWhatsAppFormatting } from "@/lib/whatsappFormatting";
 import { Mic, Image, Video, FileText, Camera, BellOff, Pin, Building2 } from "lucide-react";
 
-// Temperature color mapping
+// Temperature color mapping (values from AI: positive, neutral, negative)
 const temperatureStyles: Record<string, { ring: string; label: string }> = {
-  fria: { ring: "ring-2 ring-blue-400", label: "Temperatura fria" },
-  morna: { ring: "ring-2 ring-amber-400", label: "Temperatura morna" },
-  quente: { ring: "ring-2 ring-red-500", label: "Temperatura quente" },
+  positive: { ring: "ring-2 ring-emerald-400", label: "Temperatura positiva" },
+  neutral: { ring: "ring-2 ring-amber-400", label: "Temperatura neutra" },
+  negative: { ring: "ring-2 ring-red-500", label: "Temperatura negativa" },
 };
 
 interface WhatsAppConversationItemProps {

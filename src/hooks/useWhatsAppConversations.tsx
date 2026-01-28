@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-export type ConversationTemperature = "fria" | "morna" | "quente" | null;
+export type ConversationTemperature = "positive" | "neutral" | "negative" | null;
 
 export interface WhatsAppConversation {
   id: string;
