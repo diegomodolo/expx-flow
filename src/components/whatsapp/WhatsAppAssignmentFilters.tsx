@@ -1,8 +1,8 @@
-import { User, Users, UserCheck, UserX } from "lucide-react";
+import { User, Users, UserCheck, UserX, HelpCircle } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
-export type AssignmentFilter = "all" | "mine" | "my-squad" | "unassigned";
+export type AssignmentFilter = "all" | "mine" | "my-squad" | "unassigned" | "no-squad";
 
 interface WhatsAppAssignmentFiltersProps {
   activeFilter: AssignmentFilter;
@@ -10,6 +10,7 @@ interface WhatsAppAssignmentFiltersProps {
   myConversationsCount?: number;
   mySquadConversationsCount?: number;
   unassignedCount?: number;
+  noSquadCount?: number;
 }
 
 export function WhatsAppAssignmentFilters({
@@ -18,6 +19,7 @@ export function WhatsAppAssignmentFilters({
   myConversationsCount = 0,
   mySquadConversationsCount = 0,
   unassignedCount = 0,
+  noSquadCount = 0,
 }: WhatsAppAssignmentFiltersProps) {
   return (
     <div className="flex items-center gap-1 p-2 border-b bg-muted/30">
@@ -47,6 +49,13 @@ export function WhatsAppAssignmentFilters({
         isActive={activeFilter === "unassigned"}
         onClick={() => onFilterChange("unassigned")}
         count={unassignedCount}
+      />
+      <FilterButton
+        icon={HelpCircle}
+        label="Sem Squad"
+        isActive={activeFilter === "no-squad"}
+        onClick={() => onFilterChange("no-squad")}
+        count={noSquadCount}
       />
     </div>
   );

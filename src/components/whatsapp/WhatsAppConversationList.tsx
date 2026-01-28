@@ -57,6 +57,9 @@ export function WhatsAppConversationList({
         return !!conv.client_id && !!currentUserTeamId && conv.client_team_id === currentUserTeamId;
       case "unassigned":
         return !assignment;
+      case "no-squad":
+        // "Sem Squad" means: conversations without a linked client, OR with a client that has no squad
+        return !conv.client_id || !conv.client_team_id;
       case "all":
       default:
         return true;
@@ -78,6 +81,10 @@ export function WhatsAppConversationList({
     c => !assignmentMap.get(c.id)
   ).length;
 
+  const noSquadCount = searchFilteredConversations.filter(
+    c => !c.client_id || !c.client_team_id
+  ).length;
+
   return (
     <div className="flex flex-col h-full">
       {/* Instance selector */}
@@ -94,6 +101,7 @@ export function WhatsAppConversationList({
         myConversationsCount={myConversationsCount}
         mySquadConversationsCount={mySquadConversationsCount}
         unassignedCount={unassignedCount}
+        noSquadCount={noSquadCount}
       />
       
       {/* Search */}
