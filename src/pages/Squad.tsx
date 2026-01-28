@@ -90,9 +90,9 @@ const Squad = () => {
   const getStatusBadge = (progress: number) => {
     const status = getPerformanceStatus(progress);
     const config = {
-      high: "bg-green-100 text-green-700",
-      medium: "bg-yellow-100 text-yellow-700", 
-      low: "bg-red-100 text-red-700"
+      high: "bg-green-500/10 text-green-500 dark:bg-green-500/20 dark:text-green-400",
+      medium: "bg-yellow-500/10 text-yellow-600 dark:bg-yellow-500/20 dark:text-yellow-400", 
+      low: "bg-red-500/10 text-red-600 dark:bg-red-500/20 dark:text-red-400"
     };
     return config[status];
   };
@@ -122,8 +122,8 @@ const Squad = () => {
                   <Users className="text-primary text-2xl" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-900">Gerenciamento de Squads</h1>
-                  <p className="text-gray-600">Organize e monitore suas equipes de trabalho</p>
+                  <h1 className="text-2xl font-bold text-foreground">Gerenciamento de Squads</h1>
+                  <p className="text-muted-foreground">Organize e monitore suas equipes de trabalho</p>
                 </div>
               </div>
               <Button 
@@ -141,57 +141,57 @@ const Squad = () => {
 
             {/* Metrics Overview */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <Card className="shadow-sm border border-gray-200">
+              <Card className="shadow-sm border">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="text-2xl font-bold text-gray-900">{activeTeams}</div>
-                      <div className="text-sm text-gray-600">Squads Ativos</div>
+                      <div className="text-2xl font-bold text-foreground">{activeTeams}</div>
+                      <div className="text-sm text-muted-foreground">Squads Ativos</div>
                     </div>
-                    <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                      <Users className="text-green-600 text-xl" />
+                    <div className="w-12 h-12 bg-green-500/10 dark:bg-green-500/20 rounded-lg flex items-center justify-center">
+                      <Users className="text-green-600 dark:text-green-400 text-xl" />
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="shadow-sm border border-gray-200">
+              <Card className="shadow-sm border">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="text-2xl font-bold text-gray-900">{averagePerformance}%</div>
-                      <div className="text-sm text-gray-600">Performance Média</div>
+                      <div className="text-2xl font-bold text-foreground">{averagePerformance}%</div>
+                      <div className="text-sm text-muted-foreground">Performance Média</div>
                     </div>
-                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <BarChart3 className="text-blue-600 text-xl" />
+                    <div className="w-12 h-12 bg-blue-500/10 dark:bg-blue-500/20 rounded-lg flex items-center justify-center">
+                      <BarChart3 className="text-blue-600 dark:text-blue-400 text-xl" />
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="shadow-sm border border-gray-200">
+              <Card className="shadow-sm border">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="text-2xl font-bold text-gray-900">{totalProjects}</div>
-                      <div className="text-sm text-gray-600">Projetos Ativos</div>
+                      <div className="text-2xl font-bold text-foreground">{totalProjects}</div>
+                      <div className="text-sm text-muted-foreground">Projetos Ativos</div>
                     </div>
-                    <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                      <Briefcase className="text-purple-600 text-xl" />
+                    <div className="w-12 h-12 bg-purple-500/10 dark:bg-purple-500/20 rounded-lg flex items-center justify-center">
+                      <Briefcase className="text-purple-600 dark:text-purple-400 text-xl" />
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="shadow-sm border border-gray-200">
+              <Card className="shadow-sm border">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="text-2xl font-bold text-gray-900">{totalMembers}</div>
-                      <div className="text-sm text-gray-600">Total de Membros</div>
+                      <div className="text-2xl font-bold text-foreground">{totalMembers}</div>
+                      <div className="text-sm text-muted-foreground">Total de Membros</div>
                     </div>
-                    <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                      <User className="text-orange-600 text-xl" />
+                    <div className="w-12 h-12 bg-orange-500/10 dark:bg-orange-500/20 rounded-lg flex items-center justify-center">
+                      <User className="text-orange-600 dark:text-orange-400 text-xl" />
                     </div>
                   </div>
                 </CardContent>
@@ -199,11 +199,11 @@ const Squad = () => {
             </div>
 
             {/* Filters */}
-            <Card className="shadow-sm border border-gray-200">
+            <Card className="shadow-sm border">
               <CardContent className="p-6">
                 <div className="flex flex-wrap items-center gap-4">
                   <div className="flex items-center space-x-2">
-                    <label className="text-sm font-medium text-gray-700">Status:</label>
+                    <label className="text-sm font-medium text-muted-foreground">Status:</label>
                     <Select value={statusFilter} onValueChange={setStatusFilter}>
                       <SelectTrigger className="w-32">
                         <SelectValue placeholder="Todos" />
@@ -218,7 +218,7 @@ const Squad = () => {
                   </div>
 
                   <div className="flex items-center space-x-2">
-                    <label className="text-sm font-medium text-gray-700">Tipo:</label>
+                    <label className="text-sm font-medium text-muted-foreground">Tipo:</label>
                     <Select value={typeFilter} onValueChange={setTypeFilter}>
                       <SelectTrigger className="w-40">
                         <SelectValue placeholder="Todos" />
@@ -235,7 +235,7 @@ const Squad = () => {
                   </div>
 
                   <div className="flex items-center space-x-2">
-                    <label className="text-sm font-medium text-gray-700">Performance:</label>
+                    <label className="text-sm font-medium text-muted-foreground">Performance:</label>
                     <Select value={performanceFilter} onValueChange={setPerformanceFilter}>
                       <SelectTrigger className="w-36">
                         <SelectValue placeholder="Todas" />
@@ -251,7 +251,7 @@ const Squad = () => {
 
                   <div className="flex-1 max-w-md">
                     <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" />
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input
                         type="text"
                         placeholder="Buscar por nome do squad..."
@@ -270,16 +270,16 @@ const Squad = () => {
               {filteredTeams.map((team) => {
                 const IconComponent = iconMap[team.icon] || Code;
                 return (
-                  <Card key={team.id} className="shadow-sm border border-gray-200 hover:shadow-lg transition-shadow">
+                  <Card key={team.id} className="shadow-sm border hover:shadow-lg transition-shadow">
                     <CardContent className="p-6">
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center space-x-3">
-                          <div className={`w-12 h-12 ${team.icon_bg || 'bg-blue-100'} rounded-lg flex items-center justify-center`}>
-                            <IconComponent className={`${team.icon_color || 'text-blue-600'} text-xl`} />
+                          <div className={`w-12 h-12 ${team.icon_bg || 'bg-blue-500/10 dark:bg-blue-500/20'} rounded-lg flex items-center justify-center`}>
+                            <IconComponent className={`${team.icon_color || 'text-blue-600 dark:text-blue-400'} text-xl`} />
                           </div>
                           <div>
-                            <h3 className="font-semibold text-gray-900">{team.name}</h3>
-                            <Badge className="text-xs bg-green-100 text-green-700">Ativo</Badge>
+                            <h3 className="font-semibold text-foreground">{team.name}</h3>
+                            <Badge className="text-xs bg-green-500/10 text-green-600 dark:bg-green-500/20 dark:text-green-400 border-0">Ativo</Badge>
                           </div>
                         </div>
                         <div className={`w-2 h-2 rounded-full ${getPerformanceIndicator(team.progress)}`}></div>
@@ -287,34 +287,34 @@ const Squad = () => {
 
                       <div className="space-y-3 mb-4">
                         <div className="flex items-center justify-between text-sm">
-                          <span className="text-gray-600">Membros:</span>
-                          <span className="font-medium text-gray-900">{team.members?.length || 0} pessoas</span>
+                          <span className="text-muted-foreground">Membros:</span>
+                          <span className="font-medium text-foreground">{team.members?.length || 0} pessoas</span>
                         </div>
                         <div className="flex items-center justify-between text-sm">
-                          <span className="text-gray-600">Projetos Ativos:</span>
-                          <span className="font-medium text-gray-900">{team.active_tasks} projetos</span>
+                          <span className="text-muted-foreground">Projetos Ativos:</span>
+                          <span className="font-medium text-foreground">{team.active_tasks} projetos</span>
                         </div>
                         <div className="flex items-center justify-between text-sm">
-                          <span className="text-gray-600">Performance:</span>
-                          <span className={`font-medium ${team.progress >= 90 ? 'text-green-600' : team.progress >= 70 ? 'text-yellow-600' : 'text-red-600'}`}>
+                          <span className="text-muted-foreground">Performance:</span>
+                          <span className={`font-medium ${team.progress >= 90 ? 'text-green-600 dark:text-green-400' : team.progress >= 70 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400'}`}>
                             {team.progress}%
                           </span>
                         </div>
                       </div>
 
-                      <div className="border-t border-gray-200 pt-4 mb-4">
+                      <div className="border-t border-border pt-4 mb-4">
                         <div className="grid grid-cols-3 gap-4 text-center text-xs">
                           <div>
-                            <div className="font-semibold text-gray-900">{Math.round(team.active_tasks * 5.2)}</div>
-                            <div className="text-gray-600">Tasks/mês</div>
+                            <div className="font-semibold text-foreground">{Math.round(team.active_tasks * 5.2)}</div>
+                            <div className="text-muted-foreground">Tasks/mês</div>
                           </div>
                           <div>
-                            <div className="font-semibold text-gray-900">{Math.round(team.progress)}%</div>
-                            <div className="text-gray-600">No prazo</div>
+                            <div className="font-semibold text-foreground">{Math.round(team.progress)}%</div>
+                            <div className="text-muted-foreground">No prazo</div>
                           </div>
                           <div>
-                            <div className="font-semibold text-gray-900">{(team.progress / 20).toFixed(1)}</div>
-                            <div className="text-gray-600">Satisfação</div>
+                            <div className="font-semibold text-foreground">{(team.progress / 20).toFixed(1)}</div>
+                            <div className="text-muted-foreground">Satisfação</div>
                           </div>
                         </div>
                       </div>
@@ -346,24 +346,24 @@ const Squad = () => {
             </div>
 
             {/* Performance Chart Placeholder */}
-            <Card className="shadow-sm border border-gray-200">
+            <Card className="shadow-sm border">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <BarChart3 className="text-blue-600 text-xl" />
+                    <div className="w-10 h-10 bg-blue-500/10 dark:bg-blue-500/20 rounded-lg flex items-center justify-center">
+                      <BarChart3 className="text-blue-600 dark:text-blue-400 text-xl" />
                     </div>
-                    <h3 className="text-lg font-semibold text-gray-900">Distribuição de Carga de Trabalho</h3>
+                    <h3 className="text-lg font-semibold text-foreground">Distribuição de Carga de Trabalho</h3>
                   </div>
                   <Button variant="ghost" className="text-sm text-primary hover:text-primary/80 font-medium">
                     Ver Detalhes
                   </Button>
                 </div>
-                <div className="h-72 bg-gray-50 rounded-lg flex items-center justify-center">
+                <div className="h-72 bg-muted/50 rounded-lg flex items-center justify-center">
                   <div className="text-center">
-                    <BarChart3 className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500">Gráfico de distribuição de tarefas</p>
-                    <p className="text-sm text-gray-400">Dados dos squads em tempo real</p>
+                    <BarChart3 className="w-16 h-16 text-muted-foreground/50 mx-auto mb-4" />
+                    <p className="text-muted-foreground">Gráfico de distribuição de tarefas</p>
+                    <p className="text-sm text-muted-foreground/70">Dados dos squads em tempo real</p>
                   </div>
                 </div>
               </CardContent>
