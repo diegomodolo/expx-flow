@@ -1,7 +1,7 @@
 import { WhatsAppMessage } from "@/hooks/useWhatsAppMessages";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { Check, CheckCheck, Clock, AlertCircle, Download, FileText, Image, Video, Headphones, Loader2, Trash2, Pencil } from "lucide-react";
+import { Check, CheckCheck, Clock, AlertCircle, Download, FileText, Image, Video, Headphones, Loader2, Trash2, Pencil, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,9 +37,10 @@ interface WhatsAppMessageBubbleProps {
   companyId?: string;
   remoteJid?: string; // phone@s.whatsapp.net format
   onMessageEdited?: (messageId: string, newContent: string) => void;
+  onOpenAIAssistant?: (message: string) => void;
 }
 
-export function WhatsAppMessageBubble({ message, instanceId, companyId, remoteJid, onMessageEdited }: WhatsAppMessageBubbleProps) {
+export function WhatsAppMessageBubble({ message, instanceId, companyId, remoteJid, onMessageEdited, onOpenAIAssistant }: WhatsAppMessageBubbleProps) {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -490,9 +491,21 @@ export function WhatsAppMessageBubble({ message, instanceId, companyId, remoteJi
         )}
       </div>
       
-      {/* Reaction picker for incoming messages - show on right */}
+      {/* Reaction picker and AI button for incoming messages - show on right */}
       {!isOutgoing && companyId && instanceId && message.external_id && (
-        <div className="flex items-center ml-1">
+        <div className="flex items-center gap-0.5 ml-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          {/* AI Assistant button */}
+          {isTextMessage && onOpenAIAssistant && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-primary/10"
+              onClick={() => onOpenAIAssistant(message.content)}
+              title="Sugerir resposta com IA"
+            >
+              <Sparkles className="h-4 w-4" />
+            </Button>
+          )}
           <WhatsAppReactionPicker
             messageId={message.external_id}
             remoteJid={messageRemoteJid}
