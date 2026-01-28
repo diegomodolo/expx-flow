@@ -11172,6 +11172,7 @@ export type Database = {
       }
       whatsapp_messages: {
         Row: {
+          audio_transcription: string | null
           cached_media_url: string | null
           company_id: string
           content: string
@@ -11187,8 +11188,10 @@ export type Database = {
           reaction: string | null
           sent_at: string | null
           status: string | null
+          transcription_status: string | null
         }
         Insert: {
+          audio_transcription?: string | null
           cached_media_url?: string | null
           company_id: string
           content: string
@@ -11204,8 +11207,10 @@ export type Database = {
           reaction?: string | null
           sent_at?: string | null
           status?: string | null
+          transcription_status?: string | null
         }
         Update: {
+          audio_transcription?: string | null
           cached_media_url?: string | null
           company_id?: string
           content?: string
@@ -11221,6 +11226,7 @@ export type Database = {
           reaction?: string | null
           sent_at?: string | null
           status?: string | null
+          transcription_status?: string | null
         }
         Relationships: [
           {

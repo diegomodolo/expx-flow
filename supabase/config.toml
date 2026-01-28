@@ -450,3 +450,6 @@ verify_jwt = true
 
 [functions.block-whatsapp-contact]
 verify_jwt = true
+
+[functions.transcribe-audio]
+verify_jwt = true
