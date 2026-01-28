@@ -3,6 +3,7 @@ import { WhatsAppConversation } from "@/hooks/useWhatsAppConversations";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -117,24 +118,50 @@ export function WhatsAppConversationItem({
           isSelected && "bg-muted"
         )}
       >
-        <Avatar 
-          className={cn(
-            "h-10 w-10 shrink-0",
-            conversation.profile_pic_url && "cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
+        <div className="relative shrink-0">
+          <Avatar 
+            className={cn(
+              "h-10 w-10",
+              conversation.profile_pic_url && "cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
+            )}
+            onClick={handleAvatarClick}
+          >
+            {conversation.profile_pic_url && (
+              <AvatarImage 
+                src={conversation.profile_pic_url} 
+                alt={displayName}
+                className="object-cover"
+              />
+            )}
+            <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
+              {initials}
+            </AvatarFallback>
+          </Avatar>
+          
+          {/* Client logo overlay */}
+          {conversation.client_id && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full border-2 border-background bg-background overflow-hidden shadow-sm cursor-default">
+                  {conversation.client_logo_url ? (
+                    <img 
+                      src={conversation.client_logo_url} 
+                      alt={conversation.client_name || "Cliente"}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="h-full w-full bg-primary/10 flex items-center justify-center">
+                      <Building2 className="h-3 w-3 text-primary" />
+                    </div>
+                  )}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="text-xs">
+                {conversation.client_name}
+              </TooltipContent>
+            </Tooltip>
           )}
-          onClick={handleAvatarClick}
-        >
-          {conversation.profile_pic_url && (
-            <AvatarImage 
-              src={conversation.profile_pic_url} 
-              alt={displayName}
-              className="object-cover"
-            />
-          )}
-          <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
-            {initials}
-          </AvatarFallback>
-        </Avatar>
+        </div>
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
@@ -166,13 +193,6 @@ export function WhatsAppConversationItem({
               )}>
                 {renderMessagePreview()}
               </p>
-              {/* Client badge */}
-              {conversation.client_name && (
-                <span className="flex items-center gap-0.5 text-[10px] text-primary bg-primary/10 px-1.5 py-0.5 rounded-full shrink-0 max-w-[80px] truncate">
-                  <Building2 className="h-2.5 w-2.5 shrink-0" />
-                  <span className="truncate">{conversation.client_name}</span>
-                </span>
-              )}
             </div>
             {hasUnread && (
               <Badge className="h-5 min-w-[20px] rounded-full px-1.5 text-xs shrink-0">

@@ -16,6 +16,7 @@ export interface WhatsAppConversation {
   is_pinned: boolean;
   client_id: string | null;
   client_name?: string | null; // Joined from clients table
+  client_logo_url?: string | null; // Joined from clients table
   label_ids: string[] | null; // Labels assigned to this conversation
   created_at: string;
   updated_at: string;
@@ -33,7 +34,7 @@ export function useWhatsAppConversations(companyId: string | undefined, instance
         .from("whatsapp_conversations")
         .select(`
           *,
-          clients:client_id (name)
+          clients:client_id (name, logo_url)
         `)
         .eq("company_id", companyId)
         .order("is_pinned", { ascending: false })
@@ -53,10 +54,11 @@ export function useWhatsAppConversations(companyId: string | undefined, instance
 
       if (error) throw error;
       
-      // Transform data to flatten client name
+      // Transform data to flatten client name and logo
       const transformed = (data || []).map((conv: any) => ({
         ...conv,
         client_name: conv.clients?.name || null,
+        client_logo_url: conv.clients?.logo_url || null,
         clients: undefined, // Remove nested object
       }));
       
