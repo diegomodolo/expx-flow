@@ -492,6 +492,8 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
           conversationId={conversation.id}
           currentClientId={conversation.client_id}
           companyId={companyId}
+          conversationPhone={conversation.phone}
+          conversationContactName={conversation.contact_name}
           onClientChange={(clientId, clientName, clientLogoUrl) => {
             setLinkedClientId(clientId);
             setLinkedClientName(clientName);
