@@ -3,11 +3,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
-import { Brain, User, ShieldAlert, AlertTriangle, MessageSquare } from "lucide-react";
+import { Brain, User, ShieldAlert, AlertTriangle, MessageSquare, Zap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 import { useState } from "react";
+import { Switch } from "@/components/ui/switch";
 
 interface KnowledgePanelProps {
   config: {
@@ -18,6 +19,7 @@ interface KnowledgePanelProps {
     blacklist_words: string[];
     min_confidence_threshold: number;
     escalation_message: string;
+    force_realtime_analysis?: boolean;
   };
   onChange: (field: string, value: any) => void;
 }
@@ -38,6 +40,33 @@ export function WhatsAppAIAgentKnowledgePanel({ config, onChange }: KnowledgePan
 
   return (
     <div className="space-y-6">
+      {/* Análise em Tempo Real */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 pb-2 border-b">
+          <Zap className="h-5 w-5 text-amber-500" />
+          <h3 className="font-semibold">Análise em Tempo Real</h3>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Ative para fornecer feedback automático durante todas as conversas
+        </p>
+
+        <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+          <div className="space-y-0.5">
+            <Label htmlFor="force_realtime_analysis" className="text-sm font-medium cursor-pointer">
+              Habilitar para todos os chats
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              O painel de IA ficará sempre visível e não poderá ser fechado
+            </p>
+          </div>
+          <Switch
+            id="force_realtime_analysis"
+            checked={config.force_realtime_analysis ?? false}
+            onCheckedChange={(v) => onChange("force_realtime_analysis", v)}
+          />
+        </div>
+      </div>
+
       {/* Contexto do Cliente */}
       <div className="space-y-4">
         <div className="flex items-center gap-2 pb-2 border-b">

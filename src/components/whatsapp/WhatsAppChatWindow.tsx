@@ -12,6 +12,7 @@ import { WhatsAppClientLinker } from "./WhatsAppClientLinker";
 import { useWhatsAppLabels } from "@/hooks/useWhatsAppLabels";
 import { useWhatsAppQuickReplies } from "@/hooks/useWhatsAppQuickReplies";
 import { useWhatsAppPanelSizes } from "@/hooks/useWhatsAppPanelSizes";
+import { useWhatsAppAIAgentConfig } from "@/hooks/useWhatsAppAIAgentConfig";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -85,6 +86,13 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
   const { labels } = useWhatsAppLabels(companyId, instanceId ?? null);
   const { quickReplies, isLoading: quickRepliesLoading } = useWhatsAppQuickReplies(instanceId ?? null);
   const { sizes, setAiAssistantSize } = useWhatsAppPanelSizes();
+  const { config: aiAgentConfig } = useWhatsAppAIAgentConfig(companyId, instanceId);
+
+  // Check if realtime analysis is forced globally
+  const forceRealtimeAnalysis = aiAgentConfig?.force_realtime_analysis ?? false;
+  
+  // If forced, keep AI assistant always open
+  const isAiAssistantVisible = forceRealtimeAnalysis || aiAssistantOpen;
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -740,13 +748,13 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
       </div>
       </ResizablePanel>
 
-      {/* AI Assistant Panel - only show when open */}
-      {aiAssistantOpen && (
+      {/* AI Assistant Panel - show when open or forced */}
+      {isAiAssistantVisible && (
         <>
           <ResizableHandle withHandle />
           <ResizablePanel defaultSize={sizes.aiAssistant} minSize={20} maxSize={50}>
             <WhatsAppAIAssistant
-              isOpen={aiAssistantOpen}
+              isOpen={isAiAssistantVisible}
               onClose={() => setAiAssistantOpen(false)}
               conversationId={conversation.id}
               companyId={companyId}
@@ -754,6 +762,7 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
               customerMessage={aiSelectedMessage}
               contactName={displayName}
               onUseResponse={handleUseAIResponse}
+              forceRealtimeAnalysis={forceRealtimeAnalysis}
               conversationMessages={messages.map((m) => ({
                 id: m.id,
                 content: m.content || "",

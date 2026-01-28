@@ -26,7 +26,11 @@ interface WhatsAppAIAssistantProps {
     content: string;
     direction: string;
     created_at: string;
+    message_type?: string;
+    audio_transcription?: string | null;
+    transcription_status?: string | null;
   }>;
+  forceRealtimeAnalysis?: boolean;
 }
 
 const departmentLabels: Record<string, string> = {
@@ -106,6 +110,7 @@ export function WhatsAppAIAssistant({
   contactName,
   onUseResponse,
   conversationMessages = [],
+  forceRealtimeAnalysis = false,
 }: WhatsAppAIAssistantProps) {
   const { messages, isLoading: isLoadingHistory, addMessage, clearMessages } = useWhatsAppAIChatMessages(
     conversationId,
@@ -114,18 +119,21 @@ export function WhatsAppAIAssistant({
   const [input, setInput] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [realtimeAnalysisEnabled, setRealtimeAnalysisEnabled] = useState(false);
+  const [realtimeAnalysisEnabled, setRealtimeAnalysisEnabled] = useState(forceRealtimeAnalysis);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const hasGeneratedSuggestion = useRef(false);
   const lastCustomerMessage = useRef<string | null>(null);
+
+  // If force is enabled, always keep analysis on
+  const isAnalysisActive = forceRealtimeAnalysis || realtimeAnalysisEnabled;
 
   const { analysis, isAnalyzing, error: analysisError, triggerAnalysis } = useWhatsAppRealtimeAnalysis({
     conversationId,
     companyId,
     instanceId,
     messages: conversationMessages,
-    enabled: realtimeAnalysisEnabled,
+    enabled: isAnalysisActive,
   });
 
   // Scroll to bottom when messages change or analysis updates
@@ -290,6 +298,7 @@ Siga as instruções do atendente para ajustar a resposta.`;
   };
 
   const handleToggleRealtimeAnalysis = (checked: boolean) => {
+    if (forceRealtimeAnalysis) return; // Cannot toggle when forced
     setRealtimeAnalysisEnabled(checked);
     if (checked) {
       toast.success("Análise em tempo real ativada");
@@ -314,7 +323,8 @@ Siga as instruções do atendente para ajustar a resposta.`;
           </div>
         </div>
         <div className="flex items-center gap-1">
-          {messages.length > 0 && (
+          {/* Hide clear and close buttons when forced */}
+          {!forceRealtimeAnalysis && messages.length > 0 && (
             <Button 
               variant="ghost" 
               size="icon" 
@@ -324,9 +334,11 @@ Siga as instruções do atendente para ajustar a resposta.`;
               <Trash2 className="h-4 w-4" />
             </Button>
           )}
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            <X className="h-4 w-4" />
-          </Button>
+          {!forceRealtimeAnalysis && (
+            <Button variant="ghost" size="icon" onClick={onClose}>
+              <X className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </div>
 
@@ -336,18 +348,25 @@ Siga as instruções do atendente para ajustar a resposta.`;
           <div className="flex items-center gap-2">
             <Zap className={cn(
               "h-4 w-4",
-              realtimeAnalysisEnabled ? "text-amber-500" : "text-muted-foreground"
+              isAnalysisActive ? "text-amber-500" : "text-muted-foreground"
             )} />
             <span className="text-sm font-medium">Análise em Tempo Real</span>
+            {forceRealtimeAnalysis && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+                Sempre ativo
+              </span>
+            )}
           </div>
-          <Switch
-            checked={realtimeAnalysisEnabled}
-            onCheckedChange={handleToggleRealtimeAnalysis}
-          />
+          {!forceRealtimeAnalysis && (
+            <Switch
+              checked={realtimeAnalysisEnabled}
+              onCheckedChange={handleToggleRealtimeAnalysis}
+            />
+          )}
         </div>
         
         {/* Fixed Temperature + Alerts */}
-        {realtimeAnalysisEnabled && (
+        {isAnalysisActive && (
           <WhatsAppRealtimeAnalysisCard
             analysis={analysis}
             isAnalyzing={isAnalyzing}
@@ -426,7 +445,7 @@ Siga as instruções do atendente para ajustar a resposta.`;
               ))}
 
               {/* Analysis as chat messages */}
-              {realtimeAnalysisEnabled && analysis && (
+              {isAnalysisActive && analysis && (
                 <AnalysisChatMessage analysis={analysis} />
               )}
             </>
@@ -439,7 +458,7 @@ Siga as instruções do atendente para ajustar a resposta.`;
             </div>
           )}
 
-          {isAnalyzing && realtimeAnalysisEnabled && (
+          {isAnalyzing && isAnalysisActive && (
             <div className="flex items-center gap-2 text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
               <span className="text-sm">Analisando conversa...</span>
