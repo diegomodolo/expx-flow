@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
-import { X, Send, Loader2, Sparkles, Copy, Check, MessageSquare, Trash2, Zap, Lightbulb, Target, MessageCircle, MessageSquareText } from "lucide-react";
+import { X, Send, Loader2, Sparkles, Copy, Check, MessageSquare, Trash2, Zap, Lightbulb, Target, MessageCircle, MessageSquareText, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -147,10 +147,16 @@ export function WhatsAppAIAssistant({
   conversationMessages = [],
   forceRealtimeAnalysis = false,
 }: WhatsAppAIAssistantProps) {
-  const { messages, isLoading: isLoadingHistory, addMessage, addAnalysisMessage, clearMessages } = useWhatsAppAIChatMessages(
-    conversationId,
-    companyId
-  );
+  const { 
+    messages, 
+    isLoading: isLoadingHistory, 
+    isLoadingMore,
+    hasMore,
+    loadMoreMessages,
+    addMessage, 
+    addAnalysisMessage, 
+    clearMessages 
+  } = useWhatsAppAIChatMessages(conversationId, companyId);
   const [input, setInput] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -467,6 +473,25 @@ Siga as instruções do atendente para ajustar a resposta.`;
             </div>
           ) : (
             <>
+              {/* Load More Button */}
+              {hasMore && (
+                <div className="flex justify-center pb-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={loadMoreMessages}
+                    disabled={isLoadingMore}
+                    className="text-xs gap-1 text-muted-foreground hover:text-foreground"
+                  >
+                    {isLoadingMore ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <ChevronUp className="h-3 w-3" />
+                    )}
+                    {isLoadingMore ? "Carregando..." : "Ver mensagens anteriores"}
+                  </Button>
+                </div>
+              )}
               {messages.map((message) => {
                 // Handle analysis messages
                 if (message.role === "analysis") {

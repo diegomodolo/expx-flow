@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -28,28 +28,87 @@ export interface AnalysisMessageContent {
   readyMessage: string;
 }
 
+const PAGE_SIZE = 30;
+
 export function useWhatsAppAIChatMessages(
   conversationId: string | undefined,
   companyId: string | undefined
 ) {
   const queryClient = useQueryClient();
+  const [hasMore, setHasMore] = useState(true);
+  const [allMessages, setAllMessages] = useState<AIMessage[]>([]);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  const { data: messages, isLoading } = useQuery({
-    queryKey: ["whatsapp-ai-chat-messages", conversationId],
+  // Fetch the latest PAGE_SIZE messages (most recent first, then reverse for display)
+  const { data: initialMessages, isLoading } = useQuery({
+    queryKey: ["whatsapp-ai-chat-messages", conversationId, "initial"],
     queryFn: async () => {
       if (!conversationId || !companyId) return [];
       
+      // Get total count first
+      const { count } = await supabase
+        .from("whatsapp_ai_chat_messages")
+        .select("*", { count: "exact", head: true })
+        .eq("conversation_id", conversationId);
+      
+      // Fetch last PAGE_SIZE messages ordered by created_at DESC
       const { data, error } = await supabase
         .from("whatsapp_ai_chat_messages")
         .select("*")
         .eq("conversation_id", conversationId)
-        .order("created_at", { ascending: true });
+        .order("created_at", { ascending: false })
+        .limit(PAGE_SIZE);
 
       if (error) throw error;
-      return data as AIMessage[];
+      
+      // Check if there are more messages
+      const totalCount = count || 0;
+      setHasMore(totalCount > PAGE_SIZE);
+      
+      // Reverse to get chronological order for display
+      const messagesInOrder = (data as AIMessage[]).reverse();
+      setAllMessages(messagesInOrder);
+      
+      return messagesInOrder;
     },
     enabled: !!conversationId && !!companyId,
   });
+
+  // Load more older messages
+  const loadMoreMessages = useCallback(async () => {
+    if (!conversationId || !companyId || isLoadingMore || !hasMore || allMessages.length === 0) return;
+    
+    setIsLoadingMore(true);
+    
+    try {
+      const oldestMessage = allMessages[0];
+      
+      // Fetch PAGE_SIZE messages older than the oldest we have
+      const { data, error } = await supabase
+        .from("whatsapp_ai_chat_messages")
+        .select("*")
+        .eq("conversation_id", conversationId)
+        .lt("created_at", oldestMessage.created_at)
+        .order("created_at", { ascending: false })
+        .limit(PAGE_SIZE);
+
+      if (error) throw error;
+      
+      const olderMessages = (data as AIMessage[]).reverse();
+      
+      if (olderMessages.length < PAGE_SIZE) {
+        setHasMore(false);
+      }
+      
+      if (olderMessages.length > 0) {
+        setAllMessages(prev => [...olderMessages, ...prev]);
+      }
+    } catch (error) {
+      console.error("Error loading more messages:", error);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [conversationId, companyId, isLoadingMore, hasMore, allMessages]);
 
   const addMessageMutation = useMutation({
     mutationFn: async (message: {
@@ -80,7 +139,9 @@ export function useWhatsAppAIChatMessages(
       if (error) throw error;
       return data as AIMessage;
     },
-    onSuccess: () => {
+    onSuccess: (newMessage) => {
+      // Add new message directly to state for instant feedback
+      setAllMessages(prev => [...prev, newMessage]);
       queryClient.invalidateQueries({ queryKey: ["whatsapp-ai-chat-messages", conversationId] });
     },
   });
@@ -97,6 +158,8 @@ export function useWhatsAppAIChatMessages(
       if (error) throw error;
     },
     onSuccess: () => {
+      setAllMessages([]);
+      setHasMore(false);
       queryClient.invalidateQueries({ queryKey: ["whatsapp-ai-chat-messages", conversationId] });
     },
   });
@@ -123,8 +186,11 @@ export function useWhatsAppAIChatMessages(
   }, [clearMessagesMutation]);
 
   return {
-    messages: messages || [],
+    messages: allMessages,
     isLoading,
+    isLoadingMore,
+    hasMore,
+    loadMoreMessages,
     addMessage,
     addAnalysisMessage,
     clearMessages,
