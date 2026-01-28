@@ -63,11 +63,16 @@ export function useWhatsAppConversations(companyId: string | undefined, instance
     queryClient.invalidateQueries({ queryKey: ["whatsapp-conversations", companyId, instanceId] });
   };
 
+  const refetchConversations = () => {
+    queryClient.invalidateQueries({ queryKey: ["whatsapp-conversations", companyId, instanceId] });
+  };
+
   return {
     conversations: conversations || [],
     isLoading,
     error,
     markAsRead,
     archiveConversation,
+    refetchConversations,
   };
 }

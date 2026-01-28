@@ -67,7 +67,7 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
     syncChats(instanceId); // Sincronizar chats da nova instância
   };
 
-  const { conversations, isLoading: isLoadingConversations, markAsRead } = useWhatsAppConversations(
+  const { conversations, isLoading: isLoadingConversations, markAsRead, refetchConversations } = useWhatsAppConversations(
     activeCompany?.company_id,
     selectedInstanceId
   );
@@ -87,6 +87,15 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
   const handleSelectConversation = (id: string) => {
     setSelectedConversationId(id);
     markAsRead(id);
+  };
+
+  const handleChatDeleted = (conversationId: string) => {
+    // If the deleted chat is selected, clear selection
+    if (selectedConversationId === conversationId) {
+      setSelectedConversationId(null);
+    }
+    // Refresh conversation list
+    refetchConversations();
   };
 
 
@@ -220,6 +229,7 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
                     conversation={selectedConversation}
                     companyId={activeCompany?.company_id}
                     instanceId={selectedInstanceId}
+                    onChatDeleted={handleChatDeleted}
                   />
                 ) : (
                   <div className="flex flex-col items-center justify-center h-full gap-4 text-muted-foreground">

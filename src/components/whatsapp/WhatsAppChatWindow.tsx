@@ -1,4 +1,4 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { WhatsAppConversation } from "@/hooks/useWhatsAppConversations";
 import { useWhatsAppMessages } from "@/hooks/useWhatsAppMessages";
 import { WhatsAppMessageBubble } from "./WhatsAppMessageBubble";
@@ -7,20 +7,46 @@ import { WhatsAppMessagesLoading } from "./WhatsAppMessagesLoading";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Phone, RefreshCw } from "lucide-react";
+import { Phone, RefreshCw, Trash2, MoreVertical, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
 interface WhatsAppChatWindowProps {
   conversation: WhatsAppConversation;
   companyId: string | undefined;
   instanceId?: string | null;
+  onChatDeleted?: (conversationId: string) => void;
 }
 
-export function WhatsAppChatWindow({ conversation, companyId, instanceId }: WhatsAppChatWindowProps) {
+export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChatDeleted }: WhatsAppChatWindowProps) {
   const { messages, isLoading, isFetchingFromApi, sendMessage, fetchMessagesFromApi } = useWhatsAppMessages(
     conversation.id,
     companyId
   );
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteFromWhatsApp, setDeleteFromWhatsApp] = useState(true);
+  const [deleteLocal, setDeleteLocal] = useState(true);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -33,6 +59,45 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId }: What
 
   const handleSend = (message: string) => {
     sendMessage({ phone: conversation.phone, message, instanceId: instanceId ?? null });
+  };
+
+  const handleDeleteChat = async () => {
+    if (!companyId || !instanceId) {
+      toast.error("Não foi possível deletar o chat");
+      return;
+    }
+
+    setIsDeleting(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("delete-whatsapp-chat", {
+        body: {
+          company_id: companyId,
+          instance_id: instanceId,
+          phone: conversation.phone,
+          conversation_id: conversation.id,
+          delete_chat_whatsapp: deleteFromWhatsApp,
+          delete_local: deleteLocal,
+          delete_chat_db: false,
+          delete_messages_db: false,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        toast.success("Chat deletado com sucesso");
+        setIsDeleteDialogOpen(false);
+        onChatDeleted?.(conversation.id);
+      } else {
+        throw new Error(data?.error || "Erro ao deletar chat");
+      }
+    } catch (err: any) {
+      console.error("[WhatsAppChatWindow] Delete chat error:", err);
+      toast.error(err.message || "Erro ao deletar chat");
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -69,7 +134,90 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId }: What
         >
           <RefreshCw className={`h-4 w-4 ${isFetchingFromApi ? 'animate-spin' : ''}`} />
         </Button>
+
+        {/* More options menu */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => fetchMessagesFromApi(true)}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Atualizar mensagens
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem 
+              onClick={() => setIsDeleteDialogOpen(true)}
+              className="text-destructive focus:text-destructive"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Deletar chat
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
+
+      {/* Delete chat dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Deletar chat?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Escolha como deseja deletar este chat com {displayName}.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          
+          <div className="py-4 space-y-4">
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="delete-whatsapp" 
+                checked={deleteFromWhatsApp}
+                onCheckedChange={(checked) => setDeleteFromWhatsApp(checked === true)}
+              />
+              <Label htmlFor="delete-whatsapp" className="text-sm">
+                Deletar do WhatsApp
+                <span className="block text-xs text-muted-foreground">
+                  Remove o chat do seu WhatsApp
+                </span>
+              </Label>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="delete-local" 
+                checked={deleteLocal}
+                onCheckedChange={(checked) => setDeleteLocal(checked === true)}
+              />
+              <Label htmlFor="delete-local" className="text-sm">
+                Deletar do sistema
+                <span className="block text-xs text-muted-foreground">
+                  Remove o chat e mensagens deste painel
+                </span>
+              </Label>
+            </div>
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteChat}
+              disabled={isDeleting || (!deleteFromWhatsApp && !deleteLocal)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deletando...
+                </>
+              ) : (
+                "Deletar"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Messages */}
       <ScrollArea className="flex-1 px-4">
