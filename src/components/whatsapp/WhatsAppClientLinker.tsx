@@ -25,6 +25,8 @@ interface WhatsAppClientLinkerProps {
   conversationId: string;
   currentClientId: string | null;
   companyId: string | undefined;
+  conversationPhone?: string; // Phone number from the conversation
+  conversationContactName?: string | null; // Contact name from the conversation
   onClientChange?: (clientId: string | null, clientName: string | null, clientLogoUrl?: string | null) => void;
   variant?: "badge" | "button" | "compact";
 }
@@ -33,6 +35,8 @@ export function WhatsAppClientLinker({
   conversationId,
   currentClientId,
   companyId,
+  conversationPhone,
+  conversationContactName,
   onClientChange,
   variant = "button",
 }: WhatsAppClientLinkerProps) {
@@ -54,7 +58,7 @@ export function WhatsAppClientLinker({
     }
   }, [currentClientId, clients]);
 
-  const handleSelect = async (clientId: string | null) => {
+  const handleSelect = async (clientId: string | null, conversationPhone?: string, conversationContactName?: string) => {
     if (clientId === selectedClientId) {
       setOpen(false);
       return;
@@ -80,6 +84,11 @@ export function WhatsAppClientLinker({
       setSelectedClientName(clientName);
       onClientChange?.(clientId, clientName, clientLogoUrl);
 
+      // If linking to a client, also create a contact record if it doesn't exist
+      if (clientId && conversationPhone) {
+        await syncContactToClient(clientId, conversationPhone, conversationContactName || conversationPhone);
+      }
+
       if (clientId) {
         toast.success(`Contato vinculado a ${clientName}`);
       } else {
@@ -91,6 +100,41 @@ export function WhatsAppClientLinker({
     } finally {
       setIsUpdating(false);
       setOpen(false);
+    }
+  };
+
+  // Sync the WhatsApp contact to the client's contact list
+  const syncContactToClient = async (clientId: string, phone: string, contactName: string) => {
+    if (!companyId) return;
+
+    try {
+      // Check if contact already exists for this client with this phone
+      const { data: existingContacts } = await supabase
+        .from("whatsapp_client_contacts")
+        .select("id")
+        .eq("company_id", companyId)
+        .eq("client_id", clientId)
+        .eq("phone", phone)
+        .limit(1);
+
+      if (existingContacts && existingContacts.length > 0) {
+        // Contact already exists, no need to create
+        return;
+      }
+
+      // Create new contact
+      await supabase
+        .from("whatsapp_client_contacts")
+        .insert({
+          company_id: companyId,
+          client_id: clientId,
+          contact_name: contactName,
+          phone: phone,
+          is_active: true,
+        });
+    } catch (err) {
+      console.error("[WhatsAppClientLinker] Error syncing contact:", err);
+      // Don't show error to user, this is a background sync
     }
   };
 
@@ -115,7 +159,7 @@ export function WhatsAppClientLinker({
               clients={clients}
               isLoading={isLoadingClients}
               selectedClientId={selectedClientId}
-              onSelect={handleSelect}
+              onSelect={(clientId) => handleSelect(clientId, conversationPhone, conversationContactName)}
             />
           </PopoverContent>
         </Popover>
@@ -138,7 +182,7 @@ export function WhatsAppClientLinker({
             clients={clients}
             isLoading={isLoadingClients}
             selectedClientId={selectedClientId}
-            onSelect={handleSelect}
+            onSelect={(clientId) => handleSelect(clientId, conversationPhone, conversationContactName)}
           />
         </PopoverContent>
       </Popover>
@@ -175,7 +219,7 @@ export function WhatsAppClientLinker({
             clients={clients}
             isLoading={isLoadingClients}
             selectedClientId={selectedClientId}
-            onSelect={handleSelect}
+            onSelect={(clientId) => handleSelect(clientId, conversationPhone, conversationContactName)}
           />
         </PopoverContent>
       </Popover>
@@ -214,7 +258,7 @@ export function WhatsAppClientLinker({
           clients={clients}
           isLoading={isLoadingClients}
           selectedClientId={selectedClientId}
-          onSelect={handleSelect}
+          onSelect={(clientId) => handleSelect(clientId, conversationPhone, conversationContactName)}
         />
       </PopoverContent>
     </Popover>
