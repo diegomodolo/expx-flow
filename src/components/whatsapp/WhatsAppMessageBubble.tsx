@@ -228,6 +228,15 @@ export function WhatsAppMessageBubble({ message, instanceId, companyId, remoteJi
     }
   }, [isEditDialogOpen]);
 
+  // Keep local display content in sync with realtime DB updates (e.g., edited messages)
+  useEffect(() => {
+    setDisplayContent(message.content);
+    // Don't clobber user's draft while the edit dialog is open
+    if (!isEditDialogOpen && !isEditing) {
+      setEditText(message.content);
+    }
+  }, [message.content, isEditDialogOpen, isEditing]);
+
   const getMediaIcon = () => {
     switch (message.message_type) {
       case "image":
