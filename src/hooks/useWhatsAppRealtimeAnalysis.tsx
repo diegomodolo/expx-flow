@@ -29,6 +29,7 @@ interface StoredAnalysis {
   suggestion: string | null;
   insight: string | null;
   ready_message: string | null;
+  last_analyzed_message_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -66,8 +67,8 @@ export function useWhatsAppRealtimeAnalysis({
   const { config } = useWhatsAppAIAgentConfig(companyId, instanceId);
 
   // Load stored analysis from database
-  const loadStoredAnalysis = useCallback(async (convId: string) => {
-    if (!companyId || !convId) return null;
+  const loadStoredAnalysis = useCallback(async (convId: string): Promise<{ analysis: RealtimeAnalysis | null; lastMessageId: string | null }> => {
+    if (!companyId || !convId) return { analysis: null, lastMessageId: null };
 
     try {
       setIsLoadingStored(true);
@@ -81,7 +82,7 @@ export function useWhatsAppRealtimeAnalysis({
 
       if (error) {
         console.error("[useWhatsAppRealtimeAnalysis] Error loading stored analysis:", error);
-        return null;
+        return { analysis: null, lastMessageId: null };
       }
 
       if (data) {
@@ -103,7 +104,7 @@ export function useWhatsAppRealtimeAnalysis({
           // Keep default structure if parsing fails
         }
 
-        return {
+        const analysis: RealtimeAnalysis = {
           temperature: storedData.temperature as "positive" | "neutral" | "negative",
           interpretation: storedData.interpretation || "",
           suggestion: storedData.suggestion || "",
@@ -112,13 +113,18 @@ export function useWhatsAppRealtimeAnalysis({
           score: storedData.score || 5,
           readyMessage: storedData.ready_message || "",
           timestamp: storedData.updated_at,
-        } as RealtimeAnalysis;
+        };
+
+        return { 
+          analysis, 
+          lastMessageId: storedData.last_analyzed_message_id 
+        };
       }
 
-      return null;
+      return { analysis: null, lastMessageId: null };
     } catch (err) {
       console.error("[useWhatsAppRealtimeAnalysis] Failed to load stored analysis:", err);
-      return null;
+      return { analysis: null, lastMessageId: null };
     } finally {
       setIsLoadingStored(false);
     }
@@ -129,12 +135,13 @@ export function useWhatsAppRealtimeAnalysis({
     analysisData: RealtimeAnalysis, 
     convId: string,
     messageCount: number = 0,
-    lastMessageDirection: string = "inbound"
+    lastMessageDirection: string = "inbound",
+    lastMsgId: string | null = null
   ) => {
     if (!companyId || !convId) return;
 
     try {
-      console.log("[useWhatsAppRealtimeAnalysis] Saving analysis for conversation:", convId);
+      console.log("[useWhatsAppRealtimeAnalysis] Saving analysis for conversation:", convId, "with lastMsgId:", lastMsgId);
 
       const now = new Date().toISOString();
 
@@ -150,6 +157,7 @@ export function useWhatsAppRealtimeAnalysis({
         suggestion: analysisData.suggestion,
         insight: JSON.stringify(analysisData.departmentInsight),
         ready_message: analysisData.readyMessage || null,
+        last_analyzed_message_id: lastMsgId,
         updated_at: now,
       };
 
@@ -210,9 +218,14 @@ export function useWhatsAppRealtimeAnalysis({
     currentConversationId.current = conversationId;
 
     // Load stored analysis for new conversation
-    loadStoredAnalysis(conversationId).then((storedAnalysis) => {
-      if (storedAnalysis) {
-        setAnalysis(storedAnalysis);
+    loadStoredAnalysis(conversationId).then((result) => {
+      if (result.analysis) {
+        setAnalysis(result.analysis);
+        // Set the lastAnalyzedMessageId from the stored value to prevent re-analysis
+        if (result.lastMessageId) {
+          lastAnalyzedMessageId.current = result.lastMessageId;
+          console.log("[useWhatsAppRealtimeAnalysis] Restored lastAnalyzedMessageId:", result.lastMessageId);
+        }
       }
     });
   }, [conversationId, enabled, loadStoredAnalysis]);
@@ -282,12 +295,13 @@ export function useWhatsAppRealtimeAnalysis({
         setAnalysis(newAnalysis);
         lastAnalyzedMessageId.current = lastMessage.id;
 
-        // Save to database (both current and history)
+        // Save to database (both current and history) with the message ID
         await saveAnalysis(
           newAnalysis, 
           conversationId, 
           latestMessages.length,
-          lastMessage.direction
+          lastMessage.direction,
+          lastMessage.id
         );
       }
     } catch (err) {
