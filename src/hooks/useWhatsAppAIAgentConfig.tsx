@@ -124,20 +124,32 @@ export function useWhatsAppAIAgentConfig(companyId: string | undefined, instance
   }, [fetchConfig]);
 
   const saveConfig = async (configData: Partial<WhatsAppAIAgentConfig>) => {
-    if (!companyId) return false;
+    if (!companyId) {
+      console.error("[useWhatsAppAIAgentConfig] No companyId provided");
+      return false;
+    }
 
     try {
       setIsSaving(true);
+      console.log("[useWhatsAppAIAgentConfig] Saving config...", { companyId, instanceId, hasExistingConfig: !!config?.id });
 
       const dataToSave = {
         ...defaultConfig,
         ...configData,
         company_id: companyId,
         instance_id: instanceId || null,
+        updated_at: new Date().toISOString(),
       };
 
+      // Remove id from dataToSave if it exists (will be set by upsert)
+      delete (dataToSave as any).id;
+      delete (dataToSave as any).created_at;
+
+      let result;
+      
       if (config?.id) {
         // Update existing
+        console.log("[useWhatsAppAIAgentConfig] Updating existing config:", config.id);
         const { data, error } = await supabase
           .from("whatsapp_ai_agent_config")
           .update(dataToSave)
@@ -145,19 +157,29 @@ export function useWhatsAppAIAgentConfig(companyId: string | undefined, instance
           .select()
           .single();
 
-        if (error) throw error;
-        setConfig(data as WhatsAppAIAgentConfig);
+        if (error) {
+          console.error("[useWhatsAppAIAgentConfig] Update error:", error);
+          throw error;
+        }
+        result = data;
       } else {
         // Insert new
+        console.log("[useWhatsAppAIAgentConfig] Inserting new config");
         const { data, error } = await supabase
           .from("whatsapp_ai_agent_config")
           .insert(dataToSave)
           .select()
           .single();
 
-        if (error) throw error;
-        setConfig(data as WhatsAppAIAgentConfig);
+        if (error) {
+          console.error("[useWhatsAppAIAgentConfig] Insert error:", error);
+          throw error;
+        }
+        result = data;
       }
+
+      console.log("[useWhatsAppAIAgentConfig] Save successful:", result);
+      setConfig(result as WhatsAppAIAgentConfig);
 
       toast({
         title: "Configuração salva",
@@ -165,11 +187,11 @@ export function useWhatsAppAIAgentConfig(companyId: string | undefined, instance
       });
 
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error("[useWhatsAppAIAgentConfig] Failed to save config:", error);
       toast({
         title: "Erro ao salvar",
-        description: "Não foi possível salvar as configurações.",
+        description: error?.message || "Não foi possível salvar as configurações.",
         variant: "destructive",
       });
       return false;
