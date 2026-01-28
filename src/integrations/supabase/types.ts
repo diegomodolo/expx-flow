@@ -10531,6 +10531,7 @@ export type Database = {
           empathy_level: number | null
           enthusiasm_level: number | null
           escalation_message: string | null
+          force_realtime_analysis: boolean
           formality_level: number | null
           id: string
           instance_id: string | null
@@ -10557,6 +10558,7 @@ export type Database = {
           empathy_level?: number | null
           enthusiasm_level?: number | null
           escalation_message?: string | null
+          force_realtime_analysis?: boolean
           formality_level?: number | null
           id?: string
           instance_id?: string | null
@@ -10583,6 +10585,7 @@ export type Database = {
           empathy_level?: number | null
           enthusiasm_level?: number | null
           escalation_message?: string | null
+          force_realtime_analysis?: boolean
           formality_level?: number | null
           id?: string
           instance_id?: string | null

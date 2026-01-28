@@ -103,6 +103,7 @@ export function WhatsAppAIAgentConfigModal({ isOpen, onClose, companyId, instanc
                       blacklist_words: currentConfig.blacklist_words,
                       min_confidence_threshold: currentConfig.min_confidence_threshold,
                       escalation_message: currentConfig.escalation_message,
+                      force_realtime_analysis: currentConfig.force_realtime_analysis,
                     }}
                     onChange={handleChange}
                   />
