@@ -11,7 +11,8 @@ import { useSyncWhatsAppChats } from "@/hooks/useSyncWhatsAppChats";
 import { useWhatsAppPanelSizes } from "@/hooks/useWhatsAppPanelSizes";
 import { WhatsAppConversationList } from "./WhatsAppConversationList";
 import { WhatsAppChatWindow } from "./WhatsAppChatWindow";
-import { MessageSquare, Settings, AlertCircle, Phone, CheckCircle2, XCircle, RefreshCw, Archive, Star, Users, MessageCircle, BellOff } from "lucide-react";
+import { WhatsAppAIAgentConfigModal } from "./WhatsAppAIAgentConfigModal";
+import { MessageSquare, Settings, AlertCircle, Phone, CheckCircle2, XCircle, RefreshCw, Archive, Star, Users, MessageCircle, BellOff, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -30,6 +31,7 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
   const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<string>("all");
+  const [isAIConfigOpen, setIsAIConfigOpen] = useState(false);
   const hasTriggeredSync = useRef(false);
   
   // Panel sizes persistence
@@ -287,8 +289,25 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
                     isActive={activeFilter === "muted"}
                     onClick={() => setActiveFilter("muted")}
                   />
+                  
+                  <div className="h-px w-8 bg-border my-2" />
+                  
+                  <SidebarFilterButton
+                    icon={Sparkles}
+                    label="Configurar IA"
+                    isActive={isAIConfigOpen}
+                    onClick={() => setIsAIConfigOpen(true)}
+                  />
                 </div>
               </TooltipProvider>
+
+              {/* AI Config Modal */}
+              <WhatsAppAIAgentConfigModal
+                isOpen={isAIConfigOpen}
+                onClose={() => setIsAIConfigOpen(false)}
+                companyId={activeCompany?.company_id}
+                instanceId={selectedInstanceId}
+              />
 
               {/* Resizable panels for conversation list and chat */}
               <ResizablePanelGroup 
