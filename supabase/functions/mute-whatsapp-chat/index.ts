@@ -2,7 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 Deno.serve(async (req) => {
@@ -18,10 +18,11 @@ Deno.serve(async (req) => {
     );
 
     const { company_id, instance_id, phone, mute_end_time } = await req.json();
+    const muteEndTime = Number(mute_end_time);
 
-    console.log("[mute-whatsapp-chat] Request:", { company_id, instance_id, phone, mute_end_time });
+    console.log("[mute-whatsapp-chat] Request:", { company_id, instance_id, phone, mute_end_time: muteEndTime });
 
-    if (!company_id || !instance_id || !phone || mute_end_time === undefined) {
+    if (!company_id || !instance_id || !phone || Number.isNaN(muteEndTime)) {
       return new Response(
         JSON.stringify({ success: false, error: "Parâmetros obrigatórios ausentes" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -30,7 +31,7 @@ Deno.serve(async (req) => {
 
     // Validate mute_end_time value
     const validMuteValues = [0, 8, 168, -1];
-    if (!validMuteValues.includes(mute_end_time)) {
+    if (!validMuteValues.includes(muteEndTime)) {
       return new Response(
         JSON.stringify({ success: false, error: "Valor de silenciamento inválido. Use: 0, 8, 168 ou -1" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -77,14 +78,23 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Format phone number for API - needs @s.whatsapp.net or @g.us suffix
-    const cleanPhone = String(phone).replace(/\D/g, "");
-    const formattedNumber = cleanPhone.includes("-") 
-      ? `${cleanPhone}@g.us` 
-      : `${cleanPhone}@s.whatsapp.net`;
+    // Format chat identifier for API - must end with @s.whatsapp.net (users) or @g.us (groups)
+    const rawNumber = String(phone).trim();
+    const formattedNumber = (() => {
+      if (rawNumber.includes("@s.whatsapp.net") || rawNumber.includes("@g.us")) return rawNumber;
+
+      // Group ids usually contain a dash (e.g. 123456789-987654321)
+      if (rawNumber.includes("-")) {
+        const cleaned = rawNumber.replace(/[^\d-]/g, "");
+        return `${cleaned}@g.us`;
+      }
+
+      const digits = rawNumber.replace(/\D/g, "");
+      return `${digits}@s.whatsapp.net`;
+    })();
 
     const muteUrl = `${baseUrl}/chat/mute`;
-    console.log("[mute-whatsapp-chat] Calling API:", muteUrl, { number: formattedNumber, muteEndTime: mute_end_time });
+    console.log("[mute-whatsapp-chat] Calling API:", muteUrl, { number: formattedNumber, muteEndTime });
 
     const apiResponse = await fetch(muteUrl, {
       method: "POST",
@@ -94,7 +104,7 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         number: formattedNumber,
-        muteEndTime: mute_end_time,
+        muteEndTime,
       }),
     });
 
@@ -111,15 +121,15 @@ Deno.serve(async (req) => {
       );
     }
 
-    const muteLabel = mute_end_time === 0 ? "removido" : 
-                      mute_end_time === 8 ? "8 horas" :
-                      mute_end_time === 168 ? "1 semana" : "permanente";
+    const muteLabel = muteEndTime === 0 ? "removido" : 
+                      muteEndTime === 8 ? "8 horas" :
+                      muteEndTime === 168 ? "1 semana" : "permanente";
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: mute_end_time === 0 ? "Silenciamento removido" : `Chat silenciado por ${muteLabel}`,
-        mute_end_time 
+        message: muteEndTime === 0 ? "Silenciamento removido" : `Chat silenciado por ${muteLabel}`,
+        mute_end_time: muteEndTime,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
