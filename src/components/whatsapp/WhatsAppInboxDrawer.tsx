@@ -15,7 +15,7 @@ import { WhatsAppAIAgentConfigModal } from "./WhatsAppAIAgentConfigModal";
 import { WhatsAppQuickReplyManager } from "./WhatsAppQuickReplyManager";
 import { MessageSquare, Settings, AlertCircle, Phone, CheckCircle2, XCircle, RefreshCw, Archive, Star, Users, MessageCircle, BellOff, Sparkles, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -28,6 +28,7 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
   const { activeCompany } = useCompany();
   const { config, isLoading: isLoadingConfig } = useWhatsAppConfig(activeCompany?.company_id);
   const { instances, userInstances, isLoading: isLoadingInstances } = useWhatsAppInstances(activeCompany?.company_id);
+  const navigate = useNavigate();
   
   const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
@@ -138,31 +139,9 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-[90vw] w-[90vw] h-[90vh] max-h-[90vh] p-0 gap-0 flex flex-col">
         <DialogHeader className="px-4 py-3 border-b flex-shrink-0">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <MessageSquare className="h-5 w-5 text-primary" />
-              <DialogTitle>WhatsApp</DialogTitle>
-            </div>
-            <div className="flex items-center gap-1">
-              {selectedInstanceId && (
-                <>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={() => syncChats(selectedInstanceId)}
-                    disabled={isSyncing}
-                    title="Atualizar conversas"
-                  >
-                    <RefreshCw className={`h-4 w-4 ${isSyncing ? "animate-spin" : ""}`} />
-                  </Button>
-                </>
-              )}
-              <Button variant="ghost" size="icon" asChild>
-                <Link to="/configuracoes/whatsapp" onClick={onClose}>
-                  <Settings className="h-4 w-4" />
-                </Link>
-              </Button>
-            </div>
+          <div className="flex items-center gap-2">
+            <MessageSquare className="h-5 w-5 text-primary" />
+            <DialogTitle>WhatsApp</DialogTitle>
           </div>
         </DialogHeader>
 
@@ -307,6 +286,28 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
                     isActive={isAIConfigOpen}
                     onClick={() => setIsAIConfigOpen(true)}
                   />
+                  
+                  {selectedInstanceId && (
+                    <SidebarFilterButton
+                      icon={RefreshCw}
+                      label="Atualizar conversas"
+                      isActive={false}
+                      onClick={() => syncChats(selectedInstanceId)}
+                      isSyncing={isSyncing}
+                    />
+                  )}
+                  
+                  <div className="h-px w-8 bg-border my-2" />
+                  
+                  <SidebarFilterButton
+                    icon={Settings}
+                    label="Configurações"
+                    isActive={false}
+                    onClick={() => {
+                      onClose();
+                      navigate("/configuracoes/whatsapp");
+                    }}
+                  />
                 </div>
               </TooltipProvider>
 
@@ -384,22 +385,25 @@ interface SidebarFilterButtonProps {
   isActive: boolean;
   onClick: () => void;
   count?: number;
+  isSyncing?: boolean;
 }
 
-function SidebarFilterButton({ icon: Icon, label, isActive, onClick, count }: SidebarFilterButtonProps) {
+function SidebarFilterButton({ icon: Icon, label, isActive, onClick, count, isSyncing }: SidebarFilterButtonProps) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
         <button
           onClick={onClick}
+          disabled={isSyncing}
           className={cn(
             "relative w-10 h-10 rounded-full flex items-center justify-center transition-colors",
             isActive 
               ? "bg-primary text-primary-foreground" 
-              : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              : "text-muted-foreground hover:bg-muted hover:text-foreground",
+            isSyncing && "opacity-70 cursor-not-allowed"
           )}
         >
-          <Icon className="h-5 w-5" />
+          <Icon className={cn("h-5 w-5", isSyncing && "animate-spin")} />
           {count !== undefined && count > 0 && (
             <span className={cn(
               "absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] rounded-full text-[10px] font-medium flex items-center justify-center px-1",
