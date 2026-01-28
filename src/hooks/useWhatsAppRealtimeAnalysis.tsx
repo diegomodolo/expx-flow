@@ -110,6 +110,7 @@ export function useWhatsAppRealtimeAnalysis({
           departmentInsight,
           alerts: storedData.alerts || [],
           score: storedData.score || 5,
+          readyMessage: storedData.ready_message || "",
           timestamp: storedData.updated_at,
         } as RealtimeAnalysis;
       }
@@ -140,6 +141,7 @@ export function useWhatsAppRealtimeAnalysis({
         interpretation: analysisData.interpretation,
         suggestion: analysisData.suggestion,
         insight: JSON.stringify(analysisData.departmentInsight),
+        ready_message: analysisData.readyMessage || null,
         updated_at: new Date().toISOString(),
       };
 

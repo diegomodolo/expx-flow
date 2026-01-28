@@ -372,6 +372,7 @@ Siga as instruções do atendente para ajustar a resposta.`;
             isAnalyzing={isAnalyzing}
             error={analysisError}
             onRefresh={triggerAnalysis}
+            onSendReadyMessage={(message) => onUseResponse(message)}
           />
         )}
       </div>
