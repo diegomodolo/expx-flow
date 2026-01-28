@@ -117,13 +117,13 @@ serve(async (req) => {
     }
 
     // Call UazapiGO delete message endpoint
-    // POST /message/delete
+    // POST /message/delete - only requires 'id' field
+    // See: https://docs.uazapi.com/endpoint/post/message~delete
     const deleteUrl = `${baseUrl}/message/delete`;
     
+    // UazapiGO only requires the message ID
     const deletePayload = {
       id: message_id,
-      remoteJid: remote_jid,
-      fromMe: from_me,
     };
 
     console.log("[delete-whatsapp-message] Calling API:", deleteUrl);
