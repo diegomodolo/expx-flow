@@ -78,6 +78,13 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
   const [linkedClientId, setLinkedClientId] = useState<string | null>(conversation.client_id || null);
   const [linkedClientName, setLinkedClientName] = useState<string | null>(conversation.client_name || null);
   const [linkedClientLogo, setLinkedClientLogo] = useState<string | null>(conversation.client_logo_url || null);
+
+  // Update linked client state when conversation changes
+  useEffect(() => {
+    setLinkedClientId(conversation.client_id || null);
+    setLinkedClientName(conversation.client_name || null);
+    setLinkedClientLogo(conversation.client_logo_url || null);
+  }, [conversation.id, conversation.client_id, conversation.client_name, conversation.client_logo_url]);
   
   // AI Assistant state
   const [aiAssistantOpen, setAiAssistantOpen] = useState(false);
