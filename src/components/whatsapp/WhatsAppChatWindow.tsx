@@ -16,7 +16,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
-import { Phone, RefreshCw, Trash2, MoreVertical, Loader2, CheckCheck, Sparkles, Archive, ArchiveRestore } from "lucide-react";
+import { Phone, RefreshCw, Trash2, MoreVertical, Loader2, CheckCheck, Sparkles, Archive, ArchiveRestore, Circle, CircleDot } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -63,6 +63,7 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
   const [chatLabelIds, setChatLabelIds] = useState<string[]>(conversation.label_ids || []);
   const [showProfilePic, setShowProfilePic] = useState(false);
   const [isMarkingRead, setIsMarkingRead] = useState(false);
+  const [isTogglingRead, setIsTogglingRead] = useState(false);
   
   // AI Assistant state
   const [aiAssistantOpen, setAiAssistantOpen] = useState(false);
@@ -196,6 +197,41 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
       toast.error(err.message || "Erro ao arquivar chat");
     } finally {
       setIsArchiving(false);
+    }
+  };
+
+  const handleToggleChatRead = async () => {
+    if (!companyId || !instanceId) {
+      toast.error("Não foi possível alterar status de leitura");
+      return;
+    }
+
+    setIsTogglingRead(true);
+    const newReadState = conversation.unread_count > 0; // If has unread, mark as read; otherwise mark as unread
+
+    try {
+      const { data, error } = await supabase.functions.invoke("toggle-whatsapp-chat-read", {
+        body: {
+          company_id: companyId,
+          instance_id: instanceId,
+          conversation_id: conversation.id,
+          phone: conversation.phone,
+          read: newReadState,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        toast.success(newReadState ? "Chat marcado como lido" : "Chat marcado como não lido");
+      } else {
+        throw new Error(data?.error || "Erro ao alterar status");
+      }
+    } catch (err: any) {
+      console.error("[WhatsAppChatWindow] Toggle read error:", err);
+      toast.error(err.message || "Erro ao alterar status de leitura");
+    } finally {
+      setIsTogglingRead(false);
     }
   };
 
@@ -339,6 +375,19 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
                 <CheckCheck className="h-4 w-4 mr-2" />
               )}
               Marcar tudo como lido
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={handleToggleChatRead}
+              disabled={isTogglingRead}
+            >
+              {isTogglingRead ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : conversation.unread_count > 0 ? (
+                <Circle className="h-4 w-4 mr-2" />
+              ) : (
+                <CircleDot className="h-4 w-4 mr-2" />
+              )}
+              {conversation.unread_count > 0 ? "Marcar como lido" : "Marcar como não lido"}
             </DropdownMenuItem>
             <DropdownMenuItem 
               onClick={handleArchiveChat}
