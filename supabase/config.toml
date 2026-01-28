@@ -434,4 +434,4 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.archive-whatsapp-chat]
-verify_jwt = true
+verify_jwt = false
