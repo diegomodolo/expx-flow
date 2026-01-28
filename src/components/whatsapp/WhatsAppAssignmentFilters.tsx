@@ -76,13 +76,13 @@ function FilterButton({ icon: Icon, label, isActive, onClick, count }: FilterBut
         <button
           onClick={onClick}
           className={cn(
-            "flex items-center justify-center gap-0.5 p-1 rounded text-[9px] font-medium transition-colors min-w-[24px]",
+            "flex items-center justify-center gap-1 p-1.5 rounded text-[9px] font-medium transition-colors min-w-[28px]",
             isActive
               ? "bg-primary text-primary-foreground"
               : "text-muted-foreground hover:text-foreground hover:bg-muted"
           )}
         >
-          <Icon className="h-3 w-3 shrink-0" />
+          <Icon className="h-4 w-4 shrink-0" />
           {count !== undefined && count > 0 && (
             <span className={cn(
               "text-[8px] font-bold",
