@@ -8,6 +8,7 @@ import { WhatsAppLabelPicker } from "./WhatsAppLabelPicker";
 import { WhatsAppLabelList } from "./WhatsAppLabelBadge";
 import { WhatsAppAIAssistant } from "./WhatsAppAIAssistant";
 import { WhatsAppAISendDialog } from "./WhatsAppAISendDialog";
+import { WhatsAppClientLinker } from "./WhatsAppClientLinker";
 import { useWhatsAppLabels } from "@/hooks/useWhatsAppLabels";
 import { useWhatsAppQuickReplies } from "@/hooks/useWhatsAppQuickReplies";
 import { useWhatsAppPanelSizes } from "@/hooks/useWhatsAppPanelSizes";
@@ -70,6 +71,7 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
   const [isMuting, setIsMuting] = useState(false);
   const [isPinning, setIsPinning] = useState(false);
   const [isBlocking, setIsBlocking] = useState(false);
+  const [linkedClientName, setLinkedClientName] = useState<string | null>(conversation.client_name || null);
   
   // AI Assistant state
   const [aiAssistantOpen, setAiAssistantOpen] = useState(false);
@@ -423,6 +425,14 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
             )}
           </p>
         </div>
+        
+        {/* Client linker */}
+        <WhatsAppClientLinker
+          conversationId={conversation.id}
+          currentClientId={conversation.client_id}
+          companyId={companyId}
+          onClientChange={(clientId, clientName) => setLinkedClientName(clientName)}
+        />
         
         {/* Label picker */}
         <WhatsAppLabelPicker
