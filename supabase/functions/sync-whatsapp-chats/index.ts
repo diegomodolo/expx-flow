@@ -320,11 +320,12 @@ serve(async (req) => {
                               chat.contact?.imgUrl ||
                               null;
 
-        // Verificar se a conversa já existe para preservar o unread_count local
+        // Verificar se a conversa já existe para preservar dados locais
         // Isso evita sobrescrever mensagens que o usuário já marcou como lidas localmente
+        // e também preserva o preview de mensagens enviadas localmente (ex: áudios)
         const { data: existingConversation } = await supabase
           .from("whatsapp_conversations")
-          .select("id, unread_count")
+          .select("id, unread_count, last_message_preview, last_message_at")
           .eq("company_id", company_id)
           .eq("instance_id", instance_id)
           .eq("phone", phone)
@@ -335,6 +336,12 @@ serve(async (req) => {
         // - Se a conversa EXISTE e unread_count local é 0 (já lido): manter 0
         // - Se a conversa EXISTE e a API reporta mais não lidas: usar valor da API
         let finalUnreadCount = apiUnreadCount;
+        // Lógica para decidir o last_message_preview final:
+        // - Se a API traz um preview válido: usar ele
+        // - Se a API não traz preview mas temos um local: preservar o local
+        let finalLastMessagePreview = lastMessagePreview ? lastMessagePreview.substring(0, 255) : null;
+        let finalLastMessageAt = lastMessageAt || "2000-01-01T00:00:00.000Z";
+        
         if (existingConversation) {
           const localUnreadCount = existingConversation.unread_count || 0;
           // Se usuário marcou como lido (local = 0), não sobrescrever
@@ -352,6 +359,26 @@ serve(async (req) => {
             // Manter valor local
             finalUnreadCount = localUnreadCount;
           }
+          
+          // Preservar preview local se a API não retornar um
+          // Isso é importante para áudios/mídias enviados localmente que a API não reporta
+          if (!lastMessagePreview && existingConversation.last_message_preview) {
+            finalLastMessagePreview = existingConversation.last_message_preview;
+          }
+          
+          // Preservar timestamp local se for mais recente que o da API
+          // (mensagens enviadas localmente podem ter timestamp mais recente)
+          if (existingConversation.last_message_at) {
+            const localTimestamp = new Date(existingConversation.last_message_at).getTime();
+            const apiTimestamp = lastMessageAt ? new Date(lastMessageAt).getTime() : 0;
+            if (localTimestamp > apiTimestamp) {
+              finalLastMessageAt = existingConversation.last_message_at;
+              // Se o timestamp local é mais recente, também preservar o preview local
+              if (existingConversation.last_message_preview) {
+                finalLastMessagePreview = existingConversation.last_message_preview;
+              }
+            }
+          }
         }
 
         // Upsert na tabela de conversas
@@ -364,9 +391,8 @@ serve(async (req) => {
               phone,
               contact_name: contactName,
               profile_pic_url: profilePicUrl || null,
-              last_message_preview: lastMessagePreview ? lastMessagePreview.substring(0, 255) : null,
-              // Se não houver timestamp, usar data antiga (2000-01-01) para que fiquem no final da lista
-              last_message_at: lastMessageAt || "2000-01-01T00:00:00.000Z",
+              last_message_preview: finalLastMessagePreview,
+              last_message_at: finalLastMessageAt,
               unread_count: finalUnreadCount,
               is_archived: chat.wa_archived || false,
             },
