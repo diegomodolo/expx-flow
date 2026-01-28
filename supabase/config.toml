@@ -438,3 +438,6 @@ verify_jwt = false
 
 [functions.toggle-whatsapp-chat-read]
 verify_jwt = true
+
+[functions.mute-whatsapp-chat]
+verify_jwt = true
