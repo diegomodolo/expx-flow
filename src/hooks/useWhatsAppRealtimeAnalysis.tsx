@@ -16,6 +16,21 @@ export interface RealtimeAnalysis {
   timestamp: string;
 }
 
+interface StoredAnalysis {
+  id: string;
+  conversation_id: string;
+  company_id: string;
+  temperature: string;
+  sentiment_score: number;
+  score: number;
+  alerts: string[];
+  interpretation: string | null;
+  suggestion: string | null;
+  insight: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 interface UseWhatsAppRealtimeAnalysisProps {
   conversationId: string;
   companyId: string | undefined;
@@ -41,13 +56,131 @@ export function useWhatsAppRealtimeAnalysis({
 }: UseWhatsAppRealtimeAnalysisProps) {
   const [analysis, setAnalysis] = useState<RealtimeAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isLoadingStored, setIsLoadingStored] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const lastAnalyzedMessageId = useRef<string | null>(null);
+  const currentConversationId = useRef<string | null>(null);
   
   const { config } = useWhatsAppAIAgentConfig(companyId, instanceId);
 
+  // Load stored analysis from database
+  const loadStoredAnalysis = useCallback(async (convId: string) => {
+    if (!companyId || !convId) return null;
+
+    try {
+      setIsLoadingStored(true);
+      console.log("[useWhatsAppRealtimeAnalysis] Loading stored analysis for conversation:", convId);
+
+      const { data, error } = await supabase
+        .from("whatsapp_realtime_analysis")
+        .select("*")
+        .eq("conversation_id", convId)
+        .maybeSingle();
+
+      if (error) {
+        console.error("[useWhatsAppRealtimeAnalysis] Error loading stored analysis:", error);
+        return null;
+      }
+
+      if (data) {
+        console.log("[useWhatsAppRealtimeAnalysis] Found stored analysis:", data);
+        const storedData = data as StoredAnalysis;
+        
+        // Parse stored insight JSON if exists
+        let departmentInsight = {
+          type: "general",
+          insight: storedData.insight || "",
+          actionItems: [],
+        };
+        
+        try {
+          if (storedData.insight && storedData.insight.startsWith("{")) {
+            departmentInsight = JSON.parse(storedData.insight);
+          }
+        } catch (e) {
+          // Keep default structure if parsing fails
+        }
+
+        return {
+          temperature: storedData.temperature as "positive" | "neutral" | "negative",
+          interpretation: storedData.interpretation || "",
+          suggestion: storedData.suggestion || "",
+          departmentInsight,
+          alerts: storedData.alerts || [],
+          score: storedData.score || 5,
+          timestamp: storedData.updated_at,
+        } as RealtimeAnalysis;
+      }
+
+      return null;
+    } catch (err) {
+      console.error("[useWhatsAppRealtimeAnalysis] Failed to load stored analysis:", err);
+      return null;
+    } finally {
+      setIsLoadingStored(false);
+    }
+  }, [companyId]);
+
+  // Save analysis to database
+  const saveAnalysis = useCallback(async (analysisData: RealtimeAnalysis, convId: string) => {
+    if (!companyId || !convId) return;
+
+    try {
+      console.log("[useWhatsAppRealtimeAnalysis] Saving analysis for conversation:", convId);
+
+      const dataToSave = {
+        conversation_id: convId,
+        company_id: companyId,
+        temperature: analysisData.temperature,
+        sentiment_score: 0, // Could be calculated from temperature
+        score: analysisData.score,
+        alerts: analysisData.alerts,
+        interpretation: analysisData.interpretation,
+        suggestion: analysisData.suggestion,
+        insight: JSON.stringify(analysisData.departmentInsight),
+        updated_at: new Date().toISOString(),
+      };
+
+      // Use upsert to insert or update
+      const { error } = await supabase
+        .from("whatsapp_realtime_analysis")
+        .upsert(dataToSave, {
+          onConflict: "conversation_id",
+        });
+
+      if (error) {
+        console.error("[useWhatsAppRealtimeAnalysis] Error saving analysis:", error);
+      } else {
+        console.log("[useWhatsAppRealtimeAnalysis] Analysis saved successfully");
+      }
+    } catch (err) {
+      console.error("[useWhatsAppRealtimeAnalysis] Failed to save analysis:", err);
+    }
+  }, [companyId]);
+
+  // Load stored analysis when conversation changes
+  useEffect(() => {
+    if (!enabled || !conversationId || conversationId === currentConversationId.current) {
+      return;
+    }
+
+    console.log("[useWhatsAppRealtimeAnalysis] Conversation changed from", currentConversationId.current, "to", conversationId);
+    
+    // Clear current analysis immediately when switching
+    setAnalysis(null);
+    lastAnalyzedMessageId.current = null;
+    currentConversationId.current = conversationId;
+
+    // Load stored analysis for new conversation
+    loadStoredAnalysis(conversationId).then((storedAnalysis) => {
+      if (storedAnalysis) {
+        setAnalysis(storedAnalysis);
+      }
+    });
+  }, [conversationId, enabled, loadStoredAnalysis]);
+
   const analyzeConversation = useCallback(async (latestMessages: typeof messages) => {
-    if (!companyId || latestMessages.length === 0) return;
+    if (!companyId || latestMessages.length === 0 || !conversationId) return;
 
     const lastMessage = latestMessages[latestMessages.length - 1];
     
@@ -103,11 +236,16 @@ export function useWhatsAppRealtimeAnalysis({
       const analysisResult = response.data?.analysis;
       
       if (analysisResult) {
-        setAnalysis({
+        const newAnalysis: RealtimeAnalysis = {
           ...analysisResult,
           timestamp: new Date().toISOString(),
-        });
+        };
+        
+        setAnalysis(newAnalysis);
         lastAnalyzedMessageId.current = lastMessage.id;
+
+        // Save to database
+        await saveAnalysis(newAnalysis, conversationId);
       }
     } catch (err) {
       console.error("[useWhatsAppRealtimeAnalysis] Error:", err);
@@ -115,11 +253,11 @@ export function useWhatsAppRealtimeAnalysis({
     } finally {
       setIsAnalyzing(false);
     }
-  }, [companyId, config]);
+  }, [companyId, conversationId, config, saveAnalysis]);
 
   // Trigger analysis when messages change and analysis is enabled
   useEffect(() => {
-    if (!enabled || messages.length === 0) return;
+    if (!enabled || messages.length === 0 || conversationId !== currentConversationId.current) return;
 
     const lastMessage = messages[messages.length - 1];
     
@@ -132,15 +270,15 @@ export function useWhatsAppRealtimeAnalysis({
 
       return () => clearTimeout(timeoutId);
     }
-  }, [enabled, messages, analyzeConversation]);
+  }, [enabled, messages, analyzeConversation, conversationId]);
 
-  // Reset when disabled or conversation changes
+  // Reset when disabled
   useEffect(() => {
     if (!enabled) {
       setAnalysis(null);
       lastAnalyzedMessageId.current = null;
     }
-  }, [enabled, conversationId]);
+  }, [enabled]);
 
   const triggerAnalysis = useCallback(() => {
     if (messages.length > 0) {
@@ -151,7 +289,7 @@ export function useWhatsAppRealtimeAnalysis({
 
   return {
     analysis,
-    isAnalyzing,
+    isAnalyzing: isAnalyzing || isLoadingStored,
     error,
     triggerAnalysis,
   };

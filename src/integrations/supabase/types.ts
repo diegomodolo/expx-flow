@@ -11433,6 +11433,59 @@ export type Database = {
           },
         ]
       }
+      whatsapp_realtime_analysis: {
+        Row: {
+          alerts: string[] | null
+          company_id: string
+          conversation_id: string
+          created_at: string
+          id: string
+          insight: string | null
+          interpretation: string | null
+          score: number | null
+          sentiment_score: number | null
+          suggestion: string | null
+          temperature: string
+          updated_at: string
+        }
+        Insert: {
+          alerts?: string[] | null
+          company_id: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          insight?: string | null
+          interpretation?: string | null
+          score?: number | null
+          sentiment_score?: number | null
+          suggestion?: string | null
+          temperature?: string
+          updated_at?: string
+        }
+        Update: {
+          alerts?: string[] | null
+          company_id?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          insight?: string | null
+          interpretation?: string | null
+          score?: number | null
+          sentiment_score?: number | null
+          suggestion?: string | null
+          temperature?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_realtime_analysis_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: true
+            referencedRelation: "whatsapp_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       whatsapp_recipients: {
         Row: {
           client_id: string | null
