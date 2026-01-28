@@ -1,10 +1,11 @@
 import { WhatsAppMessage } from "@/hooks/useWhatsAppMessages";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { Check, CheckCheck, Clock, AlertCircle, Download, FileText, Image, Video, Headphones, Loader2, Trash2 } from "lucide-react";
+import { Check, CheckCheck, Clock, AlertCircle, Download, FileText, Image, Video, Headphones, Loader2, Trash2, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
 import { WhatsAppAudioPlayer } from "./WhatsAppAudioPlayer";
 import { WhatsAppImageViewer } from "./WhatsAppImageViewer";
@@ -20,22 +21,37 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface WhatsAppMessageBubbleProps {
   message: WhatsAppMessage;
   instanceId?: string | null;
   companyId?: string;
   remoteJid?: string; // phone@s.whatsapp.net format
+  onMessageEdited?: (messageId: string, newContent: string) => void;
 }
 
-export function WhatsAppMessageBubble({ message, instanceId, companyId, remoteJid }: WhatsAppMessageBubbleProps) {
+export function WhatsAppMessageBubble({ message, instanceId, companyId, remoteJid, onMessageEdited }: WhatsAppMessageBubbleProps) {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editText, setEditText] = useState(message.content);
+  const [displayContent, setDisplayContent] = useState(message.content);
   const [isDeleted, setIsDeleted] = useState(message.status === "deleted");
+  const editInputRef = useRef<HTMLInputElement>(null);
   const isOutgoing = message.direction === "outgoing";
   const isFailed = message.status === "failed";
   const hasMedia = !!message.media_url;
   const isMediaType = ["image", "video", "audio", "document"].includes(message.message_type);
+  const isTextMessage = message.message_type === "text";
   
   const extractFileName = (): string => {
     // Try to extract filename from content (e.g., "📎 fatura_rene_tanana.pdf")
@@ -162,6 +178,55 @@ export function WhatsAppMessageBubble({ message, instanceId, companyId, remoteJi
     }
   };
 
+  const handleEditMessage = async () => {
+    if (!companyId || !instanceId || !message.external_id) {
+      toast.error("Não é possível editar esta mensagem");
+      return;
+    }
+
+    if (!editText.trim() || editText.trim() === message.content) {
+      setIsEditDialogOpen(false);
+      return;
+    }
+
+    setIsEditing(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("edit-whatsapp-message", {
+        body: {
+          company_id: companyId,
+          instance_id: instanceId,
+          message_id: message.external_id,
+          new_text: editText.trim(),
+          supabase_message_id: message.id,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        setDisplayContent(editText.trim());
+        setIsEditDialogOpen(false);
+        onMessageEdited?.(message.id, editText.trim());
+        toast.success("Mensagem editada");
+      } else {
+        throw new Error(data?.error || "Erro ao editar mensagem");
+      }
+    } catch (err: any) {
+      console.error("[WhatsAppMessageBubble] Edit error:", err);
+      toast.error(err.message || "Erro ao editar mensagem");
+    } finally {
+      setIsEditing(false);
+    }
+  };
+
+  // Focus input when dialog opens
+  useEffect(() => {
+    if (isEditDialogOpen && editInputRef.current) {
+      setTimeout(() => editInputRef.current?.focus(), 100);
+    }
+  }, [isEditDialogOpen]);
+
   const getMediaIcon = () => {
     switch (message.message_type) {
       case "image":
@@ -213,8 +278,11 @@ export function WhatsAppMessageBubble({ message, instanceId, companyId, remoteJi
   const canDeleteFromProvider = !!message.external_id && !!instanceId && !!companyId;
   // Always allow showing delete button for outgoing messages (will delete locally if no external_id)
   const canShowDeleteButton = isOutgoing && !!companyId;
+  // Edit is only available for text messages with external_id
+  const canEditMessage = isOutgoing && isTextMessage && !!message.external_id && !!instanceId && !!companyId;
   
   return (
+    <>
     <div className={cn("flex group", isOutgoing ? "justify-end" : "justify-start")}>
       {/* Action buttons for outgoing messages - show on left */}
       {canShowDeleteButton && (
@@ -256,6 +324,26 @@ export function WhatsAppMessageBubble({ message, instanceId, companyId, remoteJi
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+
+          {/* Edit button - only for text messages with external_id */}
+          {canEditMessage && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted"
+              onClick={() => {
+                setEditText(displayContent);
+                setIsEditDialogOpen(true);
+              }}
+              disabled={isEditing}
+            >
+              {isEditing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Pencil className="h-4 w-4" />
+              )}
+            </Button>
+          )}
 
           {/* Reaction picker - only if has external_id */}
           {message.external_id && instanceId && (
@@ -333,7 +421,7 @@ export function WhatsAppMessageBubble({ message, instanceId, companyId, remoteJi
 
           {/* Text content - hide if it's just a placeholder for media with download button */}
           {!(isMediaType && hasMedia && (message.content.startsWith("📎") || message.content.startsWith("["))) && (
-            <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+            <p className="text-sm whitespace-pre-wrap break-words">{displayContent}</p>
           )}
 
           {/* Media without URL - show content as is */}
@@ -394,6 +482,48 @@ export function WhatsAppMessageBubble({ message, instanceId, companyId, remoteJi
         </div>
       )}
     </div>
+      
+      {/* Edit message dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar mensagem</DialogTitle>
+            <DialogDescription>
+              Edite o texto da mensagem. A alteração será visível para todos os participantes.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Input
+              ref={editInputRef}
+              value={editText}
+              onChange={(e) => setEditText(e.target.value)}
+              placeholder="Digite a nova mensagem..."
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleEditMessage();
+                }
+              }}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleEditMessage} disabled={isEditing || !editText.trim()}>
+              {isEditing ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                "Salvar"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
