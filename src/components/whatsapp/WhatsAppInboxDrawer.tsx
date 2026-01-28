@@ -412,6 +412,7 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
                       instanceId={selectedInstanceId}
                       onChatDeleted={handleChatDeleted}
                       onChatArchived={handleChatArchived}
+                      onNavigateAway={onClose}
                     />
                   ) : (
                     <div className="flex flex-col items-center justify-center h-full gap-4 text-muted-foreground">
