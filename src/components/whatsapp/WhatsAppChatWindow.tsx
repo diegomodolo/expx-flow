@@ -12,9 +12,11 @@ import { useWhatsAppQuickReplies } from "@/hooks/useWhatsAppQuickReplies";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Phone, RefreshCw, Trash2, MoreVertical, Loader2, Zap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -53,6 +55,7 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
   const [deleteFromWhatsApp, setDeleteFromWhatsApp] = useState(true);
   const [deleteLocal, setDeleteLocal] = useState(true);
   const [chatLabelIds, setChatLabelIds] = useState<string[]>(conversation.label_ids || []);
+  const [showProfilePic, setShowProfilePic] = useState(false);
   const [quickReplyManagerOpen, setQuickReplyManagerOpen] = useState(false);
   
   const { labels } = useWhatsAppLabels(companyId, instanceId ?? null);
@@ -118,7 +121,13 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b bg-muted/30">
-        <Avatar className="h-10 w-10">
+        <Avatar 
+          className={cn(
+            "h-10 w-10",
+            conversation.profile_pic_url && "cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
+          )}
+          onClick={() => conversation.profile_pic_url && setShowProfilePic(true)}
+        >
           {conversation.profile_pic_url && (
             <AvatarImage 
               src={conversation.profile_pic_url} 
@@ -254,6 +263,24 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Profile picture modal */}
+      <Dialog open={showProfilePic} onOpenChange={setShowProfilePic}>
+        <DialogContent className="max-w-md p-0 overflow-hidden bg-transparent border-none">
+          <div className="flex flex-col items-center gap-4 p-4">
+            {conversation.profile_pic_url && (
+              <img
+                src={conversation.profile_pic_url}
+                alt={displayName}
+                className="w-72 h-72 rounded-full object-cover shadow-2xl"
+              />
+            )}
+            <span className="text-lg font-semibold text-white drop-shadow-lg">
+              {displayName}
+            </span>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Quick reply manager dialog */}
       <WhatsAppQuickReplyManager 
