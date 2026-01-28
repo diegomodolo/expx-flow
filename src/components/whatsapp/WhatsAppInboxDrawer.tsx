@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { useCompany } from "@/contexts/CompanyContext";
 import { useWhatsAppConfig } from "@/hooks/useWhatsAppConfig";
 import { useWhatsAppConversations } from "@/hooks/useWhatsAppConversations";
@@ -285,32 +286,42 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
                 </div>
               </TooltipProvider>
 
-              {/* Conversation List */}
-              <div className="w-80 min-w-80 border-r overflow-hidden flex flex-col">
-                <WhatsAppConversationList
-                  conversations={filteredConversations}
-                  isLoading={isLoadingConversations}
-                  selectedId={selectedConversationId}
-                  onSelect={handleSelectConversation}
-                />
-              </div>
-
-              {/* Chat Window */}
-              <div className="flex-1 overflow-hidden">
-                {selectedConversation ? (
-                  <WhatsAppChatWindow
-                    conversation={selectedConversation}
-                    companyId={activeCompany?.company_id}
-                    instanceId={selectedInstanceId}
-                    onChatDeleted={handleChatDeleted}
+              {/* Resizable panels for conversation list and chat */}
+              <ResizablePanelGroup direction="horizontal" className="flex-1">
+                {/* Conversation List Panel */}
+                <ResizablePanel 
+                  defaultSize={25} 
+                  minSize={15} 
+                  maxSize={40}
+                  className="border-r"
+                >
+                  <WhatsAppConversationList
+                    conversations={filteredConversations}
+                    isLoading={isLoadingConversations}
+                    selectedId={selectedConversationId}
+                    onSelect={handleSelectConversation}
                   />
-                ) : (
-                  <div className="flex flex-col items-center justify-center h-full gap-4 text-muted-foreground">
-                    <MessageSquare className="h-16 w-16 opacity-20" />
-                    <p className="text-sm">Selecione uma conversa para ver as mensagens</p>
-                  </div>
-                )}
-              </div>
+                </ResizablePanel>
+
+                <ResizableHandle withHandle />
+
+                {/* Chat Window Panel */}
+                <ResizablePanel defaultSize={75} minSize={40}>
+                  {selectedConversation ? (
+                    <WhatsAppChatWindow
+                      conversation={selectedConversation}
+                      companyId={activeCompany?.company_id}
+                      instanceId={selectedInstanceId}
+                      onChatDeleted={handleChatDeleted}
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-full gap-4 text-muted-foreground">
+                      <MessageSquare className="h-16 w-16 opacity-20" />
+                      <p className="text-sm">Selecione uma conversa para ver as mensagens</p>
+                    </div>
+                  )}
+                </ResizablePanel>
+              </ResizablePanelGroup>
             </div>
           </div>
         )}

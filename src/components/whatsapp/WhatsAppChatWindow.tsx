@@ -15,6 +15,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { Phone, RefreshCw, Trash2, MoreVertical, Loader2, Zap, CheckCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -186,9 +187,10 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
   };
 
   return (
-    <div className="flex h-full">
+    <ResizablePanelGroup direction="horizontal" className="h-full">
       {/* Main chat area */}
-      <div className="flex flex-col flex-1 h-full min-w-0">
+      <ResizablePanel defaultSize={aiAssistantOpen ? 65 : 100} minSize={50}>
+        <div className="flex flex-col h-full min-w-0">
       <div className="flex items-center gap-3 px-4 py-3 border-b bg-muted/30">
         <Avatar 
           className={cn(
@@ -416,15 +418,23 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
         quickRepliesLoading={quickRepliesLoading}
       />
       </div>
+      </ResizablePanel>
 
-      {/* AI Assistant Panel */}
-      <WhatsAppAIAssistant
-        isOpen={aiAssistantOpen}
-        onClose={() => setAiAssistantOpen(false)}
-        customerMessage={aiSelectedMessage}
-        contactName={displayName}
-        onUseResponse={handleUseAIResponse}
-      />
+      {/* AI Assistant Panel - only show when open */}
+      {aiAssistantOpen && (
+        <>
+          <ResizableHandle withHandle />
+          <ResizablePanel defaultSize={35} minSize={20} maxSize={50}>
+            <WhatsAppAIAssistant
+              isOpen={aiAssistantOpen}
+              onClose={() => setAiAssistantOpen(false)}
+              customerMessage={aiSelectedMessage}
+              contactName={displayName}
+              onUseResponse={handleUseAIResponse}
+            />
+          </ResizablePanel>
+        </>
+      )}
 
       {/* AI Send Dialog */}
       <WhatsAppAISendDialog
@@ -434,7 +444,7 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
         onSend={handleSendAIResponse}
         isSending={isSendingAiResponse}
       />
-    </div>
+    </ResizablePanelGroup>
   );
 }
 
