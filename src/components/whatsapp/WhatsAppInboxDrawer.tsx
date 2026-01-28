@@ -13,7 +13,8 @@ import { WhatsAppConversationList } from "./WhatsAppConversationList";
 import { WhatsAppChatWindow } from "./WhatsAppChatWindow";
 import { WhatsAppAIAgentConfigModal } from "./WhatsAppAIAgentConfigModal";
 import { WhatsAppQuickReplyManager } from "./WhatsAppQuickReplyManager";
-import { MessageSquare, Settings, AlertCircle, Phone, CheckCircle2, XCircle, RefreshCw, Archive, Star, Users, MessageCircle, BellOff, Sparkles, Zap } from "lucide-react";
+import { WhatsAppBlockedContactsModal } from "./WhatsAppBlockedContactsModal";
+import { MessageSquare, Settings, AlertCircle, Phone, CheckCircle2, XCircle, RefreshCw, Archive, Star, Users, MessageCircle, BellOff, Sparkles, Zap, ShieldOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -35,6 +36,7 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
   const [activeFilter, setActiveFilter] = useState<string>("all");
   const [isAIConfigOpen, setIsAIConfigOpen] = useState(false);
   const [isQuickReplyManagerOpen, setIsQuickReplyManagerOpen] = useState(false);
+  const [isBlockedContactsOpen, setIsBlockedContactsOpen] = useState(false);
   const hasTriggeredSync = useRef(false);
   
   // Panel sizes persistence
@@ -231,6 +233,12 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
                     isActive={activeFilter === "muted"}
                     onClick={() => setActiveFilter("muted")}
                   />
+                  <SidebarFilterButton
+                    icon={ShieldOff}
+                    label="Bloqueados"
+                    isActive={isBlockedContactsOpen}
+                    onClick={() => setIsBlockedContactsOpen(true)}
+                  />
                   
                   <div className="h-px w-8 bg-border my-2" />
                   
@@ -283,6 +291,14 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
               <WhatsAppAIAgentConfigModal
                 isOpen={isAIConfigOpen}
                 onClose={() => setIsAIConfigOpen(false)}
+                companyId={activeCompany?.company_id}
+                instanceId={selectedInstanceId}
+              />
+
+              {/* Blocked Contacts Modal */}
+              <WhatsAppBlockedContactsModal
+                isOpen={isBlockedContactsOpen}
+                onClose={() => setIsBlockedContactsOpen(false)}
                 companyId={activeCompany?.company_id}
                 instanceId={selectedInstanceId}
               />
