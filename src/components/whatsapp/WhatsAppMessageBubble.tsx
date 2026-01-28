@@ -54,6 +54,7 @@ export function WhatsAppMessageBubble({ message, instanceId, companyId, remoteJi
   const isFailed = message.status === "failed";
   const hasMedia = !!message.media_url;
   const isMediaType = ["image", "video", "audio", "document"].includes(message.message_type);
+  const isAudioMessage = message.message_type === "audio";
   const isTextMessage = message.message_type === "text";
   
   const extractFileName = (): string => {
@@ -440,8 +441,9 @@ export function WhatsAppMessageBubble({ message, instanceId, companyId, remoteJi
             </div>
           )}
 
-          {/* Text content - hide if it's just a placeholder for media with download button */}
-          {!(isMediaType && hasMedia && (message.content.startsWith("📎") || message.content.startsWith("["))) && (
+          {/* Text content - hide for media types that already have their own UI */}
+          {/* Hide for: audio (has player), image/video with media_url, or placeholder content */}
+          {!isAudioMessage && !(isMediaType && hasMedia && (message.content.startsWith("📎") || message.content.startsWith("["))) && (
             <p className="text-sm whitespace-pre-wrap break-words">{parseWhatsAppFormatting(displayContent)}</p>
           )}
 
