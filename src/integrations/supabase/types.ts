@@ -10520,6 +10520,102 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_ai_agent_config: {
+        Row: {
+          agent_name: string | null
+          blacklist_words: string[] | null
+          company_id: string
+          created_at: string
+          department: string | null
+          emoji_usage: string | null
+          empathy_level: number | null
+          enthusiasm_level: number | null
+          escalation_message: string | null
+          formality_level: number | null
+          id: string
+          instance_id: string | null
+          mandatory_cta: string | null
+          min_confidence_threshold: number | null
+          primary_objective: string | null
+          response_length: string | null
+          updated_at: string
+          use_bold: boolean | null
+          use_client_name: boolean | null
+          use_conversation_history: boolean | null
+          use_lists: boolean | null
+          use_purchase_history: boolean | null
+          use_satisfaction_score: boolean | null
+          use_short_paragraphs: boolean | null
+        }
+        Insert: {
+          agent_name?: string | null
+          blacklist_words?: string[] | null
+          company_id: string
+          created_at?: string
+          department?: string | null
+          emoji_usage?: string | null
+          empathy_level?: number | null
+          enthusiasm_level?: number | null
+          escalation_message?: string | null
+          formality_level?: number | null
+          id?: string
+          instance_id?: string | null
+          mandatory_cta?: string | null
+          min_confidence_threshold?: number | null
+          primary_objective?: string | null
+          response_length?: string | null
+          updated_at?: string
+          use_bold?: boolean | null
+          use_client_name?: boolean | null
+          use_conversation_history?: boolean | null
+          use_lists?: boolean | null
+          use_purchase_history?: boolean | null
+          use_satisfaction_score?: boolean | null
+          use_short_paragraphs?: boolean | null
+        }
+        Update: {
+          agent_name?: string | null
+          blacklist_words?: string[] | null
+          company_id?: string
+          created_at?: string
+          department?: string | null
+          emoji_usage?: string | null
+          empathy_level?: number | null
+          enthusiasm_level?: number | null
+          escalation_message?: string | null
+          formality_level?: number | null
+          id?: string
+          instance_id?: string | null
+          mandatory_cta?: string | null
+          min_confidence_threshold?: number | null
+          primary_objective?: string | null
+          response_length?: string | null
+          updated_at?: string
+          use_bold?: boolean | null
+          use_client_name?: boolean | null
+          use_conversation_history?: boolean | null
+          use_lists?: boolean | null
+          use_purchase_history?: boolean | null
+          use_satisfaction_score?: boolean | null
+          use_short_paragraphs?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_ai_agent_config_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_ai_agent_config_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       whatsapp_ai_chat_messages: {
         Row: {
           company_id: string
