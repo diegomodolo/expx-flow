@@ -12,6 +12,7 @@ export interface RealtimeAnalysis {
     actionItems: string[];
   };
   alerts: string[];
+  score: number; // 0-10 rating
   timestamp: string;
 }
 

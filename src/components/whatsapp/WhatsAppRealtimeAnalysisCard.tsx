@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { Loader2, AlertTriangle, TrendingUp, TrendingDown, Minus, Bell, RefreshCw } from "lucide-react";
+import { Loader2, AlertTriangle, TrendingUp, TrendingDown, Minus, Bell, RefreshCw, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RealtimeAnalysis } from "@/hooks/useWhatsAppRealtimeAnalysis";
 
@@ -33,6 +33,18 @@ const temperatureConfig = {
     emoji: "🔴",
   },
 };
+
+function getScoreColor(score: number): string {
+  if (score >= 8) return "text-green-600 dark:text-green-400";
+  if (score >= 5) return "text-yellow-600 dark:text-yellow-400";
+  return "text-red-600 dark:text-red-400";
+}
+
+function getScoreBgColor(score: number): string {
+  if (score >= 8) return "bg-green-500/10 border-green-500/20";
+  if (score >= 5) return "bg-yellow-500/10 border-yellow-500/20";
+  return "bg-red-500/10 border-red-500/20";
+}
 
 export function WhatsAppRealtimeAnalysisCard({
   analysis,
@@ -73,37 +85,56 @@ export function WhatsAppRealtimeAnalysisCard({
   }
 
   const tempConfig = temperatureConfig[analysis.temperature];
+  const score = analysis.score ?? 0;
 
   return (
-    <div className="flex items-center justify-between gap-3">
-      {/* Temperature */}
-      <div className={cn("flex items-center gap-2 px-2.5 py-1 rounded-full border", tempConfig.bgClassName)}>
-        <span className="text-sm">{tempConfig.emoji}</span>
-        <span className={cn("text-xs font-medium", tempConfig.className)}>
-          {tempConfig.label}
-        </span>
-      </div>
-
-      {/* Alerts (if any) */}
-      {analysis.alerts.length > 0 && (
-        <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-amber-500/10 border border-amber-500/20">
-          <Bell className="h-3 w-3 text-amber-600 dark:text-amber-400" />
-          <span className="text-xs text-amber-700 dark:text-amber-300">
-            {analysis.alerts.length} {analysis.alerts.length === 1 ? "alerta" : "alertas"}
+    <div className="space-y-2">
+      {/* Top row: Temperature, Score, Refresh */}
+      <div className="flex items-center gap-2">
+        {/* Temperature */}
+        <div className={cn("flex items-center gap-1.5 px-2 py-1 rounded-full border", tempConfig.bgClassName)}>
+          <span className="text-sm">{tempConfig.emoji}</span>
+          <span className={cn("text-xs font-medium", tempConfig.className)}>
+            {tempConfig.label}
           </span>
         </div>
-      )}
 
-      {/* Refresh */}
-      <Button 
-        variant="ghost" 
-        size="icon" 
-        className="h-6 w-6 ml-auto" 
-        onClick={onRefresh}
-        disabled={isAnalyzing}
-      >
-        <RefreshCw className={cn("h-3 w-3", isAnalyzing && "animate-spin")} />
-      </Button>
+        {/* Score */}
+        <div className={cn("flex items-center gap-1.5 px-2 py-1 rounded-full border", getScoreBgColor(score))}>
+          <Star className={cn("h-3 w-3", getScoreColor(score))} />
+          <span className={cn("text-xs font-bold", getScoreColor(score))}>
+            {score.toFixed(1)}
+          </span>
+          <span className="text-[10px] text-muted-foreground">/10</span>
+        </div>
+
+        {/* Refresh */}
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="h-6 w-6 ml-auto" 
+          onClick={onRefresh}
+          disabled={isAnalyzing}
+        >
+          <RefreshCw className={cn("h-3 w-3", isAnalyzing && "animate-spin")} />
+        </Button>
+      </div>
+
+      {/* Alerts (if any) - shown as list */}
+      {analysis.alerts.length > 0 && (
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2">
+          <div className="flex items-start gap-2">
+            <Bell className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+            <div className="space-y-1">
+              {analysis.alerts.map((alert, index) => (
+                <p key={index} className="text-xs text-amber-700 dark:text-amber-300">
+                  {alert}
+                </p>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

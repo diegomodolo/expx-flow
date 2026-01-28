@@ -55,8 +55,15 @@ Analise a conversa e retorne APENAS um JSON válido (sem markdown, sem \`\`\`) n
     "insight": "Insight específico para o tipo de atendimento (1 frase)",
     "actionItems": ["Ação 1", "Ação 2"] (máximo 3 itens curtos)
   },
-  "alerts": ["Alerta se houver algo urgente"] (pode ser array vazio)
+  "alerts": ["Alerta se houver algo urgente"] (pode ser array vazio),
+  "score": 7 (nota de 0 a 10 avaliando a qualidade do atendimento até agora - considere: cordialidade, clareza, resolutividade, tom adequado, tempo de resposta implícito)
 }
+
+Critérios para a nota (score):
+- 0-3: Atendimento ruim (rude, confuso, não resolve)
+- 4-6: Atendimento regular (básico, pode melhorar)
+- 7-8: Bom atendimento (cordial, claro, encaminha bem)
+- 9-10: Excelente (supera expectativas, empático, resolve rápido)
 
 Seja direto e prático. Foque no que é acionável AGORA.`;
 }
