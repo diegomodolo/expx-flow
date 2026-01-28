@@ -403,5 +403,8 @@ verify_jwt = true
 [functions.edit-whatsapp-message]
 verify_jwt = true
 
+[functions.delete-whatsapp-chat]
+verify_jwt = true
+
 [functions.download-whatsapp-media]
 verify_jwt = true
