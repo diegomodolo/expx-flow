@@ -49,7 +49,7 @@ interface WhatsAppChatWindowProps {
 }
 
 export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChatDeleted }: WhatsAppChatWindowProps) {
-  const { messages, isLoading, isFetchingFromApi, isSendingMedia, sendMessage, sendMedia, fetchMessagesFromApi } = useWhatsAppMessages(
+  const { messages, isLoading, isFetchingFromApi, isSyncingInBackground, isSendingMedia, sendMessage, sendMedia, fetchMessagesFromApi } = useWhatsAppMessages(
     conversation.id,
     companyId
   );
@@ -234,6 +234,13 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
           <p className="text-xs text-muted-foreground flex items-center gap-1">
             <Phone className="h-3 w-3" />
             {formatPhoneNumber(conversation.phone)}
+            {/* Background sync indicator */}
+            {isSyncingInBackground && (
+              <span className="ml-2 flex items-center gap-1 text-primary/70">
+                <RefreshCw className="h-3 w-3 animate-spin" />
+                <span className="text-[10px]">Sincronizando...</span>
+              </span>
+            )}
           </p>
         </div>
         
