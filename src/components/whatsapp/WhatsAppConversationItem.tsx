@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { WhatsAppConversation } from "@/hooks/useWhatsAppConversations";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -16,60 +18,94 @@ export function WhatsAppConversationItem({
   isSelected,
   onClick,
 }: WhatsAppConversationItemProps) {
+  const [showProfilePic, setShowProfilePic] = useState(false);
   const displayName = conversation.contact_name || formatPhoneNumber(conversation.phone);
   const initials = getInitials(displayName);
   const hasUnread = conversation.unread_count > 0;
 
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "w-full flex items-center gap-3 p-3 text-left transition-colors hover:bg-muted/50",
-        isSelected && "bg-muted"
-      )}
-    >
-      <Avatar className="h-10 w-10 shrink-0">
-        {conversation.profile_pic_url && (
-          <AvatarImage 
-            src={conversation.profile_pic_url} 
-            alt={displayName}
-            className="object-cover"
-          />
-        )}
-        <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
-          {initials}
-        </AvatarFallback>
-      </Avatar>
+  const handleAvatarClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (conversation.profile_pic_url) {
+      setShowProfilePic(true);
+    }
+  };
 
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between gap-2">
-          <span className={cn("font-medium text-sm truncate", hasUnread && "font-semibold")}>
-            {displayName}
-          </span>
-          {conversation.last_message_at && (
-            <span className="text-xs text-muted-foreground shrink-0">
-              {formatDistanceToNow(new Date(conversation.last_message_at), {
-                addSuffix: false,
-                locale: ptBR,
-              })}
+  return (
+    <>
+      <button
+        onClick={onClick}
+        className={cn(
+          "w-full flex items-center gap-3 p-3 text-left transition-colors hover:bg-muted/50",
+          isSelected && "bg-muted"
+        )}
+      >
+        <Avatar 
+          className={cn(
+            "h-10 w-10 shrink-0",
+            conversation.profile_pic_url && "cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
+          )}
+          onClick={handleAvatarClick}
+        >
+          {conversation.profile_pic_url && (
+            <AvatarImage 
+              src={conversation.profile_pic_url} 
+              alt={displayName}
+              className="object-cover"
+            />
+          )}
+          <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
+            {initials}
+          </AvatarFallback>
+        </Avatar>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-2">
+            <span className={cn("font-medium text-sm truncate", hasUnread && "font-semibold")}>
+              {displayName}
             </span>
-          )}
+            {conversation.last_message_at && (
+              <span className="text-xs text-muted-foreground shrink-0">
+                {formatDistanceToNow(new Date(conversation.last_message_at), {
+                  addSuffix: false,
+                  locale: ptBR,
+                })}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center justify-between gap-2">
+            <p className={cn(
+              "text-xs truncate",
+              hasUnread ? "text-foreground font-medium" : "text-muted-foreground"
+            )}>
+              {conversation.last_message_preview || "Sem mensagens"}
+            </p>
+            {hasUnread && (
+              <Badge className="h-5 min-w-[20px] rounded-full px-1.5 text-xs shrink-0">
+                {conversation.unread_count}
+              </Badge>
+            )}
+          </div>
         </div>
-        <div className="flex items-center justify-between gap-2">
-          <p className={cn(
-            "text-xs truncate",
-            hasUnread ? "text-foreground font-medium" : "text-muted-foreground"
-          )}>
-            {conversation.last_message_preview || "Sem mensagens"}
-          </p>
-          {hasUnread && (
-            <Badge className="h-5 min-w-[20px] rounded-full px-1.5 text-xs shrink-0">
-              {conversation.unread_count}
-            </Badge>
-          )}
-        </div>
-      </div>
-    </button>
+      </button>
+
+      {/* Modal para foto de perfil ampliada */}
+      <Dialog open={showProfilePic} onOpenChange={setShowProfilePic}>
+        <DialogContent className="max-w-md p-0 overflow-hidden bg-transparent border-none">
+          <div className="flex flex-col items-center gap-4 p-4">
+            {conversation.profile_pic_url && (
+              <img
+                src={conversation.profile_pic_url}
+                alt={displayName}
+                className="w-72 h-72 rounded-full object-cover shadow-2xl"
+              />
+            )}
+            <span className="text-lg font-semibold text-white drop-shadow-lg">
+              {displayName}
+            </span>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
