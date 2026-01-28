@@ -299,6 +299,7 @@ export function useWhatsAppInstances(companyId: string | undefined) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["whatsapp-instance-users"] });
+      queryClient.invalidateQueries({ queryKey: ["whatsapp-user-instances"] });
       toast({ title: "Usuário atribuído" });
     },
     onError: (error: any) => {
@@ -323,6 +324,7 @@ export function useWhatsAppInstances(companyId: string | undefined) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["whatsapp-instance-users"] });
+      queryClient.invalidateQueries({ queryKey: ["whatsapp-user-instances"] });
       toast({ title: "Usuário removido da instância" });
     },
     onError: (error: any) => {
