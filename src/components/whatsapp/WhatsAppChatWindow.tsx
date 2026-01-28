@@ -16,7 +16,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
-import { Phone, RefreshCw, Trash2, MoreVertical, Loader2, Zap, CheckCheck } from "lucide-react";
+import { Phone, RefreshCw, Trash2, MoreVertical, Loader2, Zap, CheckCheck, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface WhatsAppChatWindowProps {
   conversation: WhatsAppConversation;
@@ -236,6 +237,21 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
           onLabelsChange={setChatLabelIds}
         />
         
+        {/* AI Assistant button */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant={aiAssistantOpen ? "secondary" : "ghost"}
+              size="icon"
+              onClick={() => setAiAssistantOpen(!aiAssistantOpen)}
+              title="Assistente IA"
+            >
+              <Sparkles className={cn("h-4 w-4", aiAssistantOpen && "text-primary")} />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Assistente IA</TooltipContent>
+        </Tooltip>
+        
         {/* Refresh messages button */}
         <Button
           variant="ghost"
@@ -428,6 +444,8 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
             <WhatsAppAIAssistant
               isOpen={aiAssistantOpen}
               onClose={() => setAiAssistantOpen(false)}
+              conversationId={conversation.id}
+              companyId={companyId}
               customerMessage={aiSelectedMessage}
               contactName={displayName}
               onUseResponse={handleUseAIResponse}
