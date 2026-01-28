@@ -447,3 +447,6 @@ verify_jwt = true
 
 [functions.fetch-whatsapp-blocklist]
 verify_jwt = true
+
+[functions.block-whatsapp-contact]
+verify_jwt = true

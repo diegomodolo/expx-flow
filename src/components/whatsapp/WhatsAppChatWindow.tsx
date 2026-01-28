@@ -16,7 +16,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
-import { Phone, RefreshCw, Trash2, MoreVertical, Loader2, CheckCheck, Sparkles, Archive, ArchiveRestore, Circle, CircleDot, BellOff, Bell, Pin, PinOff } from "lucide-react";
+import { Phone, RefreshCw, Trash2, MoreVertical, Loader2, CheckCheck, Sparkles, Archive, ArchiveRestore, Circle, CircleDot, BellOff, Bell, Pin, PinOff, Ban } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -69,6 +69,7 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
   const [isTogglingRead, setIsTogglingRead] = useState(false);
   const [isMuting, setIsMuting] = useState(false);
   const [isPinning, setIsPinning] = useState(false);
+  const [isBlocking, setIsBlocking] = useState(false);
   
   // AI Assistant state
   const [aiAssistantOpen, setAiAssistantOpen] = useState(false);
@@ -307,6 +308,39 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
     }
   };
 
+  const handleBlockContact = async () => {
+    if (!companyId || !instanceId) {
+      toast.error("Não foi possível bloquear o contato");
+      return;
+    }
+
+    setIsBlocking(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("block-whatsapp-contact", {
+        body: {
+          company_id: companyId,
+          instance_id: instanceId,
+          phone: conversation.phone,
+          block: true,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        toast.success(data.message);
+      } else {
+        throw new Error(data?.error || "Erro ao bloquear contato");
+      }
+    } catch (err: any) {
+      console.error("[WhatsAppChatWindow] Block contact error:", err);
+      toast.error(err.message || "Erro ao bloquear contato");
+    } finally {
+      setIsBlocking(false);
+    }
+  };
+
   const handleOpenAIAssistant = (messageContent: string) => {
     setAiSelectedMessage(messageContent);
     setAiAssistantOpen(true);
@@ -514,6 +548,18 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
               </DropdownMenuSubContent>
             </DropdownMenuSub>
             <DropdownMenuSeparator />
+            <DropdownMenuItem 
+              onClick={handleBlockContact}
+              disabled={isBlocking}
+              className="text-destructive focus:text-destructive"
+            >
+              {isBlocking ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Ban className="h-4 w-4 mr-2" />
+              )}
+              Bloquear contato
+            </DropdownMenuItem>
             <DropdownMenuItem 
               onClick={() => setIsDeleteDialogOpen(true)}
               className="text-destructive focus:text-destructive"
