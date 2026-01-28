@@ -10305,6 +10305,7 @@ export type Database = {
           icon_bg: string
           icon_color: string
           id: string
+          leader_id: string | null
           name: string
           progress: number
           updated_at: string
@@ -10321,6 +10322,7 @@ export type Database = {
           icon_bg: string
           icon_color: string
           id?: string
+          leader_id?: string | null
           name: string
           progress?: number
           updated_at?: string
@@ -10337,6 +10339,7 @@ export type Database = {
           icon_bg?: string
           icon_color?: string
           id?: string
+          leader_id?: string | null
           name?: string
           progress?: number
           updated_at?: string
@@ -10349,6 +10352,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teams_leader_id_fkey"
+            columns: ["leader_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
             referencedColumns: ["id"]
           },
           {

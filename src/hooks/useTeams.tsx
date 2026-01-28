@@ -6,7 +6,10 @@ import { useCompany } from "@/contexts/CompanyContext";
 export interface TeamMember {
   id: string;
   name: string;
-  avatar: string;
+  email: string;
+  role: string;
+  avatar: string | null;
+  user_id: string;
 }
 
 export interface Team {
@@ -19,7 +22,11 @@ export interface Team {
   color: string;
   progress: number;
   active_tasks: number;
+  leader_id?: string | null;
+  whatsapp_responsible_id?: string | null;
   members?: TeamMember[];
+  leader?: TeamMember | null;
+  whatsapp_responsible?: TeamMember | null;
 }
 
 export function useTeams() {
@@ -34,17 +41,54 @@ export function useTeams() {
     
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      
+      // Fetch teams
+      const { data: teamsData, error: teamsError } = await supabase
         .from("teams")
-        .select(`
-          *,
-          members:team_members(*)
-        `)
+        .select("*")
         .eq("company_id", activeCompany.company_id)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
-      setTeams(data || []);
+      if (teamsError) throw teamsError;
+      if (!teamsData || teamsData.length === 0) {
+        setTeams([]);
+        return;
+      }
+
+      // Fetch all employees for this company to get members
+      const { data: employees, error: employeesError } = await supabase
+        .from("employees")
+        .select("id, user_id, name, email, role, avatar, team_id")
+        .eq("company_id", activeCompany.company_id)
+        .eq("status", "active");
+
+      if (employeesError) throw employeesError;
+
+      // Map teams with their members
+      const teamsWithMembers = teamsData.map((team) => {
+        const teamMembers = (employees || [])
+          .filter((emp) => emp.team_id === team.id)
+          .map((emp) => ({
+            id: emp.id,
+            user_id: emp.user_id,
+            name: emp.name,
+            email: emp.email,
+            role: emp.role,
+            avatar: emp.avatar,
+          }));
+
+        const leader = teamMembers.find((m) => m.id === team.leader_id) || null;
+        const whatsappResponsible = teamMembers.find((m) => m.id === team.whatsapp_responsible_id) || null;
+
+        return {
+          ...team,
+          members: teamMembers,
+          leader,
+          whatsapp_responsible: whatsappResponsible,
+        };
+      });
+
+      setTeams(teamsWithMembers);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao buscar equipes");
     } finally {

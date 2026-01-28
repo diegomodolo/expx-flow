@@ -9,6 +9,9 @@ import { useTeams, Team } from "@/hooks/useTeams";
 import { useToast } from "@/hooks/use-toast";
 import { SquadDialog } from "@/components/squads/SquadDialog";
 import { DeleteSquadDialog } from "@/components/squads/DeleteSquadDialog";
+import { SquadMembersDialog } from "@/components/squads/SquadMembersDialog";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { 
   Plus, 
   Search, 
@@ -23,7 +26,9 @@ import {
   Code,
   Target,
   Lightbulb,
-  HeadphonesIcon
+  HeadphonesIcon,
+  Crown,
+  MessageSquare
 } from "lucide-react";
 
 type StatusType = "all" | "high" | "medium" | "low";
@@ -47,6 +52,7 @@ const Squad = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [membersDialogOpen, setMembersDialogOpen] = useState(false);
   const [selectedSquad, setSelectedSquad] = useState<Team | null>(null);
   const [dialogMode, setDialogMode] = useState<'create' | 'edit' | 'view'>('create');
   const { teams, loading, error, createTeam, updateTeam, deleteTeam, fetchTeams } = useTeams();
@@ -285,36 +291,102 @@ const Squad = () => {
                         <div className={`w-2 h-2 rounded-full ${getPerformanceIndicator(team.progress)}`}></div>
                       </div>
 
-                      <div className="space-y-3 mb-4">
+                      {/* Leader and WhatsApp Responsible */}
+                      <div className="space-y-2 mb-4">
                         <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">Membros:</span>
-                          <span className="font-medium text-foreground">{team.members?.length || 0} pessoas</span>
-                        </div>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">Projetos Ativos:</span>
-                          <span className="font-medium text-foreground">{team.active_tasks} projetos</span>
-                        </div>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">Performance:</span>
-                          <span className={`font-medium ${team.progress >= 90 ? 'text-green-600 dark:text-green-400' : team.progress >= 70 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400'}`}>
-                            {team.progress}%
+                          <span className="text-muted-foreground flex items-center gap-1">
+                            <Crown className="h-3.5 w-3.5 text-yellow-500" />
+                            Líder:
                           </span>
+                          {team.leader ? (
+                            <div className="flex items-center gap-1.5">
+                              <Avatar className="h-5 w-5">
+                                <AvatarImage src={team.leader.avatar || undefined} />
+                                <AvatarFallback className="text-[9px] bg-primary/10 text-primary">
+                                  {team.leader.name.charAt(0)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="font-medium text-foreground text-xs truncate max-w-[100px]">
+                                {team.leader.name}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">Não definido</span>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground flex items-center gap-1">
+                            <MessageSquare className="h-3.5 w-3.5 text-green-500" />
+                            CS WhatsApp:
+                          </span>
+                          {team.whatsapp_responsible ? (
+                            <div className="flex items-center gap-1.5">
+                              <Avatar className="h-5 w-5">
+                                <AvatarImage src={team.whatsapp_responsible.avatar || undefined} />
+                                <AvatarFallback className="text-[9px] bg-primary/10 text-primary">
+                                  {team.whatsapp_responsible.name.charAt(0)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="font-medium text-foreground text-xs truncate max-w-[100px]">
+                                {team.whatsapp_responsible.name}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">Não definido</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Members preview */}
+                      <div className="flex items-center justify-between text-sm mb-4">
+                        <span className="text-muted-foreground">Membros:</span>
+                        <div className="flex items-center gap-1">
+                          {team.members && team.members.length > 0 ? (
+                            <>
+                              <div className="flex -space-x-2">
+                                {team.members.slice(0, 4).map((member) => (
+                                  <Tooltip key={member.id}>
+                                    <TooltipTrigger asChild>
+                                      <Avatar className="h-6 w-6 border-2 border-background">
+                                        <AvatarImage src={member.avatar || undefined} />
+                                        <AvatarFallback className="text-[9px] bg-primary/10 text-primary">
+                                          {member.name.charAt(0)}
+                                        </AvatarFallback>
+                                      </Avatar>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top" className="text-xs">
+                                      {member.name}
+                                    </TooltipContent>
+                                  </Tooltip>
+                                ))}
+                              </div>
+                              {team.members.length > 4 && (
+                                <span className="text-xs text-muted-foreground ml-1">
+                                  +{team.members.length - 4}
+                                </span>
+                              )}
+                            </>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">Nenhum membro</span>
+                          )}
                         </div>
                       </div>
 
                       <div className="border-t border-border pt-4 mb-4">
                         <div className="grid grid-cols-3 gap-4 text-center text-xs">
                           <div>
-                            <div className="font-semibold text-foreground">{Math.round(team.active_tasks * 5.2)}</div>
-                            <div className="text-muted-foreground">Tasks/mês</div>
+                            <div className="font-semibold text-foreground">{team.members?.length || 0}</div>
+                            <div className="text-muted-foreground">Membros</div>
                           </div>
                           <div>
-                            <div className="font-semibold text-foreground">{Math.round(team.progress)}%</div>
-                            <div className="text-muted-foreground">No prazo</div>
+                            <div className="font-semibold text-foreground">{team.active_tasks}</div>
+                            <div className="text-muted-foreground">Projetos</div>
                           </div>
                           <div>
-                            <div className="font-semibold text-foreground">{(team.progress / 20).toFixed(1)}</div>
-                            <div className="text-muted-foreground">Satisfação</div>
+                            <div className={`font-semibold ${team.progress >= 90 ? 'text-green-600 dark:text-green-400' : team.progress >= 70 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400'}`}>
+                              {team.progress}%
+                            </div>
+                            <div className="text-muted-foreground">Performance</div>
                           </div>
                         </div>
                       </div>
@@ -335,7 +407,12 @@ const Squad = () => {
                         <Button 
                           size="sm" 
                           className="flex-1"
+                          onClick={() => {
+                            setSelectedSquad(team);
+                            setMembersDialogOpen(true);
+                          }}
                         >
+                          <Users className="h-4 w-4 mr-1" />
                           Membros
                         </Button>
                       </div>
@@ -406,6 +483,20 @@ const Squad = () => {
           onConfirm={deleteTeam}
           squad={selectedSquad}
         />
+
+        {selectedSquad && (
+          <SquadMembersDialog
+            open={membersDialogOpen}
+            onOpenChange={(open) => {
+              setMembersDialogOpen(open);
+              if (!open) {
+                setSelectedSquad(null);
+              }
+            }}
+            squad={selectedSquad}
+            onUpdate={fetchTeams}
+          />
+        )}
       </div>
     </DashboardLayout>
   );
