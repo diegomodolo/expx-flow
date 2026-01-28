@@ -17,7 +17,9 @@ import { WhatsAppChatWindow } from "./WhatsAppChatWindow";
 import { WhatsAppAIAgentConfigModal } from "./WhatsAppAIAgentConfigModal";
 import { WhatsAppQuickReplyManager } from "./WhatsAppQuickReplyManager";
 import { WhatsAppBlockedContactsModal } from "./WhatsAppBlockedContactsModal";
-import { MessageSquare, Settings, AlertCircle, Phone, CheckCircle2, XCircle, RefreshCw, Archive, Star, Users, MessageCircle, BellOff, Sparkles, Zap, ShieldOff, Heart } from "lucide-react";
+import { WhatsAppRemindersPanel } from "./WhatsAppRemindersPanel";
+import { useWhatsAppReminders } from "@/hooks/useWhatsAppReminders";
+import { MessageSquare, Settings, AlertCircle, Phone, CheckCircle2, XCircle, RefreshCw, Archive, Star, Users, MessageCircle, BellOff, Sparkles, Zap, ShieldOff, Heart, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -35,6 +37,7 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
   const { instances, userInstances, isLoading: isLoadingInstances } = useWhatsAppInstances(activeCompany?.company_id);
   const { assignments } = useWhatsAppAssignments(activeCompany?.company_id);
   const { data: userSquad } = useUserWhatsAppSquad(activeCompany?.company_id);
+  const { todayReminders, clientIdsWithTodayReminders } = useWhatsAppReminders();
   const navigate = useNavigate();
   
   const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
@@ -44,6 +47,7 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
   const [isAIConfigOpen, setIsAIConfigOpen] = useState(false);
   const [isQuickReplyManagerOpen, setIsQuickReplyManagerOpen] = useState(false);
   const [isBlockedContactsOpen, setIsBlockedContactsOpen] = useState(false);
+  const [isRemindersPanelOpen, setIsRemindersPanelOpen] = useState(false);
   const hasTriggeredSync = useRef(false);
   
   // Panel sizes persistence
@@ -250,6 +254,17 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
                     </>
                   )}
                   
+                  <div className="h-px w-8 bg-border my-2" />
+                  
+                  {/* Reminders button */}
+                  <SidebarFilterButton
+                    icon={Bell}
+                    label="Lembretes"
+                    isActive={isRemindersPanelOpen}
+                    onClick={() => setIsRemindersPanelOpen(true)}
+                    count={todayReminders.length > 0 ? todayReminders.length : undefined}
+                  />
+                  
                   <div className="flex-1" />
                   
                   <SidebarFilterButton
@@ -334,6 +349,12 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
                 instanceId={selectedInstanceId}
               />
 
+              {/* Reminders Panel */}
+              <WhatsAppRemindersPanel
+                open={isRemindersPanelOpen}
+                onOpenChange={setIsRemindersPanelOpen}
+              />
+
               {/* Resizable panels for conversation list and chat */}
               <ResizablePanelGroup 
                 direction="horizontal" 
@@ -359,6 +380,7 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
                     assignments={assignments}
                     currentUserId={user?.id}
                     currentUserTeamId={userSquad?.squadId}
+                    clientIdsWithTodayReminders={clientIdsWithTodayReminders}
                     instanceSelector={isUazapi && availableInstances.length > 0 ? (
                       <Select value={selectedInstanceId || ""} onValueChange={handleInstanceChange}>
                         <SelectTrigger className="w-full">

@@ -52,6 +52,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { WhatsAppReminderModal } from "./WhatsAppReminderModal";
 import { WhatsAppQuickTaskModal } from "./WhatsAppQuickTaskModal";
 import { WhatsAppNoteModal } from "./WhatsAppNoteModal";
+import { WhatsAppClientNotes } from "./WhatsAppClientNotes";
 
 interface WhatsAppChatWindowProps {
   conversation: WhatsAppConversation;
@@ -835,6 +836,14 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Client notes - fixed at top */}
+      {linkedClientId && linkedClientName && (
+        <WhatsAppClientNotes 
+          clientId={linkedClientId} 
+          clientName={linkedClientName} 
+        />
+      )}
 
       {/* Messages */}
       <ScrollArea className="flex-1 px-4">

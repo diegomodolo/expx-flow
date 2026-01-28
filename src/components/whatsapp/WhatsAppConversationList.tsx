@@ -16,6 +16,7 @@ interface WhatsAppConversationListProps {
   assignments?: WhatsAppAssignment[];
   currentUserId?: string;
   currentUserTeamId?: string;
+  clientIdsWithTodayReminders?: Set<string>;
 }
 
 export function WhatsAppConversationList({
@@ -27,6 +28,7 @@ export function WhatsAppConversationList({
   assignments = [],
   currentUserId,
   currentUserTeamId,
+  clientIdsWithTodayReminders = new Set(),
 }: WhatsAppConversationListProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [assignmentFilter, setAssignmentFilter] = useState<AssignmentFilter>("all");
@@ -143,6 +145,7 @@ export function WhatsAppConversationList({
                 isSelected={selectedId === conversation.id}
                 onClick={() => onSelect(conversation.id)}
                 assignment={assignmentMap.get(conversation.id) || null}
+                hasTodayReminder={conversation.client_id ? clientIdsWithTodayReminders.has(conversation.client_id) : false}
               />
             ))}
           </div>

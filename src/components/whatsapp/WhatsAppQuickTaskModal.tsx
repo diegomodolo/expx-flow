@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useQuery } from "@tanstack/react-query";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +27,8 @@ import { CalendarIcon, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTasks } from "@/hooks/useTasks";
 import { useAuth } from "@/hooks/useAuth";
+import { useCompany } from "@/contexts/CompanyContext";
+import { supabase } from "@/integrations/supabase/client";
 
 interface WhatsAppQuickTaskModalProps {
   open: boolean;
@@ -48,9 +51,29 @@ export function WhatsAppQuickTaskModal({
   
   const { createTask } = useTasks();
   const { user } = useAuth();
+  const { activeCompany } = useCompany();
+
+  // Fetch user's default team
+  const { data: defaultTeam } = useQuery({
+    queryKey: ["user-default-team", activeCompany?.company_id],
+    queryFn: async () => {
+      if (!activeCompany?.company_id) return null;
+      
+      const { data, error } = await supabase
+        .from("teams")
+        .select("id, name")
+        .eq("company_id", activeCompany.company_id)
+        .limit(1)
+        .single();
+      
+      if (error) return null;
+      return data;
+    },
+    enabled: !!activeCompany?.company_id,
+  });
 
   const handleSubmit = async () => {
-    if (!title.trim() || !deadline || !user) return;
+    if (!title.trim() || !deadline || !user || !defaultTeam?.id) return;
 
     setIsSubmitting(true);
 
@@ -64,7 +87,7 @@ export function WhatsAppQuickTaskModal({
         progress: 0,
         origin: "manual",
         related_client_id: clientId,
-        team_id: "", // Will use user's default team
+        team_id: defaultTeam.id,
         responsible_name: user?.email || "",
         responsible_avatar: "",
         user_id: user.id,
@@ -83,7 +106,7 @@ export function WhatsAppQuickTaskModal({
     }
   };
 
-  const isValid = title.trim() && deadline;
+  const isValid = title.trim() && deadline && defaultTeam?.id;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

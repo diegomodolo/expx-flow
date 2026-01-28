@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { parseWhatsAppFormatting } from "@/lib/whatsappFormatting";
-import { Mic, Image, Video, FileText, Camera, BellOff, Pin, Building2 } from "lucide-react";
+import { Mic, Image, Video, FileText, Camera, BellOff, Pin, Building2, Bell } from "lucide-react";
 
 // Temperature color mapping (values from AI: positive, neutral, negative)
 const temperatureStyles: Record<string, { ring: string; label: string }> = {
@@ -24,6 +24,7 @@ interface WhatsAppConversationItemProps {
   isSelected: boolean;
   onClick: () => void;
   assignment?: WhatsAppAssignment | null;
+  hasTodayReminder?: boolean;
 }
 
 export function WhatsAppConversationItem({
@@ -31,6 +32,7 @@ export function WhatsAppConversationItem({
   isSelected,
   onClick,
   assignment,
+  hasTodayReminder = false,
 }: WhatsAppConversationItemProps) {
   const [showProfilePic, setShowProfilePic] = useState(false);
   const displayName = conversation.contact_name || formatPhoneNumber(conversation.phone);
@@ -200,6 +202,16 @@ export function WhatsAppConversationItem({
               <span className={cn("font-medium text-sm truncate", hasUnread && "font-semibold")}>
                 {displayName}
               </span>
+              {hasTodayReminder && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Bell className="h-3.5 w-3.5 text-primary shrink-0 fill-primary/20" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="text-xs">
+                    Lembrete para hoje
+                  </TooltipContent>
+                </Tooltip>
+              )}
               {conversation.is_pinned && (
                 <Pin className="h-3.5 w-3.5 text-primary shrink-0" />
               )}
