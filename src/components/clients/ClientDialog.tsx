@@ -214,21 +214,21 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
   }, [client?.id, benchmarksLoading]);
 
   // Function to fetch Instagram avatar and save to storage using edge function
-  const handleFetchInstagramAvatar = async (instagramProfileUrl: string) => {
-    if (!instagramProfileUrl) return;
+  const handleFetchInstagramAvatar = async (instagramAccountId: string) => {
+    if (!instagramAccountId) return;
     
     setFetchingInstagramAvatar(true);
     try {
-      // Use edge function to copy the image to our storage (avoids CORS and link expiration)
-      const { data, error } = await supabase.functions.invoke('copy-external-image', {
+      // Use dedicated edge function that fetches via Graph API (avoids 403 errors)
+      const { data, error } = await supabase.functions.invoke('fetch-instagram-profile-picture', {
         body: { 
-          imageUrl: instagramProfileUrl,
-          folder: 'client-avatars'
+          instagramAccountId,
+          clientId: client?.id
         }
       });
 
       if (error) throw error;
-      if (!data?.success) throw new Error(data?.error || 'Failed to copy image');
+      if (!data?.success) throw new Error(data?.error || 'Failed to fetch Instagram profile picture');
 
       setFormData({ ...formData, avatar: data.url });
       toast({
@@ -239,7 +239,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
       console.error('Error fetching Instagram avatar:', error);
       toast({
         title: "Erro",
-        description: "Não foi possível buscar a foto do Instagram. Tente fazer upload manualmente.",
+        description: error.message || "Não foi possível buscar a foto do Instagram. Tente fazer upload manualmente.",
         variant: "destructive",
       });
     } finally {
@@ -1014,12 +1014,12 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
                 {/* Botão para buscar do Instagram */}
                 {(() => {
                   const selectedInstagram = instagramAccounts.find(acc => acc.id === formData.instagram_account_id);
-                  if (selectedInstagram?.profile_picture_url && !readOnly) {
+                  if (selectedInstagram && !readOnly) {
                     return (
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={() => handleFetchInstagramAvatar(selectedInstagram.profile_picture_url!)}
+                        onClick={() => handleFetchInstagramAvatar(selectedInstagram.id)}
                         disabled={fetchingInstagramAvatar}
                         className="flex items-center gap-2"
                       >
