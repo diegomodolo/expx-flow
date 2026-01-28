@@ -16,7 +16,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
-import { Phone, RefreshCw, Trash2, MoreVertical, Loader2, CheckCheck, Sparkles, Archive, ArchiveRestore, Circle, CircleDot, BellOff, Bell } from "lucide-react";
+import { Phone, RefreshCw, Trash2, MoreVertical, Loader2, CheckCheck, Sparkles, Archive, ArchiveRestore, Circle, CircleDot, BellOff, Bell, Pin, PinOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -68,6 +68,7 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
   const [isMarkingRead, setIsMarkingRead] = useState(false);
   const [isTogglingRead, setIsTogglingRead] = useState(false);
   const [isMuting, setIsMuting] = useState(false);
+  const [isPinning, setIsPinning] = useState(false);
   
   // AI Assistant state
   const [aiAssistantOpen, setAiAssistantOpen] = useState(false);
@@ -272,6 +273,40 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
     }
   };
 
+  const handlePinChat = async () => {
+    if (!companyId || !instanceId) {
+      toast.error("Não foi possível fixar o chat");
+      return;
+    }
+
+    setIsPinning(true);
+    const newPinStatus = !conversation.is_pinned;
+
+    try {
+      const { data, error } = await supabase.functions.invoke("pin-whatsapp-chat", {
+        body: {
+          company_id: companyId,
+          instance_id: instanceId,
+          phone: conversation.phone,
+          pin: newPinStatus,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        toast.success(data.message);
+      } else {
+        throw new Error(data?.error || "Erro ao fixar chat");
+      }
+    } catch (err: any) {
+      console.error("[WhatsAppChatWindow] Pin chat error:", err);
+      toast.error(err.message || "Erro ao fixar chat");
+    } finally {
+      setIsPinning(false);
+    }
+  };
+
   const handleOpenAIAssistant = (messageContent: string) => {
     setAiSelectedMessage(messageContent);
     setAiAssistantOpen(true);
@@ -438,6 +473,19 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
                 <Archive className="h-4 w-4 mr-2" />
               )}
               {conversation.is_archived ? "Desarquivar chat" : "Arquivar chat"}
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={handlePinChat}
+              disabled={isPinning}
+            >
+              {isPinning ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : conversation.is_pinned ? (
+                <PinOff className="h-4 w-4 mr-2" />
+              ) : (
+                <Pin className="h-4 w-4 mr-2" />
+              )}
+              {conversation.is_pinned ? "Desafixar chat" : "Fixar no topo"}
             </DropdownMenuItem>
             <DropdownMenuSub>
               <DropdownMenuSubTrigger disabled={isMuting}>

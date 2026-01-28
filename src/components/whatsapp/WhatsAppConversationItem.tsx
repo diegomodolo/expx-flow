@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { parseWhatsAppFormatting } from "@/lib/whatsappFormatting";
-import { Mic, Image, Video, FileText, Camera, BellOff } from "lucide-react";
+import { Mic, Image, Video, FileText, Camera, BellOff, Pin } from "lucide-react";
 
 interface WhatsAppConversationItemProps {
   conversation: WhatsAppConversation;
@@ -142,6 +142,9 @@ export function WhatsAppConversationItem({
               <span className={cn("font-medium text-sm truncate", hasUnread && "font-semibold")}>
                 {displayName}
               </span>
+              {conversation.is_pinned && (
+                <Pin className="h-3.5 w-3.5 text-primary shrink-0" />
+              )}
               {conversation.is_muted && (
                 <BellOff className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
               )}
