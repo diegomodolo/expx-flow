@@ -3,7 +3,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
 interface ArchiveChatPayload {
@@ -21,23 +23,52 @@ serve(async (req) => {
   }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
   const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+  const authHeader = req.headers.get("Authorization") ?? "";
+
+  // Client with user JWT (RLS + auth validation)
+  const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
+    global: {
+      headers: {
+        Authorization: authHeader,
+      },
+    },
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
+
+  // Service role client (for reading provider tokens/config)
+  const supabaseService = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
-    const payload: ArchiveChatPayload = await req.json();
-    const { company_id, instance_id, phone, conversation_id, archive } = payload;
+    // Validate user JWT (verify_jwt=false in config)
+    const { data: userData, error: userError } = await supabaseUser.auth.getUser();
+    if (userError || !userData?.user) {
+      console.error("[archive-whatsapp-chat] Unauthorized:", userError);
+      return new Response(
+        JSON.stringify({ success: false, error: "Não autorizado" }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
 
-    console.log("[archive-whatsapp-chat] Phone:", phone);
-    console.log("[archive-whatsapp-chat] Instance:", instance_id);
+    const payload: ArchiveChatPayload = await req.json();
+    const { company_id, conversation_id, archive } = payload;
+
+    console.log("[archive-whatsapp-chat] Conversation:", conversation_id);
     console.log("[archive-whatsapp-chat] Archive:", archive);
 
-    if (!company_id || !instance_id || !phone || !conversation_id || archive === undefined) {
+    if (!company_id || !conversation_id || archive === undefined) {
       console.error("[archive-whatsapp-chat] Missing required fields");
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: "company_id, instance_id, phone, conversation_id e archive são obrigatórios" 
+          error: "company_id, conversation_id e archive são obrigatórios" 
         }),
         { 
           status: 400, 
@@ -46,8 +77,35 @@ serve(async (req) => {
       );
     }
 
+    // Validate access via RLS: user must be allowed to see this conversation
+    const { data: conversation, error: conversationError } = await supabaseUser
+      .from("whatsapp_conversations")
+      .select("id, company_id, instance_id, phone")
+      .eq("id", conversation_id)
+      .eq("company_id", company_id)
+      .single();
+
+    if (conversationError || !conversation) {
+      console.error("[archive-whatsapp-chat] Conversation not found/forbidden:", conversationError);
+      return new Response(
+        JSON.stringify({ success: false, error: "Conversa não encontrada" }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    const instance_id = conversation.instance_id;
+    const phone = conversation.phone;
+
+    if (!instance_id) {
+      console.error("[archive-whatsapp-chat] Conversation without instance_id");
+      return new Response(
+        JSON.stringify({ success: false, error: "Instância não vinculada à conversa" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     // Get WhatsApp config for company
-    const { data: config, error: configError } = await supabase
+    const { data: config, error: configError } = await supabaseService
       .from("whatsapp_configs")
       .select("*")
       .eq("company_id", company_id)
@@ -69,7 +127,7 @@ serve(async (req) => {
     }
 
     // Get instance details
-    const { data: instance, error: instanceError } = await supabase
+    const { data: instance, error: instanceError } = await supabaseService
       .from("whatsapp_instances")
       .select("*")
       .eq("id", instance_id)
@@ -142,7 +200,7 @@ serve(async (req) => {
     }
 
     // Update local database
-    const { error: updateError } = await supabase
+    const { error: updateError } = await supabaseUser
       .from("whatsapp_conversations")
       .update({ is_archived: archive })
       .eq("id", conversation_id);
