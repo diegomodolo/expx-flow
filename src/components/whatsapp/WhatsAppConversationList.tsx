@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, ReactNode } from "react";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, Search } from "lucide-react";
@@ -10,6 +10,7 @@ interface WhatsAppConversationListProps {
   isLoading: boolean;
   selectedId: string | null;
   onSelect: (id: string) => void;
+  instanceSelector?: ReactNode;
 }
 
 export function WhatsAppConversationList({
@@ -17,6 +18,7 @@ export function WhatsAppConversationList({
   isLoading,
   selectedId,
   onSelect,
+  instanceSelector,
 }: WhatsAppConversationListProps) {
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -31,6 +33,13 @@ export function WhatsAppConversationList({
 
   return (
     <div className="flex flex-col h-full">
+      {/* Instance selector */}
+      {instanceSelector && (
+        <div className="p-3 border-b">
+          {instanceSelector}
+        </div>
+      )}
+      
       {/* Search */}
       <div className="p-3 border-b">
         <div className="relative">
