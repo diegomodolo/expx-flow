@@ -8,6 +8,7 @@ import { useWhatsAppConversations } from "@/hooks/useWhatsAppConversations";
 import { useWhatsAppInstances } from "@/hooks/useWhatsAppInstances";
 import { useWhatsAppRealtime } from "@/hooks/useWhatsAppRealtime";
 import { useSyncWhatsAppChats } from "@/hooks/useSyncWhatsAppChats";
+import { useWhatsAppPanelSizes } from "@/hooks/useWhatsAppPanelSizes";
 import { WhatsAppConversationList } from "./WhatsAppConversationList";
 import { WhatsAppChatWindow } from "./WhatsAppChatWindow";
 import { MessageSquare, Settings, AlertCircle, Phone, CheckCircle2, XCircle, RefreshCw, Archive, Star, Users, MessageCircle, BellOff } from "lucide-react";
@@ -30,6 +31,9 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<string>("all");
   const hasTriggeredSync = useRef(false);
+  
+  // Panel sizes persistence
+  const { sizes, isLoaded: sizesLoaded, setConversationListSize } = useWhatsAppPanelSizes();
 
   // Hook para sincronização de chats
   const { syncChats, isSyncing } = useSyncWhatsAppChats(activeCompany?.company_id);
@@ -287,10 +291,18 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
               </TooltipProvider>
 
               {/* Resizable panels for conversation list and chat */}
-              <ResizablePanelGroup direction="horizontal" className="flex-1">
+              <ResizablePanelGroup 
+                direction="horizontal" 
+                className="flex-1"
+                onLayout={(sizes) => {
+                  if (sizes[0]) {
+                    setConversationListSize(sizes[0]);
+                  }
+                }}
+              >
                 {/* Conversation List Panel */}
                 <ResizablePanel 
-                  defaultSize={25} 
+                  defaultSize={sizesLoaded ? sizes.conversationList : 25} 
                   minSize={15} 
                   maxSize={40}
                   className="border-r"
@@ -306,7 +318,7 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
                 <ResizableHandle withHandle />
 
                 {/* Chat Window Panel */}
-                <ResizablePanel defaultSize={75} minSize={40}>
+                <ResizablePanel defaultSize={sizesLoaded ? sizes.chatWindow : 75} minSize={40}>
                   {selectedConversation ? (
                     <WhatsAppChatWindow
                       conversation={selectedConversation}
