@@ -52,7 +52,9 @@ export function WhatsAppConversationList({
       case "mine":
         return assignment?.assigned_to_user_id === currentUserId;
       case "my-squad":
-        return assignment?.assigned_to_team_id === currentUserTeamId;
+        // "Meu Squad" here means: conversations linked to clients that belong to the squad
+        // where the logged-in user is the WhatsApp responsible (teams.id === clients.team_id)
+        return !!conv.client_id && !!currentUserTeamId && conv.client_team_id === currentUserTeamId;
       case "unassigned":
         return !assignment;
       case "all":
@@ -68,7 +70,7 @@ export function WhatsAppConversationList({
   
   const mySquadConversationsCount = currentUserTeamId
     ? searchFilteredConversations.filter(
-        c => assignmentMap.get(c.id)?.assigned_to_team_id === currentUserTeamId
+        c => !!c.client_id && c.client_team_id === currentUserTeamId
       ).length
     : 0;
   
