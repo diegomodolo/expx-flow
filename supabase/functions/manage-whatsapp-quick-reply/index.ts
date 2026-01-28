@@ -1,0 +1,166 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+
+  try {
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { 
+        status: 401, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
+    }
+
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { 
+        status: 401, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
+    }
+
+    const { instanceId, action, quickReply } = await req.json();
+
+    if (!instanceId) {
+      return new Response(JSON.stringify({ error: 'Instance ID is required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    if (!action || !['create', 'update', 'delete'].includes(action)) {
+      return new Response(JSON.stringify({ error: 'Valid action is required (create, update, delete)' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    if (!quickReply || !quickReply.shortCut || !quickReply.type) {
+      return new Response(JSON.stringify({ error: 'Quick reply shortCut and type are required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Get instance configuration
+    const { data: instance, error: instanceError } = await supabase
+      .from('whatsapp_instances')
+      .select('*, whatsapp_configs!inner(*)')
+      .eq('id', instanceId)
+      .single();
+
+    if (instanceError || !instance) {
+      console.error('Instance not found:', instanceError);
+      return new Response(JSON.stringify({ error: 'Instance not found' }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    const baseUrl = instance.whatsapp_configs.uazapi_url?.replace(/\/$/, '');
+    const apiToken = instance.api_token;
+
+    if (!baseUrl || !apiToken) {
+      return new Response(JSON.stringify({ error: 'Instance not configured properly' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Build request body based on action
+    const body: Record<string, any> = {
+      shortCut: quickReply.shortCut,
+      type: quickReply.type
+    };
+
+    if (action === 'update' || action === 'delete') {
+      if (!quickReply.id) {
+        return new Response(JSON.stringify({ error: 'Quick reply ID is required for update/delete' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      body.id = quickReply.id;
+    }
+
+    if (action === 'delete') {
+      body.delete = true;
+    } else {
+      // For create and update, include content fields
+      if (quickReply.type === 'text') {
+        body.text = quickReply.text || '';
+      } else {
+        // Media types: audio, myaudio, ptt, document, video, image
+        if (quickReply.file) {
+          body.file = quickReply.file;
+        }
+        if (quickReply.docName) {
+          body.docName = quickReply.docName;
+        }
+        if (quickReply.text) {
+          body.text = quickReply.text;
+        }
+      }
+    }
+
+    console.log('Managing quick reply:', { action, body: { ...body, file: body.file ? '[FILE]' : undefined } });
+
+    // Call UazapiGO API
+    const response = await fetch(`${baseUrl}/quickreply/edit`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apitoken': apiToken
+      },
+      body: JSON.stringify(body)
+    });
+
+    const responseText = await response.text();
+    let result;
+    try {
+      result = JSON.parse(responseText);
+    } catch {
+      result = { message: responseText };
+    }
+
+    if (!response.ok) {
+      console.error('UazapiGO error:', responseText);
+      return new Response(JSON.stringify({ 
+        error: 'Failed to manage quick reply', 
+        details: result 
+      }), {
+        status: response.status,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    console.log('Quick reply managed successfully:', result);
+
+    return new Response(JSON.stringify({ success: true, result }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+
+  } catch (error) {
+    console.error('Error managing quick reply:', error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+});

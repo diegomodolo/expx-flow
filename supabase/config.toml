@@ -420,3 +420,9 @@ verify_jwt = true
 
 [functions.manage-whatsapp-chat-labels]
 verify_jwt = true
+
+[functions.fetch-whatsapp-quick-replies]
+verify_jwt = true
+
+[functions.manage-whatsapp-quick-reply]
+verify_jwt = true

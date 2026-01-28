@@ -1,7 +1,7 @@
 import { useState, KeyboardEvent, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Send, Paperclip, Image, FileText, Film, Mic, X, Square, Trash2 } from "lucide-react";
+import { Loader2, Send, Paperclip, Image, FileText, Film, Mic, X, Square, Trash2, Zap } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,6 +10,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { QuickReply } from "@/hooks/useWhatsAppQuickReplies";
+import { WhatsAppQuickReplyPicker } from "./WhatsAppQuickReplyPicker";
 
 export interface MediaAttachment {
   file: File;
@@ -21,10 +23,20 @@ interface WhatsAppMessageInputProps {
   onSend: (message: string) => void;
   onSendMedia?: (media: MediaAttachment, caption: string) => void;
   isSending: boolean;
+  quickReplies?: QuickReply[];
+  quickRepliesLoading?: boolean;
 }
 
-export function WhatsAppMessageInput({ onSend, onSendMedia, isSending }: WhatsAppMessageInputProps) {
+export function WhatsAppMessageInput({ 
+  onSend, 
+  onSendMedia, 
+  isSending,
+  quickReplies = [],
+  quickRepliesLoading = false
+}: WhatsAppMessageInputProps) {
   const [message, setMessage] = useState("");
+  const [showQuickReplies, setShowQuickReplies] = useState(false);
+  const [quickReplySearch, setQuickReplySearch] = useState("");
   const [attachment, setAttachment] = useState<MediaAttachment | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [acceptTypes, setAcceptTypes] = useState<string>("");
@@ -193,9 +205,70 @@ export function WhatsAppMessageInput({ onSend, onSendMedia, isSending }: WhatsAp
     
     onSend(trimmed);
     setMessage("");
+    setShowQuickReplies(false);
+    setQuickReplySearch("");
+  };
+
+  const handleMessageChange = (value: string) => {
+    setMessage(value);
+    
+    // Check for "/" trigger for quick replies
+    if (value.startsWith("/")) {
+      setShowQuickReplies(true);
+      setQuickReplySearch(value.slice(1)); // Remove the "/" prefix
+    } else {
+      setShowQuickReplies(false);
+      setQuickReplySearch("");
+    }
+  };
+
+  const handleQuickReplySelect = async (quickReply: QuickReply) => {
+    setShowQuickReplies(false);
+    setQuickReplySearch("");
+    
+    if (quickReply.type === "text") {
+      // For text, insert the text directly
+      setMessage(quickReply.text || "");
+    } else {
+      // For media types, we need to send the media directly
+      if (quickReply.file && onSendMedia) {
+        try {
+          // Fetch the file from URL and create a File object
+          const response = await fetch(quickReply.file);
+          const blob = await response.blob();
+          
+          const extension = quickReply.docName?.split('.').pop() || 
+            (quickReply.type === 'image' ? 'jpg' : 
+             quickReply.type === 'video' ? 'mp4' : 
+             quickReply.type === 'audio' || quickReply.type === 'ptt' ? 'mp3' : 'pdf');
+          
+          const fileName = quickReply.docName || `quick_reply.${extension}`;
+          const file = new File([blob], fileName, { type: blob.type });
+          
+          const mediaType: MediaAttachment['type'] = 
+            quickReply.type === 'myaudio' ? 'audio' : quickReply.type;
+          
+          onSendMedia({ file, type: mediaType }, quickReply.text || "");
+        } catch (error) {
+          console.error("Error loading quick reply media:", error);
+          toast.error("Erro ao carregar mídia da resposta rápida");
+        }
+      } else {
+        setMessage("");
+      }
+    }
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    // Close quick replies on Escape
+    if (e.key === "Escape" && showQuickReplies) {
+      e.preventDefault();
+      setShowQuickReplies(false);
+      setQuickReplySearch("");
+      setMessage("");
+      return;
+    }
+    
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
@@ -367,7 +440,24 @@ export function WhatsAppMessageInput({ onSend, onSendMedia, isSending }: WhatsAp
   }
 
   return (
-    <div className="flex flex-col border-t bg-background">
+    <div className="flex flex-col border-t bg-background relative">
+      {/* Quick replies dropdown */}
+      {showQuickReplies && quickReplies.length > 0 && (
+        <div className="absolute bottom-full left-0 right-0 mb-1 mx-3 z-50">
+          <WhatsAppQuickReplyPicker
+            quickReplies={quickReplies}
+            isLoading={quickRepliesLoading}
+            onSelect={handleQuickReplySelect}
+            searchTerm={quickReplySearch}
+            showAsPopover={false}
+            onClose={() => {
+              setShowQuickReplies(false);
+              setQuickReplySearch("");
+            }}
+          />
+        </div>
+      )}
+
       {/* Attachment preview */}
       {attachment && (
         <div className="p-3 border-b bg-muted/30">
@@ -442,10 +532,18 @@ export function WhatsAppMessageInput({ onSend, onSendMedia, isSending }: WhatsAp
           </DropdownMenuContent>
         </DropdownMenu>
 
+        {/* Quick replies button */}
+        <WhatsAppQuickReplyPicker
+          quickReplies={quickReplies}
+          isLoading={quickRepliesLoading}
+          onSelect={handleQuickReplySelect}
+          showAsPopover={true}
+        />
+
         <Textarea
-          placeholder={attachment ? "Adicione uma legenda..." : "Digite uma mensagem..."}
+          placeholder={attachment ? "Adicione uma legenda..." : "Digite / para respostas rápidas..."}
           value={message}
-          onChange={(e) => setMessage(e.target.value)}
+          onChange={(e) => handleMessageChange(e.target.value)}
           onKeyDown={handleKeyDown}
           className="min-h-[44px] max-h-32 resize-none"
           rows={1}

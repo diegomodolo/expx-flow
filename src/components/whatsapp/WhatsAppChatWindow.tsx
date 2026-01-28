@@ -6,7 +6,9 @@ import { WhatsAppMessageInput } from "./WhatsAppMessageInput";
 import { WhatsAppMessagesLoading } from "./WhatsAppMessagesLoading";
 import { WhatsAppLabelPicker } from "./WhatsAppLabelPicker";
 import { WhatsAppLabelList } from "./WhatsAppLabelBadge";
-import { useWhatsAppLabels, WhatsAppLabel } from "@/hooks/useWhatsAppLabels";
+import { WhatsAppQuickReplyManager } from "./WhatsAppQuickReplyManager";
+import { useWhatsAppLabels } from "@/hooks/useWhatsAppLabels";
+import { useWhatsAppQuickReplies } from "@/hooks/useWhatsAppQuickReplies";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -53,6 +55,7 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
   const [chatLabelIds, setChatLabelIds] = useState<string[]>(conversation.label_ids || []);
   
   const { labels } = useWhatsAppLabels(companyId, instanceId ?? null);
+  const { quickReplies, isLoading: quickRepliesLoading } = useWhatsAppQuickReplies(instanceId ?? null);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -151,6 +154,9 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
           instanceId={instanceId ?? null}
           onLabelsChange={setChatLabelIds}
         />
+        
+        {/* Quick reply manager */}
+        <WhatsAppQuickReplyManager instanceId={instanceId ?? null} />
         
         {/* Refresh messages button */}
         <Button
@@ -288,7 +294,9 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
       <WhatsAppMessageInput 
         onSend={handleSend} 
         onSendMedia={handleSendMedia}
-        isSending={isSendingMedia} 
+        isSending={isSendingMedia}
+        quickReplies={quickReplies}
+        quickRepliesLoading={quickRepliesLoading}
       />
     </div>
   );
