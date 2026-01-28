@@ -304,8 +304,8 @@ serve(async (req) => {
           lastMessageAt = new Date(ts).toISOString();
         }
 
-        // Contagem de não lidas
-        const unreadCount = chat.wa_unreadCount || chat.unreadCount || chat.unreadMessages || 0;
+        // Contagem de não lidas vinda do provedor
+        const apiUnreadCount = chat.wa_unreadCount || chat.unreadCount || chat.unreadMessages || 0;
 
         // Extrair foto de perfil do contato
         // UazapiGO pode retornar em diferentes campos
@@ -320,6 +320,40 @@ serve(async (req) => {
                               chat.contact?.imgUrl ||
                               null;
 
+        // Verificar se a conversa já existe para preservar o unread_count local
+        // Isso evita sobrescrever mensagens que o usuário já marcou como lidas localmente
+        const { data: existingConversation } = await supabase
+          .from("whatsapp_conversations")
+          .select("id, unread_count")
+          .eq("company_id", company_id)
+          .eq("instance_id", instance_id)
+          .eq("phone", phone)
+          .maybeSingle();
+
+        // Lógica para decidir o unread_count final:
+        // - Se a conversa NÃO existe: usar o valor da API
+        // - Se a conversa EXISTE e unread_count local é 0 (já lido): manter 0
+        // - Se a conversa EXISTE e a API reporta mais não lidas: usar valor da API
+        let finalUnreadCount = apiUnreadCount;
+        if (existingConversation) {
+          const localUnreadCount = existingConversation.unread_count || 0;
+          // Se usuário marcou como lido (local = 0), não sobrescrever
+          // A menos que a API reporte novas mensagens (valor maior que 0)
+          // Nesse caso, usamos o valor da API apenas se for MAIOR que o local
+          // para capturar novas mensagens chegando
+          if (localUnreadCount === 0 && apiUnreadCount > 0) {
+            // Provedor pode estar desatualizado, manter como lido
+            // A contagem real será incrementada pelo webhook de novas mensagens
+            finalUnreadCount = 0;
+          } else if (apiUnreadCount > localUnreadCount) {
+            // Novas mensagens chegaram - usar valor da API
+            finalUnreadCount = apiUnreadCount;
+          } else {
+            // Manter valor local
+            finalUnreadCount = localUnreadCount;
+          }
+        }
+
         // Upsert na tabela de conversas
         const { error: upsertError } = await supabase
           .from("whatsapp_conversations")
@@ -333,7 +367,7 @@ serve(async (req) => {
               last_message_preview: lastMessagePreview ? lastMessagePreview.substring(0, 255) : null,
               // Se não houver timestamp, usar data antiga (2000-01-01) para que fiquem no final da lista
               last_message_at: lastMessageAt || "2000-01-01T00:00:00.000Z",
-              unread_count: unreadCount,
+              unread_count: finalUnreadCount,
               is_archived: chat.wa_archived || false,
             },
             {
