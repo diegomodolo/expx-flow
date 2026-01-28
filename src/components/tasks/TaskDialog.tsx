@@ -17,6 +17,7 @@ import { useEmployees } from "@/hooks/useEmployees";
 import { usePlannerSlots } from "@/hooks/usePlannerSlots";
 import { useClients } from "@/hooks/useClients";
 import { useCampaigns } from "@/hooks/useCampaigns";
+import { useAuth } from "@/hooks/useAuth";
 import { Checkbox } from "@/components/ui/checkbox";
 
 interface TaskDialogProps {
@@ -56,6 +57,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId }
   const { timeSlots } = usePlannerSlots();
   const { clients } = useClients();
   const { campaigns } = useCampaigns();
+  const { user } = useAuth();
 
   // Ordenar clientes alfabeticamente e filtrar pela busca
   const sortedFilteredClients = clients
@@ -64,6 +66,9 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId }
     .filter(client => 
       client.name.toLowerCase().includes(clientSearch.toLowerCase())
     ) || [];
+
+  // Encontrar o colaborador logado para usar como default
+  const currentEmployee = employees?.find(e => e.user_id === user?.id);
 
   useEffect(() => {
     if (task) {
@@ -100,15 +105,16 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId }
         })(),
       });
     } else {
+      // Nova tarefa - preencher com usuário logado como responsável padrão
       setFormData({
         title: '',
         description: '',
         status: 'todo',
         priority: 'medium',
-        team_id: '',
-        responsible_name: '',
-        responsible_avatar: '',
-        responsible_user_id: '',
+        team_id: currentEmployee?.team_id || '',
+        responsible_name: currentEmployee?.name || '',
+        responsible_avatar: currentEmployee?.avatar || currentEmployee?.profile_avatar_url || '',
+        responsible_user_id: currentEmployee?.user_id || '',
         related_client_id: defaultClientId || '',
         related_campaign_id: '',
         start_date: null,
@@ -120,7 +126,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId }
         checklist: [],
       });
     }
-  }, [task, defaultClientId]);
+  }, [task, defaultClientId, currentEmployee]);
 
   const handleSave = () => {
     let startDateTime: Date | null = null;
