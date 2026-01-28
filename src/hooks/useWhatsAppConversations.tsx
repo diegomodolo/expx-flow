@@ -34,7 +34,7 @@ export function useWhatsAppConversations(companyId: string | undefined, instance
         .from("whatsapp_conversations")
         .select(`
           *,
-          clients:client_id (name, logo_url)
+          clients:client_id (name, avatar)
         `)
         .eq("company_id", companyId)
         .order("is_pinned", { ascending: false })
@@ -54,11 +54,11 @@ export function useWhatsAppConversations(companyId: string | undefined, instance
 
       if (error) throw error;
       
-      // Transform data to flatten client name and logo
+      // Transform data to flatten client name and avatar
       const transformed = (data || []).map((conv: any) => ({
         ...conv,
         client_name: conv.clients?.name || null,
-        client_logo_url: conv.clients?.logo_url || null,
+        client_logo_url: conv.clients?.avatar || null,
         clients: undefined, // Remove nested object
       }));
       
