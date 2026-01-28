@@ -312,17 +312,39 @@ Responda diretamente ao que o cliente perguntou ou comentou.`;
     setIsGenerating(true);
 
     try {
-      // Build conversation history for context (last 10 messages, excluding analysis)
+      // Build conversation history for context (last 15 messages, INCLUDING analysis summaries)
       const recentMessages = messages
-        .filter(m => m.role !== "analysis")
-        .slice(-10)
-        .map((m) => ({
-          role: m.role,
-          content: m.content,
-        }));
+        .slice(-15)
+        .map((m) => {
+          // For analysis messages, create a summary for context
+          if (m.role === "analysis") {
+            try {
+              const analysisData = JSON.parse(m.content) as AnalysisMessageContent;
+              return {
+                role: "assistant" as const,
+                content: `[Análise da conversa atual]
+- Temperatura: ${analysisData.temperature === "positive" ? "Positiva" : analysisData.temperature === "negative" ? "Negativa" : "Neutra"} (Nota: ${analysisData.score}/10)
+- Interpretação: ${analysisData.interpretation}
+- Sugestão: ${analysisData.suggestion}
+- Insight: ${analysisData.departmentInsight?.insight || "N/A"}
+- Mensagem pronta sugerida: ${analysisData.readyMessage || "N/A"}`,
+              };
+            } catch {
+              return null;
+            }
+          }
+          return {
+            role: m.role as "user" | "assistant",
+            content: m.content,
+          };
+        })
+        .filter((m): m is { role: "user" | "assistant"; content: string } => m !== null);
 
       const systemPrompt = `Você é um assistente de atendimento ao cliente via WhatsApp.
 Contexto: Você está ajudando o atendente a formular respostas para o cliente "${contactName}".
+
+IMPORTANTE: Leve em consideração as [Análise da conversa atual] que aparecem no histórico. Elas contêm a análise mais recente do sentimento do cliente, interpretação da situação, sugestões e mensagens prontas. Use esse contexto para responder de forma relevante ao momento atual da conversa.
+
 Mantenha o tom conversacional adequado para WhatsApp.
 Siga as instruções do atendente para ajustar a resposta.`;
 
