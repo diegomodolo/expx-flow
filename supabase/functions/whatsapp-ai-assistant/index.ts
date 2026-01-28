@@ -56,7 +56,8 @@ Analise a conversa e retorne APENAS um JSON válido (sem markdown, sem \`\`\`) n
     "actionItems": ["Ação 1", "Ação 2"] (máximo 3 itens curtos)
   },
   "alerts": ["Alerta se houver algo urgente"] (pode ser array vazio),
-  "score": 7 (nota de 0 a 10 avaliando a qualidade do atendimento até agora - considere: cordialidade, clareza, resolutividade, tom adequado, tempo de resposta implícito)
+  "score": 7 (nota de 0 a 10 avaliando a qualidade do atendimento até agora - considere: cordialidade, clareza, resolutividade, tom adequado, tempo de resposta implícito),
+  "readyMessage": "Uma mensagem pronta e completa que o atendente pode enviar diretamente ao cliente. Esta mensagem deve ser a resposta ideal para a situação atual, com tom adequado para WhatsApp (conversacional mas profissional). Não use saudações como 'Olá' se a conversa já está em andamento. Seja direto e resolva a demanda do cliente."
 }
 
 Critérios para a nota (score):
@@ -64,6 +65,12 @@ Critérios para a nota (score):
 - 4-6: Atendimento regular (básico, pode melhorar)
 - 7-8: Bom atendimento (cordial, claro, encaminha bem)
 - 9-10: Excelente (supera expectativas, empático, resolve rápido)
+
+IMPORTANTE sobre readyMessage:
+- Escreva como se fosse o atendente falando diretamente com o cliente
+- Use emojis moderadamente se apropriado para o contexto
+- Seja objetivo mas empático
+- A mensagem deve estar pronta para envio imediato
 
 Seja direto e prático. Foque no que é acionável AGORA.`;
 }

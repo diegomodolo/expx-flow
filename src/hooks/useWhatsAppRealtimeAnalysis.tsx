@@ -13,6 +13,7 @@ export interface RealtimeAnalysis {
   };
   alerts: string[];
   score: number; // 0-10 rating
+  readyMessage: string; // Ready-to-send message
   timestamp: string;
 }
 
@@ -27,6 +28,7 @@ interface StoredAnalysis {
   interpretation: string | null;
   suggestion: string | null;
   insight: string | null;
+  ready_message: string | null;
   created_at: string;
   updated_at: string;
 }
