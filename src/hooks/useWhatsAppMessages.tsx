@@ -20,7 +20,7 @@ export interface WhatsAppMessage {
 
 export interface MediaAttachment {
   file: File;
-  type: "image" | "video" | "document" | "audio";
+  type: "image" | "video" | "document" | "audio" | "ptt";
   preview?: string;
 }
 
@@ -285,8 +285,12 @@ export function useWhatsAppMessages(conversationId: string | null, companyId: st
       video: "video",
       document: "document",
       audio: "audio",
+      ptt: "audio", // PTT (push-to-talk) is stored as audio in DB
     };
     const messageType = messageTypeMap[media.type] || "document";
+    
+    // For API call, use the original type (ptt for voice messages)
+    const apiMediaType = media.type;
 
     let savedMessageId: string | null = null;
 
@@ -338,7 +342,7 @@ export function useWhatsAppMessages(conversationId: string | null, companyId: st
       );
 
       // Update conversation preview
-      const preview = caption || `📎 ${media.type === "image" ? "Imagem" : media.type === "video" ? "Vídeo" : media.type === "audio" ? "Áudio" : "Documento"}`;
+      const preview = caption || `📎 ${media.type === "image" ? "Imagem" : media.type === "video" ? "Vídeo" : (media.type === "audio" || media.type === "ptt") ? "Mensagem de voz" : "Documento"}`;
       queryClient.setQueryData(
         ["whatsapp-conversations", companyId],
         (old: any) => {
@@ -364,7 +368,7 @@ export function useWhatsAppMessages(conversationId: string | null, companyId: st
         body: {
           company_id: companyId,
           recipient_phone: phone,
-          type: media.type,
+          type: apiMediaType, // Use ptt for voice messages
           file: base64,
           caption: caption || undefined,
           doc_name: media.type === "document" ? media.file.name : undefined,
