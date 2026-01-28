@@ -10309,6 +10309,7 @@ export type Database = {
           progress: number
           updated_at: string
           user_id: string
+          whatsapp_responsible_id: string | null
         }
         Insert: {
           active_tasks?: number
@@ -10324,6 +10325,7 @@ export type Database = {
           progress?: number
           updated_at?: string
           user_id: string
+          whatsapp_responsible_id?: string | null
         }
         Update: {
           active_tasks?: number
@@ -10339,6 +10341,7 @@ export type Database = {
           progress?: number
           updated_at?: string
           user_id?: string
+          whatsapp_responsible_id?: string | null
         }
         Relationships: [
           {
@@ -10346,6 +10349,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teams_whatsapp_responsible_id_fkey"
+            columns: ["whatsapp_responsible_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
             referencedColumns: ["id"]
           },
         ]
@@ -10667,6 +10677,77 @@ export type Database = {
           },
         ]
       }
+      whatsapp_assignment_history: {
+        Row: {
+          action: string
+          company_id: string
+          conversation_id: string
+          created_at: string
+          created_by: string | null
+          from_team_id: string | null
+          from_user_id: string | null
+          id: string
+          reason: string | null
+          to_team_id: string | null
+          to_user_id: string | null
+        }
+        Insert: {
+          action: string
+          company_id: string
+          conversation_id: string
+          created_at?: string
+          created_by?: string | null
+          from_team_id?: string | null
+          from_user_id?: string | null
+          id?: string
+          reason?: string | null
+          to_team_id?: string | null
+          to_user_id?: string | null
+        }
+        Update: {
+          action?: string
+          company_id?: string
+          conversation_id?: string
+          created_at?: string
+          created_by?: string | null
+          from_team_id?: string | null
+          from_user_id?: string | null
+          id?: string
+          reason?: string | null
+          to_team_id?: string | null
+          to_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_assignment_history_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_assignment_history_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_assignment_history_from_team_id_fkey"
+            columns: ["from_team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_assignment_history_to_team_id_fkey"
+            columns: ["to_team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       whatsapp_client_contacts: {
         Row: {
           client_id: string
@@ -10885,6 +10966,73 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: true
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_conversation_assignments: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          assigned_to_team_id: string | null
+          assigned_to_user_id: string | null
+          assigned_type: string
+          company_id: string
+          conversation_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          assigned_to_team_id?: string | null
+          assigned_to_user_id?: string | null
+          assigned_type: string
+          company_id: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          assigned_to_team_id?: string | null
+          assigned_to_user_id?: string | null
+          assigned_type?: string
+          company_id?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_conversation_assignments_assigned_to_team_id_fkey"
+            columns: ["assigned_to_team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_conversation_assignments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_conversation_assignments_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: true
+            referencedRelation: "whatsapp_conversations"
             referencedColumns: ["id"]
           },
         ]
@@ -11190,6 +11338,7 @@ export type Database = {
           original_message_id: string | null
           reaction: string | null
           sent_at: string | null
+          sent_by_user_id: string | null
           status: string | null
           transcription_status: string | null
         }
@@ -11209,6 +11358,7 @@ export type Database = {
           original_message_id?: string | null
           reaction?: string | null
           sent_at?: string | null
+          sent_by_user_id?: string | null
           status?: string | null
           transcription_status?: string | null
         }
@@ -11228,6 +11378,7 @@ export type Database = {
           original_message_id?: string | null
           reaction?: string | null
           sent_at?: string | null
+          sent_by_user_id?: string | null
           status?: string | null
           transcription_status?: string | null
         }
