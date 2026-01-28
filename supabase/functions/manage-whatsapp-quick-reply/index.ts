@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 serve(async (req) => {
@@ -12,28 +12,9 @@ serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { 
-        status: 401, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      });
-    }
-
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { 
-        status: 401, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      });
-    }
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { instanceId, action, quickReply } = await req.json();
 
@@ -61,8 +42,9 @@ serve(async (req) => {
     // Get instance
     const { data: instance, error: instanceError } = await supabase
       .from('whatsapp_instances')
-      .select('*')
+      .select('id, company_id, is_active, uazapi_token')
       .eq('id', instanceId)
+      .eq('is_active', true)
       .maybeSingle();
 
     if (instanceError || !instance) {
@@ -76,11 +58,16 @@ serve(async (req) => {
     // Get the global config for this company (contains the UazapiGO base URL)
     const { data: config, error: configError } = await supabase
       .from('whatsapp_configs')
-      .select('*')
+      .select('uazapi_endpoint, is_active, provider')
       .eq('company_id', instance.company_id)
+      .eq('is_active', true)
+      .limit(1)
       .maybeSingle();
 
-    // Use uazapi_endpoint from config
+    if (configError) {
+      console.error('Config query error:', configError);
+    }
+
     const baseUrl = config?.uazapi_endpoint?.replace(/\/$/, '');
     const apiToken = instance.uazapi_token;
 
@@ -135,7 +122,8 @@ serve(async (req) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'apitoken': apiToken
+        // UazapiGO expects `token` header (same as other endpoints already used in this project)
+        'token': apiToken
       },
       body: JSON.stringify(body)
     });
