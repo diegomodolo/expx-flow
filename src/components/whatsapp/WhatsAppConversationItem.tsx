@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { parseWhatsAppFormatting } from "@/lib/whatsappFormatting";
+import { Mic, Image, Video, FileText, Camera } from "lucide-react";
 
 interface WhatsAppConversationItemProps {
   conversation: WhatsAppConversation;
@@ -29,6 +30,79 @@ export function WhatsAppConversationItem({
     if (conversation.profile_pic_url) {
       setShowProfilePic(true);
     }
+  };
+
+  // Format the preview message, handling media types
+  const renderMessagePreview = () => {
+    const preview = conversation.last_message_preview;
+    
+    if (!preview) {
+      return <span className="text-muted-foreground">Sem mensagens</span>;
+    }
+
+    // Check for audio/voice message patterns
+    if (
+      preview.toLowerCase().includes("[audio]") ||
+      preview.toLowerCase().includes("mensagem de voz") ||
+      preview.toLowerCase().includes("voice_message") ||
+      preview.toLowerCase().includes("[ptt]") ||
+      preview.startsWith("🎤")
+    ) {
+      return (
+        <span className="flex items-center gap-1">
+          <Mic className="h-3.5 w-3.5 text-primary shrink-0" />
+          <span>Mensagem de voz</span>
+        </span>
+      );
+    }
+
+    // Check for image patterns
+    if (
+      preview.toLowerCase().includes("[image]") ||
+      preview.toLowerCase().includes("[imagem]") ||
+      preview.startsWith("📷") ||
+      preview.startsWith("🖼")
+    ) {
+      return (
+        <span className="flex items-center gap-1">
+          <Camera className="h-3.5 w-3.5 text-primary shrink-0" />
+          <span>Foto</span>
+        </span>
+      );
+    }
+
+    // Check for video patterns
+    if (
+      preview.toLowerCase().includes("[video]") ||
+      preview.toLowerCase().includes("[vídeo]") ||
+      preview.startsWith("🎥") ||
+      preview.startsWith("📹")
+    ) {
+      return (
+        <span className="flex items-center gap-1">
+          <Video className="h-3.5 w-3.5 text-primary shrink-0" />
+          <span>Vídeo</span>
+        </span>
+      );
+    }
+
+    // Check for document patterns
+    if (
+      preview.toLowerCase().includes("[document]") ||
+      preview.toLowerCase().includes("[documento]") ||
+      preview.startsWith("📎") ||
+      preview.startsWith("📄")
+    ) {
+      return (
+        <span className="flex items-center gap-1">
+          <FileText className="h-3.5 w-3.5 text-primary shrink-0" />
+          <span>Documento</span>
+        </span>
+      );
+    }
+
+    // Regular text message
+    return parseWhatsAppFormatting(preview);
   };
 
   return (
@@ -78,9 +152,7 @@ export function WhatsAppConversationItem({
               "text-xs truncate",
               hasUnread ? "text-foreground font-medium" : "text-muted-foreground"
             )}>
-              {conversation.last_message_preview 
-                ? parseWhatsAppFormatting(conversation.last_message_preview) 
-                : "Sem mensagens"}
+              {renderMessagePreview()}
             </p>
             {hasUnread && (
               <Badge className="h-5 min-w-[20px] rounded-full px-1.5 text-xs shrink-0">
