@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useQuery } from "@tanstack/react-query";
@@ -28,6 +28,7 @@ import { cn } from "@/lib/utils";
 import { useTasks } from "@/hooks/useTasks";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompany } from "@/contexts/CompanyContext";
+import { useEmployees } from "@/hooks/useEmployees";
 import { supabase } from "@/integrations/supabase/client";
 
 interface WhatsAppQuickTaskModalProps {
@@ -47,11 +48,30 @@ export function WhatsAppQuickTaskModal({
   const [description, setDescription] = useState("");
   const [deadline, setDeadline] = useState<Date | undefined>(undefined);
   const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
+  const [responsibleUserId, setResponsibleUserId] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const { createTask } = useTasks();
   const { user } = useAuth();
   const { activeCompany } = useCompany();
+  const { employees } = useEmployees();
+
+  // Encontrar o colaborador logado para usar como default
+  const currentEmployee = employees?.find(e => e.user_id === user?.id);
+
+  // Definir responsável padrão quando o modal abre ou quando employees carregam
+  useEffect(() => {
+    if (open && currentEmployee && !responsibleUserId) {
+      setResponsibleUserId(currentEmployee.user_id);
+    }
+  }, [open, currentEmployee, responsibleUserId]);
+
+  // Reset form when modal closes
+  useEffect(() => {
+    if (!open) {
+      setResponsibleUserId("");
+    }
+  }, [open]);
 
   // Fetch user's default team
   const { data: defaultTeam } = useQuery({
@@ -72,6 +92,9 @@ export function WhatsAppQuickTaskModal({
     enabled: !!activeCompany?.company_id,
   });
 
+  // Encontrar o colaborador selecionado
+  const selectedEmployee = employees?.find(e => e.user_id === responsibleUserId);
+
   const handleSubmit = async () => {
     if (!title.trim() || !deadline || !user || !defaultTeam?.id) return;
 
@@ -87,10 +110,10 @@ export function WhatsAppQuickTaskModal({
         progress: 0,
         origin: "manual",
         related_client_id: clientId,
-        team_id: defaultTeam.id,
-        responsible_name: user?.email || "",
-        responsible_avatar: "",
-        user_id: user.id,
+        team_id: selectedEmployee?.team_id || defaultTeam.id,
+        responsible_name: selectedEmployee?.name || user?.email || "",
+        responsible_avatar: selectedEmployee?.avatar || selectedEmployee?.profile_avatar_url || "",
+        user_id: responsibleUserId || user.id,
       });
 
       // Reset form and close
@@ -98,6 +121,7 @@ export function WhatsAppQuickTaskModal({
       setDescription("");
       setDeadline(undefined);
       setPriority("medium");
+      setResponsibleUserId("");
       onOpenChange(false);
     } catch (error) {
       console.error("Error creating task:", error);
@@ -138,6 +162,22 @@ export function WhatsAppQuickTaskModal({
               placeholder="Detalhes adicionais..."
               rows={2}
             />
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="task-responsible">Responsável</Label>
+            <Select value={responsibleUserId} onValueChange={setResponsibleUserId}>
+              <SelectTrigger id="task-responsible">
+                <SelectValue placeholder="Selecione o responsável" />
+              </SelectTrigger>
+              <SelectContent>
+                {employees?.map((employee) => (
+                  <SelectItem key={employee.id} value={employee.user_id}>
+                    {employee.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="grid gap-2">
