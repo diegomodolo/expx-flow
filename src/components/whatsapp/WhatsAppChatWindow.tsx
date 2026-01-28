@@ -12,7 +12,7 @@ import { useWhatsAppQuickReplies } from "@/hooks/useWhatsAppQuickReplies";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Phone, RefreshCw, Trash2, MoreVertical, Loader2 } from "lucide-react";
+import { Phone, RefreshCw, Trash2, MoreVertical, Loader2, Zap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -53,6 +53,7 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
   const [deleteFromWhatsApp, setDeleteFromWhatsApp] = useState(true);
   const [deleteLocal, setDeleteLocal] = useState(true);
   const [chatLabelIds, setChatLabelIds] = useState<string[]>(conversation.label_ids || []);
+  const [quickReplyManagerOpen, setQuickReplyManagerOpen] = useState(false);
   
   const { labels } = useWhatsAppLabels(companyId, instanceId ?? null);
   const { quickReplies, isLoading: quickRepliesLoading } = useWhatsAppQuickReplies(instanceId ?? null);
@@ -155,9 +156,6 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
           onLabelsChange={setChatLabelIds}
         />
         
-        {/* Quick reply manager */}
-        <WhatsAppQuickReplyManager instanceId={instanceId ?? null} />
-        
         {/* Refresh messages button */}
         <Button
           variant="ghost"
@@ -177,6 +175,10 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setQuickReplyManagerOpen(true)}>
+              <Zap className="h-4 w-4 mr-2" />
+              Respostas rápidas
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => fetchMessagesFromApi(true)}>
               <RefreshCw className="h-4 w-4 mr-2" />
               Atualizar mensagens
@@ -252,6 +254,13 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Quick reply manager dialog */}
+      <WhatsAppQuickReplyManager 
+        instanceId={instanceId ?? null}
+        open={quickReplyManagerOpen}
+        onOpenChange={setQuickReplyManagerOpen}
+      />
 
       {/* Messages */}
       <ScrollArea className="flex-1 px-4">

@@ -13,6 +13,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 
 interface WhatsAppQuickReplyManagerProps {
   instanceId: string | null;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 const getTypeIcon = (type: QuickReply['type']) => {
@@ -48,9 +50,21 @@ const getTypeLabel = (type: QuickReply['type']) => {
 };
 
 export const WhatsAppQuickReplyManager: React.FC<WhatsAppQuickReplyManagerProps> = ({
-  instanceId
+  instanceId,
+  open: controlledOpen,
+  onOpenChange
 }) => {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  
+  // Support both controlled and uncontrolled modes
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setOpen = (value: boolean) => {
+    if (onOpenChange) {
+      onOpenChange(value);
+    } else {
+      setInternalOpen(value);
+    }
+  };
   const [editingReply, setEditingReply] = useState<QuickReply | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -126,11 +140,6 @@ export const WhatsAppQuickReplyManager: React.FC<WhatsAppQuickReplyManagerProps>
   return (
     <>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-8 w-8" title="Gerenciar respostas rápidas">
-            <Settings className="h-4 w-4" />
-          </Button>
-        </DialogTrigger>
         <DialogContent className="max-w-2xl max-h-[80vh]">
           <DialogHeader>
             <DialogTitle>Gerenciar Respostas Rápidas</DialogTitle>
