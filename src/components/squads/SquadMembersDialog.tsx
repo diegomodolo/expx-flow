@@ -293,7 +293,7 @@ export function SquadMembersDialog({
                 </Label>
               </div>
 
-              <ScrollArea className="flex-1 border rounded-md p-2">
+              <ScrollArea className="h-[280px] border rounded-md p-2">
                 <div className="space-y-1">
                   {allEmployees.map((employee) => {
                     const isSelected = selectedMembers.includes(employee.id);
