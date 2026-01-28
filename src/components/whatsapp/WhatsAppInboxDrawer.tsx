@@ -176,56 +176,7 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
             </Button>
           </div>
         ) : (
-          <div className="flex flex-col flex-1 overflow-hidden">
-            {/* Instance Selector - Only show for UazapiGO with multiple instances */}
-            {isUazapi && availableInstances.length > 0 && (
-              <div className="px-4 py-2 border-b bg-muted/30 flex-shrink-0">
-                <Select value={selectedInstanceId || ""} onValueChange={handleInstanceChange}>
-                  <SelectTrigger className="w-full max-w-md">
-                    <SelectValue placeholder="Selecione uma instância">
-                      {selectedInstance && (
-                        <div className="flex items-center gap-2">
-                          <Phone className="h-4 w-4" />
-                          <span>{selectedInstance.instance_name}</span>
-                          {selectedInstance.connected_phone && (
-                            <span className="text-muted-foreground text-xs">
-                              ({selectedInstance.connected_phone})
-                            </span>
-                          )}
-                          {selectedInstance.is_connected ? (
-                            <CheckCircle2 className="h-3 w-3 text-google-green-500 ml-auto" />
-                          ) : (
-                            <XCircle className="h-3 w-3 text-google-yellow-500 ml-auto" />
-                          )}
-                        </div>
-                      )}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableInstances.map((instance) => (
-                      <SelectItem key={instance.id} value={instance.id}>
-                        <div className="flex items-center gap-2">
-                          <Phone className="h-4 w-4" />
-                          <span>{instance.instance_name}</span>
-                          {instance.connected_phone && (
-                            <span className="text-muted-foreground text-xs">
-                              ({instance.connected_phone})
-                            </span>
-                          )}
-                          {instance.is_connected ? (
-                            <CheckCircle2 className="h-3 w-3 text-google-green-500" />
-                          ) : (
-                            <XCircle className="h-3 w-3 text-google-yellow-500" />
-                          )}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            <div className="flex flex-1 overflow-hidden">
+          <div className="flex flex-1 overflow-hidden">
               {/* Sidebar with filter icons - WhatsApp Web style */}
               <TooltipProvider delayDuration={300}>
                 <div className="w-14 min-w-14 border-r bg-muted/30 flex flex-col items-center py-3 gap-1">
@@ -347,6 +298,45 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
                     isLoading={isLoadingConversations}
                     selectedId={selectedConversationId}
                     onSelect={handleSelectConversation}
+                    instanceSelector={isUazapi && availableInstances.length > 0 ? (
+                      <Select value={selectedInstanceId || ""} onValueChange={handleInstanceChange}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Selecione uma instância">
+                            {selectedInstance && (
+                              <div className="flex items-center gap-2">
+                                <Phone className="h-4 w-4" />
+                                <span className="truncate">{selectedInstance.instance_name}</span>
+                                {selectedInstance.is_connected ? (
+                                  <CheckCircle2 className="h-3 w-3 text-google-green-500 ml-auto shrink-0" />
+                                ) : (
+                                  <XCircle className="h-3 w-3 text-google-yellow-500 ml-auto shrink-0" />
+                                )}
+                              </div>
+                            )}
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableInstances.map((instance) => (
+                            <SelectItem key={instance.id} value={instance.id}>
+                              <div className="flex items-center gap-2">
+                                <Phone className="h-4 w-4" />
+                                <span>{instance.instance_name}</span>
+                                {instance.connected_phone && (
+                                  <span className="text-muted-foreground text-xs">
+                                    ({instance.connected_phone})
+                                  </span>
+                                )}
+                                {instance.is_connected ? (
+                                  <CheckCircle2 className="h-3 w-3 text-google-green-500" />
+                                ) : (
+                                  <XCircle className="h-3 w-3 text-google-yellow-500" />
+                                )}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : undefined}
                   />
                 </ResizablePanel>
 
@@ -370,7 +360,6 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
                 </ResizablePanel>
               </ResizablePanelGroup>
             </div>
-          </div>
         )}
       </DialogContent>
     </Dialog>
