@@ -10,13 +10,14 @@ import { useWhatsAppRealtime } from "@/hooks/useWhatsAppRealtime";
 import { useSyncWhatsAppChats } from "@/hooks/useSyncWhatsAppChats";
 import { useWhatsAppPanelSizes } from "@/hooks/useWhatsAppPanelSizes";
 import { useWhatsAppAssignments } from "@/hooks/useWhatsAppAssignments";
+import { useUserWhatsAppSquad } from "@/hooks/useUserWhatsAppSquad";
 import { useAuth } from "@/hooks/useAuth";
 import { WhatsAppConversationList } from "./WhatsAppConversationList";
 import { WhatsAppChatWindow } from "./WhatsAppChatWindow";
 import { WhatsAppAIAgentConfigModal } from "./WhatsAppAIAgentConfigModal";
 import { WhatsAppQuickReplyManager } from "./WhatsAppQuickReplyManager";
 import { WhatsAppBlockedContactsModal } from "./WhatsAppBlockedContactsModal";
-import { MessageSquare, Settings, AlertCircle, Phone, CheckCircle2, XCircle, RefreshCw, Archive, Star, Users, MessageCircle, BellOff, Sparkles, Zap, ShieldOff } from "lucide-react";
+import { MessageSquare, Settings, AlertCircle, Phone, CheckCircle2, XCircle, RefreshCw, Archive, Star, Users, MessageCircle, BellOff, Sparkles, Zap, ShieldOff, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -33,11 +34,13 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
   const { config, isLoading: isLoadingConfig } = useWhatsAppConfig(activeCompany?.company_id);
   const { instances, userInstances, isLoading: isLoadingInstances } = useWhatsAppInstances(activeCompany?.company_id);
   const { assignments } = useWhatsAppAssignments(activeCompany?.company_id);
+  const { data: userSquad } = useUserWhatsAppSquad(activeCompany?.company_id);
   const navigate = useNavigate();
   
   const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<string>("all");
+  const [squadFilterActive, setSquadFilterActive] = useState(false); // Filter by user's squad
   const [isAIConfigOpen, setIsAIConfigOpen] = useState(false);
   const [isQuickReplyManagerOpen, setIsQuickReplyManagerOpen] = useState(false);
   const [isBlockedContactsOpen, setIsBlockedContactsOpen] = useState(false);
@@ -88,10 +91,12 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
 
   // Fetch conversations - include archived when viewing archived filter
   const includeArchived = activeFilter === "archived";
+  const squadFilterId = squadFilterActive ? userSquad?.squadId : undefined;
   const { conversations, isLoading: isLoadingConversations, markAsRead, refetchConversations } = useWhatsAppConversations(
     activeCompany?.company_id,
     selectedInstanceId,
-    includeArchived
+    includeArchived,
+    squadFilterId
   );
 
   // Enable realtime updates
@@ -222,6 +227,20 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
                     isActive={activeFilter === "groups"}
                     onClick={() => setActiveFilter("groups")}
                   />
+                  
+                  {/* Squad filter - only show if user is a WhatsApp responsible */}
+                  {userSquad && (
+                    <>
+                      <div className="h-px w-8 bg-border my-2" />
+                      <SidebarFilterButton
+                        icon={Heart}
+                        label={`Meu Squad (${userSquad.squadName})`}
+                        isActive={squadFilterActive}
+                        onClick={() => setSquadFilterActive(!squadFilterActive)}
+                        badgeColor={userSquad.squadColor || undefined}
+                      />
+                    </>
+                  )}
                   
                   <div className="flex-1" />
                   
@@ -409,9 +428,10 @@ interface SidebarFilterButtonProps {
   onClick: () => void;
   count?: number;
   isSyncing?: boolean;
+  badgeColor?: string; // Optional color badge (for squad indicator)
 }
 
-function SidebarFilterButton({ icon: Icon, label, isActive, onClick, count, isSyncing }: SidebarFilterButtonProps) {
+function SidebarFilterButton({ icon: Icon, label, isActive, onClick, count, isSyncing, badgeColor }: SidebarFilterButtonProps) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -436,6 +456,12 @@ function SidebarFilterButton({ icon: Icon, label, isActive, onClick, count, isSy
             )}>
               {count > 99 ? "99+" : count}
             </span>
+          )}
+          {badgeColor && (
+            <span 
+              className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background"
+              style={{ backgroundColor: badgeColor }}
+            />
           )}
         </button>
       </TooltipTrigger>

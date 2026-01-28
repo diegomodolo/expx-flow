@@ -25,11 +25,16 @@ export interface WhatsAppConversation {
   updated_at: string;
 }
 
-export function useWhatsAppConversations(companyId: string | undefined, instanceId?: string | null, includeArchived: boolean = false) {
+export function useWhatsAppConversations(
+  companyId: string | undefined, 
+  instanceId?: string | null, 
+  includeArchived: boolean = false,
+  squadFilterId?: string | null // Filter by squad (team) - shows only conversations with clients from this squad
+) {
   const queryClient = useQueryClient();
 
   const { data: conversations, isLoading, error } = useQuery({
-    queryKey: ["whatsapp-conversations", companyId, instanceId, includeArchived],
+    queryKey: ["whatsapp-conversations", companyId, instanceId, includeArchived, squadFilterId],
     queryFn: async () => {
       if (!companyId) return [];
       
@@ -37,7 +42,7 @@ export function useWhatsAppConversations(companyId: string | undefined, instance
         .from("whatsapp_conversations")
         .select(`
           *,
-          clients:client_id (name, avatar),
+          clients:client_id (name, avatar, team_id),
           whatsapp_realtime_analysis (temperature)
         `)
         .eq("company_id", companyId)
@@ -59,14 +64,23 @@ export function useWhatsAppConversations(companyId: string | undefined, instance
       if (error) throw error;
       
       // Transform data to flatten client name, avatar and temperature
-      const transformed = (data || []).map((conv: any) => ({
+      let transformed = (data || []).map((conv: any) => ({
         ...conv,
         client_name: conv.clients?.name || null,
         client_logo_url: conv.clients?.avatar || null,
+        client_team_id: conv.clients?.team_id || null,
         temperature: conv.whatsapp_realtime_analysis?.temperature || null,
         clients: undefined, // Remove nested object
         whatsapp_realtime_analysis: undefined, // Remove nested object
       }));
+      
+      // Filter by squad if squadFilterId is provided
+      // Only show conversations that have a client linked AND that client belongs to the squad
+      if (squadFilterId) {
+        transformed = transformed.filter(
+          (conv: any) => conv.client_id && conv.client_team_id === squadFilterId
+        );
+      }
       
       return transformed as WhatsAppConversation[];
     },
