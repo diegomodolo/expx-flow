@@ -426,3 +426,9 @@ verify_jwt = true
 
 [functions.manage-whatsapp-quick-reply]
 verify_jwt = true
+
+[functions.mark-whatsapp-read]
+verify_jwt = true
+
+[functions.whatsapp-ai-assistant]
+verify_jwt = true

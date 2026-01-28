@@ -7,6 +7,8 @@ import { WhatsAppMessagesLoading } from "./WhatsAppMessagesLoading";
 import { WhatsAppLabelPicker } from "./WhatsAppLabelPicker";
 import { WhatsAppLabelList } from "./WhatsAppLabelBadge";
 import { WhatsAppQuickReplyManager } from "./WhatsAppQuickReplyManager";
+import { WhatsAppAIAssistant } from "./WhatsAppAIAssistant";
+import { WhatsAppAISendDialog } from "./WhatsAppAISendDialog";
 import { useWhatsAppLabels } from "@/hooks/useWhatsAppLabels";
 import { useWhatsAppQuickReplies } from "@/hooks/useWhatsAppQuickReplies";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -58,6 +60,13 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
   const [showProfilePic, setShowProfilePic] = useState(false);
   const [quickReplyManagerOpen, setQuickReplyManagerOpen] = useState(false);
   const [isMarkingRead, setIsMarkingRead] = useState(false);
+  
+  // AI Assistant state
+  const [aiAssistantOpen, setAiAssistantOpen] = useState(false);
+  const [aiSelectedMessage, setAiSelectedMessage] = useState("");
+  const [aiSendDialogOpen, setAiSendDialogOpen] = useState(false);
+  const [aiSuggestedResponse, setAiSuggestedResponse] = useState("");
+  const [isSendingAiResponse, setIsSendingAiResponse] = useState(false);
   
   const { labels } = useWhatsAppLabels(companyId, instanceId ?? null);
   const { quickReplies, isLoading: quickRepliesLoading } = useWhatsAppQuickReplies(instanceId ?? null);
@@ -150,9 +159,36 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
     }
   };
 
+  const handleOpenAIAssistant = (messageContent: string) => {
+    setAiSelectedMessage(messageContent);
+    setAiAssistantOpen(true);
+  };
+
+  const handleUseAIResponse = (response: string) => {
+    setAiSuggestedResponse(response);
+    setAiSendDialogOpen(true);
+  };
+
+  const handleSendAIResponse = async (message: string) => {
+    setIsSendingAiResponse(true);
+    try {
+      await sendMessage({ phone: conversation.phone, message, instanceId: instanceId ?? null });
+      setAiSendDialogOpen(false);
+      setAiAssistantOpen(false);
+      setAiSuggestedResponse("");
+      toast.success("Mensagem enviada!");
+    } catch (error) {
+      console.error("Error sending AI response:", error);
+      toast.error("Erro ao enviar mensagem");
+    } finally {
+      setIsSendingAiResponse(false);
+    }
+  };
+
   return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
+    <div className="flex h-full">
+      {/* Main chat area */}
+      <div className="flex flex-col flex-1 h-full min-w-0">
       <div className="flex items-center gap-3 px-4 py-3 border-b bg-muted/30">
         <Avatar 
           className={cn(
@@ -363,6 +399,7 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
                 instanceId={instanceId ?? null}
                 companyId={companyId}
                 remoteJid={`${conversation.phone}@s.whatsapp.net`}
+                onOpenAIAssistant={handleOpenAIAssistant}
               />
             ))}
             <div ref={scrollRef} />
@@ -377,6 +414,25 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
         isSending={isSendingMedia}
         quickReplies={quickReplies}
         quickRepliesLoading={quickRepliesLoading}
+      />
+      </div>
+
+      {/* AI Assistant Panel */}
+      <WhatsAppAIAssistant
+        isOpen={aiAssistantOpen}
+        onClose={() => setAiAssistantOpen(false)}
+        customerMessage={aiSelectedMessage}
+        contactName={displayName}
+        onUseResponse={handleUseAIResponse}
+      />
+
+      {/* AI Send Dialog */}
+      <WhatsAppAISendDialog
+        isOpen={aiSendDialogOpen}
+        onClose={() => setAiSendDialogOpen(false)}
+        initialMessage={aiSuggestedResponse}
+        onSend={handleSendAIResponse}
+        isSending={isSendingAiResponse}
       />
     </div>
   );
