@@ -53,7 +53,7 @@ export function WhatsAppAIAgentConfigModal({ isOpen, onClose, companyId, instanc
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-6xl w-[95vw] h-[90vh] max-h-[90vh] p-0 gap-0 flex flex-col">
+      <DialogContent className="max-w-[1600px] w-[95vw] h-[90vh] max-h-[90vh] p-0 gap-0 flex flex-col">
         <DialogHeader className="px-6 py-4 border-b flex-shrink-0">
           <div className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
