@@ -139,13 +139,6 @@ export function useWhatsAppMessages(conversationId: string | null, companyId: st
         console.log(`[useWhatsAppMessages] Mensagens obtidas: ${data.fetched}, salvas: ${data.saved}`);
         // Invalidate to reload from DB with new messages
         queryClient.invalidateQueries({ queryKey: ["whatsapp-messages", conversationId] });
-        
-        if (data.fetched > 0) {
-          toast({
-            title: "Mensagens atualizadas",
-            description: `${data.saved} novas mensagens carregadas`,
-          });
-        }
       } else if (data?.error) {
         console.error("[useWhatsAppMessages] Erro da API:", data.error);
         toast({
