@@ -80,9 +80,12 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
     syncChats(instanceId); // Sincronizar chats da nova instância
   };
 
+  // Fetch conversations - include archived when viewing archived filter
+  const includeArchived = activeFilter === "archived";
   const { conversations, isLoading: isLoadingConversations, markAsRead, refetchConversations } = useWhatsAppConversations(
     activeCompany?.company_id,
-    selectedInstanceId
+    selectedInstanceId,
+    includeArchived
   );
 
   // Enable realtime updates
@@ -95,7 +98,7 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
   const filteredConversations = conversations.filter(c => {
     switch (activeFilter) {
       case "unread":
-        return (c.unread_count || 0) > 0;
+        return (c.unread_count || 0) > 0 && !c.is_archived;
       case "favorites":
         // TODO: Implement favorites when field is added
         return false;
@@ -103,14 +106,13 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
         // TODO: Implement groups detection
         return false;
       case "archived":
-        // TODO: Implement archived when field is added
-        return false;
+        return c.is_archived === true;
       case "muted":
         // TODO: Implement muted when field is added
         return false;
       case "all":
       default:
-        return true;
+        return !c.is_archived;
     }
   });
   
@@ -128,6 +130,15 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
   const handleChatDeleted = (conversationId: string) => {
     // If the deleted chat is selected, clear selection
     if (selectedConversationId === conversationId) {
+      setSelectedConversationId(null);
+    }
+    // Refresh conversation list
+    refetchConversations();
+  };
+
+  const handleChatArchived = (conversationId: string, archived: boolean) => {
+    // If the archived chat is selected and we're not viewing archived, clear selection
+    if (archived && selectedConversationId === conversationId && activeFilter !== "archived") {
       setSelectedConversationId(null);
     }
     // Refresh conversation list
@@ -350,6 +361,7 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
                       companyId={activeCompany?.company_id}
                       instanceId={selectedInstanceId}
                       onChatDeleted={handleChatDeleted}
+                      onChatArchived={handleChatArchived}
                     />
                   ) : (
                     <div className="flex flex-col items-center justify-center h-full gap-4 text-muted-foreground">
