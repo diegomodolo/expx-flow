@@ -1,6 +1,8 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
+export type ConversationTemperature = "fria" | "morna" | "quente" | null;
+
 export interface WhatsAppConversation {
   id: string;
   company_id: string;
@@ -18,6 +20,7 @@ export interface WhatsAppConversation {
   client_name?: string | null; // Joined from clients table
   client_logo_url?: string | null; // Joined from clients table
   label_ids: string[] | null; // Labels assigned to this conversation
+  temperature?: ConversationTemperature; // From realtime analysis
   created_at: string;
   updated_at: string;
 }
@@ -34,7 +37,8 @@ export function useWhatsAppConversations(companyId: string | undefined, instance
         .from("whatsapp_conversations")
         .select(`
           *,
-          clients:client_id (name, avatar)
+          clients:client_id (name, avatar),
+          whatsapp_realtime_analysis (temperature)
         `)
         .eq("company_id", companyId)
         .order("is_pinned", { ascending: false })
@@ -54,12 +58,14 @@ export function useWhatsAppConversations(companyId: string | undefined, instance
 
       if (error) throw error;
       
-      // Transform data to flatten client name and avatar
+      // Transform data to flatten client name, avatar and temperature
       const transformed = (data || []).map((conv: any) => ({
         ...conv,
         client_name: conv.clients?.name || null,
         client_logo_url: conv.clients?.avatar || null,
+        temperature: conv.whatsapp_realtime_analysis?.temperature || null,
         clients: undefined, // Remove nested object
+        whatsapp_realtime_analysis: undefined, // Remove nested object
       }));
       
       return transformed as WhatsAppConversation[];

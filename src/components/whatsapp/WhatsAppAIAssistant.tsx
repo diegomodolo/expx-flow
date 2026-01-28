@@ -52,42 +52,42 @@ function AnalysisChatMessage({
   const departmentLabel = departmentLabels[analysis.departmentInsight.type] || analysis.departmentInsight.type;
   
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       {/* Interpretation */}
-      <div className="rounded-lg px-3 py-2 bg-blue-500/10 border border-blue-500/20 mr-4">
-        <div className="flex items-start gap-2">
-          <MessageCircle className="h-3.5 w-3.5 text-blue-500 mt-0.5 shrink-0" />
+      <div className="rounded-lg px-2.5 py-1.5 bg-blue-500/10 border border-blue-500/20 mr-4">
+        <div className="flex items-start gap-1.5">
+          <MessageCircle className="h-3 w-3 text-blue-500 mt-0.5 shrink-0" />
           <div>
-            <p className="text-xs font-medium text-blue-600 dark:text-blue-400 mb-0.5">Interpretação</p>
-            <p className="text-sm">{analysis.interpretation}</p>
+            <p className="text-[10px] font-medium text-blue-600 dark:text-blue-400 mb-0.5">Interpretação</p>
+            <p className="text-xs leading-relaxed">{analysis.interpretation}</p>
           </div>
         </div>
       </div>
 
       {/* Suggestion */}
-      <div className="rounded-lg px-3 py-2 bg-primary/10 border border-primary/20 mr-4">
-        <div className="flex items-start gap-2">
-          <Lightbulb className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
+      <div className="rounded-lg px-2.5 py-1.5 bg-primary/10 border border-primary/20 mr-4">
+        <div className="flex items-start gap-1.5">
+          <Lightbulb className="h-3 w-3 text-primary mt-0.5 shrink-0" />
           <div>
-            <p className="text-xs font-medium text-primary mb-0.5">Sugestão</p>
-            <p className="text-sm">{analysis.suggestion}</p>
+            <p className="text-[10px] font-medium text-primary mb-0.5">Sugestão</p>
+            <p className="text-xs leading-relaxed">{analysis.suggestion}</p>
           </div>
         </div>
       </div>
 
       {/* Department Insight */}
-      <div className="rounded-lg px-3 py-2 bg-violet-500/10 border border-violet-500/20 mr-4">
-        <div className="flex items-start gap-2">
-          <Target className="h-3.5 w-3.5 text-violet-500 mt-0.5 shrink-0" />
+      <div className="rounded-lg px-2.5 py-1.5 bg-violet-500/10 border border-violet-500/20 mr-4">
+        <div className="flex items-start gap-1.5">
+          <Target className="h-3 w-3 text-violet-500 mt-0.5 shrink-0" />
           <div className="flex-1">
-            <p className="text-xs font-medium text-violet-600 dark:text-violet-400 mb-0.5">
+            <p className="text-[10px] font-medium text-violet-600 dark:text-violet-400 mb-0.5">
               Insight ({departmentLabel})
             </p>
-            <p className="text-sm mb-1">{analysis.departmentInsight.insight}</p>
+            <p className="text-xs leading-relaxed mb-1">{analysis.departmentInsight.insight}</p>
             {analysis.departmentInsight.actionItems.length > 0 && (
               <ul className="space-y-0.5">
                 {analysis.departmentInsight.actionItems.map((item, index) => (
-                  <li key={index} className="text-xs text-muted-foreground flex items-center gap-1.5">
+                  <li key={index} className="text-[10px] text-muted-foreground flex items-center gap-1">
                     <span className="h-1 w-1 rounded-full bg-violet-500 shrink-0" />
                     {item}
                   </li>
@@ -100,21 +100,21 @@ function AnalysisChatMessage({
 
       {/* Ready Message */}
       {analysis.readyMessage && (
-        <div className="rounded-lg px-3 py-2 bg-emerald-500/10 border border-emerald-500/20 mr-4">
-          <div className="flex items-start gap-2">
-            <MessageSquareText className="h-3.5 w-3.5 text-emerald-500 mt-0.5 shrink-0" />
+        <div className="rounded-lg px-2.5 py-1.5 bg-emerald-500/10 border border-emerald-500/20 mr-4">
+          <div className="flex items-start gap-1.5">
+            <MessageSquareText className="h-3 w-3 text-emerald-500 mt-0.5 shrink-0" />
             <div className="flex-1">
-              <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400 mb-0.5">
+              <p className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400 mb-0.5">
                 Mensagem Pronta
               </p>
-              <p className="text-sm whitespace-pre-wrap">{analysis.readyMessage}</p>
+              <p className="text-xs leading-relaxed whitespace-pre-wrap">{analysis.readyMessage}</p>
               {onSendReadyMessage && (
                 <Button
                   size="sm"
-                  className="h-7 mt-2 text-xs gap-1.5"
+                  className="h-6 mt-1.5 text-[10px] gap-1"
                   onClick={() => onSendReadyMessage(analysis.readyMessage)}
                 >
-                  <Send className="h-3 w-3" />
+                  <Send className="h-2.5 w-2.5" />
                   Revisar e Enviar
                 </Button>
               )}
@@ -124,7 +124,7 @@ function AnalysisChatMessage({
       )}
 
       {/* Timestamp */}
-      <p className="text-[10px] text-muted-foreground ml-2">
+      <p className="text-[9px] text-muted-foreground ml-2">
         Análise • {new Date(analysis.timestamp).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
       </p>
     </div>
@@ -436,12 +436,12 @@ Siga as instruções do atendente para ajustar a resposta.`;
                         : "bg-muted mr-4"
                     )}
                   >
-                    {message.role === "assistant" ? (
-                      <div className="prose prose-sm dark:prose-invert max-w-none text-sm [&>p]:text-sm [&>ul]:text-sm [&>ol]:text-sm [&>li]:text-sm">
+                  {message.role === "assistant" ? (
+                      <div className="prose prose-xs dark:prose-invert max-w-none text-xs [&>p]:text-xs [&>ul]:text-xs [&>ol]:text-xs [&>li]:text-xs [&>p]:leading-relaxed">
                         <ReactMarkdown>{message.content}</ReactMarkdown>
                       </div>
                     ) : (
-                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                      <p className="text-xs whitespace-pre-wrap leading-relaxed">{message.content}</p>
                     )}
                   </div>
 
