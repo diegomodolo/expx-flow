@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, User, Eye, Send, Star, Trash2, Search, UserPlus } from "lucide-react";
+import { Loader2, User, Eye, Send, Star, Trash2, Search, UserPlus, Headphones } from "lucide-react";
 import { WhatsAppInstance, WhatsAppInstanceUser } from "@/hooks/useWhatsAppInstances";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/CompanyContext";
@@ -39,6 +39,7 @@ interface WhatsAppInstanceUsersModalProps {
     can_view: boolean;
     can_send: boolean;
     is_default: boolean;
+    is_attendant: boolean;
   }) => void;
   onRemoveUser: (data: { instance_id: string; user_id: string }) => void;
 }
@@ -54,6 +55,7 @@ interface AssignedUserWithProfile extends WhatsAppInstanceUser {
   full_name: string;
   role: string;
   avatar_url: string | null;
+  is_attendant: boolean;
 }
 
 export function WhatsAppInstanceUsersModal({
@@ -136,6 +138,7 @@ export function WhatsAppInstanceUsersModal({
       can_view: true,
       can_send: true,
       is_default: false,
+      is_attendant: false,
     });
 
     // Add to local state immediately
@@ -148,6 +151,7 @@ export function WhatsAppInstanceUsersModal({
         can_view: true,
         can_send: true,
         is_default: false,
+        is_attendant: false,
         created_at: new Date().toISOString(),
         full_name: user.full_name,
         role: user.role,
@@ -165,7 +169,7 @@ export function WhatsAppInstanceUsersModal({
     setAssignedUsers(prev => prev.filter(u => u.user_id !== userId));
   };
 
-  const handleTogglePermission = (userId: string, permission: 'can_view' | 'can_send' | 'is_default', newValue: boolean) => {
+  const handleTogglePermission = (userId: string, permission: 'can_view' | 'can_send' | 'is_default' | 'is_attendant', newValue: boolean) => {
     if (!instance) return;
 
     const user = assignedUsers.find(u => u.user_id === userId);
@@ -177,6 +181,7 @@ export function WhatsAppInstanceUsersModal({
       can_view: permission === 'can_view' ? newValue : user.can_view ?? true,
       can_send: permission === 'can_send' ? newValue : user.can_send ?? true,
       is_default: permission === 'is_default' ? newValue : user.is_default ?? false,
+      is_attendant: permission === 'is_attendant' ? newValue : user.is_attendant ?? false,
     });
 
     setAssignedUsers(prev =>
@@ -330,6 +335,18 @@ export function WhatsAppInstanceUsersModal({
                               Padrão
                             </Label>
                           </div>
+
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              id={`attendant-${user.user_id}`}
+                              checked={user.is_attendant ?? false}
+                              onCheckedChange={(checked) => handleTogglePermission(user.user_id, 'is_attendant', checked)}
+                            />
+                            <Label htmlFor={`attendant-${user.user_id}`} className="text-xs flex items-center gap-1 cursor-pointer">
+                              <Headphones className="h-3 w-3" />
+                              Atendente
+                            </Label>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -344,7 +361,8 @@ export function WhatsAppInstanceUsersModal({
           <p className="text-xs text-muted-foreground">
             <strong>Ver:</strong> pode visualizar conversas •{" "}
             <strong>Enviar:</strong> pode enviar mensagens •{" "}
-            <strong>Padrão:</strong> instância padrão ao abrir o chat
+            <strong>Padrão:</strong> instância padrão ao abrir o chat •{" "}
+            <strong>Atendente:</strong> métricas atribuídas nos relatórios de CS
           </p>
         </div>
 

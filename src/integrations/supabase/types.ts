@@ -11248,6 +11248,7 @@ export type Database = {
           created_at: string | null
           id: string
           instance_id: string
+          is_attendant: boolean
           is_default: boolean | null
           user_id: string
         }
@@ -11257,6 +11258,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           instance_id: string
+          is_attendant?: boolean
           is_default?: boolean | null
           user_id: string
         }
@@ -11266,6 +11268,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           instance_id?: string
+          is_attendant?: boolean
           is_default?: boolean | null
           user_id?: string
         }
