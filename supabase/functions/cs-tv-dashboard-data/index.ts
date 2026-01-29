@@ -534,6 +534,8 @@ Deno.serve(async (req) => {
     let profiles: any[] = [];
     let employees: any[] = [];
     
+    console.log('Looking up names for userIds:', userIds, 'company.id:', company.id);
+    
     if (userIds.length > 0) {
       // Fetch from profiles table (uses full_name, not name)
       const { data: profilesData, error: profilesError } = await supabase
@@ -545,20 +547,21 @@ Deno.serve(async (req) => {
         console.error('Error fetching profiles:', profilesError);
       }
       profiles = profilesData || [];
-      console.log('Profiles fetched:', profiles.length, profiles);
+      console.log('Profiles fetched:', profiles.length, JSON.stringify(profiles));
       
-      // Fetch from employees table for this company
+      // Fetch from employees table - get any employee matching user_id
+      // (don't filter by company_id since employees might be in a different company record)
+      // Note: employees table doesn't have avatar_url column
       const { data: employeesData, error: employeesError } = await supabase
         .from('employees')
-        .select('user_id, name, avatar_url')
-        .eq('company_id', company.id)
+        .select('user_id, name, company_id')
         .in('user_id', userIds);
       
       if (employeesError) {
         console.error('Error fetching employees:', employeesError);
       }
       employees = employeesData || [];
-      console.log('Employees fetched:', employees.length, employees);
+      console.log('Employees fetched:', employees.length, JSON.stringify(employees));
     }
 
     // Build attendant performance list with names
@@ -569,8 +572,9 @@ Deno.serve(async (req) => {
         const profile = profiles.find(p => p.id === metrics.id);
         
         // profiles uses full_name, employees uses name
+        // Note: employees table doesn't have avatar_url, only profiles does
         const name = employee?.name || profile?.full_name || 'Sem nome';
-        const avatarUrl = employee?.avatar_url || profile?.avatar_url || null;
+        const avatarUrl = profile?.avatar_url || null;
         
         console.log('Building attendant:', { userId: metrics.id, employeeName: employee?.name, profileName: profile?.full_name, finalName: name });
         
