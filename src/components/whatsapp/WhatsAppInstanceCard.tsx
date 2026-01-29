@@ -33,8 +33,9 @@ import {
   XCircle,
   WifiOff,
   Webhook,
+  Tag,
 } from "lucide-react";
-import { WhatsAppInstance } from "@/hooks/useWhatsAppInstances";
+import { WhatsAppInstance, INSTANCE_TYPE_OPTIONS } from "@/hooks/useWhatsAppInstances";
 import { UazapiQRCodeModal } from "./UazapiQRCodeModal";
 
 interface WhatsAppInstanceCardProps {
@@ -65,6 +66,11 @@ export function WhatsAppInstanceCard({
   const [showQRModal, setShowQRModal] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showWebhookDialog, setShowWebhookDialog] = useState(false);
+
+  const getInstanceTypeLabel = () => {
+    const typeOption = INSTANCE_TYPE_OPTIONS.find(opt => opt.value === instance.instance_type);
+    return typeOption?.label || 'Geral';
+  };
 
   const handleConfigureWebhook = (receiveGroups: boolean) => {
     setShowWebhookDialog(false);
@@ -122,6 +128,12 @@ export function WhatsAppInstanceCard({
                 <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="font-medium truncate">{instance.instance_name}</h3>
                   {getStatusBadge()}
+                  {instance.instance_type && instance.instance_type !== 'general' && (
+                    <Badge variant="outline" className="shrink-0 text-xs">
+                      <Tag className="h-3 w-3 mr-1" />
+                      {getInstanceTypeLabel()}
+                    </Badge>
+                  )}
                 </div>
                 
                 {instance.profile_name && (

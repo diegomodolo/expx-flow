@@ -2,6 +2,18 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
+// Instance type options for categorization
+export const INSTANCE_TYPE_OPTIONS = [
+  { value: 'general', label: 'Geral' },
+  { value: 'support', label: 'Suporte' },
+  { value: 'cs', label: 'CS / Pós-venda' },
+  { value: 'commercial', label: 'Comercial' },
+  { value: 'financial', label: 'Financeiro' },
+  { value: 'administrative', label: 'Administrativo' },
+] as const;
+
+export type InstanceType = typeof INSTANCE_TYPE_OPTIONS[number]['value'];
+
 export interface WhatsAppInstance {
   id: string;
   company_id: string;
@@ -19,6 +31,8 @@ export interface WhatsAppInstance {
   status?: string | null;
   profile_name?: string | null;
   profile_pic_url?: string | null;
+  // Instance categorization
+  instance_type?: InstanceType | null;
 }
 
 export interface WhatsAppInstanceUser {
@@ -97,7 +111,7 @@ export function useWhatsAppInstances(companyId: string | undefined) {
 
   // Create instance mutation - now uses edge function to create on UazapiGO
   const createInstanceMutation = useMutation({
-    mutationFn: async (data: { instance_name: string }) => {
+    mutationFn: async (data: { instance_name: string; instance_type?: InstanceType }) => {
       if (!companyId) throw new Error("Company ID required");
 
       // Call edge function to create instance on UazapiGO
@@ -105,6 +119,7 @@ export function useWhatsAppInstances(companyId: string | undefined) {
         body: {
           company_id: companyId,
           instance_name: data.instance_name,
+          instance_type: data.instance_type || "general",
         },
       });
 

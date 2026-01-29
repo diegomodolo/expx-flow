@@ -9,6 +9,7 @@ const corsHeaders = {
 interface CreateInstancePayload {
   company_id: string;
   instance_name: string;
+  instance_type?: string;
 }
 
 serve(async (req) => {
@@ -23,7 +24,7 @@ serve(async (req) => {
 
   try {
     const payload: CreateInstancePayload = await req.json();
-    const { company_id, instance_name } = payload;
+    const { company_id, instance_name, instance_type } = payload;
 
     console.log("[create-uazapi-instance] Creating instance for company:", company_id);
     console.log("[create-uazapi-instance] Instance name:", instance_name);
@@ -131,6 +132,7 @@ serve(async (req) => {
         status: instanceInfo.status || "disconnected",
         is_active: true,
         is_connected: false,
+        instance_type: instance_type || "general",
       })
       .select()
       .single();

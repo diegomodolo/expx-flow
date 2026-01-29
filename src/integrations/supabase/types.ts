@@ -11283,6 +11283,7 @@ export type Database = {
           created_at: string | null
           id: string
           instance_name: string
+          instance_type: string | null
           is_active: boolean | null
           is_connected: boolean | null
           last_connection_test: string | null
@@ -11300,6 +11301,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           instance_name: string
+          instance_type?: string | null
           is_active?: boolean | null
           is_connected?: boolean | null
           last_connection_test?: string | null
@@ -11317,6 +11319,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           instance_name?: string
+          instance_type?: string | null
           is_active?: boolean | null
           is_connected?: boolean | null
           last_connection_test?: string | null
