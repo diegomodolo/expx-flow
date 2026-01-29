@@ -428,11 +428,11 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
       {/* Main chat area */}
       <ResizablePanel defaultSize={aiAssistantOpen ? (100 - sizes.aiAssistant) : 100} minSize={50}>
         <div className="flex flex-col h-full min-w-0">
-      <div className="flex items-center gap-3 px-4 py-3 border-b bg-muted/30">
+      <div className="flex items-center gap-2 md:gap-3 px-2 md:px-4 py-2 md:py-3 border-b bg-muted/30">
         <div className="relative shrink-0">
           <Avatar 
             className={cn(
-              "h-10 w-10",
+              "h-8 w-8 md:h-10 md:w-10",
               conversation.profile_pic_url && "cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
             )}
             onClick={() => conversation.profile_pic_url && setShowProfilePic(true)}
@@ -444,7 +444,7 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
                 className="object-cover"
               />
             )}
-            <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
+            <AvatarFallback className="bg-primary/10 text-primary text-xs md:text-sm font-medium">
               {getInitials(displayName)}
             </AvatarFallback>
           </Avatar>
@@ -455,7 +455,7 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
               <TooltipTrigger asChild>
                 <button 
                   onClick={handleNavigateToClient}
-                  className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full border-2 border-background bg-background overflow-hidden shadow-sm cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
+                  className="absolute -bottom-1 -right-1 h-4 w-4 md:h-5 md:w-5 rounded-full border-2 border-background bg-background overflow-hidden shadow-sm cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
                 >
                   {linkedClientLogo ? (
                     <img 
@@ -465,7 +465,7 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
                     />
                   ) : (
                     <div className="h-full w-full bg-primary/10 flex items-center justify-center">
-                      <Building2 className="h-3 w-3 text-primary" />
+                      <Building2 className="h-2.5 w-2.5 md:h-3 md:w-3 text-primary" />
                     </div>
                   )}
                 </button>
@@ -476,23 +476,25 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
             </Tooltip>
           )}
         </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <h3 className="font-medium text-sm truncate">{displayName}</h3>
-            {/* Label badges */}
-            {chatLabelIds.length > 0 && (
-              <WhatsAppLabelList 
-                labels={labels.filter(l => chatLabelIds.includes(l.id))} 
-                maxVisible={2}
-              />
-            )}
+        <div className="flex-1 min-w-0 max-w-[120px] md:max-w-none">
+          <div className="flex items-center gap-1 md:gap-2">
+            <h3 className="font-medium text-xs md:text-sm truncate">{displayName}</h3>
+            {/* Label badges - hide on small screens */}
+            <div className="hidden md:flex">
+              {chatLabelIds.length > 0 && (
+                <WhatsAppLabelList 
+                  labels={labels.filter(l => chatLabelIds.includes(l.id))} 
+                  maxVisible={2}
+                />
+              )}
+            </div>
           </div>
-          <p className="text-xs text-muted-foreground flex items-center gap-1">
-            <Phone className="h-3 w-3" />
-            {formatPhoneNumber(conversation.phone)}
-            {/* Background sync indicator */}
+          <p className="text-[10px] md:text-xs text-muted-foreground flex items-center gap-1">
+            <Phone className="h-2.5 w-2.5 md:h-3 md:w-3 shrink-0" />
+            <span className="truncate">{formatPhoneNumber(conversation.phone)}</span>
+            {/* Background sync indicator - hide on small screens */}
             {isSyncingInBackground && (
-              <span className="ml-2 flex items-center gap-1 text-primary/70">
+              <span className="hidden md:flex ml-2 items-center gap-1 text-primary/70">
                 <RefreshCw className="h-3 w-3 animate-spin" />
                 <span className="text-[10px]">Sincronizando...</span>
               </span>
@@ -542,9 +544,10 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
                 <Button
                   variant="ghost"
                   size="icon"
+                  className="h-8 w-8 md:h-9 md:w-9"
                   onClick={() => setReminderModalOpen(true)}
                 >
-                  <Clock className="h-4 w-4" />
+                  <Clock className="h-3.5 w-3.5 md:h-4 md:w-4" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Adicionar Lembrete</TooltipContent>
@@ -554,9 +557,10 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
                 <Button
                   variant="ghost"
                   size="icon"
+                  className="h-8 w-8 md:h-9 md:w-9"
                   onClick={() => setTaskModalOpen(true)}
                 >
-                  <ListTodo className="h-4 w-4" />
+                  <ListTodo className="h-3.5 w-3.5 md:h-4 md:w-4" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Criar Tarefa</TooltipContent>
@@ -570,9 +574,10 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
             <Button
               variant="ghost"
               size="icon"
+              className="h-8 w-8 md:h-9 md:w-9"
               onClick={() => setNoteModalOpen(true)}
             >
-              <StickyNote className="h-4 w-4" />
+              <StickyNote className="h-3.5 w-3.5 md:h-4 md:w-4" />
             </Button>
           </TooltipTrigger>
           <TooltipContent>Adicionar Observação</TooltipContent>
@@ -585,10 +590,11 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
               <Button
                 variant="ghost"
                 size="icon"
+                className="h-8 w-8 md:h-9 md:w-9"
                 onClick={handleNavigateToClient}
                 title="Abrir cadastro do cliente"
               >
-                <ExternalLink className="h-4 w-4" />
+                <ExternalLink className="h-3.5 w-3.5 md:h-4 md:w-4" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>Abrir cadastro: {linkedClientName}</TooltipContent>
@@ -601,10 +607,11 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
             <Button
               variant={aiAssistantOpen ? "secondary" : "ghost"}
               size="icon"
+              className="h-8 w-8 md:h-9 md:w-9"
               onClick={() => setAiAssistantOpen(!aiAssistantOpen)}
               title="Assistente IA"
             >
-              <Sparkles className={cn("h-4 w-4", aiAssistantOpen && "text-primary")} />
+              <Sparkles className={cn("h-3.5 w-3.5 md:h-4 md:w-4", aiAssistantOpen && "text-primary")} />
             </Button>
           </TooltipTrigger>
           <TooltipContent>Assistente IA</TooltipContent>
@@ -614,18 +621,19 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
         <Button
           variant="ghost"
           size="icon"
+          className="h-8 w-8 md:h-9 md:w-9"
           onClick={() => fetchMessagesFromApi(true)}
           disabled={isFetchingFromApi}
           title="Atualizar mensagens"
         >
-          <RefreshCw className={`h-4 w-4 ${isFetchingFromApi ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`h-3.5 w-3.5 md:h-4 md:w-4 ${isFetchingFromApi ? 'animate-spin' : ''}`} />
         </Button>
 
         {/* More options menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon">
-              <MoreVertical className="h-4 w-4" />
+            <Button variant="ghost" size="icon" className="h-8 w-8 md:h-9 md:w-9">
+              <MoreVertical className="h-3.5 w-3.5 md:h-4 md:w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
