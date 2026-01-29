@@ -127,6 +127,7 @@ Deno.serve(async (req) => {
       clientsResult,
       assignmentsResult,
       messagesCountResult,
+      instanceUsersResult,
     ] = await Promise.all([
       // Client health configs
       supabase
@@ -142,14 +143,14 @@ Deno.serve(async (req) => {
         .from('whatsapp_realtime_analysis')
         .select(`
           *,
-          whatsapp_conversations!inner(id, contact_name, client_id)
+          whatsapp_conversations!inner(id, contact_name, client_id, instance_id)
         `)
         .eq('company_id', company.id),
 
       // WhatsApp conversations count
       supabase
         .from('whatsapp_conversations')
-        .select('id, contact_name, client_id, status')
+        .select('id, contact_name, client_id, status, instance_id')
         .eq('company_id', company.id),
 
       // All clients for pending contacts calculation
@@ -172,6 +173,12 @@ Deno.serve(async (req) => {
         .select('sent_by_user_id')
         .eq('company_id', company.id)
         .not('sent_by_user_id', 'is', null),
+
+      // Instance users for fallback attendant performance
+      supabase
+        .from('whatsapp_instance_users')
+        .select('instance_id, user_id')
+        .eq('can_view', true),
     ]);
 
     const healthConfigs = healthConfigsResult.data || [];
@@ -180,6 +187,7 @@ Deno.serve(async (req) => {
     const clients = clientsResult.data || [];
     const assignments = assignmentsResult.data || [];
     const messagesSent = messagesCountResult.data || [];
+    const instanceUsers = instanceUsersResult.data || [];
 
     console.log('Data fetched:', {
       healthConfigs: healthConfigs.length,
@@ -188,6 +196,7 @@ Deno.serve(async (req) => {
       clients: clients.length,
       assignments: assignments.length,
       messagesSent: messagesSent.length,
+      instanceUsers: instanceUsers.length,
     });
 
     // Calculate health metrics
@@ -244,6 +253,8 @@ Deno.serve(async (req) => {
     // ========== ATTENDANT PERFORMANCE ==========
     // Group conversations by attendant
     const attendantConversations = new Map<string, string[]>();
+    
+    // Try primary source: direct conversation assignments
     assignments.forEach((a: any) => {
       const userId = a.assigned_to_user_id;
       if (!attendantConversations.has(userId)) {
@@ -251,6 +262,40 @@ Deno.serve(async (req) => {
       }
       attendantConversations.get(userId)!.push(a.conversation_id);
     });
+
+    // Fallback: if no direct assignments, use instance_users
+    if (attendantConversations.size === 0 && instanceUsers.length > 0) {
+      console.log('Using instance_users fallback for attendant performance');
+      
+      // Group conversations by instance
+      const conversationsByInstance = new Map<string, string[]>();
+      conversations.forEach((c: any) => {
+        if (c.instance_id) {
+          if (!conversationsByInstance.has(c.instance_id)) {
+            conversationsByInstance.set(c.instance_id, []);
+          }
+          conversationsByInstance.get(c.instance_id)!.push(c.id);
+        }
+      });
+
+      // Associate users to their instance conversations
+      instanceUsers.forEach((iu: any) => {
+        const convIds = conversationsByInstance.get(iu.instance_id) || [];
+        if (convIds.length > 0) {
+          if (!attendantConversations.has(iu.user_id)) {
+            attendantConversations.set(iu.user_id, []);
+          }
+          // Add unique conversation IDs
+          convIds.forEach(id => {
+            if (!attendantConversations.get(iu.user_id)!.includes(id)) {
+              attendantConversations.get(iu.user_id)!.push(id);
+            }
+          });
+        }
+      });
+      
+      console.log('Attendants found via instance_users:', attendantConversations.size);
+    }
 
     // Count messages sent per user
     const messageCounts = new Map<string, number>();
