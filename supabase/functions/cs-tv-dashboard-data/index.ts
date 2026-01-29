@@ -168,8 +168,9 @@ Deno.serve(async (req) => {
       messagesCountResult,
       instanceUsersResult,
       allMessagesResult,
-      todayMessagesResult,
-      weekMessagesResult,
+      todayMessagesDataResult,
+      weekMessagesCountResult,
+      todayMessagesCountResult,
     ] = await Promise.all([
       // WhatsApp realtime analysis
       supabase
@@ -205,7 +206,8 @@ Deno.serve(async (req) => {
         .from('whatsapp_messages')
         .select('sent_by_user_id')
         .eq('company_id', company.id)
-        .not('sent_by_user_id', 'is', null),
+        .not('sent_by_user_id', 'is', null)
+        .limit(50000),
 
       // Instance users for fallback attendant performance (only official attendants)
       supabase
@@ -213,27 +215,36 @@ Deno.serve(async (req) => {
         .select('instance_id, user_id')
         .eq('is_attendant', true),
 
-      // All messages for response time calculation (last 7 days)
+      // All messages for response time calculation (last 7 days) - limit for performance
       supabase
         .from('whatsapp_messages')
         .select('id, conversation_id, direction, sent_at, sent_by_user_id')
         .eq('company_id', company.id)
         .gte('sent_at', weekStart.toISOString())
-        .order('sent_at', { ascending: true }),
+        .order('sent_at', { ascending: true })
+        .limit(20000),
 
-      // Today's messages count
+      // Today's messages with sent_at for hourly chart
       supabase
         .from('whatsapp_messages')
-        .select('id, direction')
+        .select('id, direction, sent_at')
         .eq('company_id', company.id)
-        .gte('sent_at', todayStart.toISOString()),
+        .gte('sent_at', todayStart.toISOString())
+        .limit(50000),
 
       // This week's messages count
       supabase
         .from('whatsapp_messages')
-        .select('id, direction')
+        .select('id', { count: 'exact', head: true })
         .eq('company_id', company.id)
         .gte('sent_at', weekStart.toISOString()),
+
+      // Today's messages count
+      supabase
+        .from('whatsapp_messages')
+        .select('id', { count: 'exact', head: true })
+        .eq('company_id', company.id)
+        .gte('sent_at', todayStart.toISOString()),
     ]);
 
     const whatsappAnalysis = whatsappAnalysisResult.data || [];
@@ -243,8 +254,9 @@ Deno.serve(async (req) => {
     const messagesSent = messagesCountResult.data || [];
     const instanceUsers = instanceUsersResult.data || [];
     const allMessages = allMessagesResult.data || [];
-    const todayMessages = todayMessagesResult.data || [];
-    const weekMessages = weekMessagesResult.data || [];
+    const todayMessagesData = todayMessagesDataResult.data || [];
+    const weekMessagesCount = weekMessagesCountResult.count || 0;
+    const todayMessagesCount = todayMessagesCountResult.count || 0;
 
     // Scope instance users to company instances (table doesn't have company_id)
     const instanceIds = new Set<string>(instances.map((i: any) => i.id));
@@ -258,8 +270,9 @@ Deno.serve(async (req) => {
       messagesSent: messagesSent.length,
       instanceUsers: instanceUsersForCompany.length,
       allMessages: allMessages.length,
-      todayMessages: todayMessages.length,
-      weekMessages: weekMessages.length,
+      todayMessagesData: todayMessagesData.length,
+      todayMessagesCount,
+      weekMessagesCount,
     });
 
     // ========== CALCULATE RESPONSE TIMES ==========
@@ -347,8 +360,9 @@ Deno.serve(async (req) => {
     for (let h = 0; h < 24; h++) {
       hourlyVolume.push({ hour: h, inbound: 0, outbound: 0 });
     }
-    todayMessages.forEach((m: any) => {
-      const hour = new Date(m.sent_at || now).getHours();
+    todayMessagesData.forEach((m: any) => {
+      if (!m.sent_at) return;
+      const hour = new Date(m.sent_at).getHours();
       const isInbound = m.direction === 'inbound' || m.direction === 'incoming';
       if (isInbound) hourlyVolume[hour].inbound++;
       else hourlyVolume[hour].outbound++;
@@ -787,8 +801,8 @@ Deno.serve(async (req) => {
         activeAlerts,
         averageResponseTimeMinutes: globalAverageResponseTime,
         averageFirstResponseTimeMinutes: globalAverageFirstResponseTime,
-        totalMessagesToday: todayMessages.length,
-        totalMessagesThisWeek: weekMessages.length,
+        totalMessagesToday: todayMessagesCount,
+        totalMessagesThisWeek: weekMessagesCount,
         conversationsWithoutResponse,
         conversationsNeedingAttention,
       },
