@@ -23,11 +23,12 @@ interface CSTVCriticalAlertOverlayProps {
   onDismiss: (alertId: string) => void;
   onDismissAll: () => void;
   rotation?: number;
+  zoom?: number;
 }
 
 const SLIDE_DURATION_SECONDS = 30;
 
-export function CSTVCriticalAlertOverlay({ alerts, onDismiss, onDismissAll, rotation = 0 }: CSTVCriticalAlertOverlayProps) {
+export function CSTVCriticalAlertOverlay({ alerts, onDismiss, onDismissAll, rotation = 0, zoom = 100 }: CSTVCriticalAlertOverlayProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [slideCountdown, setSlideCountdown] = useState(SLIDE_DURATION_SECONDS);
   const sirenPlayedRef = useRef(false);
@@ -152,12 +153,20 @@ export function CSTVCriticalAlertOverlay({ alerts, onDismiss, onDismissAll, rota
 
   const isRotated = rotation === 90 || rotation === 270;
 
-  // Estilos para o conteúdo interno rotacionado
+  // Estilos para o conteúdo interno rotacionado e com zoom
   const getContentStyle = () => {
-    if (rotation === 0) return {};
+    const transforms: string[] = [];
+    
+    if (rotation !== 0) {
+      transforms.push(`rotate(${rotation}deg)`);
+    }
+    
+    if (zoom !== 100) {
+      transforms.push(`scale(${zoom / 100})`);
+    }
     
     return {
-      transform: `rotate(${rotation}deg)`,
+      transform: transforms.length > 0 ? transforms.join(' ') : undefined,
       transformOrigin: 'center center',
       width: isRotated ? '100vh' : '100vw',
       height: isRotated ? '100vw' : '100vh',

@@ -322,6 +322,7 @@ export default function DashboardCSTVPublic() {
         onDismiss={handleDismissAlert}
         onDismissAll={handleDismissAllAlerts}
         rotation={rotation}
+        zoom={zoom}
       />
 
       {/* Celebration Overlay - show when no critical alerts */}
@@ -331,6 +332,7 @@ export default function DashboardCSTVPublic() {
           onDismiss={handleDismissCelebration}
           onDismissAll={handleDismissAllCelebrations}
           rotation={rotation}
+          zoom={zoom}
         />
       )}
       <div 
