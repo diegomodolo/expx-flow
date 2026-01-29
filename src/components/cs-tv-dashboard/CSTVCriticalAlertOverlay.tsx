@@ -25,12 +25,13 @@ interface CSTVCriticalAlertOverlayProps {
   rotation?: number;
 }
 
-const AUTO_DISMISS_SECONDS = 30;
+const SLIDE_DURATION_SECONDS = 30;
 
 export function CSTVCriticalAlertOverlay({ alerts, onDismiss, onDismissAll, rotation = 0 }: CSTVCriticalAlertOverlayProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [countdown, setCountdown] = useState(AUTO_DISMISS_SECONDS);
+  const [slideCountdown, setSlideCountdown] = useState(SLIDE_DURATION_SECONDS);
   const sirenPlayedRef = useRef(false);
+  const [viewedSlides, setViewedSlides] = useState<Set<number>>(new Set([0]));
 
   // Play siren sound ONCE when alerts first appear
   useEffect(() => {
@@ -45,18 +46,33 @@ export function CSTVCriticalAlertOverlay({ alerts, onDismiss, onDismissAll, rota
     }
   }, [alerts.length]);
 
-  // Auto-dismiss after 30 seconds
+  // Auto-advance slides every 30 seconds, only dismiss after all viewed
   useEffect(() => {
     if (alerts.length === 0) {
-      setCountdown(AUTO_DISMISS_SECONDS);
+      setSlideCountdown(SLIDE_DURATION_SECONDS);
+      setViewedSlides(new Set([0]));
       return;
     }
 
     const interval = setInterval(() => {
-      setCountdown(prev => {
+      setSlideCountdown(prev => {
         if (prev <= 1) {
-          onDismissAll();
-          return AUTO_DISMISS_SECONDS;
+          // Time to advance to next slide
+          setCurrentIndex(currentIdx => {
+            const nextIndex = (currentIdx + 1) % alerts.length;
+            setViewedSlides(viewed => {
+              const newViewed = new Set(viewed);
+              newViewed.add(nextIndex);
+              
+              // If all slides have been viewed and we're going back to 0, dismiss all
+              if (newViewed.size >= alerts.length && nextIndex === 0) {
+                setTimeout(() => onDismissAll(), 100);
+              }
+              return newViewed;
+            });
+            return nextIndex;
+          });
+          return SLIDE_DURATION_SECONDS;
         }
         return prev - 1;
       });
@@ -65,10 +81,12 @@ export function CSTVCriticalAlertOverlay({ alerts, onDismiss, onDismissAll, rota
     return () => clearInterval(interval);
   }, [alerts.length, onDismissAll]);
 
-  // Reset countdown when new alerts appear
+  // Reset when new alerts appear
   useEffect(() => {
     if (alerts.length > 0) {
-      setCountdown(AUTO_DISMISS_SECONDS);
+      setSlideCountdown(SLIDE_DURATION_SECONDS);
+      setCurrentIndex(0);
+      setViewedSlides(new Set([0]));
     }
   }, [alerts.length]);
 
@@ -114,16 +132,9 @@ export function CSTVCriticalAlertOverlay({ alerts, onDismiss, onDismissAll, rota
     }
   };
 
-  // Cycle through alerts
-  useEffect(() => {
-    if (alerts.length <= 1) return;
-    
-    const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % alerts.length);
-    }, 5000);
-    
-    return () => clearInterval(interval);
-  }, [alerts.length]);
+  // Calculate total remaining time
+  const slidesRemaining = alerts.length - viewedSlides.size;
+  const totalRemainingSeconds = slideCountdown + (slidesRemaining * SLIDE_DURATION_SECONDS);
 
   if (alerts.length === 0) return null;
 
@@ -176,7 +187,9 @@ export function CSTVCriticalAlertOverlay({ alerts, onDismiss, onDismissAll, rota
             {/* Countdown timer */}
             <div className="flex items-center gap-2 bg-white/20 px-3 py-1 rounded-full">
               <span className="text-white text-sm font-medium">
-                Fecha em {countdown}s
+                {alerts.length > 1 
+                  ? `Próximo em ${slideCountdown}s` 
+                  : `Fecha em ${slideCountdown}s`}
               </span>
             </div>
             {alerts.length > 1 && (
