@@ -212,7 +212,7 @@ export function WhatsAppMessageInput({
 
     if (!trimmed || isSending) return;
     
-    onSend(trimmed, replyToMessage?.external_id || undefined);
+    onSend(trimmed, replyToMessage?.id || undefined);
     setMessage("");
     setShowQuickReplies(false);
     setQuickReplySearch("");
