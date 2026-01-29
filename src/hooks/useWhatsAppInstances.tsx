@@ -275,21 +275,12 @@ export function useWhatsAppInstances(companyId: string | undefined) {
   const fetchInstanceUsers = async (instanceId: string): Promise<WhatsAppInstanceUser[]> => {
     const { data, error } = await supabase
       .from("whatsapp_instance_users")
-      .select(`
-        *,
-        profiles:user_id (
-          full_name,
-          user_id
-        )
-      `)
+      .select("*")
       .eq("instance_id", instanceId);
 
     if (error) throw error;
 
-    return data?.map(item => ({
-      ...item,
-      user_name: (item.profiles as any)?.full_name || "Usuário",
-    })) || [];
+    return (data as WhatsAppInstanceUser[]) || [];
   };
 
   // Assign user to instance mutation
