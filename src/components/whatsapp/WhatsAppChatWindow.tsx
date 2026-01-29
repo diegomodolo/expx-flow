@@ -82,16 +82,26 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
   const [isMuting, setIsMuting] = useState(false);
   const [isPinning, setIsPinning] = useState(false);
   const [isBlocking, setIsBlocking] = useState(false);
-  const [linkedClientId, setLinkedClientId] = useState<string | null>(conversation.client_id || null);
-  const [linkedClientName, setLinkedClientName] = useState<string | null>(conversation.client_name || null);
-  const [linkedClientLogo, setLinkedClientLogo] = useState<string | null>(conversation.client_logo_url || null);
+  const [linkedClientId, setLinkedClientId] = useState<string | null>(null);
+  const [linkedClientName, setLinkedClientName] = useState<string | null>(null);
+  const [linkedClientLogo, setLinkedClientLogo] = useState<string | null>(null);
 
-  // Update linked client state when conversation changes
+  // Update linked client state when conversation changes - reset immediately on conversation.id change
   useEffect(() => {
+    // Immediately set from conversation data to avoid showing stale state
     setLinkedClientId(conversation.client_id || null);
     setLinkedClientName(conversation.client_name || null);
     setLinkedClientLogo(conversation.client_logo_url || null);
-  }, [conversation.id, conversation.client_id, conversation.client_name, conversation.client_logo_url]);
+  }, [conversation.id]); // Only depend on conversation.id to reset on switch
+
+  // Also update when the client data within the same conversation is updated (e.g., after linking)
+  useEffect(() => {
+    if (conversation.client_id !== linkedClientId) {
+      setLinkedClientId(conversation.client_id || null);
+      setLinkedClientName(conversation.client_name || null);
+      setLinkedClientLogo(conversation.client_logo_url || null);
+    }
+  }, [conversation.client_id, conversation.client_name, conversation.client_logo_url]);
   
   // AI Assistant state
   const [aiAssistantOpen, setAiAssistantOpen] = useState(false);
