@@ -28,8 +28,10 @@ import {
   List,
   Users,
   Mail,
-  Phone
+  Phone,
+  KeyRound
 } from "lucide-react";
+import { ResetPasswordDialog } from "@/components/employees/ResetPasswordDialog";
 
 const Colaboradores = () => {
   const [statusFilter, setStatusFilter] = useState("todos");
@@ -39,6 +41,7 @@ const Colaboradores = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [resetPasswordDialogOpen, setResetPasswordDialogOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [dialogMode, setDialogMode] = useState<'create' | 'edit' | 'view'>('create');
   
@@ -358,18 +361,27 @@ const Colaboradores = () => {
                                   <MoreHorizontal className="w-4 h-4" />
                                 </Button>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem
-                                  onClick={() => {
-                                    setSelectedEmployee(employee);
-                                    setDeleteDialogOpen(true);
-                                  }}
-                                  className="text-red-600"
-                                >
-                                  <Trash2 className="w-4 h-4 mr-2" />
-                                  Excluir
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
+                                              <DropdownMenuContent align="end">
+                                                <DropdownMenuItem
+                                                  onClick={() => {
+                                                    setSelectedEmployee(employee);
+                                                    setResetPasswordDialogOpen(true);
+                                                  }}
+                                                >
+                                                  <KeyRound className="w-4 h-4 mr-2" />
+                                                  Gerar Nova Senha
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem
+                                                  onClick={() => {
+                                                    setSelectedEmployee(employee);
+                                                    setDeleteDialogOpen(true);
+                                                  }}
+                                                  className="text-red-600"
+                                                >
+                                                  <Trash2 className="w-4 h-4 mr-2" />
+                                                  Excluir
+                                                </DropdownMenuItem>
+                                              </DropdownMenuContent>
                             </DropdownMenu>
                           </div>
                         </div>
@@ -459,17 +471,38 @@ const Colaboradores = () => {
                                   >
                                     <Edit className="w-4 h-4" />
                                   </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => {
-                                      setSelectedEmployee(employee);
-                                      setDeleteDialogOpen(true);
-                                    }}
-                                    className="text-red-600 hover:text-red-700"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="text-red-600 hover:text-red-700"
+                                      >
+                                        <MoreHorizontal className="w-4 h-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuItem
+                                        onClick={() => {
+                                          setSelectedEmployee(employee);
+                                          setResetPasswordDialogOpen(true);
+                                        }}
+                                      >
+                                        <KeyRound className="w-4 h-4 mr-2" />
+                                        Gerar Nova Senha
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() => {
+                                          setSelectedEmployee(employee);
+                                          setDeleteDialogOpen(true);
+                                        }}
+                                        className="text-red-600"
+                                      >
+                                        <Trash2 className="w-4 h-4 mr-2" />
+                                        Excluir
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
                                 </div>
                               </TableCell>
                             </TableRow>
@@ -543,6 +576,12 @@ const Colaboradores = () => {
           open={deleteDialogOpen}
           onOpenChange={setDeleteDialogOpen}
           onConfirm={deleteEmployee}
+          employee={selectedEmployee}
+        />
+
+        <ResetPasswordDialog
+          open={resetPasswordDialogOpen}
+          onOpenChange={setResetPasswordDialogOpen}
           employee={selectedEmployee}
         />
       </div>
