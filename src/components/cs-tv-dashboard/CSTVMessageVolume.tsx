@@ -55,11 +55,10 @@ export function CSTVMessageVolume({ hourlyVolume, totalMessagesToday, totalMessa
             return (
               <div 
                 key={hour.hour} 
-                className="flex-1 flex flex-col items-center gap-0.5"
+                  className="flex-1 flex flex-col items-center gap-0.5 h-full"
               >
                 <div 
-                  className="w-full flex flex-col justify-end rounded-t"
-                  style={{ height: '100%' }}
+                    className="w-full flex flex-col justify-end rounded-t h-full"
                 >
                   {outboundHeight > 0 && (
                     <div 
