@@ -23,6 +23,7 @@ interface CSTVCelebrationOverlayProps {
   alerts: CelebrationAlert[];
   onDismiss: (alertId: string) => void;
   onDismissAll: () => void;
+  rotation?: number;
 }
 
 const AUTO_DISMISS_SECONDS = 30;
@@ -37,7 +38,7 @@ interface Confetti {
   size: number;
 }
 
-export function CSTVCelebrationOverlay({ alerts, onDismiss, onDismissAll }: CSTVCelebrationOverlayProps) {
+export function CSTVCelebrationOverlay({ alerts, onDismiss, onDismissAll, rotation = 0 }: CSTVCelebrationOverlayProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [countdown, setCountdown] = useState(AUTO_DISMISS_SECONDS);
   const [confetti, setConfetti] = useState<Confetti[]>([]);
@@ -170,8 +171,23 @@ export function CSTVCelebrationOverlay({ alerts, onDismiss, onDismissAll }: CSTV
   const currentAlert = alerts[currentIndex] || alerts[0];
   if (!currentAlert) return null;
 
+  const isRotated = rotation === 90 || rotation === 270;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-300 overflow-hidden">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-300 overflow-hidden"
+      style={{
+        transform: `rotate(${rotation}deg)`,
+        transformOrigin: rotation === 90 ? 'top left' : rotation === 270 ? 'bottom right' : 'center',
+        width: isRotated ? '100vh' : '100%',
+        height: isRotated ? '100vw' : '100%',
+        position: 'fixed',
+        top: rotation === 90 ? 0 : rotation === 270 ? 'auto' : 0,
+        left: rotation === 90 ? '100vw' : 0,
+        bottom: rotation === 270 ? '100vh' : undefined,
+        right: rotation === 270 ? 0 : undefined,
+      }}
+    >
       {/* Confetti */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {confetti.map((c) => (
