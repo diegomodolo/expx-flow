@@ -3115,6 +3115,7 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string
+          cs_tv_dashboard_token: string | null
           email: string | null
           id: string
           logo: string | null
@@ -3129,6 +3130,7 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by: string
+          cs_tv_dashboard_token?: string | null
           email?: string | null
           id?: string
           logo?: string | null
@@ -3143,6 +3145,7 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string
+          cs_tv_dashboard_token?: string | null
           email?: string | null
           id?: string
           logo?: string | null
@@ -12153,6 +12156,7 @@ export type Database = {
       }
       generate_client_dashboard_token: { Args: never; Returns: string }
       generate_crm_access_token: { Args: never; Returns: string }
+      generate_cs_tv_dashboard_token: { Args: never; Returns: string }
       generate_funnel_public_token: { Args: never; Returns: string }
       generate_radar_tv_dashboard_token: { Args: never; Returns: string }
       generate_social_tv_dashboard_token: { Args: never; Returns: string }
@@ -12216,6 +12220,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: string
+      }
+      set_cs_tv_dashboard_token: {
+        Args: { p_company_id: string; p_token: string }
+        Returns: undefined
       }
       set_radar_tv_dashboard_token: {
         Args: { p_company_id: string; p_token: string }

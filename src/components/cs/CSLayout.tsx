@@ -8,6 +8,7 @@ import {
   Trophy, 
   Target, 
   Users,
+  Tv,
   LucideIcon
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -50,6 +51,12 @@ const csMenuItems: CSMenuItem[] = [
     url: "/cs/clientes", 
     icon: Users,
     description: "Lista detalhada de clientes"
+  },
+  { 
+    title: "CS TV", 
+    url: "/cs/tv", 
+    icon: Tv,
+    description: "Dashboard para TV"
   },
 ];
 
