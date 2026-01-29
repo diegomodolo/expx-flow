@@ -10,6 +10,7 @@ import { CSTVCriticalConversations } from "@/components/cs-tv-dashboard/CSTVCrit
 import { CSTVPendingConversations } from "@/components/cs-tv-dashboard/CSTVPendingConversations";
 import { CSTVAttendantPerformance } from "@/components/cs-tv-dashboard/CSTVAttendantPerformance";
 import { CSTVMessageVolume } from "@/components/cs-tv-dashboard/CSTVMessageVolume";
+import { CSTVSentimentVolume } from "@/components/cs-tv-dashboard/CSTVSentimentVolume";
 import { CSTVResponseTimeBreakdown } from "@/components/cs-tv-dashboard/CSTVResponseTimeBreakdown";
 import { CSTVControls } from "@/components/cs-tv-dashboard/CSTVControls";
 import { CSTVCriticalAlertOverlay, CriticalAlert } from "@/components/cs-tv-dashboard/CSTVCriticalAlertOverlay";
@@ -76,6 +77,14 @@ interface CSTVDashboardData {
     hour: number;
     inbound: number;
     outbound: number;
+  }>;
+  hourlySentimentVolume: Array<{
+    hour: number;
+    positive: number;
+    neutral: number;
+    negative: number;
+    avgScore: number | null;
+    totalAnalyses: number;
   }>;
   responseTimeBreakdown: {
     under5min: number;
@@ -365,6 +374,9 @@ export default function DashboardCSTVPublic() {
             totalMessagesToday={data.whatsappMetrics.totalMessagesToday}
             totalMessagesThisWeek={data.whatsappMetrics.totalMessagesThisWeek}
           />
+
+          {/* Sentiment Volume Chart */}
+          <CSTVSentimentVolume hourlySentiment={data.hourlySentimentVolume} />
 
           {/* Attendant Performance + Pending Conversations */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
