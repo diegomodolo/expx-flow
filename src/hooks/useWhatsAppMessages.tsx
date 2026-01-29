@@ -251,6 +251,14 @@ export function useWhatsAppMessages(conversationId: string | null, companyId: st
         })
         .eq("id", conversationId);
 
+      // Get the external_id of the quoted message for the API (if replying)
+      let replyExternalId: string | undefined;
+      if (replyToMessageId) {
+        const cachedMessages = queryClient.getQueryData<WhatsAppMessage[]>(["whatsapp-messages", conversationId]);
+        const quotedMessage = cachedMessages?.find(m => m.id === replyToMessageId);
+        replyExternalId = quotedMessage?.external_id ?? undefined;
+      }
+
       // Send via API (background)
       const { data, error } = await supabase.functions.invoke("send-whatsapp-notification", {
         body: {
@@ -259,7 +267,7 @@ export function useWhatsAppMessages(conversationId: string | null, companyId: st
           message,
           notification_type: "chat",
           instance_id: instanceId ?? undefined,
-          reply_to_message_id: replyToMessageId ?? undefined,
+          reply_to_message_id: replyExternalId, // Send external_id to API, not the UUID
         },
       });
 
