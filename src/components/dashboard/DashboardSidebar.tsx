@@ -43,6 +43,7 @@ import { useSystemAlerts } from "@/hooks/useSystemAlerts";
 import { useCompanyTvDashboardToken } from "@/hooks/useCompanyTvDashboardToken";
 import { useSocialTvDashboardToken } from "@/hooks/useSocialTvDashboardToken";
 import { useRadarTvDashboardToken } from "@/hooks/useRadarTvDashboardToken";
+import { useCsTvDashboardToken } from "@/hooks/useCsTvDashboardToken";
 
 interface MenuItem {
   title: string;
@@ -93,6 +94,7 @@ const menuCategories: MenuCategory[] = [
         { title: "Jornada", url: "/cs/jornada", icon: TrendingUp, permission: "clientes" as MenuItemType },
         { title: "Ações", url: "/cs/acoes", icon: Zap, permission: "clientes" as MenuItemType },
         { title: "Clientes CS", url: "/cs/clientes", icon: Users, permission: "clientes" as MenuItemType },
+        { title: "CS TV", url: "#cs-tv-dashboard", icon: Tv, permission: "clientes" as MenuItemType, isExternal: true },
       ].sort((a, b) => a.title.localeCompare(b.title, 'pt-BR')),
     },
     {
@@ -154,6 +156,7 @@ export function DashboardSidebar() {
   const { token: tvToken, generateToken, generating: generatingToken } = useCompanyTvDashboardToken();
   const { token: socialTvToken, generateToken: generateSocialTvToken, generating: generatingSocialTvToken } = useSocialTvDashboardToken();
   const { token: radarTvToken, generateToken: generateRadarTvToken, generating: generatingRadarTvToken } = useRadarTvDashboardToken();
+  const { token: csTvToken, generateToken: generateCsTvToken, generating: generatingCsTvToken } = useCsTvDashboardToken();
   
   // Track which categories are expanded
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>(() => {
@@ -398,6 +401,48 @@ export function DashboardSidebar() {
                               <>
                                 <span className="text-sm tracking-wide whitespace-nowrap text-foreground">
                                   {generatingRadarTvToken ? 'Gerando...' : item.title}
+                                </span>
+                                <ExternalLink className="w-3 h-3 ml-auto text-muted-foreground" />
+                              </>
+                            )}
+                          </button>
+                        );
+                      }
+
+                      // Handle external CS TV Dashboard link (Customer Success)
+                      if (item.isExternal && item.url === '#cs-tv-dashboard') {
+                        const handleCsTvDashboardClick = async (e: React.MouseEvent) => {
+                          e.preventDefault();
+                          if (csTvToken) {
+                            window.open(`/cs-tv/${csTvToken}`, '_blank');
+                          } else {
+                            const newToken = await generateCsTvToken();
+                            if (newToken) {
+                              window.open(`/cs-tv/${newToken}`, '_blank');
+                            }
+                          }
+                        };
+
+                        return (
+                          <button
+                            key={item.url}
+                            onClick={handleCsTvDashboardClick}
+                            disabled={generatingCsTvToken}
+                            className={cn(
+                              "flex items-center py-2 rounded-full transition-all duration-150 w-full",
+                              open ? "gap-3 px-4" : "justify-center px-0",
+                              "text-muted-foreground hover:bg-muted/50"
+                            )}
+                            title={!open ? item.title : undefined}
+                          >
+                            <item.icon 
+                              className="w-4 h-4 flex-shrink-0 text-muted-foreground" 
+                              strokeWidth={1.5}
+                            />
+                            {open && (
+                              <>
+                                <span className="text-sm tracking-wide whitespace-nowrap text-foreground">
+                                  {generatingCsTvToken ? 'Gerando...' : item.title}
                                 </span>
                                 <ExternalLink className="w-3 h-3 ml-auto text-muted-foreground" />
                               </>
