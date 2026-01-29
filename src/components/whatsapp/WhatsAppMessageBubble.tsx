@@ -56,7 +56,8 @@ export function WhatsAppMessageBubble({ message, allMessages, contactName, insta
   const isOutgoing = message.direction === "outgoing";
   const isFailed = message.status === "failed";
   const hasMedia = !!message.media_url;
-  const isMediaType = ["image", "video", "audio", "document"].includes(message.message_type);
+  const isMediaType = ["image", "video", "audio", "document", "sticker", "gif"].includes(message.message_type);
+  const isStickerOrGif = ["sticker", "gif"].includes(message.message_type);
   const isAudioMessage = message.message_type === "audio";
   const isTextMessage = message.message_type === "text";
   
@@ -253,6 +254,9 @@ export function WhatsAppMessageBubble({ message, allMessages, contactName, insta
         return <Headphones className="h-4 w-4" />;
       case "document":
         return <FileText className="h-4 w-4" />;
+      case "sticker":
+      case "gif":
+        return <Image className="h-4 w-4" />;
       default:
         return <FileText className="h-4 w-4" />;
     }
@@ -268,6 +272,10 @@ export function WhatsAppMessageBubble({ message, allMessages, contactName, insta
         return "Áudio";
       case "document":
         return "Documento";
+      case "sticker":
+        return "Sticker";
+      case "gif":
+        return "GIF";
       default:
         return "Arquivo";
     }
@@ -444,6 +452,8 @@ export function WhatsAppMessageBubble({ message, allMessages, contactName, insta
               if (quotedMessage.message_type === "video") return "🎬 Vídeo";
               if (quotedMessage.message_type === "audio") return "🎵 Áudio";
               if (quotedMessage.message_type === "document") return "📎 Documento";
+              if (quotedMessage.message_type === "sticker") return "🎨 Sticker";
+              if (quotedMessage.message_type === "gif") return "🎞️ GIF";
               const content = quotedMessage.content || "";
               return content.length > 60 ? content.substring(0, 60) + "..." : content;
             };
@@ -519,6 +529,15 @@ export function WhatsAppMessageBubble({ message, allMessages, contactName, insta
                   audioTranscription={(message as any).audio_transcription}
                   transcriptionStatus={(message as any).transcription_status}
                 />
+              ) : isStickerOrGif ? (
+                <WhatsAppImageViewer
+                  mediaUrl={message.media_url}
+                  messageId={message.external_id}
+                  supabaseMessageId={message.id}
+                  instanceId={instanceId ?? null}
+                  isOutgoing={isOutgoing && !isFailed}
+                  cachedMediaUrl={message.cached_media_url}
+                />
               ) : (
                 <Button
                   variant={isOutgoing && !isFailed ? "secondary" : "outline"}
@@ -546,8 +565,8 @@ export function WhatsAppMessageBubble({ message, allMessages, contactName, insta
           )}
 
           {/* Text content - hide for media types that already have their own UI */}
-          {/* Hide for: audio (has player), image/video with media_url, or placeholder content */}
-          {!isAudioMessage && !(isMediaType && hasMedia && (message.content.startsWith("📎") || message.content.startsWith("["))) && (
+          {/* Hide for: audio (has player), image/video/sticker/gif with media_url, or placeholder content */}
+          {!isAudioMessage && !isStickerOrGif && !(isMediaType && hasMedia && (message.content.startsWith("📎") || message.content.startsWith("["))) && (
             <p className="text-sm whitespace-pre-wrap break-words">{parseWhatsAppFormatting(displayContent)}</p>
           )}
 
