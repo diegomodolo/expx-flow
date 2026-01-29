@@ -59,11 +59,12 @@ export function WhatsAppNewConversationDialog({
         formattedPhone = "55" + formattedPhone;
       }
 
-      // First, check if conversation already exists (by company + phone, ignoring instance)
+      // First, check if conversation already exists for this instance + phone
       const { data: existingConv } = await supabase
         .from("whatsapp_conversations")
-        .select("id, instance_id")
+        .select("id")
         .eq("company_id", companyId)
+        .eq("instance_id", instanceId)
         .eq("phone", formattedPhone)
         .maybeSingle();
 
