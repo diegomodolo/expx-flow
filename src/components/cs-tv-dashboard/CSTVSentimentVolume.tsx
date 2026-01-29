@@ -16,17 +16,18 @@ interface CSTVSentimentVolumeProps {
   hourlySentiment: HourlySentiment[];
 }
 
-export function CSTVSentimentVolume({ hourlySentiment }: CSTVSentimentVolumeProps) {
-  const maxVolume = Math.max(...hourlySentiment.map(h => h.totalAnalyses), 1);
+export function CSTVSentimentVolume({ hourlySentiment = [] }: CSTVSentimentVolumeProps) {
+  const safeHourlySentiment = hourlySentiment || [];
+  const maxVolume = Math.max(...safeHourlySentiment.map(h => h.totalAnalyses), 1);
   const currentHour = new Date().getHours();
   
-  const todayPositive = hourlySentiment.reduce((sum, h) => sum + h.positive, 0);
-  const todayNeutral = hourlySentiment.reduce((sum, h) => sum + h.neutral, 0);
-  const todayNegative = hourlySentiment.reduce((sum, h) => sum + h.negative, 0);
+  const todayPositive = safeHourlySentiment.reduce((sum, h) => sum + h.positive, 0);
+  const todayNeutral = safeHourlySentiment.reduce((sum, h) => sum + h.neutral, 0);
+  const todayNegative = safeHourlySentiment.reduce((sum, h) => sum + h.negative, 0);
   const todayTotal = todayPositive + todayNeutral + todayNegative;
   
   // Calculate overall average score
-  const allScores = hourlySentiment.filter(h => h.avgScore !== null).map(h => h.avgScore as number);
+  const allScores = safeHourlySentiment.filter(h => h.avgScore !== null).map(h => h.avgScore as number);
   const overallAvgScore = allScores.length > 0 
     ? Math.round((allScores.reduce((a, b) => a + b, 0) / allScores.length) * 10) / 10 
     : null;
@@ -73,7 +74,7 @@ export function CSTVSentimentVolume({ hourlySentiment }: CSTVSentimentVolumeProp
       <CardContent>
         {/* Hour bars - stacked */}
         <div className="flex items-end gap-1 h-32">
-          {hourlySentiment.map((hour) => {
+          {safeHourlySentiment.map((hour) => {
             const totalHeight = (hour.totalAnalyses / maxVolume) * 100;
             const positiveHeight = hour.totalAnalyses > 0 ? (hour.positive / hour.totalAnalyses) * totalHeight : 0;
             const neutralHeight = hour.totalAnalyses > 0 ? (hour.neutral / hour.totalAnalyses) * totalHeight : 0;
