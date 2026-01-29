@@ -14,6 +14,7 @@ interface NotificationPayload {
   related_entity_type?: string;
   related_entity_id?: string;
   instance_id?: string; // Optional: specific instance to use
+  reply_to_message_id?: string; // Optional: message ID to reply to (quoted message)
 }
 
 serve(async (req) => {
@@ -36,6 +37,7 @@ serve(async (req) => {
       related_entity_type,
       related_entity_id,
       instance_id,
+      reply_to_message_id,
     } = payload;
 
     console.log("[send-whatsapp-notification] Sending notification for company:", company_id);
@@ -206,16 +208,24 @@ serve(async (req) => {
       const uazapiUrl = `${cleanEndpoint}/send/text`;
       console.log("[send-whatsapp-notification] Calling UazapiGO:", uazapiUrl);
 
+      const uazapiBody: any = {
+        number: formattedPhone,
+        text: message,
+      };
+      
+      // Add reply context if provided
+      if (reply_to_message_id) {
+        uazapiBody.quotedMessageId = reply_to_message_id;
+        console.log("[send-whatsapp-notification] Replying to message:", reply_to_message_id);
+      }
+
       apiResponse = await fetch(uazapiUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "token": instanceToken,
         },
-        body: JSON.stringify({
-          number: formattedPhone,
-          text: message,
-        }),
+        body: JSON.stringify(uazapiBody),
       });
 
       apiData = await apiResponse.json();
@@ -225,16 +235,24 @@ serve(async (req) => {
       const zapiUrl = `https://api.z-api.io/instances/${config.instance_id}/token/${config.token}/send-text`;
       console.log("[send-whatsapp-notification] Calling Z-API:", zapiUrl);
 
+      const zapiBody: any = {
+        phone: formattedPhone,
+        message: message,
+      };
+      
+      // Add reply context if provided (Z-API uses messageId field)
+      if (reply_to_message_id) {
+        zapiBody.messageId = reply_to_message_id;
+        console.log("[send-whatsapp-notification] Replying to message:", reply_to_message_id);
+      }
+
       apiResponse = await fetch(zapiUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           ...(config.client_token ? { "Client-Token": config.client_token } : {}),
         },
-        body: JSON.stringify({
-          phone: formattedPhone,
-          message: message,
-        }),
+        body: JSON.stringify(zapiBody),
       });
 
       apiData = await apiResponse.json();

@@ -172,7 +172,7 @@ export function useWhatsAppMessages(conversationId: string | null, companyId: st
   }, [conversationId, companyId, isLoadingFromDb, hasFetchedFromApi, isFetchingFromApi, fetchMessagesFromApi]);
 
   // Optimistic send - shows message immediately
-  const sendMessage = useCallback(async ({ phone, message, instanceId }: { phone: string; message: string; instanceId?: string | null }) => {
+  const sendMessage = useCallback(async ({ phone, message, instanceId, replyToMessageId }: { phone: string; message: string; instanceId?: string | null; replyToMessageId?: string }) => {
     if (!companyId || !conversationId) return;
 
     const now = new Date().toISOString();
@@ -256,6 +256,7 @@ export function useWhatsAppMessages(conversationId: string | null, companyId: st
           message,
           notification_type: "chat",
           instance_id: instanceId ?? undefined,
+          reply_to_message_id: replyToMessageId ?? undefined,
         },
       });
 

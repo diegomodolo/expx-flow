@@ -92,6 +92,8 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
     setLinkedClientId(conversation.client_id || null);
     setLinkedClientName(conversation.client_name || null);
     setLinkedClientLogo(conversation.client_logo_url || null);
+    // Clear reply state when switching conversations
+    setReplyToMessage(null);
   }, [conversation.id]); // Only depend on conversation.id to reset on switch
 
   // Also update when the client data within the same conversation is updated (e.g., after linking)
@@ -115,6 +117,9 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [noteModalOpen, setNoteModalOpen] = useState(false);
   
+  // Reply to message state
+  const [replyToMessage, setReplyToMessage] = useState<import("@/hooks/useWhatsAppMessages").WhatsAppMessage | null>(null);
+  
   const { labels } = useWhatsAppLabels(companyId, instanceId ?? null);
   const { quickReplies, isLoading: quickRepliesLoading } = useWhatsAppQuickReplies(instanceId ?? null);
   const { sizes, setAiAssistantSize } = useWhatsAppPanelSizes();
@@ -137,8 +142,8 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
 
   const displayName = conversation.contact_name || formatPhoneNumber(conversation.phone);
 
-  const handleSend = (message: string) => {
-    sendMessage({ phone: conversation.phone, message, instanceId: instanceId ?? null });
+  const handleSend = (message: string, replyToMessageId?: string) => {
+    sendMessage({ phone: conversation.phone, message, instanceId: instanceId ?? null, replyToMessageId });
   };
 
   const handleSendMedia = (media: MediaAttachment, caption: string) => {
@@ -888,6 +893,7 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
                 companyId={companyId}
                 remoteJid={`${conversation.phone}@s.whatsapp.net`}
                 onOpenAIAssistant={handleOpenAIAssistant}
+                onReply={setReplyToMessage}
               />
             ))}
             <div ref={scrollRef} />
@@ -902,6 +908,9 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
         isSending={isSendingMedia}
         quickReplies={quickReplies}
         quickRepliesLoading={quickRepliesLoading}
+        replyToMessage={replyToMessage}
+        replyToContactName={displayName}
+        onCancelReply={() => setReplyToMessage(null)}
       />
       </div>
       </ResizablePanel>
