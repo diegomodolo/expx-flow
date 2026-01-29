@@ -25,6 +25,7 @@ interface AttendantPerformance {
   activeAlerts: number;
   messagesSent: number;
   averageResponseTimeMinutes: number | null;
+  averageFirstResponseTimeMinutes: number | null;
 }
 
 interface CSTVDashboardData {
@@ -50,6 +51,7 @@ interface CSTVDashboardData {
     averageScore: number | null;
     activeAlerts: number;
     averageResponseTimeMinutes: number | null;
+    averageFirstResponseTimeMinutes: number | null;
   };
   criticalClients: Array<{
     id: string;

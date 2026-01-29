@@ -1,7 +1,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, AlertTriangle, MessageSquare, TrendingUp, TrendingDown, Clock } from "lucide-react";
+import { Users, AlertTriangle, MessageSquare, TrendingUp, TrendingDown, Clock, Sunrise } from "lucide-react";
 
 interface AttendantPerformance {
   id: string;
@@ -15,6 +15,7 @@ interface AttendantPerformance {
   activeAlerts: number;
   messagesSent: number;
   averageResponseTimeMinutes: number | null;
+  averageFirstResponseTimeMinutes: number | null;
 }
 
 function formatResponseTime(minutes: number | null): string {
@@ -155,9 +156,13 @@ export function CSTVAttendantPerformance({ attendants = [] }: CSTVAttendantPerfo
                       <MessageSquare className="h-3 w-3" />
                       {attendant.activeConversations} conversa{attendant.activeConversations !== 1 ? "s" : ""}
                     </span>
-                    <span className="flex items-center gap-1">
+                    <span className="flex items-center gap-1 text-amber-500" title="Tempo médio da 1ª resposta do dia">
+                      <Sunrise className="h-3 w-3" />
+                      1ª: {formatResponseTime(attendant.averageFirstResponseTimeMinutes)}
+                    </span>
+                    <span className="flex items-center gap-1 text-blue-500" title="Tempo médio entre respostas">
                       <Clock className="h-3 w-3" />
-                      {formatResponseTime(attendant.averageResponseTimeMinutes)}
+                      Med: {formatResponseTime(attendant.averageResponseTimeMinutes)}
                     </span>
                     {attendant.activeAlerts > 0 && (
                       <span className="flex items-center gap-1 text-amber-500">
