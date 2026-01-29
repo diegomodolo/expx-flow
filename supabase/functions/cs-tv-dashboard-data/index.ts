@@ -16,6 +16,7 @@ interface AttendantPerformance {
   negativeCount: number;
   activeAlerts: number;
   messagesSent: number;
+  averageResponseTimeMinutes: number | null;
 }
 
 interface CSTVDashboardData {
@@ -40,6 +41,7 @@ interface CSTVDashboardData {
     negativeConversations: number;
     averageScore: number | null;
     activeAlerts: number;
+    averageResponseTimeMinutes: number | null;
   };
   criticalClients: Array<{
     id: string;
@@ -129,6 +131,7 @@ Deno.serve(async (req) => {
       assignmentsResult,
       messagesCountResult,
       instanceUsersResult,
+      allMessagesResult,
     ] = await Promise.all([
       // Client health configs
       supabase
@@ -187,6 +190,14 @@ Deno.serve(async (req) => {
         .from('whatsapp_instance_users')
         .select('instance_id, user_id')
         .eq('is_attendant', true),
+
+      // All messages for response time calculation (last 7 days)
+      supabase
+        .from('whatsapp_messages')
+        .select('id, conversation_id, direction, sent_at, sent_by_user_id')
+        .eq('company_id', company.id)
+        .gte('sent_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+        .order('sent_at', { ascending: true }),
     ]);
 
     const healthConfigs = healthConfigsResult.data || [];
@@ -197,6 +208,7 @@ Deno.serve(async (req) => {
     const assignments = assignmentsResult.data || [];
     const messagesSent = messagesCountResult.data || [];
     const instanceUsers = instanceUsersResult.data || [];
+    const allMessages = allMessagesResult.data || [];
 
     // Scope instance users to company instances (table doesn't have company_id)
     const instanceIds = new Set<string>(instances.map((i: any) => i.id));
@@ -211,6 +223,84 @@ Deno.serve(async (req) => {
       assignments: assignments.length,
       messagesSent: messagesSent.length,
       instanceUsers: instanceUsersForCompany.length,
+      allMessages: allMessages.length,
+    });
+
+    // ========== CALCULATE RESPONSE TIMES ==========
+    // Group messages by conversation
+    const messagesByConversation = new Map<string, any[]>();
+    allMessages.forEach((m: any) => {
+      if (!messagesByConversation.has(m.conversation_id)) {
+        messagesByConversation.set(m.conversation_id, []);
+      }
+      messagesByConversation.get(m.conversation_id)!.push(m);
+    });
+
+    // Calculate response times per conversation and per user
+    const responseTimesGlobal: number[] = [];
+    const responseTimesByUser = new Map<string, number[]>();
+
+    for (const [conversationId, messages] of messagesByConversation) {
+      // Sort by sent_at
+      messages.sort((a: any, b: any) => new Date(a.sent_at).getTime() - new Date(b.sent_at).getTime());
+      
+      for (let i = 0; i < messages.length - 1; i++) {
+        const current = messages[i];
+        const next = messages[i + 1];
+        
+        // If current is incoming (from customer) and next is outgoing (from company), this is a response
+        // Support both naming conventions: inbound/outbound and incoming/outgoing
+        const isCurrentIncoming = current.direction === 'inbound' || current.direction === 'incoming';
+        const isNextOutgoing = next.direction === 'outbound' || next.direction === 'outgoing';
+        
+        if (isCurrentIncoming && isNextOutgoing) {
+          const responseTimeMs = new Date(next.sent_at).getTime() - new Date(current.sent_at).getTime();
+          const responseTimeMinutes = responseTimeMs / (1000 * 60);
+          
+          // Only count responses under 24 hours (filter out old conversations)
+          if (responseTimeMinutes > 0 && responseTimeMinutes < 24 * 60) {
+            responseTimesGlobal.push(responseTimeMinutes);
+            
+            // Track per user if available
+            if (next.sent_by_user_id) {
+              if (!responseTimesByUser.has(next.sent_by_user_id)) {
+                responseTimesByUser.set(next.sent_by_user_id, []);
+              }
+              responseTimesByUser.get(next.sent_by_user_id)!.push(responseTimeMinutes);
+            }
+            
+            // Also associate with attendants assigned to this conversation (fallback)
+            // Find which users are assigned to this conversation via instance_users
+            const conversation = conversations.find((c: any) => c.id === conversationId);
+            if (conversation?.instance_id) {
+              const assignedUsers = instanceUsersForCompany
+                .filter((iu: any) => iu.instance_id === conversation.instance_id)
+                .map((iu: any) => iu.user_id);
+              
+              for (const userId of assignedUsers) {
+                if (!responseTimesByUser.has(userId)) {
+                  responseTimesByUser.set(userId, []);
+                }
+                // Only add if not already tracked via sent_by_user_id
+                if (!next.sent_by_user_id) {
+                  responseTimesByUser.get(userId)!.push(responseTimeMinutes);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Calculate global average response time
+    const globalAverageResponseTime = responseTimesGlobal.length > 0
+      ? Math.round(responseTimesGlobal.reduce((a, b) => a + b, 0) / responseTimesGlobal.length)
+      : null;
+
+    console.log('Response times calculated:', {
+      globalSamples: responseTimesGlobal.length,
+      globalAverage: globalAverageResponseTime,
+      usersWithData: responseTimesByUser.size,
     });
 
     // Calculate health metrics
@@ -328,6 +418,7 @@ Deno.serve(async (req) => {
       negativeCount: number;
       activeAlerts: number;
       messagesSent: number;
+      averageResponseTimeMinutes: number | null;
     }> = [];
 
     for (const [userId, convIds] of attendantConversations) {
@@ -363,6 +454,12 @@ Deno.serve(async (req) => {
         return count;
       }, 0);
 
+      // Calculate average response time for this user
+      const userResponseTimes = responseTimesByUser.get(userId) || [];
+      const avgResponseTime = userResponseTimes.length > 0
+        ? Math.round(userResponseTimes.reduce((a, b) => a + b, 0) / userResponseTimes.length)
+        : null;
+
       attendantMetrics.push({
         id: userId,
         activeConversations: convIds.length,
@@ -372,6 +469,7 @@ Deno.serve(async (req) => {
         negativeCount,
         activeAlerts: alertCount,
         messagesSent: messageCounts.get(userId) || 0,
+        averageResponseTimeMinutes: avgResponseTime,
       });
     }
 
@@ -532,6 +630,7 @@ Deno.serve(async (req) => {
         negativeConversations,
         averageScore: averageWhatsAppScore,
         activeAlerts,
+        averageResponseTimeMinutes: globalAverageResponseTime,
       },
       criticalClients: criticalClientsList,
       criticalConversations: criticalConversationsList,

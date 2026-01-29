@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { MessageCircle, ThumbsUp, Minus, ThumbsDown, Bell, TrendingUp } from 'lucide-react';
+import { MessageCircle, ThumbsUp, Minus, ThumbsDown, Bell, TrendingUp, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface WhatsAppSentiment {
@@ -10,10 +10,20 @@ interface WhatsAppSentiment {
   negativeConversations: number;
   averageScore: number | null;
   activeAlerts: number;
+  averageResponseTimeMinutes?: number | null;
 }
 
 interface CSTVWhatsAppSentimentProps {
   sentiment: WhatsAppSentiment;
+}
+
+function formatResponseTime(minutes: number | null | undefined): string {
+  if (minutes === null || minutes === undefined) return "-";
+  if (minutes < 1) return "<1m";
+  if (minutes < 60) return `${Math.round(minutes)}m`;
+  const hours = Math.floor(minutes / 60);
+  const mins = Math.round(minutes % 60);
+  return mins > 0 ? `${hours}h${mins}m` : `${hours}h`;
 }
 
 export function CSTVWhatsAppSentiment({ sentiment }: CSTVWhatsAppSentimentProps) {
@@ -94,7 +104,7 @@ export function CSTVWhatsAppSentiment({ sentiment }: CSTVWhatsAppSentimentProps)
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-4 gap-4">
           <div className="text-center p-4 bg-muted/50 rounded-xl">
             <MessageCircle className="w-5 h-5 mx-auto mb-2 text-green-500" />
             <p className="text-2xl font-bold text-foreground">{sentiment.totalConversations}</p>
@@ -107,6 +117,14 @@ export function CSTVWhatsAppSentiment({ sentiment }: CSTVWhatsAppSentimentProps)
               {sentiment.averageScore !== null ? sentiment.averageScore.toFixed(1) : '-'}
             </p>
             <p className="text-xs text-muted-foreground">Score Médio</p>
+          </div>
+
+          <div className="text-center p-4 bg-muted/50 rounded-xl">
+            <Clock className="w-5 h-5 mx-auto mb-2 text-blue-500" />
+            <p className="text-2xl font-bold text-foreground">
+              {formatResponseTime(sentiment.averageResponseTimeMinutes)}
+            </p>
+            <p className="text-xs text-muted-foreground">Tempo Resposta</p>
           </div>
           
           <div className={cn(
