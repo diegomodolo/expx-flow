@@ -34,6 +34,8 @@ import {
 
 interface WhatsAppMessageBubbleProps {
   message: WhatsAppMessage;
+  allMessages?: WhatsAppMessage[]; // All messages in conversation for looking up quoted messages
+  contactName?: string;
   instanceId?: string | null;
   companyId?: string;
   remoteJid?: string; // phone@s.whatsapp.net format
@@ -42,7 +44,7 @@ interface WhatsAppMessageBubbleProps {
   onReply?: (message: WhatsAppMessage) => void;
 }
 
-export function WhatsAppMessageBubble({ message, instanceId, companyId, remoteJid, onMessageEdited, onOpenAIAssistant, onReply }: WhatsAppMessageBubbleProps) {
+export function WhatsAppMessageBubble({ message, allMessages, contactName, instanceId, companyId, remoteJid, onMessageEdited, onOpenAIAssistant, onReply }: WhatsAppMessageBubbleProps) {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -429,6 +431,62 @@ export function WhatsAppMessageBubble({ message, instanceId, companyId, remoteJi
             message.reaction && "mb-4"
           )}
         >
+          {/* Quoted message preview */}
+          {message.reply_to_message_id && allMessages && (() => {
+            const quotedMessage = allMessages.find(m => m.id === message.reply_to_message_id);
+            if (!quotedMessage) return null;
+            
+            const isQuotedOutgoing = quotedMessage.direction === "outgoing";
+            const quotedSenderName = isQuotedOutgoing ? "Você" : (contactName || "Contato");
+            
+            const getQuotedContent = () => {
+              if (quotedMessage.message_type === "image") return "📷 Foto";
+              if (quotedMessage.message_type === "video") return "🎬 Vídeo";
+              if (quotedMessage.message_type === "audio") return "🎵 Áudio";
+              if (quotedMessage.message_type === "document") return "📎 Documento";
+              const content = quotedMessage.content || "";
+              return content.length > 60 ? content.substring(0, 60) + "..." : content;
+            };
+            
+            return (
+              <div 
+                className={cn(
+                  "mb-2 px-2 py-1.5 rounded text-xs border-l-2 cursor-pointer hover:opacity-80 transition-opacity",
+                  isOutgoing && !isFailed
+                    ? "bg-primary-foreground/10 border-primary-foreground/50"
+                    : "bg-background/50 border-muted-foreground/50",
+                  isQuotedOutgoing 
+                    ? (isOutgoing && !isFailed ? "border-l-primary-foreground" : "border-l-primary") 
+                    : "border-l-emerald-500"
+                )}
+                onClick={() => {
+                  // Scroll to quoted message
+                  const el = document.getElementById(`message-${quotedMessage.id}`);
+                  if (el) {
+                    el.scrollIntoView({ behavior: "smooth", block: "center" });
+                    el.classList.add("ring-2", "ring-primary/50");
+                    setTimeout(() => el.classList.remove("ring-2", "ring-primary/50"), 2000);
+                  }
+                }}
+              >
+                <p className={cn(
+                  "font-medium mb-0.5",
+                  isQuotedOutgoing 
+                    ? (isOutgoing && !isFailed ? "text-primary-foreground/80" : "text-primary") 
+                    : "text-emerald-600 dark:text-emerald-400"
+                )}>
+                  {quotedSenderName}
+                </p>
+                <p className={cn(
+                  "truncate",
+                  isOutgoing && !isFailed ? "text-primary-foreground/70" : "text-muted-foreground"
+                )}>
+                  {getQuotedContent()}
+                </p>
+              </div>
+            );
+          })()}
+          
           {/* Media preview/download area */}
           {isMediaType && (hasMedia || message.external_id) && (
             <div className="mb-2">

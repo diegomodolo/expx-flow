@@ -11401,6 +11401,7 @@ export type Database = {
           message_type: string | null
           original_message_id: string | null
           reaction: string | null
+          reply_to_message_id: string | null
           sent_at: string | null
           sent_by_user_id: string | null
           status: string | null
@@ -11421,6 +11422,7 @@ export type Database = {
           message_type?: string | null
           original_message_id?: string | null
           reaction?: string | null
+          reply_to_message_id?: string | null
           sent_at?: string | null
           sent_by_user_id?: string | null
           status?: string | null
@@ -11441,6 +11443,7 @@ export type Database = {
           message_type?: string | null
           original_message_id?: string | null
           reaction?: string | null
+          reply_to_message_id?: string | null
           sent_at?: string | null
           sent_by_user_id?: string | null
           status?: string | null
@@ -11459,6 +11462,13 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "whatsapp_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_messages_reply_to_message_id_fkey"
+            columns: ["reply_to_message_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_messages"
             referencedColumns: ["id"]
           },
         ]
