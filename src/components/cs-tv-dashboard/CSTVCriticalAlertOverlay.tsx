@@ -24,22 +24,55 @@ interface CSTVCriticalAlertOverlayProps {
   onDismissAll: () => void;
 }
 
+const AUTO_DISMISS_SECONDS = 30;
+
 export function CSTVCriticalAlertOverlay({ alerts, onDismiss, onDismissAll }: CSTVCriticalAlertOverlayProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [countdown, setCountdown] = useState(AUTO_DISMISS_SECONDS);
+  const sirenPlayedRef = useRef(false);
 
-  // Play siren sound when new alerts appear
+  // Play siren sound ONCE when alerts first appear
   useEffect(() => {
-    if (alerts.length > 0 && !isPlaying) {
+    if (alerts.length > 0 && !sirenPlayedRef.current) {
+      sirenPlayedRef.current = true;
       playSiren();
+    }
+    
+    // Reset when no alerts
+    if (alerts.length === 0) {
+      sirenPlayedRef.current = false;
+    }
+  }, [alerts.length]);
+
+  // Auto-dismiss after 30 seconds
+  useEffect(() => {
+    if (alerts.length === 0) {
+      setCountdown(AUTO_DISMISS_SECONDS);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          onDismissAll();
+          return AUTO_DISMISS_SECONDS;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [alerts.length, onDismissAll]);
+
+  // Reset countdown when new alerts appear
+  useEffect(() => {
+    if (alerts.length > 0) {
+      setCountdown(AUTO_DISMISS_SECONDS);
     }
   }, [alerts.length]);
 
   const playSiren = async () => {
     try {
-      setIsPlaying(true);
-      
       // Create audio context for siren sound
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
       
@@ -72,13 +105,11 @@ export function CSTVCriticalAlertOverlay({ alerts, onDismiss, onDismissAll }: CS
       oscillator.stop(startTime + duration);
       
       setTimeout(() => {
-        setIsPlaying(false);
         audioContext.close();
       }, duration * 1000);
       
     } catch (error) {
       console.error('Error playing siren:', error);
-      setIsPlaying(false);
     }
   };
 
@@ -125,7 +156,13 @@ export function CSTVCriticalAlertOverlay({ alerts, onDismiss, onDismissAll }: CS
               ⚠️ ALERTA CRÍTICO - NOTA {currentAlert.score.toFixed(1)}
             </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4">
+            {/* Countdown timer */}
+            <div className="flex items-center gap-2 bg-white/20 px-3 py-1 rounded-full">
+              <span className="text-white text-sm font-medium">
+                Fecha em {countdown}s
+              </span>
+            </div>
             {alerts.length > 1 && (
               <span className="text-white/80 text-sm">
                 {currentIndex + 1} de {alerts.length}

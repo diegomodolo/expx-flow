@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2, AlertTriangle, MessageCircle } from "lucide-react";
@@ -107,10 +107,20 @@ export default function DashboardCSTVPublic() {
     return saved ? parseInt(saved) : 0;
   });
 
-  // Track dismissed alerts to avoid re-triggering
-  const [dismissedAlertIds, setDismissedAlertIds] = useState<Set<string>>(new Set());
+  // Track dismissed alerts to avoid re-triggering - persist in localStorage
+  const [dismissedAlertIds, setDismissedAlertIds] = useState<Set<string>>(() => {
+    const saved = localStorage.getItem('cs-tv-dismissed-alerts');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return new Set(parsed);
+      } catch {
+        return new Set();
+      }
+    }
+    return new Set();
+  });
   const [activeAlerts, setActiveAlerts] = useState<CriticalAlert[]>([]);
-  const previousAlertsRef = useRef<string[]>([]);
 
   const handleZoomChange = (newZoom: number) => {
     setZoom(newZoom);
@@ -152,25 +162,31 @@ export default function DashboardCSTVPublic() {
     staleTime: 60000,
   });
 
-  // Check for new critical alerts (score < 3)
+  // Check for new critical alerts (score < 3) - only show each alert once ever
   useEffect(() => {
     if (!data?.recentCriticalAlerts) return;
 
     const newAlerts = data.recentCriticalAlerts.filter(alert => {
-      // Only show alerts that:
-      // 1. Haven't been dismissed
-      // 2. Are new (not in previous fetch)
-      return !dismissedAlertIds.has(alert.id) && 
-             !previousAlertsRef.current.includes(alert.id);
+      // Only show alerts that haven't been dismissed/shown before
+      return !dismissedAlertIds.has(alert.id);
     });
 
     if (newAlerts.length > 0) {
-      setActiveAlerts(prev => [...prev, ...newAlerts]);
+      // Only add alerts that aren't already active
+      setActiveAlerts(prev => {
+        const existingIds = new Set(prev.map(a => a.id));
+        const trulyNew = newAlerts.filter(a => !existingIds.has(a.id));
+        return trulyNew.length > 0 ? [...prev, ...trulyNew] : prev;
+      });
     }
-
-    // Update previous alerts reference
-    previousAlertsRef.current = data.recentCriticalAlerts.map(a => a.id);
   }, [data?.recentCriticalAlerts, dismissedAlertIds]);
+
+  // Persist dismissed alerts to localStorage
+  useEffect(() => {
+    if (dismissedAlertIds.size > 0) {
+      localStorage.setItem('cs-tv-dismissed-alerts', JSON.stringify([...dismissedAlertIds]));
+    }
+  }, [dismissedAlertIds]);
 
   const handleDismissAlert = useCallback((alertId: string) => {
     setActiveAlerts(prev => prev.filter(a => a.id !== alertId));
