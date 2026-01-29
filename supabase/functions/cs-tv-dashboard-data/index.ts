@@ -124,6 +124,7 @@ Deno.serve(async (req) => {
       healthConfigsResult,
       whatsappAnalysisResult,
       conversationsResult,
+      instancesResult,
       clientsResult,
       assignmentsResult,
       messagesCountResult,
@@ -150,7 +151,14 @@ Deno.serve(async (req) => {
       // WhatsApp conversations count
       supabase
         .from('whatsapp_conversations')
-        .select('id, contact_name, client_id, status, instance_id')
+        // NOTE: whatsapp_conversations does NOT have a `status` column
+        .select('id, contact_name, client_id, instance_id')
+        .eq('company_id', company.id),
+
+      // WhatsApp instances (to scope instance users to this company)
+      supabase
+        .from('whatsapp_instances')
+        .select('id')
         .eq('company_id', company.id),
 
       // All clients for pending contacts calculation
@@ -184,19 +192,25 @@ Deno.serve(async (req) => {
     const healthConfigs = healthConfigsResult.data || [];
     const whatsappAnalysis = whatsappAnalysisResult.data || [];
     const conversations = conversationsResult.data || [];
+    const instances = instancesResult.data || [];
     const clients = clientsResult.data || [];
     const assignments = assignmentsResult.data || [];
     const messagesSent = messagesCountResult.data || [];
     const instanceUsers = instanceUsersResult.data || [];
 
+    // Scope instance users to company instances (table doesn't have company_id)
+    const instanceIds = new Set<string>(instances.map((i: any) => i.id));
+    const instanceUsersForCompany = instanceUsers.filter((iu: any) => instanceIds.has(iu.instance_id));
+
     console.log('Data fetched:', {
       healthConfigs: healthConfigs.length,
       whatsappAnalysis: whatsappAnalysis.length,
       conversations: conversations.length,
+      instances: instances.length,
       clients: clients.length,
       assignments: assignments.length,
       messagesSent: messagesSent.length,
-      instanceUsers: instanceUsers.length,
+      instanceUsers: instanceUsersForCompany.length,
     });
 
     // Calculate health metrics
@@ -263,8 +277,8 @@ Deno.serve(async (req) => {
       attendantConversations.get(userId)!.push(a.conversation_id);
     });
 
-    // Fallback: if no direct assignments, use instance_users
-    if (attendantConversations.size === 0 && instanceUsers.length > 0) {
+    // Fallback: if no direct assignments, use instance_users (scoped to this company)
+    if (attendantConversations.size === 0 && instanceUsersForCompany.length > 0) {
       console.log('Using instance_users fallback for attendant performance');
       
       // Group conversations by instance
@@ -279,7 +293,7 @@ Deno.serve(async (req) => {
       });
 
       // Associate users to their instance conversations
-      instanceUsers.forEach((iu: any) => {
+      instanceUsersForCompany.forEach((iu: any) => {
         const convIds = conversationsByInstance.get(iu.instance_id) || [];
         if (convIds.length > 0) {
           if (!attendantConversations.has(iu.user_id)) {
