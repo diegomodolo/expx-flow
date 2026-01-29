@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { MessageCircle, ThumbsUp, Minus, ThumbsDown, Bell, TrendingUp, Clock } from 'lucide-react';
+import { MessageCircle, ThumbsUp, Minus, ThumbsDown, Bell, TrendingUp, Clock, Sunrise } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface WhatsAppSentiment {
@@ -11,6 +11,7 @@ interface WhatsAppSentiment {
   averageScore: number | null;
   activeAlerts: number;
   averageResponseTimeMinutes?: number | null;
+  averageFirstResponseTimeMinutes?: number | null;
 }
 
 interface CSTVWhatsAppSentimentProps {
@@ -104,7 +105,7 @@ export function CSTVWhatsAppSentiment({ sentiment }: CSTVWhatsAppSentimentProps)
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-5 gap-4">
           <div className="text-center p-4 bg-muted/50 rounded-xl">
             <MessageCircle className="w-5 h-5 mx-auto mb-2 text-green-500" />
             <p className="text-2xl font-bold text-foreground">{sentiment.totalConversations}</p>
@@ -120,11 +121,19 @@ export function CSTVWhatsAppSentiment({ sentiment }: CSTVWhatsAppSentimentProps)
           </div>
 
           <div className="text-center p-4 bg-muted/50 rounded-xl">
+            <Sunrise className="w-5 h-5 mx-auto mb-2 text-amber-500" />
+            <p className="text-2xl font-bold text-foreground">
+              {formatResponseTime(sentiment.averageFirstResponseTimeMinutes)}
+            </p>
+            <p className="text-xs text-muted-foreground">1ª Resposta</p>
+          </div>
+
+          <div className="text-center p-4 bg-muted/50 rounded-xl">
             <Clock className="w-5 h-5 mx-auto mb-2 text-blue-500" />
             <p className="text-2xl font-bold text-foreground">
               {formatResponseTime(sentiment.averageResponseTimeMinutes)}
             </p>
-            <p className="text-xs text-muted-foreground">Tempo Resposta</p>
+            <p className="text-xs text-muted-foreground">Tempo Médio</p>
           </div>
           
           <div className={cn(

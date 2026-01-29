@@ -17,6 +17,7 @@ interface AttendantPerformance {
   activeAlerts: number;
   messagesSent: number;
   averageResponseTimeMinutes: number | null;
+  averageFirstResponseTimeMinutes: number | null;
 }
 
 interface CSTVDashboardData {
@@ -42,6 +43,7 @@ interface CSTVDashboardData {
     averageScore: number | null;
     activeAlerts: number;
     averageResponseTimeMinutes: number | null;
+    averageFirstResponseTimeMinutes: number | null;
   };
   criticalClients: Array<{
     id: string;
@@ -236,13 +238,24 @@ Deno.serve(async (req) => {
       messagesByConversation.get(m.conversation_id)!.push(m);
     });
 
+    // Helper function to get date string (YYYY-MM-DD) from timestamp
+    const getDateKey = (timestamp: string): string => {
+      return new Date(timestamp).toISOString().split('T')[0];
+    };
+
     // Calculate response times per conversation and per user
-    const responseTimesGlobal: number[] = [];
-    const responseTimesByUser = new Map<string, number[]>();
+    // Separate: all responses vs first response of the day
+    const allResponseTimesGlobal: number[] = [];
+    const firstResponseTimesGlobal: number[] = [];
+    const allResponseTimesByUser = new Map<string, number[]>();
+    const firstResponseTimesByUser = new Map<string, number[]>();
 
     for (const [conversationId, messages] of messagesByConversation) {
       // Sort by sent_at
       messages.sort((a: any, b: any) => new Date(a.sent_at).getTime() - new Date(b.sent_at).getTime());
+      
+      // Track first response per day per conversation
+      const firstResponseTracked = new Set<string>(); // "conversationId_YYYY-MM-DD"
       
       for (let i = 0; i < messages.length - 1; i++) {
         const current = messages[i];
@@ -259,14 +272,34 @@ Deno.serve(async (req) => {
           
           // Only count responses under 24 hours (filter out old conversations)
           if (responseTimeMinutes > 0 && responseTimeMinutes < 24 * 60) {
-            responseTimesGlobal.push(responseTimeMinutes);
+            // Check if this is the first response of the day for this conversation
+            const dayKey = getDateKey(current.sent_at);
+            const trackingKey = `${conversationId}_${dayKey}`;
+            const isFirstOfDay = !firstResponseTracked.has(trackingKey);
+            
+            if (isFirstOfDay) {
+              firstResponseTracked.add(trackingKey);
+              firstResponseTimesGlobal.push(responseTimeMinutes);
+            }
+            
+            // Always add to all responses
+            allResponseTimesGlobal.push(responseTimeMinutes);
             
             // Track per user if available
             if (next.sent_by_user_id) {
-              if (!responseTimesByUser.has(next.sent_by_user_id)) {
-                responseTimesByUser.set(next.sent_by_user_id, []);
+              // All responses
+              if (!allResponseTimesByUser.has(next.sent_by_user_id)) {
+                allResponseTimesByUser.set(next.sent_by_user_id, []);
               }
-              responseTimesByUser.get(next.sent_by_user_id)!.push(responseTimeMinutes);
+              allResponseTimesByUser.get(next.sent_by_user_id)!.push(responseTimeMinutes);
+              
+              // First response of day
+              if (isFirstOfDay) {
+                if (!firstResponseTimesByUser.has(next.sent_by_user_id)) {
+                  firstResponseTimesByUser.set(next.sent_by_user_id, []);
+                }
+                firstResponseTimesByUser.get(next.sent_by_user_id)!.push(responseTimeMinutes);
+              }
             }
             
             // Also associate with attendants assigned to this conversation (fallback)
@@ -278,12 +311,21 @@ Deno.serve(async (req) => {
                 .map((iu: any) => iu.user_id);
               
               for (const userId of assignedUsers) {
-                if (!responseTimesByUser.has(userId)) {
-                  responseTimesByUser.set(userId, []);
-                }
                 // Only add if not already tracked via sent_by_user_id
                 if (!next.sent_by_user_id) {
-                  responseTimesByUser.get(userId)!.push(responseTimeMinutes);
+                  // All responses
+                  if (!allResponseTimesByUser.has(userId)) {
+                    allResponseTimesByUser.set(userId, []);
+                  }
+                  allResponseTimesByUser.get(userId)!.push(responseTimeMinutes);
+                  
+                  // First response of day
+                  if (isFirstOfDay) {
+                    if (!firstResponseTimesByUser.has(userId)) {
+                      firstResponseTimesByUser.set(userId, []);
+                    }
+                    firstResponseTimesByUser.get(userId)!.push(responseTimeMinutes);
+                  }
                 }
               }
             }
@@ -292,15 +334,21 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Calculate global average response time
-    const globalAverageResponseTime = responseTimesGlobal.length > 0
-      ? Math.round(responseTimesGlobal.reduce((a, b) => a + b, 0) / responseTimesGlobal.length)
+    // Calculate global averages
+    const globalAverageResponseTime = allResponseTimesGlobal.length > 0
+      ? Math.round(allResponseTimesGlobal.reduce((a, b) => a + b, 0) / allResponseTimesGlobal.length)
+      : null;
+
+    const globalAverageFirstResponseTime = firstResponseTimesGlobal.length > 0
+      ? Math.round(firstResponseTimesGlobal.reduce((a, b) => a + b, 0) / firstResponseTimesGlobal.length)
       : null;
 
     console.log('Response times calculated:', {
-      globalSamples: responseTimesGlobal.length,
-      globalAverage: globalAverageResponseTime,
-      usersWithData: responseTimesByUser.size,
+      allResponsesSamples: allResponseTimesGlobal.length,
+      allResponsesAverage: globalAverageResponseTime,
+      firstResponseSamples: firstResponseTimesGlobal.length,
+      firstResponseAverage: globalAverageFirstResponseTime,
+      usersWithData: allResponseTimesByUser.size,
     });
 
     // Calculate health metrics
@@ -419,6 +467,7 @@ Deno.serve(async (req) => {
       activeAlerts: number;
       messagesSent: number;
       averageResponseTimeMinutes: number | null;
+      averageFirstResponseTimeMinutes: number | null;
     }> = [];
 
     for (const [userId, convIds] of attendantConversations) {
@@ -454,10 +503,16 @@ Deno.serve(async (req) => {
         return count;
       }, 0);
 
-      // Calculate average response time for this user
-      const userResponseTimes = responseTimesByUser.get(userId) || [];
-      const avgResponseTime = userResponseTimes.length > 0
-        ? Math.round(userResponseTimes.reduce((a, b) => a + b, 0) / userResponseTimes.length)
+      // Calculate average response time for this user (all responses)
+      const userAllResponseTimes = allResponseTimesByUser.get(userId) || [];
+      const avgResponseTime = userAllResponseTimes.length > 0
+        ? Math.round(userAllResponseTimes.reduce((a, b) => a + b, 0) / userAllResponseTimes.length)
+        : null;
+
+      // Calculate average first response time for this user
+      const userFirstResponseTimes = firstResponseTimesByUser.get(userId) || [];
+      const avgFirstResponseTime = userFirstResponseTimes.length > 0
+        ? Math.round(userFirstResponseTimes.reduce((a, b) => a + b, 0) / userFirstResponseTimes.length)
         : null;
 
       attendantMetrics.push({
@@ -470,6 +525,7 @@ Deno.serve(async (req) => {
         activeAlerts: alertCount,
         messagesSent: messageCounts.get(userId) || 0,
         averageResponseTimeMinutes: avgResponseTime,
+        averageFirstResponseTimeMinutes: avgFirstResponseTime,
       });
     }
 
@@ -482,46 +538,53 @@ Deno.serve(async (req) => {
       // Fetch from profiles table
       const { data: profilesData } = await supabase
         .from('profiles')
-        .select('id, full_name, avatar_url')
+        .select('id, name, avatar_url')
         .in('id', userIds);
       profiles = profilesData || [];
-
-      // Fetch from employees table as fallback (using user_id)
+      
+      // Fetch from employees table for this company
       const { data: employeesData } = await supabase
         .from('employees')
-        .select('user_id, name, avatar')
+        .select('user_id, name, avatar_url')
         .eq('company_id', company.id)
         .in('user_id', userIds);
       employees = employeesData || [];
     }
 
-    // Join profile/employee data and sort by score
+    // Build attendant performance list with names
     const attendantPerformance: AttendantPerformance[] = attendantMetrics
-      .map(m => {
-        const profile = profiles.find((p: any) => p.id === m.id);
-        const employee = employees.find((e: any) => e.user_id === m.id);
+      .map(metrics => {
+        // Find name from employees first (company-specific), then profiles
+        const employee = employees.find(e => e.user_id === metrics.id);
+        const profile = profiles.find(p => p.id === metrics.id);
         
-        // Prefer employee data (more likely to have name/avatar), fallback to profile
-        const name = employee?.name || profile?.full_name || 'Atendente';
-        const avatarUrl = employee?.avatar || profile?.avatar_url || null;
+        const name = employee?.name || profile?.name || 'Sem nome';
+        const avatarUrl = employee?.avatar_url || profile?.avatar_url || null;
         
         return {
-          ...m,
+          ...metrics,
           name,
           avatarUrl,
         };
       })
-      .sort((a, b) => (b.averageScore || 0) - (a.averageScore || 0));
+      .filter(a => a.activeConversations > 0 || a.messagesSent > 0)
+      .sort((a, b) => {
+        // Sort by score (highest first), then by conversations
+        if (a.averageScore !== null && b.averageScore !== null) {
+          return b.averageScore - a.averageScore;
+        }
+        if (a.averageScore !== null) return -1;
+        if (b.averageScore !== null) return 1;
+        return b.activeConversations - a.activeConversations;
+      });
 
-    console.log('Attendant performance calculated:', attendantPerformance.length);
-
-    // Get critical/high risk clients for the list
+    // Get critical clients (churn risk = critical or high)
     const criticalClientsList = healthConfigs
       .filter(h => h.churn_risk_level === 'critical' || h.churn_risk_level === 'high')
       .map(h => ({
-        id: h.client_id,
-        name: (h.clients as any)?.name || 'Cliente',
-        avatar: (h.clients as any)?.avatar || null,
+        id: (h.clients as any).id,
+        name: (h.clients as any).name,
+        avatar: (h.clients as any).avatar,
         healthScore: h.health_score_total,
         riskLevel: h.churn_risk_level || 'unknown',
         financialScore: h.health_score_financial,
@@ -530,85 +593,110 @@ Deno.serve(async (req) => {
         npsScore: h.nps_score,
         lastCsContact: h.last_cs_contact_at,
       }))
-      .sort((a, b) => (a.healthScore || 100) - (b.healthScore || 100))
-      .slice(0, 10);
-
-    // Get critical conversations (negative sentiment)
-    const criticalConversationsList = whatsappAnalysis
-      .filter(w => (w as any).temperature === 'negative' || (w as any).sentiment === 'negative')
-      .map(w => {
-        const conv = (w as any).whatsapp_conversations;
-        const clientId = conv?.client_id;
-        const client = clients.find(c => c.id === clientId);
-        
-        return {
-          id: w.id,
-          contactName: conv?.contact_name || 'Contato',
-          clientId: clientId,
-          clientName: client?.name || null,
-          score: (w as any).score,
-          temperature: (w as any).temperature || (w as any).sentiment,
-          alertsCount: Array.isArray((w as any).alerts) ? (w as any).alerts.length : 0,
-          lastAnalysis: w.updated_at,
-        };
+      .sort((a, b) => {
+        // Critical first, then by health score (lowest first)
+        if (a.riskLevel === 'critical' && b.riskLevel !== 'critical') return -1;
+        if (a.riskLevel !== 'critical' && b.riskLevel === 'critical') return 1;
+        return (a.healthScore || 0) - (b.healthScore || 0);
       })
       .slice(0, 10);
 
-    // Calculate pending contacts (clients without CS contact in last 7 days)
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    // Get critical conversations (negative sentiment or low score)
+    const criticalConversationsList = whatsappAnalysis
+      .filter(w => {
+        const temp = (w as any).temperature || (w as any).sentiment;
+        const score = (w as any).score;
+        return temp === 'negative' || (typeof score === 'number' && score < 5);
+      })
+      .map(w => {
+        const conv = (w as any).whatsapp_conversations;
+        const alerts = (w as any).alerts;
+        return {
+          id: conv.id,
+          contactName: conv.contact_name || 'Sem nome',
+          clientId: conv.client_id,
+          clientName: null as string | null, // Will be enriched below
+          score: (w as any).score,
+          temperature: (w as any).temperature || (w as any).sentiment,
+          alertsCount: Array.isArray(alerts) ? alerts.length : 0,
+          lastAnalysis: (w as any).analyzed_at || (w as any).updated_at,
+        };
+      })
+      .sort((a, b) => (a.score || 0) - (b.score || 0))
+      .slice(0, 10);
 
-    const pendingContactsList = healthConfigs
+    // Enrich with client names
+    const clientIds = criticalConversationsList
+      .map(c => c.clientId)
+      .filter((id): id is string => id !== null);
+    
+    if (clientIds.length > 0) {
+      const { data: clientsData } = await supabase
+        .from('clients')
+        .select('id, name')
+        .in('id', clientIds);
+      
+      if (clientsData) {
+        criticalConversationsList.forEach(conv => {
+          if (conv.clientId) {
+            const client = clientsData.find(c => c.id === conv.clientId);
+            if (client) {
+              conv.clientName = client.name;
+            }
+          }
+        });
+      }
+    }
+
+    // Calculate pending contacts (clients without recent CS contact)
+    const now = new Date();
+    const pendingContacts = healthConfigs
       .filter(h => {
         if (!h.last_cs_contact_at) return true;
-        const lastContact = new Date(h.last_cs_contact_at);
-        return lastContact < sevenDaysAgo;
+        const daysSince = Math.floor((now.getTime() - new Date(h.last_cs_contact_at).getTime()) / (1000 * 60 * 60 * 24));
+        return daysSince >= 14; // 2 weeks threshold
       })
       .map(h => {
         const lastContact = h.last_cs_contact_at ? new Date(h.last_cs_contact_at) : null;
-        const daysSinceContact = lastContact
-          ? Math.floor((Date.now() - lastContact.getTime()) / (1000 * 60 * 60 * 24))
+        const daysSince = lastContact
+          ? Math.floor((now.getTime() - lastContact.getTime()) / (1000 * 60 * 60 * 24))
           : 999;
-        
         return {
-          id: h.client_id,
-          name: (h.clients as any)?.name || 'Cliente',
-          avatar: (h.clients as any)?.avatar || null,
-          daysSinceContact,
+          id: (h.clients as any).id,
+          name: (h.clients as any).name,
+          avatar: (h.clients as any).avatar,
+          daysSinceContact: daysSince,
           lastContactAt: h.last_cs_contact_at,
         };
       })
       .sort((a, b) => b.daysSinceContact - a.daysSinceContact)
       .slice(0, 10);
 
-    // Calculate pending NPS (clients without NPS in last 30 days)
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-    const pendingNPSList = healthConfigs
+    // Calculate pending NPS (clients without recent NPS)
+    const pendingNPS = healthConfigs
       .filter(h => {
         if (!h.nps_collected_at) return true;
-        const lastNPS = new Date(h.nps_collected_at);
-        return lastNPS < thirtyDaysAgo;
+        const daysSince = Math.floor((now.getTime() - new Date(h.nps_collected_at).getTime()) / (1000 * 60 * 60 * 24));
+        return daysSince >= 90; // 3 months threshold
       })
       .map(h => {
         const lastNPS = h.nps_collected_at ? new Date(h.nps_collected_at) : null;
-        const daysSinceNPS = lastNPS
-          ? Math.floor((Date.now() - lastNPS.getTime()) / (1000 * 60 * 60 * 24))
+        const daysSince = lastNPS
+          ? Math.floor((now.getTime() - lastNPS.getTime()) / (1000 * 60 * 60 * 24))
           : 999;
-        
         return {
-          id: h.client_id,
-          name: (h.clients as any)?.name || 'Cliente',
-          avatar: (h.clients as any)?.avatar || null,
-          daysSinceNPS,
+          id: (h.clients as any).id,
+          name: (h.clients as any).name,
+          avatar: (h.clients as any).avatar,
+          daysSinceNPS: daysSince,
           lastNPSAt: h.nps_collected_at,
         };
       })
       .sort((a, b) => b.daysSinceNPS - a.daysSinceNPS)
       .slice(0, 10);
 
-    const responseData: CSTVDashboardData = {
+    // Build response
+    const dashboardData: CSTVDashboardData = {
       companyName: company.name,
       lastUpdatedAt: new Date().toISOString(),
       healthMetrics: {
@@ -631,19 +719,28 @@ Deno.serve(async (req) => {
         averageScore: averageWhatsAppScore,
         activeAlerts,
         averageResponseTimeMinutes: globalAverageResponseTime,
+        averageFirstResponseTimeMinutes: globalAverageFirstResponseTime,
       },
       criticalClients: criticalClientsList,
       criticalConversations: criticalConversationsList,
-      pendingContacts: pendingContactsList,
-      pendingNPS: pendingNPSList,
+      pendingContacts,
+      pendingNPS,
       attendantPerformance,
     };
 
-    console.log('CS TV Dashboard data prepared successfully');
+    console.log('Dashboard data prepared:', {
+      healthMetrics: dashboardData.healthMetrics,
+      whatsappSentiment: dashboardData.whatsappSentiment,
+      criticalClients: dashboardData.criticalClients.length,
+      criticalConversations: dashboardData.criticalConversations.length,
+      pendingContacts: dashboardData.pendingContacts.length,
+      pendingNPS: dashboardData.pendingNPS.length,
+      attendantPerformance: dashboardData.attendantPerformance.length,
+    });
 
     return new Response(
-      JSON.stringify(responseData),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify(dashboardData),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error('Error in cs-tv-dashboard-data:', error);
