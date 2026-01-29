@@ -182,11 +182,11 @@ Deno.serve(async (req) => {
         .eq('company_id', company.id)
         .not('sent_by_user_id', 'is', null),
 
-      // Instance users for fallback attendant performance
+      // Instance users for fallback attendant performance (only official attendants)
       supabase
         .from('whatsapp_instance_users')
         .select('instance_id, user_id')
-        .eq('can_view', true),
+        .eq('is_attendant', true),
     ]);
 
     const healthConfigs = healthConfigsResult.data || [];

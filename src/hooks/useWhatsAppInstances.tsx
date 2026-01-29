@@ -42,6 +42,7 @@ export interface WhatsAppInstanceUser {
   can_view: boolean;
   can_send: boolean;
   is_default: boolean;
+  is_attendant: boolean;
   created_at: string;
   // Joined from profiles
   user_name?: string;
@@ -299,6 +300,7 @@ export function useWhatsAppInstances(companyId: string | undefined) {
       can_view?: boolean;
       can_send?: boolean;
       is_default?: boolean;
+      is_attendant?: boolean;
     }) => {
       const { error } = await supabase
         .from("whatsapp_instance_users")
@@ -308,6 +310,7 @@ export function useWhatsAppInstances(companyId: string | undefined) {
           can_view: data.can_view ?? true,
           can_send: data.can_send ?? true,
           is_default: data.is_default ?? false,
+          is_attendant: data.is_attendant ?? false,
         }, { onConflict: "instance_id,user_id" });
 
       if (error) throw error;
