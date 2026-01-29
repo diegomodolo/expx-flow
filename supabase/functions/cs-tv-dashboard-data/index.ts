@@ -535,20 +535,30 @@ Deno.serve(async (req) => {
     let employees: any[] = [];
     
     if (userIds.length > 0) {
-      // Fetch from profiles table
-      const { data: profilesData } = await supabase
+      // Fetch from profiles table (uses full_name, not name)
+      const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
-        .select('id, name, avatar_url')
+        .select('id, full_name, avatar_url')
         .in('id', userIds);
+      
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+      }
       profiles = profilesData || [];
+      console.log('Profiles fetched:', profiles.length, profiles);
       
       // Fetch from employees table for this company
-      const { data: employeesData } = await supabase
+      const { data: employeesData, error: employeesError } = await supabase
         .from('employees')
         .select('user_id, name, avatar_url')
         .eq('company_id', company.id)
         .in('user_id', userIds);
+      
+      if (employeesError) {
+        console.error('Error fetching employees:', employeesError);
+      }
       employees = employeesData || [];
+      console.log('Employees fetched:', employees.length, employees);
     }
 
     // Build attendant performance list with names
@@ -558,8 +568,11 @@ Deno.serve(async (req) => {
         const employee = employees.find(e => e.user_id === metrics.id);
         const profile = profiles.find(p => p.id === metrics.id);
         
-        const name = employee?.name || profile?.name || 'Sem nome';
+        // profiles uses full_name, employees uses name
+        const name = employee?.name || profile?.full_name || 'Sem nome';
         const avatarUrl = employee?.avatar_url || profile?.avatar_url || null;
+        
+        console.log('Building attendant:', { userId: metrics.id, employeeName: employee?.name, profileName: profile?.full_name, finalName: name });
         
         return {
           ...metrics,
