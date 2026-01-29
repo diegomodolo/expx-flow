@@ -20,23 +20,27 @@ interface AttendantPerformance {
   averageFirstResponseTimeMinutes: number | null;
 }
 
+interface CriticalAlert {
+  id: string;
+  conversationId: string;
+  contactName: string;
+  contactPhone: string;
+  clientName: string | null;
+  attendantId: string | null;
+  attendantName: string | null;
+  score: number;
+  temperature: string;
+  interpretation: string | null;
+  suggestion: string | null;
+  analyzedAt: string;
+}
+
 interface CSTVDashboardData {
   companyName: string;
   lastUpdatedAt: string;
-  healthMetrics: {
-    averageHealthScore: number;
-    totalClients: number;
-    criticalClients: number;
-    highRiskClients: number;
-    mediumRiskClients: number;
-    lowRiskClients: number;
-    averageNPS: number | null;
-    npsPromoters: number;
-    npsPassives: number;
-    npsDetractors: number;
-  };
-  whatsappSentiment: {
+  whatsappMetrics: {
     totalConversations: number;
+    activeConversations: number;
     positiveConversations: number;
     neutralConversations: number;
     negativeConversations: number;
@@ -44,44 +48,53 @@ interface CSTVDashboardData {
     activeAlerts: number;
     averageResponseTimeMinutes: number | null;
     averageFirstResponseTimeMinutes: number | null;
+    totalMessagesToday: number;
+    totalMessagesThisWeek: number;
+    conversationsWithoutResponse: number;
+    conversationsNeedingAttention: number;
   };
-  criticalClients: Array<{
-    id: string;
-    name: string;
-    avatar: string | null;
-    healthScore: number | null;
-    riskLevel: string;
-    financialScore: number | null;
-    operationalScore: number | null;
-    relationalScore: number | null;
-    npsScore: number | null;
-    lastCsContact: string | null;
-  }>;
+  sentimentDistribution: {
+    positive: number;
+    neutral: number;
+    negative: number;
+  };
   criticalConversations: Array<{
     id: string;
     contactName: string;
+    contactPhone: string;
     clientId: string | null;
     clientName: string | null;
     score: number | null;
     temperature: string | null;
     alertsCount: number;
+    interpretation: string | null;
     lastAnalysis: string | null;
+    lastMessageAt: string | null;
+    attendantId: string | null;
+    attendantName: string | null;
   }>;
-  pendingContacts: Array<{
-    id: string;
-    name: string;
-    avatar: string | null;
-    daysSinceContact: number;
-    lastContactAt: string | null;
-  }>;
-  pendingNPS: Array<{
-    id: string;
-    name: string;
-    avatar: string | null;
-    daysSinceNPS: number;
-    lastNPSAt: string | null;
-  }>;
+  recentCriticalAlerts: CriticalAlert[];
   attendantPerformance: AttendantPerformance[];
+  hourlyMessageVolume: Array<{
+    hour: number;
+    inbound: number;
+    outbound: number;
+  }>;
+  responseTimeBreakdown: {
+    under5min: number;
+    under15min: number;
+    under30min: number;
+    under1hour: number;
+    over1hour: number;
+  };
+  pendingConversations: Array<{
+    id: string;
+    contactName: string;
+    contactPhone: string;
+    lastMessageAt: string;
+    waitingMinutes: number;
+    clientName: string | null;
+  }>;
 }
 
 Deno.serve(async (req) => {
@@ -121,55 +134,45 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log('Fetching CS TV data for company:', company.name);
+    console.log('Fetching CS TV WhatsApp data for company:', company.name);
+
+    const now = new Date();
+    const todayStart = new Date(now);
+    todayStart.setHours(0, 0, 0, 0);
+    const weekStart = new Date(now);
+    weekStart.setDate(weekStart.getDate() - 7);
 
     // Fetch all data in parallel
     const [
-      healthConfigsResult,
       whatsappAnalysisResult,
       conversationsResult,
       instancesResult,
-      clientsResult,
       assignmentsResult,
       messagesCountResult,
       instanceUsersResult,
       allMessagesResult,
+      todayMessagesResult,
+      weekMessagesResult,
     ] = await Promise.all([
-      // Client health configs
-      supabase
-        .from('client_health_config')
-        .select(`
-          *,
-          clients!inner(id, name, avatar)
-        `)
-        .eq('company_id', company.id),
-
       // WhatsApp realtime analysis
       supabase
         .from('whatsapp_realtime_analysis')
         .select(`
           *,
-          whatsapp_conversations!inner(id, contact_name, client_id, instance_id)
+          whatsapp_conversations!inner(id, contact_name, phone, client_id, instance_id, last_message_at, is_archived)
         `)
         .eq('company_id', company.id),
 
-      // WhatsApp conversations count
+      // WhatsApp conversations
       supabase
         .from('whatsapp_conversations')
-        // NOTE: whatsapp_conversations does NOT have a `status` column
-        .select('id, contact_name, client_id, instance_id')
+        .select('id, contact_name, phone, client_id, instance_id, last_message_at, is_archived, unread_count')
         .eq('company_id', company.id),
 
       // WhatsApp instances (to scope instance users to this company)
       supabase
         .from('whatsapp_instances')
         .select('id')
-        .eq('company_id', company.id),
-
-      // All clients for pending contacts calculation
-      supabase
-        .from('clients')
-        .select('id, name, avatar')
         .eq('company_id', company.id),
 
       // Conversation assignments for attendant performance
@@ -198,38 +201,51 @@ Deno.serve(async (req) => {
         .from('whatsapp_messages')
         .select('id, conversation_id, direction, sent_at, sent_by_user_id')
         .eq('company_id', company.id)
-        .gte('sent_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+        .gte('sent_at', weekStart.toISOString())
         .order('sent_at', { ascending: true }),
+
+      // Today's messages count
+      supabase
+        .from('whatsapp_messages')
+        .select('id, direction')
+        .eq('company_id', company.id)
+        .gte('sent_at', todayStart.toISOString()),
+
+      // This week's messages count
+      supabase
+        .from('whatsapp_messages')
+        .select('id, direction')
+        .eq('company_id', company.id)
+        .gte('sent_at', weekStart.toISOString()),
     ]);
 
-    const healthConfigs = healthConfigsResult.data || [];
     const whatsappAnalysis = whatsappAnalysisResult.data || [];
     const conversations = conversationsResult.data || [];
     const instances = instancesResult.data || [];
-    const clients = clientsResult.data || [];
     const assignments = assignmentsResult.data || [];
     const messagesSent = messagesCountResult.data || [];
     const instanceUsers = instanceUsersResult.data || [];
     const allMessages = allMessagesResult.data || [];
+    const todayMessages = todayMessagesResult.data || [];
+    const weekMessages = weekMessagesResult.data || [];
 
     // Scope instance users to company instances (table doesn't have company_id)
     const instanceIds = new Set<string>(instances.map((i: any) => i.id));
     const instanceUsersForCompany = instanceUsers.filter((iu: any) => instanceIds.has(iu.instance_id));
 
     console.log('Data fetched:', {
-      healthConfigs: healthConfigs.length,
       whatsappAnalysis: whatsappAnalysis.length,
       conversations: conversations.length,
       instances: instances.length,
-      clients: clients.length,
       assignments: assignments.length,
       messagesSent: messagesSent.length,
       instanceUsers: instanceUsersForCompany.length,
       allMessages: allMessages.length,
+      todayMessages: todayMessages.length,
+      weekMessages: weekMessages.length,
     });
 
     // ========== CALCULATE RESPONSE TIMES ==========
-    // Group messages by conversation
     const messagesByConversation = new Map<string, any[]>();
     allMessages.forEach((m: any) => {
       if (!messagesByConversation.has(m.conversation_id)) {
@@ -238,31 +254,25 @@ Deno.serve(async (req) => {
       messagesByConversation.get(m.conversation_id)!.push(m);
     });
 
-    // Helper function to get date string (YYYY-MM-DD) from timestamp
     const getDateKey = (timestamp: string): string => {
       return new Date(timestamp).toISOString().split('T')[0];
     };
 
-    // Calculate response times per conversation and per user
-    // Separate: all responses vs first response of the day
     const allResponseTimesGlobal: number[] = [];
     const firstResponseTimesGlobal: number[] = [];
     const allResponseTimesByUser = new Map<string, number[]>();
     const firstResponseTimesByUser = new Map<string, number[]>();
+    const responseTimeBreakdown = { under5min: 0, under15min: 0, under30min: 0, under1hour: 0, over1hour: 0 };
 
     for (const [conversationId, messages] of messagesByConversation) {
-      // Sort by sent_at
       messages.sort((a: any, b: any) => new Date(a.sent_at).getTime() - new Date(b.sent_at).getTime());
       
-      // Track first response per day per conversation
-      const firstResponseTracked = new Set<string>(); // "conversationId_YYYY-MM-DD"
+      const firstResponseTracked = new Set<string>();
       
       for (let i = 0; i < messages.length - 1; i++) {
         const current = messages[i];
         const next = messages[i + 1];
         
-        // If current is incoming (from customer) and next is outgoing (from company), this is a response
-        // Support both naming conventions: inbound/outbound and incoming/outgoing
         const isCurrentIncoming = current.direction === 'inbound' || current.direction === 'incoming';
         const isNextOutgoing = next.direction === 'outbound' || next.direction === 'outgoing';
         
@@ -270,9 +280,7 @@ Deno.serve(async (req) => {
           const responseTimeMs = new Date(next.sent_at).getTime() - new Date(current.sent_at).getTime();
           const responseTimeMinutes = responseTimeMs / (1000 * 60);
           
-          // Only count responses under 24 hours (filter out old conversations)
           if (responseTimeMinutes > 0 && responseTimeMinutes < 24 * 60) {
-            // Check if this is the first response of the day for this conversation
             const dayKey = getDateKey(current.sent_at);
             const trackingKey = `${conversationId}_${dayKey}`;
             const isFirstOfDay = !firstResponseTracked.has(trackingKey);
@@ -282,18 +290,21 @@ Deno.serve(async (req) => {
               firstResponseTimesGlobal.push(responseTimeMinutes);
             }
             
-            // Always add to all responses
             allResponseTimesGlobal.push(responseTimeMinutes);
             
-            // Track per user if available
+            // Response time breakdown
+            if (responseTimeMinutes < 5) responseTimeBreakdown.under5min++;
+            else if (responseTimeMinutes < 15) responseTimeBreakdown.under15min++;
+            else if (responseTimeMinutes < 30) responseTimeBreakdown.under30min++;
+            else if (responseTimeMinutes < 60) responseTimeBreakdown.under1hour++;
+            else responseTimeBreakdown.over1hour++;
+            
             if (next.sent_by_user_id) {
-              // All responses
               if (!allResponseTimesByUser.has(next.sent_by_user_id)) {
                 allResponseTimesByUser.set(next.sent_by_user_id, []);
               }
               allResponseTimesByUser.get(next.sent_by_user_id)!.push(responseTimeMinutes);
               
-              // First response of day
               if (isFirstOfDay) {
                 if (!firstResponseTimesByUser.has(next.sent_by_user_id)) {
                   firstResponseTimesByUser.set(next.sent_by_user_id, []);
@@ -301,40 +312,11 @@ Deno.serve(async (req) => {
                 firstResponseTimesByUser.get(next.sent_by_user_id)!.push(responseTimeMinutes);
               }
             }
-            
-            // Also associate with attendants assigned to this conversation (fallback)
-            // Find which users are assigned to this conversation via instance_users
-            const conversation = conversations.find((c: any) => c.id === conversationId);
-            if (conversation?.instance_id) {
-              const assignedUsers = instanceUsersForCompany
-                .filter((iu: any) => iu.instance_id === conversation.instance_id)
-                .map((iu: any) => iu.user_id);
-              
-              for (const userId of assignedUsers) {
-                // Only add if not already tracked via sent_by_user_id
-                if (!next.sent_by_user_id) {
-                  // All responses
-                  if (!allResponseTimesByUser.has(userId)) {
-                    allResponseTimesByUser.set(userId, []);
-                  }
-                  allResponseTimesByUser.get(userId)!.push(responseTimeMinutes);
-                  
-                  // First response of day
-                  if (isFirstOfDay) {
-                    if (!firstResponseTimesByUser.has(userId)) {
-                      firstResponseTimesByUser.set(userId, []);
-                    }
-                    firstResponseTimesByUser.get(userId)!.push(responseTimeMinutes);
-                  }
-                }
-              }
-            }
           }
         }
       }
     }
 
-    // Calculate global averages
     const globalAverageResponseTime = allResponseTimesGlobal.length > 0
       ? Math.round(allResponseTimesGlobal.reduce((a, b) => a + b, 0) / allResponseTimesGlobal.length)
       : null;
@@ -343,48 +325,29 @@ Deno.serve(async (req) => {
       ? Math.round(firstResponseTimesGlobal.reduce((a, b) => a + b, 0) / firstResponseTimesGlobal.length)
       : null;
 
-    console.log('Response times calculated:', {
-      allResponsesSamples: allResponseTimesGlobal.length,
-      allResponsesAverage: globalAverageResponseTime,
-      firstResponseSamples: firstResponseTimesGlobal.length,
-      firstResponseAverage: globalAverageFirstResponseTime,
-      usersWithData: allResponseTimesByUser.size,
+    // ========== HOURLY MESSAGE VOLUME ==========
+    const hourlyVolume: Array<{ hour: number; inbound: number; outbound: number }> = [];
+    for (let h = 0; h < 24; h++) {
+      hourlyVolume.push({ hour: h, inbound: 0, outbound: 0 });
+    }
+    todayMessages.forEach((m: any) => {
+      const hour = new Date(m.sent_at || now).getHours();
+      const isInbound = m.direction === 'inbound' || m.direction === 'incoming';
+      if (isInbound) hourlyVolume[hour].inbound++;
+      else hourlyVolume[hour].outbound++;
     });
 
-    // Calculate health metrics
-    const totalClients = healthConfigs.length;
-    const criticalClients = healthConfigs.filter(h => h.churn_risk_level === 'critical').length;
-    const highRiskClients = healthConfigs.filter(h => h.churn_risk_level === 'high').length;
-    const mediumRiskClients = healthConfigs.filter(h => h.churn_risk_level === 'medium').length;
-    const lowRiskClients = healthConfigs.filter(h => h.churn_risk_level === 'low').length;
-
-    const healthScores = healthConfigs
-      .map(h => h.health_score_total)
-      .filter((s): s is number => s !== null);
-    const averageHealthScore = healthScores.length > 0
-      ? Math.round(healthScores.reduce((a, b) => a + b, 0) / healthScores.length)
-      : 0;
-
-    // Calculate NPS metrics
-    const npsScores = healthConfigs
-      .map(h => h.nps_score)
-      .filter((s): s is number => s !== null);
-    const averageNPS = npsScores.length > 0
-      ? Math.round((npsScores.reduce((a, b) => a + b, 0) / npsScores.length) * 10) / 10
-      : null;
-    const npsPromoters = npsScores.filter(s => s >= 9).length;
-    const npsPassives = npsScores.filter(s => s >= 7 && s < 9).length;
-    const npsDetractors = npsScores.filter(s => s < 7).length;
-
-    // Calculate WhatsApp sentiment metrics
+    // ========== WHATSAPP METRICS ==========
+    const activeConversations = conversations.filter((c: any) => !c.is_archived).length;
+    
     const positiveConversations = whatsappAnalysis.filter(w => 
-      (w as any).temperature === 'positive' || (w as any).sentiment === 'positive'
+      (w as any).temperature === 'positive'
     ).length;
     const neutralConversations = whatsappAnalysis.filter(w => 
-      (w as any).temperature === 'neutral' || (w as any).sentiment === 'neutral'
+      (w as any).temperature === 'neutral'
     ).length;
     const negativeConversations = whatsappAnalysis.filter(w => 
-      (w as any).temperature === 'negative' || (w as any).sentiment === 'negative'
+      (w as any).temperature === 'negative'
     ).length;
 
     const analysisScores = whatsappAnalysis
@@ -402,11 +365,25 @@ Deno.serve(async (req) => {
       return count;
     }, 0);
 
+    // Conversations without recent response (waiting for reply)
+    const conversationsWithoutResponse = conversations.filter((c: any) => {
+      if (c.is_archived) return false;
+      const convMessages = messagesByConversation.get(c.id) || [];
+      if (convMessages.length === 0) return false;
+      const lastMessage = convMessages[convMessages.length - 1];
+      return lastMessage.direction === 'inbound' || lastMessage.direction === 'incoming';
+    }).length;
+
+    // Conversations needing attention (negative or low score)
+    const conversationsNeedingAttention = whatsappAnalysis.filter(w => {
+      const temp = (w as any).temperature;
+      const score = (w as any).score;
+      return temp === 'negative' || (typeof score === 'number' && score < 5);
+    }).length;
+
     // ========== ATTENDANT PERFORMANCE ==========
-    // Group conversations by attendant
     const attendantConversations = new Map<string, string[]>();
     
-    // Try primary source: direct conversation assignments
     assignments.forEach((a: any) => {
       const userId = a.assigned_to_user_id;
       if (!attendantConversations.has(userId)) {
@@ -415,11 +392,7 @@ Deno.serve(async (req) => {
       attendantConversations.get(userId)!.push(a.conversation_id);
     });
 
-    // Fallback: if no direct assignments, use instance_users (scoped to this company)
     if (attendantConversations.size === 0 && instanceUsersForCompany.length > 0) {
-      console.log('Using instance_users fallback for attendant performance');
-      
-      // Group conversations by instance
       const conversationsByInstance = new Map<string, string[]>();
       conversations.forEach((c: any) => {
         if (c.instance_id) {
@@ -430,14 +403,12 @@ Deno.serve(async (req) => {
         }
       });
 
-      // Associate users to their instance conversations
       instanceUsersForCompany.forEach((iu: any) => {
         const convIds = conversationsByInstance.get(iu.instance_id) || [];
         if (convIds.length > 0) {
           if (!attendantConversations.has(iu.user_id)) {
             attendantConversations.set(iu.user_id, []);
           }
-          // Add unique conversation IDs
           convIds.forEach(id => {
             if (!attendantConversations.get(iu.user_id)!.includes(id)) {
               attendantConversations.get(iu.user_id)!.push(id);
@@ -445,18 +416,14 @@ Deno.serve(async (req) => {
           });
         }
       });
-      
-      console.log('Attendants found via instance_users:', attendantConversations.size);
     }
 
-    // Count messages sent per user
     const messageCounts = new Map<string, number>();
     messagesSent.forEach((m: any) => {
       const userId = m.sent_by_user_id;
       messageCounts.set(userId, (messageCounts.get(userId) || 0) + 1);
     });
 
-    // Calculate metrics per attendant
     const attendantMetrics: Array<{
       id: string;
       activeConversations: number;
@@ -471,23 +438,14 @@ Deno.serve(async (req) => {
     }> = [];
 
     for (const [userId, convIds] of attendantConversations) {
-      // Filter analyses for this attendant's conversations
       const attendantAnalyses = whatsappAnalysis.filter((a: any) => 
         convIds.includes(a.conversation_id)
       );
 
-      // Calculate sentiment counts
-      const positiveCount = attendantAnalyses.filter((a: any) => 
-        a.temperature === 'positive' || a.sentiment === 'positive'
-      ).length;
-      const neutralCount = attendantAnalyses.filter((a: any) => 
-        a.temperature === 'neutral' || a.sentiment === 'neutral'
-      ).length;
-      const negativeCount = attendantAnalyses.filter((a: any) => 
-        a.temperature === 'negative' || a.sentiment === 'negative'
-      ).length;
+      const positiveCount = attendantAnalyses.filter((a: any) => a.temperature === 'positive').length;
+      const neutralCount = attendantAnalyses.filter((a: any) => a.temperature === 'neutral').length;
+      const negativeCount = attendantAnalyses.filter((a: any) => a.temperature === 'negative').length;
 
-      // Calculate average score
       const scores = attendantAnalyses
         .map((a: any) => a.score)
         .filter((s: any): s is number => typeof s === 'number');
@@ -495,7 +453,6 @@ Deno.serve(async (req) => {
         ? Math.round((scores.reduce((a: number, b: number) => a + b, 0) / scores.length) * 10) / 10
         : null;
 
-      // Count alerts
       const alertCount = attendantAnalyses.reduce((count: number, a: any) => {
         if (Array.isArray(a.alerts)) {
           return count + a.alerts.length;
@@ -503,13 +460,11 @@ Deno.serve(async (req) => {
         return count;
       }, 0);
 
-      // Calculate average response time for this user (all responses)
       const userAllResponseTimes = allResponseTimesByUser.get(userId) || [];
       const avgResponseTime = userAllResponseTimes.length > 0
         ? Math.round(userAllResponseTimes.reduce((a, b) => a + b, 0) / userAllResponseTimes.length)
         : null;
 
-      // Calculate average first response time for this user
       const userFirstResponseTimes = firstResponseTimesByUser.get(userId) || [];
       const avgFirstResponseTime = userFirstResponseTimes.length > 0
         ? Math.round(userFirstResponseTimes.reduce((a, b) => a + b, 0) / userFirstResponseTimes.length)
@@ -534,59 +489,26 @@ Deno.serve(async (req) => {
     let profiles: any[] = [];
     let employees: any[] = [];
     
-    console.log('Looking up names for userIds:', userIds, 'company.id:', company.id);
-    
     if (userIds.length > 0) {
-      // Fetch from profiles table (uses full_name, not name)
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, full_name, avatar_url')
-        .in('id', userIds);
-      
-      if (profilesError) {
-        console.error('Error fetching profiles:', profilesError);
-      }
-      profiles = profilesData || [];
-      console.log('Profiles fetched:', profiles.length, JSON.stringify(profiles));
-      
-      // Fetch from employees table - get any employee matching user_id
-      // (don't filter by company_id since employees might be in a different company record)
-      // Note: employees table doesn't have avatar_url column
-      const { data: employeesData, error: employeesError } = await supabase
-        .from('employees')
-        .select('user_id, name, company_id')
-        .in('user_id', userIds);
-      
-      if (employeesError) {
-        console.error('Error fetching employees:', employeesError);
-      }
-      employees = employeesData || [];
-      console.log('Employees fetched:', employees.length, JSON.stringify(employees));
+      const [profilesResult, employeesResult] = await Promise.all([
+        supabase.from('profiles').select('id, full_name, avatar_url').in('id', userIds),
+        supabase.from('employees').select('user_id, name, company_id').in('user_id', userIds),
+      ]);
+      profiles = profilesResult.data || [];
+      employees = employeesResult.data || [];
     }
 
-    // Build attendant performance list with names
     const attendantPerformance: AttendantPerformance[] = attendantMetrics
       .map(metrics => {
-        // Find name from employees first (company-specific), then profiles
         const employee = employees.find(e => e.user_id === metrics.id);
         const profile = profiles.find(p => p.id === metrics.id);
-        
-        // profiles uses full_name, employees uses name
-        // Note: employees table doesn't have avatar_url, only profiles does
         const name = employee?.name || profile?.full_name || 'Sem nome';
         const avatarUrl = profile?.avatar_url || null;
         
-        console.log('Building attendant:', { userId: metrics.id, employeeName: employee?.name, profileName: profile?.full_name, finalName: name });
-        
-        return {
-          ...metrics,
-          name,
-          avatarUrl,
-        };
+        return { ...metrics, name, avatarUrl };
       })
       .filter(a => a.activeConversations > 0 || a.messagesSent > 0)
       .sort((a, b) => {
-        // Sort by score (highest first), then by conversations
         if (a.averageScore !== null && b.averageScore !== null) {
           return b.averageScore - a.averageScore;
         }
@@ -595,141 +517,158 @@ Deno.serve(async (req) => {
         return b.activeConversations - a.activeConversations;
       });
 
-    // Get critical clients (churn risk = critical or high)
-    const criticalClientsList = healthConfigs
-      .filter(h => h.churn_risk_level === 'critical' || h.churn_risk_level === 'high')
-      .map(h => ({
-        id: (h.clients as any).id,
-        name: (h.clients as any).name,
-        avatar: (h.clients as any).avatar,
-        healthScore: h.health_score_total,
-        riskLevel: h.churn_risk_level || 'unknown',
-        financialScore: h.health_score_financial,
-        operationalScore: h.health_score_operational,
-        relationalScore: h.health_score_relational,
-        npsScore: h.nps_score,
-        lastCsContact: h.last_cs_contact_at,
-      }))
-      .sort((a, b) => {
-        // Critical first, then by health score (lowest first)
-        if (a.riskLevel === 'critical' && b.riskLevel !== 'critical') return -1;
-        if (a.riskLevel !== 'critical' && b.riskLevel === 'critical') return 1;
-        return (a.healthScore || 0) - (b.healthScore || 0);
-      })
-      .slice(0, 10);
-
-    // Get critical conversations (negative sentiment or low score)
+    // ========== CRITICAL CONVERSATIONS ==========
     const criticalConversationsList = whatsappAnalysis
       .filter(w => {
-        const temp = (w as any).temperature || (w as any).sentiment;
+        const temp = (w as any).temperature;
         const score = (w as any).score;
         return temp === 'negative' || (typeof score === 'number' && score < 5);
       })
       .map(w => {
         const conv = (w as any).whatsapp_conversations;
         const alerts = (w as any).alerts;
+        
+        // Find attendant
+        const assignment = assignments.find((a: any) => a.conversation_id === conv.id);
+        let attendantId = assignment?.assigned_to_user_id || null;
+        let attendantName: string | null = null;
+        
+        if (attendantId) {
+          const employee = employees.find(e => e.user_id === attendantId);
+          const profile = profiles.find(p => p.id === attendantId);
+          attendantName = employee?.name || profile?.full_name || null;
+        }
+        
         return {
           id: conv.id,
           contactName: conv.contact_name || 'Sem nome',
+          contactPhone: conv.phone || '',
           clientId: conv.client_id,
-          clientName: null as string | null, // Will be enriched below
+          clientName: null as string | null,
           score: (w as any).score,
-          temperature: (w as any).temperature || (w as any).sentiment,
+          temperature: (w as any).temperature,
           alertsCount: Array.isArray(alerts) ? alerts.length : 0,
-          lastAnalysis: (w as any).analyzed_at || (w as any).updated_at,
+          interpretation: (w as any).interpretation,
+          lastAnalysis: (w as any).updated_at,
+          lastMessageAt: conv.last_message_at,
+          attendantId,
+          attendantName,
         };
       })
       .sort((a, b) => (a.score || 0) - (b.score || 0))
-      .slice(0, 10);
+      .slice(0, 15);
 
     // Enrich with client names
-    const clientIds = criticalConversationsList
-      .map(c => c.clientId)
-      .filter((id): id is string => id !== null);
-    
+    const clientIds = criticalConversationsList.map(c => c.clientId).filter((id): id is string => id !== null);
     if (clientIds.length > 0) {
-      const { data: clientsData } = await supabase
-        .from('clients')
-        .select('id, name')
-        .in('id', clientIds);
-      
+      const { data: clientsData } = await supabase.from('clients').select('id, name').in('id', clientIds);
       if (clientsData) {
         criticalConversationsList.forEach(conv => {
           if (conv.clientId) {
             const client = clientsData.find(c => c.id === conv.clientId);
-            if (client) {
-              conv.clientName = client.name;
-            }
+            if (client) conv.clientName = client.name;
           }
         });
       }
     }
 
-    // Calculate pending contacts (clients without recent CS contact)
-    const now = new Date();
-    const pendingContacts = healthConfigs
-      .filter(h => {
-        if (!h.last_cs_contact_at) return true;
-        const daysSince = Math.floor((now.getTime() - new Date(h.last_cs_contact_at).getTime()) / (1000 * 60 * 60 * 24));
-        return daysSince >= 14; // 2 weeks threshold
+    // ========== RECENT CRITICAL ALERTS (score < 3) ==========
+    const recentCriticalAlerts: CriticalAlert[] = whatsappAnalysis
+      .filter(w => {
+        const score = (w as any).score;
+        return typeof score === 'number' && score < 3;
       })
-      .map(h => {
-        const lastContact = h.last_cs_contact_at ? new Date(h.last_cs_contact_at) : null;
-        const daysSince = lastContact
-          ? Math.floor((now.getTime() - lastContact.getTime()) / (1000 * 60 * 60 * 24))
-          : 999;
+      .map(w => {
+        const conv = (w as any).whatsapp_conversations;
+        
+        const assignment = assignments.find((a: any) => a.conversation_id === conv.id);
+        let attendantId = assignment?.assigned_to_user_id || null;
+        let attendantName: string | null = null;
+        
+        if (attendantId) {
+          const employee = employees.find(e => e.user_id === attendantId);
+          const profile = profiles.find(p => p.id === attendantId);
+          attendantName = employee?.name || profile?.full_name || null;
+        }
+        
+        // Get client name
+        let clientName: string | null = null;
+        if (conv.client_id) {
+          const existingConv = criticalConversationsList.find(c => c.clientId === conv.client_id);
+          clientName = existingConv?.clientName || null;
+        }
+        
         return {
-          id: (h.clients as any).id,
-          name: (h.clients as any).name,
-          avatar: (h.clients as any).avatar,
-          daysSinceContact: daysSince,
-          lastContactAt: h.last_cs_contact_at,
+          id: (w as any).id,
+          conversationId: conv.id,
+          contactName: conv.contact_name || 'Sem nome',
+          contactPhone: conv.phone || '',
+          clientName,
+          attendantId,
+          attendantName,
+          score: (w as any).score,
+          temperature: (w as any).temperature,
+          interpretation: (w as any).interpretation,
+          suggestion: (w as any).suggestion,
+          analyzedAt: (w as any).updated_at,
         };
       })
-      .sort((a, b) => b.daysSinceContact - a.daysSinceContact)
+      .sort((a, b) => new Date(b.analyzedAt).getTime() - new Date(a.analyzedAt).getTime())
       .slice(0, 10);
 
-    // Calculate pending NPS (clients without recent NPS)
-    const pendingNPS = healthConfigs
-      .filter(h => {
-        if (!h.nps_collected_at) return true;
-        const daysSince = Math.floor((now.getTime() - new Date(h.nps_collected_at).getTime()) / (1000 * 60 * 60 * 24));
-        return daysSince >= 90; // 3 months threshold
+    // ========== PENDING CONVERSATIONS (waiting for response) ==========
+    const pendingConversations = conversations
+      .filter((c: any) => {
+        if (c.is_archived) return false;
+        const convMessages = messagesByConversation.get(c.id) || [];
+        if (convMessages.length === 0) return false;
+        const lastMessage = convMessages[convMessages.length - 1];
+        return lastMessage.direction === 'inbound' || lastMessage.direction === 'incoming';
       })
-      .map(h => {
-        const lastNPS = h.nps_collected_at ? new Date(h.nps_collected_at) : null;
-        const daysSince = lastNPS
-          ? Math.floor((now.getTime() - lastNPS.getTime()) / (1000 * 60 * 60 * 24))
-          : 999;
+      .map((c: any) => {
+        const convMessages = messagesByConversation.get(c.id) || [];
+        const lastMessage = convMessages[convMessages.length - 1];
+        const waitingMs = now.getTime() - new Date(lastMessage.sent_at).getTime();
+        const waitingMinutes = Math.round(waitingMs / (1000 * 60));
+        
         return {
-          id: (h.clients as any).id,
-          name: (h.clients as any).name,
-          avatar: (h.clients as any).avatar,
-          daysSinceNPS: daysSince,
-          lastNPSAt: h.nps_collected_at,
+          id: c.id,
+          contactName: c.contact_name || 'Sem nome',
+          contactPhone: c.phone || '',
+          lastMessageAt: lastMessage.sent_at,
+          waitingMinutes,
+          clientName: null as string | null,
         };
       })
-      .sort((a, b) => b.daysSinceNPS - a.daysSinceNPS)
-      .slice(0, 10);
+      .sort((a, b) => b.waitingMinutes - a.waitingMinutes)
+      .slice(0, 15);
+
+    // Enrich pending conversations with client names
+    const pendingClientIds = conversations
+      .filter((c: any) => pendingConversations.find(p => p.id === c.id))
+      .map((c: any) => c.client_id)
+      .filter((id): id is string => id !== null);
+    
+    if (pendingClientIds.length > 0) {
+      const { data: pendingClientsData } = await supabase.from('clients').select('id, name').in('id', pendingClientIds);
+      if (pendingClientsData) {
+        pendingConversations.forEach(conv => {
+          const conversation = conversations.find((c: any) => c.id === conv.id);
+          if (conversation?.client_id) {
+            const client = pendingClientsData.find(c => c.id === conversation.client_id);
+            if (client) conv.clientName = client.name;
+          }
+        });
+      }
+    }
 
     // Build response
     const dashboardData: CSTVDashboardData = {
       companyName: company.name,
       lastUpdatedAt: new Date().toISOString(),
-      healthMetrics: {
-        averageHealthScore,
-        totalClients,
-        criticalClients,
-        highRiskClients,
-        mediumRiskClients,
-        lowRiskClients,
-        averageNPS,
-        npsPromoters,
-        npsPassives,
-        npsDetractors,
-      },
-      whatsappSentiment: {
+      whatsappMetrics: {
         totalConversations: conversations.length,
+        activeConversations,
         positiveConversations,
         neutralConversations,
         negativeConversations,
@@ -737,22 +676,30 @@ Deno.serve(async (req) => {
         activeAlerts,
         averageResponseTimeMinutes: globalAverageResponseTime,
         averageFirstResponseTimeMinutes: globalAverageFirstResponseTime,
+        totalMessagesToday: todayMessages.length,
+        totalMessagesThisWeek: weekMessages.length,
+        conversationsWithoutResponse,
+        conversationsNeedingAttention,
       },
-      criticalClients: criticalClientsList,
+      sentimentDistribution: {
+        positive: positiveConversations,
+        neutral: neutralConversations,
+        negative: negativeConversations,
+      },
       criticalConversations: criticalConversationsList,
-      pendingContacts,
-      pendingNPS,
+      recentCriticalAlerts,
       attendantPerformance,
+      hourlyMessageVolume: hourlyVolume,
+      responseTimeBreakdown,
+      pendingConversations,
     };
 
     console.log('Dashboard data prepared:', {
-      healthMetrics: dashboardData.healthMetrics,
-      whatsappSentiment: dashboardData.whatsappSentiment,
-      criticalClients: dashboardData.criticalClients.length,
+      whatsappMetrics: dashboardData.whatsappMetrics,
       criticalConversations: dashboardData.criticalConversations.length,
-      pendingContacts: dashboardData.pendingContacts.length,
-      pendingNPS: dashboardData.pendingNPS.length,
+      recentCriticalAlerts: dashboardData.recentCriticalAlerts.length,
       attendantPerformance: dashboardData.attendantPerformance.length,
+      pendingConversations: dashboardData.pendingConversations.length,
     });
 
     return new Response(
