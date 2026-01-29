@@ -152,26 +152,30 @@ export function CSTVCriticalAlertOverlay({ alerts, onDismiss, onDismissAll, rota
 
   const isRotated = rotation === 90 || rotation === 270;
 
+  // Estilos para o conteúdo interno rotacionado
+  const getContentStyle = () => {
+    if (rotation === 0) return {};
+    
+    return {
+      transform: `rotate(${rotation}deg)`,
+      transformOrigin: 'center center',
+      width: isRotated ? '100vh' : '100vw',
+      height: isRotated ? '100vw' : '100vh',
+    };
+  };
+
   return (
-    <div 
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-300"
-      style={{
-        transform: `rotate(${rotation}deg)`,
-        transformOrigin: rotation === 90 ? 'top left' : rotation === 270 ? 'bottom right' : 'center',
-        width: isRotated ? '100vh' : '100%',
-        height: isRotated ? '100vw' : '100%',
-        position: 'fixed',
-        top: rotation === 90 ? 0 : rotation === 270 ? 'auto' : 0,
-        left: rotation === 90 ? '100vw' : 0,
-        bottom: rotation === 270 ? '100vh' : undefined,
-        right: rotation === 270 ? 0 : undefined,
-      }}
-    >
-      {/* Pulsing background effect */}
-      <div className="absolute inset-0 bg-red-600/20 animate-pulse" />
-      
-      {/* Main alert container */}
-      <div className="relative w-full max-w-4xl mx-4 bg-background border-4 border-red-500 rounded-2xl shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
+      {/* Container que aplica a rotação ao conteúdo */}
+      <div 
+        className="absolute inset-0 flex items-center justify-center"
+        style={getContentStyle()}
+      >
+        {/* Pulsing background effect */}
+        <div className="absolute inset-0 bg-red-600/20 animate-pulse" />
+        
+        {/* Main alert container */}
+        <div className="relative w-full max-w-4xl mx-4 bg-background border-4 border-red-500 rounded-2xl shadow-2xl overflow-hidden">
         {/* Flashing header */}
         <div className={cn(
           "flex items-center justify-between px-6 py-4",
@@ -322,6 +326,7 @@ export function CSTVCriticalAlertOverlay({ alerts, onDismiss, onDismissAll, rota
             ))}
           </div>
         )}
+        </div>
       </div>
     </div>
   );
