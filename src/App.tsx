@@ -110,6 +110,7 @@ import DashboardTrafego from "./pages/DashboardTrafego";
 import DashboardTrafegoPublic from "./pages/DashboardTrafegoPublic";
 import DashboardSocialTVPublic from "./pages/DashboardSocialTVPublic";
 import DashboardRadarTVPublic from "./pages/DashboardRadarTVPublic";
+import DashboardCSTVPublic from "./pages/DashboardCSTVPublic";
 import KeywordPlannerPage from "./pages/KeywordPlanner";
 import RepositorioCriativos from "./pages/RepositorioCriativos";
 import PublicContentReview from "./pages/PublicContentReview";
@@ -119,6 +120,7 @@ import CSPortfolioPage from "./pages/cs/CSPortfolioPage";
 import CSJourneyKanbanPage from "./pages/cs/CSJourneyKanbanPage";
 import CSActionsPage from "./pages/cs/CSActionsPage";
 import CSClientsList from "./pages/cs/CSClientsList";
+import CSTVPage from "./pages/cs/CSTVPage";
 import ValueStatementPublic from "./pages/cs/ValueStatementPublic";
 import { AuthProvider } from "@/hooks/useAuth";
 import { CompanyProvider } from "@/contexts/CompanyContext";
@@ -161,6 +163,7 @@ const App = () => {
               <Route path="/tv/:token" element={<DashboardTrafegoPublic />} />
               <Route path="/social-tv/:token" element={<DashboardSocialTVPublic />} />
               <Route path="/radar-tv/:token" element={<DashboardRadarTVPublic />} />
+              <Route path="/cs-tv/:token" element={<DashboardCSTVPublic />} />
               <Route path="/content-review" element={<PublicContentReview />} />
               <Route path="/super-admin" element={<SuperAdmin />} />
               
@@ -605,6 +608,7 @@ const App = () => {
                   <Route path="jornada" element={<CSJourneyKanbanPage />} />
                   <Route path="acoes" element={<CSActionsPage />} />
                   <Route path="clientes" element={<CSClientsList />} />
+                  <Route path="tv" element={<CSTVPage />} />
                 </Route>
                 
                 {/* Public CS Routes */}
