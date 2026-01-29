@@ -13,6 +13,7 @@ import { CSTVMessageVolume } from "@/components/cs-tv-dashboard/CSTVMessageVolum
 import { CSTVResponseTimeBreakdown } from "@/components/cs-tv-dashboard/CSTVResponseTimeBreakdown";
 import { CSTVControls } from "@/components/cs-tv-dashboard/CSTVControls";
 import { CSTVCriticalAlertOverlay, CriticalAlert } from "@/components/cs-tv-dashboard/CSTVCriticalAlertOverlay";
+import { CSTVCelebrationOverlay, CelebrationAlert } from "@/components/cs-tv-dashboard/CSTVCelebrationOverlay";
 import { supabasePublic } from "@/integrations/supabase/publicClient";
 
 interface AttendantPerformance {
@@ -69,6 +70,7 @@ interface CSTVDashboardData {
     attendantName: string | null;
   }>;
   recentCriticalAlerts: CriticalAlert[];
+  recentCelebrationAlerts: CelebrationAlert[];
   attendantPerformance: AttendantPerformance[];
   hourlyMessageVolume: Array<{
     hour: number;
@@ -120,7 +122,20 @@ export default function DashboardCSTVPublic() {
     }
     return new Set();
   });
+  const [dismissedCelebrationIds, setDismissedCelebrationIds] = useState<Set<string>>(() => {
+    const saved = localStorage.getItem('cs-tv-dismissed-celebrations');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return new Set(parsed);
+      } catch {
+        return new Set();
+      }
+    }
+    return new Set();
+  });
   const [activeAlerts, setActiveAlerts] = useState<CriticalAlert[]>([]);
+  const [activeCelebrations, setActiveCelebrations] = useState<CelebrationAlert[]>([]);
 
   const handleZoomChange = (newZoom: number) => {
     setZoom(newZoom);
@@ -181,12 +196,36 @@ export default function DashboardCSTVPublic() {
     }
   }, [data?.recentCriticalAlerts, dismissedAlertIds]);
 
+  // Check for new celebration alerts (score = 10) - only show each alert once ever
+  useEffect(() => {
+    if (!data?.recentCelebrationAlerts) return;
+
+    const newCelebrations = data.recentCelebrationAlerts.filter(alert => {
+      return !dismissedCelebrationIds.has(alert.id);
+    });
+
+    if (newCelebrations.length > 0) {
+      setActiveCelebrations(prev => {
+        const existingIds = new Set(prev.map(a => a.id));
+        const trulyNew = newCelebrations.filter(a => !existingIds.has(a.id));
+        return trulyNew.length > 0 ? [...prev, ...trulyNew] : prev;
+      });
+    }
+  }, [data?.recentCelebrationAlerts, dismissedCelebrationIds]);
+
   // Persist dismissed alerts to localStorage
   useEffect(() => {
     if (dismissedAlertIds.size > 0) {
       localStorage.setItem('cs-tv-dismissed-alerts', JSON.stringify([...dismissedAlertIds]));
     }
   }, [dismissedAlertIds]);
+
+  // Persist dismissed celebrations to localStorage
+  useEffect(() => {
+    if (dismissedCelebrationIds.size > 0) {
+      localStorage.setItem('cs-tv-dismissed-celebrations', JSON.stringify([...dismissedCelebrationIds]));
+    }
+  }, [dismissedCelebrationIds]);
 
   const handleDismissAlert = useCallback((alertId: string) => {
     setActiveAlerts(prev => prev.filter(a => a.id !== alertId));
@@ -202,6 +241,21 @@ export default function DashboardCSTVPublic() {
       return newSet;
     });
   }, [activeAlerts]);
+
+  const handleDismissCelebration = useCallback((alertId: string) => {
+    setActiveCelebrations(prev => prev.filter(a => a.id !== alertId));
+    setDismissedCelebrationIds(prev => new Set(prev).add(alertId));
+  }, []);
+
+  const handleDismissAllCelebrations = useCallback(() => {
+    const allIds = activeCelebrations.map(a => a.id);
+    setActiveCelebrations([]);
+    setDismissedCelebrationIds(prev => {
+      const newSet = new Set(prev);
+      allIds.forEach(id => newSet.add(id));
+      return newSet;
+    });
+  }, [activeCelebrations]);
 
   useEffect(() => {
     if (data?.companyName) {
@@ -253,13 +307,21 @@ export default function DashboardCSTVPublic() {
 
   return (
     <>
-      {/* Critical Alert Overlay */}
+      {/* Critical Alert Overlay - show first (priority) */}
       <CSTVCriticalAlertOverlay 
         alerts={activeAlerts}
         onDismiss={handleDismissAlert}
         onDismissAll={handleDismissAllAlerts}
       />
 
+      {/* Celebration Overlay - show when no critical alerts */}
+      {activeAlerts.length === 0 && (
+        <CSTVCelebrationOverlay 
+          alerts={activeCelebrations}
+          onDismiss={handleDismissCelebration}
+          onDismissAll={handleDismissAllCelebrations}
+        />
+      )}
       <div 
         className="min-h-screen bg-background overflow-hidden"
         style={{
