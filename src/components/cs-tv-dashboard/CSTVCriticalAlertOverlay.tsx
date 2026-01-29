@@ -22,11 +22,12 @@ interface CSTVCriticalAlertOverlayProps {
   alerts: CriticalAlert[];
   onDismiss: (alertId: string) => void;
   onDismissAll: () => void;
+  rotation?: number;
 }
 
 const AUTO_DISMISS_SECONDS = 30;
 
-export function CSTVCriticalAlertOverlay({ alerts, onDismiss, onDismissAll }: CSTVCriticalAlertOverlayProps) {
+export function CSTVCriticalAlertOverlay({ alerts, onDismiss, onDismissAll, rotation = 0 }: CSTVCriticalAlertOverlayProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [countdown, setCountdown] = useState(AUTO_DISMISS_SECONDS);
   const sirenPlayedRef = useRef(false);
@@ -138,8 +139,23 @@ export function CSTVCriticalAlertOverlay({ alerts, onDismiss, onDismissAll }: CS
     }
   };
 
+  const isRotated = rotation === 90 || rotation === 270;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-300"
+      style={{
+        transform: `rotate(${rotation}deg)`,
+        transformOrigin: rotation === 90 ? 'top left' : rotation === 270 ? 'bottom right' : 'center',
+        width: isRotated ? '100vh' : '100%',
+        height: isRotated ? '100vw' : '100%',
+        position: 'fixed',
+        top: rotation === 90 ? 0 : rotation === 270 ? 'auto' : 0,
+        left: rotation === 90 ? '100vw' : 0,
+        bottom: rotation === 270 ? '100vh' : undefined,
+        right: rotation === 270 ? 0 : undefined,
+      }}
+    >
       {/* Pulsing background effect */}
       <div className="absolute inset-0 bg-red-600/20 animate-pulse" />
       

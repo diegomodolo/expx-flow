@@ -662,9 +662,12 @@ Deno.serve(async (req) => {
       .eq('company_id', company.id);
     const employeesWithTeams = employeesWithTeamsData || [];
 
-    // Get conversation IDs that might have score 10
+    // Get conversation IDs that might have score >= 9 (celebration)
     const celebrationConversationIds = whatsappAnalysis
-      .filter(w => (w as any).score === 10)
+      .filter(w => {
+        const score = (w as any).score;
+        return typeof score === 'number' && score >= 9;
+      })
       .map(w => (w as any).whatsapp_conversations.id);
 
     // Fetch last inbound messages for celebration conversations
@@ -690,7 +693,7 @@ Deno.serve(async (req) => {
     const recentCelebrationAlerts: CelebrationAlert[] = whatsappAnalysis
       .filter(w => {
         const score = (w as any).score;
-        return typeof score === 'number' && score === 10;
+        return typeof score === 'number' && score >= 9;
       })
       .map(w => {
         const conv = (w as any).whatsapp_conversations;
