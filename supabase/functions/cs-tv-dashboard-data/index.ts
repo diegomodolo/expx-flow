@@ -5,6 +5,19 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+interface AttendantPerformance {
+  id: string;
+  name: string;
+  avatarUrl: string | null;
+  activeConversations: number;
+  averageScore: number | null;
+  positiveCount: number;
+  neutralCount: number;
+  negativeCount: number;
+  activeAlerts: number;
+  messagesSent: number;
+}
+
 interface CSTVDashboardData {
   companyName: string;
   lastUpdatedAt: string;
@@ -64,6 +77,7 @@ interface CSTVDashboardData {
     daysSinceNPS: number;
     lastNPSAt: string | null;
   }>;
+  attendantPerformance: AttendantPerformance[];
 }
 
 Deno.serve(async (req) => {
@@ -111,6 +125,8 @@ Deno.serve(async (req) => {
       whatsappAnalysisResult,
       conversationsResult,
       clientsResult,
+      assignmentsResult,
+      messagesCountResult,
     ] = await Promise.all([
       // Client health configs
       supabase
@@ -141,18 +157,37 @@ Deno.serve(async (req) => {
         .from('clients')
         .select('id, name, avatar')
         .eq('company_id', company.id),
+
+      // Conversation assignments for attendant performance
+      supabase
+        .from('whatsapp_conversation_assignments')
+        .select('conversation_id, assigned_to_user_id')
+        .eq('company_id', company.id)
+        .eq('status', 'active')
+        .not('assigned_to_user_id', 'is', null),
+
+      // Messages sent count by user
+      supabase
+        .from('whatsapp_messages')
+        .select('sent_by_user_id')
+        .eq('company_id', company.id)
+        .not('sent_by_user_id', 'is', null),
     ]);
 
     const healthConfigs = healthConfigsResult.data || [];
     const whatsappAnalysis = whatsappAnalysisResult.data || [];
     const conversations = conversationsResult.data || [];
     const clients = clientsResult.data || [];
+    const assignments = assignmentsResult.data || [];
+    const messagesSent = messagesCountResult.data || [];
 
     console.log('Data fetched:', {
       healthConfigs: healthConfigs.length,
       whatsappAnalysis: whatsappAnalysis.length,
       conversations: conversations.length,
       clients: clients.length,
+      assignments: assignments.length,
+      messagesSent: messagesSent.length,
     });
 
     // Calculate health metrics
@@ -205,6 +240,106 @@ Deno.serve(async (req) => {
       }
       return count;
     }, 0);
+
+    // ========== ATTENDANT PERFORMANCE ==========
+    // Group conversations by attendant
+    const attendantConversations = new Map<string, string[]>();
+    assignments.forEach((a: any) => {
+      const userId = a.assigned_to_user_id;
+      if (!attendantConversations.has(userId)) {
+        attendantConversations.set(userId, []);
+      }
+      attendantConversations.get(userId)!.push(a.conversation_id);
+    });
+
+    // Count messages sent per user
+    const messageCounts = new Map<string, number>();
+    messagesSent.forEach((m: any) => {
+      const userId = m.sent_by_user_id;
+      messageCounts.set(userId, (messageCounts.get(userId) || 0) + 1);
+    });
+
+    // Calculate metrics per attendant
+    const attendantMetrics: Array<{
+      id: string;
+      activeConversations: number;
+      averageScore: number | null;
+      positiveCount: number;
+      neutralCount: number;
+      negativeCount: number;
+      activeAlerts: number;
+      messagesSent: number;
+    }> = [];
+
+    for (const [userId, convIds] of attendantConversations) {
+      // Filter analyses for this attendant's conversations
+      const attendantAnalyses = whatsappAnalysis.filter((a: any) => 
+        convIds.includes(a.conversation_id)
+      );
+
+      // Calculate sentiment counts
+      const positiveCount = attendantAnalyses.filter((a: any) => 
+        a.temperature === 'positive' || a.sentiment === 'positive'
+      ).length;
+      const neutralCount = attendantAnalyses.filter((a: any) => 
+        a.temperature === 'neutral' || a.sentiment === 'neutral'
+      ).length;
+      const negativeCount = attendantAnalyses.filter((a: any) => 
+        a.temperature === 'negative' || a.sentiment === 'negative'
+      ).length;
+
+      // Calculate average score
+      const scores = attendantAnalyses
+        .map((a: any) => a.score)
+        .filter((s: any): s is number => typeof s === 'number');
+      const avgScore = scores.length > 0
+        ? Math.round((scores.reduce((a: number, b: number) => a + b, 0) / scores.length) * 10) / 10
+        : null;
+
+      // Count alerts
+      const alertCount = attendantAnalyses.reduce((count: number, a: any) => {
+        if (Array.isArray(a.alerts)) {
+          return count + a.alerts.length;
+        }
+        return count;
+      }, 0);
+
+      attendantMetrics.push({
+        id: userId,
+        activeConversations: convIds.length,
+        averageScore: avgScore,
+        positiveCount,
+        neutralCount,
+        negativeCount,
+        activeAlerts: alertCount,
+        messagesSent: messageCounts.get(userId) || 0,
+      });
+    }
+
+    // Fetch profiles for attendants
+    const userIds = [...attendantConversations.keys()];
+    let profiles: any[] = [];
+    if (userIds.length > 0) {
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('id, full_name, avatar_url')
+        .in('id', userIds);
+      profiles = profilesData || [];
+    }
+
+    // Join profile data and sort by score
+    const attendantPerformance: AttendantPerformance[] = attendantMetrics
+      .map(m => {
+        const profile = profiles.find((p: any) => p.id === m.id);
+        return {
+          ...m,
+          name: profile?.full_name || 'Atendente',
+          avatarUrl: profile?.avatar_url || null,
+        };
+      })
+      .sort((a, b) => (b.averageScore || 0) - (a.averageScore || 0));
+
+    console.log('Attendant performance calculated:', attendantPerformance.length);
 
     // Get critical/high risk clients for the list
     const criticalClientsList = healthConfigs
@@ -326,6 +461,7 @@ Deno.serve(async (req) => {
       criticalConversations: criticalConversationsList,
       pendingContacts: pendingContactsList,
       pendingNPS: pendingNPSList,
+      attendantPerformance,
     };
 
     console.log('CS TV Dashboard data prepared successfully');
