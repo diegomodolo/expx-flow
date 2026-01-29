@@ -12,6 +12,8 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { QuickReply } from "@/hooks/useWhatsAppQuickReplies";
 import { WhatsAppQuickReplyPicker } from "./WhatsAppQuickReplyPicker";
+import { WhatsAppReplyPreview } from "./WhatsAppReplyPreview";
+import { WhatsAppMessage } from "@/hooks/useWhatsAppMessages";
 
 export interface MediaAttachment {
   file: File;
@@ -20,11 +22,14 @@ export interface MediaAttachment {
 }
 
 interface WhatsAppMessageInputProps {
-  onSend: (message: string) => void;
+  onSend: (message: string, replyToMessageId?: string) => void;
   onSendMedia?: (media: MediaAttachment, caption: string) => void;
   isSending: boolean;
   quickReplies?: QuickReply[];
   quickRepliesLoading?: boolean;
+  replyToMessage?: WhatsAppMessage | null;
+  replyToContactName?: string;
+  onCancelReply?: () => void;
 }
 
 export function WhatsAppMessageInput({ 
@@ -32,7 +37,10 @@ export function WhatsAppMessageInput({
   onSendMedia, 
   isSending,
   quickReplies = [],
-  quickRepliesLoading = false
+  quickRepliesLoading = false,
+  replyToMessage,
+  replyToContactName,
+  onCancelReply
 }: WhatsAppMessageInputProps) {
   const [message, setMessage] = useState("");
   const [showQuickReplies, setShowQuickReplies] = useState(false);
@@ -198,15 +206,17 @@ export function WhatsAppMessageInput({
       onSendMedia(attachment, trimmed);
       setAttachment(null);
       setMessage("");
+      onCancelReply?.();
       return;
     }
 
     if (!trimmed || isSending) return;
     
-    onSend(trimmed);
+    onSend(trimmed, replyToMessage?.external_id || undefined);
     setMessage("");
     setShowQuickReplies(false);
     setQuickReplySearch("");
+    onCancelReply?.();
   };
 
   const handleMessageChange = (value: string) => {
@@ -457,6 +467,15 @@ export function WhatsAppMessageInput({
             }}
           />
         </div>
+      )}
+
+      {/* Reply preview */}
+      {replyToMessage && (
+        <WhatsAppReplyPreview
+          message={replyToMessage}
+          contactName={replyToContactName}
+          onCancel={() => onCancelReply?.()}
+        />
       )}
 
       {/* Attachment preview */}

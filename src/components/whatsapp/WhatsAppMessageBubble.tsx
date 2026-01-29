@@ -1,7 +1,7 @@
 import { WhatsAppMessage } from "@/hooks/useWhatsAppMessages";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { Check, CheckCheck, Clock, AlertCircle, Download, FileText, Image, Video, Headphones, Loader2, Trash2, Pencil, Sparkles } from "lucide-react";
+import { Check, CheckCheck, Clock, AlertCircle, Download, FileText, Image, Video, Headphones, Loader2, Trash2, Pencil, Sparkles, Reply } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -39,9 +39,10 @@ interface WhatsAppMessageBubbleProps {
   remoteJid?: string; // phone@s.whatsapp.net format
   onMessageEdited?: (messageId: string, newContent: string) => void;
   onOpenAIAssistant?: (message: string) => void;
+  onReply?: (message: WhatsAppMessage) => void;
 }
 
-export function WhatsAppMessageBubble({ message, instanceId, companyId, remoteJid, onMessageEdited, onOpenAIAssistant }: WhatsAppMessageBubbleProps) {
+export function WhatsAppMessageBubble({ message, instanceId, companyId, remoteJid, onMessageEdited, onOpenAIAssistant, onReply }: WhatsAppMessageBubbleProps) {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -300,6 +301,19 @@ export function WhatsAppMessageBubble({ message, instanceId, companyId, remoteJi
       {/* Action buttons for outgoing messages - show on left */}
       {canShowDeleteButton && (
         <div className="flex items-center gap-1 mr-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          {/* Reply button */}
+          {onReply && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted"
+              onClick={() => onReply(message)}
+              title="Responder"
+            >
+              <Reply className="h-4 w-4" />
+            </Button>
+          )}
+          
           {/* Delete button */}
           <AlertDialog>
             <AlertDialogTrigger asChild>
@@ -359,6 +373,36 @@ export function WhatsAppMessageBubble({ message, instanceId, companyId, remoteJi
           )}
 
           {/* Reaction picker - only if has external_id */}
+          {message.external_id && instanceId && (
+            <WhatsAppReactionPicker
+              messageId={message.external_id}
+              remoteJid={messageRemoteJid}
+              companyId={companyId}
+              instanceId={instanceId}
+              isOutgoing={isOutgoing}
+              currentReaction={message.reaction}
+            />
+          )}
+        </div>
+      )}
+      
+      {/* Action buttons for incoming messages - show on right after bubble */}
+      {!isOutgoing && (
+        <div className="flex items-center gap-1 ml-1 opacity-0 group-hover:opacity-100 transition-opacity order-last">
+          {/* Reply button */}
+          {onReply && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted"
+              onClick={() => onReply(message)}
+              title="Responder"
+            >
+              <Reply className="h-4 w-4" />
+            </Button>
+          )}
+          
+          {/* Reaction picker for incoming messages */}
           {message.external_id && instanceId && (
             <WhatsAppReactionPicker
               messageId={message.external_id}
