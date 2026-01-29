@@ -1,11 +1,13 @@
 import { useState, ReactNode } from "react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Search } from "lucide-react";
+import { Loader2, Search, MessageSquarePlus } from "lucide-react";
 import { WhatsAppConversationItem } from "./WhatsAppConversationItem";
 import { WhatsAppConversation } from "@/hooks/useWhatsAppConversations";
 import { WhatsAppAssignmentFilters, AssignmentFilter } from "./WhatsAppAssignmentFilters";
 import { WhatsAppAssignment } from "@/hooks/useWhatsAppAssignments";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 
 interface WhatsAppConversationListProps {
   conversations: WhatsAppConversation[];
@@ -17,6 +19,7 @@ interface WhatsAppConversationListProps {
   currentUserId?: string;
   currentUserTeamId?: string;
   clientIdsWithTodayReminders?: Set<string>;
+  onNewConversation?: () => void;
 }
 
 export function WhatsAppConversationList({
@@ -29,6 +32,7 @@ export function WhatsAppConversationList({
   currentUserId,
   currentUserTeamId,
   clientIdsWithTodayReminders = new Set(),
+  onNewConversation,
 }: WhatsAppConversationListProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [assignmentFilter, setAssignmentFilter] = useState<AssignmentFilter>("all");
@@ -106,16 +110,35 @@ export function WhatsAppConversationList({
         noSquadCount={noSquadCount}
       />
       
-      {/* Search */}
+      {/* Search + New Conversation */}
       <div className="p-3 border-b">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar conversa..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar conversa..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          {onNewConversation && (
+            <TooltipProvider delayDuration={300}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={onNewConversation}
+                    className="shrink-0"
+                  >
+                    <MessageSquarePlus className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Nova conversa</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
         </div>
       </div>
 

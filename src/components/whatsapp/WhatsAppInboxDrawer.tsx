@@ -18,6 +18,7 @@ import { WhatsAppAIAgentConfigModal } from "./WhatsAppAIAgentConfigModal";
 import { WhatsAppQuickReplyManager } from "./WhatsAppQuickReplyManager";
 import { WhatsAppBlockedContactsModal } from "./WhatsAppBlockedContactsModal";
 import { WhatsAppRemindersPanel } from "./WhatsAppRemindersPanel";
+import { WhatsAppNewConversationDialog } from "./WhatsAppNewConversationDialog";
 import { useWhatsAppReminders } from "@/hooks/useWhatsAppReminders";
 import { MessageSquare, Settings, AlertCircle, Phone, CheckCircle2, XCircle, RefreshCw, Archive, Star, Users, MessageCircle, BellOff, Sparkles, Zap, ShieldOff, Heart, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -48,6 +49,7 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
   const [isQuickReplyManagerOpen, setIsQuickReplyManagerOpen] = useState(false);
   const [isBlockedContactsOpen, setIsBlockedContactsOpen] = useState(false);
   const [isRemindersPanelOpen, setIsRemindersPanelOpen] = useState(false);
+  const [isNewConversationOpen, setIsNewConversationOpen] = useState(false);
   const hasTriggeredSync = useRef(false);
   
   // Panel sizes persistence
@@ -364,6 +366,20 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
                 }}
               />
 
+              {/* New Conversation Dialog */}
+              {activeCompany?.company_id && selectedInstanceId && (
+                <WhatsAppNewConversationDialog
+                  isOpen={isNewConversationOpen}
+                  onClose={() => setIsNewConversationOpen(false)}
+                  companyId={activeCompany.company_id}
+                  instanceId={selectedInstanceId}
+                  onConversationCreated={(conversationId) => {
+                    refetchConversations();
+                    setSelectedConversationId(conversationId);
+                  }}
+                />
+              )}
+
               {/* Resizable panels for conversation list and chat */}
               <ResizablePanelGroup 
                 direction="horizontal" 
@@ -390,6 +406,7 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
                     currentUserId={user?.id}
                     currentUserTeamId={userSquad?.squadId}
                     clientIdsWithTodayReminders={clientIdsWithTodayReminders}
+                    onNewConversation={() => setIsNewConversationOpen(true)}
                     instanceSelector={isUazapi && availableInstances.length > 0 ? (
                       <Select value={selectedInstanceId || ""} onValueChange={handleInstanceChange}>
                         <SelectTrigger className="w-full">
