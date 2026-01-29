@@ -9,8 +9,22 @@ import { CSTVWhatsAppSentiment } from "@/components/cs-tv-dashboard/CSTVWhatsApp
 import { CSTVCriticalClients } from "@/components/cs-tv-dashboard/CSTVCriticalClients";
 import { CSTVCriticalConversations } from "@/components/cs-tv-dashboard/CSTVCriticalConversations";
 import { CSTVPendingActions } from "@/components/cs-tv-dashboard/CSTVPendingActions";
+import { CSTVAttendantPerformance } from "@/components/cs-tv-dashboard/CSTVAttendantPerformance";
 import { CSTVControls } from "@/components/cs-tv-dashboard/CSTVControls";
 import { supabasePublic } from "@/integrations/supabase/publicClient";
+
+interface AttendantPerformance {
+  id: string;
+  name: string;
+  avatarUrl: string | null;
+  activeConversations: number;
+  averageScore: number | null;
+  positiveCount: number;
+  neutralCount: number;
+  negativeCount: number;
+  activeAlerts: number;
+  messagesSent: number;
+}
 
 interface CSTVDashboardData {
   companyName: string;
@@ -71,6 +85,7 @@ interface CSTVDashboardData {
     daysSinceNPS: number;
     lastNPSAt: string | null;
   }>;
+  attendantPerformance: AttendantPerformance[];
 }
 
 export default function DashboardCSTVPublic() {
@@ -207,16 +222,18 @@ export default function DashboardCSTVPublic() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <CSTVWhatsAppSentiment sentiment={data.whatsappSentiment} />
-          <CSTVCriticalClients clients={data.criticalClients} />
+          <CSTVAttendantPerformance attendants={data.attendantPerformance} />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <CSTVCriticalClients clients={data.criticalClients} />
           <CSTVCriticalConversations conversations={data.criticalConversations} />
-          <CSTVPendingActions 
-            pendingContacts={data.pendingContacts}
-            pendingNPS={data.pendingNPS}
-          />
         </div>
+
+        <CSTVPendingActions 
+          pendingContacts={data.pendingContacts}
+          pendingNPS={data.pendingNPS}
+        />
       </div>
 
       <CSTVControls
