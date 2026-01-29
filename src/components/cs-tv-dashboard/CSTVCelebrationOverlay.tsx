@@ -127,8 +127,56 @@ export function CSTVCelebrationOverlay({ alerts, onDismiss, onDismissAll, rotati
     try {
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
       
-      // Create a celebratory fanfare
-      const playNote = (frequency: number, startTime: number, duration: number, gain: number = 0.2) => {
+      // Create applause using white noise with filtering
+      const createApplause = (startTime: number, duration: number, intensity: number = 0.3) => {
+        const bufferSize = audioContext.sampleRate * duration;
+        const noiseBuffer = audioContext.createBuffer(2, bufferSize, audioContext.sampleRate);
+        
+        // Generate noise with clapping pattern
+        for (let channel = 0; channel < 2; channel++) {
+          const output = noiseBuffer.getChannelData(channel);
+          for (let i = 0; i < bufferSize; i++) {
+            // Create rhythmic clapping pattern
+            const time = i / audioContext.sampleRate;
+            const clapFreq = 8 + Math.sin(time * 2) * 2; // Variable clapping speed
+            const clapPattern = Math.pow(Math.sin(time * clapFreq * Math.PI) * 0.5 + 0.5, 0.3);
+            output[i] = (Math.random() * 2 - 1) * clapPattern;
+          }
+        }
+        
+        const noiseSource = audioContext.createBufferSource();
+        noiseSource.buffer = noiseBuffer;
+        
+        // Bandpass filter to make it sound more like clapping
+        const bandpass = audioContext.createBiquadFilter();
+        bandpass.type = 'bandpass';
+        bandpass.frequency.value = 2000;
+        bandpass.Q.value = 0.5;
+        
+        // High-pass to remove rumble
+        const highpass = audioContext.createBiquadFilter();
+        highpass.type = 'highpass';
+        highpass.frequency.value = 500;
+        
+        // Gain envelope
+        const gainNode = audioContext.createGain();
+        const now = audioContext.currentTime + startTime;
+        gainNode.gain.setValueAtTime(0, now);
+        gainNode.gain.linearRampToValueAtTime(intensity, now + 0.1);
+        gainNode.gain.setValueAtTime(intensity, now + duration - 0.3);
+        gainNode.gain.linearRampToValueAtTime(0, now + duration);
+        
+        noiseSource.connect(bandpass);
+        bandpass.connect(highpass);
+        highpass.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        noiseSource.start(now);
+        noiseSource.stop(now + duration);
+      };
+      
+      // Create a celebratory chime
+      const playChime = (frequency: number, startTime: number, duration: number, gain: number = 0.15) => {
         const oscillator = audioContext.createOscillator();
         const gainNode = audioContext.createGain();
         
@@ -138,35 +186,33 @@ export function CSTVCelebrationOverlay({ alerts, onDismiss, onDismissAll, rotati
         oscillator.type = 'sine';
         oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime + startTime);
         
-        gainNode.gain.setValueAtTime(0, audioContext.currentTime + startTime);
-        gainNode.gain.linearRampToValueAtTime(gain, audioContext.currentTime + startTime + 0.05);
-        gainNode.gain.setValueAtTime(gain, audioContext.currentTime + startTime + duration - 0.1);
-        gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + startTime + duration);
+        const now = audioContext.currentTime + startTime;
+        gainNode.gain.setValueAtTime(0, now);
+        gainNode.gain.linearRampToValueAtTime(gain, now + 0.02);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, now + duration);
         
-        oscillator.start(audioContext.currentTime + startTime);
-        oscillator.stop(audioContext.currentTime + startTime + duration);
+        oscillator.start(now);
+        oscillator.stop(now + duration);
       };
       
-      // Celebratory fanfare notes (C major chord arpeggio + triumph)
-      playNote(523.25, 0, 0.2);      // C5
-      playNote(659.25, 0.15, 0.2);   // E5
-      playNote(783.99, 0.3, 0.2);    // G5
-      playNote(1046.50, 0.45, 0.4);  // C6 (higher, longer)
+      // Applause sound (3 seconds)
+      createApplause(0, 3, 0.25);
       
-      // Add some sparkle
-      playNote(1318.51, 0.6, 0.15, 0.1);  // E6
-      playNote(1567.98, 0.7, 0.15, 0.1);  // G6
-      playNote(2093.00, 0.8, 0.6, 0.15);  // C7 (finale)
+      // Victory chimes overlay
+      playChime(1046.50, 0.1, 0.8);   // C6
+      playChime(1318.51, 0.2, 0.6);   // E6
+      playChime(1567.98, 0.3, 0.8);   // G6
+      playChime(2093.00, 0.5, 1.2);   // C7 (triumph!)
       
-      // Second layer - harmony
-      playNote(392.00, 0, 0.2, 0.1);      // G4
-      playNote(493.88, 0.15, 0.2, 0.1);   // B4
-      playNote(587.33, 0.3, 0.2, 0.1);    // D5
-      playNote(783.99, 0.45, 0.4, 0.1);   // G5
+      // Second wave of chimes
+      playChime(1046.50, 1.0, 0.5, 0.1);
+      playChime(1318.51, 1.1, 0.5, 0.1);
+      playChime(1567.98, 1.2, 0.5, 0.1);
+      playChime(2093.00, 1.4, 1.0, 0.12);
       
       setTimeout(() => {
         audioContext.close();
-      }, 2000);
+      }, 4000);
       
     } catch (error) {
       console.error('Error playing celebration sound:', error);
