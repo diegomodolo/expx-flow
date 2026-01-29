@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Plus, Phone, AlertCircle } from "lucide-react";
-import { WhatsAppInstance, useWhatsAppInstances } from "@/hooks/useWhatsAppInstances";
+import { WhatsAppInstance, useWhatsAppInstances, InstanceType } from "@/hooks/useWhatsAppInstances";
 import { WhatsAppInstanceCard } from "./WhatsAppInstanceCard";
 import { WhatsAppInstanceModal } from "./WhatsAppInstanceModal";
 import { WhatsAppInstanceUsersModal } from "./WhatsAppInstanceUsersModal";
@@ -55,14 +55,14 @@ export function WhatsAppInstancesList({
     setIsUsersModalOpen(true);
   };
 
-  const handleSave = (data: { instance_name: string }) => {
+  const handleSave = (data: { instance_name: string; instance_type: InstanceType }) => {
     createInstance(data, {
       onSuccess: () => setIsModalOpen(false),
     });
   };
 
-  const handleUpdate = (data: { id: string; instance_name: string }) => {
-    updateInstance({ id: data.id, instance_name: data.instance_name }, {
+  const handleUpdate = (data: { id: string; instance_name: string; instance_type: InstanceType }) => {
+    updateInstance({ id: data.id, instance_name: data.instance_name, instance_type: data.instance_type }, {
       onSuccess: () => setIsModalOpen(false),
     });
   };
