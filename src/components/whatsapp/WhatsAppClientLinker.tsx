@@ -20,6 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useClients, Client } from "@/hooks/useClients";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface WhatsAppClientLinkerProps {
   conversationId: string;
@@ -46,6 +47,7 @@ export function WhatsAppClientLinker({
   const [selectedClientName, setSelectedClientName] = useState<string | null>(null);
   
   const { clients, loading: isLoadingClients } = useClients();
+  const queryClient = useQueryClient();
 
   // Update local state when prop changes
   useEffect(() => {
@@ -83,6 +85,9 @@ export function WhatsAppClientLinker({
       setSelectedClientId(clientId);
       setSelectedClientName(clientName);
       onClientChange?.(clientId, clientName, clientLogoUrl);
+
+      // Immediately invalidate conversations query to refresh the list with the new client data
+      queryClient.invalidateQueries({ queryKey: ["whatsapp-conversations"] });
 
       // If linking to a client, also create a contact record if it doesn't exist
       if (clientId && conversationPhone) {
