@@ -17,10 +17,10 @@ interface AttendantPerformance {
 }
 
 interface CSTVAttendantPerformanceProps {
-  attendants: AttendantPerformance[];
+  attendants?: AttendantPerformance[];
 }
 
-export function CSTVAttendantPerformance({ attendants }: CSTVAttendantPerformanceProps) {
+export function CSTVAttendantPerformance({ attendants = [] }: CSTVAttendantPerformanceProps) {
   const getScoreColor = (score: number | null) => {
     if (score === null) return "text-muted-foreground";
     if (score >= 8) return "text-green-500";
