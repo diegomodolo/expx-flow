@@ -1,7 +1,8 @@
 import { useState, KeyboardEvent, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Send, Paperclip, Image, FileText, Film, Mic, X, Square, Trash2, Zap } from "lucide-react";
+import { Loader2, Send, Paperclip, Image, FileText, Film, Mic, X, Square, Trash2 } from "lucide-react";
+import { WhatsAppEmojiPicker } from "./WhatsAppEmojiPicker";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -47,6 +48,7 @@ export function WhatsAppMessageInput({
   const [quickReplySearch, setQuickReplySearch] = useState("");
   const [attachment, setAttachment] = useState<MediaAttachment | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [acceptTypes, setAcceptTypes] = useState<string>("");
   
   // Audio recording state
@@ -328,6 +330,26 @@ export function WhatsAppMessageInput({
     setAttachment(null);
   };
 
+  // Insert emoji at cursor position
+  const handleEmojiSelect = useCallback((emoji: string) => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const newMessage = message.slice(0, start) + emoji + message.slice(end);
+      setMessage(newMessage);
+      
+      // Set cursor position after emoji
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(start + emoji.length, start + emoji.length);
+      }, 0);
+    } else {
+      // Fallback: append to end
+      setMessage(prev => prev + emoji);
+    }
+  }, [message]);
+
   const formatFileSize = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -552,7 +574,14 @@ export function WhatsAppMessageInput({
           </DropdownMenuContent>
         </DropdownMenu>
 
+        {/* Emoji picker */}
+        <WhatsAppEmojiPicker
+          onEmojiSelect={handleEmojiSelect}
+          disabled={isSending}
+        />
+
         <Textarea
+          ref={textareaRef}
           placeholder={attachment ? "Adicione uma legenda..." : "Digite / para respostas rápidas..."}
           value={message}
           onChange={(e) => handleMessageChange(e.target.value)}
