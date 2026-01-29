@@ -1,213 +1,243 @@
 
-# CS TV Dashboard - Plano de Implementação
+# CS TV Dashboard - Performance por Atendente
 
 ## Objetivo
-Criar um dashboard de TV dedicado ao Customer Success, similar aos dashboards Radar TV e Tráfego TV já existentes, com foco em:
-- Análise de notas de relacionamento (saúde dos clientes)
-- Dados de sentimento das conversas WhatsApp (temperatura da IA)
-- Métricas de CS agregadas
-- Controles de zoom, atualização automática, rotação e modo kiosk
+Adicionar uma nova seção ao CS TV Dashboard exibindo métricas de performance individual de cada atendente, baseado nos dados de conversas WhatsApp, análises de sentimento e atribuições.
 
 ---
 
-## Visão Geral da Arquitetura
+## Métricas por Atendente
+
+| Métrica | Fonte de Dados | Descrição |
+|---------|----------------|-----------|
+| Conversas Ativas | `whatsapp_conversation_assignments` | Total de conversas atribuídas ao atendente |
+| Temperatura Média | `whatsapp_realtime_analysis` | Média de sentimento das conversas do atendente |
+| Score Médio | `whatsapp_realtime_analysis.score` | Nota média (0-10) das conversas |
+| Conversas Positivas | `temperature = 'positive'` | Quantidade com sentimento positivo |
+| Conversas Negativas | `temperature = 'negative'` | Quantidade com sentimento negativo |
+| Alertas Ativos | `whatsapp_realtime_analysis.alerts` | Número de alertas gerados nas conversas do atendente |
+| Mensagens Enviadas | `whatsapp_messages.sent_by_user_id` | Total de mensagens enviadas pelo atendente |
+
+---
+
+## Arquitetura da Solução
 
 ```text
-+-------------------+          +-------------------------+
-|   CS TV Settings  |          |   DashboardCSTVPublic   |
-|   (Configurações) |          |   (Página Pública)      |
-+--------+----------+          +------------+------------+
-         |                                  |
-         | Gera Token                       | Token na URL
-         v                                  v
-+--------+----------+          +------------+------------+
-|   cs_tv_token     |          |   cs-tv-dashboard-data  |
-|   (companies)     +<---------+   (Edge Function)       |
-+-------------------+          +------------+------------+
-                                            |
-                                            | Busca dados
-                                            v
-                               +------------+------------+
-                               |   Supabase Tables       |
-                               | - client_health_config  |
-                               | - whatsapp_realtime_    |
-                               |   analysis              |
-                               | - whatsapp_conversations|
-                               | - clients               |
-                               +-------------------------+
++---------------------------+
+|   cs-tv-dashboard-data    |
+|   (Edge Function)         |
++------------+--------------+
+             |
+             | Novo: agrega dados por
+             | assigned_to_user_id
+             v
++------------+--------------+
+| whatsapp_conversation_    |
+| assignments               |
++------------+--------------+
+             |
+             | JOIN por conversation_id
+             v
++------------+--------------+
+| whatsapp_realtime_        |
+| analysis                  |
++---------------------------+
+             |
+             | JOIN por sent_by_user_id
+             v
++---------------------------+
+| whatsapp_messages         |
+| (contagem de mensagens)   |
++---------------------------+
+             |
+             v
++---------------------------+
+| profiles                  |
+| (nome e avatar)           |
++---------------------------+
 ```
 
 ---
 
-## Componentes a Criar
+## Componentes a Criar/Modificar
 
-### 1. Database Migration
-Adicionar coluna `cs_tv_dashboard_token` na tabela `companies` para armazenar o token de acesso público.
+### 1. Novo Componente: `CSTVAttendantPerformance.tsx`
 
-### 2. Funções RPC (Database)
-- `generate_cs_tv_dashboard_token` - Gerar token único
-- `set_cs_tv_dashboard_token` - Salvar token com segurança
+Exibição visual dos atendentes com suas métricas:
 
-### 3. Edge Function: `cs-tv-dashboard-data`
-Endpoint público que retorna os dados agregados de CS:
+- Lista ordenável por score ou conversas
+- Avatar e nome do atendente
+- Barra de progresso mostrando distribuição de temperaturas
+- Indicadores de score médio e alertas
+- Destaque para atendentes com muitas conversas negativas
 
-**Dados retornados:**
-- Nome da empresa
-- Métricas agregadas de saúde (média, distribuição por risco)
-- Lista de clientes por nível de risco (crítico, alto, médio, baixo)
-- Análise de sentimento das conversas WhatsApp:
-  - Total de conversas ativas
-  - Distribuição por temperatura (positiva, neutra, negativa)
-  - Conversas em estado crítico (temperatura negativa)
-  - Alertas gerados pela IA
-- NPS agregado e distribuição (promotores, neutros, detratores)
-- Clientes sem contato recente do CS
+### 2. Modificar Edge Function: `cs-tv-dashboard-data/index.ts`
 
-### 4. Hook: `useCsTvDashboardToken`
-Similar ao `useRadarTvDashboardToken`, para gerenciar o token do CS TV.
+Adicionar nova query que agrega:
 
-### 5. Componentes do Dashboard TV
+```typescript
+// Buscar atribuições ativas
+const assignmentsResult = await supabase
+  .from('whatsapp_conversation_assignments')
+  .select('conversation_id, assigned_to_user_id')
+  .eq('company_id', companyId)
+  .eq('status', 'active')
+  .not('assigned_to_user_id', 'is', null);
 
-#### Estrutura de arquivos:
-```text
-src/components/cs-tv-dashboard/
-├── CSTVControls.tsx          # Controles (zoom, refresh, rotação, tema, kiosk)
-├── CSTVHeader.tsx            # Cabeçalho com logo e última atualização
-├── CSTVHealthMetrics.tsx     # KPIs de saúde agregados
-├── CSTVRiskDistribution.tsx  # Gráfico de distribuição por risco
-├── CSTVCriticalClients.tsx   # Lista de clientes críticos/alto risco
-├── CSTVWhatsAppSentiment.tsx # Análise de sentimento do WhatsApp
-├── CSTVNPSOverview.tsx       # Visão geral do NPS
-├── CSTVPendingContacts.tsx   # Clientes sem contato recente
+// Para cada atendente, buscar:
+// - Análise de temperatura/score das conversas atribuídas
+// - Contagem de mensagens enviadas
+// - Dados do perfil (nome, avatar)
 ```
 
-### 6. Página Pública: `DashboardCSTVPublic.tsx`
-Acessível via `/cs-tv/:token`, renderiza todos os componentes do dashboard.
+### 3. Modificar Interface de Dados
 
-### 7. Configurações: `CSTVSettings.tsx`
-Página de configurações para gerar/regenerar token e obter link público.
+Adicionar no retorno da Edge Function:
 
-### 8. Menu do CS
-Adicionar item "CS TV" no sidebar do módulo CS (`CSLayout.tsx`).
+```typescript
+interface AttendantPerformance {
+  id: string;
+  name: string;
+  avatarUrl: string | null;
+  activeConversations: number;
+  averageScore: number | null;
+  positiveCount: number;
+  neutralCount: number;
+  negativeCount: number;
+  activeAlerts: number;
+  messagesSent: number;
+}
 
-### 9. Rotas
-- Rota pública: `/cs-tv/:token`
-- Rota interna: `/cs/tv` (configurações)
+// Adicionar ao CSTVDashboardData:
+attendantPerformance: AttendantPerformance[];
+```
+
+### 4. Modificar Página: `DashboardCSTVPublic.tsx`
+
+Adicionar o novo componente no grid do dashboard.
 
 ---
 
-## Dados Exibidos no Dashboard
+## Design Visual
 
-### Painel 1: Métricas de Saúde
-| Métrica | Fonte |
-|---------|-------|
-| Saúde Média | `client_health_config.health_score_total` |
-| Clientes Críticos | `churn_risk_level = 'critical'` |
-| Clientes Alto Risco | `churn_risk_level = 'high'` |
-| NPS Médio | `client_health_config.nps_score` |
+O componente terá formato de "ranking" ou "leaderboard":
 
-### Painel 2: Sentimento WhatsApp
-| Métrica | Fonte |
-|---------|-------|
-| Total Conversas | `whatsapp_conversations` |
-| Temperatura Positiva | `whatsapp_realtime_analysis.temperature = 'positive'` |
-| Temperatura Neutra | `temperature = 'neutral'` |
-| Temperatura Negativa | `temperature = 'negative'` |
-| Score Médio IA | `whatsapp_realtime_analysis.score` |
-| Alertas Ativos | `whatsapp_realtime_analysis.alerts` (contagem) |
+```text
++-----------------------------------------------+
+|  Performance por Atendente                    |
++-----------------------------------------------+
+|  [Avatar] Maria Silva           Score: 8.5    |
+|  ████████████░░░░  12 conversas | 1 alerta    |
+|  +8 positivas | 3 neutras | 1 negativa        |
++-----------------------------------------------+
+|  [Avatar] João Santos           Score: 7.2    |
+|  ███████████░░░░░  10 conversas | 3 alertas   |
+|  +6 positivas | 2 neutras | 2 negativas       |
++-----------------------------------------------+
+|  [Avatar] Ana Costa             Score: 6.1    |
+|  █████████░░░░░░░  8 conversas | 5 alertas    |
+|  +3 positivas | 2 neutras | 3 negativas       |
++-----------------------------------------------+
+```
 
-### Painel 3: Distribuição de Risco
-Gráfico visual mostrando proporção de clientes por nível de risco (crítico, alto, médio, baixo).
+---
 
-### Painel 4: Clientes em Alerta
-Lista scrollável de clientes com:
-- Avatar e nome
-- Nível de risco
-- Score de saúde
-- Fatores de risco (tooltip)
+## Arquivos a Modificar
 
-### Painel 5: Conversas Críticas
-Lista de conversas WhatsApp com temperatura negativa:
-- Nome do contato
-- Cliente vinculado (se houver)
-- Score da IA
-- Alertas detectados
+| Arquivo | Ação |
+|---------|------|
+| `supabase/functions/cs-tv-dashboard-data/index.ts` | Adicionar query de atendentes e agregação de métricas |
+| `src/pages/DashboardCSTVPublic.tsx` | Importar e renderizar novo componente, atualizar interface de dados |
 
-### Painel 6: Pendências de CS
-- Clientes sem contato há mais de 7 dias
-- NPS não coletado há mais de 30 dias
+## Arquivos a Criar
+
+| Arquivo | Descrição |
+|---------|-----------|
+| `src/components/cs-tv-dashboard/CSTVAttendantPerformance.tsx` | Componente visual com lista de atendentes e métricas |
 
 ---
 
 ## Detalhes Técnicos
 
-### Edge Function: Lógica Principal
+### Lógica de Agregação na Edge Function
+
 ```typescript
-// Buscar dados em paralelo
-const [
-  clientsHealthResult,
-  whatsappAnalysisResult,
-  conversationsResult,
-] = await Promise.all([
-  // Health configs com dados do cliente
-  supabase.from('client_health_config')
-    .select('*, clients!inner(id, name, avatar)')
-    .eq('company_id', companyId),
+// 1. Buscar atribuições ativas com user_id
+const { data: assignments } = await supabase
+  .from('whatsapp_conversation_assignments')
+  .select('conversation_id, assigned_to_user_id')
+  .eq('company_id', companyId)
+  .eq('status', 'active')
+  .not('assigned_to_user_id', 'is', null);
+
+// 2. Agrupar por atendente
+const attendantConversations = new Map<string, string[]>();
+assignments.forEach(a => {
+  const userId = a.assigned_to_user_id;
+  if (!attendantConversations.has(userId)) {
+    attendantConversations.set(userId, []);
+  }
+  attendantConversations.get(userId).push(a.conversation_id);
+});
+
+// 3. Para cada atendente, calcular métricas
+const attendantMetrics = [];
+for (const [userId, convIds] of attendantConversations) {
+  // Buscar análises das conversas deste atendente
+  const analyses = whatsappAnalysis.filter(a => 
+    convIds.includes(a.conversation_id)
+  );
   
-  // Análises de WhatsApp ativas
-  supabase.from('whatsapp_realtime_analysis')
-    .select('*, whatsapp_conversations!inner(contact_name, client_id)')
-    .eq('company_id', companyId),
+  // Calcular métricas
+  const positiveCount = analyses.filter(a => a.temperature === 'positive').length;
+  const neutralCount = analyses.filter(a => a.temperature === 'neutral').length;
+  const negativeCount = analyses.filter(a => a.temperature === 'negative').length;
+  
+  const scores = analyses.map(a => a.score).filter(s => s !== null);
+  const averageScore = scores.length > 0 
+    ? scores.reduce((a, b) => a + b, 0) / scores.length 
+    : null;
     
-  // Conversas com análise
-  supabase.from('whatsapp_conversations')
-    .select('id, contact_name, client_id, clients(name)')
-    .eq('company_id', companyId)
-]);
+  const activeAlerts = analyses.reduce((count, a) => 
+    count + (Array.isArray(a.alerts) ? a.alerts.length : 0), 0);
+  
+  attendantMetrics.push({
+    id: userId,
+    activeConversations: convIds.length,
+    averageScore,
+    positiveCount,
+    neutralCount,
+    negativeCount,
+    activeAlerts,
+  });
+}
+
+// 4. Buscar perfis dos atendentes
+const userIds = [...attendantConversations.keys()];
+const { data: profiles } = await supabase
+  .from('profiles')
+  .select('id, full_name, avatar_url')
+  .in('id', userIds);
+
+// 5. Juntar dados e ordenar por score
+const attendantPerformance = attendantMetrics
+  .map(m => {
+    const profile = profiles.find(p => p.id === m.id);
+    return {
+      ...m,
+      name: profile?.full_name || 'Atendente',
+      avatarUrl: profile?.avatar_url || null,
+    };
+  })
+  .sort((a, b) => (b.averageScore || 0) - (a.averageScore || 0));
 ```
-
-### Controles do Dashboard
-Reutilizar a estrutura do `RadarTVControls.tsx`:
-- Zoom (50% a 150%)
-- Intervalo de atualização (1 a 30 minutos)
-- Rotação (0°, 90°, 180°, 270°)
-- Tema claro/escuro
-- Tela cheia
-- Modo Kiosk
-
----
-
-## Arquivos a Criar/Modificar
-
-### Novos Arquivos
-1. `supabase/migrations/xxx_add_cs_tv_token.sql`
-2. `supabase/functions/cs-tv-dashboard-data/index.ts`
-3. `src/hooks/useCsTvDashboardToken.tsx`
-4. `src/pages/DashboardCSTVPublic.tsx`
-5. `src/pages/cs/CSTVPage.tsx`
-6. `src/components/cs-tv-dashboard/CSTVControls.tsx`
-7. `src/components/cs-tv-dashboard/CSTVHeader.tsx`
-8. `src/components/cs-tv-dashboard/CSTVHealthMetrics.tsx`
-9. `src/components/cs-tv-dashboard/CSTVRiskDistribution.tsx`
-10. `src/components/cs-tv-dashboard/CSTVCriticalClients.tsx`
-11. `src/components/cs-tv-dashboard/CSTVWhatsAppSentiment.tsx`
-12. `src/components/cs-tv-dashboard/CSTVNPSOverview.tsx`
-13. `src/components/settings/CSTVSettings.tsx`
-
-### Arquivos a Modificar
-1. `src/components/cs/CSLayout.tsx` - Adicionar item "CS TV" no menu
-2. `src/App.tsx` - Adicionar rotas `/cs-tv/:token` e `/cs/tv`
-3. `supabase/config.toml` - Registrar nova edge function
 
 ---
 
 ## Ordem de Implementação
 
-1. **Migration** - Adicionar coluna e funções RPC
-2. **Edge Function** - Criar endpoint de dados
-3. **Hook** - Gerenciamento de token
-4. **Componentes TV** - UI do dashboard
-5. **Página Pública** - Montar dashboard completo
-6. **Configurações** - Página para gerar token
-7. **Integração** - Menu e rotas
-8. **Testes** - Validar fluxo completo
+1. Modificar Edge Function para buscar e agregar dados de atendentes
+2. Criar componente `CSTVAttendantPerformance.tsx`
+3. Atualizar interface de tipos em `DashboardCSTVPublic.tsx`
+4. Integrar componente no layout do dashboard
+5. Testar e validar exibição dos dados
