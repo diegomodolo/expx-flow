@@ -375,25 +375,42 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Fetch profiles for attendants
+    // Fetch profiles and employees for attendants
     const userIds = [...attendantConversations.keys()];
     let profiles: any[] = [];
+    let employees: any[] = [];
+    
     if (userIds.length > 0) {
+      // Fetch from profiles table
       const { data: profilesData } = await supabase
         .from('profiles')
         .select('id, full_name, avatar_url')
         .in('id', userIds);
       profiles = profilesData || [];
+
+      // Fetch from employees table as fallback (using user_id)
+      const { data: employeesData } = await supabase
+        .from('employees')
+        .select('user_id, name, avatar')
+        .eq('company_id', company.id)
+        .in('user_id', userIds);
+      employees = employeesData || [];
     }
 
-    // Join profile data and sort by score
+    // Join profile/employee data and sort by score
     const attendantPerformance: AttendantPerformance[] = attendantMetrics
       .map(m => {
         const profile = profiles.find((p: any) => p.id === m.id);
+        const employee = employees.find((e: any) => e.user_id === m.id);
+        
+        // Prefer employee data (more likely to have name/avatar), fallback to profile
+        const name = employee?.name || profile?.full_name || 'Atendente';
+        const avatarUrl = employee?.avatar || profile?.avatar_url || null;
+        
         return {
           ...m,
-          name: profile?.full_name || 'Atendente',
-          avatarUrl: profile?.avatar_url || null,
+          name,
+          avatarUrl,
         };
       })
       .sort((a, b) => (b.averageScore || 0) - (a.averageScore || 0));
