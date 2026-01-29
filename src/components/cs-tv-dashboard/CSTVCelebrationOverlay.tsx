@@ -24,6 +24,7 @@ interface CSTVCelebrationOverlayProps {
   onDismiss: (alertId: string) => void;
   onDismissAll: () => void;
   rotation?: number;
+  zoom?: number;
 }
 
 const SLIDE_DURATION_SECONDS = 30;
@@ -38,7 +39,7 @@ interface Confetti {
   size: number;
 }
 
-export function CSTVCelebrationOverlay({ alerts, onDismiss, onDismissAll, rotation = 0 }: CSTVCelebrationOverlayProps) {
+export function CSTVCelebrationOverlay({ alerts, onDismiss, onDismissAll, rotation = 0, zoom = 100 }: CSTVCelebrationOverlayProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [slideCountdown, setSlideCountdown] = useState(SLIDE_DURATION_SECONDS);
   const [confetti, setConfetti] = useState<Confetti[]>([]);
@@ -230,12 +231,20 @@ export function CSTVCelebrationOverlay({ alerts, onDismiss, onDismissAll, rotati
 
   const isRotated = rotation === 90 || rotation === 270;
 
-  // Estilos para o conteúdo interno rotacionado
+  // Estilos para o conteúdo interno rotacionado e com zoom
   const getContentStyle = () => {
-    if (rotation === 0) return {};
+    const transforms: string[] = [];
+    
+    if (rotation !== 0) {
+      transforms.push(`rotate(${rotation}deg)`);
+    }
+    
+    if (zoom !== 100) {
+      transforms.push(`scale(${zoom / 100})`);
+    }
     
     return {
-      transform: `rotate(${rotation}deg)`,
+      transform: transforms.length > 0 ? transforms.join(' ') : undefined,
       transformOrigin: 'center center',
       width: isRotated ? '100vh' : '100vw',
       height: isRotated ? '100vw' : '100vh',
