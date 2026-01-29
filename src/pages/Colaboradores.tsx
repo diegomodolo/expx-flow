@@ -29,9 +29,11 @@ import {
   Users,
   Mail,
   Phone,
-  KeyRound
+  KeyRound,
+  Send
 } from "lucide-react";
 import { ResetPasswordDialog } from "@/components/employees/ResetPasswordDialog";
+import { ResendInviteDialog } from "@/components/employees/ResendInviteDialog";
 
 const Colaboradores = () => {
   const [statusFilter, setStatusFilter] = useState("todos");
@@ -42,6 +44,7 @@ const Colaboradores = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [resetPasswordDialogOpen, setResetPasswordDialogOpen] = useState(false);
+  const [resendInviteDialogOpen, setResendInviteDialogOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [dialogMode, setDialogMode] = useState<'create' | 'edit' | 'view'>('create');
   
@@ -361,27 +364,36 @@ const Colaboradores = () => {
                                   <MoreHorizontal className="w-4 h-4" />
                                 </Button>
                               </DropdownMenuTrigger>
-                                              <DropdownMenuContent align="end">
-                                                <DropdownMenuItem
-                                                  onClick={() => {
-                                                    setSelectedEmployee(employee);
-                                                    setResetPasswordDialogOpen(true);
-                                                  }}
-                                                >
-                                                  <KeyRound className="w-4 h-4 mr-2" />
-                                                  Gerar Nova Senha
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem
-                                                  onClick={() => {
-                                                    setSelectedEmployee(employee);
-                                                    setDeleteDialogOpen(true);
-                                                  }}
-                                                  className="text-red-600"
-                                                >
-                                                  <Trash2 className="w-4 h-4 mr-2" />
-                                                  Excluir
-                                                </DropdownMenuItem>
-                                              </DropdownMenuContent>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setSelectedEmployee(employee);
+                                    setResendInviteDialogOpen(true);
+                                  }}
+                                >
+                                  <Send className="w-4 h-4 mr-2" />
+                                  Reenviar Convite
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setSelectedEmployee(employee);
+                                    setResetPasswordDialogOpen(true);
+                                  }}
+                                >
+                                  <KeyRound className="w-4 h-4 mr-2" />
+                                  Gerar Nova Senha
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setSelectedEmployee(employee);
+                                    setDeleteDialogOpen(true);
+                                  }}
+                                  className="text-red-600"
+                                >
+                                  <Trash2 className="w-4 h-4 mr-2" />
+                                  Excluir
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
                             </DropdownMenu>
                           </div>
                         </div>
@@ -485,6 +497,15 @@ const Colaboradores = () => {
                                       <DropdownMenuItem
                                         onClick={() => {
                                           setSelectedEmployee(employee);
+                                          setResendInviteDialogOpen(true);
+                                        }}
+                                      >
+                                        <Send className="w-4 h-4 mr-2" />
+                                        Reenviar Convite
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() => {
+                                          setSelectedEmployee(employee);
                                           setResetPasswordDialogOpen(true);
                                         }}
                                       >
@@ -582,6 +603,12 @@ const Colaboradores = () => {
         <ResetPasswordDialog
           open={resetPasswordDialogOpen}
           onOpenChange={setResetPasswordDialogOpen}
+          employee={selectedEmployee}
+        />
+
+        <ResendInviteDialog
+          open={resendInviteDialogOpen}
+          onOpenChange={setResendInviteDialogOpen}
           employee={selectedEmployee}
         />
       </div>
