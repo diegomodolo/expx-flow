@@ -184,65 +184,68 @@ export function CSTVCelebrationOverlay({ alerts, onDismiss, onDismissAll, rotati
 
   const isRotated = rotation === 90 || rotation === 270;
 
+  // Estilos para o conteúdo interno rotacionado
+  const getContentStyle = () => {
+    if (rotation === 0) return {};
+    
+    return {
+      transform: `rotate(${rotation}deg)`,
+      transformOrigin: 'center center',
+      width: isRotated ? '100vh' : '100vw',
+      height: isRotated ? '100vw' : '100vh',
+    };
+  };
+
   return (
-    <div 
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-300 overflow-hidden"
-      style={{
-        transform: `rotate(${rotation}deg)`,
-        transformOrigin: rotation === 90 ? 'top left' : rotation === 270 ? 'bottom right' : 'center',
-        width: isRotated ? '100vh' : '100%',
-        height: isRotated ? '100vw' : '100%',
-        position: 'fixed',
-        top: rotation === 90 ? 0 : rotation === 270 ? 'auto' : 0,
-        left: rotation === 90 ? '100vw' : 0,
-        bottom: rotation === 270 ? '100vh' : undefined,
-        right: rotation === 270 ? 0 : undefined,
-      }}
-    >
-      {/* Confetti */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {confetti.map((c) => (
-          <div
-            key={c.id}
-            className="absolute animate-confetti"
-            style={{
-              left: `${c.x}%`,
-              top: '-20px',
-              width: `${c.size}px`,
-              height: `${c.size}px`,
-              backgroundColor: c.color,
-              borderRadius: Math.random() > 0.5 ? '50%' : '2px',
-              animationDelay: `${c.delay}s`,
-              animationDuration: `${c.duration}s`,
-              transform: `rotate(${Math.random() * 360}deg)`,
-            }}
-          />
-        ))}
-      </div>
-      
-      {/* Glowing background effect */}
-      <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 via-emerald-500/10 to-amber-500/10 animate-pulse" />
-      
-      {/* Floating stars */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(20)].map((_, i) => (
-          <Star
-            key={i}
-            className="absolute text-amber-400/60 animate-pulse"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              width: `${16 + Math.random() * 24}px`,
-              height: `${16 + Math.random() * 24}px`,
-              animationDelay: `${Math.random() * 2}s`,
-            }}
-            fill="currentColor"
-          />
-        ))}
-      </div>
-      
-      {/* Main alert container */}
-      <div className="relative w-full max-w-4xl mx-4 bg-gradient-to-br from-background via-background to-amber-900/10 border-4 border-amber-500 rounded-2xl shadow-2xl overflow-hidden shadow-amber-500/30">
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300 overflow-hidden">
+      {/* Container que aplica a rotação ao conteúdo */}
+      <div 
+        className="absolute inset-0 flex items-center justify-center"
+        style={getContentStyle()}
+      >
+        {/* Confetti */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {confetti.map((c) => (
+            <div
+              key={c.id}
+              className="absolute animate-confetti"
+              style={{
+                left: `${c.x}%`,
+                top: '-20px',
+                width: `${c.size}px`,
+                height: `${c.size}px`,
+                backgroundColor: c.color,
+                borderRadius: Math.random() > 0.5 ? '50%' : '2px',
+                animationDelay: `${c.delay}s`,
+                animationDuration: `${c.duration}s`,
+              }}
+            />
+          ))}
+        </div>
+        
+        {/* Glowing background effect */}
+        <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 via-emerald-500/10 to-amber-500/10 animate-pulse" />
+        
+        {/* Floating stars */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {[...Array(20)].map((_, i) => (
+            <Star
+              key={i}
+              className="absolute text-amber-400/60 animate-pulse"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                width: `${16 + Math.random() * 24}px`,
+                height: `${16 + Math.random() * 24}px`,
+                animationDelay: `${Math.random() * 2}s`,
+              }}
+              fill="currentColor"
+            />
+          ))}
+        </div>
+        
+        {/* Main alert container */}
+        <div className="relative w-full max-w-4xl mx-4 bg-gradient-to-br from-background via-background to-amber-900/10 border-4 border-amber-500 rounded-2xl shadow-2xl overflow-hidden shadow-amber-500/30">
         {/* Golden header */}
         <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-500">
           <div className="flex items-center gap-3">
@@ -401,6 +404,7 @@ export function CSTVCelebrationOverlay({ alerts, onDismiss, onDismissAll, rotati
             ))}
           </div>
         )}
+        </div>
       </div>
       
       <style>{`
