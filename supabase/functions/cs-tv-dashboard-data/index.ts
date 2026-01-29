@@ -153,9 +153,28 @@ Deno.serve(async (req) => {
 
     console.log('Fetching CS TV WhatsApp data for company:', company.name);
 
+    // Helper to get São Paulo time (UTC-3)
+    const getSaoPauloTime = (date: Date = new Date()): Date => {
+      // Get UTC time and subtract 3 hours for São Paulo
+      const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
+      return new Date(utc - (3 * 60 * 60 * 1000));
+    };
+
+    const getSaoPauloHour = (dateStr: string): number => {
+      const date = new Date(dateStr);
+      const saoPauloDate = getSaoPauloTime(date);
+      return saoPauloDate.getHours();
+    };
+
     const now = new Date();
-    const todayStart = new Date(now);
-    todayStart.setHours(0, 0, 0, 0);
+    const saoPauloNow = getSaoPauloTime(now);
+    
+    // Today start in São Paulo timezone
+    const todayStartSaoPaulo = new Date(saoPauloNow);
+    todayStartSaoPaulo.setHours(0, 0, 0, 0);
+    // Convert back to UTC for database query
+    const todayStartUTC = new Date(todayStartSaoPaulo.getTime() + (3 * 60 * 60 * 1000));
+    
     const weekStart = new Date(now);
     weekStart.setDate(weekStart.getDate() - 7);
 
@@ -240,12 +259,12 @@ Deno.serve(async (req) => {
         .order('sent_at', { ascending: true })
         .limit(20000),
 
-      // Today's messages with sent_at for hourly chart
+      // Today's messages with sent_at for hourly chart (using São Paulo timezone)
       supabase
         .from('whatsapp_messages')
         .select('id, direction, sent_at')
         .eq('company_id', company.id)
-        .gte('sent_at', todayStart.toISOString())
+        .gte('sent_at', todayStartUTC.toISOString())
         .limit(50000),
 
       // This week's messages count
@@ -255,12 +274,12 @@ Deno.serve(async (req) => {
         .eq('company_id', company.id)
         .gte('sent_at', weekStart.toISOString()),
 
-      // Today's messages count
+      // Today's messages count (using São Paulo timezone)
       supabase
         .from('whatsapp_messages')
         .select('id', { count: 'exact', head: true })
         .eq('company_id', company.id)
-        .gte('sent_at', todayStart.toISOString()),
+        .gte('sent_at', todayStartUTC.toISOString()),
     ]);
 
     const whatsappAnalysis = whatsappAnalysisResult.data || [];
@@ -375,14 +394,15 @@ Deno.serve(async (req) => {
       ? Math.round(firstResponseTimesGlobal.reduce((a, b) => a + b, 0) / firstResponseTimesGlobal.length)
       : null;
 
-    // ========== HOURLY MESSAGE VOLUME ==========
+    // ========== HOURLY MESSAGE VOLUME (São Paulo timezone) ==========
     const hourlyVolume: Array<{ hour: number; inbound: number; outbound: number }> = [];
     for (let h = 0; h < 24; h++) {
       hourlyVolume.push({ hour: h, inbound: 0, outbound: 0 });
     }
     todayMessagesData.forEach((m: any) => {
       if (!m.sent_at) return;
-      const hour = new Date(m.sent_at).getHours();
+      // Convert to São Paulo timezone hour
+      const hour = getSaoPauloHour(m.sent_at);
       const isInbound = m.direction === 'inbound' || m.direction === 'incoming';
       if (isInbound) hourlyVolume[hour].inbound++;
       else hourlyVolume[hour].outbound++;
