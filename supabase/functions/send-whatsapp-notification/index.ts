@@ -213,9 +213,9 @@ serve(async (req) => {
         text: message,
       };
       
-      // Add reply context if provided
+      // Add reply context if provided (UazapiGO uses replyid field)
       if (reply_to_message_id) {
-        uazapiBody.quotedMessageId = reply_to_message_id;
+        uazapiBody.replyid = reply_to_message_id;
         console.log("[send-whatsapp-notification] Replying to message:", reply_to_message_id);
       }
 

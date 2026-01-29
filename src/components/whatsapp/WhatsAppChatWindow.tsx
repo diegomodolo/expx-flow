@@ -886,15 +886,18 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
         ) : (
           <div className="py-4 space-y-2">
             {messages.map((message) => (
-              <WhatsAppMessageBubble 
-                key={message.id} 
-                message={message} 
-                instanceId={instanceId ?? null}
-                companyId={companyId}
-                remoteJid={`${conversation.phone}@s.whatsapp.net`}
-                onOpenAIAssistant={handleOpenAIAssistant}
-                onReply={setReplyToMessage}
-              />
+              <div key={message.id} id={`message-${message.id}`} className="transition-all duration-300">
+                <WhatsAppMessageBubble 
+                  message={message} 
+                  allMessages={messages}
+                  contactName={displayName}
+                  instanceId={instanceId ?? null}
+                  companyId={companyId}
+                  remoteJid={`${conversation.phone}@s.whatsapp.net`}
+                  onOpenAIAssistant={handleOpenAIAssistant}
+                  onReply={setReplyToMessage}
+                />
+              </div>
             ))}
             <div ref={scrollRef} />
           </div>

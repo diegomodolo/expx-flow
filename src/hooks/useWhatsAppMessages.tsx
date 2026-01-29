@@ -20,6 +20,7 @@ export interface WhatsAppMessage {
   edited_at: string | null;
   audio_transcription?: string | null;
   transcription_status?: string | null;
+  reply_to_message_id?: string | null;
 }
 
 export interface MediaAttachment {
@@ -191,6 +192,7 @@ export function useWhatsAppMessages(conversationId: string | null, companyId: st
           message_type: "text",
           status: "sending",
           sent_at: now,
+          reply_to_message_id: replyToMessageId ?? null,
         })
         .select("id")
         .single();
@@ -214,6 +216,7 @@ export function useWhatsAppMessages(conversationId: string | null, companyId: st
         reaction: null,
         is_edited: null,
         edited_at: null,
+        reply_to_message_id: replyToMessageId ?? null,
       };
 
       queryClient.setQueryData<WhatsAppMessage[]>(
