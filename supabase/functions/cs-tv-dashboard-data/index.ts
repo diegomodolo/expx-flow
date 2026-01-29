@@ -163,6 +163,8 @@ Deno.serve(async (req) => {
     const [
       whatsappAnalysisResult,
       conversationsResult,
+      totalConversationsCountResult,
+      activeConversationsCountResult,
       instancesResult,
       assignmentsResult,
       messagesCountResult,
@@ -181,11 +183,25 @@ Deno.serve(async (req) => {
         `)
         .eq('company_id', company.id),
 
-      // WhatsApp conversations
+      // WhatsApp conversations - with high limit
       supabase
         .from('whatsapp_conversations')
         .select('id, contact_name, phone, client_id, instance_id, last_message_at, is_archived, unread_count')
+        .eq('company_id', company.id)
+        .limit(50000),
+      
+      // Total conversations count (exact)
+      supabase
+        .from('whatsapp_conversations')
+        .select('id', { count: 'exact', head: true })
         .eq('company_id', company.id),
+      
+      // Active conversations count (exact)
+      supabase
+        .from('whatsapp_conversations')
+        .select('id', { count: 'exact', head: true })
+        .eq('company_id', company.id)
+        .eq('is_archived', false),
 
       // WhatsApp instances (to scope instance users to this company)
       supabase
@@ -249,6 +265,8 @@ Deno.serve(async (req) => {
 
     const whatsappAnalysis = whatsappAnalysisResult.data || [];
     const conversations = conversationsResult.data || [];
+    const totalConversationsCount = totalConversationsCountResult.count || 0;
+    const activeConversationsCount = activeConversationsCountResult.count || 0;
     const instances = instancesResult.data || [];
     const assignments = assignmentsResult.data || [];
     const messagesSent = messagesCountResult.data || [];
@@ -265,6 +283,8 @@ Deno.serve(async (req) => {
     console.log('Data fetched:', {
       whatsappAnalysis: whatsappAnalysis.length,
       conversations: conversations.length,
+      totalConversationsCount,
+      activeConversationsCount,
       instances: instances.length,
       assignments: assignments.length,
       messagesSent: messagesSent.length,
@@ -369,7 +389,7 @@ Deno.serve(async (req) => {
     });
 
     // ========== WHATSAPP METRICS ==========
-    const activeConversations = conversations.filter((c: any) => !c.is_archived).length;
+    // Use exact counts from database
     
     const positiveConversations = whatsappAnalysis.filter(w => 
       (w as any).temperature === 'positive'
@@ -795,8 +815,8 @@ Deno.serve(async (req) => {
       companyName: company.name,
       lastUpdatedAt: new Date().toISOString(),
       whatsappMetrics: {
-        totalConversations: conversations.length,
-        activeConversations,
+        totalConversations: totalConversationsCount,
+        activeConversations: activeConversationsCount,
         positiveConversations,
         neutralConversations,
         negativeConversations,
