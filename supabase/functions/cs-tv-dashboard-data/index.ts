@@ -97,6 +97,14 @@ interface CSTVDashboardData {
     inbound: number;
     outbound: number;
   }>;
+  hourlySentimentVolume: Array<{
+    hour: number;
+    positive: number;
+    neutral: number;
+    negative: number;
+    avgScore: number | null;
+    totalAnalyses: number;
+  }>;
   responseTimeBreakdown: {
     under5min: number;
     under15min: number;
@@ -192,6 +200,7 @@ Deno.serve(async (req) => {
       todayMessagesDataResult,
       weekMessagesCountResult,
       todayMessagesCountResult,
+      todaySentimentHistoryResult,
     ] = await Promise.all([
       // WhatsApp realtime analysis
       supabase
@@ -280,6 +289,14 @@ Deno.serve(async (req) => {
         .select('id', { count: 'exact', head: true })
         .eq('company_id', company.id)
         .gte('sent_at', todayStartUTC.toISOString()),
+      
+      // Today's sentiment analysis history (for hourly sentiment chart)
+      supabase
+        .from('whatsapp_realtime_analysis_history')
+        .select('temperature, score, analyzed_at')
+        .eq('company_id', company.id)
+        .gte('analyzed_at', todayStartUTC.toISOString())
+        .order('analyzed_at', { ascending: true }),
     ]);
 
     const whatsappAnalysis = whatsappAnalysisResult.data || [];
@@ -294,6 +311,7 @@ Deno.serve(async (req) => {
     const todayMessagesData = todayMessagesDataResult.data || [];
     const weekMessagesCount = weekMessagesCountResult.count || 0;
     const todayMessagesCount = todayMessagesCountResult.count || 0;
+    const todaySentimentHistory = todaySentimentHistoryResult.data || [];
 
     // Scope instance users to company instances (table doesn't have company_id)
     const instanceIds = new Set<string>(instances.map((i: any) => i.id));
@@ -406,6 +424,46 @@ Deno.serve(async (req) => {
       const isInbound = m.direction === 'inbound' || m.direction === 'incoming';
       if (isInbound) hourlyVolume[hour].inbound++;
       else hourlyVolume[hour].outbound++;
+    });
+
+    // ========== HOURLY SENTIMENT VOLUME (São Paulo timezone) ==========
+    const hourlySentimentVolume: Array<{ 
+      hour: number; 
+      positive: number; 
+      neutral: number; 
+      negative: number; 
+      avgScore: number | null;
+      totalAnalyses: number;
+    }> = [];
+    for (let h = 0; h < 24; h++) {
+      hourlySentimentVolume.push({ hour: h, positive: 0, neutral: 0, negative: 0, avgScore: null, totalAnalyses: 0 });
+    }
+    
+    // Group analyses by hour
+    const hourlyScores: Map<number, number[]> = new Map();
+    todaySentimentHistory.forEach((analysis: any) => {
+      if (!analysis.analyzed_at) return;
+      const hour = getSaoPauloHour(analysis.analyzed_at);
+      
+      // Count by temperature
+      if (analysis.temperature === 'positive') hourlySentimentVolume[hour].positive++;
+      else if (analysis.temperature === 'neutral') hourlySentimentVolume[hour].neutral++;
+      else if (analysis.temperature === 'negative') hourlySentimentVolume[hour].negative++;
+      
+      hourlySentimentVolume[hour].totalAnalyses++;
+      
+      // Collect scores for average calculation
+      if (typeof analysis.score === 'number') {
+        if (!hourlyScores.has(hour)) hourlyScores.set(hour, []);
+        hourlyScores.get(hour)!.push(analysis.score);
+      }
+    });
+    
+    // Calculate average scores
+    hourlyScores.forEach((scores, hour) => {
+      if (scores.length > 0) {
+        hourlySentimentVolume[hour].avgScore = Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 10) / 10;
+      }
     });
 
     // ========== WHATSAPP METRICS ==========
@@ -891,6 +949,7 @@ Deno.serve(async (req) => {
       recentCelebrationAlerts,
       attendantPerformance,
       hourlyMessageVolume: hourlyVolume,
+      hourlySentimentVolume,
       responseTimeBreakdown,
       pendingConversations,
     };
