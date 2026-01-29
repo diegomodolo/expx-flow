@@ -48,8 +48,13 @@ export function ResetPasswordDialog({ open, onOpenChange, employee }: ResetPassw
   };
 
   const handleResetPassword = async () => {
-    if (!employee || !newPassword) {
-      toast.error("Gere uma nova senha primeiro");
+    if (!employee) {
+      toast.error("Selecione um colaborador");
+      return;
+    }
+
+    if (!newPassword || newPassword.length < 8) {
+      toast.error("A senha deve ter pelo menos 8 caracteres. Clique em gerar para criar uma senha segura.");
       return;
     }
 
@@ -111,7 +116,7 @@ export function ResetPasswordDialog({ open, onOpenChange, employee }: ResetPassw
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="new-password">Nova Senha</Label>
+            <Label htmlFor="new-password">Nova Senha (mínimo 8 caracteres)</Label>
             <div className="flex gap-2">
               <Input
                 id="new-password"
@@ -120,6 +125,7 @@ export function ResetPasswordDialog({ open, onOpenChange, employee }: ResetPassw
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="Clique em gerar para criar uma senha"
                 className="font-mono"
+                minLength={8}
               />
               <Button
                 type="button"
@@ -145,6 +151,9 @@ export function ResetPasswordDialog({ open, onOpenChange, employee }: ResetPassw
                 )}
               </Button>
             </div>
+            {newPassword && newPassword.length < 8 && (
+              <p className="text-sm text-destructive">A senha deve ter pelo menos 8 caracteres</p>
+            )}
           </div>
 
           <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-md">
@@ -163,7 +172,7 @@ export function ResetPasswordDialog({ open, onOpenChange, employee }: ResetPassw
           </Button>
           <Button 
             onClick={handleResetPassword} 
-            disabled={!newPassword || isResetting}
+            disabled={!newPassword || newPassword.length < 8 || isResetting}
           >
             {isResetting ? (
               <>
