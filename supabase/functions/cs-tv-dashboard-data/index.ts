@@ -579,10 +579,20 @@ Deno.serve(async (req) => {
         const conv = (w as any).whatsapp_conversations;
         const alerts = (w as any).alerts;
         
-        // Find attendant
+        // Find attendant - first check assignments, then fallback to instance attendant
         const assignment = assignments.find((a: any) => a.conversation_id === conv.id);
         let attendantId = assignment?.assigned_to_user_id || null;
         let attendantName: string | null = null;
+        
+        // If no direct assignment, find attendant from instance
+        if (!attendantId && conv.instance_id) {
+          const instanceUser = instanceUsersForCompany.find((iu: any) => 
+            iu.instance_id === conv.instance_id && iu.is_attendant === true
+          );
+          if (instanceUser) {
+            attendantId = instanceUser.user_id;
+          }
+        }
         
         if (attendantId) {
           const employee = employees.find(e => e.user_id === attendantId);
@@ -632,9 +642,20 @@ Deno.serve(async (req) => {
       .map(w => {
         const conv = (w as any).whatsapp_conversations;
         
+        // Find attendant - first check assignments, then fallback to instance attendant
         const assignment = assignments.find((a: any) => a.conversation_id === conv.id);
         let attendantId = assignment?.assigned_to_user_id || null;
         let attendantName: string | null = null;
+        
+        // If no direct assignment, find attendant from instance
+        if (!attendantId && conv.instance_id) {
+          const instanceUser = instanceUsersForCompany.find((iu: any) => 
+            iu.instance_id === conv.instance_id && iu.is_attendant === true
+          );
+          if (instanceUser) {
+            attendantId = instanceUser.user_id;
+          }
+        }
         
         if (attendantId) {
           const employee = employees.find(e => e.user_id === attendantId);
@@ -718,10 +739,21 @@ Deno.serve(async (req) => {
       .map(w => {
         const conv = (w as any).whatsapp_conversations;
         
+        // Find attendant - first check assignments, then fallback to instance attendant
         const assignment = assignments.find((a: any) => a.conversation_id === conv.id);
         let attendantId = assignment?.assigned_to_user_id || null;
         let attendantName: string | null = null;
         let squadName: string | null = null;
+        
+        // If no direct assignment, find attendant from instance
+        if (!attendantId && conv.instance_id) {
+          const instanceUser = instanceUsersForCompany.find((iu: any) => 
+            iu.instance_id === conv.instance_id && iu.is_attendant === true
+          );
+          if (instanceUser) {
+            attendantId = instanceUser.user_id;
+          }
+        }
         
         if (attendantId) {
           const employee = employeesWithTeams.find(e => e.user_id === attendantId);
