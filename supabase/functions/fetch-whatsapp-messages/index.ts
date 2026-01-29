@@ -280,8 +280,10 @@ serve(async (req) => {
           if (!content) content = "[Imagem]";
           mediaUrl = msg.message?.imageMessage?.url || msg.content?.url || null;
         } else if (msg.message?.videoMessage) {
-          messageType = "video";
-          if (!content) content = "[Vídeo]";
+          // WhatsApp pode representar GIF animado como videoMessage com gifPlayback=true
+          const isGif = Boolean((msg.message as any)?.videoMessage?.gifPlayback);
+          messageType = isGif ? "gif" : "video";
+          if (!content) content = isGif ? "[GIF]" : "[Vídeo]";
           mediaUrl = msg.message?.videoMessage?.url || null;
         } else if (msg.message?.audioMessage) {
           messageType = "audio";
@@ -312,16 +314,20 @@ serve(async (req) => {
           sentAt = "2000-01-01T00:00:00.000Z";
         }
 
-        // Normalizar message_type para respeitar CHECK constraint (text/image/audio/video/document)
+        // Normalizar message_type sem destruir detecções específicas (ex: sticker/gif)
         const rawType = String(
           msg.messageType ?? msg.type ?? msg.message?.type ?? "text"
         ).toLowerCase();
 
-        if (rawType.includes("image")) messageType = "image";
+        // Prioridade: sticker/gif
+        if (rawType.includes("sticker")) messageType = "sticker";
+        else if (rawType.includes("gif")) messageType = "gif";
+        // Tipos gerais
+        else if (rawType.includes("image")) messageType = "image";
         else if (rawType.includes("video")) messageType = "video";
         else if (rawType.includes("audio") || rawType.includes("ptt") || rawType.includes("voice")) messageType = "audio";
         else if (rawType.includes("document") || rawType.includes("file")) messageType = "document";
-        else messageType = "text";
+        else messageType = messageType || "text";
 
         // Uazapi costuma retornar fileURL
         mediaUrl = mediaUrl ?? msg.fileURL ?? null;

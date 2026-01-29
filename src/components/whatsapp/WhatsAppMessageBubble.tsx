@@ -60,6 +60,7 @@ export function WhatsAppMessageBubble({ message, allMessages, contactName, insta
   const isStickerOrGif = ["sticker", "gif"].includes(message.message_type);
   const isAudioMessage = message.message_type === "audio";
   const isTextMessage = message.message_type === "text";
+  const isPlaceholderContent = message.content?.startsWith("[") || message.content?.startsWith("📎");
   
   const extractFileName = (): string => {
     // Try to extract filename from content (e.g., "📎 fatura_rene_tanana.pdf")
@@ -566,12 +567,12 @@ export function WhatsAppMessageBubble({ message, allMessages, contactName, insta
 
           {/* Text content - hide for media types that already have their own UI */}
           {/* Hide for: audio (has player), image/video/sticker/gif with media_url, or placeholder content */}
-          {!isAudioMessage && !isStickerOrGif && !(isMediaType && hasMedia && (message.content.startsWith("📎") || message.content.startsWith("["))) && (
+          {!isAudioMessage && !isStickerOrGif && !(isMediaType && (hasMedia || message.external_id) && isPlaceholderContent) && (
             <p className="text-sm whitespace-pre-wrap break-words">{parseWhatsAppFormatting(displayContent)}</p>
           )}
 
           {/* Media without URL - show content as is (but not for audio which has the player) */}
-          {isMediaType && !hasMedia && !isAudioMessage && (
+          {isMediaType && !hasMedia && !isAudioMessage && !message.external_id && (
             <div className="flex items-center gap-2 text-sm opacity-80">
               {getMediaIcon()}
               <span>{message.content}</span>

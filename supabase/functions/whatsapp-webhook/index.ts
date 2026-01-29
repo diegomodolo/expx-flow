@@ -104,7 +104,11 @@ serve(async (req) => {
         // Determine message type from messageType/mediaType
         const rawMsgType = (message.messageType || message.mediaType || "").toLowerCase();
         
-        if (rawMsgType.includes("image")) {
+        if (rawMsgType.includes("sticker")) {
+          messageType = "sticker";
+        } else if (rawMsgType.includes("gif")) {
+          messageType = "gif";
+        } else if (rawMsgType.includes("image")) {
           messageType = "image";
         } else if (rawMsgType.includes("audio") || rawMsgType.includes("ptt") || rawMsgType.includes("voice")) {
           messageType = "audio";
@@ -159,6 +163,12 @@ serve(async (req) => {
               // Try to get filename from content object
               const fileName = message.content?.fileName || message.fileName;
               content = fileName ? `📎 ${fileName}` : "[Documento]";
+              break;
+            case "sticker":
+              content = "[Sticker]";
+              break;
+            case "gif":
+              content = "[GIF]";
               break;
             default:
               content = "[Mensagem]";
