@@ -9,12 +9,15 @@ import { ptBR } from 'date-fns/locale';
 interface CriticalConversation {
   id: string;
   contactName: string;
+  contactPhone: string;
   clientId: string | null;
   clientName: string | null;
   score: number | null;
   temperature: string | null;
   alertsCount: number;
   lastAnalysis: string | null;
+  attendantId: string | null;
+  attendantName: string | null;
 }
 
 interface CSTVCriticalConversationsProps {
@@ -67,7 +70,9 @@ export function CSTVCriticalConversations({ conversations }: CSTVCriticalConvers
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <p className="font-semibold text-foreground truncate">
-                    {conversation.contactName}
+                    {conversation.contactName !== 'Sem nome' 
+                      ? conversation.contactName 
+                      : conversation.contactPhone || 'Contato desconhecido'}
                   </p>
                   <Badge 
                     variant="outline" 
@@ -77,9 +82,25 @@ export function CSTVCriticalConversations({ conversations }: CSTVCriticalConvers
                   </Badge>
                 </div>
                 
-                <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+                  {/* Mostrar telefone se tiver nome (ou seja, telefone é adicional) */}
+                  {conversation.contactName !== 'Sem nome' && conversation.contactPhone && (
+                    <span className="truncate">{conversation.contactPhone}</span>
+                  )}
                   {conversation.clientName && (
-                    <span className="truncate">Cliente: {conversation.clientName}</span>
+                    <span className="truncate text-primary/80 font-medium">
+                      🏢 {conversation.clientName}
+                    </span>
+                  )}
+                  {conversation.attendantName && (
+                    <span className="truncate text-blue-500">
+                      👤 {conversation.attendantName}
+                    </span>
+                  )}
+                  {!conversation.attendantName && (
+                    <span className="truncate text-orange-500">
+                      ⚠️ Sem atendente
+                    </span>
                   )}
                   {conversation.lastAnalysis && (
                     <span>

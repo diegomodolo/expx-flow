@@ -377,12 +377,15 @@ export default function DashboardCSTVPublic() {
             conversations={data.criticalConversations.map(c => ({
               id: c.id,
               contactName: c.contactName,
+              contactPhone: c.contactPhone,
               clientId: c.clientId,
               clientName: c.clientName,
               score: c.score,
               temperature: c.temperature,
               alertsCount: c.alertsCount,
               lastAnalysis: c.lastAnalysis,
+              attendantId: c.attendantId,
+              attendantName: c.attendantName,
             }))} 
           />
         </div>
