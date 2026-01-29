@@ -90,7 +90,7 @@ export function WhatsAppNewConversationDialog({
         conversationId = newConv.id;
       }
 
-      // Save message to database
+      // Save message to database with "sending" status
       const now = new Date().toISOString();
       const { data: savedMessage, error: msgError } = await supabase
         .from("whatsapp_messages")
@@ -108,8 +108,13 @@ export function WhatsAppNewConversationDialog({
 
       if (msgError) throw msgError;
 
-      // Send via API
-      const { data, error } = await supabase.functions.invoke("send-whatsapp-notification", {
+      // Notify parent immediately and close modal (don't wait for API)
+      onConversationCreated?.(conversationId);
+      handleClose();
+      toast.success("Enviando mensagem...");
+
+      // Send via API in background
+      supabase.functions.invoke("send-whatsapp-notification", {
         body: {
           company_id: companyId,
           recipient_phone: formattedPhone,
@@ -117,38 +122,34 @@ export function WhatsAppNewConversationDialog({
           notification_type: "chat",
           instance_id: instanceId,
         },
+      }).then(async ({ data, error }) => {
+        // Update message status
+        const newStatus = (error || !data?.success) ? "failed" : "sent";
+        await supabase
+          .from("whatsapp_messages")
+          .update({
+            status: newStatus,
+            ...(data?.message_id ? { external_id: data.message_id } : {}),
+          })
+          .eq("id", savedMessage.id);
+
+        // Update conversation preview
+        await supabase
+          .from("whatsapp_conversations")
+          .update({
+            last_message_at: now,
+            last_message_preview: message.substring(0, 100),
+          })
+          .eq("id", conversationId);
+
+        if (error || !data?.success) {
+          toast.error(data?.error || "Erro ao enviar mensagem");
+        }
       });
 
-      // Update message status
-      const newStatus = (error || !data?.success) ? "failed" : "sent";
-      await supabase
-        .from("whatsapp_messages")
-        .update({
-          status: newStatus,
-          ...(data?.message_id ? { external_id: data.message_id } : {}),
-        })
-        .eq("id", savedMessage.id);
-
-      // Update conversation preview
-      await supabase
-        .from("whatsapp_conversations")
-        .update({
-          last_message_at: now,
-          last_message_preview: message.substring(0, 100),
-        })
-        .eq("id", conversationId);
-
-      if (error || !data?.success) {
-        toast.error(data?.error || "Erro ao enviar mensagem");
-      } else {
-        toast.success("Mensagem enviada!");
-        onConversationCreated?.(conversationId);
-        handleClose();
-      }
     } catch (err: any) {
       console.error("[WhatsAppNewConversationDialog] Error:", err);
       toast.error(err.message || "Erro ao criar conversa");
-    } finally {
       setIsSending(false);
     }
   };
