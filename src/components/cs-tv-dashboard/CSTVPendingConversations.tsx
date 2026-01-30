@@ -90,9 +90,16 @@ export function CSTVPendingConversations({ conversations }: CSTVPendingConversat
               </div>
               
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-foreground truncate">
-                  {conv.contactName}
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="font-medium text-foreground truncate">
+                    {conv.contactName || conv.contactPhone}
+                  </p>
+                  {conv.contactName && conv.contactPhone && (
+                    <span className="text-xs text-muted-foreground shrink-0">
+                      {conv.contactPhone}
+                    </span>
+                  )}
+                </div>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   {conv.clientName && (
                     <span className="truncate">{conv.clientName}</span>
