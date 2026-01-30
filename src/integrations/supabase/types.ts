@@ -5285,6 +5285,89 @@ export type Database = {
           },
         ]
       }
+      cs_tv_displayed_alerts: {
+        Row: {
+          alert_type: string
+          analysis_id: string
+          attendant_name: string | null
+          company_id: string
+          contact_name: string | null
+          conversation_id: string | null
+          displayed_at: string
+          id: string
+          score: number | null
+        }
+        Insert: {
+          alert_type: string
+          analysis_id: string
+          attendant_name?: string | null
+          company_id: string
+          contact_name?: string | null
+          conversation_id?: string | null
+          displayed_at?: string
+          id?: string
+          score?: number | null
+        }
+        Update: {
+          alert_type?: string
+          analysis_id?: string
+          attendant_name?: string | null
+          company_id?: string
+          contact_name?: string | null
+          conversation_id?: string | null
+          displayed_at?: string
+          id?: string
+          score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cs_tv_displayed_alerts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cs_tv_displayed_alerts_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cs_tv_realtime_alert_events: {
+        Row: {
+          alert_data: Json
+          alert_type: string
+          company_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          alert_data: Json
+          alert_type: string
+          company_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          alert_data?: Json
+          alert_type?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cs_tv_realtime_alert_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       editor_element_library: {
         Row: {
           category: string | null
@@ -12140,6 +12223,7 @@ export type Database = {
         Args: { executions: number }
         Returns: string[]
       }
+      cleanup_cs_tv_realtime_events: { Args: never; Returns: undefined }
       create_daily_routine_executions: {
         Args: { p_company_id: string; p_date?: string }
         Returns: number
