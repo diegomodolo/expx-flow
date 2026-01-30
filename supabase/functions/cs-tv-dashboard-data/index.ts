@@ -231,11 +231,12 @@ Deno.serve(async (req) => {
         .eq('company_id', company.id)
         .eq('is_archived', false),
 
-      // WhatsApp instances (to scope instance users to this company)
+      // WhatsApp instances - ONLY CS department instances for this dashboard
       supabase
         .from('whatsapp_instances')
         .select('id')
-        .eq('company_id', company.id),
+        .eq('company_id', company.id)
+        .eq('instance_type', 'cs'),
 
       // Conversation assignments for attendant performance
       supabase
@@ -245,10 +246,10 @@ Deno.serve(async (req) => {
         .eq('status', 'active')
         .not('assigned_to_user_id', 'is', null),
 
-      // Messages sent count by user
+      // Messages sent count by user (include conversation_id for CS filtering)
       supabase
         .from('whatsapp_messages')
-        .select('sent_by_user_id')
+        .select('sent_by_user_id, conversation_id')
         .eq('company_id', company.id)
         .not('sent_by_user_id', 'is', null)
         .limit(50000),
@@ -267,10 +268,10 @@ Deno.serve(async (req) => {
         .order('sent_at', { ascending: true })
         .limit(20000),
 
-      // Today's messages with sent_at for hourly chart (using São Paulo timezone)
+      // Today's messages with sent_at for hourly chart (include conversation_id for CS filtering)
       supabase
         .from('whatsapp_messages')
-        .select('id, direction, sent_at')
+        .select('id, direction, sent_at, conversation_id')
         .eq('company_id', company.id)
         .gte('sent_at', todayStartUTC.toISOString())
         .limit(50000),
@@ -289,31 +290,64 @@ Deno.serve(async (req) => {
         .eq('company_id', company.id)
         .gte('sent_at', todayStartUTC.toISOString()),
       
-      // Today's sentiment analysis history (for hourly sentiment chart)
+      // Today's sentiment analysis history (include conversation_id for CS filtering)
       supabase
         .from('whatsapp_realtime_analysis_history')
-        .select('temperature, score, analyzed_at')
+        .select('temperature, score, analyzed_at, conversation_id')
         .eq('company_id', company.id)
         .gte('analyzed_at', todayStartUTC.toISOString())
         .order('analyzed_at', { ascending: true }),
     ]);
 
-    const whatsappAnalysis = whatsappAnalysisResult.data || [];
-    const conversations = conversationsResult.data || [];
-    const totalConversationsCount = totalConversationsCountResult.count || 0;
-    const activeConversationsCount = activeConversationsCountResult.count || 0;
+    const whatsappAnalysisRaw = whatsappAnalysisResult.data || [];
+    const conversationsRaw = conversationsResult.data || [];
+    const totalConversationsCountRaw = totalConversationsCountResult.count || 0;
+    const activeConversationsCountRaw = activeConversationsCountResult.count || 0;
     const instances = instancesResult.data || [];
     const assignments = assignmentsResult.data || [];
-    const messagesSent = messagesCountResult.data || [];
+    const messagesSentRaw = messagesCountResult.data || [];
     const instanceUsers = instanceUsersResult.data || [];
-    const allMessages = allMessagesResult.data || [];
-    const todayMessagesData = todayMessagesDataResult.data || [];
-    const weekMessagesCount = weekMessagesCountResult.count || 0;
-    const todayMessagesCount = todayMessagesCountResult.count || 0;
-    const todaySentimentHistory = todaySentimentHistoryResult.data || [];
+    const allMessagesRaw = allMessagesResult.data || [];
+    const todayMessagesDataRaw = todayMessagesDataResult.data || [];
+    const weekMessagesCountRaw = weekMessagesCountResult.count || 0;
+    const todayMessagesCountRaw = todayMessagesCountResult.count || 0;
+    const todaySentimentHistoryRaw = todaySentimentHistoryResult.data || [];
 
-    // Scope instance users to company instances (table doesn't have company_id)
-    const instanceIds = new Set<string>(instances.map((i: any) => i.id));
+    // ========== FILTER BY CS INSTANCES ONLY ==========
+    // Only include data from instances with instance_type = 'cs'
+    const csInstanceIds = new Set<string>(instances.map((i: any) => i.id));
+    console.log('CS Instance IDs:', [...csInstanceIds]);
+
+    // Filter conversations to only those from CS instances
+    const conversations = conversationsRaw.filter((c: any) => 
+      c.instance_id && csInstanceIds.has(c.instance_id)
+    );
+    const csConversationIds = new Set<string>(conversations.map((c: any) => c.id));
+
+    // Filter whatsapp analysis to only CS conversations
+    const whatsappAnalysis = whatsappAnalysisRaw.filter((w: any) => {
+      const conv = w.whatsapp_conversations;
+      return conv && conv.instance_id && csInstanceIds.has(conv.instance_id);
+    });
+
+    // Filter messages to only CS conversations
+    const allMessages = allMessagesRaw.filter((m: any) => csConversationIds.has(m.conversation_id));
+    const todayMessagesData = todayMessagesDataRaw.filter((m: any) => csConversationIds.has(m.conversation_id));
+    const messagesSent = messagesSentRaw.filter((m: any) => csConversationIds.has(m.conversation_id));
+    
+    // Filter sentiment history to only CS conversations
+    const todaySentimentHistory = todaySentimentHistoryRaw.filter((s: any) => csConversationIds.has(s.conversation_id));
+
+    // Recalculate counts based on filtered data
+    const totalConversationsCount = conversations.length;
+    const activeConversationsCount = conversations.filter((c: any) => !c.is_archived).length;
+    
+    // Message counts from filtered data
+    const todayMessagesCount = todayMessagesData.length;
+    const weekMessagesCount = allMessages.length;
+
+    // Scope instance users to CS instances only
+    const instanceIds = csInstanceIds;
     const instanceUsersForCompany = instanceUsers.filter((iu: any) => instanceIds.has(iu.instance_id));
 
     // Helper function to find attendant for a given instance
@@ -333,19 +367,17 @@ Deno.serve(async (req) => {
       return anyUser?.user_id || null;
     };
 
-    console.log('Data fetched:', {
+    console.log('Data fetched (filtered to CS instances only):', {
+      csInstances: instances.length,
       whatsappAnalysis: whatsappAnalysis.length,
       conversations: conversations.length,
       totalConversationsCount,
       activeConversationsCount,
-      instances: instances.length,
       assignments: assignments.length,
       messagesSent: messagesSent.length,
       instanceUsers: instanceUsersForCompany.length,
       allMessages: allMessages.length,
       todayMessagesData: todayMessagesData.length,
-      todayMessagesCount,
-      weekMessagesCount,
     });
 
     // ========== CALCULATE RESPONSE TIMES ==========
