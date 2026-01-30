@@ -7,6 +7,7 @@ import { CSTVHeader } from "@/components/cs-tv-dashboard/CSTVHeader";
 import { CSTVWhatsAppMetrics } from "@/components/cs-tv-dashboard/CSTVWhatsAppMetrics";
 import { CSTVSentimentBar } from "@/components/cs-tv-dashboard/CSTVSentimentBar";
 import { CSTVCriticalConversations } from "@/components/cs-tv-dashboard/CSTVCriticalConversations";
+import { CSTVRecentEvaluations } from "@/components/cs-tv-dashboard/CSTVRecentEvaluations";
 import { CSTVPendingConversations } from "@/components/cs-tv-dashboard/CSTVPendingConversations";
 import { CSTVAttendantPerformance } from "@/components/cs-tv-dashboard/CSTVAttendantPerformance";
 import { CSTVMessageVolume } from "@/components/cs-tv-dashboard/CSTVMessageVolume";
@@ -73,6 +74,19 @@ interface CSTVDashboardData {
   }>;
   recentCriticalAlerts: CriticalAlert[];
   recentCelebrationAlerts: CelebrationAlert[];
+  recentEvaluations: Array<{
+    id: string;
+    conversationId: string;
+    contactName: string;
+    contactPhone: string;
+    clientName: string | null;
+    attendantId: string | null;
+    attendantName: string | null;
+    score: number | null;
+    temperature: string;
+    interpretation: string | null;
+    analyzedAt: string;
+  }>;
   attendantPerformance: AttendantPerformance[];
   hourlyMessageVolume: Array<{
     hour: number;
@@ -490,22 +504,25 @@ export default function DashboardCSTVPublic() {
             <CSTVPendingConversations conversations={data.pendingConversations} />
           </div>
 
-          {/* Critical Conversations */}
-          <CSTVCriticalConversations 
-            conversations={data.criticalConversations.map(c => ({
-              id: c.id,
-              contactName: c.contactName,
-              contactPhone: c.contactPhone,
-              clientId: c.clientId,
-              clientName: c.clientName,
-              score: c.score,
-              temperature: c.temperature,
-              alertsCount: c.alertsCount,
-              lastAnalysis: c.lastAnalysis,
-              attendantId: c.attendantId,
-              attendantName: c.attendantName,
-            }))} 
-          />
+          {/* Critical Conversations + Recent Evaluations */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <CSTVCriticalConversations 
+              conversations={data.criticalConversations.map(c => ({
+                id: c.id,
+                contactName: c.contactName,
+                contactPhone: c.contactPhone,
+                clientId: c.clientId,
+                clientName: c.clientName,
+                score: c.score,
+                temperature: c.temperature,
+                alertsCount: c.alertsCount,
+                lastAnalysis: c.lastAnalysis,
+                attendantId: c.attendantId,
+                attendantName: c.attendantName,
+              }))} 
+            />
+            <CSTVRecentEvaluations evaluations={data.recentEvaluations} />
+          </div>
         </div>
 
         <CSTVControls
