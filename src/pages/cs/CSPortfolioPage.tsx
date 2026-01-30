@@ -148,7 +148,7 @@ export default function CSPortfolioPage() {
   };
 
   const handleViewClient = (clientId: string) => {
-    navigate(`/clients/${clientId}`);
+    navigate(`/clientes/${clientId}`);
   };
 
   return (
