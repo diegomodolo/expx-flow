@@ -34,9 +34,10 @@ import { supabase } from '@/integrations/supabase/client';
 
 interface CSHealthScore360CardProps {
   data: HealthScore360Data;
+  onViewClient?: (clientId: string, clientName: string) => void;
 }
 
-export function CSHealthScore360Card({ data }: CSHealthScore360CardProps) {
+export function CSHealthScore360Card({ data, onViewClient }: CSHealthScore360CardProps) {
   const navigate = useNavigate();
   const [showTouchpoint, setShowTouchpoint] = useState(false);
   const [showNPS, setShowNPS] = useState(false);
@@ -131,7 +132,19 @@ export function CSHealthScore360Card({ data }: CSHealthScore360CardProps) {
 
   const handleViewClient = (e: React.MouseEvent) => {
     e.stopPropagation();
-    navigate(`/clientes/${data.clientId}/cs`);
+    if (onViewClient) {
+      onViewClient(data.clientId, data.clientName);
+    } else {
+      navigate(`/clientes/${data.clientId}/cs`);
+    }
+  };
+
+  const handleCardClick = () => {
+    if (onViewClient) {
+      onViewClient(data.clientId, data.clientName);
+    } else {
+      navigate(`/clientes/${data.clientId}/cs`);
+    }
   };
 
   return (
@@ -142,7 +155,7 @@ export function CSHealthScore360Card({ data }: CSHealthScore360CardProps) {
           data.churnRiskLevel === 'critical' && 'border-red-200',
           data.churnRiskLevel === 'high' && 'border-orange-200',
         )}
-        onClick={() => navigate(`/clientes/${data.clientId}/cs`)}
+        onClick={handleCardClick}
       >
         {/* Quick Actions Dropdown */}
         <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
