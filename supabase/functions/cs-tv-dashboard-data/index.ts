@@ -708,26 +708,36 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Fetch profiles and employees for attendants
-    const userIds = [...attendantConversations.keys()];
+    // Fetch profiles and employees for ALL allowed attendants (not just those with conversations)
+    // This ensures we have names available for pendingConversations as well
+    const allAttendantUserIds = [...allowedAttendantUserIds];
     let profiles: any[] = [];
     let employees: any[] = [];
     
-    if (userIds.length > 0) {
+    if (allAttendantUserIds.length > 0) {
       const [profilesResult, employeesResult] = await Promise.all([
-        supabase.from('profiles').select('id, full_name, avatar_url').in('id', userIds),
-        supabase.from('employees').select('user_id, name, company_id').in('user_id', userIds),
+        supabase.from('profiles').select('id, full_name, avatar_url').in('id', allAttendantUserIds),
+        supabase.from('employees').select('user_id, name, company_id').in('user_id', allAttendantUserIds),
       ]);
       profiles = profilesResult.data || [];
       employees = employeesResult.data || [];
     }
+    
+    // Create a reusable map of userId -> name for use throughout the function
+    const userNameMap = new Map<string, { name: string; avatarUrl: string | null }>();
+    allAttendantUserIds.forEach(userId => {
+      const employee = employees.find(e => e.user_id === userId);
+      const profile = profiles.find(p => p.id === userId);
+      const name = employee?.name || profile?.full_name || 'Sem nome';
+      const avatarUrl = profile?.avatar_url || null;
+      userNameMap.set(userId, { name, avatarUrl });
+    });
 
     const attendantPerformance: AttendantPerformance[] = attendantMetrics
       .map(metrics => {
-        const employee = employees.find(e => e.user_id === metrics.id);
-        const profile = profiles.find(p => p.id === metrics.id);
-        const name = employee?.name || profile?.full_name || 'Sem nome';
-        const avatarUrl = profile?.avatar_url || null;
+        const userInfo = userNameMap.get(metrics.id);
+        const name = userInfo?.name || 'Sem nome';
+        const avatarUrl = userInfo?.avatarUrl || null;
         
         return { ...metrics, name, avatarUrl };
       })
@@ -754,13 +764,8 @@ Deno.serve(async (req) => {
         
         // Use resolveAttendantForConversation to ensure only official attendants are shown
         let attendantId = resolveAttendantForConversation(conv.id, conv.instance_id);
-        let attendantName: string | null = null;
-        
-        if (attendantId) {
-          const employee = employees.find(e => e.user_id === attendantId);
-          const profile = profiles.find(p => p.id === attendantId);
-          attendantName = employee?.name || profile?.full_name || null;
-        }
+        const attendantInfo = attendantId ? userNameMap.get(attendantId) : null;
+        const attendantName = attendantInfo?.name || null;
         
         return {
           id: conv.id,
@@ -966,7 +971,7 @@ Deno.serve(async (req) => {
         
         // Resolve attendant for this conversation
         const attendantUserId = resolveAttendantForConversation(c.id, c.instance_id);
-        const attendantInfo = attendantUserId ? userInfoMap.get(attendantUserId) : null;
+        const attendantInfo = attendantUserId ? userNameMap.get(attendantUserId) : null;
         
         return {
           id: c.id,
