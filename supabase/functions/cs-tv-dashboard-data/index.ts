@@ -1087,9 +1087,27 @@ Deno.serve(async (req) => {
       .limit(50);
 
     // Filter to only CS conversations and build recent evaluations
-    const recentEvaluations: RecentEvaluation[] = (recentAnalysisHistory || [])
+    const filteredEvaluations = (recentAnalysisHistory || [])
       .filter((h: any) => csConversationIds.has(h.conversation_id))
-      .slice(0, 20)
+      .slice(0, 20);
+    
+    // Fetch client names for evaluations
+    const evaluationClientIds = filteredEvaluations
+      .map((h: any) => h.whatsapp_conversations?.client_id)
+      .filter((id: any): id is string => id !== null && id !== undefined);
+    
+    let evaluationClientsMap = new Map<string, string>();
+    if (evaluationClientIds.length > 0) {
+      const { data: evalClientsData } = await supabase
+        .from('clients')
+        .select('id, name')
+        .in('id', evaluationClientIds);
+      if (evalClientsData) {
+        evalClientsData.forEach(c => evaluationClientsMap.set(c.id, c.name));
+      }
+    }
+    
+    const recentEvaluations: RecentEvaluation[] = filteredEvaluations
       .map((h: any) => {
         const conv = h.whatsapp_conversations;
         
@@ -1103,12 +1121,8 @@ Deno.serve(async (req) => {
           attendantName = employee?.name || profile?.full_name || null;
         }
         
-        // Get client name if available
-        let clientName: string | null = null;
-        if (conv.client_id) {
-          const criticalConv = criticalConversationsList.find(c => c.clientId === conv.client_id);
-          clientName = criticalConv?.clientName || null;
-        }
+        // Get client name from the map
+        const clientName = conv.client_id ? evaluationClientsMap.get(conv.client_id) || null : null;
         
         return {
           id: h.id,
