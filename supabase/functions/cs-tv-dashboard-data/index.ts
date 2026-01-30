@@ -51,6 +51,20 @@ interface CelebrationAlert {
   analyzedAt: string;
 }
 
+interface RecentEvaluation {
+  id: string;
+  conversationId: string;
+  contactName: string;
+  contactPhone: string;
+  clientName: string | null;
+  attendantId: string | null;
+  attendantName: string | null;
+  score: number | null;
+  temperature: string;
+  interpretation: string | null;
+  analyzedAt: string;
+}
+
 interface CSTVDashboardData {
   companyName: string;
   lastUpdatedAt: string;
@@ -91,6 +105,7 @@ interface CSTVDashboardData {
   }>;
   recentCriticalAlerts: CriticalAlert[];
   recentCelebrationAlerts: CelebrationAlert[];
+  recentEvaluations: RecentEvaluation[];
   attendantPerformance: AttendantPerformance[];
   hourlyMessageVolume: Array<{
     hour: number;
@@ -978,6 +993,69 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ========== RECENT EVALUATIONS (last 20 AI analyses) ==========
+    const { data: recentAnalysisHistory } = await supabase
+      .from('whatsapp_realtime_analysis_history')
+      .select(`
+        id,
+        conversation_id,
+        score,
+        temperature,
+        interpretation,
+        analyzed_at,
+        whatsapp_conversations!inner (
+          id,
+          contact_name,
+          phone,
+          client_id,
+          instance_id
+        )
+      `)
+      .eq('company_id', company.id)
+      .order('analyzed_at', { ascending: false })
+      .limit(50);
+
+    // Filter to only CS conversations and build recent evaluations
+    const recentEvaluations: RecentEvaluation[] = (recentAnalysisHistory || [])
+      .filter((h: any) => csConversationIds.has(h.conversation_id))
+      .slice(0, 20)
+      .map((h: any) => {
+        const conv = h.whatsapp_conversations;
+        
+        // Use resolveAttendantForConversation to get the responsible attendant
+        let attendantId = resolveAttendantForConversation(conv.id, conv.instance_id);
+        let attendantName: string | null = null;
+        
+        if (attendantId) {
+          const employee = employees.find(e => e.user_id === attendantId);
+          const profile = profiles.find(p => p.id === attendantId);
+          attendantName = employee?.name || profile?.full_name || null;
+        }
+        
+        // Get client name if available
+        let clientName: string | null = null;
+        if (conv.client_id) {
+          const criticalConv = criticalConversationsList.find(c => c.clientId === conv.client_id);
+          clientName = criticalConv?.clientName || null;
+        }
+        
+        return {
+          id: h.id,
+          conversationId: conv.id,
+          contactName: conv.contact_name || 'Sem nome',
+          contactPhone: conv.phone || '',
+          clientName,
+          attendantId,
+          attendantName,
+          score: h.score,
+          temperature: h.temperature,
+          interpretation: h.interpretation,
+          analyzedAt: h.analyzed_at,
+        };
+      });
+
+    console.log('Recent evaluations fetched:', recentEvaluations.length);
+
     // Build response
     const dashboardData: CSTVDashboardData = {
       companyName: company.name,
@@ -1005,6 +1083,7 @@ Deno.serve(async (req) => {
       criticalConversations: criticalConversationsList,
       recentCriticalAlerts,
       recentCelebrationAlerts,
+      recentEvaluations,
       attendantPerformance,
       hourlyMessageVolume: hourlyVolume,
       hourlySentimentVolume,
@@ -1017,6 +1096,7 @@ Deno.serve(async (req) => {
       criticalConversations: dashboardData.criticalConversations.length,
       recentCriticalAlerts: dashboardData.recentCriticalAlerts.length,
       recentCelebrationAlerts: dashboardData.recentCelebrationAlerts.length,
+      recentEvaluations: dashboardData.recentEvaluations.length,
       attendantPerformance: dashboardData.attendantPerformance.length,
       pendingConversations: dashboardData.pendingConversations.length,
     });
