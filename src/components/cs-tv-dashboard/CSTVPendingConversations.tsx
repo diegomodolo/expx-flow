@@ -11,6 +11,8 @@ interface PendingConversation {
   lastMessageAt: string;
   waitingMinutes: number;
   clientName: string | null;
+  attendantId: string | null;
+  attendantName: string | null;
 }
 
 interface CSTVPendingConversationsProps {
@@ -91,11 +93,19 @@ export function CSTVPendingConversations({ conversations }: CSTVPendingConversat
                 <p className="font-medium text-foreground truncate">
                   {conv.contactName}
                 </p>
-                {conv.clientName && (
-                  <p className="text-xs text-muted-foreground truncate">
-                    {conv.clientName}
-                  </p>
-                )}
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  {conv.clientName && (
+                    <span className="truncate">{conv.clientName}</span>
+                  )}
+                  {conv.clientName && conv.attendantName && (
+                    <span>•</span>
+                  )}
+                  {conv.attendantName && (
+                    <span className="text-primary/80 font-medium truncate">
+                      {conv.attendantName}
+                    </span>
+                  )}
+                </div>
               </div>
               
               <div className="flex items-center gap-2 shrink-0">

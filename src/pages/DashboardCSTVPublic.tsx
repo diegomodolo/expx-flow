@@ -115,6 +115,8 @@ interface CSTVDashboardData {
     lastMessageAt: string;
     waitingMinutes: number;
     clientName: string | null;
+    attendantId: string | null;
+    attendantName: string | null;
   }>;
 }
 
