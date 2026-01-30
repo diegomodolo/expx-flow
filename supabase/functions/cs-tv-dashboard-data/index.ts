@@ -559,9 +559,13 @@ Deno.serve(async (req) => {
     }).length;
 
     // ========== ATTENDANT PERFORMANCE ==========
+    // IMPORTANT: Only include attendants from CS instance conversations
     const attendantConversations = new Map<string, string[]>();
     
-    assignments.forEach((a: any) => {
+    // Filter assignments to only include CS conversations
+    const csAssignments = assignments.filter((a: any) => csConversationIds.has(a.conversation_id));
+    
+    csAssignments.forEach((a: any) => {
       const userId = a.assigned_to_user_id;
       if (!attendantConversations.has(userId)) {
         attendantConversations.set(userId, []);
@@ -569,10 +573,11 @@ Deno.serve(async (req) => {
       attendantConversations.get(userId)!.push(a.conversation_id);
     });
 
+    // Fallback: if no assignments, use instance users from CS instances only
     if (attendantConversations.size === 0 && instanceUsersForCompany.length > 0) {
       const conversationsByInstance = new Map<string, string[]>();
       conversations.forEach((c: any) => {
-        if (c.instance_id) {
+        if (c.instance_id && csInstanceIds.has(c.instance_id)) {
           if (!conversationsByInstance.has(c.instance_id)) {
             conversationsByInstance.set(c.instance_id, []);
           }
@@ -581,6 +586,9 @@ Deno.serve(async (req) => {
       });
 
       instanceUsersForCompany.forEach((iu: any) => {
+        // Only process users from CS instances
+        if (!csInstanceIds.has(iu.instance_id)) return;
+        
         const convIds = conversationsByInstance.get(iu.instance_id) || [];
         if (convIds.length > 0) {
           if (!attendantConversations.has(iu.user_id)) {
