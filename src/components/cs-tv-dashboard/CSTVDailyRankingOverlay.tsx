@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Trophy, X, Crown, Medal, Star, MessageCircle, Clock, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -46,8 +46,7 @@ export function CSTVDailyRankingOverlay({
 }: CSTVDailyRankingOverlayProps) {
   const [countdown, setCountdown] = useState(DISPLAY_DURATION_SECONDS);
   const [confetti, setConfetti] = useState<Confetti[]>([]);
-  const audioPlayedRef = useRef(false);
-  const audioContextRef = useRef<AudioContext | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Generate confetti when visible
   useEffect(() => {
@@ -73,19 +72,26 @@ export function CSTVDailyRankingOverlay({
 
   // Play victory theme when overlay appears
   useEffect(() => {
-    if (isVisible && !audioPlayedRef.current) {
-      audioPlayedRef.current = true;
-      playVictoryTheme();
+    if (isVisible) {
+      // Create and play audio
+      const audio = new Audio('/audio/tema-da-vitoria.mp3');
+      audio.loop = true;
+      audio.volume = 0.7;
+      audioRef.current = audio;
+      
+      audio.play().catch(err => {
+        console.error('Error playing victory theme:', err);
+      });
     }
     
-    if (!isVisible) {
-      audioPlayedRef.current = false;
-      // Stop audio if still playing
-      if (audioContextRef.current) {
-        audioContextRef.current.close();
-        audioContextRef.current = null;
+    return () => {
+      // Stop and cleanup audio when overlay closes
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+        audioRef.current = null;
       }
-    }
+    };
   }, [isVisible]);
 
   // Countdown timer
@@ -105,168 +111,6 @@ export function CSTVDailyRankingOverlay({
     return () => clearInterval(interval);
   }, [isVisible, onClose]);
 
-  const playVictoryTheme = useCallback(() => {
-    try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      audioContextRef.current = audioContext;
-      
-      const MELODY_DURATION = 12; // Duration of one complete melody cycle in seconds
-      
-      // Note frequencies (D major scale: D E F# G A B C# D)
-      const notes = {
-        D4: 293.66, E4: 329.63, Fs4: 369.99, G4: 392.00, Gs4: 415.30, A4: 440.00, B4: 493.88, Cs5: 554.37,
-        D5: 587.33, E5: 659.25, Fs5: 739.99, G5: 783.99, A5: 880.00, B5: 987.77, Cs6: 1108.73,
-        D6: 1174.66
-      };
-      
-      const playMelodyCycle = (cycleStart: number) => {
-        // Play a note with brass-like timbre
-        const playNote = (freq: number, start: number, duration: number, gain: number = 0.18) => {
-          // Main oscillator (sawtooth for brass)
-          const osc1 = audioContext.createOscillator();
-          const osc2 = audioContext.createOscillator();
-          const gainNode = audioContext.createGain();
-          const filter = audioContext.createBiquadFilter();
-          
-          osc1.type = 'sawtooth';
-          osc1.frequency.value = freq;
-          
-          // Add slight detune for richness
-          osc2.type = 'sawtooth';
-          osc2.frequency.value = freq * 1.003;
-          
-          filter.type = 'lowpass';
-          filter.frequency.value = 1800;
-          filter.Q.value = 1;
-          
-          const now = audioContext.currentTime + cycleStart + start;
-          
-          // ADSR envelope
-          gainNode.gain.setValueAtTime(0, now);
-          gainNode.gain.linearRampToValueAtTime(gain, now + 0.03);
-          gainNode.gain.setValueAtTime(gain * 0.9, now + duration * 0.3);
-          gainNode.gain.linearRampToValueAtTime(gain * 0.7, now + duration * 0.8);
-          gainNode.gain.exponentialRampToValueAtTime(0.001, now + duration);
-          
-          const mixer = audioContext.createGain();
-          mixer.gain.value = 0.5;
-          
-          osc1.connect(mixer);
-          osc2.connect(mixer);
-          mixer.connect(filter);
-          filter.connect(gainNode);
-          gainNode.connect(audioContext.destination);
-          
-          osc1.start(now);
-          osc2.start(now);
-          osc1.stop(now + duration);
-          osc2.stop(now + duration);
-        };
-        
-        // Play chord
-        const playChord = (freqs: number[], start: number, duration: number, gain: number = 0.12) => {
-          freqs.forEach((freq, i) => {
-            playNote(freq, start, duration, gain / freqs.length * (i === freqs.length - 1 ? 1.5 : 1));
-          });
-        };
-
-        // Tema da Vitória - Main melody adapted from the cifra
-        // Intro chords: E - D - A pattern
-        playChord([notes.E4, notes.Gs4 || notes.A4, notes.B4], 0, 0.4, 0.15);
-        playChord([notes.D4, notes.Fs4, notes.A4], 0.5, 0.4, 0.15);
-        playChord([notes.A4, notes.Cs5, notes.E5], 1.0, 0.6, 0.18);
-        
-        // Main melody line (the recognizable ascending pattern)
-        playNote(notes.B4, 1.8, 0.2, 0.2);
-        playNote(notes.B4, 2.0, 0.15, 0.2);
-        playNote(notes.Cs5, 2.2, 0.2, 0.22);
-        playNote(notes.D5, 2.45, 0.3, 0.24);
-        playNote(notes.Cs5, 2.8, 0.2, 0.22);
-        playNote(notes.B4, 3.0, 0.25, 0.2);
-        
-        // Second phrase with the high note
-        playNote(notes.Cs5, 3.4, 0.2, 0.22);
-        playNote(notes.D5, 3.65, 0.35, 0.24);
-        playNote(notes.E5, 4.0, 0.5, 0.26);  // High point!
-        playNote(notes.Cs5, 4.5, 0.3, 0.22);
-        
-        // Resolution
-        playNote(notes.D5, 5.0, 0.25, 0.22);
-        playNote(notes.B4, 5.3, 0.25, 0.2);
-        playNote(notes.A4, 5.6, 0.4, 0.2);
-        
-        // Bridge/variation
-        playNote(notes.Fs4, 6.2, 0.2, 0.18);
-        playNote(notes.A4, 6.45, 0.25, 0.2);
-        playNote(notes.B4, 6.75, 0.35, 0.22);
-        playNote(notes.D5, 7.2, 0.5, 0.24);
-        
-        // Triumphant ending phrase
-        playNote(notes.E5, 7.9, 0.3, 0.25);
-        playNote(notes.D5, 8.25, 0.25, 0.24);
-        playNote(notes.Cs5, 8.55, 0.25, 0.22);
-        playNote(notes.D5, 8.85, 0.8, 0.26);  // Hold
-        
-        // Final chord (D major)
-        playChord([notes.D4, notes.Fs4, notes.A4, notes.D5], 9.8, 1.5, 0.2);
-      };
-      
-      // Create continuous applause for the entire duration
-      const createContinuousApplause = () => {
-        const duration = DISPLAY_DURATION_SECONDS;
-        const bufferSize = audioContext.sampleRate * duration;
-        const noiseBuffer = audioContext.createBuffer(2, bufferSize, audioContext.sampleRate);
-        
-        for (let channel = 0; channel < 2; channel++) {
-          const output = noiseBuffer.getChannelData(channel);
-          for (let i = 0; i < bufferSize; i++) {
-            const time = i / audioContext.sampleRate;
-            // Variable clapping pattern with fade in/out
-            const fadeIn = Math.min(1, time / 2);
-            const fadeOut = Math.min(1, (duration - time) / 3);
-            const envelope = fadeIn * fadeOut;
-            const clapPattern = Math.pow(Math.sin(time * 7 * Math.PI) * 0.5 + 0.5, 0.4);
-            output[i] = (Math.random() * 2 - 1) * clapPattern * envelope * 0.8;
-          }
-        }
-        
-        const noiseSource = audioContext.createBufferSource();
-        noiseSource.buffer = noiseBuffer;
-        
-        const bandpass = audioContext.createBiquadFilter();
-        bandpass.type = 'bandpass';
-        bandpass.frequency.value = 2200;
-        bandpass.Q.value = 0.6;
-        
-        const highpass = audioContext.createBiquadFilter();
-        highpass.type = 'highpass';
-        highpass.frequency.value = 400;
-        
-        const gainNode = audioContext.createGain();
-        gainNode.gain.value = 0.1;
-        
-        noiseSource.connect(bandpass);
-        bandpass.connect(highpass);
-        highpass.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-        
-        noiseSource.start(audioContext.currentTime);
-        noiseSource.stop(audioContext.currentTime + duration);
-      };
-      
-      // Start continuous applause
-      createContinuousApplause();
-      
-      // Play melody in a loop
-      const totalCycles = Math.ceil(DISPLAY_DURATION_SECONDS / MELODY_DURATION);
-      for (let i = 0; i < totalCycles; i++) {
-        playMelodyCycle(i * MELODY_DURATION);
-      }
-      
-    } catch (error) {
-      console.error('Error playing victory theme:', error);
-    }
-  }, []);
 
   const formatTime = (minutes: number | null): string => {
     if (minutes === null) return '--';
