@@ -57,8 +57,13 @@ Analise a conversa e retorne APENAS um JSON válido (sem markdown, sem \`\`\`) n
   },
   "alerts": ["Alerta se houver algo urgente"] (pode ser array vazio),
   "score": 7 (nota de 0 a 10 avaliando a qualidade do atendimento até agora - considere: cordialidade, clareza, resolutividade, tom adequado, tempo de resposta implícito),
+  "needsResponse": true ou false (indica se a última mensagem do cliente REALMENTE precisa de uma resposta do atendente),
   "readyMessage": "Uma mensagem pronta e completa que o atendente pode enviar diretamente ao cliente. Esta mensagem deve ser a resposta ideal para a situação atual, com tom adequado para WhatsApp (conversacional mas profissional). Não use saudações como 'Olá' se a conversa já está em andamento. Seja direto e resolva a demanda do cliente."
 }
+
+Critérios para needsResponse:
+- TRUE: Cliente fez pergunta, pediu informação, relatou problema, solicitou algo, demonstrou dúvida, fez reclamação
+- FALSE: Cliente apenas confirmou/agradeceu (ok, beleza, obrigado, valeu, 👍, perfeito, entendi, certo), despediu-se (tchau, até mais), ou enviou reação/emoji de aprovação
 
 Critérios para a nota (score):
 - 0-3: Atendimento ruim (rude, confuso, não resolve)
