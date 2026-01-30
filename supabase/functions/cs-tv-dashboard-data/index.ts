@@ -350,21 +350,50 @@ Deno.serve(async (req) => {
     const instanceIds = csInstanceIds;
     const instanceUsersForCompany = instanceUsers.filter((iu: any) => instanceIds.has(iu.instance_id));
 
-    // Helper function to find attendant for a given instance
-    // Priority: 1) is_attendant = true, 2) any user from instance
-    const findInstanceAttendant = (instanceId: string): string | null => {
-      // First try to find official attendant
+    // ========== ALLOWED ATTENDANTS GATE ==========
+    // Create a set of user IDs that are official attendants of CS instances
+    // This is the ONLY way a user can appear in rankings/lists
+    const allowedAttendantUserIds = new Set<string>();
+    instanceUsersForCompany.forEach((iu: any) => {
+      if (csInstanceIds.has(iu.instance_id) && iu.is_attendant === true) {
+        allowedAttendantUserIds.add(iu.user_id);
+      }
+    });
+    console.log('Allowed CS attendants (is_attendant=true):', allowedAttendantUserIds.size);
+
+    // Helper function to find OFFICIAL attendant for a given instance (is_attendant = true only)
+    const findOfficialInstanceAttendant = (instanceId: string): string | null => {
       const officialAttendant = instanceUsersForCompany.find((iu: any) => 
         iu.instance_id === instanceId && iu.is_attendant === true
       );
-      if (officialAttendant) {
-        return officialAttendant.user_id;
+      return officialAttendant?.user_id || null;
+    };
+
+    // Create a map of assignments by conversation ID for quick lookup
+    const assignmentByConversationId = new Map<string, string>();
+    assignments.filter((a: any) => csConversationIds.has(a.conversation_id)).forEach((a: any) => {
+      assignmentByConversationId.set(a.conversation_id, a.assigned_to_user_id);
+    });
+
+    // Helper: resolve who is the responsible attendant for a CS conversation
+    // Returns user_id ONLY if they are in allowedAttendantUserIds, otherwise null
+    const resolveAttendantForConversation = (conversationId: string, instanceId: string): string | null => {
+      // First check if there's an assignment to an allowed attendant
+      const assignedUserId = assignmentByConversationId.get(conversationId);
+      if (assignedUserId && allowedAttendantUserIds.has(assignedUserId)) {
+        return assignedUserId;
       }
-      // Fallback to any user from the instance
-      const anyUser = instanceUsersForCompany.find((iu: any) => 
-        iu.instance_id === instanceId
-      );
-      return anyUser?.user_id || null;
+      // Fallback to official instance attendant (must be in allowedAttendantUserIds by definition)
+      const officialAttendant = findOfficialInstanceAttendant(instanceId);
+      if (officialAttendant && allowedAttendantUserIds.has(officialAttendant)) {
+        return officialAttendant;
+      }
+      return null;
+    };
+
+    // Legacy helper for backwards compatibility (used in some places)
+    const findInstanceAttendant = (instanceId: string): string | null => {
+      return findOfficialInstanceAttendant(instanceId);
     };
 
     console.log('Data fetched (filtered to CS instances only):', {
@@ -559,50 +588,34 @@ Deno.serve(async (req) => {
     }).length;
 
     // ========== ATTENDANT PERFORMANCE ==========
-    // IMPORTANT: Only include attendants from CS instance conversations
+    // IMPORTANT: Only include attendants who are official CS attendants (is_attendant = true)
+    // Uses resolveAttendantForConversation to gate who can appear
     const attendantConversations = new Map<string, string[]>();
+    let ignoredAssignmentsCount = 0;
     
-    // Filter assignments to only include CS conversations
-    const csAssignments = assignments.filter((a: any) => csConversationIds.has(a.conversation_id));
-    
-    csAssignments.forEach((a: any) => {
-      const userId = a.assigned_to_user_id;
-      if (!attendantConversations.has(userId)) {
-        attendantConversations.set(userId, []);
+    // Iterate through CS conversations and resolve who is the responsible attendant
+    conversations.forEach((conv: any) => {
+      const attendantId = resolveAttendantForConversation(conv.id, conv.instance_id);
+      
+      if (attendantId) {
+        if (!attendantConversations.has(attendantId)) {
+          attendantConversations.set(attendantId, []);
+        }
+        attendantConversations.get(attendantId)!.push(conv.id);
       }
-      attendantConversations.get(userId)!.push(a.conversation_id);
+      
+      // Track assignments that were ignored (assigned to non-official attendant)
+      const assignedUserId = assignmentByConversationId.get(conv.id);
+      if (assignedUserId && !allowedAttendantUserIds.has(assignedUserId)) {
+        ignoredAssignmentsCount++;
+      }
     });
-
-    // Fallback: if no assignments, use instance users from CS instances only
-    if (attendantConversations.size === 0 && instanceUsersForCompany.length > 0) {
-      const conversationsByInstance = new Map<string, string[]>();
-      conversations.forEach((c: any) => {
-        if (c.instance_id && csInstanceIds.has(c.instance_id)) {
-          if (!conversationsByInstance.has(c.instance_id)) {
-            conversationsByInstance.set(c.instance_id, []);
-          }
-          conversationsByInstance.get(c.instance_id)!.push(c.id);
-        }
-      });
-
-      instanceUsersForCompany.forEach((iu: any) => {
-        // Only process users that are official attendants of CS instances
-        if (!csInstanceIds.has(iu.instance_id)) return;
-        if (!iu.is_attendant) return;
-        
-        const convIds = conversationsByInstance.get(iu.instance_id) || [];
-        if (convIds.length > 0) {
-          if (!attendantConversations.has(iu.user_id)) {
-            attendantConversations.set(iu.user_id, []);
-          }
-          convIds.forEach(id => {
-            if (!attendantConversations.get(iu.user_id)!.includes(id)) {
-              attendantConversations.get(iu.user_id)!.push(id);
-            }
-          });
-        }
-      });
-    }
+    
+    console.log('Attendant performance stats:', {
+      allowedAttendants: allowedAttendantUserIds.size,
+      attendantsWithConversations: attendantConversations.size,
+      ignoredAssignments: ignoredAssignmentsCount,
+    });
 
     const messageCounts = new Map<string, number>();
     messagesSent.forEach((m: any) => {
@@ -714,15 +727,9 @@ Deno.serve(async (req) => {
         const conv = (w as any).whatsapp_conversations;
         const alerts = (w as any).alerts;
         
-        // Find attendant - first check assignments, then fallback to instance attendant
-        const assignment = assignments.find((a: any) => a.conversation_id === conv.id);
-        let attendantId = assignment?.assigned_to_user_id || null;
+        // Use resolveAttendantForConversation to ensure only official attendants are shown
+        let attendantId = resolveAttendantForConversation(conv.id, conv.instance_id);
         let attendantName: string | null = null;
-        
-        // If no direct assignment, find attendant from instance
-        if (!attendantId && conv.instance_id) {
-          attendantId = findInstanceAttendant(conv.instance_id);
-        }
         
         if (attendantId) {
           const employee = employees.find(e => e.user_id === attendantId);
@@ -783,15 +790,9 @@ Deno.serve(async (req) => {
       .map(w => {
         const conv = (w as any).whatsapp_conversations;
         
-        // Find attendant - first check assignments, then fallback to instance attendant
-        const assignment = assignments.find((a: any) => a.conversation_id === conv.id);
-        let attendantId = assignment?.assigned_to_user_id || null;
+        // Use resolveAttendantForConversation to ensure only official attendants are shown
+        let attendantId = resolveAttendantForConversation(conv.id, conv.instance_id);
         let attendantName: string | null = null;
-        
-        // If no direct assignment, find attendant from instance
-        if (!attendantId && conv.instance_id) {
-          attendantId = findInstanceAttendant(conv.instance_id);
-        }
         
         if (attendantId) {
           const employee = employees.find(e => e.user_id === attendantId);
@@ -877,16 +878,10 @@ Deno.serve(async (req) => {
       .map(w => {
         const conv = (w as any).whatsapp_conversations;
         
-        // Find attendant - first check assignments, then fallback to instance attendant
-        const assignment = assignments.find((a: any) => a.conversation_id === conv.id);
-        let attendantId = assignment?.assigned_to_user_id || null;
+        // Use resolveAttendantForConversation to ensure only official attendants are shown
+        let attendantId = resolveAttendantForConversation(conv.id, conv.instance_id);
         let attendantName: string | null = null;
         let squadName: string | null = null;
-        
-        // If no direct assignment, find attendant from instance
-        if (!attendantId && conv.instance_id) {
-          attendantId = findInstanceAttendant(conv.instance_id);
-        }
         
         if (attendantId) {
           const employee = employeesWithTeams.find(e => e.user_id === attendantId);
