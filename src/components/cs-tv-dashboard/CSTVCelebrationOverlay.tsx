@@ -229,39 +229,24 @@ export function CSTVCelebrationOverlay({ alerts, onDismiss, onDismissAll, rotati
   const currentAlert = alerts[currentIndex] || alerts[0];
   if (!currentAlert) return null;
 
-  const isRotated = rotation === 90 || rotation === 270;
-
-  // Estilos para o conteúdo interno rotacionado e com zoom
-  // O overlay deve ficar centralizado na viewport FÍSICA, não na rotacionada
-  const getContentStyle = (): React.CSSProperties => {
-    const transforms: string[] = [];
-    
-    // Aplicar rotação se necessário
-    if (rotation !== 0) {
-      transforms.push(`rotate(${rotation}deg)`);
-    }
-    
-    // Aplicar zoom
+  // O overlay NÃO deve rotacionar - ele sempre aparece na viewport física normal
+  // Apenas o zoom é aplicado para manter consistência visual
+  const getOverlayStyle = (): React.CSSProperties => {
     if (zoom !== 100) {
-      transforms.push(`scale(${zoom / 100})`);
+      return {
+        transform: `scale(${zoom / 100})`,
+        transformOrigin: 'center center',
+      };
     }
-    
-    return {
-      transform: transforms.length > 0 ? transforms.join(' ') : undefined,
-      transformOrigin: 'center center',
-    };
+    return {};
   };
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300 overflow-hidden">
-      {/* Container centralizado na viewport física */}
+      {/* Container centralizado na viewport física - SEM rotação */}
       <div 
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center"
-        style={{
-          ...getContentStyle(),
-          width: isRotated ? '100vh' : '100vw',
-          height: isRotated ? '100vw' : '100vh',
-        }}
+        className="w-full h-full flex items-center justify-center"
+        style={getOverlayStyle()}
       >
         {/* Confetti */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
