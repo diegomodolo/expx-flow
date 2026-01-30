@@ -424,8 +424,9 @@ Deno.serve(async (req) => {
 
     const allResponseTimesGlobal: number[] = [];
     const firstResponseTimesGlobal: number[] = [];
-    const allResponseTimesByUser = new Map<string, number[]>();
-    const firstResponseTimesByUser = new Map<string, number[]>();
+    // Collect response times by CONVERSATION (not by user) for proper attendant attribution later
+    const allResponseTimesByConversation = new Map<string, number[]>();
+    const firstResponseTimesByConversation = new Map<string, number[]>();
     const responseTimeBreakdown = { under5min: 0, under15min: 0, under30min: 0, under1hour: 0, over1hour: 0 };
 
     for (const [conversationId, messages] of messagesByConversation) {
@@ -463,18 +464,17 @@ Deno.serve(async (req) => {
             else if (responseTimeMinutes < 60) responseTimeBreakdown.under1hour++;
             else responseTimeBreakdown.over1hour++;
             
-            if (next.sent_by_user_id) {
-              if (!allResponseTimesByUser.has(next.sent_by_user_id)) {
-                allResponseTimesByUser.set(next.sent_by_user_id, []);
+            // Store by conversation for later attribution to resolved attendant
+            if (!allResponseTimesByConversation.has(conversationId)) {
+              allResponseTimesByConversation.set(conversationId, []);
+            }
+            allResponseTimesByConversation.get(conversationId)!.push(responseTimeMinutes);
+            
+            if (isFirstOfDay) {
+              if (!firstResponseTimesByConversation.has(conversationId)) {
+                firstResponseTimesByConversation.set(conversationId, []);
               }
-              allResponseTimesByUser.get(next.sent_by_user_id)!.push(responseTimeMinutes);
-              
-              if (isFirstOfDay) {
-                if (!firstResponseTimesByUser.has(next.sent_by_user_id)) {
-                  firstResponseTimesByUser.set(next.sent_by_user_id, []);
-                }
-                firstResponseTimesByUser.get(next.sent_by_user_id)!.push(responseTimeMinutes);
-              }
+              firstResponseTimesByConversation.get(conversationId)!.push(responseTimeMinutes);
             }
           }
         }
@@ -659,12 +659,20 @@ Deno.serve(async (req) => {
         return count;
       }, 0);
 
-      const userAllResponseTimes = allResponseTimesByUser.get(userId) || [];
+      // Aggregate response times from all conversations this attendant is responsible for
+      const userAllResponseTimes: number[] = [];
+      const userFirstResponseTimes: number[] = [];
+      convIds.forEach(convId => {
+        const convAllTimes = allResponseTimesByConversation.get(convId) || [];
+        userAllResponseTimes.push(...convAllTimes);
+        const convFirstTimes = firstResponseTimesByConversation.get(convId) || [];
+        userFirstResponseTimes.push(...convFirstTimes);
+      });
+      
       const avgResponseTime = userAllResponseTimes.length > 0
         ? Math.round(userAllResponseTimes.reduce((a, b) => a + b, 0) / userAllResponseTimes.length)
         : null;
 
-      const userFirstResponseTimes = firstResponseTimesByUser.get(userId) || [];
       const avgFirstResponseTime = userFirstResponseTimes.length > 0
         ? Math.round(userFirstResponseTimes.reduce((a, b) => a + b, 0) / userFirstResponseTimes.length)
         : null;
