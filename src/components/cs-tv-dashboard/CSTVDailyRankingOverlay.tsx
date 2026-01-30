@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Trophy, X, Crown, Medal, Star, MessageCircle, Clock, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -105,94 +105,110 @@ export function CSTVDailyRankingOverlay({
     return () => clearInterval(interval);
   }, [isVisible, onClose]);
 
-  const playVictoryTheme = async () => {
+  const playVictoryTheme = useCallback(() => {
     try {
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
       audioContextRef.current = audioContext;
       
-      // Ayrton Senna's Victory Theme - Main melody notes (approximation)
-      // Original: G-B-D-G (octave up), then descending pattern
-      const playNote = (freq: number, start: number, duration: number, gain: number = 0.15, type: OscillatorType = 'sawtooth') => {
-        const osc = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
-        const filter = audioContext.createBiquadFilter();
-        
-        osc.type = type;
-        osc.frequency.value = freq;
-        
-        filter.type = 'lowpass';
-        filter.frequency.value = 2000;
-        
-        const now = audioContext.currentTime + start;
-        gainNode.gain.setValueAtTime(0, now);
-        gainNode.gain.linearRampToValueAtTime(gain, now + 0.05);
-        gainNode.gain.setValueAtTime(gain, now + duration * 0.7);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, now + duration);
-        
-        osc.connect(filter);
-        filter.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-        
-        osc.start(now);
-        osc.stop(now + duration);
-      };
+      const MELODY_DURATION = 8; // Duration of one complete melody cycle in seconds
+      
+      const playMelodyCycle = (cycleStart: number) => {
+        // Ayrton Senna's Victory Theme - Main melody notes (approximation)
+        const playNote = (freq: number, start: number, duration: number, gain: number = 0.15) => {
+          const osc = audioContext.createOscillator();
+          const gainNode = audioContext.createGain();
+          const filter = audioContext.createBiquadFilter();
+          
+          osc.type = 'sawtooth';
+          osc.frequency.value = freq;
+          
+          filter.type = 'lowpass';
+          filter.frequency.value = 2000;
+          
+          const now = audioContext.currentTime + cycleStart + start;
+          gainNode.gain.setValueAtTime(0, now);
+          gainNode.gain.linearRampToValueAtTime(gain, now + 0.05);
+          gainNode.gain.setValueAtTime(gain, now + duration * 0.7);
+          gainNode.gain.exponentialRampToValueAtTime(0.001, now + duration);
+          
+          osc.connect(filter);
+          filter.connect(gainNode);
+          gainNode.connect(audioContext.destination);
+          
+          osc.start(now);
+          osc.stop(now + duration);
+        };
 
-      // Fanfare intro - triumphant brass-like sound
-      // G major chord arpeggio ascending
-      playNote(392, 0, 0.3, 0.2);      // G4
-      playNote(493.88, 0.15, 0.3, 0.2); // B4
-      playNote(587.33, 0.3, 0.3, 0.2);  // D5
-      playNote(783.99, 0.45, 0.5, 0.25); // G5 (held longer)
-      
-      // Second phrase - higher
-      playNote(880, 0.9, 0.25, 0.2);    // A5
-      playNote(783.99, 1.1, 0.25, 0.2); // G5
-      playNote(659.25, 1.3, 0.25, 0.2); // E5
-      playNote(587.33, 1.5, 0.4, 0.25); // D5 (held)
-      
-      // Victory resolution
-      playNote(392, 2.0, 0.2, 0.18);    // G4
-      playNote(493.88, 2.15, 0.2, 0.18); // B4
-      playNote(587.33, 2.3, 0.2, 0.18);  // D5
-      playNote(783.99, 2.45, 0.6, 0.22); // G5
-      playNote(987.77, 2.6, 0.8, 0.25);  // B5 (triumph!)
-      
-      // Triumphant ending chord (G major)
-      playNote(392, 3.4, 1.5, 0.12);     // G4
-      playNote(493.88, 3.4, 1.5, 0.12);  // B4
-      playNote(587.33, 3.4, 1.5, 0.12);  // D5
-      playNote(783.99, 3.4, 1.5, 0.15);  // G5
-      
-      // Add some shimmer/chimes
-      const playChime = (freq: number, start: number) => {
-        const osc = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
+        const playChime = (freq: number, start: number) => {
+          const osc = audioContext.createOscillator();
+          const gainNode = audioContext.createGain();
+          
+          osc.type = 'sine';
+          osc.frequency.value = freq;
+          
+          const now = audioContext.currentTime + cycleStart + start;
+          gainNode.gain.setValueAtTime(0, now);
+          gainNode.gain.linearRampToValueAtTime(0.06, now + 0.02);
+          gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+          
+          osc.connect(gainNode);
+          gainNode.connect(audioContext.destination);
+          
+          osc.start(now);
+          osc.stop(now + 0.8);
+        };
+
+        // Fanfare intro - triumphant brass-like sound
+        playNote(392, 0, 0.3, 0.18);      // G4
+        playNote(493.88, 0.15, 0.3, 0.18); // B4
+        playNote(587.33, 0.3, 0.3, 0.18);  // D5
+        playNote(783.99, 0.45, 0.5, 0.22); // G5 (held longer)
         
-        osc.type = 'sine';
-        osc.frequency.value = freq;
+        // Second phrase - higher
+        playNote(880, 0.9, 0.25, 0.18);    // A5
+        playNote(783.99, 1.1, 0.25, 0.18); // G5
+        playNote(659.25, 1.3, 0.25, 0.18); // E5
+        playNote(587.33, 1.5, 0.4, 0.22); // D5 (held)
         
-        const now = audioContext.currentTime + start;
-        gainNode.gain.setValueAtTime(0, now);
-        gainNode.gain.linearRampToValueAtTime(0.08, now + 0.02);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+        // Victory resolution
+        playNote(392, 2.0, 0.2, 0.16);    // G4
+        playNote(493.88, 2.15, 0.2, 0.16); // B4
+        playNote(587.33, 2.3, 0.2, 0.16);  // D5
+        playNote(783.99, 2.45, 0.6, 0.2); // G5
+        playNote(987.77, 2.6, 0.8, 0.22);  // B5 (triumph!)
         
-        osc.connect(gainNode);
-        gainNode.connect(audioContext.destination);
+        // Triumphant chord (G major)
+        playNote(392, 3.4, 1.2, 0.1);     // G4
+        playNote(493.88, 3.4, 1.2, 0.1);  // B4
+        playNote(587.33, 3.4, 1.2, 0.1);  // D5
+        playNote(783.99, 3.4, 1.2, 0.12);  // G5
         
-        osc.start(now);
-        osc.stop(now + 0.8);
+        // Bridge section - variation
+        playNote(659.25, 4.8, 0.25, 0.16); // E5
+        playNote(587.33, 5.0, 0.25, 0.16); // D5
+        playNote(523.25, 5.2, 0.25, 0.16); // C5
+        playNote(493.88, 5.4, 0.4, 0.18);  // B4
+        
+        // Final fanfare
+        playNote(392, 6.0, 0.2, 0.16);    // G4
+        playNote(587.33, 6.15, 0.2, 0.16); // D5
+        playNote(783.99, 6.3, 0.5, 0.2);  // G5
+        playNote(987.77, 6.5, 0.8, 0.22); // B5
+        
+        // Sparkle chimes
+        playChime(2093, 0.5);
+        playChime(2637, 0.7);
+        playChime(3136, 0.9);
+        playChime(2093, 2.7);
+        playChime(2637, 2.9);
+        playChime(3136, 3.1);
+        playChime(2349, 5.5);
+        playChime(2793, 5.7);
       };
       
-      // Sparkle chimes
-      playChime(2093, 0.5);
-      playChime(2637, 0.7);
-      playChime(3136, 0.9);
-      playChime(2093, 2.7);
-      playChime(2637, 2.9);
-      playChime(3136, 3.1);
-      
-      // Applause effect
-      const createApplause = (startTime: number, duration: number) => {
+      // Create continuous applause for the entire duration
+      const createContinuousApplause = () => {
+        const duration = DISPLAY_DURATION_SECONDS;
         const bufferSize = audioContext.sampleRate * duration;
         const noiseBuffer = audioContext.createBuffer(2, bufferSize, audioContext.sampleRate);
         
@@ -200,8 +216,12 @@ export function CSTVDailyRankingOverlay({
           const output = noiseBuffer.getChannelData(channel);
           for (let i = 0; i < bufferSize; i++) {
             const time = i / audioContext.sampleRate;
-            const clapPattern = Math.pow(Math.sin(time * 10 * Math.PI) * 0.5 + 0.5, 0.3);
-            output[i] = (Math.random() * 2 - 1) * clapPattern;
+            // Variable clapping pattern with fade in/out
+            const fadeIn = Math.min(1, time / 2);
+            const fadeOut = Math.min(1, (duration - time) / 3);
+            const envelope = fadeIn * fadeOut;
+            const clapPattern = Math.pow(Math.sin(time * 8 * Math.PI) * 0.5 + 0.5, 0.3);
+            output[i] = (Math.random() * 2 - 1) * clapPattern * envelope;
           }
         }
         
@@ -214,33 +234,29 @@ export function CSTVDailyRankingOverlay({
         bandpass.Q.value = 0.5;
         
         const gainNode = audioContext.createGain();
-        const now = audioContext.currentTime + startTime;
-        gainNode.gain.setValueAtTime(0, now);
-        gainNode.gain.linearRampToValueAtTime(0.15, now + 0.5);
-        gainNode.gain.setValueAtTime(0.15, now + duration - 1);
-        gainNode.gain.linearRampToValueAtTime(0, now + duration);
+        gainNode.gain.value = 0.12;
         
         noiseSource.connect(bandpass);
         bandpass.connect(gainNode);
         gainNode.connect(audioContext.destination);
         
-        noiseSource.start(now);
-        noiseSource.stop(now + duration);
+        noiseSource.start(audioContext.currentTime);
+        noiseSource.stop(audioContext.currentTime + duration);
       };
       
-      createApplause(0.5, 5);
+      // Start continuous applause
+      createContinuousApplause();
       
-      setTimeout(() => {
-        if (audioContextRef.current === audioContext) {
-          audioContext.close();
-          audioContextRef.current = null;
-        }
-      }, 7000);
+      // Play melody in a loop
+      const totalCycles = Math.ceil(DISPLAY_DURATION_SECONDS / MELODY_DURATION);
+      for (let i = 0; i < totalCycles; i++) {
+        playMelodyCycle(i * MELODY_DURATION);
+      }
       
     } catch (error) {
       console.error('Error playing victory theme:', error);
     }
-  };
+  }, []);
 
   const formatTime = (minutes: number | null): string => {
     if (minutes === null) return '--';
