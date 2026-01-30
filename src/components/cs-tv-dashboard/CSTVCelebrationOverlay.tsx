@@ -229,24 +229,31 @@ export function CSTVCelebrationOverlay({ alerts, onDismiss, onDismissAll, rotati
   const currentAlert = alerts[currentIndex] || alerts[0];
   if (!currentAlert) return null;
 
-  // O overlay NÃO deve rotacionar - ele sempre aparece na viewport física normal
-  // Apenas o zoom é aplicado para manter consistência visual
-  const getOverlayStyle = (): React.CSSProperties => {
-    if (zoom !== 100) {
-      return {
-        transform: `scale(${zoom / 100})`,
-        transformOrigin: 'center center',
-      };
+  // O conteúdo deve rotacionar para acompanhar a orientação do dashboard
+  // O overlay fica fixo na viewport, mas o conteúdo interno rotaciona
+  const getContentStyle = (): React.CSSProperties => {
+    const transforms: string[] = [];
+    
+    if (rotation !== 0) {
+      transforms.push(`rotate(${rotation}deg)`);
     }
-    return {};
+    
+    if (zoom !== 100) {
+      transforms.push(`scale(${zoom / 100})`);
+    }
+    
+    return {
+      transform: transforms.length > 0 ? transforms.join(' ') : undefined,
+      transformOrigin: 'center center',
+    };
   };
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300 overflow-hidden">
-      {/* Container centralizado na viewport física - SEM rotação */}
+      {/* Container centralizado na viewport física, conteúdo rotaciona */}
       <div 
         className="w-full h-full flex items-center justify-center"
-        style={getOverlayStyle()}
+        style={getContentStyle()}
       >
         {/* Confetti */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
