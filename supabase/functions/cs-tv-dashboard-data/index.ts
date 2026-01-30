@@ -717,7 +717,7 @@ Deno.serve(async (req) => {
     
     if (allAttendantUserIds.length > 0) {
       const [profilesResult, employeesResult] = await Promise.all([
-        supabase.from('profiles').select('id, full_name, avatar_url').in('id', allAttendantUserIds),
+        supabase.from('profiles').select('user_id, full_name, avatar_url').in('user_id', allAttendantUserIds),
         supabase.from('employees').select('user_id, name, company_id').in('user_id', allAttendantUserIds),
       ]);
       profiles = profilesResult.data || [];
@@ -728,7 +728,7 @@ Deno.serve(async (req) => {
     const userNameMap = new Map<string, { name: string; avatarUrl: string | null }>();
     allAttendantUserIds.forEach(userId => {
       const employee = employees.find(e => e.user_id === userId);
-      const profile = profiles.find(p => p.id === userId);
+      const profile = profiles.find(p => p.user_id === userId);
       const name = employee?.name || profile?.full_name || 'Sem nome';
       const avatarUrl = profile?.avatar_url || null;
       userNameMap.set(userId, { name, avatarUrl });
