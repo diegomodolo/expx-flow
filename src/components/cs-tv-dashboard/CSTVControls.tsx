@@ -19,7 +19,8 @@ import {
   Minus,
   RotateCw,
   AlertTriangle,
-  PartyPopper
+  PartyPopper,
+  Trophy
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "next-themes";
@@ -35,6 +36,7 @@ interface CSTVControlsProps {
   onRotationChange?: (rotation: number) => void;
   onTestCriticalAlert?: () => void;
   onTestCelebrationAlert?: () => void;
+  onTestDailyRanking?: () => void;
 }
 
 export function CSTVControls({ 
@@ -47,7 +49,8 @@ export function CSTVControls({
   rotation = 0,
   onRotationChange,
   onTestCriticalAlert,
-  onTestCelebrationAlert
+  onTestCelebrationAlert,
+  onTestDailyRanking
 }: CSTVControlsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -241,7 +244,7 @@ export function CSTVControls({
             O modo Kiosk oculta os controles automaticamente.
           </p>
 
-          {(onTestCriticalAlert || onTestCelebrationAlert) && (
+          {(onTestCriticalAlert || onTestCelebrationAlert || onTestDailyRanking) && (
             <>
               <Separator />
               <div className="space-y-3">
@@ -254,7 +257,7 @@ export function CSTVControls({
                       variant="outline"
                       size="sm"
                       onClick={onTestCriticalAlert}
-                      className="border-red-500/50 text-red-500 hover:bg-red-500/10 hover:text-red-500"
+                      className="border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive"
                     >
                       <AlertTriangle className="h-4 w-4 mr-1" />
                       Alerta
@@ -265,13 +268,24 @@ export function CSTVControls({
                       variant="outline"
                       size="sm"
                       onClick={onTestCelebrationAlert}
-                      className="border-amber-500/50 text-amber-500 hover:bg-amber-500/10 hover:text-amber-500"
+                      className="border-primary/50 text-primary hover:bg-primary/10 hover:text-primary"
                     >
                       <PartyPopper className="h-4 w-4 mr-1" />
                       Celebração
                     </Button>
                   )}
                 </div>
+                {onTestDailyRanking && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={onTestDailyRanking}
+                    className="w-full border-amber-500/50 text-amber-500 hover:bg-amber-500/10 hover:text-amber-500"
+                  >
+                    <Trophy className="h-4 w-4 mr-1" />
+                    Ranking Diário (17h)
+                  </Button>
+                )}
               </div>
             </>
           )}

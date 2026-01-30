@@ -16,8 +16,10 @@ import { CSTVResponseTimeBreakdown } from "@/components/cs-tv-dashboard/CSTVResp
 import { CSTVControls } from "@/components/cs-tv-dashboard/CSTVControls";
 import { CSTVCriticalAlertOverlay, CriticalAlert } from "@/components/cs-tv-dashboard/CSTVCriticalAlertOverlay";
 import { CSTVCelebrationOverlay, CelebrationAlert } from "@/components/cs-tv-dashboard/CSTVCelebrationOverlay";
+import { CSTVDailyRankingOverlay, RankingAttendant } from "@/components/cs-tv-dashboard/CSTVDailyRankingOverlay";
 import { supabasePublic } from "@/integrations/supabase/publicClient";
 import { useCSTVRealtimeAlerts, useMarkAlertAsDisplayed } from "@/hooks/useCSTVRealtimeAlerts";
+import { useCSTVDailyRanking } from "@/hooks/useCSTVDailyRanking";
 
 interface AttendantPerformance {
   id: string;
@@ -142,6 +144,9 @@ export default function DashboardCSTVPublic() {
   // Active alerts state (no localStorage, uses database persistence via useCSTVRealtimeAlerts)
   const [activeAlerts, setActiveAlerts] = useState<CriticalAlert[]>([]);
   const [activeCelebrations, setActiveCelebrations] = useState<CelebrationAlert[]>([]);
+  
+  // Daily ranking state
+  const [showDailyRanking, setShowDailyRanking] = useState(false);
   
   // Track IDs of alerts currently being displayed (to avoid duplicates from periodic fetch)
   const displayedAlertIdsRef = useRef<Set<string>>(new Set());
@@ -368,6 +373,22 @@ export default function DashboardCSTVPublic() {
     }
   }, [data?.recentCelebrationAlerts]);
 
+  // Daily ranking hook - triggers at 17:00 Brasília
+  const { triggerManually: triggerDailyRanking } = useCSTVDailyRanking({
+    enabled: !!data,
+    onTrigger: () => setShowDailyRanking(true),
+  });
+
+  const handleCloseDailyRanking = useCallback(() => {
+    setShowDailyRanking(false);
+  }, []);
+
+  // Get ranking data - sort attendants by average score
+  const rankingData: RankingAttendant[] = data?.attendantPerformance
+    ?.filter(a => a.averageScore !== null)
+    ?.sort((a, b) => (b.averageScore || 0) - (a.averageScore || 0))
+    ?.slice(0, 3) || [];
+
   useEffect(() => {
     if (data?.companyName) {
       document.title = `CS TV - ${data.companyName}`;
@@ -437,6 +458,15 @@ export default function DashboardCSTVPublic() {
           zoom={zoom}
         />
       )}
+
+      {/* Daily Ranking Overlay - highest z-index, show when triggered */}
+      <CSTVDailyRankingOverlay 
+        ranking={rankingData}
+        isVisible={showDailyRanking}
+        onClose={handleCloseDailyRanking}
+        rotation={rotation}
+        zoom={zoom}
+      />
       <div 
         className="min-h-screen bg-background overflow-hidden"
         style={{
@@ -523,6 +553,7 @@ export default function DashboardCSTVPublic() {
           onRotationChange={handleRotationChange}
           onTestCriticalAlert={handleTestCriticalAlert}
           onTestCelebrationAlert={handleTestCelebrationAlert}
+          onTestDailyRanking={triggerDailyRanking}
         />
       </div>
     </>
