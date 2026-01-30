@@ -266,43 +266,67 @@ export default function DashboardCSTVPublic() {
     });
   }, [activeCelebrations]);
 
-  // Test modal handlers
+  // Test modal handlers - use real alerts from data
   const handleTestCriticalAlert = useCallback(() => {
-    const testAlert: CriticalAlert = {
-      id: `test-critical-${Date.now()}`,
-      conversationId: 'test-conversation',
-      contactName: 'Cliente Teste',
-      contactPhone: '(11) 99999-9999',
-      clientName: 'Empresa Teste Ltda',
-      score: 2,
-      temperature: 'critical',
-      interpretation: 'Este é um alerta de teste para verificar o modal de alerta crítico. O cliente demonstrou insatisfação extrema e precisa de atenção imediata.',
-      suggestion: 'Entre em contato imediatamente para resolver a situação.',
-      attendantId: 'test-attendant',
-      attendantName: 'João da Silva',
-      analyzedAt: new Date().toISOString(),
-    };
-    setActiveAlerts(prev => [...prev, testAlert]);
-  }, []);
+    // Try to get a real critical alert from the data, fallback to a test one
+    if (data?.recentCriticalAlerts && data.recentCriticalAlerts.length > 0) {
+      const realAlert = data.recentCriticalAlerts[0];
+      // Create a copy with a test ID so it doesn't get marked as dismissed
+      const testAlert: CriticalAlert = {
+        ...realAlert,
+        id: `test-${realAlert.id}-${Date.now()}`,
+      };
+      setActiveAlerts(prev => [...prev, testAlert]);
+    } else {
+      // Fallback to fake alert if no real alerts exist
+      const testAlert: CriticalAlert = {
+        id: `test-critical-${Date.now()}`,
+        conversationId: 'test-conversation',
+        contactName: 'Cliente Teste',
+        contactPhone: '(11) 99999-9999',
+        clientName: 'Empresa Teste Ltda',
+        score: 2,
+        temperature: 'critical',
+        interpretation: 'Este é um alerta de teste. Não há alertas críticos recentes no sistema.',
+        suggestion: 'Nenhum alerta real disponível para teste.',
+        attendantId: null,
+        attendantName: null,
+        analyzedAt: new Date().toISOString(),
+      };
+      setActiveAlerts(prev => [...prev, testAlert]);
+    }
+  }, [data?.recentCriticalAlerts]);
 
   const handleTestCelebrationAlert = useCallback(() => {
-    const testCelebration: CelebrationAlert = {
-      id: `test-celebration-${Date.now()}`,
-      conversationId: 'test-conversation',
-      contactName: 'Cliente Satisfeito',
-      contactPhone: '(11) 88888-8888',
-      clientName: 'Empresa Feliz S.A.',
-      squadName: 'Squad Sucesso',
-      score: 10,
-      temperature: 'positive',
-      interpretation: 'Este é um alerta de teste para verificar o modal de celebração. O cliente está extremamente satisfeito com o atendimento!',
-      lastClientMessage: 'Vocês são incríveis! Melhor atendimento que já tive!',
-      attendantId: 'test-attendant',
-      attendantName: 'Maria Santos',
-      analyzedAt: new Date().toISOString(),
-    };
-    setActiveCelebrations(prev => [...prev, testCelebration]);
-  }, []);
+    // Try to get a real celebration alert from the data, fallback to a test one
+    if (data?.recentCelebrationAlerts && data.recentCelebrationAlerts.length > 0) {
+      const realAlert = data.recentCelebrationAlerts[0];
+      // Create a copy with a test ID so it doesn't get marked as dismissed
+      const testCelebration: CelebrationAlert = {
+        ...realAlert,
+        id: `test-${realAlert.id}-${Date.now()}`,
+      };
+      setActiveCelebrations(prev => [...prev, testCelebration]);
+    } else {
+      // Fallback to fake alert if no real celebrations exist
+      const testCelebration: CelebrationAlert = {
+        id: `test-celebration-${Date.now()}`,
+        conversationId: 'test-conversation',
+        contactName: 'Cliente Satisfeito',
+        contactPhone: '(11) 88888-8888',
+        clientName: 'Empresa Feliz S.A.',
+        squadName: null,
+        score: 10,
+        temperature: 'positive',
+        interpretation: 'Este é um alerta de teste. Não há celebrações recentes no sistema.',
+        lastClientMessage: 'Nenhuma celebração real disponível para teste.',
+        attendantId: null,
+        attendantName: null,
+        analyzedAt: new Date().toISOString(),
+      };
+      setActiveCelebrations(prev => [...prev, testCelebration]);
+    }
+  }, [data?.recentCelebrationAlerts]);
 
   useEffect(() => {
     if (data?.companyName) {
