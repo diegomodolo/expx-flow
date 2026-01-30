@@ -253,11 +253,10 @@ Deno.serve(async (req) => {
         .not('sent_by_user_id', 'is', null)
         .limit(50000),
 
-      // Instance users for fallback attendant performance (only official attendants)
+      // Instance users for fallback attendant lookup (get all, prioritize is_attendant)
       supabase
         .from('whatsapp_instance_users')
-        .select('instance_id, user_id')
-        .eq('is_attendant', true),
+        .select('instance_id, user_id, is_attendant'),
 
       // All messages for response time calculation (last 7 days) - limit for performance
       supabase
@@ -316,6 +315,23 @@ Deno.serve(async (req) => {
     // Scope instance users to company instances (table doesn't have company_id)
     const instanceIds = new Set<string>(instances.map((i: any) => i.id));
     const instanceUsersForCompany = instanceUsers.filter((iu: any) => instanceIds.has(iu.instance_id));
+
+    // Helper function to find attendant for a given instance
+    // Priority: 1) is_attendant = true, 2) any user from instance
+    const findInstanceAttendant = (instanceId: string): string | null => {
+      // First try to find official attendant
+      const officialAttendant = instanceUsersForCompany.find((iu: any) => 
+        iu.instance_id === instanceId && iu.is_attendant === true
+      );
+      if (officialAttendant) {
+        return officialAttendant.user_id;
+      }
+      // Fallback to any user from the instance
+      const anyUser = instanceUsersForCompany.find((iu: any) => 
+        iu.instance_id === instanceId
+      );
+      return anyUser?.user_id || null;
+    };
 
     console.log('Data fetched:', {
       whatsappAnalysis: whatsappAnalysis.length,
@@ -664,12 +680,7 @@ Deno.serve(async (req) => {
         
         // If no direct assignment, find attendant from instance
         if (!attendantId && conv.instance_id) {
-          const instanceUser = instanceUsersForCompany.find((iu: any) => 
-            iu.instance_id === conv.instance_id && iu.is_attendant === true
-          );
-          if (instanceUser) {
-            attendantId = instanceUser.user_id;
-          }
+          attendantId = findInstanceAttendant(conv.instance_id);
         }
         
         if (attendantId) {
@@ -727,12 +738,7 @@ Deno.serve(async (req) => {
         
         // If no direct assignment, find attendant from instance
         if (!attendantId && conv.instance_id) {
-          const instanceUser = instanceUsersForCompany.find((iu: any) => 
-            iu.instance_id === conv.instance_id && iu.is_attendant === true
-          );
-          if (instanceUser) {
-            attendantId = instanceUser.user_id;
-          }
+          attendantId = findInstanceAttendant(conv.instance_id);
         }
         
         if (attendantId) {
@@ -825,12 +831,7 @@ Deno.serve(async (req) => {
         
         // If no direct assignment, find attendant from instance
         if (!attendantId && conv.instance_id) {
-          const instanceUser = instanceUsersForCompany.find((iu: any) => 
-            iu.instance_id === conv.instance_id && iu.is_attendant === true
-          );
-          if (instanceUser) {
-            attendantId = instanceUser.user_id;
-          }
+          attendantId = findInstanceAttendant(conv.instance_id);
         }
         
         if (attendantId) {
