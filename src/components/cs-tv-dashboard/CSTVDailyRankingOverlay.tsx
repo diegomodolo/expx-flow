@@ -110,100 +110,105 @@ export function CSTVDailyRankingOverlay({
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
       audioContextRef.current = audioContext;
       
-      const MELODY_DURATION = 8; // Duration of one complete melody cycle in seconds
+      const MELODY_DURATION = 12; // Duration of one complete melody cycle in seconds
+      
+      // Note frequencies (D major scale: D E F# G A B C# D)
+      const notes = {
+        D4: 293.66, E4: 329.63, Fs4: 369.99, G4: 392.00, Gs4: 415.30, A4: 440.00, B4: 493.88, Cs5: 554.37,
+        D5: 587.33, E5: 659.25, Fs5: 739.99, G5: 783.99, A5: 880.00, B5: 987.77, Cs6: 1108.73,
+        D6: 1174.66
+      };
       
       const playMelodyCycle = (cycleStart: number) => {
-        // Ayrton Senna's Victory Theme - Main melody notes (approximation)
-        const playNote = (freq: number, start: number, duration: number, gain: number = 0.15) => {
-          const osc = audioContext.createOscillator();
+        // Play a note with brass-like timbre
+        const playNote = (freq: number, start: number, duration: number, gain: number = 0.18) => {
+          // Main oscillator (sawtooth for brass)
+          const osc1 = audioContext.createOscillator();
+          const osc2 = audioContext.createOscillator();
           const gainNode = audioContext.createGain();
           const filter = audioContext.createBiquadFilter();
           
-          osc.type = 'sawtooth';
-          osc.frequency.value = freq;
+          osc1.type = 'sawtooth';
+          osc1.frequency.value = freq;
+          
+          // Add slight detune for richness
+          osc2.type = 'sawtooth';
+          osc2.frequency.value = freq * 1.003;
           
           filter.type = 'lowpass';
-          filter.frequency.value = 2000;
+          filter.frequency.value = 1800;
+          filter.Q.value = 1;
           
           const now = audioContext.currentTime + cycleStart + start;
+          
+          // ADSR envelope
           gainNode.gain.setValueAtTime(0, now);
-          gainNode.gain.linearRampToValueAtTime(gain, now + 0.05);
-          gainNode.gain.setValueAtTime(gain, now + duration * 0.7);
+          gainNode.gain.linearRampToValueAtTime(gain, now + 0.03);
+          gainNode.gain.setValueAtTime(gain * 0.9, now + duration * 0.3);
+          gainNode.gain.linearRampToValueAtTime(gain * 0.7, now + duration * 0.8);
           gainNode.gain.exponentialRampToValueAtTime(0.001, now + duration);
           
-          osc.connect(filter);
+          const mixer = audioContext.createGain();
+          mixer.gain.value = 0.5;
+          
+          osc1.connect(mixer);
+          osc2.connect(mixer);
+          mixer.connect(filter);
           filter.connect(gainNode);
           gainNode.connect(audioContext.destination);
           
-          osc.start(now);
-          osc.stop(now + duration);
+          osc1.start(now);
+          osc2.start(now);
+          osc1.stop(now + duration);
+          osc2.stop(now + duration);
+        };
+        
+        // Play chord
+        const playChord = (freqs: number[], start: number, duration: number, gain: number = 0.12) => {
+          freqs.forEach((freq, i) => {
+            playNote(freq, start, duration, gain / freqs.length * (i === freqs.length - 1 ? 1.5 : 1));
+          });
         };
 
-        const playChime = (freq: number, start: number) => {
-          const osc = audioContext.createOscillator();
-          const gainNode = audioContext.createGain();
-          
-          osc.type = 'sine';
-          osc.frequency.value = freq;
-          
-          const now = audioContext.currentTime + cycleStart + start;
-          gainNode.gain.setValueAtTime(0, now);
-          gainNode.gain.linearRampToValueAtTime(0.06, now + 0.02);
-          gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
-          
-          osc.connect(gainNode);
-          gainNode.connect(audioContext.destination);
-          
-          osc.start(now);
-          osc.stop(now + 0.8);
-        };
-
-        // Fanfare intro - triumphant brass-like sound
-        playNote(392, 0, 0.3, 0.18);      // G4
-        playNote(493.88, 0.15, 0.3, 0.18); // B4
-        playNote(587.33, 0.3, 0.3, 0.18);  // D5
-        playNote(783.99, 0.45, 0.5, 0.22); // G5 (held longer)
+        // Tema da Vitória - Main melody adapted from the cifra
+        // Intro chords: E - D - A pattern
+        playChord([notes.E4, notes.Gs4 || notes.A4, notes.B4], 0, 0.4, 0.15);
+        playChord([notes.D4, notes.Fs4, notes.A4], 0.5, 0.4, 0.15);
+        playChord([notes.A4, notes.Cs5, notes.E5], 1.0, 0.6, 0.18);
         
-        // Second phrase - higher
-        playNote(880, 0.9, 0.25, 0.18);    // A5
-        playNote(783.99, 1.1, 0.25, 0.18); // G5
-        playNote(659.25, 1.3, 0.25, 0.18); // E5
-        playNote(587.33, 1.5, 0.4, 0.22); // D5 (held)
+        // Main melody line (the recognizable ascending pattern)
+        playNote(notes.B4, 1.8, 0.2, 0.2);
+        playNote(notes.B4, 2.0, 0.15, 0.2);
+        playNote(notes.Cs5, 2.2, 0.2, 0.22);
+        playNote(notes.D5, 2.45, 0.3, 0.24);
+        playNote(notes.Cs5, 2.8, 0.2, 0.22);
+        playNote(notes.B4, 3.0, 0.25, 0.2);
         
-        // Victory resolution
-        playNote(392, 2.0, 0.2, 0.16);    // G4
-        playNote(493.88, 2.15, 0.2, 0.16); // B4
-        playNote(587.33, 2.3, 0.2, 0.16);  // D5
-        playNote(783.99, 2.45, 0.6, 0.2); // G5
-        playNote(987.77, 2.6, 0.8, 0.22);  // B5 (triumph!)
+        // Second phrase with the high note
+        playNote(notes.Cs5, 3.4, 0.2, 0.22);
+        playNote(notes.D5, 3.65, 0.35, 0.24);
+        playNote(notes.E5, 4.0, 0.5, 0.26);  // High point!
+        playNote(notes.Cs5, 4.5, 0.3, 0.22);
         
-        // Triumphant chord (G major)
-        playNote(392, 3.4, 1.2, 0.1);     // G4
-        playNote(493.88, 3.4, 1.2, 0.1);  // B4
-        playNote(587.33, 3.4, 1.2, 0.1);  // D5
-        playNote(783.99, 3.4, 1.2, 0.12);  // G5
+        // Resolution
+        playNote(notes.D5, 5.0, 0.25, 0.22);
+        playNote(notes.B4, 5.3, 0.25, 0.2);
+        playNote(notes.A4, 5.6, 0.4, 0.2);
         
-        // Bridge section - variation
-        playNote(659.25, 4.8, 0.25, 0.16); // E5
-        playNote(587.33, 5.0, 0.25, 0.16); // D5
-        playNote(523.25, 5.2, 0.25, 0.16); // C5
-        playNote(493.88, 5.4, 0.4, 0.18);  // B4
+        // Bridge/variation
+        playNote(notes.Fs4, 6.2, 0.2, 0.18);
+        playNote(notes.A4, 6.45, 0.25, 0.2);
+        playNote(notes.B4, 6.75, 0.35, 0.22);
+        playNote(notes.D5, 7.2, 0.5, 0.24);
         
-        // Final fanfare
-        playNote(392, 6.0, 0.2, 0.16);    // G4
-        playNote(587.33, 6.15, 0.2, 0.16); // D5
-        playNote(783.99, 6.3, 0.5, 0.2);  // G5
-        playNote(987.77, 6.5, 0.8, 0.22); // B5
+        // Triumphant ending phrase
+        playNote(notes.E5, 7.9, 0.3, 0.25);
+        playNote(notes.D5, 8.25, 0.25, 0.24);
+        playNote(notes.Cs5, 8.55, 0.25, 0.22);
+        playNote(notes.D5, 8.85, 0.8, 0.26);  // Hold
         
-        // Sparkle chimes
-        playChime(2093, 0.5);
-        playChime(2637, 0.7);
-        playChime(3136, 0.9);
-        playChime(2093, 2.7);
-        playChime(2637, 2.9);
-        playChime(3136, 3.1);
-        playChime(2349, 5.5);
-        playChime(2793, 5.7);
+        // Final chord (D major)
+        playChord([notes.D4, notes.Fs4, notes.A4, notes.D5], 9.8, 1.5, 0.2);
       };
       
       // Create continuous applause for the entire duration
@@ -220,8 +225,8 @@ export function CSTVDailyRankingOverlay({
             const fadeIn = Math.min(1, time / 2);
             const fadeOut = Math.min(1, (duration - time) / 3);
             const envelope = fadeIn * fadeOut;
-            const clapPattern = Math.pow(Math.sin(time * 8 * Math.PI) * 0.5 + 0.5, 0.3);
-            output[i] = (Math.random() * 2 - 1) * clapPattern * envelope;
+            const clapPattern = Math.pow(Math.sin(time * 7 * Math.PI) * 0.5 + 0.5, 0.4);
+            output[i] = (Math.random() * 2 - 1) * clapPattern * envelope * 0.8;
           }
         }
         
@@ -230,14 +235,19 @@ export function CSTVDailyRankingOverlay({
         
         const bandpass = audioContext.createBiquadFilter();
         bandpass.type = 'bandpass';
-        bandpass.frequency.value = 2500;
-        bandpass.Q.value = 0.5;
+        bandpass.frequency.value = 2200;
+        bandpass.Q.value = 0.6;
+        
+        const highpass = audioContext.createBiquadFilter();
+        highpass.type = 'highpass';
+        highpass.frequency.value = 400;
         
         const gainNode = audioContext.createGain();
-        gainNode.gain.value = 0.12;
+        gainNode.gain.value = 0.1;
         
         noiseSource.connect(bandpass);
-        bandpass.connect(gainNode);
+        bandpass.connect(highpass);
+        highpass.connect(gainNode);
         gainNode.connect(audioContext.destination);
         
         noiseSource.start(audioContext.currentTime);
