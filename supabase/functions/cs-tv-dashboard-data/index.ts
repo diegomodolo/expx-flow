@@ -134,6 +134,8 @@ interface CSTVDashboardData {
     lastMessageAt: string;
     waitingMinutes: number;
     clientName: string | null;
+    attendantId: string | null;
+    attendantName: string | null;
   }>;
 }
 
@@ -962,6 +964,10 @@ Deno.serve(async (req) => {
         const waitingMs = now.getTime() - new Date(lastMessage.sent_at).getTime();
         const waitingMinutes = Math.round(waitingMs / (1000 * 60));
         
+        // Resolve attendant for this conversation
+        const attendantUserId = resolveAttendantForConversation(c.id, c.instance_id);
+        const attendantInfo = attendantUserId ? userInfoMap.get(attendantUserId) : null;
+        
         return {
           id: c.id,
           contactName: c.contact_name || 'Sem nome',
@@ -969,6 +975,8 @@ Deno.serve(async (req) => {
           lastMessageAt: lastMessage.sent_at,
           waitingMinutes,
           clientName: null as string | null,
+          attendantId: attendantUserId,
+          attendantName: attendantInfo?.name || null,
         };
       })
       .sort((a, b) => b.waitingMinutes - a.waitingMinutes)
