@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 import { 
   Settings, 
   RefreshCw, 
@@ -16,7 +17,9 @@ import {
   ZoomIn,
   Plus,
   Minus,
-  RotateCw
+  RotateCw,
+  AlertTriangle,
+  PartyPopper
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "next-themes";
@@ -30,6 +33,8 @@ interface CSTVControlsProps {
   onZoomChange?: (zoom: number) => void;
   rotation?: number;
   onRotationChange?: (rotation: number) => void;
+  onTestCriticalAlert?: () => void;
+  onTestCelebrationAlert?: () => void;
 }
 
 export function CSTVControls({ 
@@ -40,7 +45,9 @@ export function CSTVControls({
   zoom = 100,
   onZoomChange,
   rotation = 0,
-  onRotationChange
+  onRotationChange,
+  onTestCriticalAlert,
+  onTestCelebrationAlert
 }: CSTVControlsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -233,6 +240,41 @@ export function CSTVControls({
           <p className="text-xs text-muted-foreground">
             O modo Kiosk oculta os controles automaticamente.
           </p>
+
+          {(onTestCriticalAlert || onTestCelebrationAlert) && (
+            <>
+              <Separator />
+              <div className="space-y-3">
+                <Label className="text-muted-foreground text-xs uppercase tracking-wide">
+                  Testar Modais
+                </Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {onTestCriticalAlert && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={onTestCriticalAlert}
+                      className="border-red-500/50 text-red-500 hover:bg-red-500/10 hover:text-red-500"
+                    >
+                      <AlertTriangle className="h-4 w-4 mr-1" />
+                      Alerta
+                    </Button>
+                  )}
+                  {onTestCelebrationAlert && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={onTestCelebrationAlert}
+                      className="border-amber-500/50 text-amber-500 hover:bg-amber-500/10 hover:text-amber-500"
+                    >
+                      <PartyPopper className="h-4 w-4 mr-1" />
+                      Celebração
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
         </div>
       )}
     </>

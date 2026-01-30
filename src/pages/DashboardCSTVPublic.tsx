@@ -266,6 +266,44 @@ export default function DashboardCSTVPublic() {
     });
   }, [activeCelebrations]);
 
+  // Test modal handlers
+  const handleTestCriticalAlert = useCallback(() => {
+    const testAlert: CriticalAlert = {
+      id: `test-critical-${Date.now()}`,
+      conversationId: 'test-conversation',
+      contactName: 'Cliente Teste',
+      contactPhone: '(11) 99999-9999',
+      clientName: 'Empresa Teste Ltda',
+      score: 2,
+      temperature: 'critical',
+      interpretation: 'Este é um alerta de teste para verificar o modal de alerta crítico. O cliente demonstrou insatisfação extrema e precisa de atenção imediata.',
+      suggestion: 'Entre em contato imediatamente para resolver a situação.',
+      attendantId: 'test-attendant',
+      attendantName: 'João da Silva',
+      analyzedAt: new Date().toISOString(),
+    };
+    setActiveAlerts(prev => [...prev, testAlert]);
+  }, []);
+
+  const handleTestCelebrationAlert = useCallback(() => {
+    const testCelebration: CelebrationAlert = {
+      id: `test-celebration-${Date.now()}`,
+      conversationId: 'test-conversation',
+      contactName: 'Cliente Satisfeito',
+      contactPhone: '(11) 88888-8888',
+      clientName: 'Empresa Feliz S.A.',
+      squadName: 'Squad Sucesso',
+      score: 10,
+      temperature: 'positive',
+      interpretation: 'Este é um alerta de teste para verificar o modal de celebração. O cliente está extremamente satisfeito com o atendimento!',
+      lastClientMessage: 'Vocês são incríveis! Melhor atendimento que já tive!',
+      attendantId: 'test-attendant',
+      attendantName: 'Maria Santos',
+      analyzedAt: new Date().toISOString(),
+    };
+    setActiveCelebrations(prev => [...prev, testCelebration]);
+  }, []);
+
   useEffect(() => {
     if (data?.companyName) {
       document.title = `CS TV - ${data.companyName}`;
@@ -416,6 +454,8 @@ export default function DashboardCSTVPublic() {
           onZoomChange={handleZoomChange}
           rotation={rotation}
           onRotationChange={handleRotationChange}
+          onTestCriticalAlert={handleTestCriticalAlert}
+          onTestCelebrationAlert={handleTestCelebrationAlert}
         />
       </div>
     </>
