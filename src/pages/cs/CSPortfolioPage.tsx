@@ -22,7 +22,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { useNavigate } from 'react-router-dom';
+import { CSClientDetailModal } from '@/components/cs/CSClientDetailModal';
 
 type RiskFilter = 'all' | 'critical' | 'high' | 'medium' | 'low';
 type ViewMode = 'table' | 'cards';
@@ -66,7 +66,9 @@ export default function CSPortfolioPage() {
   const { healthData, stats, isLoading } = useCSHealthScore360();
   const { selectedSquadId, squads } = useCSSquadFilter();
   const [riskFilter, setRiskFilter] = useState<RiskFilter>('all');
-  const navigate = useNavigate();
+  
+  // Modal state for client details
+  const [selectedClient, setSelectedClient] = useState<{ id: string; name: string } | null>(null);
   
   // View mode state with localStorage persistence
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
@@ -147,8 +149,8 @@ export default function CSPortfolioPage() {
     console.log('NPS action for client:', clientId);
   };
 
-  const handleViewClient = (clientId: string) => {
-    navigate(`/clientes/${clientId}`);
+  const handleViewClient = (clientId: string, clientName: string) => {
+    setSelectedClient({ id: clientId, name: clientName });
   };
 
   return (
@@ -315,7 +317,7 @@ export default function CSPortfolioPage() {
                   <TableRow 
                     key={client.id} 
                     className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => handleViewClient(client.clientId)}
+                    onClick={() => handleViewClient(client.clientId, client.clientName)}
                   >
                     <TableCell>
                       <div className="flex items-center gap-3">
@@ -428,7 +430,7 @@ export default function CSPortfolioPage() {
                             <ThumbsUp className="h-4 w-4 mr-2" />
                             Coletar NPS
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleViewClient(client.clientId)}>
+                          <DropdownMenuItem onClick={() => handleViewClient(client.clientId, client.clientName)}>
                             <ExternalLink className="h-4 w-4 mr-2" />
                             Ver Cliente
                           </DropdownMenuItem>
@@ -445,9 +447,23 @@ export default function CSPortfolioPage() {
         /* Cards View */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredData.map((client) => (
-            <CSHealthScore360Card key={client.id} data={client} />
+            <CSHealthScore360Card 
+              key={client.id} 
+              data={client} 
+              onViewClient={handleViewClient}
+            />
           ))}
         </div>
+      )}
+
+      {/* Client Detail Modal */}
+      {selectedClient && (
+        <CSClientDetailModal
+          open={!!selectedClient}
+          onOpenChange={(open) => !open && setSelectedClient(null)}
+          clientId={selectedClient.id}
+          clientName={selectedClient.name}
+        />
       )}
     </div>
   );
