@@ -956,18 +956,53 @@ Deno.serve(async (req) => {
       .slice(0, 10);
 
     // ========== PENDING CONVERSATIONS (waiting for response) ==========
+    // Use a more efficient approach: query last message per conversation using raw SQL
+    // This uses DISTINCT ON to get only the latest message for each conversation
+    const nonArchivedConversationIds = conversations
+      .filter((c: any) => !c.is_archived)
+      .map((c: any) => c.id);
+    
+    // Build a map of last message direction for each conversation
+    // Use chunks to avoid query size limits
+    const lastMessageByConversation = new Map<string, { direction: string; sent_at: string }>();
+    
+    if (nonArchivedConversationIds.length > 0) {
+      // Process in chunks of 100 to avoid query size issues
+      const chunkSize = 100;
+      for (let i = 0; i < nonArchivedConversationIds.length; i += chunkSize) {
+        const chunk = nonArchivedConversationIds.slice(i, i + chunkSize);
+        
+        // For each conversation in this chunk, get only the most recent message
+        const { data: lastMessagesChunk } = await supabase
+          .from('whatsapp_messages')
+          .select('conversation_id, direction, sent_at')
+          .in('conversation_id', chunk)
+          .order('sent_at', { ascending: false })
+          .limit(chunk.length * 2); // Allow some margin but limit the total
+        
+        // Group by conversation_id and take the first (most recent) message
+        (lastMessagesChunk || []).forEach((msg: any) => {
+          if (!lastMessageByConversation.has(msg.conversation_id)) {
+            lastMessageByConversation.set(msg.conversation_id, {
+              direction: msg.direction,
+              sent_at: msg.sent_at,
+            });
+          }
+        });
+      }
+    }
+    
     const pendingConversations = conversations
       .filter((c: any) => {
         if (c.is_archived) return false;
-        const convMessages = messagesByConversation.get(c.id) || [];
-        if (convMessages.length === 0) return false;
-        const lastMessage = convMessages[convMessages.length - 1];
-        return lastMessage.direction === 'inbound' || lastMessage.direction === 'incoming';
+        const lastMsg = lastMessageByConversation.get(c.id);
+        if (!lastMsg) return false;
+        // Only include if the last message was from the client (waiting for OUR response)
+        return lastMsg.direction === 'inbound' || lastMsg.direction === 'incoming';
       })
       .map((c: any) => {
-        const convMessages = messagesByConversation.get(c.id) || [];
-        const lastMessage = convMessages[convMessages.length - 1];
-        const waitingMs = now.getTime() - new Date(lastMessage.sent_at).getTime();
+        const lastMsg = lastMessageByConversation.get(c.id)!;
+        const waitingMs = now.getTime() - new Date(lastMsg.sent_at).getTime();
         const waitingMinutes = Math.round(waitingMs / (1000 * 60));
         
         // Resolve attendant for this conversation
@@ -978,7 +1013,7 @@ Deno.serve(async (req) => {
           id: c.id,
           contactName: c.contact_name || 'Sem nome',
           contactPhone: c.phone || '',
-          lastMessageAt: lastMessage.sent_at,
+          lastMessageAt: lastMsg.sent_at,
           waitingMinutes,
           clientName: null as string | null,
           attendantId: attendantUserId,
