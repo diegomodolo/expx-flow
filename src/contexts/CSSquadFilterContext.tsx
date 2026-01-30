@@ -21,6 +21,7 @@ interface CSSquadFilterContextType {
 const CSSquadFilterContext = createContext<CSSquadFilterContextType | undefined>(undefined);
 
 const STORAGE_KEY = 'cs-squad-filter';
+const STORAGE_INITIALIZED_KEY = 'cs-squad-filter-initialized';
 
 export function CSSquadFilterProvider({ children }: { children: ReactNode }) {
   const { activeCompany } = useCompany();
@@ -32,6 +33,13 @@ export function CSSquadFilterProvider({ children }: { children: ReactNode }) {
       return stored ? JSON.parse(stored) : null;
     }
     return null;
+  });
+  
+  const [hasInitialized, setHasInitialized] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem(STORAGE_INITIALIZED_KEY) === 'true';
+    }
+    return false;
   });
 
   // Buscar todos os squads da empresa
@@ -81,6 +89,15 @@ export function CSSquadFilterProvider({ children }: { children: ReactNode }) {
     },
     enabled: !!activeCompany?.company_id,
   });
+
+  // Setar "Meu Squad" como default na primeira visita (se o usuário tiver squad)
+  useEffect(() => {
+    if (!hasInitialized && mySquadData?.id) {
+      setSelectedSquadIdState(mySquadData.id);
+      setHasInitialized(true);
+      localStorage.setItem(STORAGE_INITIALIZED_KEY, 'true');
+    }
+  }, [mySquadData, hasInitialized]);
 
   // Persistir no localStorage
   useEffect(() => {

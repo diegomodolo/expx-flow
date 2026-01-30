@@ -1,15 +1,33 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Briefcase, AlertTriangle, AlertCircle, AlertOctagon, CheckCircle2, Activity, Star, Users } from 'lucide-react';
+import { 
+  Briefcase, AlertTriangle, AlertCircle, AlertOctagon, CheckCircle2, Activity, Star, Users,
+  LayoutGrid, List, MoreHorizontal, MessageCircle, Phone, ClipboardList, ThumbsUp, ExternalLink
+} from 'lucide-react';
 import { useCSHealthScore360 } from '@/hooks/useCSHealthScore360';
 import { CSHealthScore360Card } from '@/components/cs/CSHealthScore360Card';
 import { useCSSquadFilter } from '@/contexts/CSSquadFilterContext';
 import { CSSquadFilter } from '@/components/cs/CSSquadFilter';
 import { cn } from '@/lib/utils';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Progress } from '@/components/ui/progress';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 
 type RiskFilter = 'all' | 'critical' | 'high' | 'medium' | 'low';
+type ViewMode = 'table' | 'cards';
+
+const VIEW_MODE_STORAGE_KEY = 'cs-portfolio-view-mode';
 
 const riskTabs: { value: RiskFilter; label: string; icon: React.ElementType; color: string }[] = [
   { value: 'all', label: 'Todos', icon: Briefcase, color: '' },
@@ -19,10 +37,50 @@ const riskTabs: { value: RiskFilter; label: string; icon: React.ElementType; col
   { value: 'low', label: 'Baixo', icon: CheckCircle2, color: 'text-green-600' },
 ];
 
+const getRiskBadgeStyle = (risk: string) => {
+  switch (risk) {
+    case 'critical':
+      return 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300';
+    case 'high':
+      return 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300';
+    case 'medium':
+      return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300';
+    case 'low':
+      return 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300';
+    default:
+      return 'bg-muted text-muted-foreground';
+  }
+};
+
+const getRiskLabel = (risk: string) => {
+  switch (risk) {
+    case 'critical': return 'Crítico';
+    case 'high': return 'Alto';
+    case 'medium': return 'Médio';
+    case 'low': return 'Baixo';
+    default: return '-';
+  }
+};
+
 export default function CSPortfolioPage() {
   const { healthData, stats, isLoading } = useCSHealthScore360();
-  const { selectedSquadId } = useCSSquadFilter();
+  const { selectedSquadId, squads } = useCSSquadFilter();
   const [riskFilter, setRiskFilter] = useState<RiskFilter>('all');
+  const navigate = useNavigate();
+  
+  // View mode state with localStorage persistence
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem(VIEW_MODE_STORAGE_KEY);
+      return (stored === 'cards' || stored === 'table') ? stored : 'table';
+    }
+    return 'table';
+  });
+
+  // Persist view mode
+  useEffect(() => {
+    localStorage.setItem(VIEW_MODE_STORAGE_KEY, viewMode);
+  }, [viewMode]);
 
   // Filtrar por squad se selecionado
   const squadFilteredData = useMemo(() => {
@@ -58,6 +116,41 @@ export default function CSPortfolioPage() {
     return { averageScore, averageNps, total: data.length };
   }, [squadFilteredData]);
 
+  // Get squad info for a client
+  const getSquadInfo = (squadId: string | null) => {
+    if (!squadId) return null;
+    return squads.find(s => s.id === squadId);
+  };
+
+  // Handle actions
+  const handleWhatsApp = (clientId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    // TODO: Implement WhatsApp action
+    console.log('WhatsApp action for client:', clientId);
+  };
+
+  const handleCall = (clientId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    // TODO: Implement Call action
+    console.log('Call action for client:', clientId);
+  };
+
+  const handleTouchpoint = (clientId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    // TODO: Implement Touchpoint action
+    console.log('Touchpoint action for client:', clientId);
+  };
+
+  const handleNPS = (clientId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    // TODO: Implement NPS action
+    console.log('NPS action for client:', clientId);
+  };
+
+  const handleViewClient = (clientId: string) => {
+    navigate(`/clients/${clientId}`);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -71,7 +164,22 @@ export default function CSPortfolioPage() {
             Visão consolidada da saúde de todos os clientes
           </p>
         </div>
-        <CSSquadFilter />
+        <div className="flex items-center gap-3">
+          <ToggleGroup 
+            type="single" 
+            value={viewMode} 
+            onValueChange={(v) => v && setViewMode(v as ViewMode)}
+            className="bg-muted rounded-lg p-1"
+          >
+            <ToggleGroupItem value="table" aria-label="Visualização em tabela" className="px-3">
+              <List className="h-4 w-4" />
+            </ToggleGroupItem>
+            <ToggleGroupItem value="cards" aria-label="Visualização em cards" className="px-3">
+              <LayoutGrid className="h-4 w-4" />
+            </ToggleGroupItem>
+          </ToggleGroup>
+          <CSSquadFilter />
+        </div>
       </div>
 
       {/* KPIs */}
@@ -159,34 +267,188 @@ export default function CSPortfolioPage() {
         </TabsList>
       </Tabs>
 
-      {/* Health Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {isLoading ? (
-          Array.from({ length: 6 }).map((_, i) => (
+      {/* Content */}
+      {isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
             <Card key={i} className="animate-pulse">
               <CardContent className="pt-6 h-48 bg-muted/50" />
             </Card>
-          ))
-        ) : filteredData.length === 0 ? (
-          <Card className="col-span-full">
-            <CardContent className="pt-6 text-center py-12">
-              <Briefcase className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">
-                {riskFilter === 'all' ? 'Nenhum cliente configurado' : `Nenhum cliente com risco ${riskTabs.find(t => t.value === riskFilter)?.label}`}
-              </h3>
-              <p className="text-muted-foreground mb-4">
-                {riskFilter === 'all' 
-                  ? 'Configure o Health Score 360 para seus clientes' 
-                  : 'Altere o filtro para ver outros clientes'}
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          filteredData.map((client) => (
+          ))}
+        </div>
+      ) : filteredData.length === 0 ? (
+        <Card>
+          <CardContent className="pt-6 text-center py-12">
+            <Briefcase className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold mb-2">
+              {riskFilter === 'all' ? 'Nenhum cliente configurado' : `Nenhum cliente com risco ${riskTabs.find(t => t.value === riskFilter)?.label}`}
+            </h3>
+            <p className="text-muted-foreground mb-4">
+              {riskFilter === 'all' 
+                ? 'Configure o Health Score 360 para seus clientes' 
+                : 'Altere o filtro para ver outros clientes'}
+            </p>
+          </CardContent>
+        </Card>
+      ) : viewMode === 'table' ? (
+        /* Table View */
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[250px]">Cliente</TableHead>
+                <TableHead>Squad</TableHead>
+                <TableHead className="w-[150px]">Saúde</TableHead>
+                <TableHead className="text-center">Financeiro</TableHead>
+                <TableHead className="text-center">Operacional</TableHead>
+                <TableHead className="text-center">Relacional</TableHead>
+                <TableHead className="text-center">ROAS</TableHead>
+                <TableHead className="text-center">NPS</TableHead>
+                <TableHead>Risco</TableHead>
+                <TableHead className="w-[50px]"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredData.map((client) => {
+                const squad = getSquadInfo(client.squadId);
+                return (
+                  <TableRow 
+                    key={client.id} 
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => handleViewClient(client.clientId)}
+                  >
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-9 w-9">
+                          <AvatarFallback className="bg-primary/10 text-primary text-sm">
+                            {client.clientName?.substring(0, 2).toUpperCase() || 'CL'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="font-medium truncate max-w-[180px]">{client.clientName}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {squad ? (
+                        <Badge 
+                          variant="outline" 
+                          className="text-xs"
+                          style={{ 
+                            borderColor: squad.color || undefined,
+                            color: squad.color || undefined 
+                          }}
+                        >
+                          {squad.name}
+                        </Badge>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Progress 
+                          value={client.healthScoreTotal} 
+                          className="h-2 flex-1" 
+                        />
+                        <span className="text-sm font-medium w-10 text-right">{client.healthScoreTotal}%</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <span className={cn(
+                        "text-sm font-medium",
+                        client.healthScoreFinancial >= 70 ? "text-green-600" : 
+                        client.healthScoreFinancial >= 40 ? "text-yellow-600" : "text-red-600"
+                      )}>
+                        {client.healthScoreFinancial}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <span className={cn(
+                        "text-sm font-medium",
+                        client.healthScoreOperational >= 70 ? "text-green-600" : 
+                        client.healthScoreOperational >= 40 ? "text-yellow-600" : "text-red-600"
+                      )}>
+                        {client.healthScoreOperational}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <span className={cn(
+                        "text-sm font-medium",
+                        client.healthScoreRelational >= 70 ? "text-green-600" : 
+                        client.healthScoreRelational >= 40 ? "text-yellow-600" : "text-red-600"
+                      )}>
+                        {client.healthScoreRelational}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <span className="text-sm">
+                        {client.currentRoas ? `${client.currentRoas.toFixed(1)}x` : '-'}
+                        {client.targetRoas && (
+                          <span className="text-muted-foreground text-xs ml-1">
+                            /{client.targetRoas}x
+                          </span>
+                        )}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <span className={cn(
+                        "text-sm font-medium",
+                        client.npsScore !== null && client.npsScore >= 9 ? "text-green-600" :
+                        client.npsScore !== null && client.npsScore >= 7 ? "text-yellow-600" :
+                        client.npsScore !== null ? "text-red-600" : "text-muted-foreground"
+                      )}>
+                        {client.npsScore !== null ? client.npsScore : '-'}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={cn("text-xs", getRiskBadgeStyle(client.churnRiskLevel || ''))}>
+                        {getRiskLabel(client.churnRiskLevel || '')}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={(e) => handleWhatsApp(client.clientId, e)}>
+                            <MessageCircle className="h-4 w-4 mr-2" />
+                            WhatsApp
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={(e) => handleCall(client.clientId, e)}>
+                            <Phone className="h-4 w-4 mr-2" />
+                            Ligar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={(e) => handleTouchpoint(client.clientId, e)}>
+                            <ClipboardList className="h-4 w-4 mr-2" />
+                            Registrar Touchpoint
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={(e) => handleNPS(client.clientId, e)}>
+                            <ThumbsUp className="h-4 w-4 mr-2" />
+                            Coletar NPS
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleViewClient(client.clientId)}>
+                            <ExternalLink className="h-4 w-4 mr-2" />
+                            Ver Cliente
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </Card>
+      ) : (
+        /* Cards View */
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredData.map((client) => (
             <CSHealthScore360Card key={client.id} data={client} />
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
