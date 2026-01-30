@@ -35,6 +35,7 @@ interface AttendantPerformance {
 }
 
 interface CSTVDashboardData {
+  companyId: string;
   companyName: string;
   lastUpdatedAt: string;
   whatsappMetrics: {
@@ -189,32 +190,13 @@ export default function DashboardCSTVPublic() {
     staleTime: 60000,
   });
 
-  // Extract company ID from the first successful data fetch
+  // Extract company ID from the data response
   useEffect(() => {
-    // We need to get the company ID to subscribe to realtime alerts
-    // The edge function validates the token and returns data for a specific company
-    // We can fetch the company ID by making a quick validation call
-    if (!token || companyId) return;
-    
-    const fetchCompanyId = async () => {
-      try {
-        const { data: companyData } = await supabasePublic
-          .from("companies")
-          .select("id")
-          .eq("cs_tv_dashboard_token", token)
-          .single();
-        
-        if (companyData?.id) {
-          console.log("[DashboardCSTVPublic] Company ID fetched:", companyData.id);
-          setCompanyId(companyData.id);
-        }
-      } catch (err) {
-        console.error("[DashboardCSTVPublic] Error fetching company ID:", err);
-      }
-    };
-    
-    fetchCompanyId();
-  }, [token, companyId]);
+    if (data?.companyId && !companyId) {
+      console.log("[DashboardCSTVPublic] Company ID received from edge function:", data.companyId);
+      setCompanyId(data.companyId);
+    }
+  }, [data?.companyId, companyId]);
 
   // Subscribe to realtime alerts
   const { isConnected: realtimeConnected } = useCSTVRealtimeAlerts({
