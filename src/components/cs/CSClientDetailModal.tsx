@@ -44,13 +44,6 @@ export function CSClientDetailModal({
           </DialogHeader>
 
           <div className="space-y-6 py-2">
-            {/* Quick Actions */}
-            <div className="flex items-center justify-end">
-              <Button size="sm" onClick={() => setShowNewTouchpoint(true)}>
-                <Plus className="h-4 w-4 mr-1" />
-                Registrar Contato
-              </Button>
-            </div>
 
             {/* Health Score Card */}
             {isLoading ? (
@@ -99,7 +92,11 @@ export function CSClientDetailModal({
               </TabsContent>
 
               <TabsContent value="touchpoints">
-                <CSTouchpointLog clientId={clientId} />
+                <CSTouchpointLog 
+                  clientId={clientId} 
+                  showAddButton 
+                  onAddTouchpoint={() => setShowNewTouchpoint(true)}
+                />
               </TabsContent>
 
               <TabsContent value="nps">
