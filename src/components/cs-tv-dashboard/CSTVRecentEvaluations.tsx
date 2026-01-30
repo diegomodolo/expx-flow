@@ -24,7 +24,10 @@ interface CSTVRecentEvaluationsProps {
   evaluations: RecentEvaluation[];
 }
 
-export function CSTVRecentEvaluations({ evaluations }: CSTVRecentEvaluationsProps) {
+export function CSTVRecentEvaluations({ evaluations = [] }: CSTVRecentEvaluationsProps) {
+  // Ensure evaluations is always an array
+  const safeEvaluations = evaluations || [];
+
   const getTemperatureColor = (temperature: string) => {
     switch (temperature) {
       case 'positive':
@@ -58,7 +61,7 @@ export function CSTVRecentEvaluations({ evaluations }: CSTVRecentEvaluationsProp
     return 'text-red-500';
   };
 
-  if (evaluations.length === 0) {
+  if (safeEvaluations.length === 0) {
     return (
       <Card className="border-0 shadow-lg">
         <CardHeader>
@@ -85,13 +88,13 @@ export function CSTVRecentEvaluations({ evaluations }: CSTVRecentEvaluationsProp
           <Brain className="w-5 h-5 text-primary" />
           Últimas Avaliações
           <Badge variant="outline" className="ml-2">
-            {evaluations.length}
+            {safeEvaluations.length}
           </Badge>
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
-          {evaluations.map((evaluation) => (
+          {safeEvaluations.map((evaluation) => (
             <div 
               key={evaluation.id}
               className={cn(
