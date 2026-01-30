@@ -186,11 +186,15 @@ export function useWhatsAppRealtimeAnalysis({
         // Update current analysis
         supabase
           .from("whatsapp_realtime_analysis")
-          .upsert(currentDataToSave, { onConflict: "conversation_id" }),
+          .upsert(currentDataToSave, { onConflict: "conversation_id" })
+          .select("id")
+          .single(),
         // Insert into history
         supabase
           .from("whatsapp_realtime_analysis_history")
-          .insert(historyDataToSave),
+          .insert(historyDataToSave)
+          .select("id")
+          .single(),
       ]);
 
       if (currentResult.error) {
@@ -202,6 +206,39 @@ export function useWhatsAppRealtimeAnalysis({
       
       if (!currentResult.error && !historyResult.error) {
         console.log("[useWhatsAppRealtimeAnalysis] Analysis saved to both tables successfully");
+        
+        // Dispatch realtime alert event if score meets criteria
+        const score = analysisData.score;
+        if (typeof score === "number" && (score < 3 || score >= 9)) {
+          const alertType = score < 3 ? "critical" : "celebration";
+          const analysisId = historyResult.data?.id || currentResult.data?.id;
+          
+          console.log(`[useWhatsAppRealtimeAnalysis] Dispatching ${alertType} alert event for score ${score}`);
+          
+          const alertData = {
+            analysisId,
+            conversationId: convId,
+            score: analysisData.score,
+            temperature: analysisData.temperature,
+            interpretation: analysisData.interpretation,
+            suggestion: analysisData.suggestion,
+            timestamp: now,
+          };
+          
+          const { error: alertError } = await supabase
+            .from("cs_tv_realtime_alert_events")
+            .insert({
+              company_id: companyId,
+              alert_type: alertType,
+              alert_data: alertData,
+            });
+          
+          if (alertError) {
+            console.error("[useWhatsAppRealtimeAnalysis] Error dispatching alert event:", alertError);
+          } else {
+            console.log("[useWhatsAppRealtimeAnalysis] Alert event dispatched successfully");
+          }
+        }
       }
     } catch (err) {
       console.error("[useWhatsAppRealtimeAnalysis] Failed to save analysis:", err);

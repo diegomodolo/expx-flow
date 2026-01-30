@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2, AlertTriangle, MessageCircle } from "lucide-react";
@@ -16,6 +16,7 @@ import { CSTVControls } from "@/components/cs-tv-dashboard/CSTVControls";
 import { CSTVCriticalAlertOverlay, CriticalAlert } from "@/components/cs-tv-dashboard/CSTVCriticalAlertOverlay";
 import { CSTVCelebrationOverlay, CelebrationAlert } from "@/components/cs-tv-dashboard/CSTVCelebrationOverlay";
 import { supabasePublic } from "@/integrations/supabase/publicClient";
+import { useCSTVRealtimeAlerts, useMarkAlertAsDisplayed } from "@/hooks/useCSTVRealtimeAlerts";
 
 interface AttendantPerformance {
   id: string;
@@ -118,33 +119,19 @@ export default function DashboardCSTVPublic() {
     return saved ? parseInt(saved) : 0;
   });
 
-  // Track dismissed alerts to avoid re-triggering - persist in localStorage
-  const [dismissedAlertIds, setDismissedAlertIds] = useState<Set<string>>(() => {
-    const saved = localStorage.getItem('cs-tv-dismissed-alerts');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        return new Set(parsed);
-      } catch {
-        return new Set();
-      }
-    }
-    return new Set();
-  });
-  const [dismissedCelebrationIds, setDismissedCelebrationIds] = useState<Set<string>>(() => {
-    const saved = localStorage.getItem('cs-tv-dismissed-celebrations');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        return new Set(parsed);
-      } catch {
-        return new Set();
-      }
-    }
-    return new Set();
-  });
+  // Track company ID for realtime subscription
+  const [companyId, setCompanyId] = useState<string | null>(null);
+  
+  // Active alerts state (no localStorage, uses database persistence via useCSTVRealtimeAlerts)
   const [activeAlerts, setActiveAlerts] = useState<CriticalAlert[]>([]);
   const [activeCelebrations, setActiveCelebrations] = useState<CelebrationAlert[]>([]);
+  
+  // Track IDs of alerts currently being displayed (to avoid duplicates from periodic fetch)
+  const displayedAlertIdsRef = useRef<Set<string>>(new Set());
+  const displayedCelebrationIdsRef = useRef<Set<string>>(new Set());
+  
+  // Helper hook to mark alerts as displayed in the database
+  const { markAsDisplayed } = useMarkAlertAsDisplayed();
 
   const handleZoomChange = (newZoom: number) => {
     setZoom(newZoom);
@@ -186,84 +173,139 @@ export default function DashboardCSTVPublic() {
     staleTime: 60000,
   });
 
-  // Check for new critical alerts (score < 3) - only show each alert once ever
+  // Extract company ID from the first successful data fetch
   useEffect(() => {
-    if (!data?.recentCriticalAlerts) return;
+    // We need to get the company ID to subscribe to realtime alerts
+    // The edge function validates the token and returns data for a specific company
+    // We can fetch the company ID by making a quick validation call
+    if (!token || companyId) return;
+    
+    const fetchCompanyId = async () => {
+      try {
+        const { data: companyData } = await supabasePublic
+          .from("companies")
+          .select("id")
+          .eq("cs_tv_dashboard_token", token)
+          .single();
+        
+        if (companyData?.id) {
+          console.log("[DashboardCSTVPublic] Company ID fetched:", companyData.id);
+          setCompanyId(companyData.id);
+        }
+      } catch (err) {
+        console.error("[DashboardCSTVPublic] Error fetching company ID:", err);
+      }
+    };
+    
+    fetchCompanyId();
+  }, [token, companyId]);
+
+  // Subscribe to realtime alerts
+  const { isConnected: realtimeConnected } = useCSTVRealtimeAlerts({
+    token: token || "",
+    companyId,
+    onNewCriticalAlert: useCallback((alert: CriticalAlert) => {
+      console.log("[DashboardCSTVPublic] New critical alert from realtime:", alert.id);
+      setActiveAlerts(prev => {
+        // Avoid duplicates
+        if (prev.some(a => a.id === alert.id)) return prev;
+        return [...prev, alert];
+      });
+    }, []),
+    onNewCelebrationAlert: useCallback((alert: CelebrationAlert) => {
+      console.log("[DashboardCSTVPublic] New celebration alert from realtime:", alert.id);
+      setActiveCelebrations(prev => {
+        // Avoid duplicates
+        if (prev.some(a => a.id === alert.id)) return prev;
+        return [...prev, alert];
+      });
+    }, []),
+  });
+
+  // Fallback: Check for new alerts from periodic fetch (in case realtime missed something)
+  // The edge function already filters out displayed alerts, so we just add any new ones
+  useEffect(() => {
+    if (!data?.recentCriticalAlerts || !companyId) return;
 
     const newAlerts = data.recentCriticalAlerts.filter(alert => {
-      // Only show alerts that haven't been dismissed/shown before
-      return !dismissedAlertIds.has(alert.id);
+      // Skip if already displayed in this session
+      if (displayedAlertIdsRef.current.has(alert.id)) return false;
+      // Skip if already active
+      if (activeAlerts.some(a => a.id === alert.id)) return false;
+      return true;
     });
 
     if (newAlerts.length > 0) {
-      // Only add alerts that aren't already active
+      console.log("[DashboardCSTVPublic] New critical alerts from fetch:", newAlerts.length);
+      
+      // Mark them as displayed in the database and add to active
+      newAlerts.forEach(async (alert) => {
+        displayedAlertIdsRef.current.add(alert.id);
+        await markAsDisplayed(companyId, alert.id, "critical", {
+          score: alert.score,
+          conversationId: alert.conversationId,
+          contactName: alert.contactName,
+          attendantName: alert.attendantName || undefined,
+        });
+      });
+      
       setActiveAlerts(prev => {
         const existingIds = new Set(prev.map(a => a.id));
         const trulyNew = newAlerts.filter(a => !existingIds.has(a.id));
         return trulyNew.length > 0 ? [...prev, ...trulyNew] : prev;
       });
     }
-  }, [data?.recentCriticalAlerts, dismissedAlertIds]);
+  }, [data?.recentCriticalAlerts, companyId, activeAlerts, markAsDisplayed]);
 
-  // Check for new celebration alerts (score = 10) - only show each alert once ever
+  // Fallback for celebration alerts
   useEffect(() => {
-    if (!data?.recentCelebrationAlerts) return;
+    if (!data?.recentCelebrationAlerts || !companyId) return;
 
     const newCelebrations = data.recentCelebrationAlerts.filter(alert => {
-      return !dismissedCelebrationIds.has(alert.id);
+      if (displayedCelebrationIdsRef.current.has(alert.id)) return false;
+      if (activeCelebrations.some(a => a.id === alert.id)) return false;
+      return true;
     });
 
     if (newCelebrations.length > 0) {
+      console.log("[DashboardCSTVPublic] New celebration alerts from fetch:", newCelebrations.length);
+      
+      newCelebrations.forEach(async (alert) => {
+        displayedCelebrationIdsRef.current.add(alert.id);
+        await markAsDisplayed(companyId, alert.id, "celebration", {
+          score: alert.score,
+          conversationId: alert.conversationId,
+          contactName: alert.contactName,
+          attendantName: alert.attendantName || undefined,
+        });
+      });
+      
       setActiveCelebrations(prev => {
         const existingIds = new Set(prev.map(a => a.id));
         const trulyNew = newCelebrations.filter(a => !existingIds.has(a.id));
         return trulyNew.length > 0 ? [...prev, ...trulyNew] : prev;
       });
     }
-  }, [data?.recentCelebrationAlerts, dismissedCelebrationIds]);
-
-  // Persist dismissed alerts to localStorage
-  useEffect(() => {
-    if (dismissedAlertIds.size > 0) {
-      localStorage.setItem('cs-tv-dismissed-alerts', JSON.stringify([...dismissedAlertIds]));
-    }
-  }, [dismissedAlertIds]);
-
-  // Persist dismissed celebrations to localStorage
-  useEffect(() => {
-    if (dismissedCelebrationIds.size > 0) {
-      localStorage.setItem('cs-tv-dismissed-celebrations', JSON.stringify([...dismissedCelebrationIds]));
-    }
-  }, [dismissedCelebrationIds]);
+  }, [data?.recentCelebrationAlerts, companyId, activeCelebrations, markAsDisplayed]);
 
   const handleDismissAlert = useCallback((alertId: string) => {
     setActiveAlerts(prev => prev.filter(a => a.id !== alertId));
-    setDismissedAlertIds(prev => new Set(prev).add(alertId));
+    displayedAlertIdsRef.current.add(alertId);
   }, []);
 
   const handleDismissAllAlerts = useCallback(() => {
-    const allIds = activeAlerts.map(a => a.id);
+    activeAlerts.forEach(a => displayedAlertIdsRef.current.add(a.id));
     setActiveAlerts([]);
-    setDismissedAlertIds(prev => {
-      const newSet = new Set(prev);
-      allIds.forEach(id => newSet.add(id));
-      return newSet;
-    });
   }, [activeAlerts]);
 
   const handleDismissCelebration = useCallback((alertId: string) => {
     setActiveCelebrations(prev => prev.filter(a => a.id !== alertId));
-    setDismissedCelebrationIds(prev => new Set(prev).add(alertId));
+    displayedCelebrationIdsRef.current.add(alertId);
   }, []);
 
   const handleDismissAllCelebrations = useCallback(() => {
-    const allIds = activeCelebrations.map(a => a.id);
+    activeCelebrations.forEach(a => displayedCelebrationIdsRef.current.add(a.id));
     setActiveCelebrations([]);
-    setDismissedCelebrationIds(prev => {
-      const newSet = new Set(prev);
-      allIds.forEach(id => newSet.add(id));
-      return newSet;
-    });
   }, [activeCelebrations]);
 
   // Test modal handlers - use real alerts from data

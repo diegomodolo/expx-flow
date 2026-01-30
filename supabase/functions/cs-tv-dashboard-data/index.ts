@@ -723,10 +723,21 @@ Deno.serve(async (req) => {
     }
 
     // ========== RECENT CRITICAL ALERTS (score < 3) ==========
+    // First, fetch already displayed alerts to filter them out
+    const { data: displayedAlertsData } = await supabase
+      .from('cs_tv_displayed_alerts')
+      .select('analysis_id')
+      .eq('company_id', company.id);
+    
+    const displayedAlertIds = new Set((displayedAlertsData || []).map((a: any) => a.analysis_id));
+    console.log('Displayed alerts count:', displayedAlertIds.size);
+
     const recentCriticalAlerts: CriticalAlert[] = whatsappAnalysis
       .filter(w => {
         const score = (w as any).score;
-        return typeof score === 'number' && score < 3;
+        const id = (w as any).id;
+        // Filter by score AND not already displayed
+        return typeof score === 'number' && score < 3 && !displayedAlertIds.has(id);
       })
       .map(w => {
         const conv = (w as any).whatsapp_conversations;
@@ -818,7 +829,9 @@ Deno.serve(async (req) => {
     const recentCelebrationAlerts: CelebrationAlert[] = whatsappAnalysis
       .filter(w => {
         const score = (w as any).score;
-        return typeof score === 'number' && score >= 9;
+        const id = (w as any).id;
+        // Filter by score AND not already displayed
+        return typeof score === 'number' && score >= 9 && !displayedAlertIds.has(id);
       })
       .map(w => {
         const conv = (w as any).whatsapp_conversations;
