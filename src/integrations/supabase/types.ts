@@ -11751,6 +11751,7 @@ export type Database = {
           insight: string | null
           interpretation: string | null
           last_analyzed_message_id: string | null
+          needs_response: boolean | null
           ready_message: string | null
           score: number | null
           sentiment_score: number | null
@@ -11767,6 +11768,7 @@ export type Database = {
           insight?: string | null
           interpretation?: string | null
           last_analyzed_message_id?: string | null
+          needs_response?: boolean | null
           ready_message?: string | null
           score?: number | null
           sentiment_score?: number | null
@@ -11783,6 +11785,7 @@ export type Database = {
           insight?: string | null
           interpretation?: string | null
           last_analyzed_message_id?: string | null
+          needs_response?: boolean | null
           ready_message?: string | null
           score?: number | null
           sentiment_score?: number | null
@@ -11812,6 +11815,7 @@ export type Database = {
           interpretation: string | null
           last_message_direction: string | null
           message_count: number | null
+          needs_response: boolean | null
           ready_message: string | null
           score: number | null
           suggestion: string | null
@@ -11828,6 +11832,7 @@ export type Database = {
           interpretation?: string | null
           last_message_direction?: string | null
           message_count?: number | null
+          needs_response?: boolean | null
           ready_message?: string | null
           score?: number | null
           suggestion?: string | null
@@ -11844,6 +11849,7 @@ export type Database = {
           interpretation?: string | null
           last_message_direction?: string | null
           message_count?: number | null
+          needs_response?: boolean | null
           ready_message?: string | null
           score?: number | null
           suggestion?: string | null

@@ -956,8 +956,8 @@ Deno.serve(async (req) => {
       .slice(0, 10);
 
     // ========== PENDING CONVERSATIONS (waiting for response) ==========
-    // Use a more efficient approach: query last message per conversation using raw SQL
-    // This uses DISTINCT ON to get only the latest message for each conversation
+    // Use a more efficient approach: query last message per conversation
+    // Also check AI analysis needs_response flag to filter out confirmations/thanks
     const nonArchivedConversationIds = conversations
       .filter((c: any) => !c.is_archived)
       .map((c: any) => c.id);
@@ -966,7 +966,21 @@ Deno.serve(async (req) => {
     // Use chunks to avoid query size limits
     const lastMessageByConversation = new Map<string, { direction: string; sent_at: string }>();
     
+    // Also build a map of needs_response from whatsapp_realtime_analysis
+    const needsResponseByConversation = new Map<string, boolean>();
+    
     if (nonArchivedConversationIds.length > 0) {
+      // Fetch needs_response from analysis for all conversations
+      const { data: analysisData } = await supabase
+        .from('whatsapp_realtime_analysis')
+        .select('conversation_id, needs_response')
+        .in('conversation_id', nonArchivedConversationIds);
+      
+      (analysisData || []).forEach((a: any) => {
+        // Default to true if not set (backwards compatibility)
+        needsResponseByConversation.set(a.conversation_id, a.needs_response ?? true);
+      });
+      
       // Process in chunks of 100 to avoid query size issues
       const chunkSize = 100;
       for (let i = 0; i < nonArchivedConversationIds.length; i += chunkSize) {
@@ -998,7 +1012,15 @@ Deno.serve(async (req) => {
         const lastMsg = lastMessageByConversation.get(c.id);
         if (!lastMsg) return false;
         // Only include if the last message was from the client (waiting for OUR response)
-        return lastMsg.direction === 'inbound' || lastMsg.direction === 'incoming';
+        const isInbound = lastMsg.direction === 'inbound' || lastMsg.direction === 'incoming';
+        if (!isInbound) return false;
+        
+        // Check AI analysis: if needs_response is explicitly false, skip this conversation
+        // (client just confirmed/thanked, doesn't need a response)
+        const needsResponse = needsResponseByConversation.get(c.id);
+        if (needsResponse === false) return false;
+        
+        return true;
       })
       .map((c: any) => {
         const lastMsg = lastMessageByConversation.get(c.id)!;

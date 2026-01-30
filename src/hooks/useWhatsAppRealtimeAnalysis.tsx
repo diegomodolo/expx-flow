@@ -13,6 +13,7 @@ export interface RealtimeAnalysis {
   };
   alerts: string[];
   score: number; // 0-10 rating
+  needsResponse: boolean; // AI-determined: does this conversation need a response?
   readyMessage: string; // Ready-to-send message
   timestamp: string;
 }
@@ -24,11 +25,12 @@ interface StoredAnalysis {
   temperature: string;
   sentiment_score: number;
   score: number;
-  alerts: string[];
+  alerts: string[] | null;
   interpretation: string | null;
   suggestion: string | null;
   insight: string | null;
   ready_message: string | null;
+  needs_response: boolean | null;
   last_analyzed_message_id: string | null;
   created_at: string;
   updated_at: string;
@@ -115,6 +117,7 @@ export function useWhatsAppRealtimeAnalysis({
           departmentInsight,
           alerts: storedData.alerts || [],
           score: storedData.score || 5,
+          needsResponse: storedData.needs_response ?? true, // Default to true for backwards compatibility
           readyMessage: storedData.ready_message || "",
           timestamp: storedData.updated_at,
         };
@@ -161,6 +164,7 @@ export function useWhatsAppRealtimeAnalysis({
         suggestion: analysisData.suggestion,
         insight: JSON.stringify(analysisData.departmentInsight),
         ready_message: analysisData.readyMessage || null,
+        needs_response: analysisData.needsResponse ?? true,
         last_analyzed_message_id: lastMsgId,
         updated_at: now,
       };
@@ -176,6 +180,7 @@ export function useWhatsAppRealtimeAnalysis({
         suggestion: analysisData.suggestion,
         insight: analysisData.departmentInsight, // JSONB directly
         ready_message: analysisData.readyMessage || null,
+        needs_response: analysisData.needsResponse ?? true,
         message_count: messageCount,
         last_message_direction: lastMessageDirection,
         analyzed_at: now,
@@ -308,6 +313,7 @@ export function useWhatsAppRealtimeAnalysis({
       if (analysisResult) {
         const newAnalysis: RealtimeAnalysis = {
           ...analysisResult,
+          needsResponse: analysisResult.needsResponse ?? true, // Default to true if not provided
           timestamp: new Date().toISOString(),
         };
         
