@@ -586,8 +586,9 @@ Deno.serve(async (req) => {
       });
 
       instanceUsersForCompany.forEach((iu: any) => {
-        // Only process users from CS instances
+        // Only process users that are official attendants of CS instances
         if (!csInstanceIds.has(iu.instance_id)) return;
+        if (!iu.is_attendant) return;
         
         const convIds = conversationsByInstance.get(iu.instance_id) || [];
         if (convIds.length > 0) {
