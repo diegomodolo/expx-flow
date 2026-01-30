@@ -66,6 +66,7 @@ interface RecentEvaluation {
 }
 
 interface CSTVDashboardData {
+  companyId: string;
   companyName: string;
   lastUpdatedAt: string;
   whatsappMetrics: {
@@ -1071,6 +1072,7 @@ Deno.serve(async (req) => {
 
     // Build response
     const dashboardData: CSTVDashboardData = {
+      companyId: company.id,
       companyName: company.name,
       lastUpdatedAt: new Date().toISOString(),
       whatsappMetrics: {
