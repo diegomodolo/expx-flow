@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useClientTouchpoints, ClientTouchpoint } from "@/hooks/useClientTouchpoints";
-import { Phone, Mail, MessageCircle, Calendar, Video, Clock, ChevronRight } from "lucide-react";
+import { Phone, Mail, MessageCircle, Calendar, Video, Clock, ChevronRight, Plus } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -10,6 +10,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 interface CSTouchpointLogProps {
   clientId?: string;
   limit?: number;
+  showAddButton?: boolean;
+  onAddTouchpoint?: () => void;
 }
 
 const touchpointIcons: Record<string, React.ElementType> = {
@@ -36,7 +38,7 @@ const touchpointColors: Record<string, string> = {
   whatsapp: 'bg-green-500/10 text-green-500 border-green-500/30',
 };
 
-export function CSTouchpointLog({ clientId, limit = 10 }: CSTouchpointLogProps) {
+export function CSTouchpointLog({ clientId, limit = 10, showAddButton, onAddTouchpoint }: CSTouchpointLogProps) {
   const { touchpoints, isLoading, overdueFollowups } = useClientTouchpoints(clientId);
   const displayedTouchpoints = limit ? touchpoints.slice(0, limit) : touchpoints;
 
@@ -62,14 +64,22 @@ export function CSTouchpointLog({ clientId, limit = 10 }: CSTouchpointLogProps) 
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            Histórico de Contatos
-          </CardTitle>
-          {overdueFollowups.length > 0 && (
-            <Badge variant="destructive" className="animate-pulse">
-              {overdueFollowups.length} follow-up(s) atrasado(s)
-            </Badge>
+          <div className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              Histórico de Contatos
+            </CardTitle>
+            {overdueFollowups.length > 0 && (
+              <Badge variant="destructive" className="animate-pulse">
+                {overdueFollowups.length} follow-up(s) atrasado(s)
+              </Badge>
+            )}
+          </div>
+          {showAddButton && onAddTouchpoint && (
+            <Button size="sm" onClick={onAddTouchpoint}>
+              <Plus className="h-4 w-4 mr-1" />
+              Registrar Contato
+            </Button>
           )}
         </div>
       </CardHeader>
