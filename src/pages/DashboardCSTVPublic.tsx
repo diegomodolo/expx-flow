@@ -137,6 +137,7 @@ export default function DashboardCSTVPublic() {
     const saved = localStorage.getItem('cs-tv-rotation');
     return saved ? parseInt(saved) : 0;
   });
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   // Track company ID for realtime subscription
   const [companyId, setCompanyId] = useState<string | null>(null);
@@ -166,10 +167,17 @@ export default function DashboardCSTVPublic() {
   };
 
   const { data, isLoading, error, refetch, isFetching } = useQuery<CSTVDashboardData>({
-    queryKey: ['cs-tv-dashboard', token],
+    queryKey: ['cs-tv-dashboard', token, selectedDate?.toISOString()],
     queryFn: async () => {
+      const body: { token: string; date?: string } = { token: token! };
+      
+      // If a date is selected, send it to the API
+      if (selectedDate) {
+        body.date = selectedDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+      }
+      
       const { data, error } = await supabasePublic.functions.invoke('cs-tv-dashboard-data', {
-        body: { token: token! },
+        body,
       });
 
       if (error) {
@@ -191,7 +199,7 @@ export default function DashboardCSTVPublic() {
       return data as CSTVDashboardData;
     },
     enabled: !!token,
-    refetchInterval: refreshInterval,
+    refetchInterval: selectedDate ? false : refreshInterval, // Disable auto-refresh when viewing historical data
     staleTime: 60000,
   });
 
@@ -554,6 +562,8 @@ export default function DashboardCSTVPublic() {
           onTestCriticalAlert={handleTestCriticalAlert}
           onTestCelebrationAlert={handleTestCelebrationAlert}
           onTestDailyRanking={triggerDailyRanking}
+          selectedDate={selectedDate}
+          onDateChange={setSelectedDate}
         />
       </div>
     </>
