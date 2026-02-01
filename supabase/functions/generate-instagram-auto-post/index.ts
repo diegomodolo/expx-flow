@@ -16,9 +16,18 @@ const corsHeaders = {
 };
 
 // Helper to get current time in Brasília
+// UTC is ahead of Brasília by 3 hours, so we subtract 3h from UTC to get Brasília time
+// Example: 15:00 UTC = 12:00 Brasília, so we do UTC - 3h
 function getNowInBrasilia(): Date {
   const now = new Date();
+  // BRASILIA_OFFSET_MS is -3h, so now.getTime() + (-3h) subtracts 3h - CORRECT
   return new Date(now.getTime() + BRASILIA_OFFSET_MS);
+}
+
+// Helper to convert UTC to Brasília time (for display/calculation purposes)
+// This creates a Date object where getHours(), getDay() etc return Brasília values
+function utcToBrasilia(utcDate: Date): Date {
+  return new Date(utcDate.getTime() + BRASILIA_OFFSET_MS);
 }
 
 // Helper to convert Brasília time to UTC for storage
@@ -595,11 +604,14 @@ Deno.serve(async (req) => {
     console.log('Reference images count:', referenceImages.length);
 
     // Find the last scheduled post to calculate next available slot
+    // Only consider posts that are scheduled for the FUTURE
+    const now = new Date();
     const { data: existingPosts } = await supabase
       .from('instagram_auto_posts')
       .select('scheduled_at')
       .eq('config_id', configId)
       .in('status', ['pending', 'publishing'])
+      .gte('scheduled_at', now.toISOString()) // Only future posts
       .order('scheduled_at', { ascending: false })
       .limit(1);
 
@@ -607,6 +619,8 @@ Deno.serve(async (req) => {
     if (existingPosts && existingPosts.length > 0) {
       afterDate = new Date(existingPosts[0].scheduled_at);
       console.log('Last scheduled post at:', afterDate.toISOString());
+    } else {
+      console.log('No future pending posts found, will calculate from current time');
     }
 
     // Use new schedule slots system - this determines post_type per slot
