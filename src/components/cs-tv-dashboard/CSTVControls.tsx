@@ -4,6 +4,10 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { 
   Settings, 
   RefreshCw, 
@@ -20,7 +24,9 @@ import {
   RotateCw,
   AlertTriangle,
   PartyPopper,
-  Trophy
+  Trophy,
+  CalendarIcon,
+  History
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "next-themes";
@@ -37,6 +43,8 @@ interface CSTVControlsProps {
   onTestCriticalAlert?: () => void;
   onTestCelebrationAlert?: () => void;
   onTestDailyRanking?: () => void;
+  selectedDate?: Date | null;
+  onDateChange?: (date: Date | null) => void;
 }
 
 export function CSTVControls({ 
@@ -50,7 +58,9 @@ export function CSTVControls({
   onRotationChange,
   onTestCriticalAlert,
   onTestCelebrationAlert,
-  onTestDailyRanking
+  onTestDailyRanking,
+  selectedDate,
+  onDateChange
 }: CSTVControlsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -179,6 +189,63 @@ export function CSTVControls({
               </div>
             </div>
           )}
+
+          {/* Date Picker for Historical Data */}
+          {onDateChange && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <History className="h-4 w-4 text-primary" />
+                  <Label>Data Histórica</Label>
+                </div>
+                {selectedDate && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onDateChange(null)}
+                    className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    Limpar
+                  </Button>
+                )}
+              </div>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !selectedDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {selectedDate 
+                      ? format(selectedDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
+                      : "Hoje (tempo real)"
+                    }
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate || undefined}
+                    onSelect={(date) => onDateChange(date || null)}
+                    disabled={(date) => date > new Date() || date < new Date('2024-01-01')}
+                    initialFocus
+                    locale={ptBR}
+                  />
+                </PopoverContent>
+              </Popover>
+              {selectedDate && (
+                <p className="text-xs text-amber-500 flex items-center gap-1">
+                  <AlertTriangle className="h-3 w-3" />
+                  Visualizando dados de {format(selectedDate, "dd/MM/yyyy")}
+                </p>
+              )}
+            </div>
+          )}
+
+          <Separator />
 
           <div className="space-y-3">
             <div className="flex items-center justify-between">

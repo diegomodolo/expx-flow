@@ -147,7 +147,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { token } = await req.json();
+    const { token, date } = await req.json();
 
     if (!token) {
       console.error('No token provided');
@@ -177,30 +177,48 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log('Fetching CS TV WhatsApp data for company:', company.name);
+    // Check if viewing historical data
+    const isHistoricalView = !!date;
+    let targetDate: Date;
+    
+    if (isHistoricalView) {
+      // Parse the provided date (YYYY-MM-DD format)
+      targetDate = new Date(date + 'T12:00:00Z'); // Use noon to avoid timezone issues
+      console.log('Fetching CS TV WhatsApp data for company:', company.name, 'on historical date:', date);
+    } else {
+      targetDate = new Date();
+      console.log('Fetching CS TV WhatsApp data for company:', company.name, '(live data)');
+    }
 
     // Helper to get São Paulo time (UTC-3)
-    const getSaoPauloTime = (date: Date = new Date()): Date => {
+    const getSaoPauloTime = (inputDate: Date = new Date()): Date => {
       // Get UTC time and subtract 3 hours for São Paulo
-      const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
+      const utc = inputDate.getTime() + (inputDate.getTimezoneOffset() * 60000);
       return new Date(utc - (3 * 60 * 60 * 1000));
     };
 
     const getSaoPauloHour = (dateStr: string): number => {
-      const date = new Date(dateStr);
-      const saoPauloDate = getSaoPauloTime(date);
+      const d = new Date(dateStr);
+      const saoPauloDate = getSaoPauloTime(d);
       return saoPauloDate.getHours();
     };
 
-    const now = new Date();
+    // For historical view, use the target date as reference
+    const now = isHistoricalView ? targetDate : new Date();
     const saoPauloNow = getSaoPauloTime(now);
     
-    // Today start in São Paulo timezone
+    // Today start in São Paulo timezone (or the target historical date)
     const todayStartSaoPaulo = new Date(saoPauloNow);
     todayStartSaoPaulo.setHours(0, 0, 0, 0);
     // Convert back to UTC for database query
     const todayStartUTC = new Date(todayStartSaoPaulo.getTime() + (3 * 60 * 60 * 1000));
     
+    // End of day for historical queries
+    const todayEndSaoPaulo = new Date(saoPauloNow);
+    todayEndSaoPaulo.setHours(23, 59, 59, 999);
+    const todayEndUTC = new Date(todayEndSaoPaulo.getTime() + (3 * 60 * 60 * 1000));
+    
+    // Week start (7 days back from target date)
     const weekStart = new Date(now);
     weekStart.setDate(weekStart.getDate() - 7);
 
@@ -277,44 +295,70 @@ Deno.serve(async (req) => {
         .from('whatsapp_instance_users')
         .select('instance_id, user_id, is_attendant'),
 
-      // All messages for response time calculation (last 7 days) - limit for performance
-      supabase
-        .from('whatsapp_messages')
-        .select('id, conversation_id, direction, sent_at, sent_by_user_id')
-        .eq('company_id', company.id)
-        .gte('sent_at', weekStart.toISOString())
-        .order('sent_at', { ascending: true })
-        .limit(20000),
+      // All messages for response time calculation (last 7 days or up to target date) - limit for performance
+      (() => {
+        let query = supabase
+          .from('whatsapp_messages')
+          .select('id, conversation_id, direction, sent_at, sent_by_user_id')
+          .eq('company_id', company.id)
+          .gte('sent_at', weekStart.toISOString());
+        if (isHistoricalView) {
+          query = query.lte('sent_at', todayEndUTC.toISOString());
+        }
+        return query.order('sent_at', { ascending: true }).limit(20000);
+      })(),
 
       // Today's messages with sent_at for hourly chart (include conversation_id for CS filtering)
-      supabase
-        .from('whatsapp_messages')
-        .select('id, direction, sent_at, conversation_id')
-        .eq('company_id', company.id)
-        .gte('sent_at', todayStartUTC.toISOString())
-        .limit(50000),
+      (() => {
+        let query = supabase
+          .from('whatsapp_messages')
+          .select('id, direction, sent_at, conversation_id')
+          .eq('company_id', company.id)
+          .gte('sent_at', todayStartUTC.toISOString());
+        if (isHistoricalView) {
+          query = query.lte('sent_at', todayEndUTC.toISOString());
+        }
+        return query.limit(50000);
+      })(),
 
       // This week's messages count
-      supabase
-        .from('whatsapp_messages')
-        .select('id', { count: 'exact', head: true })
-        .eq('company_id', company.id)
-        .gte('sent_at', weekStart.toISOString()),
+      (() => {
+        let query = supabase
+          .from('whatsapp_messages')
+          .select('id', { count: 'exact', head: true })
+          .eq('company_id', company.id)
+          .gte('sent_at', weekStart.toISOString());
+        if (isHistoricalView) {
+          query = query.lte('sent_at', todayEndUTC.toISOString());
+        }
+        return query;
+      })(),
 
       // Today's messages count (using São Paulo timezone)
-      supabase
-        .from('whatsapp_messages')
-        .select('id', { count: 'exact', head: true })
-        .eq('company_id', company.id)
-        .gte('sent_at', todayStartUTC.toISOString()),
+      (() => {
+        let query = supabase
+          .from('whatsapp_messages')
+          .select('id', { count: 'exact', head: true })
+          .eq('company_id', company.id)
+          .gte('sent_at', todayStartUTC.toISOString());
+        if (isHistoricalView) {
+          query = query.lte('sent_at', todayEndUTC.toISOString());
+        }
+        return query;
+      })(),
       
       // Today's sentiment analysis history (include conversation_id for CS filtering)
-      supabase
-        .from('whatsapp_realtime_analysis_history')
-        .select('temperature, score, analyzed_at, conversation_id')
-        .eq('company_id', company.id)
-        .gte('analyzed_at', todayStartUTC.toISOString())
-        .order('analyzed_at', { ascending: true }),
+      (() => {
+        let query = supabase
+          .from('whatsapp_realtime_analysis_history')
+          .select('temperature, score, analyzed_at, conversation_id')
+          .eq('company_id', company.id)
+          .gte('analyzed_at', todayStartUTC.toISOString());
+        if (isHistoricalView) {
+          query = query.lte('analyzed_at', todayEndUTC.toISOString());
+        }
+        return query.order('analyzed_at', { ascending: true });
+      })(),
     ]);
 
     const whatsappAnalysisRaw = whatsappAnalysisResult.data || [];
@@ -1065,7 +1109,7 @@ Deno.serve(async (req) => {
     }
 
     // ========== RECENT EVALUATIONS (last 20 AI analyses) ==========
-    const { data: recentAnalysisHistory } = await supabase
+    let recentAnalysisHistoryQuery = supabase
       .from('whatsapp_realtime_analysis_history')
       .select(`
         id,
@@ -1082,7 +1126,16 @@ Deno.serve(async (req) => {
           instance_id
         )
       `)
-      .eq('company_id', company.id)
+      .eq('company_id', company.id);
+    
+    // For historical view, filter by date range
+    if (isHistoricalView) {
+      recentAnalysisHistoryQuery = recentAnalysisHistoryQuery
+        .gte('analyzed_at', todayStartUTC.toISOString())
+        .lte('analyzed_at', todayEndUTC.toISOString());
+    }
+    
+    const { data: recentAnalysisHistory } = await recentAnalysisHistoryQuery
       .order('analyzed_at', { ascending: false })
       .limit(50);
 
