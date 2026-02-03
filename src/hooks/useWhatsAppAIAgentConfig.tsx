@@ -38,6 +38,7 @@ export interface WhatsAppAIAgentConfig {
   
   // Análise em tempo real
   force_realtime_analysis: boolean;
+  ignore_group_analysis: boolean;
   
   created_at: string;
   updated_at: string;
@@ -65,6 +66,7 @@ export const defaultConfig: Omit<WhatsAppAIAgentConfig, "id" | "company_id" | "c
   use_satisfaction_score: false,
   use_conversation_history: true,
   force_realtime_analysis: false,
+  ignore_group_analysis: true,
 };
 
 export function useWhatsAppAIAgentConfig(companyId: string | undefined, instanceId?: string | null) {

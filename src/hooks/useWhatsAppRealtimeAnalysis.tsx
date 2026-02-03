@@ -50,6 +50,7 @@ interface UseWhatsAppRealtimeAnalysisProps {
     transcription_status?: string | null;
   }>;
   enabled: boolean;
+  isGroupConversation?: boolean;
 }
 
 export function useWhatsAppRealtimeAnalysis({
@@ -58,6 +59,7 @@ export function useWhatsAppRealtimeAnalysis({
   instanceId,
   messages,
   enabled,
+  isGroupConversation = false,
 }: UseWhatsAppRealtimeAnalysisProps) {
   const [analysis, setAnalysis] = useState<RealtimeAnalysis | null>(null);
   const [isNewAnalysis, setIsNewAnalysis] = useState(false); // Flag to indicate if analysis was just generated
@@ -249,6 +251,12 @@ export function useWhatsAppRealtimeAnalysis({
 
   const analyzeConversation = useCallback(async (latestMessages: typeof messages) => {
     if (!companyId || latestMessages.length === 0 || !conversationId) return;
+    
+    // Skip analysis for group conversations if ignore_group_analysis is enabled
+    if (isGroupConversation && (config?.ignore_group_analysis ?? true)) {
+      console.log("[useWhatsAppRealtimeAnalysis] Skipping analysis for group conversation (ignore_group_analysis=true)");
+      return;
+    }
 
     const lastMessage = latestMessages[latestMessages.length - 1];
     
@@ -340,7 +348,7 @@ export function useWhatsAppRealtimeAnalysis({
         inFlightMessageId.current = null;
       }
     }
-  }, [companyId, conversationId, config, saveAnalysis]);
+  }, [companyId, conversationId, config, saveAnalysis, isGroupConversation]);
 
   // Trigger analysis when messages change and analysis is enabled
   useEffect(() => {

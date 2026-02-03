@@ -76,13 +76,32 @@ serve(async (req) => {
           phone = chatPhone.replace(/\D/g, "");
         }
         
-        // Ignore groups
-        if (chatId.includes("@g.us") || chat.wa_isGroup) {
-          console.log("[whatsapp-webhook] Ignoring group message");
-          return new Response(
-            JSON.stringify({ success: true, message: "Group message ignored" }),
-            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
+        // Check if this is a group message
+        const isGroup = chatId.includes("@g.us") || chat.wa_isGroup;
+        
+        if (isGroup) {
+          // Look up instance config to check if groups should be received
+          let receiveGroups = false;
+          
+          if (instanceToken) {
+            const { data: instanceConfig } = await supabase
+              .from("whatsapp_instances")
+              .select("receive_group_messages")
+              .eq("uazapi_token", instanceToken)
+              .maybeSingle();
+            
+            receiveGroups = instanceConfig?.receive_group_messages ?? false;
+          }
+          
+          if (!receiveGroups) {
+            console.log("[whatsapp-webhook] Ignoring group message (config: receive_group_messages=false)");
+            return new Response(
+              JSON.stringify({ success: true, message: "Group message ignored (config)" }),
+              { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+          
+          console.log("[whatsapp-webhook] Processing group message (receive_group_messages=true)");
         }
         
         direction = message.fromMe ? "outgoing" : "incoming";
