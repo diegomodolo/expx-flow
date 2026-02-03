@@ -1,213 +1,220 @@
 
-# Plano: Ranking Diario de Melhores Atendentes as 17h
+# Plano: Configuração de Recebimento e Análise de Grupos no WhatsApp
 
-## Resumo
+## Contexto do Problema
 
-Vou criar um sistema que, todos os dias as 17h no horario de Brasilia, exibe automaticamente um modal de ranking com as 3 melhores atendentes do dia, com destaque especial para a campe, confete, musica de vitoria (tema do Senna), e duracao de 90 segundos na tela.
+Atualmente, o sistema **ignora grupos de forma fixa no código**, independente da escolha feita ao configurar o webhook. Além disso, não existe configuração para controlar se a IA deve analisar conversas de grupo.
 
 ---
 
-## O que sera exibido
+## Alterações Necessárias
 
-### Layout do Modal de Ranking
+### 1. Banco de Dados
 
-```text
-+----------------------------------------------------------+
-|  RANKING DO DIA - Melhores Atendentes                    |
-|  17:00 - Sexta, 31 de Janeiro                            |
-+----------------------------------------------------------+
-|                                                          |
-|              [Confete caindo na tela]                    |
-|                                                          |
-|     +----------------------------------------+           |
-|     |         1o LUGAR - CAMPE               |           |
-|     |     +--------+                         |           |
-|     |     | FOTO   |  Maria Silva            |           |
-|     |     | GRANDE |  Nota: 9.8              |           |
-|     |     +--------+                         |           |
-|     |                                        |           |
-|     |  "Parabens, Maria! Voce e a campe     |           |
-|     |   de atendimento de hoje!"             |           |
-|     |                                        |           |
-|     |  32 conversas | 8.5 min tempo medio   |           |
-|     |  +28 positivos | 3 neutros | 1 negativo|           |
-|     +----------------------------------------+           |
-|                                                          |
-|   +------------------+    +------------------+           |
-|   | 2o LUGAR         |    | 3o LUGAR         |           |
-|   | Foto  Joana      |    | Foto  Ana        |           |
-|   | Nota: 9.2        |    | Nota: 8.9        |           |
-|   | 28 conversas     |    | 25 conversas     |           |
-|   +------------------+    +------------------+           |
-|                                                          |
-|     [Fecha automaticamente em 85s]   [Fechar]           |
-+----------------------------------------------------------+
+**Adicionar coluna na tabela `whatsapp_instances`:**
+```sql
+ALTER TABLE whatsapp_instances 
+ADD COLUMN receive_group_messages boolean DEFAULT false;
 ```
 
-### Elementos do Modal
-
-1. **Campe (1o lugar)**:
-   - Foto grande do atendente (avatar)
-   - Nome em destaque
-   - Nota media do dia
-   - Mensagem de parabens personalizada
-   - Estatisticas: conversas atendidas, tempo medio de resposta
-   - Distribuicao de sentimento (positivo/neutro/negativo)
-
-2. **2o e 3o lugar**:
-   - Cards menores lado a lado
-   - Foto, nome, nota e quantidade de conversas
-
-3. **Efeitos visuais**:
-   - Confete caindo (150 particulas coloridas)
-   - Fundo com brilho dourado/gradiente
-   - Estrelas flutuantes
-   - Trofeu animado
-
-4. **Audio**:
-   - Tema da Vitoria do Ayrton Senna (ou musica de celebracao sintetizada via Web Audio API)
-   - Duracao: ~8 segundos de fanfarra inicial
+**Adicionar coluna na tabela `whatsapp_ai_agent_config`:**
+```sql
+ALTER TABLE whatsapp_ai_agent_config 
+ADD COLUMN ignore_group_analysis boolean DEFAULT true;
+```
 
 ---
 
-## Detalhes Tecnicos
+### 2. Edge Function: `configure-uazapi-webhook`
 
-### Arquivos a Criar/Modificar
-
-#### 1. Novo Componente: `src/components/cs-tv-dashboard/CSTVDailyRankingOverlay.tsx`
-- Modal fullscreen similar ao `CSTVCelebrationOverlay`
-- Props:
-  - `ranking`: array com top 3 atendentes
-  - `isVisible`: boolean
-  - `onClose`: callback
-  - `rotation/zoom`: para acompanhar orientacao do dashboard
-- Countdown de 90 segundos
-- Confete reutilizando logica existente
-- Musica sintetizada via Web Audio API (inspirada no tema da vitoria)
-
-#### 2. Hook: `src/hooks/useCSTVDailyRanking.tsx`
-- Logica para detectar quando sao 17h (Brasilia)
-- Verifica a cada minuto se esta na janela 17:00-17:01
-- Usa `localStorage` para evitar reexibir no mesmo dia
-- Key: `cs-tv-daily-ranking-shown-{YYYY-MM-DD}`
-- Dispara callback para mostrar o ranking
-
-#### 3. Modificar: `src/pages/DashboardCSTVPublic.tsx`
-- Adicionar estado `showDailyRanking`
-- Integrar o hook `useCSTVDailyRanking`
-- Renderizar `CSTVDailyRankingOverlay` quando ativo
-- Usar dados de `attendantPerformance` ja disponiveis
-
-#### 4. Modificar: `src/components/cs-tv-dashboard/CSTVControls.tsx`
-- Adicionar botao "Testar Ranking" na secao de testes
-- Novo prop: `onTestDailyRanking`
-- Icone de trofeu com cor dourada
+Após configurar o webhook com sucesso, **salvar a preferência na tabela**:
+- Atualizar a instância com `receive_group_messages = true/false`
 
 ---
 
-## Logica de Horario
+### 3. Edge Function: `create-uazapi-instance`
 
-### Deteccao das 17h Brasilia
+- Alterar para usar `receive_group_messages = false` por padrão (já faz isso via `isGroupYes`)
+- Salvar `receive_group_messages = false` na instância criada
+
+---
+
+### 4. Edge Function: `whatsapp-webhook`
+
+Alterar a lógica de ignorar grupos para ser **condicional**:
+
+```
+ANTES (linhas 79-86):
+  // Ignore groups
+  if (chatId.includes("@g.us") || chat.wa_isGroup) {
+    return ... "Group message ignored"
+  }
+
+DEPOIS:
+  // Verificar se é grupo
+  const isGroup = chatId.includes("@g.us") || chat.wa_isGroup;
+  
+  if (isGroup) {
+    // Buscar configuração da instância para ver se deve receber grupos
+    const { data: instance } = await supabase
+      .from("whatsapp_instances")
+      .select("receive_group_messages")
+      .eq("uazapi_token", instanceToken)
+      .single();
+    
+    if (!instance?.receive_group_messages) {
+      return ... "Group message ignored (config)"
+    }
+    
+    // Se chegou aqui, é grupo mas está configurado para receber
+    console.log("[whatsapp-webhook] Processing group message");
+  }
+```
+
+---
+
+### 5. Edge Function: `sync-whatsapp-chats`
+
+Alterar para **verificar a configuração** antes de ignorar grupos:
+
+```
+ANTES (linha 265):
+  if (rawId.includes("@g.us") || ...) {
+    continue;
+  }
+
+DEPOIS:
+  // Buscar se a instância aceita grupos
+  const { data: instanceConfig } = await supabase
+    .from("whatsapp_instances")
+    .select("receive_group_messages")
+    .eq("id", instance_id)
+    .single();
+  
+  const receiveGroups = instanceConfig?.receive_group_messages ?? false;
+  
+  // ... dentro do loop de chats:
+  if ((rawId.includes("@g.us") || chat.wa_isGroup) && !receiveGroups) {
+    continue;
+  }
+```
+
+---
+
+### 6. Hook: `useWhatsAppAIAgentConfig.tsx`
+
+Adicionar o novo campo ao tipo e ao default:
 
 ```typescript
-const checkIf5PMBrasilia = () => {
-  const now = new Date();
-  // Converter para Brasilia (UTC-3)
-  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-  const brasilia = new Date(utc - (3 * 60 * 60 * 1000));
-  
-  return brasilia.getHours() === 17 && brasilia.getMinutes() === 0;
-};
+// No interface WhatsAppAIAgentConfig:
+ignore_group_analysis: boolean;
+
+// No defaultConfig:
+ignore_group_analysis: true,
 ```
 
-### Persistencia (evitar reexibir)
+---
+
+### 7. Componente: `WhatsAppAIAgentKnowledgePanel.tsx`
+
+Adicionar toggle na seção "Analise em Tempo Real":
+
+```
+[x] Habilitar para todos os chats
+[ ] Ignorar conversas de grupo  <-- NOVO
+    "Mesmo com análise habilitada para todos, grupos não serão analisados"
+```
+
+---
+
+### 8. Hook: `useWhatsAppRealtimeAnalysis.tsx`
+
+Adicionar verificação se é conversa de grupo antes de analisar:
 
 ```typescript
-const todayKey = `cs-tv-ranking-${brasilia.toISOString().split('T')[0]}`;
-if (localStorage.getItem(todayKey)) return; // ja mostrou hoje
-localStorage.setItem(todayKey, 'shown');
+// Receber novo parâmetro: isGroupConversation (do componente pai)
+// Verificar config.ignore_group_analysis
+
+if (isGroupConversation && config?.ignore_group_analysis) {
+  console.log("[useWhatsAppRealtimeAnalysis] Skipping group analysis");
+  return;
+}
 ```
 
 ---
 
-## Musica de Vitoria
+### 9. Componente de Chat (WhatsAppChatWindow ou similar)
 
-### Opcao A: Tema do Senna via Web Audio API
-- Sequencia de notas que emula a melodia classica
-- Notas: La, Do#, Mi, La (oitava acima), descendo...
-- Duracao: ~6-8 segundos
+Passar flag `isGroupConversation` para o hook de análise:
+- Detectar se o `phone` contém `@g.us` ou `-` (formato de grupo)
 
-### Opcao B: Fanfarra de Vitoria Generica
-- Acordes maiores ascendentes
-- Aplausos sintetizados (ja existe no `CSTVCelebrationOverlay`)
-- Combinacao de chimes e trumpets sintetizados
+---
 
-```typescript
-const playVictoryTheme = () => {
-  const audioContext = new AudioContext();
-  
-  // Notas inspiradas no tema do Senna
-  const notes = [
-    { freq: 440, start: 0, duration: 0.3 },     // La
-    { freq: 554.37, start: 0.3, duration: 0.3 }, // Do#
-    { freq: 659.25, start: 0.6, duration: 0.3 }, // Mi
-    { freq: 880, start: 0.9, duration: 0.5 },    // La alto
-    // ... mais notas
-  ];
-  
-  notes.forEach(note => {
-    const osc = audioContext.createOscillator();
-    osc.type = 'sawtooth'; // Som de brass/trompete
-    osc.frequency.value = note.freq;
-    // ... envelope ADSR
-  });
-};
+## Fluxo Final
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    CONFIGURAÇÃO DE INSTÂNCIA                     │
+├─────────────────────────────────────────────────────────────────┤
+│  Configurar Webhook                                              │
+│  ├─ "Sim, receber grupos" → receive_group_messages = true       │
+│  └─ "Não, apenas privadas" → receive_group_messages = false     │
+│                                                                  │
+│  ↓ Salva na tabela whatsapp_instances                           │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│                    RECEBIMENTO DE MENSAGENS                      │
+├─────────────────────────────────────────────────────────────────┤
+│  whatsapp-webhook                                                │
+│  ├─ Recebe mensagem                                             │
+│  ├─ Verifica se é grupo                                          │
+│  ├─ Se grupo → consulta receive_group_messages da instância     │
+│  └─ Processa ou ignora baseado na configuração                  │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│                    CONFIGURAÇÃO DA IA                            │
+├─────────────────────────────────────────────────────────────────┤
+│  Análise em Tempo Real                                           │
+│  ├─ [x] Habilitar para todos os chats                           │
+│  └─ [x] Ignorar conversas de grupo (default: ativado)           │
+│                                                                  │
+│  ↓ Salva na tabela whatsapp_ai_agent_config                     │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│                    ANÁLISE DA CONVERSA                           │
+├─────────────────────────────────────────────────────────────────┤
+│  useWhatsAppRealtimeAnalysis                                     │
+│  ├─ Detecta se conversa é de grupo                              │
+│  ├─ Verifica ignore_group_analysis na config                    │
+│  └─ Analisa ou pula baseado na configuração                     │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Fluxo de Execucao
+## Arquivos a Modificar
 
-1. Dashboard CS-TV esta aberto
-2. Hook `useCSTVDailyRanking` verifica horario a cada 30 segundos
-3. Quando detecta 17:00 Brasilia:
-   - Verifica se ja mostrou hoje (localStorage)
-   - Se nao mostrou, seta `showDailyRanking = true`
-   - Marca como mostrado no localStorage
-4. Modal aparece com:
-   - Musica tocando imediatamente
-   - Confete caindo
-   - Countdown de 90 segundos
-5. Apos 90s ou clique em fechar:
-   - Modal fecha
-   - Musica para
-
----
-
-## Botao de Teste
-
-No menu de configuracoes:
-
-```text
-+---------------------------+
-| Testar Modais             |
-+---------------------------+
-| [Alerta]  [Celebracao]    |
-| [Ranking Diario]          |
-+---------------------------+
-```
-
-- Botao com icone de trofeu dourado
-- Ao clicar, usa os dados atuais de `attendantPerformance`
-- Ignora a verificacao de localStorage (teste sempre funciona)
+| Arquivo | Tipo de Alteração |
+|---------|------------------|
+| `supabase/migrations/*.sql` | Criar migration para novas colunas |
+| `supabase/functions/configure-uazapi-webhook/index.ts` | Salvar preferência na instância |
+| `supabase/functions/create-uazapi-instance/index.ts` | Salvar default `receive_group_messages = false` |
+| `supabase/functions/whatsapp-webhook/index.ts` | Consultar config antes de ignorar grupos |
+| `supabase/functions/sync-whatsapp-chats/index.ts` | Consultar config antes de ignorar grupos |
+| `src/hooks/useWhatsAppInstances.tsx` | Adicionar campo ao tipo |
+| `src/hooks/useWhatsAppAIAgentConfig.tsx` | Adicionar `ignore_group_analysis` |
+| `src/components/whatsapp/WhatsAppAIAgentKnowledgePanel.tsx` | Adicionar toggle na UI |
+| `src/hooks/useWhatsAppRealtimeAnalysis.tsx` | Verificar config antes de analisar grupos |
+| `src/components/whatsapp/WhatsAppChatWindow.tsx` | Passar flag de grupo para o hook |
 
 ---
 
-## Resumo de Arquivos
+## Observações Técnicas
 
-| Arquivo | Acao |
-|---------|------|
-| `src/components/cs-tv-dashboard/CSTVDailyRankingOverlay.tsx` | Criar |
-| `src/hooks/useCSTVDailyRanking.tsx` | Criar |
-| `src/pages/DashboardCSTVPublic.tsx` | Modificar |
-| `src/components/cs-tv-dashboard/CSTVControls.tsx` | Modificar |
+- A coluna `receive_group_messages` na instância serve como **fonte da verdade** para o comportamento de recebimento
+- A coluna `ignore_group_analysis` na config da IA é **independente** - permite receber grupos mas não analisá-los
+- O default é: **não receber grupos** e **não analisar grupos** (comportamento atual preservado)
+- Grupos são identificados por `@g.us` no ID ou presença de `-` no número (formato `123-456@g.us`)
