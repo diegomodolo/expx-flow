@@ -147,11 +147,12 @@ serve(async (req) => {
     if (webhookConfigured) {
       console.log("[configure-uazapi-webhook] Webhook configurado com sucesso!");
       
-      // Atualizar instância para marcar que webhook foi configurado
+      // Atualizar instância para marcar que webhook foi configurado E salvar preferência de grupos
       await supabase
         .from("whatsapp_instances")
         .update({ 
           status: "connected",
+          receive_group_messages: receive_group_messages,
           updated_at: new Date().toISOString() 
         })
         .eq("id", instance_id);

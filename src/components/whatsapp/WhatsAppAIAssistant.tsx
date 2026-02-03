@@ -31,6 +31,7 @@ interface WhatsAppAIAssistantProps {
     transcription_status?: string | null;
   }>;
   forceRealtimeAnalysis?: boolean;
+  isGroupConversation?: boolean;
 }
 
 const departmentLabels: Record<string, string> = {
@@ -146,6 +147,7 @@ export function WhatsAppAIAssistant({
   onUseResponse,
   conversationMessages = [],
   forceRealtimeAnalysis = false,
+  isGroupConversation = false,
 }: WhatsAppAIAssistantProps) {
   const { 
     messages, 
@@ -176,6 +178,7 @@ export function WhatsAppAIAssistant({
     instanceId,
     messages: conversationMessages,
     enabled: isAnalysisActive,
+    isGroupConversation,
   });
 
   // Save new analysis as a message in the chat (only when it's freshly generated)

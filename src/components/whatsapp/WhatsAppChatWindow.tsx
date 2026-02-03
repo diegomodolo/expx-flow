@@ -933,6 +933,7 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
               contactName={displayName}
               onUseResponse={handleUseAIResponse}
               forceRealtimeAnalysis={forceRealtimeAnalysis}
+              isGroupConversation={conversation.phone?.includes("@g.us") || conversation.phone?.includes("-")}
               conversationMessages={messages.map((m) => ({
                 id: m.id,
                 content: m.content || "",

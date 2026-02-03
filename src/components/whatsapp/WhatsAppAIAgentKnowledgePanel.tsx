@@ -20,6 +20,7 @@ interface KnowledgePanelProps {
     min_confidence_threshold: number;
     escalation_message: string;
     force_realtime_analysis?: boolean;
+    ignore_group_analysis?: boolean;
   };
   onChange: (field: string, value: any) => void;
 }
@@ -63,6 +64,22 @@ export function WhatsAppAIAgentKnowledgePanel({ config, onChange }: KnowledgePan
             id="force_realtime_analysis"
             checked={config.force_realtime_analysis ?? false}
             onCheckedChange={(v) => onChange("force_realtime_analysis", v)}
+          />
+        </div>
+
+        <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+          <div className="space-y-0.5">
+            <Label htmlFor="ignore_group_analysis" className="text-sm font-medium cursor-pointer">
+              Ignorar conversas de grupo
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              Mesmo com análise habilitada, grupos não serão analisados
+            </p>
+          </div>
+          <Switch
+            id="ignore_group_analysis"
+            checked={config.ignore_group_analysis ?? true}
+            onCheckedChange={(v) => onChange("ignore_group_analysis", v)}
           />
         </div>
       </div>

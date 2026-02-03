@@ -10640,6 +10640,7 @@ export type Database = {
           force_realtime_analysis: boolean
           formality_level: number | null
           id: string
+          ignore_group_analysis: boolean | null
           instance_id: string | null
           mandatory_cta: string | null
           min_confidence_threshold: number | null
@@ -10667,6 +10668,7 @@ export type Database = {
           force_realtime_analysis?: boolean
           formality_level?: number | null
           id?: string
+          ignore_group_analysis?: boolean | null
           instance_id?: string | null
           mandatory_cta?: string | null
           min_confidence_threshold?: number | null
@@ -10694,6 +10696,7 @@ export type Database = {
           force_realtime_analysis?: boolean
           formality_level?: number | null
           id?: string
+          ignore_group_analysis?: boolean | null
           instance_id?: string | null
           mandatory_cta?: string | null
           min_confidence_threshold?: number | null
@@ -11378,6 +11381,7 @@ export type Database = {
           last_connection_test: string | null
           profile_name: string | null
           profile_pic_url: string | null
+          receive_group_messages: boolean | null
           session_id: string
           status: string | null
           uazapi_instance_id: string | null
@@ -11396,6 +11400,7 @@ export type Database = {
           last_connection_test?: string | null
           profile_name?: string | null
           profile_pic_url?: string | null
+          receive_group_messages?: boolean | null
           session_id: string
           status?: string | null
           uazapi_instance_id?: string | null
@@ -11414,6 +11419,7 @@ export type Database = {
           last_connection_test?: string | null
           profile_name?: string | null
           profile_pic_url?: string | null
+          receive_group_messages?: boolean | null
           session_id?: string
           status?: string | null
           uazapi_instance_id?: string | null

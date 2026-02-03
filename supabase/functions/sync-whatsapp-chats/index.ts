@@ -50,10 +50,10 @@ serve(async (req) => {
       );
     }
 
-    // 2. Buscar token e ID da instância
+    // 2. Buscar token e ID da instância (incluindo configuração de grupos)
     const { data: instance, error: instanceError } = await supabase
       .from("whatsapp_instances")
-      .select("uazapi_token, instance_name, uazapi_instance_id")
+      .select("uazapi_token, instance_name, uazapi_instance_id, receive_group_messages")
       .eq("id", instance_id)
       .maybeSingle();
 
@@ -64,6 +64,10 @@ serve(async (req) => {
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+    
+    // Get group message configuration
+    const receiveGroupMessages = instance.receive_group_messages ?? false;
+    console.log(`[sync-whatsapp-chats] receive_group_messages: ${receiveGroupMessages}`);
 
     const endpoint = config.uazapi_endpoint.replace(/\/$/, "");
     const token = instance.uazapi_token;
@@ -261,8 +265,11 @@ serve(async (req) => {
         const rawId = chat.wa_chatid || chat.id || chat.jid || chat.remoteJid || "";
         const chatPhone = chat.phone || "";
         
-        // Ignorar grupos (terminam com @g.us)
-        if (rawId.includes("@g.us") || rawId.includes("@broadcast") || chat.wa_isGroup) {
+        // Check if this is a group or broadcast
+        const isGroupOrBroadcast = rawId.includes("@g.us") || rawId.includes("@broadcast") || chat.wa_isGroup;
+        
+        // Skip groups/broadcasts if not configured to receive them
+        if (isGroupOrBroadcast && !receiveGroupMessages) {
           continue;
         }
 
