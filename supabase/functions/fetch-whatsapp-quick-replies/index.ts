@@ -78,6 +78,15 @@ serve(async (req) => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('UazapiGO error:', errorText);
+      
+      // If "No session", return empty array instead of error (instance not connected)
+      if (errorText.includes('No session')) {
+        console.log('Instance has no active session, returning empty quick replies');
+        return new Response(JSON.stringify({ quickReplies: [], noSession: true }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      
       return new Response(JSON.stringify({ error: 'Failed to fetch quick replies', details: errorText }), {
         status: response.status,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
