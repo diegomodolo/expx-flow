@@ -1,5 +1,4 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -32,7 +31,7 @@ interface RequestBody {
   videoIds?: string[];
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -714,11 +713,20 @@ serve(async (req) => {
     }
   } catch (error) {
     console.error('[manage-meta-audiences] Error:', error);
+    
+    // Configuration errors should return 200 with success: false to let frontend handle gracefully
+    const isConfigurationError = 
+      error.message?.includes('Client not found') ||
+      error.message?.includes('ad account') ||
+      error.message?.includes('Facebook integration') ||
+      error.message?.includes('token has expired') ||
+      error.message?.includes('Unauthorized');
+    
     return new Response(JSON.stringify({
       success: false,
       error: error.message,
     }), {
-      status: 400,
+      status: isConfigurationError ? 200 : 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
