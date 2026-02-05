@@ -1,12 +1,12 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2.53.0";
+
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -80,7 +80,18 @@ serve(async (req) => {
       console.error('UazapiGO error:', errorText);
       
       // If "No session", return empty array instead of error (instance not connected)
-      if (errorText.includes('No session')) {
+      const isNoSession =
+        /no session/i.test(errorText) ||
+        (() => {
+          try {
+            const parsed = JSON.parse(errorText);
+            return typeof parsed?.error === "string" && /no session/i.test(parsed.error);
+          } catch {
+            return false;
+          }
+        })();
+
+      if (isNoSession) {
         console.log('Instance has no active session, returning empty quick replies');
         return new Response(JSON.stringify({ quickReplies: [], noSession: true }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
