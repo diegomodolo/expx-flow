@@ -129,9 +129,16 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
 
   // Check if realtime analysis is forced globally
   const forceRealtimeAnalysis = aiAgentConfig?.force_realtime_analysis ?? false;
+  const ignoreGroupAnalysis = aiAgentConfig?.ignore_group_analysis ?? true;
   
-  // If forced, keep AI assistant always open
-  const isAiAssistantVisible = forceRealtimeAnalysis || aiAssistantOpen;
+  // Check if this is a group conversation
+  const isGroupConversation = conversation.phone?.includes("@g.us") || conversation.phone?.includes("-");
+  
+  // Should hide AI for groups if ignore_group_analysis is enabled
+  const shouldHideAIForGroup = isGroupConversation && ignoreGroupAnalysis;
+  
+  // If forced, keep AI assistant always open - BUT not for groups when ignore is enabled
+  const isAiAssistantVisible = shouldHideAIForGroup ? false : (forceRealtimeAnalysis || aiAssistantOpen);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -933,7 +940,7 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
               contactName={displayName}
               onUseResponse={handleUseAIResponse}
               forceRealtimeAnalysis={forceRealtimeAnalysis}
-              isGroupConversation={conversation.phone?.includes("@g.us") || conversation.phone?.includes("-")}
+              isGroupConversation={isGroupConversation}
               conversationMessages={messages.map((m) => ({
                 id: m.id,
                 content: m.content || "",
