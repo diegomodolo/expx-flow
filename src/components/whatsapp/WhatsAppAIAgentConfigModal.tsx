@@ -104,6 +104,7 @@ export function WhatsAppAIAgentConfigModal({ isOpen, onClose, companyId, instanc
                       min_confidence_threshold: currentConfig.min_confidence_threshold,
                       escalation_message: currentConfig.escalation_message,
                       force_realtime_analysis: currentConfig.force_realtime_analysis,
+                      ignore_group_analysis: currentConfig.ignore_group_analysis,
                     }}
                     onChange={handleChange}
                   />
