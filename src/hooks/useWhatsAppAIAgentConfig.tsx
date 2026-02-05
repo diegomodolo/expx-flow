@@ -125,6 +125,34 @@ export function useWhatsAppAIAgentConfig(companyId: string | undefined, instance
     fetchConfig();
   }, [fetchConfig]);
 
+  // Keep multiple hook instances in sync (e.g., Config modal vs. Chat window)
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const e = event as CustomEvent<{ companyId?: string; instanceId?: string | null }>;
+      const detail = e.detail;
+      if (!detail?.companyId) return;
+      if (detail.companyId !== companyId) return;
+
+      const normalizedInstanceId = instanceId ?? null;
+      const incomingInstanceId = detail.instanceId ?? null;
+      if (incomingInstanceId !== normalizedInstanceId) return;
+
+      fetchConfig();
+    };
+
+    window.addEventListener(
+      "whatsapp-ai-agent-config-updated",
+      handler as EventListener,
+    );
+
+    return () => {
+      window.removeEventListener(
+        "whatsapp-ai-agent-config-updated",
+        handler as EventListener,
+      );
+    };
+  }, [companyId, instanceId, fetchConfig]);
+
   const saveConfig = async (configData: Partial<WhatsAppAIAgentConfig>) => {
     if (!companyId) {
       console.error("[useWhatsAppAIAgentConfig] No companyId provided");
@@ -182,6 +210,13 @@ export function useWhatsAppAIAgentConfig(companyId: string | undefined, instance
 
       console.log("[useWhatsAppAIAgentConfig] Save successful:", result);
       setConfig(result as WhatsAppAIAgentConfig);
+
+      // Notify other parts of the app to refetch this config (chat window, etc.)
+      window.dispatchEvent(
+        new CustomEvent("whatsapp-ai-agent-config-updated", {
+          detail: { companyId, instanceId: instanceId ?? null },
+        }),
+      );
 
       toast({
         title: "Configuração salva",
