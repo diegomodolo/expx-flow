@@ -123,7 +123,7 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
   const { labels } = useWhatsAppLabels(companyId, instanceId ?? null);
   const { quickReplies, isLoading: quickRepliesLoading } = useWhatsAppQuickReplies(instanceId ?? null);
   const { sizes, setAiAssistantSize } = useWhatsAppPanelSizes();
-  const { config: aiAgentConfig } = useWhatsAppAIAgentConfig(companyId, instanceId);
+  const { config: aiAgentConfig } = useWhatsAppAIAgentConfig(companyId, conversation.instance_id || instanceId);
   const { assignment: currentAssignment } = useConversationAssignment(conversation.id, companyId);
   const queryClient = useQueryClient();
 
@@ -132,10 +132,32 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
   const ignoreGroupAnalysis = aiAgentConfig?.ignore_group_analysis ?? true;
   
   // Check if this is a group conversation
-  const isGroupConversation = conversation.phone?.includes("@g.us") || conversation.phone?.includes("-");
+  // Groups can be identified by:
+  // - @g.us suffix (standard WhatsApp group format)
+  // - Hyphen in phone (some group formats)
+  // - Phone starting with "120363" (WhatsApp group ID pattern)
+  // - Very long phone numbers (20+ digits typically indicate groups)
+  const isGroupConversation = 
+    conversation.phone?.includes("@g.us") || 
+    conversation.phone?.includes("-") ||
+    conversation.phone?.startsWith("120363") ||
+    (conversation.phone?.length || 0) > 18;
   
   // Should hide AI for groups if ignore_group_analysis is enabled
   const shouldHideAIForGroup = isGroupConversation && ignoreGroupAnalysis;
+  
+  // Debug logging (can be removed later)
+  if (isGroupConversation) {
+    console.log("[WhatsAppChatWindow] Group detection:", {
+      phone: conversation.phone,
+      phoneLength: conversation.phone?.length,
+      isGroupConversation,
+      ignoreGroupAnalysis,
+      shouldHideAIForGroup,
+      configInstanceId: conversation.instance_id || instanceId,
+      aiAgentConfigLoaded: !!aiAgentConfig,
+    });
+  }
   
   // If forced, keep AI assistant always open - BUT not for groups when ignore is enabled
   const isAiAssistantVisible = shouldHideAIForGroup ? false : (forceRealtimeAnalysis || aiAssistantOpen);
