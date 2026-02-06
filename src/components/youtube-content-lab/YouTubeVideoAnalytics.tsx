@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { YouTubeVideo, PeriodOption, SortOption } from "@/hooks/useYouTubeAnalytics";
 import { YouTubeChannel } from "@/hooks/useYouTubeChannels";
-import { Eye, ThumbsUp, MessageCircle, TrendingUp, FileText, Loader2, ExternalLink, BarChart3, Clock, Hash, Youtube, X } from "lucide-react";
+import { Eye, ThumbsUp, MessageCircle, TrendingUp, FileText, Loader2, ExternalLink, BarChart3, Clock, Hash, Youtube, X, RefreshCw } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { YouTubeAnalysisFilters } from "./YouTubeAnalysisFilters";
 import { YouTubeChannelComparison } from "./YouTubeChannelComparison";
@@ -39,6 +39,8 @@ interface YouTubeVideoAnalyticsProps {
   topByEngagement: YouTubeVideo[];
   onCreateScript: (topic: string) => void;
   channels: YouTubeChannel[];
+  onRefreshAnalysis?: () => Promise<void>;
+  refreshing?: boolean;
 }
 
 export function YouTubeVideoAnalytics({
@@ -60,6 +62,8 @@ export function YouTubeVideoAnalytics({
   topByEngagement,
   onCreateScript,
   channels,
+  onRefreshAnalysis,
+  refreshing,
 }: YouTubeVideoAnalyticsProps) {
   const [analysisTab, setAnalysisTab] = useState("ranking");
 
@@ -98,19 +102,35 @@ export function YouTubeVideoAnalytics({
       {/* Filters */}
       <Card>
         <CardContent className="pt-6">
-          <YouTubeAnalysisFilters
-            channels={channels}
-            selectedChannelIds={selectedChannelIds}
-            onChannelSelect={onChannelSelect}
-            searchQuery={searchQuery}
-            onSearchChange={onSearchChange}
-            period={period}
-            onPeriodChange={onPeriodChange}
-            customDateRange={customDateRange}
-            onCustomDateChange={onCustomDateChange}
-            sortBy={sortBy}
-            onSortChange={(s) => onSortChange(s as SortOption)}
-          />
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <YouTubeAnalysisFilters
+                channels={channels}
+                selectedChannelIds={selectedChannelIds}
+                onChannelSelect={onChannelSelect}
+                searchQuery={searchQuery}
+                onSearchChange={onSearchChange}
+                period={period}
+                onPeriodChange={onPeriodChange}
+                customDateRange={customDateRange}
+                onCustomDateChange={onCustomDateChange}
+                sortBy={sortBy}
+                onSortChange={(s) => onSortChange(s as SortOption)}
+              />
+              {onRefreshAnalysis && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onRefreshAnalysis}
+                  disabled={refreshing || channels.length === 0}
+                  className="flex items-center gap-2 shrink-0"
+                >
+                  <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+                  {refreshing ? 'Analisando...' : 'Refazer Análise'}
+                </Button>
+              )}
+            </div>
+          </div>
         </CardContent>
       </Card>
 

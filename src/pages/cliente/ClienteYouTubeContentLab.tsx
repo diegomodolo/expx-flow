@@ -139,6 +139,15 @@ export default function ClienteYouTubeContentLab() {
               scriptsHook.generateScript(topic);
               setActiveTab("scripts");
             }}
+            onRefreshAnalysis={async () => {
+              // Refresh all channels
+              for (const channel of channelsHook.channels) {
+                await channelsHook.refreshChannel(channel.id);
+              }
+              // Then refetch videos
+              await analyticsHook.refetch();
+            }}
+            refreshing={channelsHook.analyzing}
           />
         </TabsContent>
 
