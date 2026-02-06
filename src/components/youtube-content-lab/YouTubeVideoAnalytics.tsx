@@ -10,6 +10,7 @@ import { YouTubeAnalysisFilters } from "./YouTubeAnalysisFilters";
 import { YouTubeChannelComparison } from "./YouTubeChannelComparison";
 import { YouTubeTrendAnalysis } from "./YouTubeTrendAnalysis";
 import { YouTubeDurationAnalysis } from "./YouTubeDurationAnalysis";
+import { TranslatedTitle } from "./TranslatedTitle";
 
 interface YouTubeVideoAnalyticsProps {
   videos: YouTubeVideo[];
@@ -243,11 +244,12 @@ export function YouTubeVideoAnalytics({
                       </div>
 
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-medium line-clamp-2" title={video.title}>
-                          {video.title}
-                        </h4>
+                        <TranslatedTitle 
+                          title={video.title} 
+                          className="font-medium"
+                        />
                         {video.channel_name && (
-                          <p className="text-sm text-muted-foreground mt-0.5">
+                          <p className="text-sm text-muted-foreground mt-1">
                             {video.channel_name}
                           </p>
                         )}
