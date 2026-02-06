@@ -35,6 +35,7 @@ export interface Client {
   name: string;
   email: string;
   company: string;
+  company_id?: string;
   sector: string;
   status: ClientStatus;
   active_campaigns: number;
