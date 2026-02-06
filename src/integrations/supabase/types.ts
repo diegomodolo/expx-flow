@@ -12198,6 +12198,141 @@ export type Database = {
           },
         ]
       }
+      workspace_documents: {
+        Row: {
+          company_id: string
+          content: Json | null
+          cover_image: string | null
+          created_at: string
+          created_by: string
+          folder_id: string | null
+          icon: string | null
+          id: string
+          is_favorite: boolean
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          content?: Json | null
+          cover_image?: string | null
+          created_at?: string
+          created_by: string
+          folder_id?: string | null
+          icon?: string | null
+          id?: string
+          is_favorite?: boolean
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          content?: Json | null
+          cover_image?: string | null
+          created_at?: string
+          created_by?: string
+          folder_id?: string | null
+          icon?: string | null
+          id?: string
+          is_favorite?: boolean
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_documents_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_documents_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_folders: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string
+          icon: string | null
+          id: string
+          name: string
+          parent_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by: string
+          icon?: string | null
+          id?: string
+          name: string
+          parent_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          icon?: string | null
+          id?: string
+          name?: string
+          parent_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_folders_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_folders_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_shares: {
+        Row: {
+          created_at: string
+          id: string
+          permission: string
+          resource_id: string
+          resource_type: string
+          shared_by: string
+          shared_with_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          permission?: string
+          resource_id: string
+          resource_type: string
+          shared_by: string
+          shared_with_user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          permission?: string
+          resource_id?: string
+          resource_type?: string
+          shared_by?: string
+          shared_with_user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       task_stats: {

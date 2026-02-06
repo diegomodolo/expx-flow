@@ -122,6 +122,7 @@ import CSActionsPage from "./pages/cs/CSActionsPage";
 import CSClientsList from "./pages/cs/CSClientsList";
 import CSTVPage from "./pages/cs/CSTVPage";
 import ValueStatementPublic from "./pages/cs/ValueStatementPublic";
+import Workspace from "./pages/Workspace";
 import { AuthProvider } from "@/hooks/useAuth";
 import { CompanyProvider } from "@/contexts/CompanyContext";
 import { CRMAuthProvider } from "@/contexts/CRMAuthContext";
@@ -568,6 +569,11 @@ const App = () => {
                  <Route path="/alertas" element={
                    <ProtectedRoute>
                      <AlertasDoSistema />
+                   </ProtectedRoute>
+                 } />
+                 <Route path="/workspace" element={
+                   <ProtectedRoute>
+                     <Workspace />
                    </ProtectedRoute>
                  } />
                  <Route path="/keyword-planner" element={
