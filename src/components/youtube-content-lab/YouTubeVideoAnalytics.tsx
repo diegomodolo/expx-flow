@@ -211,7 +211,47 @@ export function YouTubeVideoAnalytics({
         <TabsContent value="ranking" className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle>Vídeos de Maior Destaque</CardTitle>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <CardTitle>Vídeos de Maior Destaque</CardTitle>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant={sortBy === 'engagement' ? 'default' : 'outline'}
+                    onClick={() => onSortChange('engagement')}
+                    className="flex items-center gap-1.5"
+                  >
+                    <TrendingUp className="h-4 w-4" />
+                    Engajamento
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={sortBy === 'views' ? 'default' : 'outline'}
+                    onClick={() => onSortChange('views')}
+                    className="flex items-center gap-1.5"
+                  >
+                    <Eye className="h-4 w-4" />
+                    Views
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={sortBy === 'likes' ? 'default' : 'outline'}
+                    onClick={() => onSortChange('likes')}
+                    className="flex items-center gap-1.5"
+                  >
+                    <ThumbsUp className="h-4 w-4" />
+                    Curtidas
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={sortBy === 'comments' ? 'default' : 'outline'}
+                    onClick={() => onSortChange('comments')}
+                    className="flex items-center gap-1.5"
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                    Comentários
+                  </Button>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               {videos.length === 0 ? (
@@ -254,19 +294,19 @@ export function YouTubeVideoAnalytics({
                           </p>
                         )}
                         <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-                          <span className="flex items-center gap-1">
+                          <span className={`flex items-center gap-1 ${sortBy === 'views' ? 'text-primary font-semibold' : ''}`}>
                             <Eye className="h-3.5 w-3.5" />
                             {formatNumber(video.view_count)}
                           </span>
-                          <span className="flex items-center gap-1">
+                          <span className={`flex items-center gap-1 ${sortBy === 'likes' ? 'text-primary font-semibold' : ''}`}>
                             <ThumbsUp className="h-3.5 w-3.5" />
                             {formatNumber(video.like_count)}
                           </span>
-                          <span className="flex items-center gap-1">
+                          <span className={`flex items-center gap-1 ${sortBy === 'comments' ? 'text-primary font-semibold' : ''}`}>
                             <MessageCircle className="h-3.5 w-3.5" />
                             {formatNumber(video.comment_count)}
                           </span>
-                          <Badge variant="secondary">
+                          <Badge variant={sortBy === 'engagement' ? 'default' : 'secondary'}>
                             {(video.engagement_rate || 0).toFixed(2)}% eng.
                           </Badge>
                         </div>
