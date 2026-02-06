@@ -1,220 +1,274 @@
 
-# Plano: Configuração de Recebimento e Análise de Grupos no WhatsApp
+# Plano: Sistema de Documentos Estilo Notion
 
-## Contexto do Problema
-
-Atualmente, o sistema **ignora grupos de forma fixa no código**, independente da escolha feita ao configurar o webhook. Além disso, não existe configuração para controlar se a IA deve analisar conversas de grupo.
+## Resumo
+Criar uma funcionalidade completa de gerenciamento de documentos e pastas dentro do sistema, similar ao Notion, com:
+- Icone no header para acesso rapido
+- Organizacao de arquivos em pastas (sidebar esquerda)
+- Area de trabalho para criar documentos (lado direito)
+- Sistema de compartilhamento entre usuarios da empresa
 
 ---
 
-## Alterações Necessárias
+## Arquitetura do Sistema
 
-### 1. Banco de Dados
+```text
++----------------------------------+
+|         Workspace Page           |
++----------------------------------+
+|  Sidebar   |    Document Editor  |
+|  (Folders  |    (BlockNote)      |
+|   & Files) |                     |
+|            |  - Texto            |
+|  [+ Nova]  |  - Listas           |
+|  📁 Pasta1 |  - Tabelas          |
+|    📄 Doc1 |  - Headings         |
+|    📄 Doc2 |  - Checklists       |
+|  📁 Pasta2 |                     |
+|    📄 Doc3 |                     |
++----------------------------------+
+```
 
-**Adicionar coluna na tabela `whatsapp_instances`:**
+---
+
+## Estrutura de Banco de Dados
+
+### Tabela: `workspace_folders`
+| Coluna | Tipo | Descricao |
+|--------|------|-----------|
+| id | uuid | Primary key |
+| company_id | uuid | FK para companies |
+| parent_id | uuid | FK para workspace_folders (null = raiz) |
+| name | text | Nome da pasta |
+| icon | text | Emoji ou icone |
+| created_by | uuid | FK para auth.users |
+| created_at | timestamp | Data de criacao |
+| updated_at | timestamp | Data de atualizacao |
+
+### Tabela: `workspace_documents`
+| Coluna | Tipo | Descricao |
+|--------|------|-----------|
+| id | uuid | Primary key |
+| company_id | uuid | FK para companies |
+| folder_id | uuid | FK para workspace_folders (null = raiz) |
+| title | text | Titulo do documento |
+| content | jsonb | Conteudo no formato BlockNote |
+| icon | text | Emoji ou icone |
+| cover_image | text | URL da imagem de capa |
+| created_by | uuid | FK para auth.users |
+| is_favorite | boolean | Marcado como favorito |
+| created_at | timestamp | Data de criacao |
+| updated_at | timestamp | Data de atualizacao |
+
+### Tabela: `workspace_shares`
+| Coluna | Tipo | Descricao |
+|--------|------|-----------|
+| id | uuid | Primary key |
+| resource_type | text | 'folder' ou 'document' |
+| resource_id | uuid | ID da pasta ou documento |
+| shared_with_user_id | uuid | FK para auth.users |
+| permission | text | 'view', 'edit', 'admin' |
+| shared_by | uuid | Quem compartilhou |
+| created_at | timestamp | Data do compartilhamento |
+
+---
+
+## Arquivos a Serem Criados
+
+### 1. Componentes de UI
+```text
+src/components/workspace/
+  ├── WorkspaceSidebar.tsx         # Sidebar com arvore de pastas/arquivos
+  ├── WorkspaceFolderTree.tsx      # Componente de arvore de pastas
+  ├── WorkspaceFolderItem.tsx      # Item individual de pasta
+  ├── WorkspaceDocumentItem.tsx    # Item individual de documento
+  ├── WorkspaceEditor.tsx          # Editor principal com BlockNote
+  ├── WorkspaceHeader.tsx          # Header do documento com titulo/icone
+  ├── WorkspaceEmptyState.tsx      # Estado vazio
+  ├── WorkspaceShareDialog.tsx     # Modal de compartilhamento
+  ├── CreateFolderDialog.tsx       # Modal para criar pasta
+  └── CreateDocumentDialog.tsx     # Modal para criar documento
+```
+
+### 2. Pagina Principal
+```text
+src/pages/Workspace.tsx            # Pagina principal do workspace
+```
+
+### 3. Hooks
+```text
+src/hooks/
+  ├── useWorkspaceFolders.tsx      # CRUD de pastas
+  ├── useWorkspaceDocuments.tsx    # CRUD de documentos
+  └── useWorkspaceShares.tsx       # Gerenciamento de compartilhamentos
+```
+
+### 4. Tipos
+```text
+src/types/workspace.ts             # Tipos TypeScript
+```
+
+---
+
+## Modificacoes em Arquivos Existentes
+
+### 1. DashboardHeader.tsx
+- Adicionar icone do Workspace (FileText ou Book) ao lado dos outros icones
+- Link para `/workspace`
+
+### 2. App.tsx
+- Adicionar rota protegida para `/workspace`
+- Adicionar rota para `/workspace/:documentId` (documento especifico)
+
+### 3. DashboardSidebar.tsx
+- Adicionar item "Workspace" na categoria "Equipe & Sistema"
+
+### 4. useEmployeePermissions.tsx
+- Adicionar nova permissao: `'workspace'`
+
+---
+
+## Dependencia a Instalar
+
+### BlockNote
+Biblioteca de editor de blocos estilo Notion:
+```
+@blocknote/core
+@blocknote/react
+@blocknote/mantine (ou @blocknote/shadcn para integracao)
+```
+
+---
+
+## Funcionalidades Detalhadas
+
+### Sidebar (Lado Esquerdo)
+1. **Favoritos**: Documentos marcados como favorito
+2. **Compartilhados comigo**: Documentos/pastas compartilhados por outros
+3. **Meus Documentos**: Arvore de pastas/documentos do usuario
+4. **Acoes**:
+   - Criar nova pasta
+   - Criar novo documento
+   - Arrastar e soltar para reorganizar
+   - Menu de contexto (renomear, excluir, compartilhar)
+
+### Editor (Lado Direito)
+1. **Header**: Titulo editavel, icone/emoji, imagem de capa
+2. **Toolbar**: Formatacao, inserir blocos
+3. **Blocos suportados**:
+   - Paragrafos
+   - Titulos (H1, H2, H3)
+   - Listas (bullet, numerada, checklist)
+   - Tabelas
+   - Imagens
+   - Divisores
+   - Codigo
+   - Citacoes
+
+### Compartilhamento
+1. **Modal de compartilhamento**:
+   - Buscar usuarios da empresa
+   - Definir nivel de permissao (visualizar, editar, admin)
+   - Copiar link (para usuarios com acesso)
+2. **Indicadores visuais**:
+   - Badge mostrando se e compartilhado
+   - Lista de pessoas com acesso
+
+---
+
+## Ordem de Implementacao
+
+1. **Fase 1 - Banco de Dados**
+   - Criar tabelas no Supabase
+   - Configurar RLS policies
+
+2. **Fase 2 - Estrutura Base**
+   - Instalar BlockNote
+   - Criar tipos TypeScript
+   - Criar hooks basicos
+
+3. **Fase 3 - UI Principal**
+   - Pagina Workspace
+   - Sidebar com navegacao
+   - Editor basico
+
+4. **Fase 4 - CRUD Completo**
+   - Criar/editar/excluir pastas
+   - Criar/editar/excluir documentos
+   - Drag and drop
+
+5. **Fase 5 - Compartilhamento**
+   - Modal de compartilhamento
+   - Listagem de compartilhados
+   - Permissoes granulares
+
+6. **Fase 6 - Integracao**
+   - Icone no header
+   - Rota no sidebar
+   - Permissoes no sistema
+
+---
+
+## Secao Tecnica
+
+### RLS Policies (Supabase)
+
 ```sql
-ALTER TABLE whatsapp_instances 
-ADD COLUMN receive_group_messages boolean DEFAULT false;
+-- workspace_folders
+CREATE POLICY "Users can view folders in their company" ON workspace_folders
+  FOR SELECT USING (
+    company_id IN (SELECT company_id FROM company_members WHERE user_id = auth.uid())
+  );
+
+CREATE POLICY "Users can view shared folders" ON workspace_folders
+  FOR SELECT USING (
+    id IN (
+      SELECT resource_id FROM workspace_shares 
+      WHERE resource_type = 'folder' AND shared_with_user_id = auth.uid()
+    )
+  );
+
+-- workspace_documents (similar)
+-- workspace_shares
 ```
 
-**Adicionar coluna na tabela `whatsapp_ai_agent_config`:**
-```sql
-ALTER TABLE whatsapp_ai_agent_config 
-ADD COLUMN ignore_group_analysis boolean DEFAULT true;
+### Integracao BlockNote
+
+```tsx
+import { useCreateBlockNote } from "@blocknote/react";
+import { BlockNoteView } from "@blocknote/mantine";
+import "@blocknote/mantine/style.css";
+
+const editor = useCreateBlockNote({
+  initialContent: document?.content || undefined,
+});
+
+// Salvar conteudo
+const content = editor.document;
+await saveDocument({ ...doc, content });
 ```
 
----
+### Layout com Resizable Panels
 
-### 2. Edge Function: `configure-uazapi-webhook`
-
-Após configurar o webhook com sucesso, **salvar a preferência na tabela**:
-- Atualizar a instância com `receive_group_messages = true/false`
-
----
-
-### 3. Edge Function: `create-uazapi-instance`
-
-- Alterar para usar `receive_group_messages = false` por padrão (já faz isso via `isGroupYes`)
-- Salvar `receive_group_messages = false` na instância criada
-
----
-
-### 4. Edge Function: `whatsapp-webhook`
-
-Alterar a lógica de ignorar grupos para ser **condicional**:
-
-```
-ANTES (linhas 79-86):
-  // Ignore groups
-  if (chatId.includes("@g.us") || chat.wa_isGroup) {
-    return ... "Group message ignored"
-  }
-
-DEPOIS:
-  // Verificar se é grupo
-  const isGroup = chatId.includes("@g.us") || chat.wa_isGroup;
-  
-  if (isGroup) {
-    // Buscar configuração da instância para ver se deve receber grupos
-    const { data: instance } = await supabase
-      .from("whatsapp_instances")
-      .select("receive_group_messages")
-      .eq("uazapi_token", instanceToken)
-      .single();
-    
-    if (!instance?.receive_group_messages) {
-      return ... "Group message ignored (config)"
-    }
-    
-    // Se chegou aqui, é grupo mas está configurado para receber
-    console.log("[whatsapp-webhook] Processing group message");
-  }
+```tsx
+<ResizablePanelGroup direction="horizontal">
+  <ResizablePanel defaultSize={25} minSize={15} maxSize={40}>
+    <WorkspaceSidebar />
+  </ResizablePanel>
+  <ResizableHandle withHandle />
+  <ResizablePanel defaultSize={75} minSize={50}>
+    <WorkspaceEditor document={selectedDocument} />
+  </ResizablePanel>
+</ResizablePanelGroup>
 ```
 
 ---
 
-### 5. Edge Function: `sync-whatsapp-chats`
+## Resultado Final
 
-Alterar para **verificar a configuração** antes de ignorar grupos:
-
-```
-ANTES (linha 265):
-  if (rawId.includes("@g.us") || ...) {
-    continue;
-  }
-
-DEPOIS:
-  // Buscar se a instância aceita grupos
-  const { data: instanceConfig } = await supabase
-    .from("whatsapp_instances")
-    .select("receive_group_messages")
-    .eq("id", instance_id)
-    .single();
-  
-  const receiveGroups = instanceConfig?.receive_group_messages ?? false;
-  
-  // ... dentro do loop de chats:
-  if ((rawId.includes("@g.us") || chat.wa_isGroup) && !receiveGroups) {
-    continue;
-  }
-```
-
----
-
-### 6. Hook: `useWhatsAppAIAgentConfig.tsx`
-
-Adicionar o novo campo ao tipo e ao default:
-
-```typescript
-// No interface WhatsAppAIAgentConfig:
-ignore_group_analysis: boolean;
-
-// No defaultConfig:
-ignore_group_analysis: true,
-```
-
----
-
-### 7. Componente: `WhatsAppAIAgentKnowledgePanel.tsx`
-
-Adicionar toggle na seção "Analise em Tempo Real":
-
-```
-[x] Habilitar para todos os chats
-[ ] Ignorar conversas de grupo  <-- NOVO
-    "Mesmo com análise habilitada para todos, grupos não serão analisados"
-```
-
----
-
-### 8. Hook: `useWhatsAppRealtimeAnalysis.tsx`
-
-Adicionar verificação se é conversa de grupo antes de analisar:
-
-```typescript
-// Receber novo parâmetro: isGroupConversation (do componente pai)
-// Verificar config.ignore_group_analysis
-
-if (isGroupConversation && config?.ignore_group_analysis) {
-  console.log("[useWhatsAppRealtimeAnalysis] Skipping group analysis");
-  return;
-}
-```
-
----
-
-### 9. Componente de Chat (WhatsAppChatWindow ou similar)
-
-Passar flag `isGroupConversation` para o hook de análise:
-- Detectar se o `phone` contém `@g.us` ou `-` (formato de grupo)
-
----
-
-## Fluxo Final
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    CONFIGURAÇÃO DE INSTÂNCIA                     │
-├─────────────────────────────────────────────────────────────────┤
-│  Configurar Webhook                                              │
-│  ├─ "Sim, receber grupos" → receive_group_messages = true       │
-│  └─ "Não, apenas privadas" → receive_group_messages = false     │
-│                                                                  │
-│  ↓ Salva na tabela whatsapp_instances                           │
-└─────────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────────┐
-│                    RECEBIMENTO DE MENSAGENS                      │
-├─────────────────────────────────────────────────────────────────┤
-│  whatsapp-webhook                                                │
-│  ├─ Recebe mensagem                                             │
-│  ├─ Verifica se é grupo                                          │
-│  ├─ Se grupo → consulta receive_group_messages da instância     │
-│  └─ Processa ou ignora baseado na configuração                  │
-└─────────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────────┐
-│                    CONFIGURAÇÃO DA IA                            │
-├─────────────────────────────────────────────────────────────────┤
-│  Análise em Tempo Real                                           │
-│  ├─ [x] Habilitar para todos os chats                           │
-│  └─ [x] Ignorar conversas de grupo (default: ativado)           │
-│                                                                  │
-│  ↓ Salva na tabela whatsapp_ai_agent_config                     │
-└─────────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────────┐
-│                    ANÁLISE DA CONVERSA                           │
-├─────────────────────────────────────────────────────────────────┤
-│  useWhatsAppRealtimeAnalysis                                     │
-│  ├─ Detecta se conversa é de grupo                              │
-│  ├─ Verifica ignore_group_analysis na config                    │
-│  └─ Analisa ou pula baseado na configuração                     │
-└─────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## Arquivos a Modificar
-
-| Arquivo | Tipo de Alteração |
-|---------|------------------|
-| `supabase/migrations/*.sql` | Criar migration para novas colunas |
-| `supabase/functions/configure-uazapi-webhook/index.ts` | Salvar preferência na instância |
-| `supabase/functions/create-uazapi-instance/index.ts` | Salvar default `receive_group_messages = false` |
-| `supabase/functions/whatsapp-webhook/index.ts` | Consultar config antes de ignorar grupos |
-| `supabase/functions/sync-whatsapp-chats/index.ts` | Consultar config antes de ignorar grupos |
-| `src/hooks/useWhatsAppInstances.tsx` | Adicionar campo ao tipo |
-| `src/hooks/useWhatsAppAIAgentConfig.tsx` | Adicionar `ignore_group_analysis` |
-| `src/components/whatsapp/WhatsAppAIAgentKnowledgePanel.tsx` | Adicionar toggle na UI |
-| `src/hooks/useWhatsAppRealtimeAnalysis.tsx` | Verificar config antes de analisar grupos |
-| `src/components/whatsapp/WhatsAppChatWindow.tsx` | Passar flag de grupo para o hook |
-
----
-
-## Observações Técnicas
-
-- A coluna `receive_group_messages` na instância serve como **fonte da verdade** para o comportamento de recebimento
-- A coluna `ignore_group_analysis` na config da IA é **independente** - permite receber grupos mas não analisá-los
-- O default é: **não receber grupos** e **não analisar grupos** (comportamento atual preservado)
-- Grupos são identificados por `@g.us` no ID ou presença de `-` no número (formato `123-456@g.us`)
+Apos a implementacao, os usuarios terao:
+- Acesso rapido via icone no header
+- Sistema de pastas para organizacao
+- Editor rico com blocos estilo Notion
+- Compartilhamento granular com colegas da empresa
+- Interface responsiva e moderna seguindo o design existente
