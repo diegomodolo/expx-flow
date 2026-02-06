@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useCompany } from "@/contexts/CompanyContext";
+import { useClientDetails } from "@/hooks/useClientDetails";
 import { useYouTubeChannels } from "@/hooks/useYouTubeChannels";
 import { useYouTubeAnalytics } from "@/hooks/useYouTubeAnalytics";
 import { useYouTubeSuggestions } from "@/hooks/useYouTubeSuggestions";
@@ -11,12 +11,12 @@ import { YouTubeVideoAnalytics } from "@/components/youtube-content-lab/YouTubeV
 import { YouTubeSuggestionsList } from "@/components/youtube-content-lab/YouTubeSuggestionsList";
 import { YouTubeScriptsList } from "@/components/youtube-content-lab/YouTubeScriptsList";
 import { YouTubeScriptBuilder } from "@/components/youtube-content-lab/YouTubeScriptBuilder";
-import { Youtube, BarChart3, Lightbulb, FileText } from "lucide-react";
+import { Youtube, BarChart3, Lightbulb, FileText, Loader2 } from "lucide-react";
 
 export default function ClienteYouTubeContentLab() {
   const { id: clientId } = useParams<{ id: string }>();
-  const { activeCompany } = useCompany();
-  const companyId = activeCompany?.id || "";
+  const { client, loading: clientLoading } = useClientDetails(clientId || "");
+  const companyId = client?.company || "";
 
   const [activeTab, setActiveTab] = useState("channels");
   const [selectedScriptId, setSelectedScriptId] = useState<string | null>(null);
@@ -25,6 +25,14 @@ export default function ClienteYouTubeContentLab() {
   const analyticsHook = useYouTubeAnalytics(clientId || "", companyId);
   const suggestionsHook = useYouTubeSuggestions(clientId || "", companyId);
   const scriptsHook = useYouTubeScripts(clientId || "", companyId);
+
+  if (clientLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   // Handle creating script from suggestion
   const handleCreateScript = async (suggestionId: string, title: string) => {
