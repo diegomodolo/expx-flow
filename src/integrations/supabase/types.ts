@@ -12444,6 +12444,316 @@ export type Database = {
         }
         Relationships: []
       }
+      youtube_content_suggestions: {
+        Row: {
+          based_on_videos: Json | null
+          client_id: string
+          company_id: string
+          created_at: string
+          description: string | null
+          estimated_engagement: string | null
+          id: string
+          status: string
+          theme_category: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          based_on_videos?: Json | null
+          client_id: string
+          company_id: string
+          created_at?: string
+          description?: string | null
+          estimated_engagement?: string | null
+          id?: string
+          status?: string
+          theme_category?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          based_on_videos?: Json | null
+          client_id?: string
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          estimated_engagement?: string | null
+          id?: string
+          status?: string
+          theme_category?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "youtube_content_suggestions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "youtube_content_suggestions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      youtube_monitored_channels: {
+        Row: {
+          channel_handle: string | null
+          channel_id: string
+          channel_name: string
+          channel_url: string
+          client_id: string
+          company_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          last_analyzed_at: string | null
+          subscriber_count: number | null
+          thumbnail_url: string | null
+          video_count: number | null
+        }
+        Insert: {
+          channel_handle?: string | null
+          channel_id: string
+          channel_name: string
+          channel_url: string
+          client_id: string
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          last_analyzed_at?: string | null
+          subscriber_count?: number | null
+          thumbnail_url?: string | null
+          video_count?: number | null
+        }
+        Update: {
+          channel_handle?: string | null
+          channel_id?: string
+          channel_name?: string
+          channel_url?: string
+          client_id?: string
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          last_analyzed_at?: string | null
+          subscriber_count?: number | null
+          thumbnail_url?: string | null
+          video_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "youtube_monitored_channels_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "youtube_monitored_channels_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      youtube_script_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          role: string
+          script_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          role: string
+          script_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          role?: string
+          script_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "youtube_script_messages_script_id_fkey"
+            columns: ["script_id"]
+            isOneToOne: false
+            referencedRelation: "youtube_scripts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      youtube_scripts: {
+        Row: {
+          client_id: string
+          company_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          reference_thumbnails: Json | null
+          script_content: string
+          status: string
+          suggested_titles: Json | null
+          suggestion_id: string | null
+          thumbnail_url: string | null
+          title: string
+          updated_at: string
+          video_duration_target: number | null
+        }
+        Insert: {
+          client_id: string
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          reference_thumbnails?: Json | null
+          script_content?: string
+          status?: string
+          suggested_titles?: Json | null
+          suggestion_id?: string | null
+          thumbnail_url?: string | null
+          title: string
+          updated_at?: string
+          video_duration_target?: number | null
+        }
+        Update: {
+          client_id?: string
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          reference_thumbnails?: Json | null
+          script_content?: string
+          status?: string
+          suggested_titles?: Json | null
+          suggestion_id?: string | null
+          thumbnail_url?: string | null
+          title?: string
+          updated_at?: string
+          video_duration_target?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "youtube_scripts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "youtube_scripts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "youtube_scripts_suggestion_id_fkey"
+            columns: ["suggestion_id"]
+            isOneToOne: false
+            referencedRelation: "youtube_content_suggestions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      youtube_video_analyses: {
+        Row: {
+          ai_summary: string | null
+          ai_theme_analysis: string | null
+          analyzed_at: string
+          channel_id: string
+          client_id: string
+          comment_count: number
+          company_id: string
+          description: string | null
+          duration_seconds: number | null
+          engagement_rate: number | null
+          id: string
+          like_count: number
+          published_at: string
+          thumbnail_url: string | null
+          title: string
+          video_id: string
+          view_count: number
+        }
+        Insert: {
+          ai_summary?: string | null
+          ai_theme_analysis?: string | null
+          analyzed_at?: string
+          channel_id: string
+          client_id: string
+          comment_count?: number
+          company_id: string
+          description?: string | null
+          duration_seconds?: number | null
+          engagement_rate?: number | null
+          id?: string
+          like_count?: number
+          published_at: string
+          thumbnail_url?: string | null
+          title: string
+          video_id: string
+          view_count?: number
+        }
+        Update: {
+          ai_summary?: string | null
+          ai_theme_analysis?: string | null
+          analyzed_at?: string
+          channel_id?: string
+          client_id?: string
+          comment_count?: number
+          company_id?: string
+          description?: string | null
+          duration_seconds?: number | null
+          engagement_rate?: number | null
+          id?: string
+          like_count?: number
+          published_at?: string
+          thumbnail_url?: string | null
+          title?: string
+          video_id?: string
+          view_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "youtube_video_analyses_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "youtube_monitored_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "youtube_video_analyses_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "youtube_video_analyses_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       task_stats: {

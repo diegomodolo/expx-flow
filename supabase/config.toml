@@ -459,3 +459,18 @@ verify_jwt = true
 
 [functions.meta-whatsapp-webhook]
 verify_jwt = false
+
+[functions.analyze-youtube-channel]
+verify_jwt = true
+
+[functions.generate-video-script]
+verify_jwt = true
+
+[functions.refine-script-chat]
+verify_jwt = true
+
+[functions.generate-youtube-titles]
+verify_jwt = true
+
+[functions.generate-video-suggestions]
+verify_jwt = true

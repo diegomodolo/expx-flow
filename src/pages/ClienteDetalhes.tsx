@@ -34,6 +34,7 @@ import ClienteFabricaCriativos from "./clientes/ClienteFabricaCriativos";
 import ClienteFabricaCarrosseis from "./clientes/ClienteFabricaCarrosseis";
 import ClienteUrls from "./cliente/ClienteUrls";
 import { ClienteCS } from "./cliente/ClienteCS";
+import ClienteYouTubeContentLab from "./cliente/ClienteYouTubeContentLab";
 import { useClientDetails } from "@/hooks/useClientDetails";
 import { useUnifiedCampaigns, useUnifiedMetrics } from "@/hooks/useUnifiedCampaigns";
 import { Loader2 } from "lucide-react";
@@ -276,6 +277,7 @@ const ClienteDetalhes = () => {
             <Route path="fabrica-carrosseis" element={<ClienteFabricaCarrosseis />} />
             <Route path="urls" element={<ClienteUrls />} />
             <Route path="cs" element={<ClienteCS />} />
+            <Route path="youtube-content-lab" element={<ClienteYouTubeContentLab />} />
             <Route path="*" element={<Navigate to="" replace />} />
           </Routes>
         </ClientDetailsLayout>
