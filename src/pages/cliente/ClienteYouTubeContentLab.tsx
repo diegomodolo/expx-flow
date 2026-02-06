@@ -16,7 +16,7 @@ import { Youtube, BarChart3, Lightbulb, FileText, Loader2 } from "lucide-react";
 export default function ClienteYouTubeContentLab() {
   const { id: clientId } = useParams<{ id: string }>();
   const { client, loading: clientLoading } = useClientDetails(clientId || "");
-  const companyId = client?.company || "";
+  const companyId = client?.company_id || "";
 
   const [activeTab, setActiveTab] = useState("channels");
   const [selectedScriptId, setSelectedScriptId] = useState<string | null>(null);
