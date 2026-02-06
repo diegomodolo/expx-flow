@@ -5,7 +5,7 @@ import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/componen
 import { useCompany } from "@/contexts/CompanyContext";
 import { useWhatsAppConfig } from "@/hooks/useWhatsAppConfig";
 import { useWhatsAppConversations } from "@/hooks/useWhatsAppConversations";
-import { useWhatsAppInstances } from "@/hooks/useWhatsAppInstances";
+import { useWhatsAppInstances, getInstanceProvider, type WhatsAppProvider } from "@/hooks/useWhatsAppInstances";
 import { useWhatsAppRealtime } from "@/hooks/useWhatsAppRealtime";
 import { useSyncWhatsAppChats } from "@/hooks/useSyncWhatsAppChats";
 import { useWhatsAppPanelSizes } from "@/hooks/useWhatsAppPanelSizes";
@@ -20,7 +20,7 @@ import { WhatsAppBlockedContactsModal } from "./WhatsAppBlockedContactsModal";
 import { WhatsAppRemindersPanel } from "./WhatsAppRemindersPanel";
 import { WhatsAppNewConversationDialog } from "./WhatsAppNewConversationDialog";
 import { useWhatsAppReminders } from "@/hooks/useWhatsAppReminders";
-import { MessageSquare, Settings, AlertCircle, Phone, CheckCircle2, XCircle, RefreshCw, Archive, Star, Users, MessageCircle, BellOff, Sparkles, Zap, ShieldOff, Heart, Bell } from "lucide-react";
+import { MessageSquare, Settings, AlertCircle, Phone, CheckCircle2, XCircle, RefreshCw, Archive, Star, Users, MessageCircle, BellOff, Sparkles, Zap, ShieldOff, Heart, Bell, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -140,11 +140,20 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
   const selectedConversation = squadScopedConversations.find(c => c.id === selectedConversationId);
   const selectedInstance = availableInstances.find(i => i.id === selectedInstanceId);
   
-  // Check if connected (for UazapiGO, check instance; for Z-API, check config)
+  // Check if connected - now works for all providers
   const isUazapi = config?.provider === "uazapi";
-  const isConnected = isUazapi 
-    ? (selectedInstance?.is_connected || false)
+  const isMeta = config?.provider === "meta";
+  
+  // Get the provider of the selected instance
+  const selectedInstanceProvider = selectedInstance ? getInstanceProvider(selectedInstance) : null;
+  
+  // For Meta/UazapiGO, check instance connection; for Z-API, check config
+  const isConnected = selectedInstance 
+    ? selectedInstance.is_connected
     : config?.is_connected;
+  
+  // Show instance selector if there are any available instances (from any provider)
+  const showInstanceSelector = availableInstances.length > 0;
 
   const handleSelectConversation = (id: string) => {
     setSelectedConversationId(id);
@@ -180,14 +189,14 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
           </div>
         </DialogHeader>
 
-        {!isConnected && !isUazapi ? (
+        {!isConnected && !isUazapi && !isMeta ? (
           <div className="flex flex-col items-center justify-center flex-1 gap-4 p-4">
             <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
               <AlertCircle className="h-8 w-8 text-muted-foreground" />
             </div>
             <h3 className="text-lg font-medium">WhatsApp não conectado</h3>
             <p className="text-sm text-muted-foreground text-center max-w-sm">
-              Configure sua integração com Z-API ou UazapiGO para usar o chat do WhatsApp
+              Configure sua integração com Z-API, UazapiGO ou Meta Cloud API para usar o chat do WhatsApp
             </p>
             <Button asChild>
               <Link to="/configuracoes/whatsapp" onClick={onClose}>
@@ -195,14 +204,16 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
               </Link>
             </Button>
           </div>
-        ) : isUazapi && availableInstances.length === 0 ? (
+        ) : (isUazapi || isMeta) && availableInstances.length === 0 ? (
           <div className="flex flex-col items-center justify-center flex-1 gap-4 p-4">
             <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
               <Phone className="h-8 w-8 text-muted-foreground" />
             </div>
             <h3 className="text-lg font-medium">Nenhuma instância disponível</h3>
             <p className="text-sm text-muted-foreground text-center max-w-sm">
-              Crie uma instância ou solicite acesso a uma instância existente
+              {isMeta 
+                ? "Configure seu número Meta Cloud API nas configurações" 
+                : "Crie uma instância ou solicite acesso a uma instância existente"}
             </p>
             <Button asChild>
               <Link to="/configuracoes/whatsapp" onClick={onClose}>
@@ -407,13 +418,18 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
                     currentUserTeamId={userSquad?.squadId}
                     clientIdsWithTodayReminders={clientIdsWithTodayReminders}
                     onNewConversation={() => setIsNewConversationOpen(true)}
-                    instanceSelector={isUazapi && availableInstances.length > 0 ? (
+                    instanceSelector={showInstanceSelector ? (
                       <Select value={selectedInstanceId || ""} onValueChange={handleInstanceChange}>
                         <SelectTrigger className="w-full">
                           <SelectValue placeholder="Selecione uma instância">
                             {selectedInstance && (
                               <div className="flex items-center gap-2">
-                                <Phone className="h-4 w-4" />
+                                {/* Provider icon */}
+                                {getInstanceProvider(selectedInstance) === "meta" ? (
+                                  <Smartphone className="h-4 w-4 text-blue-500" />
+                                ) : (
+                                  <Phone className="h-4 w-4 text-green-500" />
+                                )}
                                 <span className="truncate">{selectedInstance.instance_name}</span>
                                 {selectedInstance.is_connected ? (
                                   <CheckCircle2 className="h-3 w-3 text-google-green-500 ml-auto shrink-0" />
@@ -425,24 +441,32 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
                           </SelectValue>
                         </SelectTrigger>
                         <SelectContent>
-                          {availableInstances.map((instance) => (
-                            <SelectItem key={instance.id} value={instance.id}>
-                              <div className="flex items-center gap-2">
-                                <Phone className="h-4 w-4" />
-                                <span>{instance.instance_name}</span>
-                                {instance.connected_phone && (
-                                  <span className="text-muted-foreground text-xs">
-                                    ({instance.connected_phone})
-                                  </span>
-                                )}
-                                {instance.is_connected ? (
-                                  <CheckCircle2 className="h-3 w-3 text-google-green-500" />
-                                ) : (
-                                  <XCircle className="h-3 w-3 text-google-yellow-500" />
-                                )}
-                              </div>
-                            </SelectItem>
-                          ))}
+                          {availableInstances.map((instance) => {
+                            const provider = getInstanceProvider(instance);
+                            return (
+                              <SelectItem key={instance.id} value={instance.id}>
+                                <div className="flex items-center gap-2">
+                                  {/* Provider icon: Meta = blue smartphone, UazapiGO = green phone */}
+                                  {provider === "meta" ? (
+                                    <Smartphone className="h-4 w-4 text-blue-500" />
+                                  ) : (
+                                    <Phone className="h-4 w-4 text-green-500" />
+                                  )}
+                                  <span>{instance.instance_name}</span>
+                                  {instance.connected_phone && (
+                                    <span className="text-muted-foreground text-xs">
+                                      ({instance.connected_phone})
+                                    </span>
+                                  )}
+                                  {instance.is_connected ? (
+                                    <CheckCircle2 className="h-3 w-3 text-google-green-500" />
+                                  ) : (
+                                    <XCircle className="h-3 w-3 text-google-yellow-500" />
+                                  )}
+                                </div>
+                              </SelectItem>
+                            );
+                          })}
                         </SelectContent>
                       </Select>
                     ) : undefined}

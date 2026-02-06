@@ -14,6 +14,9 @@ export const INSTANCE_TYPE_OPTIONS = [
 
 export type InstanceType = typeof INSTANCE_TYPE_OPTIONS[number]['value'];
 
+// Provider type for WhatsApp instances
+export type WhatsAppProvider = "uazapi" | "meta" | "zapi";
+
 export interface WhatsAppInstance {
   id: string;
   company_id: string;
@@ -33,6 +36,18 @@ export interface WhatsAppInstance {
   profile_pic_url?: string | null;
   // Instance categorization
   instance_type?: InstanceType | null;
+  // Meta Cloud API fields
+  meta_phone_number_id?: string | null;
+  meta_access_token?: string | null;
+  // Provider identification
+  provider?: WhatsAppProvider;
+}
+
+// Helper to determine instance provider
+export function getInstanceProvider(instance: WhatsAppInstance): WhatsAppProvider {
+  if (instance.meta_phone_number_id) return "meta";
+  if (instance.uazapi_token) return "uazapi";
+  return "uazapi"; // fallback
 }
 
 export interface WhatsAppInstanceUser {

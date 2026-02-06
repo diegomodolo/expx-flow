@@ -174,6 +174,7 @@ export function useWhatsAppConfig(companyId: string | undefined) {
     }) => {
       if (!companyId) throw new Error("Company ID required");
       
+      // Save config
       const { error } = await supabase
         .from("whatsapp_configs")
         .upsert({
@@ -187,9 +188,46 @@ export function useWhatsAppConfig(companyId: string | undefined) {
         }, { onConflict: "company_id" });
       
       if (error) throw error;
+
+      // Auto-create/update virtual instance for Meta in whatsapp_instances table
+      const instanceName = `Meta Business (${configData.phone_number_id})`;
+      
+      // Check if instance already exists for this phone_number_id
+      const { data: existingInstance } = await supabase
+        .from("whatsapp_instances")
+        .select("id")
+        .eq("company_id", companyId)
+        .eq("meta_phone_number_id", configData.phone_number_id)
+        .maybeSingle();
+      
+      if (existingInstance) {
+        // Update existing
+        await supabase
+          .from("whatsapp_instances")
+          .update({
+            instance_name: instanceName,
+            meta_access_token: configData.access_token,
+            is_active: true,
+          })
+          .eq("id", existingInstance.id);
+      } else {
+        // Create new instance
+        await supabase
+          .from("whatsapp_instances")
+          .insert({
+            company_id: companyId,
+            instance_name: instanceName,
+            session_id: `meta_${configData.phone_number_id}`,
+            meta_phone_number_id: configData.phone_number_id,
+            meta_access_token: configData.access_token,
+            is_active: true,
+            is_connected: false,
+          });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["whatsapp-config", companyId] });
+      queryClient.invalidateQueries({ queryKey: ["whatsapp-instances", companyId] });
       toast({ title: "Configuração Meta Cloud API salva com sucesso" });
     },
     onError: (error: any) => {
@@ -219,20 +257,36 @@ export function useWhatsAppConfig(companyId: string | undefined) {
         throw new Error(data.error.message || "Erro na API do Meta");
       }
       
-      // Update connection status
+      const connectedPhone = data.display_phone_number || data.verified_name;
+      const testTime = new Date().toISOString();
+      
+      // Update connection status in whatsapp_configs
       await supabase
         .from("whatsapp_configs")
         .update({
           is_connected: true,
-          connected_phone: data.display_phone_number || data.verified_name,
-          last_connection_test: new Date().toISOString(),
+          connected_phone: connectedPhone,
+          last_connection_test: testTime,
         })
         .eq("company_id", companyId);
+      
+      // Also update the virtual instance in whatsapp_instances
+      await supabase
+        .from("whatsapp_instances")
+        .update({
+          is_connected: true,
+          connected_phone: connectedPhone,
+          last_connection_test: testTime,
+          instance_name: `Meta Business (${connectedPhone})`,
+        })
+        .eq("company_id", companyId)
+        .eq("meta_phone_number_id", config.meta_phone_number_id);
       
       return data;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["whatsapp-config", companyId] });
+      queryClient.invalidateQueries({ queryKey: ["whatsapp-instances", companyId] });
       toast({ 
         title: "Conexão estabelecida!", 
         description: `Conectado: ${data.display_phone_number || data.verified_name}` 
