@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface YouTubeVideo {
@@ -22,12 +22,16 @@ export interface YouTubeVideo {
 }
 
 export type PeriodOption = '1' | '3' | '7' | '15' | '30' | '60' | '90' | 'custom';
+export type SortOption = 'engagement' | 'views' | 'likes' | 'comments' | 'recent' | 'oldest';
 
 export function useYouTubeAnalytics(clientId: string, companyId: string) {
   const [videos, setVideos] = useState<YouTubeVideo[]>([]);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<PeriodOption>('30');
   const [customDateRange, setCustomDateRange] = useState<{ start: Date; end: Date } | null>(null);
+  const [selectedChannelIds, setSelectedChannelIds] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<SortOption>('engagement');
 
   const fetchVideos = useCallback(async () => {
     if (!clientId || !companyId) return;
@@ -78,30 +82,88 @@ export function useYouTubeAnalytics(clientId: string, companyId: string) {
     fetchVideos();
   }, [fetchVideos]);
 
-  // Calculate metrics
-  const metrics = {
-    totalVideos: videos.length,
-    totalViews: videos.reduce((sum, v) => sum + v.view_count, 0),
-    totalLikes: videos.reduce((sum, v) => sum + v.like_count, 0),
-    totalComments: videos.reduce((sum, v) => sum + v.comment_count, 0),
-    avgEngagementRate: videos.length > 0
-      ? videos.reduce((sum, v) => sum + (v.engagement_rate || 0), 0) / videos.length
-      : 0,
-    topVideo: videos[0] || null,
-  };
+  // Apply filters
+  const filteredVideos = useMemo(() => {
+    let result = [...videos];
 
-  // Get top videos by different criteria
-  const topByViews = [...videos].sort((a, b) => b.view_count - a.view_count).slice(0, 10);
-  const topByEngagement = [...videos].sort((a, b) => (b.engagement_rate || 0) - (a.engagement_rate || 0)).slice(0, 10);
-  const topByLikes = [...videos].sort((a, b) => b.like_count - a.like_count).slice(0, 10);
+    // Filter by selected channels
+    if (selectedChannelIds.length > 0) {
+      result = result.filter((v) => selectedChannelIds.includes(v.channel_id));
+    }
+
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter((v) => v.title.toLowerCase().includes(query));
+    }
+
+    // Sort
+    switch (sortBy) {
+      case 'engagement':
+        result.sort((a, b) => (b.engagement_rate || 0) - (a.engagement_rate || 0));
+        break;
+      case 'views':
+        result.sort((a, b) => b.view_count - a.view_count);
+        break;
+      case 'likes':
+        result.sort((a, b) => b.like_count - a.like_count);
+        break;
+      case 'comments':
+        result.sort((a, b) => b.comment_count - a.comment_count);
+        break;
+      case 'recent':
+        result.sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime());
+        break;
+      case 'oldest':
+        result.sort((a, b) => new Date(a.published_at).getTime() - new Date(b.published_at).getTime());
+        break;
+    }
+
+    return result;
+  }, [videos, selectedChannelIds, searchQuery, sortBy]);
+
+  // Calculate metrics from filtered videos
+  const metrics = useMemo(() => ({
+    totalVideos: filteredVideos.length,
+    totalViews: filteredVideos.reduce((sum, v) => sum + v.view_count, 0),
+    totalLikes: filteredVideos.reduce((sum, v) => sum + v.like_count, 0),
+    totalComments: filteredVideos.reduce((sum, v) => sum + v.comment_count, 0),
+    avgEngagementRate: filteredVideos.length > 0
+      ? filteredVideos.reduce((sum, v) => sum + (v.engagement_rate || 0), 0) / filteredVideos.length
+      : 0,
+    topVideo: filteredVideos[0] || null,
+  }), [filteredVideos]);
+
+  // Get top videos by different criteria (from filtered)
+  const topByViews = useMemo(() => 
+    [...filteredVideos].sort((a, b) => b.view_count - a.view_count).slice(0, 10),
+    [filteredVideos]
+  );
+  
+  const topByEngagement = useMemo(() => 
+    [...filteredVideos].sort((a, b) => (b.engagement_rate || 0) - (a.engagement_rate || 0)).slice(0, 10),
+    [filteredVideos]
+  );
+  
+  const topByLikes = useMemo(() => 
+    [...filteredVideos].sort((a, b) => b.like_count - a.like_count).slice(0, 10),
+    [filteredVideos]
+  );
 
   return {
-    videos,
+    videos: filteredVideos,
+    allVideos: videos,
     loading,
     period,
     setPeriod,
     customDateRange,
     setCustomDateRange,
+    selectedChannelIds,
+    setSelectedChannelIds,
+    searchQuery,
+    setSearchQuery,
+    sortBy,
+    setSortBy,
     metrics,
     topByViews,
     topByEngagement,
