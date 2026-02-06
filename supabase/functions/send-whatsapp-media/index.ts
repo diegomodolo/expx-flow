@@ -90,7 +90,137 @@ serve(async (req) => {
     const provider = config.provider || "zapi";
     console.log("[send-whatsapp-media] Using provider:", provider);
 
-    if (provider === "uazapi") {
+    if (provider === "meta") {
+      // Send via Meta Cloud API
+      let metaPhoneNumberId = config.meta_phone_number_id;
+      let metaAccessToken = config.meta_access_token;
+      
+      if (instance_id) {
+        // Get instance-specific Meta credentials
+        const { data: instance, error: instanceError } = await supabase
+          .from("whatsapp_instances")
+          .select("meta_phone_number_id, meta_access_token, is_connected")
+          .eq("id", instance_id)
+          .eq("is_active", true)
+          .single();
+        
+        if (instanceError || !instance) {
+          console.error("[send-whatsapp-media] Meta instance not found:", instanceError);
+          return new Response(
+            JSON.stringify({ success: false, error: "Instância Meta não encontrada ou inativa" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        if (!instance.is_connected) {
+          return new Response(
+            JSON.stringify({ success: false, error: "Instância Meta não está conectada" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        if (instance.meta_phone_number_id) {
+          metaPhoneNumberId = instance.meta_phone_number_id;
+          metaAccessToken = instance.meta_access_token;
+        }
+      }
+
+      if (!metaPhoneNumberId || !metaAccessToken) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Credenciais Meta não configuradas" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // For Meta, we need to first upload the media, then send it
+      // Step 1: Upload media to Meta's servers if it's a URL
+      let mediaId: string | null = null;
+      
+      if (file.startsWith("http://") || file.startsWith("https://")) {
+        // Download the file first, then upload to Meta
+        console.log("[send-whatsapp-media] Downloading file for Meta upload:", file);
+        
+        const fileResponse = await fetch(file);
+        const fileBlob = await fileResponse.blob();
+        
+        const formData = new FormData();
+        formData.append("file", fileBlob);
+        formData.append("messaging_product", "whatsapp");
+        formData.append("type", type === "ptt" ? "audio" : type);
+        
+        const uploadResponse = await fetch(
+          `https://graph.facebook.com/v18.0/${metaPhoneNumberId}/media`,
+          {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${metaAccessToken}`,
+            },
+            body: formData,
+          }
+        );
+        
+        const uploadData = await uploadResponse.json();
+        console.log("[send-whatsapp-media] Meta upload response:", uploadData);
+        
+        if (uploadData.id) {
+          mediaId = uploadData.id;
+        } else {
+          return new Response(
+            JSON.stringify({ success: false, error: uploadData.error?.message || "Erro ao fazer upload da mídia" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+      
+      // Step 2: Send the media message
+      const metaUrl = `https://graph.facebook.com/v18.0/${metaPhoneNumberId}/messages`;
+      
+      // Map our type to Meta's type
+      const metaType = type === "ptt" ? "audio" : type;
+      
+      const metaBody: any = {
+        messaging_product: "whatsapp",
+        recipient_type: "individual",
+        to: formattedPhone,
+        type: metaType,
+      };
+      
+      // Add media content based on type
+      if (mediaId) {
+        metaBody[metaType] = { id: mediaId };
+      } else if (file.startsWith("http://") || file.startsWith("https://")) {
+        metaBody[metaType] = { link: file };
+      }
+      
+      // Add caption for supported types
+      if (caption && (metaType === "image" || metaType === "video" || metaType === "document")) {
+        metaBody[metaType].caption = caption;
+      }
+      
+      // Add filename for documents
+      if (doc_name && metaType === "document") {
+        metaBody[metaType].filename = doc_name;
+      }
+
+      console.log("[send-whatsapp-media] Calling Meta Graph API:", metaUrl);
+
+      apiResponse = await fetch(metaUrl, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${metaAccessToken}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(metaBody),
+      });
+
+      apiData = await apiResponse.json();
+      console.log("[send-whatsapp-media] Meta response:", apiData);
+
+      // Extract message ID from Meta response
+      if (apiData.messages?.[0]?.id) {
+        apiData.messageId = apiData.messages[0].id;
+      }
+    } else if (provider === "uazapi") {
       // Find instance token
       let instanceToken: string | null = null;
       

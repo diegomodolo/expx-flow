@@ -141,7 +141,117 @@ serve(async (req) => {
     const provider = config.provider || "zapi";
     console.log("[send-whatsapp-notification] Using provider:", provider);
 
-    if (provider === "uazapi") {
+    if (provider === "meta") {
+      // Send via Meta Cloud API
+      // First, get the Meta instance for this company
+      let metaPhoneNumberId = config.meta_phone_number_id;
+      let metaAccessToken = config.meta_access_token;
+      
+      if (instance_id) {
+        // Get instance-specific Meta credentials
+        const { data: instance, error: instanceError } = await supabase
+          .from("whatsapp_instances")
+          .select("meta_phone_number_id, meta_access_token, is_connected")
+          .eq("id", instance_id)
+          .eq("is_active", true)
+          .single();
+        
+        if (instanceError || !instance) {
+          console.error("[send-whatsapp-notification] Meta instance not found:", instanceError);
+          return new Response(
+            JSON.stringify({ success: false, error: "Instância Meta não encontrada ou inativa" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        if (!instance.is_connected) {
+          return new Response(
+            JSON.stringify({ success: false, error: "Instância Meta não está conectada" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        if (instance.meta_phone_number_id) {
+          metaPhoneNumberId = instance.meta_phone_number_id;
+          metaAccessToken = instance.meta_access_token;
+        }
+        usedInstanceId = instance_id;
+      }
+
+      if (!metaPhoneNumberId || !metaAccessToken) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Credenciais Meta não configuradas" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Check 24-hour messaging window
+      // Get the last message from the recipient to check if we're within the window
+      const { data: lastIncoming } = await supabase
+        .from("whatsapp_messages")
+        .select("timestamp")
+        .eq("from_me", false)
+        .ilike("message_id", `%${formattedPhone.replace("55", "")}%`)
+        .order("timestamp", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const isWithin24Hours = lastIncoming 
+        ? (Date.now() - new Date(lastIncoming.timestamp).getTime()) < 24 * 60 * 60 * 1000
+        : false;
+
+      console.log("[send-whatsapp-notification] Meta 24h window check:", { 
+        lastIncoming: lastIncoming?.timestamp, 
+        isWithin24Hours 
+      });
+
+      // Build Meta API request
+      const metaUrl = `https://graph.facebook.com/v18.0/${metaPhoneNumberId}/messages`;
+      
+      let metaBody: any;
+      
+      if (isWithin24Hours) {
+        // Within 24h window - can send regular text message
+        metaBody = {
+          messaging_product: "whatsapp",
+          recipient_type: "individual",
+          to: formattedPhone,
+          type: "text",
+          text: { body: message }
+        };
+      } else {
+        // Outside 24h window - need to use a template
+        // For now, return an error indicating template is required
+        console.log("[send-whatsapp-notification] Outside 24h window, template required");
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: "Fora da janela de 24h. É necessário usar um template aprovado pela Meta.",
+            requires_template: true
+          }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      console.log("[send-whatsapp-notification] Calling Meta Graph API:", metaUrl);
+
+      apiResponse = await fetch(metaUrl, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${metaAccessToken}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(metaBody),
+      });
+
+      apiData = await apiResponse.json();
+      console.log("[send-whatsapp-notification] Meta response:", apiData);
+
+      // Extract message ID from Meta response
+      if (apiData.messages?.[0]?.id) {
+        apiData.messageId = apiData.messages[0].id;
+      }
+    } else if (provider === "uazapi") {
       // For UazapiGO v2, find the instance to use and get its token
       let instanceToken: string | null = null;
       
