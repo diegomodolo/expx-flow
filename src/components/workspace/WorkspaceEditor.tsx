@@ -161,7 +161,7 @@ export function WorkspaceEditor({ document }: WorkspaceEditorProps) {
 
       {/* Editor */}
       <div className="flex-1 overflow-auto">
-        <div className="max-w-4xl mx-auto py-8 px-4">
+        <div className="w-full h-full py-4 px-6">
           <BlockNoteView 
             editor={editor} 
             onChange={saveContent}
