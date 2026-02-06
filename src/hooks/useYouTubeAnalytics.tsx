@@ -50,14 +50,15 @@ export function useYouTubeAnalytics(clientId: string, companyId: string) {
         startDate.setDate(startDate.getDate() - days);
       }
 
-      // Fetch videos with channel info
+      // Fetch videos with channel info - only from active channels
       const { data, error } = await supabase
         .from('youtube_video_analyses')
         .select(`
           *,
-          youtube_monitored_channels!inner(channel_name)
+          youtube_monitored_channels!inner(channel_name, is_active)
         `)
         .eq('client_id', clientId)
+        .eq('youtube_monitored_channels.is_active', true)
         .gte('published_at', startDate.toISOString())
         .lte('published_at', endDate.toISOString())
         .order('engagement_rate', { ascending: false, nullsFirst: false });
