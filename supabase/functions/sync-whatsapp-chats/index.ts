@@ -43,10 +43,16 @@ serve(async (req) => {
       );
     }
 
+    // Para Meta e Z-API, sincronização manual não é suportada - mensagens chegam via webhook
     if (config.provider !== "uazapi") {
+      console.log(`[sync-whatsapp-chats] Provider '${config.provider}' não suporta sincronização manual`);
       return new Response(
-        JSON.stringify({ error: "Sincronização disponível apenas para UazapiGO" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ 
+          success: true, 
+          synced: 0, 
+          message: `Sincronização automática via webhook para ${config.provider === 'meta' ? 'Meta Cloud API' : 'Z-API'}` 
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
