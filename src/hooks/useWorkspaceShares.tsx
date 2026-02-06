@@ -54,30 +54,23 @@ export function useWorkspaceShares(resourceType?: 'folder' | 'document', resourc
     queryFn: async () => {
       if (!activeCompany?.company_id) return [];
       
-      // Get all company members
-      const { data: members, error: membersError } = await supabase
-        .from('company_members')
-        .select('user_id')
-        .eq('company_id', activeCompany.company_id);
+      // Get only active employees from the company
+      const { data: employees, error: employeesError } = await supabase
+        .from('employees')
+        .select('user_id, name, avatar')
+        .eq('company_id', activeCompany.company_id)
+        .eq('status', 'active');
       
-      if (membersError) throw membersError;
-      if (!members || members.length === 0) return [];
+      if (employeesError) throw employeesError;
+      if (!employees || employees.length === 0) return [];
       
-      const userIds = members.map(m => m.user_id);
-      
-      // Get profiles for these users
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('user_id, full_name, avatar_url')
-        .in('user_id', userIds);
-      
-      if (profilesError) throw profilesError;
-      
-      return (profiles || []).map((profile: any) => ({
-        user_id: profile.user_id,
-        full_name: profile.full_name || 'Usuário',
-        avatar_url: profile.avatar_url,
-      }));
+      return employees
+        .filter((emp: any) => emp.user_id) // Only employees with linked user accounts
+        .map((emp: any) => ({
+          user_id: emp.user_id,
+          full_name: emp.name || 'Usuário',
+          avatar_url: emp.avatar,
+        }));
     },
     enabled: !!activeCompany?.company_id,
   });
