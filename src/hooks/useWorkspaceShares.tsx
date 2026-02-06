@@ -54,23 +54,29 @@ export function useWorkspaceShares(resourceType?: 'folder' | 'document', resourc
     queryFn: async () => {
       if (!activeCompany?.company_id) return [];
       
-      const { data, error } = await supabase
+      // Get all company members
+      const { data: members, error: membersError } = await supabase
         .from('company_members')
-        .select(`
-          user_id,
-          profiles:user_id (
-            full_name,
-            avatar_url
-          )
-        `)
+        .select('user_id')
         .eq('company_id', activeCompany.company_id);
       
-      if (error) throw error;
+      if (membersError) throw membersError;
+      if (!members || members.length === 0) return [];
       
-      return (data || []).map((member: any) => ({
-        user_id: member.user_id,
-        full_name: member.profiles?.full_name || 'Usuário',
-        avatar_url: member.profiles?.avatar_url,
+      const userIds = members.map(m => m.user_id);
+      
+      // Get profiles for these users
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, avatar_url')
+        .in('user_id', userIds);
+      
+      if (profilesError) throw profilesError;
+      
+      return (profiles || []).map((profile: any) => ({
+        user_id: profile.user_id,
+        full_name: profile.full_name || 'Usuário',
+        avatar_url: profile.avatar_url,
       }));
     },
     enabled: !!activeCompany?.company_id,
