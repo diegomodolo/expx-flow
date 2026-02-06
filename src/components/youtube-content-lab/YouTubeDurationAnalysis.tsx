@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { YouTubeVideo } from "@/hooks/useYouTubeAnalytics";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ScatterChart, Scatter, ZAxis } from "recharts";
 import { Clock, TrendingUp } from "lucide-react";
+import { TranslatedTitle } from "./TranslatedTitle";
 
 interface YouTubeDurationAnalysisProps {
   videos: YouTubeVideo[];
@@ -197,7 +198,11 @@ export function YouTubeDurationAnalysis({ videos }: YouTubeDurationAnalysisProps
                     const data = payload[0].payload;
                     return (
                       <div className="bg-background border rounded-lg p-3 shadow-lg max-w-xs">
-                        <p className="font-medium text-sm truncate">{data.title}</p>
+                        <TranslatedTitle 
+                          title={data.title} 
+                          className="font-medium text-sm"
+                          showIcon={false}
+                        />
                         <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
                           <p>Duração: {data.duration} min</p>
                           <p>Engajamento: {data.engagement.toFixed(2)}%</p>
