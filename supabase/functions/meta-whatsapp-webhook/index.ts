@@ -120,6 +120,18 @@ Deno.serve(async (req) => {
           continue;
         }
 
+        // Find the Meta instance for this company
+        const { data: metaInstance } = await supabaseAdmin
+          .from("whatsapp_instances")
+          .select("id")
+          .eq("company_id", config.company_id)
+          .eq("meta_phone_number_id", config.meta_phone_number_id)
+          .eq("is_active", true)
+          .maybeSingle();
+
+        const instanceId = metaInstance?.id || null;
+        console.log("Found Meta instance:", instanceId);
+
         for (const change of entry.changes || []) {
           if (change.field === "messages") {
             const value = change.value;
@@ -164,12 +176,16 @@ Deno.serve(async (req) => {
                   content = `[${message.type}]`;
               }
 
+              // Format phone for storage
+              const formattedPhone = from.startsWith("55") ? from : `55${from}`;
+              const remoteJid = from + "@s.whatsapp.net";
+
               // Find or create conversation
               let { data: conversation } = await supabaseAdmin
                 .from("whatsapp_conversations")
                 .select("id")
                 .eq("company_id", config.company_id)
-                .eq("remote_jid", from + "@s.whatsapp.net")
+                .eq("phone", formattedPhone)
                 .maybeSingle();
 
               if (!conversation) {
@@ -181,10 +197,11 @@ Deno.serve(async (req) => {
                   .from("whatsapp_conversations")
                   .insert({
                     company_id: config.company_id,
-                    instance_id: null, // Meta doesn't use our instance system
-                    remote_jid: from + "@s.whatsapp.net",
-                    push_name: profileName,
+                    instance_id: instanceId, // Now associates with the Meta instance
+                    phone: formattedPhone,
+                    contact_name: profileName,
                     last_message_at: timestamp,
+                    last_message_preview: content.substring(0, 100),
                     unread_count: 1,
                     provider: "meta",
                   })
@@ -192,15 +209,20 @@ Deno.serve(async (req) => {
                   .single();
 
                 conversation = newConv;
+                console.log("Created new conversation:", conversation?.id);
               } else {
                 // Update existing conversation
                 await supabaseAdmin
                   .from("whatsapp_conversations")
                   .update({
                     last_message_at: timestamp,
+                    last_message_preview: content.substring(0, 100),
                     unread_count: supabaseAdmin.rpc("increment", { value: 1 }),
+                    instance_id: instanceId, // Update instance_id if it was null
+                    provider: "meta",
                   })
                   .eq("id", conversation.id);
+                console.log("Updated conversation:", conversation.id);
               }
 
               if (conversation) {
@@ -215,6 +237,7 @@ Deno.serve(async (req) => {
                   status: "received",
                   raw_data: message,
                 });
+                console.log("Inserted message:", messageId);
               }
             }
 

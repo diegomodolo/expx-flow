@@ -22,6 +22,7 @@ export interface WhatsAppConversation {
   client_team_id?: string | null; // Joined from clients table
   label_ids: string[] | null; // Labels assigned to this conversation
   temperature?: ConversationTemperature; // From realtime analysis
+  provider?: string; // Provider: uazapi, meta, zapi
   created_at: string;
   updated_at: string;
 }
