@@ -6,41 +6,70 @@ const translationCache = new Map<string, string>();
 
 // Detect if text is likely English
 function isLikelyEnglish(text: string): boolean {
-  // Common English words that are unlikely in Portuguese
+  if (!text) return false;
+
+  // Quick Portuguese indicators
+  const hasPortugueseChars = /[áàâãéèêíìîóòôõúùûç]/i.test(text);
+  if (hasPortugueseChars) return false;
+
+  // Common Portuguese stopwords (if present, likely already pt-BR)
+  const portugueseStopWords = new Set([
+    "o", "a", "os", "as", "um", "uma", "uns", "umas",
+    "de", "da", "do", "das", "dos",
+    "em", "na", "no", "nas", "nos",
+    "por", "para", "com", "sem",
+    "que", "como", "mais", "menos",
+  ]);
+
+  // Common English words (plus some common tech/video words)
   const englishWords = new Set([
     // Very common English words
-    'the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'had', 'her', 'was', 
-    'one', 'our', 'out', 'day', 'get', 'has', 'him', 'his', 'how', 'its', 'may', 'new', 
-    'now', 'old', 'see', 'two', 'way', 'who', 'did', 'let', 'put', 'say', 'she', 'too', 
-    'use', 'that', 'this', 'with', 'have', 'from', 'they', 'been', 'will', 'your', 'when',
-    'what', 'where', 'which', 'while', 'about', 'after', 'being', 'could', 'every', 'first',
-    'found', 'great', 'house', 'large', 'little', 'never', 'other', 'place', 'right', 'small',
-    'sound', 'still', 'their', 'there', 'these', 'thing', 'think', 'those', 'three', 'under',
-    'water', 'world', 'would', 'write', 'years', 'young', 'into', 'just', 'know', 'take',
-    'people', 'year', 'good', 'some', 'them', 'than', 'then', 'look', 'only', 'come', 'over',
-    'such', 'make', 'because', 'back', 'through', 'most', 'want', 'give', 'much', 'before',
+    "the", "and", "for", "are", "but", "not", "you", "all", "can", "had", "her", "was",
+    "one", "our", "out", "day", "get", "has", "him", "his", "how", "its", "may", "new",
+    "now", "old", "see", "two", "way", "who", "did", "let", "put", "say", "she", "too",
+    "use", "that", "this", "with", "have", "from", "they", "been", "will", "your", "when",
+    "what", "where", "which", "while", "about", "after", "being", "could", "every", "first",
+    "found", "great", "house", "large", "little", "never", "other", "place", "right", "small",
+    "sound", "still", "their", "there", "these", "thing", "think", "those", "three", "under",
+    "water", "world", "would", "write", "years", "young", "into", "just", "know", "take",
+    "people", "year", "good", "some", "them", "than", "then", "look", "only", "come", "over",
+    "such", "make", "because", "back", "through", "most", "want", "give", "much", "before",
+
     // Tech/business words commonly in English
-    'tools', 'tool', 'framework', 'works', 'proven', 'strategies', 'strategy', 'increase',
-    'leads', 'demand', 'generation', 'method', 'faster', 'seconds', 'open', 'source', 'feel',
-    'illegal', 'market', 'goes', 'wrong', 'best', 'worst', 'top', 'tips', 'tricks', 'guide',
-    'tutorial', 'learn', 'build', 'create', 'why', 'everything', 'need', 'know', 'complete',
-    'ultimate', 'beginner', 'advanced', 'masterclass', 'explained', 'crash', 'course',
-    'secrets', 'revealed', 'hidden', 'features', 'update', 'review', 'versus', 'compared',
+    "tools", "tool", "framework", "works", "proven", "strategies", "strategy", "increase",
+    "leads", "demand", "generation", "method", "faster", "seconds", "open", "source", "code",
+    "market", "best", "top", "tips", "tricks", "guide", "tutorial", "learn", "build", "create",
+    "complete", "ultimate", "beginner", "advanced", "masterclass", "explained", "crash", "course",
+    "features", "update", "review", "versus", "compared",
+
+    // Common proper nouns / terms seen in YT tech titles
+    "windows", "search", "microsoft", "situation", "lost", "tech", "read",
   ]);
 
   // Extract words from text
-  const words = text.toLowerCase().replace(/[^\w\s]/g, ' ').split(/\s+/).filter(w => w.length > 1);
-  
-  // Count English word matches
+  const words = text
+    .toLowerCase()
+    .replace(/[^\w\s]/g, " ")
+    .split(/\s+/)
+    .filter((w) => w.length > 1);
+
+  if (words.length === 0) return false;
+  if (words.some((w) => portugueseStopWords.has(w))) return false;
+
   let englishCount = 0;
   for (const word of words) {
-    if (englishWords.has(word)) {
-      englishCount++;
-    }
+    if (englishWords.has(word)) englishCount++;
   }
 
-  // If at least 2 English words found, consider it English
-  return englishCount >= 2;
+  // If at least one English word found, consider it English
+  if (englishCount >= 1) return true;
+
+  // Fallback heuristics for short titles (ex: "Windows search")
+  const lower = text.toLowerCase();
+  if (/\b\w+(ing|tion|ment|less|able|ness)\b/.test(lower)) return true;
+  if (/[wyk]/.test(lower) && words.length >= 2) return true;
+
+  return false;
 }
 
 export function useTranslation() {
