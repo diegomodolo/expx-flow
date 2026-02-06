@@ -1,0 +1,320 @@
+import { useState, useEffect, useRef } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { YouTubeScript, ScriptMessage } from "@/hooks/useYouTubeScripts";
+import {
+  ArrowLeft,
+  Save,
+  Send,
+  Loader2,
+  Sparkles,
+  Copy,
+  Check,
+  ChevronDown,
+  FileText,
+} from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ReactMarkdown from "react-markdown";
+
+interface YouTubeScriptBuilderProps {
+  script: YouTubeScript;
+  onClose: () => void;
+  onUpdate: (updates: Partial<YouTubeScript>) => Promise<void>;
+  onSendMessage: (message: string) => Promise<any>;
+  onGenerateTitles: (style: string) => Promise<any>;
+  fetchMessages: () => Promise<ScriptMessage[]>;
+}
+
+export function YouTubeScriptBuilder({
+  script,
+  onClose,
+  onUpdate,
+  onSendMessage,
+  onGenerateTitles,
+  fetchMessages,
+}: YouTubeScriptBuilderProps) {
+  const [content, setContent] = useState(script.script_content);
+  const [title, setTitle] = useState(script.title);
+  const [messages, setMessages] = useState<ScriptMessage[]>([]);
+  const [chatInput, setChatInput] = useState("");
+  const [sending, setSending] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [generatingTitles, setGeneratingTitles] = useState(false);
+  const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    loadMessages();
+  }, [script.id]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const loadMessages = async () => {
+    const msgs = await fetchMessages();
+    setMessages(msgs);
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await onUpdate({
+        title,
+        script_content: content,
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!chatInput.trim() || sending) return;
+
+    const userMessage = chatInput;
+    setChatInput("");
+    setSending(true);
+
+    // Optimistically add user message
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: `temp-${Date.now()}`,
+        script_id: script.id,
+        role: "user",
+        content: userMessage,
+        created_at: new Date().toISOString(),
+      },
+    ]);
+
+    try {
+      const result = await onSendMessage(userMessage);
+      if (result?.response) {
+        setMessages((prev) => [
+          ...prev.filter((m) => !m.id.startsWith("temp-")),
+          {
+            id: `temp-user-${Date.now()}`,
+            script_id: script.id,
+            role: "user",
+            content: userMessage,
+            created_at: new Date().toISOString(),
+          },
+          {
+            id: `temp-assistant-${Date.now()}`,
+            script_id: script.id,
+            role: "assistant",
+            content: result.response,
+            created_at: new Date().toISOString(),
+          },
+        ]);
+      }
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(content);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleGenerateTitles = async (style: string) => {
+    setGeneratingTitles(true);
+    try {
+      await onGenerateTitles(style);
+    } finally {
+      setGeneratingTitles(false);
+    }
+  };
+
+  const handleSelectTitle = (newTitle: string) => {
+    setTitle(newTitle);
+  };
+
+  return (
+    <div className="h-[calc(100vh-8rem)] flex flex-col">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={onClose}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <Input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="text-lg font-semibold border-none px-0 h-auto focus-visible:ring-0"
+              placeholder="Título do roteiro"
+            />
+            <div className="flex items-center gap-2 mt-1">
+              <Badge variant="secondary">
+                {script.video_duration_target
+                  ? `${Math.round(script.video_duration_target / 60)} min`
+                  : "Duração não definida"}
+              </Badge>
+              <Badge variant="outline">{script.status}</Badge>
+            </div>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleCopy}>
+            {copied ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
+            {copied ? "Copiado!" : "Copiar"}
+          </Button>
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4 mr-2" />
+            )}
+            Salvar
+          </Button>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-0">
+        {/* Script Editor */}
+        <Card className="lg:col-span-2 flex flex-col">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">Roteiro</CardTitle>
+              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "edit" | "preview")}>
+                <TabsList className="h-8">
+                  <TabsTrigger value="edit" className="text-xs">Editar</TabsTrigger>
+                  <TabsTrigger value="preview" className="text-xs">Preview</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+          </CardHeader>
+          <CardContent className="flex-1 overflow-hidden">
+            {activeTab === "edit" ? (
+              <Textarea
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                className="h-full min-h-[400px] font-mono text-sm resize-none"
+                placeholder="Escreva seu roteiro aqui..."
+              />
+            ) : (
+              <ScrollArea className="h-full min-h-[400px]">
+                <div className="prose prose-sm dark:prose-invert max-w-none">
+                  <ReactMarkdown>{content}</ReactMarkdown>
+                </div>
+              </ScrollArea>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Chat & Titles */}
+        <div className="flex flex-col gap-4 min-h-0">
+          {/* Chat */}
+          <Card className="flex-1 flex flex-col min-h-0">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Chat com IA</CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden">
+              <ScrollArea className="flex-1 pr-4">
+                <div className="space-y-4">
+                  {messages.map((msg) => (
+                    <div
+                      key={msg.id}
+                      className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                    >
+                      <div
+                        className={`max-w-[85%] rounded-lg px-3 py-2 text-sm ${
+                          msg.role === "user"
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted"
+                        }`}
+                      >
+                        <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:mb-2 [&>p:last-child]:mb-0">
+                          <ReactMarkdown>{msg.content}</ReactMarkdown>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {sending && (
+                    <div className="flex justify-start">
+                      <div className="bg-muted rounded-lg px-3 py-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      </div>
+                    </div>
+                  )}
+                  <div ref={messagesEndRef} />
+                </div>
+              </ScrollArea>
+              <div className="flex gap-2 mt-4 pt-4 border-t">
+                <Input
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  placeholder="Peça ajustes no roteiro..."
+                  onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSendMessage()}
+                  disabled={sending}
+                />
+                <Button size="icon" onClick={handleSendMessage} disabled={sending || !chatInput.trim()}>
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Titles */}
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base">Títulos Sugeridos</CardTitle>
+                <Select onValueChange={handleGenerateTitles} disabled={generatingTitles}>
+                  <SelectTrigger className="w-[120px] h-8">
+                    <SelectValue placeholder={generatingTitles ? "Gerando..." : "Gerar"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="mixed">Variados</SelectItem>
+                    <SelectItem value="curiosity">Curiosidade</SelectItem>
+                    <SelectItem value="urgency">Urgência</SelectItem>
+                    <SelectItem value="benefit">Benefício</SelectItem>
+                    <SelectItem value="provocative">Provocativo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className="h-[150px]">
+                <div className="space-y-2">
+                  {script.suggested_titles.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      Clique em "Gerar" para criar títulos
+                    </p>
+                  ) : (
+                    script.suggested_titles.map((t, i) => (
+                      <Button
+                        key={i}
+                        variant={t === title ? "secondary" : "ghost"}
+                        className="w-full justify-start h-auto py-2 px-3 text-left"
+                        onClick={() => handleSelectTitle(t)}
+                      >
+                        <span className="line-clamp-2 text-sm">{t}</span>
+                      </Button>
+                    ))
+                  )}
+                </div>
+              </ScrollArea>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}

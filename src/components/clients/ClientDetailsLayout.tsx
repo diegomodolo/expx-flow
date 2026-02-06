@@ -53,6 +53,7 @@ import {
   PenTool,
   Presentation,
   Heart,
+  Youtube,
 } from "lucide-react";
 
 interface ClientDetailsLayoutProps {
@@ -141,6 +142,7 @@ export function ClientDetailsLayout({ children, clientId, clientName, dashboardT
         { title: "Fábrica de Carrosseis", href: `/clientes/${clientId}/fabrica-carrosseis`, icon: Layers },
         { title: "Fábrica de Criativos", href: `/clientes/${clientId}/fabrica-criativos`, icon: Palette },
         { title: "Redes Sociais", href: `/clientes/${clientId}/redes-sociais`, icon: Share2 },
+        { title: "YouTube Content Lab", href: `/clientes/${clientId}/youtube-content-lab`, icon: Youtube },
       ]
     },
     {
