@@ -474,3 +474,6 @@ verify_jwt = true
 
 [functions.generate-video-suggestions]
 verify_jwt = true
+
+[functions.translate-text]
+verify_jwt = true
