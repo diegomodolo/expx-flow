@@ -7,20 +7,40 @@ const translationCache = new Map<string, string>();
 // Detect if text is likely English
 function isLikelyEnglish(text: string): boolean {
   // Common English words that are unlikely in Portuguese
-  const englishIndicators = [
-    /\b(the|and|for|are|but|not|you|all|can|had|her|was|one|our|out|day|get|has|him|his|how|its|may|new|now|old|see|two|way|who|did|its|let|put|say|she|too|use)\b/i,
-    /\b(what|when|where|which|while|about|after|being|could|every|first|found|great|house|large|little|never|other|place|right|small|sound|still|their|there|these|thing|think|those|three|under|water|where|world|would|write|years|young)\b/i,
-    /\b(how to|what is|why do|can you|will be|has been|have been|would be)\b/i,
-  ];
+  const englishWords = new Set([
+    // Very common English words
+    'the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'had', 'her', 'was', 
+    'one', 'our', 'out', 'day', 'get', 'has', 'him', 'his', 'how', 'its', 'may', 'new', 
+    'now', 'old', 'see', 'two', 'way', 'who', 'did', 'let', 'put', 'say', 'she', 'too', 
+    'use', 'that', 'this', 'with', 'have', 'from', 'they', 'been', 'will', 'your', 'when',
+    'what', 'where', 'which', 'while', 'about', 'after', 'being', 'could', 'every', 'first',
+    'found', 'great', 'house', 'large', 'little', 'never', 'other', 'place', 'right', 'small',
+    'sound', 'still', 'their', 'there', 'these', 'thing', 'think', 'those', 'three', 'under',
+    'water', 'world', 'would', 'write', 'years', 'young', 'into', 'just', 'know', 'take',
+    'people', 'year', 'good', 'some', 'them', 'than', 'then', 'look', 'only', 'come', 'over',
+    'such', 'make', 'because', 'back', 'through', 'most', 'want', 'give', 'much', 'before',
+    // Tech/business words commonly in English
+    'tools', 'tool', 'framework', 'works', 'proven', 'strategies', 'strategy', 'increase',
+    'leads', 'demand', 'generation', 'method', 'faster', 'seconds', 'open', 'source', 'feel',
+    'illegal', 'market', 'goes', 'wrong', 'best', 'worst', 'top', 'tips', 'tricks', 'guide',
+    'tutorial', 'learn', 'build', 'create', 'why', 'everything', 'need', 'know', 'complete',
+    'ultimate', 'beginner', 'advanced', 'masterclass', 'explained', 'crash', 'course',
+    'secrets', 'revealed', 'hidden', 'features', 'update', 'review', 'versus', 'compared',
+  ]);
 
-  // Count matches
-  let matches = 0;
-  for (const pattern of englishIndicators) {
-    if (pattern.test(text)) matches++;
+  // Extract words from text
+  const words = text.toLowerCase().replace(/[^\w\s]/g, ' ').split(/\s+/).filter(w => w.length > 1);
+  
+  // Count English word matches
+  let englishCount = 0;
+  for (const word of words) {
+    if (englishWords.has(word)) {
+      englishCount++;
+    }
   }
 
-  // If more than 1 indicator, likely English
-  return matches >= 1;
+  // If at least 2 English words found, consider it English
+  return englishCount >= 2;
 }
 
 export function useTranslation() {
