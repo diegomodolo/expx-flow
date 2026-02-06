@@ -1,4 +1,4 @@
-import { AlertTriangle, Sun, Moon, LogOut, User, ChevronDown } from "lucide-react";
+import { AlertTriangle, Sun, Moon, LogOut, User, ChevronDown, FileText } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -135,6 +135,17 @@ export function DashboardHeader() {
 
           {/* Pending Ads Notification */}
           <PendingAdsNotification />
+
+          {/* Workspace Quick Access */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate('/workspace')}
+            className="w-10 h-10 rounded-full hover:bg-muted/60"
+            title="Workspace"
+          >
+            <FileText className="h-5 w-5 text-muted-foreground" />
+          </Button>
 
           {/* WhatsApp Chat - Only show if user has instances assigned */}
           {hasWhatsAppInstances && (

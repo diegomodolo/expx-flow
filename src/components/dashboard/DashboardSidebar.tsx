@@ -33,6 +33,7 @@ import {
   Heart,
   Rocket,
   Briefcase,
+  NotebookText,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useEmployeePermissions, MenuItemType } from "@/hooks/useEmployeePermissions";
@@ -121,6 +122,7 @@ const menuCategories: MenuCategory[] = [
         { title: "Squad", url: "/squad", icon: UsersRound, permission: "squad" as MenuItemType },
         { title: "Tarefas", url: "/tarefas", icon: CheckSquare, permission: "tarefas" as MenuItemType },
         { title: "Tarefas Recorrentes", url: "/tarefas-recorrentes", icon: RotateCcw, permission: "tarefas" as MenuItemType },
+        { title: "Workspace", url: "/workspace", icon: NotebookText, permission: "dashboard" as MenuItemType },
       ].sort((a, b) => a.title.localeCompare(b.title, 'pt-BR')),
     },
     {
