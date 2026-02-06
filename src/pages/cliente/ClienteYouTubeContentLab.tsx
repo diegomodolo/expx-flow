@@ -119,12 +119,22 @@ export default function ClienteYouTubeContentLab() {
         <TabsContent value="analytics" className="mt-6">
           <YouTubeVideoAnalytics
             videos={analyticsHook.videos}
+            allVideos={analyticsHook.allVideos}
             loading={analyticsHook.loading}
             period={analyticsHook.period}
             onPeriodChange={analyticsHook.setPeriod}
+            customDateRange={analyticsHook.customDateRange}
+            onCustomDateChange={analyticsHook.setCustomDateRange}
+            selectedChannelIds={analyticsHook.selectedChannelIds}
+            onChannelSelect={analyticsHook.setSelectedChannelIds}
+            searchQuery={analyticsHook.searchQuery}
+            onSearchChange={analyticsHook.setSearchQuery}
+            sortBy={analyticsHook.sortBy}
+            onSortChange={analyticsHook.setSortBy}
             metrics={analyticsHook.metrics}
             topByViews={analyticsHook.topByViews}
             topByEngagement={analyticsHook.topByEngagement}
+            channels={channelsHook.channels}
             onCreateScript={(topic) => {
               scriptsHook.generateScript(topic);
               setActiveTab("scripts");
