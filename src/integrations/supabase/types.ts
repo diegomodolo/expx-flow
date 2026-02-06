@@ -11015,6 +11015,14 @@ export type Database = {
           is_active: boolean | null
           is_connected: boolean | null
           last_connection_test: string | null
+          meta_access_token: string | null
+          meta_app_id: string | null
+          meta_business_account_id: string | null
+          meta_is_connected: boolean | null
+          meta_last_connection_test: string | null
+          meta_phone_number: string | null
+          meta_phone_number_id: string | null
+          meta_webhook_verify_token: string | null
           provider: string | null
           token: string | null
           uazapi_admintoken: string | null
@@ -11033,6 +11041,14 @@ export type Database = {
           is_active?: boolean | null
           is_connected?: boolean | null
           last_connection_test?: string | null
+          meta_access_token?: string | null
+          meta_app_id?: string | null
+          meta_business_account_id?: string | null
+          meta_is_connected?: boolean | null
+          meta_last_connection_test?: string | null
+          meta_phone_number?: string | null
+          meta_phone_number_id?: string | null
+          meta_webhook_verify_token?: string | null
           provider?: string | null
           token?: string | null
           uazapi_admintoken?: string | null
@@ -11051,6 +11067,14 @@ export type Database = {
           is_active?: boolean | null
           is_connected?: boolean | null
           last_connection_test?: string | null
+          meta_access_token?: string | null
+          meta_app_id?: string | null
+          meta_business_account_id?: string | null
+          meta_is_connected?: boolean | null
+          meta_last_connection_test?: string | null
+          meta_phone_number?: string | null
+          meta_phone_number_id?: string | null
+          meta_webhook_verify_token?: string | null
           provider?: string | null
           token?: string | null
           uazapi_admintoken?: string | null
@@ -11379,6 +11403,9 @@ export type Database = {
           is_active: boolean | null
           is_connected: boolean | null
           last_connection_test: string | null
+          meta_access_token: string | null
+          meta_business_account_id: string | null
+          meta_phone_number_id: string | null
           profile_name: string | null
           profile_pic_url: string | null
           receive_group_messages: boolean | null
@@ -11398,6 +11425,9 @@ export type Database = {
           is_active?: boolean | null
           is_connected?: boolean | null
           last_connection_test?: string | null
+          meta_access_token?: string | null
+          meta_business_account_id?: string | null
+          meta_phone_number_id?: string | null
           profile_name?: string | null
           profile_pic_url?: string | null
           receive_group_messages?: boolean | null
@@ -11417,6 +11447,9 @@ export type Database = {
           is_active?: boolean | null
           is_connected?: boolean | null
           last_connection_test?: string | null
+          meta_access_token?: string | null
+          meta_business_account_id?: string | null
+          meta_phone_number_id?: string | null
           profile_name?: string | null
           profile_pic_url?: string | null
           receive_group_messages?: boolean | null
@@ -11558,6 +11591,81 @@ export type Database = {
             columns: ["reply_to_message_id"]
             isOneToOne: false
             referencedRelation: "whatsapp_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_meta_templates: {
+        Row: {
+          body_text: string
+          buttons: Json | null
+          category: string
+          company_id: string
+          created_at: string
+          footer_text: string | null
+          header_format: string | null
+          header_text: string | null
+          id: string
+          instance_id: string | null
+          language: string
+          status: string
+          synced_at: string | null
+          template_id: string
+          template_name: string
+          updated_at: string
+          variables: Json | null
+        }
+        Insert: {
+          body_text: string
+          buttons?: Json | null
+          category: string
+          company_id: string
+          created_at?: string
+          footer_text?: string | null
+          header_format?: string | null
+          header_text?: string | null
+          id?: string
+          instance_id?: string | null
+          language?: string
+          status?: string
+          synced_at?: string | null
+          template_id: string
+          template_name: string
+          updated_at?: string
+          variables?: Json | null
+        }
+        Update: {
+          body_text?: string
+          buttons?: Json | null
+          category?: string
+          company_id?: string
+          created_at?: string
+          footer_text?: string | null
+          header_format?: string | null
+          header_text?: string | null
+          id?: string
+          instance_id?: string | null
+          language?: string
+          status?: string
+          synced_at?: string | null
+          template_id?: string
+          template_name?: string
+          updated_at?: string
+          variables?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_meta_templates_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_meta_templates_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_instances"
             referencedColumns: ["id"]
           },
         ]
