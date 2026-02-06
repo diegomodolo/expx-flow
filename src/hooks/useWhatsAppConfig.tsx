@@ -18,6 +18,12 @@ export interface WhatsAppConfig {
   uazapi_token: string | null;
   uazapi_admintoken: string | null;
   uazapi_session: string | null;
+  // Meta Cloud API fields
+  meta_phone_number_id: string | null;
+  meta_access_token: string | null;
+  meta_business_account_id: string | null;
+  meta_app_id: string | null;
+  meta_webhook_verify_token: string | null;
 }
 
 interface WhatsAppPreferences {
@@ -151,6 +157,90 @@ export function useWhatsAppConfig(companyId: string | undefined) {
     onError: (error: any) => {
       toast({ 
         title: "Erro ao salvar configuração", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    },
+  });
+
+  // Save Meta Cloud API config mutation
+  const saveMetaConfigMutation = useMutation({
+    mutationFn: async (configData: {
+      phone_number_id: string;
+      access_token: string;
+      business_account_id: string;
+      app_id: string;
+      webhook_verify_token: string;
+    }) => {
+      if (!companyId) throw new Error("Company ID required");
+      
+      const { error } = await supabase
+        .from("whatsapp_configs")
+        .upsert({
+          company_id: companyId,
+          provider: "meta",
+          meta_phone_number_id: configData.phone_number_id,
+          meta_access_token: configData.access_token,
+          meta_business_account_id: configData.business_account_id,
+          meta_app_id: configData.app_id,
+          meta_webhook_verify_token: configData.webhook_verify_token,
+        }, { onConflict: "company_id" });
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["whatsapp-config", companyId] });
+      toast({ title: "Configuração Meta Cloud API salva com sucesso" });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Erro ao salvar configuração", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    },
+  });
+
+  // Test Meta Cloud API connection mutation
+  const testMetaConnectionMutation = useMutation({
+    mutationFn: async () => {
+      if (!config?.meta_phone_number_id || !config?.meta_access_token) {
+        throw new Error("Configure o Phone Number ID e Access Token primeiro");
+      }
+      
+      // Test by calling Meta's Graph API to get phone number details
+      const response = await fetch(
+        `https://graph.facebook.com/v18.0/${config.meta_phone_number_id}?access_token=${config.meta_access_token}`
+      );
+      
+      const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error.message || "Erro na API do Meta");
+      }
+      
+      // Update connection status
+      await supabase
+        .from("whatsapp_configs")
+        .update({
+          is_connected: true,
+          connected_phone: data.display_phone_number || data.verified_name,
+          last_connection_test: new Date().toISOString(),
+        })
+        .eq("company_id", companyId);
+      
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["whatsapp-config", companyId] });
+      toast({ 
+        title: "Conexão estabelecida!", 
+        description: `Conectado: ${data.display_phone_number || data.verified_name}` 
+      });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Erro ao testar conexão", 
         description: error.message,
         variant: "destructive" 
       });
@@ -367,10 +457,14 @@ export function useWhatsAppConfig(companyId: string | undefined) {
     isSavingConfig: saveConfigMutation.isPending,
     saveUazapiConfig: saveUazapiConfigMutation.mutate,
     isSavingUazapiConfig: saveUazapiConfigMutation.isPending,
+    saveMetaConfig: saveMetaConfigMutation.mutate,
+    isSavingMetaConfig: saveMetaConfigMutation.isPending,
     testConnection: testConnectionMutation.mutate,
     isTestingConnection: testConnectionMutation.isPending,
     testUazapiConnection: testUazapiConnectionMutation.mutate,
     isTestingUazapiConnection: testUazapiConnectionMutation.isPending,
+    testMetaConnection: testMetaConnectionMutation.mutate,
+    isTestingMetaConnection: testMetaConnectionMutation.isPending,
     savePreferences: savePreferencesMutation.mutate,
     isSavingPreferences: savePreferencesMutation.isPending,
     addRecipient: addRecipientMutation.mutate,
