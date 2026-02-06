@@ -1,357 +1,182 @@
 
-# Plano de Integração: WhatsApp Business Platform (Meta Cloud API)
 
-## Visao Geral
+# Plano: Integração Harmônica entre WhatsApp Gold (UazapiGO) e Meta Cloud API
 
-Este plano detalha a integração completa da **API Oficial do WhatsApp** (Meta Cloud API) ao sistema existente, adicionando um terceiro provedor além do Z-API e UazapiGO. A integração permitira enviar e receber mensagens atraves da infraestrutura oficial da Meta, com suporte a templates aprovados.
+## Resumo Executivo
 
----
+O sistema atual possui dois provedores funcionando de forma isolada. Este plano unifica a experiência para que ambos apareçam de forma transparente na tela do WhatsApp, permitindo:
+- Visualizar conversas de ambos os provedores
+- Enviar mensagens independente do provedor  
+- Selecionar qual "instância" usar (incluindo números Meta)
 
-## Pre-requisitos (Responsabilidade do Usuario)
+## Arquitetura Proposta
 
-Antes de comecar a implementacao, o usuario precisara:
+Tratar cada número do Meta Cloud API como uma "instância virtual" na tabela `whatsapp_instances`, unificando a experiência independente do provedor.
 
-1. **Conta no Meta for Developers**: Criar em developers.facebook.com
-2. **WhatsApp Business App**: Criar um aplicativo com produto WhatsApp
-3. **Business Manager Verificado**: Empresa verificada no Facebook Business Manager
-4. **Numero de Telefone**: Um numero dedicado para a API (nao pode estar em uso no WhatsApp normal)
-5. **Templates Aprovados**: Criar e ter templates de mensagem aprovados pela Meta
-
----
-
-## Etapa 1: Alteracoes no Banco de Dados
-
-### 1.1 Adicionar colunas na tabela `whatsapp_configs`
-
-Novas colunas para armazenar credenciais da Meta:
-
-| Coluna | Tipo | Descricao |
-|--------|------|-----------|
-| `meta_phone_number_id` | text | ID do numero de telefone na Meta |
-| `meta_access_token` | text | Token de acesso permanente |
-| `meta_business_account_id` | text | ID da conta WhatsApp Business |
-| `meta_app_id` | text | ID do aplicativo Meta |
-| `meta_webhook_verify_token` | text | Token de verificacao do webhook |
-
-### 1.2 Adicionar colunas na tabela `whatsapp_instances`
-
-Para suportar multiplas instancias Meta:
-
-| Coluna | Tipo | Descricao |
-|--------|------|-----------|
-| `meta_phone_number_id` | text | ID do numero especifico |
-| `meta_access_token` | text | Token da instancia |
-
-### 1.3 Nova tabela: `whatsapp_meta_templates`
-
-Para gerenciar templates aprovados pela Meta:
-
-| Coluna | Tipo | Descricao |
-|--------|------|-----------|
-| `id` | uuid | Identificador unico |
-| `company_id` | uuid | Referencia a empresa |
-| `template_name` | text | Nome do template na Meta |
-| `template_id` | text | ID do template na Meta |
-| `language` | text | Codigo do idioma (pt_BR) |
-| `category` | text | Categoria (MARKETING, UTILITY, etc) |
-| `status` | text | Status de aprovacao |
-| `header_format` | text | Tipo do header (TEXT, IMAGE, etc) |
-| `body_text` | text | Texto do corpo do template |
-| `footer_text` | text | Texto do rodape |
-| `buttons` | jsonb | Configuracao dos botoes |
-| `variables` | jsonb | Variaveis do template |
-| `synced_at` | timestamp | Ultima sincronizacao |
-| `created_at` | timestamp | Data de criacao |
-
----
-
-## Etapa 2: Edge Functions
-
-### 2.1 `meta-whatsapp-webhook` (Nova)
-
-Webhook dedicado para receber eventos da Meta Cloud API:
-
-**Funcionalidades**:
-- Verificacao inicial do webhook (GET com challenge)
-- Recebimento de mensagens (text, image, audio, video, document)
-- Notificacoes de status (sent, delivered, read, failed)
-- Tratamento de respostas interativas
-- Mapeamento para estrutura existente de conversas/mensagens
-
-**Estrutura do payload Meta**:
 ```text
-POST /meta-whatsapp-webhook
-{
-  "object": "whatsapp_business_account",
-  "entry": [{
-    "id": "WHATSAPP_BUSINESS_ACCOUNT_ID",
-    "changes": [{
-      "value": {
-        "messaging_product": "whatsapp",
-        "metadata": { "phone_number_id": "..." },
-        "messages": [{ ... }]
-      }
-    }]
-  }]
-}
+┌────────────────────────────────────────────────────────────────────────┐
+│                        WhatsApp Inbox Drawer                           │
+├────────────────────────────────────────────────────────────────────────┤
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  Seletor de Instâncias (Unificado)                              │   │
+│  │  ┌───────────────────────────────────────────────────────────┐  │   │
+│  │  │  ▼ Selecione uma instância                               │  │   │
+│  │  ├───────────────────────────────────────────────────────────┤  │   │
+│  │  │  📱 Squad #01 - Renata (UazapiGO)                         │  │   │
+│  │  │  📱 CS - Azeredo (UazapiGO)                               │  │   │
+│  │  │  📘 Meta Business (+55 31 9999-1234)                      │  │   │
+│  │  └───────────────────────────────────────────────────────────┘  │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                                                                         │
+│  ┌──────────────────────┐  ┌────────────────────────────────────────┐  │
+│  │  Lista de Conversas  │  │  Janela de Chat                       │  │
+│  │  (filtrada por       │  │  (envia via provedor correto          │  │
+│  │   instância)         │  │   automaticamente)                    │  │
+│  └──────────────────────┘  └────────────────────────────────────────┘  │
+└────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 2.2 `send-meta-whatsapp-message` (Nova)
+## Etapas de Implementação
 
-Funcao para enviar mensagens via Meta Cloud API:
+### Fase 1: Criar Instância Virtual para Meta
 
-**Endpoints utilizados**:
-- `POST graph.facebook.com/v18.0/{phone_number_id}/messages`
+**1.1 Atualizar hook `useWhatsAppInstances`**
+- Adicionar campo `provider` ao type `WhatsAppInstance` 
+- Incluir na query instâncias Meta (onde `meta_phone_number_id` está preenchido)
+- Ordenar por nome mantendo instâncias UazapiGO e Meta juntas
 
-**Tipos de mensagem**:
-- Texto simples (apenas dentro da janela de 24h)
-- Templates (a qualquer momento)
-- Imagem, video, audio, documento
-- Mensagens interativas (botoes, listas)
+**1.2 Auto-criar instância Meta ao salvar configuração**
+- Quando salvar config Meta em `whatsapp_configs`, criar/atualizar registro correspondente em `whatsapp_instances` com:
+  - `meta_phone_number_id` 
+  - `meta_access_token`
+  - `instance_name`: "Meta Business (+XX XXXX-XXXX)"
+  - `is_connected`: baseado no teste de conexão
+  - `connected_phone`: número conectado
 
-### 2.3 `sync-meta-templates` (Nova)
+### Fase 2: Restaurar e Unificar Seletor de Instâncias
 
-Sincronizacao de templates aprovados:
+**2.1 Atualizar `WhatsAppInboxDrawer`**
+- Remover condição `isUazapi` do seletor de instâncias
+- Mostrar seletor sempre que houver instâncias disponíveis
+- Adicionar ícone visual diferenciando provider:
+  - 📱 para UazapiGO
+  - 📘 para Meta
 
-- Buscar templates via API da Meta
-- Atualizar status de aprovacao
-- Importar novos templates criados no Business Manager
+**2.2 Detectar provedor da instância selecionada**
+- Adicionar lógica para identificar se instância é Meta ou UazapiGO
+- Propagar provider para componentes filhos (ChatWindow, MessageInput)
 
-### 2.4 `test-meta-whatsapp-connection` (Nova)
+### Fase 3: Suporte a Envio de Mensagens via Meta
 
-Testar conexao com a Meta:
+**3.1 Atualizar `send-whatsapp-notification`**
+- Adicionar branch para `provider === "meta"` 
+- Implementar envio via Graph API do Meta
+- Respeitar regra de 24h (dentro da janela: texto livre; fora: template obrigatório)
 
-- Validar access_token
-- Verificar permissoes
-- Obter informacoes do numero de telefone
+**3.2 Atualizar `send-whatsapp-media`**
+- Adicionar suporte para envio de mídia via Meta Cloud API
+- Fazer upload para Graph API e enviar
 
-### 2.5 Atualizacao: `send-whatsapp-notification`
+**3.3 Tratar janela de 24h no Frontend**
+- Verificar `last_message_at` da conversa
+- Se > 24h sem resposta do cliente, exibir aviso e forçar seleção de template
 
-Adicionar suporte ao provider "meta":
+### Fase 4: Associar Conversas à Instância Meta
 
-```text
-if (provider === "meta") {
-  // Verificar se esta dentro da janela de 24h
-  // Se sim: enviar texto livre
-  // Se nao: usar template
-  
-  POST graph.facebook.com/v18.0/{phone_number_id}/messages
-  Headers:
-    Authorization: Bearer {access_token}
-    Content-Type: application/json
-  Body:
-    messaging_product: "whatsapp"
-    to: "{recipient_phone}"
-    type: "text" | "template"
-    ...
-}
+**4.1 Atualizar webhook `meta-whatsapp-webhook`**
+- Ao receber mensagem, buscar a instância Meta correspondente via `meta_phone_number_id`
+- Salvar `instance_id` na conversa (não mais `null`)
+
+**4.2 Filtrar conversas por instância**
+- O hook `useWhatsAppConversations` já filtra por `instance_id` 
+- Garantir que conversas Meta sejam filtradas corretamente
+
+### Fase 5: Sincronização e Status
+
+**5.1 Atualizar teste de conexão Meta**
+- Ao testar, atualizar `is_connected` e `connected_phone` na instância
+- Sincronizar status visual no seletor
+
+**5.2 Ajustar função de sincronização**
+- `sync-whatsapp-chats` já retorna 200 OK para Meta (não precisa sync manual)
+- Pode adicionar funcionalidade futura de sincronização de contatos
+
+---
+
+## Detalhes Técnicos
+
+### Arquivos a Criar/Modificar
+
+| Arquivo | Ação | Descrição |
+|---------|------|-----------|
+| `src/hooks/useWhatsAppInstances.tsx` | Modificar | Incluir instâncias Meta na query |
+| `src/hooks/useWhatsAppConfig.tsx` | Modificar | Auto-criar instância ao salvar Meta |
+| `src/components/whatsapp/WhatsAppInboxDrawer.tsx` | Modificar | Seletor unificado, remover condição `isUazapi` |
+| `src/components/whatsapp/WhatsAppConversationList.tsx` | Verificar | Já recebe `instanceSelector` como prop |
+| `src/components/whatsapp/WhatsAppChatWindow.tsx` | Modificar | Detectar provider e ajustar comportamento |
+| `supabase/functions/send-whatsapp-notification/index.ts` | Modificar | Adicionar branch Meta |
+| `supabase/functions/send-whatsapp-media/index.ts` | Modificar | Adicionar branch Meta |
+| `supabase/functions/meta-whatsapp-webhook/index.ts` | Modificar | Associar instância correta |
+
+### Exemplo de Query Unificada (useWhatsAppInstances)
+
+```typescript
+// Buscar instâncias UazapiGO + Meta
+const { data: instances } = await supabase
+  .from("whatsapp_instances")
+  .select("*")
+  .eq("company_id", companyId)
+  .eq("is_active", true)
+  .or("uazapi_token.not.is.null,meta_phone_number_id.not.is.null")
+  .order("instance_name");
 ```
 
----
+### Exemplo de Detecção de Provider
 
-## Etapa 3: Interface do Usuario
-
-### 3.1 Novo Card de Configuracao: `MetaWhatsAppConnectionCard`
-
-Card similar ao Z-API e UazapiGO para configurar a Meta:
-
-**Campos**:
-- Phone Number ID
-- Access Token (permanente)
-- Business Account ID
-- App ID
-- Webhook Verify Token (gerado automaticamente)
-
-**Acoes**:
-- Testar Conexao
-- Salvar Configuracao
-- Copiar URL do Webhook (para configurar na Meta)
-
-### 3.2 Atualizacao: `WhatsAppProviderTabs`
-
-Adicionar terceira aba "Meta (Oficial)":
-
-```text
-TabsList:
-  - Z-API
-  - UazapiGO  
-  - Meta (Oficial) <-- NOVO
+```typescript
+const getInstanceProvider = (instance: WhatsAppInstance): "uazapi" | "meta" => {
+  if (instance.meta_phone_number_id) return "meta";
+  if (instance.uazapi_token) return "uazapi";
+  return "uazapi"; // fallback
+};
 ```
 
-### 3.3 Novo Componente: `MetaTemplatesManager`
+### Envio via Meta Cloud API
 
-Gerenciador de templates aprovados:
-
-**Funcionalidades**:
-- Listar templates sincronizados
-- Mostrar status de aprovacao (aprovado, pendente, rejeitado)
-- Sincronizar templates da Meta
-- Preview do template com variaveis
-- Botao para abrir Business Manager
-
-### 3.4 Atualizacao: `WhatsAppMessageInput`
-
-Para instancias Meta, mostrar aviso quando fora da janela de 24h:
-
-- Indicador visual da janela de conversacao
-- Sugestao de usar template quando necessario
-- Seletor de template integrado
-
----
-
-## Etapa 4: Hooks e Logica
-
-### 4.1 Novo Hook: `useMetaWhatsAppConfig`
-
-Gerenciamento de configuracao Meta:
-
-- Buscar/salvar configuracao
-- Testar conexao
-- Sincronizar templates
-
-### 4.2 Atualizacao: `useWhatsAppConfig`
-
-Adicionar mutations para Meta:
-
-- `saveMetaConfigMutation`
-- `testMetaConnectionMutation`
-
-### 4.3 Novo Hook: `useMetaTemplates`
-
-CRUD de templates:
-
-- Listar templates
-- Sincronizar com Meta
-- Selecionar template para envio
-
----
-
-## Etapa 5: Seguranca
-
-### 5.1 Secrets Necessarios
-
-Armazenar no Supabase Secrets:
-
-| Secret | Descricao |
-|--------|-----------|
-| `META_WHATSAPP_APP_SECRET` | App Secret para validar webhooks |
-
-### 5.2 Validacao do Webhook
-
-O webhook da Meta requer validacao de assinatura:
-
-```text
-x-hub-signature-256: sha256=HASH
-```
-
-Implementar verificacao usando HMAC-SHA256 com o App Secret.
-
-### 5.3 Politicas RLS
-
-Aplicar mesmas politicas das tabelas existentes:
-
-- `whatsapp_meta_templates`: Acesso por company_id
-
----
-
-## Etapa 6: Fluxo de Configuracao do Usuario
-
-### Passo a passo para o usuario:
-
-1. Acessar /configuracoes/whatsapp
-2. Selecionar aba "Meta (Oficial)"
-3. Inserir credenciais da Meta
-4. Clicar "Testar Conexao"
-5. Copiar URL do Webhook
-6. No Meta Business Manager:
-   - Configurar Webhook com a URL copiada
-   - Inserir o Verify Token gerado
-   - Selecionar eventos: messages, message_status
-7. Enviar mensagem de teste
-8. Sincronizar templates
-
----
-
-## Diagrama de Arquitetura
-
-```text
-+-------------------+     +-----------------------+
-|   Meta Cloud API  |     |   Usuario WhatsApp    |
-+--------+----------+     +-----------+-----------+
-         |                            |
-         | Webhook POST               | Mensagem
-         v                            v
-+--------+----------------------------+-----------+
-|           Supabase Edge Function               |
-|           meta-whatsapp-webhook                |
-+------------------------------------------------+
-         |                            |
-         | Insert                     | Select
-         v                            v
-+--------+----------------------------+-----------+
-|              Supabase Database                 |
-|  whatsapp_conversations | whatsapp_messages    |
-+------------------------------------------------+
-         |                            
-         | Realtime                   
-         v                            
-+--------+----------------------------+-----------+
-|              Frontend React                    |
-|  WhatsAppChatWindow | Notifications            |
-+------------------------------------------------+
+```typescript
+// POST https://graph.facebook.com/v18.0/{phone_number_id}/messages
+const metaUrl = `https://graph.facebook.com/v18.0/${instance.meta_phone_number_id}/messages`;
+const response = await fetch(metaUrl, {
+  method: "POST",
+  headers: {
+    "Authorization": `Bearer ${instance.meta_access_token}`,
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    messaging_product: "whatsapp",
+    to: formattedPhone,
+    type: "text",
+    text: { body: message }
+  })
+});
 ```
 
 ---
 
-## Ordem de Implementacao
+## Considerações de UX
 
-1. **Database**: Criar migrations para novas colunas/tabelas
-2. **Secrets**: Configurar META_WHATSAPP_APP_SECRET
-3. **Edge Functions**:
-   - meta-whatsapp-webhook (recebimento)
-   - test-meta-whatsapp-connection
-   - send-meta-whatsapp-message
-   - sync-meta-templates
-4. **Atualizar**: send-whatsapp-notification
-5. **Frontend**:
-   - MetaWhatsAppConnectionCard
-   - WhatsAppProviderTabs (3 abas)
-   - MetaTemplatesManager
-6. **Hooks**: useMetaWhatsAppConfig, useMetaTemplates
-7. **Integracao**: Atualizar input de mensagens para templates
-8. **Documentacao**: Instrucoes de configuracao na Meta
+1. **Indicador visual de provider**: Usar ícones diferentes (📱 UazapiGO, 📘 Meta) para facilitar identificação
+2. **Aviso de janela de 24h**: Quando fora da janela, mostrar banner e forçar uso de template
+3. **Status de conexão unificado**: Mesmo indicador visual (verde/amarelo) para ambos os provedores
+4. **Sem quebra de compatibilidade**: Usuários com apenas UazapiGO ou apenas Meta continuam funcionando normalmente
 
 ---
 
-## Consideracoes Importantes
+## Riscos e Mitigações
 
-### Janela de Conversacao (24h)
+| Risco | Mitigação |
+|-------|-----------|
+| Janela de 24h do Meta | Implementar verificação e forçar uso de templates |
+| Templates não sincronizados | Usar tabela `whatsapp_meta_templates` já existente |
+| Conversas órfãs (sem instance_id) | Migração para associar conversas existentes à instância Meta |
 
-A Meta permite mensagens de texto livre apenas dentro de 24 horas apos a ultima mensagem do cliente. Fora dessa janela, obrigatoriamente deve-se usar templates aprovados.
-
-### Custos
-
-A Meta cobra por conversa iniciada, nao por mensagem. Considerar isso ao planejar notificacoes automaticas.
-
-### Aprovacao de Templates
-
-Templates precisam de aprovacao da Meta (pode levar ate 24h). O sistema deve indicar claramente o status de cada template.
-
-### Limite de Taxa
-
-A API tem limites de requisicoes. Implementar retry com backoff exponencial para evitar bloqueios.
-
----
-
-## Estimativa de Esforco
-
-| Componente | Complexidade |
-|------------|--------------|
-| Database | Baixa |
-| Webhook Meta | Alta |
-| Envio de Mensagens | Media |
-| Templates Manager | Media |
-| UI de Configuracao | Media |
-| Integracao Chat | Media |
-
-**Total estimado**: Implementacao em fases ao longo de varios sprints.
