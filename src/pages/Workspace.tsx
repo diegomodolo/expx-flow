@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { 
   ResizablePanelGroup, 
@@ -6,9 +6,11 @@ import {
   ResizableHandle 
 } from "@/components/ui/resizable";
 import { WorkspaceSidebar } from "@/components/workspace/WorkspaceSidebar";
-import { WorkspaceEditor } from "@/components/workspace/WorkspaceEditor";
 import type { WorkspaceDocument } from "@/types/workspace";
-import { FileText } from "lucide-react";
+import { FileText, Loader2 } from "lucide-react";
+
+// Lazy load the editor to prevent blocking the app
+const WorkspaceEditor = lazy(() => import("@/components/workspace/WorkspaceEditor").then(m => ({ default: m.WorkspaceEditor })));
 
 export default function Workspace() {
   const [selectedDocument, setSelectedDocument] = useState<WorkspaceDocument | null>(null);
@@ -40,7 +42,13 @@ export default function Workspace() {
             <ResizableHandle withHandle />
             
             <ResizablePanel defaultSize={75} minSize={50}>
-              <WorkspaceEditor document={selectedDocument} />
+              <Suspense fallback={
+                <div className="h-full flex items-center justify-center">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              }>
+                <WorkspaceEditor document={selectedDocument} />
+              </Suspense>
             </ResizablePanel>
           </ResizablePanelGroup>
         </div>
