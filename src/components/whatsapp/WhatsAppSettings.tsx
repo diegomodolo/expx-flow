@@ -17,10 +17,14 @@ export function WhatsAppSettings() {
     isSavingConfig,
     saveUazapiConfig,
     isSavingUazapiConfig,
+    saveMetaConfig,
+    isSavingMetaConfig,
     testConnection,
     isTestingConnection,
     testUazapiConnection,
     isTestingUazapiConnection,
+    testMetaConnection,
+    isTestingMetaConnection,
   } = useWhatsAppConfig(activeCompany?.company_id);
 
   const [activeProvider, setActiveProvider] = useState<string>("zapi");
@@ -46,13 +50,26 @@ export function WhatsAppSettings() {
   };
 
   const handleSaveUazapiBase = (data: { endpoint: string; token: string; admintoken: string }) => {
-    // Save base config (endpoint + token + admintoken)
     saveUazapiConfig({
       endpoint: data.endpoint,
       token: data.token,
       admintoken: data.admintoken,
-      session: config?.uazapi_session || "", // Keep existing session if any
+      session: config?.uazapi_session || "",
     });
+  };
+
+  const handleSaveMeta = (data: {
+    phone_number_id: string;
+    access_token: string;
+    business_account_id: string;
+    app_id: string;
+    webhook_verify_token: string;
+  }) => {
+    saveMetaConfig(data);
+  };
+
+  const handleTestMeta = () => {
+    testMetaConnection();
   };
 
   if (isLoadingCompany || isLoading) {
@@ -83,8 +100,10 @@ export function WhatsAppSettings() {
         onTestZapi={testConnection}
         onSaveUazapi={handleSaveUazapiBase}
         onTestUazapi={testUazapiConnection}
-        isSaving={isSavingConfig || isSavingUazapiConfig}
-        isTesting={isTestingConnection || isTestingUazapiConnection}
+        onSaveMeta={handleSaveMeta}
+        onTestMeta={handleTestMeta}
+        isSaving={isSavingConfig || isSavingUazapiConfig || isSavingMetaConfig}
+        isTesting={isTestingConnection || isTestingUazapiConnection || isTestingMetaConnection}
       />
 
       {/* Instances List - Only show for UazapiGO */}
