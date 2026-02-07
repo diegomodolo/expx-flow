@@ -18,6 +18,8 @@ import {
   ChevronDown,
   FileText,
   Image,
+  Pencil,
+  RefreshCw,
 } from "lucide-react";
 import {
   Select,
@@ -65,6 +67,7 @@ export function YouTubeScriptBuilder({
 }: YouTubeScriptBuilderProps) {
   const [content, setContent] = useState(script.script_content);
   const [title, setTitle] = useState(script.title);
+  const [thumbnailUrl, setThumbnailUrl] = useState(script.thumbnail_url || null);
   const [messages, setMessages] = useState<ScriptMessage[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -75,7 +78,7 @@ export function YouTubeScriptBuilder({
   const [showThumbnailModal, setShowThumbnailModal] = useState(false);
   const [thumbnailError, setThumbnailError] = useState<string | null>(null);
   const [showImageEditor, setShowImageEditor] = useState(false);
-  const [generatedThumbnailUrl, setGeneratedThumbnailUrl] = useState<string | null>(null);
+  const [imageToEdit, setImageToEdit] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -179,25 +182,42 @@ export function YouTubeScriptBuilder({
         script.suggested_titles
       );
       
+      console.log('Thumbnail generated, URL:', imageUrl);
+      
       if (imageUrl) {
-        setGeneratedThumbnailUrl(imageUrl);
+        // Close progress modal first
         setShowThumbnailModal(false);
-        setShowImageEditor(true);
+        // Set the image to edit and open editor
+        setImageToEdit(imageUrl);
+        // Small delay to ensure state is set before opening modal
+        setTimeout(() => {
+          setShowImageEditor(true);
+        }, 100);
       } else {
         setThumbnailError("Não foi possível gerar a thumbnail");
       }
     } catch (error: any) {
+      console.error('Thumbnail generation error:', error);
       setThumbnailError(error.message || "Erro desconhecido");
+    }
+  };
+
+  const handleEditThumbnail = () => {
+    if (thumbnailUrl) {
+      setImageToEdit(thumbnailUrl);
+      setShowImageEditor(true);
     }
   };
 
   const handleImageEditorSave = async (newImages: string[]) => {
     // Update the script with the new thumbnail URL
     if (newImages.length > 0) {
-      await onUpdate({ thumbnail_url: newImages[0] });
+      const newUrl = newImages[0];
+      await onUpdate({ thumbnail_url: newUrl });
+      setThumbnailUrl(newUrl);
     }
     setShowImageEditor(false);
-    setGeneratedThumbnailUrl(null);
+    setImageToEdit(null);
   };
 
   return (
@@ -286,8 +306,63 @@ export function YouTubeScriptBuilder({
           </CardContent>
         </Card>
 
-        {/* Chat & Titles */}
+        {/* Thumbnail, Chat & Titles */}
         <div className="flex flex-col gap-4 min-h-0">
+          {/* Thumbnail Preview */}
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base">Thumbnail</CardTitle>
+                <div className="flex gap-2">
+                  {thumbnailUrl && (
+                    <Button variant="ghost" size="sm" onClick={handleEditThumbnail}>
+                      <Pencil className="h-4 w-4 mr-1" />
+                      Editar
+                    </Button>
+                  )}
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={handleGenerateThumbnail}
+                    disabled={generatingThumbnail}
+                  >
+                    {generatingThumbnail ? (
+                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4 mr-1" />
+                    )}
+                    {thumbnailUrl ? "Regerar" : "Gerar"}
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {thumbnailUrl ? (
+                <div 
+                  className="relative aspect-video bg-muted rounded-lg overflow-hidden cursor-pointer group"
+                  onClick={handleEditThumbnail}
+                >
+                  <img 
+                    src={thumbnailUrl} 
+                    alt="Thumbnail" 
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <Pencil className="h-6 w-6 text-white" />
+                  </div>
+                </div>
+              ) : (
+                <div 
+                  className="aspect-video bg-muted rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-muted/80 transition-colors"
+                  onClick={handleGenerateThumbnail}
+                >
+                  <Image className="h-8 w-8 text-muted-foreground mb-2" />
+                  <p className="text-sm text-muted-foreground">Clique para gerar thumbnail</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Chat */}
           <Card className="flex-1 flex flex-col min-h-0">
             <CardHeader className="pb-3">
@@ -359,7 +434,7 @@ export function YouTubeScriptBuilder({
               </div>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-[150px]">
+              <ScrollArea className="h-[120px]">
                 <div className="space-y-2">
                   {script.suggested_titles.length === 0 ? (
                     <p className="text-sm text-muted-foreground text-center py-4">
@@ -393,14 +468,14 @@ export function YouTubeScriptBuilder({
       />
 
       {/* Image Editor Modal */}
-      {showImageEditor && generatedThumbnailUrl && (
+      {showImageEditor && imageToEdit && (
         <ImageEditorModal
           open={showImageEditor}
           onOpenChange={(open) => {
             setShowImageEditor(open);
-            if (!open) setGeneratedThumbnailUrl(null);
+            if (!open) setImageToEdit(null);
           }}
-          images={[generatedThumbnailUrl]}
+          images={[imageToEdit]}
           onSave={handleImageEditorSave}
           clientId={clientId}
           companyId={companyId}
