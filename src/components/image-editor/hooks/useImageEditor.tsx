@@ -53,18 +53,23 @@ interface UseImageEditorProps {
 }
 
 export function useImageEditor({ initialImages }: UseImageEditorProps) {
+  // Ensure initialImages is always a valid array
+  const safeInitialImages = Array.isArray(initialImages) && initialImages.length > 0 
+    ? initialImages 
+    : [];
+  
   // Use a ref to track the original images that initialized the session
   // This prevents resets when state.images changes due to AI edits
-  const sessionInitialImagesRef = useRef<string[]>(initialImages);
+  const sessionInitialImagesRef = useRef<string[]>(safeInitialImages);
   const isInitializedRef = useRef(false);
 
   const [state, setState] = useState<ImageEditorState>(() => ({
-    images: initialImages,
+    images: safeInitialImages,
     currentImageIndex: 0,
-    elements: initialImages.map(() => []),
+    elements: safeInitialImages.map(() => []),
     selectedElementId: null,
     zoom: 1,
-    history: [initialImages.map(() => [])],
+    history: [safeInitialImages.map(() => [])],
     historyIndex: 0,
     aiChatMessages: [],
     isProcessingAI: false,
@@ -73,28 +78,31 @@ export function useImageEditor({ initialImages }: UseImageEditorProps) {
   // Only reset state when the modal opens with genuinely NEW images
   // Compare against the session's initial images, not current state
   useEffect(() => {
-    const initialImagesKey = JSON.stringify(initialImages);
+    // Ensure we're working with valid arrays
+    const safeImages = Array.isArray(initialImages) ? initialImages : [];
+    
+    const initialImagesKey = JSON.stringify(safeImages);
     const sessionKey = JSON.stringify(sessionInitialImagesRef.current);
     
     // Only reset if:
     // 1. We have images to work with
     // 2. The initialImages are different from what started this session
     // This prevents resets when switching tabs or when state.images changes from AI edits
-    if (initialImages.length > 0 && initialImagesKey !== sessionKey) {
-      sessionInitialImagesRef.current = initialImages;
+    if (safeImages.length > 0 && initialImagesKey !== sessionKey) {
+      sessionInitialImagesRef.current = safeImages;
       isInitializedRef.current = true;
       setState({
-        images: initialImages,
+        images: safeImages,
         currentImageIndex: 0,
-        elements: initialImages.map(() => []),
+        elements: safeImages.map(() => []),
         selectedElementId: null,
         zoom: 1,
-        history: [initialImages.map(() => [])],
+        history: [safeImages.map(() => [])],
         historyIndex: 0,
         aiChatMessages: [],
         isProcessingAI: false,
       });
-    } else if (!isInitializedRef.current && initialImages.length > 0) {
+    } else if (!isInitializedRef.current && safeImages.length > 0) {
       // First initialization
       isInitializedRef.current = true;
     }
