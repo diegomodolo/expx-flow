@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -11,14 +11,20 @@ import {
   Minus,
   ArrowRight,
   ImagePlus,
-  Heading1,
-  Heading2,
-  AlignLeft,
-  Quote,
+  ChevronDown,
+  ChevronRight,
+  Crop,
 } from 'lucide-react';
 import { CanvasElement } from './hooks/useImageEditor';
 import { ElementProperties } from './ElementProperties';
 import { ElementLibrary } from './ElementLibrary';
+import { OrientationSelector, Orientation, ORIENTATIONS } from './OrientationSelector';
+import { cn } from '@/lib/utils';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 
 interface EditorToolbarProps {
   onAddElement: (type: CanvasElement['type'], config?: Partial<CanvasElement>) => void;
@@ -29,7 +35,42 @@ interface EditorToolbarProps {
   selectedElement: CanvasElement | null;
   onUpdateElement: (id: string, updates: Partial<CanvasElement>) => void;
   companyId?: string;
+  orientation?: string;
+  onOrientationChange?: (orientation: Orientation) => void;
 }
+
+interface CollapsibleSectionProps {
+  title: string;
+  icon: React.ElementType;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+}
+
+const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
+  title,
+  icon: Icon,
+  children,
+  defaultOpen = false,
+}) => {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  return (
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <CollapsibleTrigger className="w-full flex items-center gap-2 py-1.5 px-1 rounded hover:bg-muted/50 transition-colors">
+        {isOpen ? (
+          <ChevronDown className="h-3 w-3 text-muted-foreground" />
+        ) : (
+          <ChevronRight className="h-3 w-3 text-muted-foreground" />
+        )}
+        <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+        <span className="text-xs font-medium text-foreground">{title}</span>
+      </CollapsibleTrigger>
+      <CollapsibleContent className="pl-5 pt-1.5">
+        {children}
+      </CollapsibleContent>
+    </Collapsible>
+  );
+};
 
 export const EditorToolbar: React.FC<EditorToolbarProps> = ({
   onAddElement,
@@ -40,6 +81,8 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
   selectedElement,
   onUpdateElement,
   companyId,
+  orientation = 'post',
+  onOrientationChange,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -63,121 +106,119 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
   };
 
   const textPresets = [
-    { label: 'Título', icon: Heading1, config: { styles: { fontSize: 32, fontWeight: 'bold' }, content: 'Título' } },
-    { label: 'Subtítulo', icon: Heading2, config: { styles: { fontSize: 24, fontWeight: '600' }, content: 'Subtítulo' } },
-    { label: 'Corpo', icon: AlignLeft, config: { styles: { fontSize: 16, fontWeight: 'normal' }, content: 'Texto do corpo' } },
-    { label: 'Citação', icon: Quote, config: { styles: { fontSize: 18, fontWeight: '500', fontFamily: 'Georgia' }, content: '"Citação aqui"' } },
+    { label: 'Título', size: 32, weight: 'bold' },
+    { label: 'Subtítulo', size: 24, weight: '600' },
+    { label: 'Corpo', size: 16, weight: 'normal' },
+    { label: 'Citação', size: 18, weight: '500' },
   ];
 
   const shapePresets = [
-    { label: 'Retângulo', icon: Square, config: { styles: { shapeType: 'rectangle' as const } } },
-    { label: 'Círculo', icon: Circle, config: { styles: { shapeType: 'circle' as const } } },
-    { label: 'Linha', icon: Minus, config: { styles: { shapeType: 'line' as const }, height: 20 } },
-    { label: 'Seta', icon: ArrowRight, config: { styles: { shapeType: 'arrow' as const }, height: 30 } },
+    { label: 'Retângulo', icon: Square, type: 'rectangle' as const },
+    { label: 'Círculo', icon: Circle, type: 'circle' as const },
+    { label: 'Linha', icon: Minus, type: 'line' as const },
+    { label: 'Seta', icon: ArrowRight, type: 'arrow' as const },
   ];
 
+  const handleOrientationChange = (newOrientation: Orientation) => {
+    onOrientationChange?.(newOrientation);
+  };
+
   return (
-    <div className="w-[280px] bg-card border-r border-border flex flex-col h-full">
-      <div className="p-3 border-b border-border">
-        <h3 className="text-sm font-medium text-foreground mb-3">Ferramentas</h3>
-        <div className="flex gap-2">
+    <div className="w-56 bg-card border-r border-border flex flex-col h-full">
+      {/* Header with undo/redo */}
+      <div className="p-2 border-b border-border flex items-center justify-between">
+        <span className="text-xs font-medium text-muted-foreground">Ferramentas</span>
+        <div className="flex gap-1">
           <Button
-            variant="outline"
-            size="sm"
+            variant="ghost"
+            size="icon"
             onClick={onUndo}
             disabled={!canUndo}
-            className="flex-1"
+            className="h-6 w-6"
           >
-            <Undo2 className="h-4 w-4" />
+            <Undo2 className="h-3.5 w-3.5" />
           </Button>
           <Button
-            variant="outline"
-            size="sm"
+            variant="ghost"
+            size="icon"
             onClick={onRedo}
             disabled={!canRedo}
-            className="flex-1"
+            className="h-6 w-6"
           >
-            <Redo2 className="h-4 w-4" />
+            <Redo2 className="h-3.5 w-3.5" />
           </Button>
         </div>
       </div>
 
       <ScrollArea className="flex-1">
-        {/* Element Properties Panel */}
-        {selectedElement && (
-          <>
-            <ElementProperties
-              element={selectedElement}
-              onUpdate={onUpdateElement}
+        <div className="p-2 space-y-1">
+          {/* Orientation Section */}
+          <CollapsibleSection title="Orientação" icon={Crop} defaultOpen>
+            <OrientationSelector
+              selected={orientation}
+              onSelect={handleOrientationChange}
             />
-            <Separator className="my-2" />
-          </>
-        )}
+          </CollapsibleSection>
 
-        <div className="p-3 space-y-4">
-          {/* Texto */}
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Type className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium text-foreground">Texto</span>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
+          <Separator className="my-2" />
+
+          {/* Element Properties Panel */}
+          {selectedElement && (
+            <>
+              <ElementProperties
+                element={selectedElement}
+                onUpdate={onUpdateElement}
+              />
+              <Separator className="my-2" />
+            </>
+          )}
+
+          {/* Text Section */}
+          <CollapsibleSection title="Texto" icon={Type}>
+            <div className="space-y-1">
               {textPresets.map((preset) => (
-                <Button
+                <button
                   key={preset.label}
-                  variant="outline"
-                  size="sm"
-                  className="h-auto py-2 flex flex-col items-center gap-1"
-                  onClick={() => onAddElement('text', preset.config)}
+                  className="w-full text-left px-2 py-1.5 rounded text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                  onClick={() => onAddElement('text', {
+                    content: preset.label,
+                    styles: { fontSize: preset.size, fontWeight: preset.weight }
+                  })}
                 >
-                  <preset.icon className="h-4 w-4" />
-                  <span className="text-xs">{preset.label}</span>
-                </Button>
+                  {preset.label}
+                </button>
               ))}
             </div>
-          </div>
+          </CollapsibleSection>
 
-          <Separator />
-
-          {/* Elementos/Formas */}
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Square className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium text-foreground">Elementos</span>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
+          {/* Shapes Section */}
+          <CollapsibleSection title="Formas" icon={Square}>
+            <div className="grid grid-cols-2 gap-1">
               {shapePresets.map((preset) => (
-                <Button
+                <button
                   key={preset.label}
-                  variant="outline"
-                  size="sm"
-                  className="h-auto py-2 flex flex-col items-center gap-1"
-                  onClick={() => onAddElement('shape', preset.config)}
+                  className="flex items-center gap-1.5 px-2 py-1.5 rounded text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                  onClick={() => onAddElement('shape', {
+                    styles: { shapeType: preset.type },
+                    height: preset.type === 'line' ? 20 : preset.type === 'arrow' ? 30 : undefined,
+                  })}
                 >
-                  <preset.icon className="h-4 w-4" />
-                  <span className="text-xs">{preset.label}</span>
-                </Button>
+                  <preset.icon className="h-3.5 w-3.5" />
+                  <span>{preset.label}</span>
+                </button>
               ))}
             </div>
-          </div>
+          </CollapsibleSection>
 
-          <Separator />
-
-          {/* Imagens */}
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <ImagePlus className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium text-foreground">Imagens</span>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full"
+          {/* Images Section */}
+          <CollapsibleSection title="Imagens" icon={ImagePlus}>
+            <button
+              className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
               onClick={() => fileInputRef.current?.click()}
             >
-              <ImagePlus className="h-4 w-4 mr-2" />
-              Adicionar Imagem
-            </Button>
+              <ImagePlus className="h-3.5 w-3.5" />
+              <span>Adicionar imagem</span>
+            </button>
             <input
               ref={fileInputRef}
               type="file"
@@ -185,16 +226,17 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
               className="hidden"
               onChange={handleImageUpload}
             />
-          </div>
-
-          <Separator />
+          </CollapsibleSection>
 
           {/* Element Library */}
           {companyId && (
-            <ElementLibrary
-              companyId={companyId}
-              onAddElement={onAddElement}
-            />
+            <>
+              <Separator className="my-2" />
+              <ElementLibrary
+                companyId={companyId}
+                onAddElement={onAddElement}
+              />
+            </>
           )}
         </div>
       </ScrollArea>
