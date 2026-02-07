@@ -7,6 +7,7 @@ import { EditorAIChat } from './EditorAIChat';
 import { useImageEditor } from './hooks/useImageEditor';
 import { exportAndUpload, downloadCanvas } from './utils/canvasExport';
 import { toast } from '@/hooks/use-toast';
+import { Orientation } from './OrientationSelector';
 
 interface ImageEditorModalProps {
   open: boolean;
@@ -45,7 +46,12 @@ export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
     updateImage,
     addAIMessage,
     setProcessingAI,
+    setOrientation,
   } = useImageEditor({ initialImages: images });
+
+  const handleOrientationChange = useCallback((orientation: Orientation) => {
+    setOrientation(orientation.id);
+  }, [setOrientation]);
 
   const handleExport = useCallback(async () => {
     if (!canvasRef.current) return;
@@ -151,6 +157,8 @@ export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
             selectedElement={getCurrentElements().find(el => el.id === state.selectedElementId) || null}
             onUpdateElement={updateElement}
             companyId={companyId}
+            orientation={state.orientation}
+            onOrientationChange={handleOrientationChange}
           />
 
           <EditorCanvas

@@ -46,13 +46,15 @@ export interface ImageEditorState {
   historyIndex: number;
   aiChatMessages: AIMessage[];
   isProcessingAI: boolean;
+  orientation: string;
 }
 
 interface UseImageEditorProps {
   initialImages: string[];
+  initialOrientation?: string;
 }
 
-export function useImageEditor({ initialImages }: UseImageEditorProps) {
+export function useImageEditor({ initialImages, initialOrientation = 'post' }: UseImageEditorProps) {
   // Ensure initialImages is always a valid array
   const safeInitialImages = Array.isArray(initialImages) && initialImages.length > 0 
     ? initialImages 
@@ -73,6 +75,7 @@ export function useImageEditor({ initialImages }: UseImageEditorProps) {
     historyIndex: 0,
     aiChatMessages: [],
     isProcessingAI: false,
+    orientation: initialOrientation,
   }));
 
   // Only reset state when the modal opens with genuinely NEW images
@@ -101,6 +104,7 @@ export function useImageEditor({ initialImages }: UseImageEditorProps) {
         historyIndex: 0,
         aiChatMessages: [],
         isProcessingAI: false,
+        orientation: initialOrientation,
       });
     } else if (!isInitializedRef.current && safeImages.length > 0) {
       // First initialization
@@ -266,6 +270,10 @@ export function useImageEditor({ initialImages }: UseImageEditorProps) {
     setState(prev => ({ ...prev, isProcessingAI: processing }));
   }, []);
 
+  const setOrientation = useCallback((orientation: string) => {
+    setState(prev => ({ ...prev, orientation }));
+  }, []);
+
   const canUndo = state.historyIndex > 0;
   const canRedo = state.historyIndex < state.history.length - 1;
 
@@ -285,5 +293,6 @@ export function useImageEditor({ initialImages }: UseImageEditorProps) {
     updateImage,
     addAIMessage,
     setProcessingAI,
+    setOrientation,
   };
 }
