@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { YouTubeScript, ScriptMessage } from "@/hooks/useYouTubeScripts";
+import { ThumbnailConfig } from "@/hooks/useYouTubeThumbnails";
 import {
   ArrowLeft,
   Save,
@@ -16,6 +17,7 @@ import {
   Check,
   ChevronDown,
   FileText,
+  Image,
 } from "lucide-react";
 import {
   Select,
@@ -26,6 +28,8 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ReactMarkdown from "react-markdown";
+import { GenerateThumbnailModal } from "./GenerateThumbnailModal";
+import { ImageEditorModal } from "@/components/image-editor/ImageEditorModal";
 
 interface YouTubeScriptBuilderProps {
   script: YouTubeScript;
@@ -34,6 +38,16 @@ interface YouTubeScriptBuilderProps {
   onSendMessage: (message: string) => Promise<any>;
   onGenerateTitles: (style: string) => Promise<any>;
   fetchMessages: () => Promise<ScriptMessage[]>;
+  onGenerateThumbnail: (
+    scriptId: string,
+    title: string,
+    scriptContent: string,
+    suggestedTitles: string[]
+  ) => Promise<string | null>;
+  generatingThumbnail: boolean;
+  thumbnailConfig: ThumbnailConfig | null;
+  clientId: string;
+  companyId: string;
 }
 
 export function YouTubeScriptBuilder({
@@ -43,6 +57,11 @@ export function YouTubeScriptBuilder({
   onSendMessage,
   onGenerateTitles,
   fetchMessages,
+  onGenerateThumbnail,
+  generatingThumbnail,
+  thumbnailConfig,
+  clientId,
+  companyId,
 }: YouTubeScriptBuilderProps) {
   const [content, setContent] = useState(script.script_content);
   const [title, setTitle] = useState(script.title);
@@ -53,6 +72,10 @@ export function YouTubeScriptBuilder({
   const [copied, setCopied] = useState(false);
   const [generatingTitles, setGeneratingTitles] = useState(false);
   const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit");
+  const [showThumbnailModal, setShowThumbnailModal] = useState(false);
+  const [thumbnailError, setThumbnailError] = useState<string | null>(null);
+  const [showImageEditor, setShowImageEditor] = useState(false);
+  const [generatedThumbnailUrl, setGeneratedThumbnailUrl] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -144,6 +167,39 @@ export function YouTubeScriptBuilder({
     setTitle(newTitle);
   };
 
+  const handleGenerateThumbnail = async () => {
+    setThumbnailError(null);
+    setShowThumbnailModal(true);
+    
+    try {
+      const imageUrl = await onGenerateThumbnail(
+        script.id,
+        title,
+        content,
+        script.suggested_titles
+      );
+      
+      if (imageUrl) {
+        setGeneratedThumbnailUrl(imageUrl);
+        setShowThumbnailModal(false);
+        setShowImageEditor(true);
+      } else {
+        setThumbnailError("Não foi possível gerar a thumbnail");
+      }
+    } catch (error: any) {
+      setThumbnailError(error.message || "Erro desconhecido");
+    }
+  };
+
+  const handleImageEditorSave = async (newImages: string[]) => {
+    // Update the script with the new thumbnail URL
+    if (newImages.length > 0) {
+      await onUpdate({ thumbnail_url: newImages[0] });
+    }
+    setShowImageEditor(false);
+    setGeneratedThumbnailUrl(null);
+  };
+
   return (
     <div className="h-[calc(100vh-8rem)] flex flex-col">
       {/* Header */}
@@ -173,6 +229,18 @@ export function YouTubeScriptBuilder({
           <Button variant="outline" onClick={handleCopy}>
             {copied ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
             {copied ? "Copiado!" : "Copiar"}
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={handleGenerateThumbnail}
+            disabled={generatingThumbnail}
+          >
+            {generatingThumbnail ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Image className="h-4 w-4 mr-2" />
+            )}
+            Gerar Thumb
           </Button>
           <Button onClick={handleSave} disabled={saving}>
             {saving ? (
@@ -315,6 +383,29 @@ export function YouTubeScriptBuilder({
           </Card>
         </div>
       </div>
+
+      {/* Thumbnail Generation Modal */}
+      <GenerateThumbnailModal
+        open={showThumbnailModal}
+        onOpenChange={setShowThumbnailModal}
+        generating={generatingThumbnail}
+        error={thumbnailError}
+      />
+
+      {/* Image Editor Modal */}
+      {showImageEditor && generatedThumbnailUrl && (
+        <ImageEditorModal
+          open={showImageEditor}
+          onOpenChange={(open) => {
+            setShowImageEditor(open);
+            if (!open) setGeneratedThumbnailUrl(null);
+          }}
+          images={[generatedThumbnailUrl]}
+          onSave={handleImageEditorSave}
+          clientId={clientId}
+          companyId={companyId}
+        />
+      )}
     </div>
   );
 }

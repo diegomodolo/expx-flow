@@ -12672,6 +12672,54 @@ export type Database = {
           },
         ]
       }
+      youtube_thumbnail_configs: {
+        Row: {
+          client_id: string
+          company_id: string
+          created_at: string | null
+          id: string
+          model_photos: Json | null
+          reference_thumbnails: Json | null
+          style_notes: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          client_id: string
+          company_id: string
+          created_at?: string | null
+          id?: string
+          model_photos?: Json | null
+          reference_thumbnails?: Json | null
+          style_notes?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          client_id?: string
+          company_id?: string
+          created_at?: string | null
+          id?: string
+          model_photos?: Json | null
+          reference_thumbnails?: Json | null
+          style_notes?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "youtube_thumbnail_configs_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "youtube_thumbnail_configs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       youtube_video_analyses: {
         Row: {
           ai_summary: string | null

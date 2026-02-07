@@ -477,3 +477,6 @@ verify_jwt = true
 
 [functions.translate-text]
 verify_jwt = true
+
+[functions.generate-youtube-thumbnail]
+verify_jwt = true
