@@ -6,12 +6,14 @@ import { useYouTubeChannels } from "@/hooks/useYouTubeChannels";
 import { useYouTubeAnalytics } from "@/hooks/useYouTubeAnalytics";
 import { useYouTubeSuggestions } from "@/hooks/useYouTubeSuggestions";
 import { useYouTubeScripts } from "@/hooks/useYouTubeScripts";
+import { useYouTubeThumbnails } from "@/hooks/useYouTubeThumbnails";
 import { YouTubeChannelManager } from "@/components/youtube-content-lab/YouTubeChannelManager";
 import { YouTubeVideoAnalytics } from "@/components/youtube-content-lab/YouTubeVideoAnalytics";
 import { YouTubeSuggestionsList } from "@/components/youtube-content-lab/YouTubeSuggestionsList";
 import { YouTubeScriptsList } from "@/components/youtube-content-lab/YouTubeScriptsList";
 import { YouTubeScriptBuilder } from "@/components/youtube-content-lab/YouTubeScriptBuilder";
-import { Youtube, BarChart3, Lightbulb, FileText, Loader2 } from "lucide-react";
+import { YouTubeThumbnailConfig } from "@/components/youtube-content-lab/YouTubeThumbnailConfig";
+import { Youtube, BarChart3, Lightbulb, FileText, Loader2, Image } from "lucide-react";
 
 export default function ClienteYouTubeContentLab() {
   const { id: clientId } = useParams<{ id: string }>();
@@ -25,6 +27,7 @@ export default function ClienteYouTubeContentLab() {
   const analyticsHook = useYouTubeAnalytics(clientId || "", companyId);
   const suggestionsHook = useYouTubeSuggestions(clientId || "", companyId);
   const scriptsHook = useYouTubeScripts(clientId || "", companyId);
+  const thumbnailsHook = useYouTubeThumbnails(clientId || "", companyId);
 
   if (clientLoading) {
     return (
@@ -66,6 +69,11 @@ export default function ClienteYouTubeContentLab() {
           onSendMessage={(message) => scriptsHook.sendChatMessage(selectedScriptId, message)}
           onGenerateTitles={(style) => scriptsHook.generateTitles(selectedScriptId, style)}
           fetchMessages={() => scriptsHook.fetchScriptMessages(selectedScriptId)}
+          onGenerateThumbnail={thumbnailsHook.generateThumbnail}
+          generatingThumbnail={thumbnailsHook.generating}
+          thumbnailConfig={thumbnailsHook.config}
+          clientId={clientId || ""}
+          companyId={companyId}
         />
       );
     }
@@ -86,7 +94,7 @@ export default function ClienteYouTubeContentLab() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="channels" className="flex items-center gap-2">
             <Youtube className="h-4 w-4" />
             Canais
@@ -102,6 +110,10 @@ export default function ClienteYouTubeContentLab() {
           <TabsTrigger value="scripts" className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
             Roteiros
+          </TabsTrigger>
+          <TabsTrigger value="thumbnails" className="flex items-center gap-2">
+            <Image className="h-4 w-4" />
+            Thumbnails
           </TabsTrigger>
         </TabsList>
 
@@ -173,6 +185,13 @@ export default function ClienteYouTubeContentLab() {
             onCreateNew={() => {
               scriptsHook.generateScript("Novo roteiro");
             }}
+          />
+        </TabsContent>
+
+        <TabsContent value="thumbnails" className="mt-6">
+          <YouTubeThumbnailConfig
+            clientId={clientId || ""}
+            companyId={companyId}
           />
         </TabsContent>
       </Tabs>
