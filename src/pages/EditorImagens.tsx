@@ -5,6 +5,7 @@ import { ImagePlus, Upload, Home } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ImageEditorModal } from "@/components/image-editor/ImageEditorModal";
 import { useCompany } from "@/contexts/CompanyContext";
+import { RecentCreationsGallery } from "@/components/image-editor/RecentCreationsGallery";
 
 export default function EditorImagens() {
   const navigate = useNavigate();
@@ -72,6 +73,10 @@ export default function EditorImagens() {
     }
     const blankImage = canvas.toDataURL("image/png");
     setImageAndOpen(blankImage);
+  };
+
+  const handleSelectFromGallery = (imageUrl: string) => {
+    setImageAndOpen(imageUrl);
   };
 
   return (
@@ -152,6 +157,9 @@ export default function EditorImagens() {
             </div>
           </label>
         </div>
+
+        {/* Galeria de Criações Recentes */}
+        <RecentCreationsGallery onSelectImage={handleSelectFromGallery} />
 
         {/* Modal do Editor */}
         {activeCompany && (
