@@ -509,7 +509,10 @@ Generate the image now.`;
       const extension = matches[1] || 'png';
       const base64Data = matches[2];
       const slideSuffix = slideNumber !== undefined ? `-slide${slideNumber}` : '';
-      const fileName = `visual-creatives/${clientId}/${Date.now()}${slideSuffix}.${extension}`;
+
+      // Evita paths como "visual-creatives//..." quando clientId estiver vazio (standalone mode)
+      const uploadFolder = clientId ? clientId : `standalone/${companyId}`;
+      const fileName = `visual-creatives/${uploadFolder}/${Date.now()}${slideSuffix}.${extension}`;
 
       const binaryString = atob(base64Data);
       const bytes = new Uint8Array(binaryString.length);
@@ -517,44 +520,65 @@ Generate the image now.`;
         bytes[i] = binaryString.charCodeAt(i);
       }
 
-      // Upload to Supabase Storage with retry logic
-      const MAX_UPLOAD_RETRIES = 3;
-      let uploadError: any = null;
-      
-      for (let attempt = 1; attempt <= MAX_UPLOAD_RETRIES; attempt++) {
-        const { error } = await supabase.storage
-          .from('ai-generated-images')
-          .upload(fileName, bytes, {
-            contentType: `image/${extension}`,
-            upsert: true
-          });
-        
-        if (!error) {
-          uploadError = null;
+      // Upload resiliente (timeouts 544 do Storage acontecem de forma intermitente)
+      const UPLOAD_BUCKETS = ['ai-generated-images', 'visual-creatives'] as const;
+      const MAX_UPLOAD_RETRIES = 4;
+      const BASE_DELAY_MS = 750;
+
+      let lastUploadError: any = null;
+      let uploadedBucket: (typeof UPLOAD_BUCKETS)[number] | null = null;
+
+      const uploadWithRetry = async (bucket: (typeof UPLOAD_BUCKETS)[number]): Promise<boolean> => {
+        for (let attempt = 1; attempt <= MAX_UPLOAD_RETRIES; attempt++) {
+          const { error } = await supabase.storage
+            .from(bucket)
+            .upload(fileName, bytes, {
+              contentType: `image/${extension}`,
+              upsert: true,
+            });
+
+          if (!error) {
+            lastUploadError = null;
+            return true;
+          }
+
+          lastUploadError = error;
+          const status = (error as any)?.status ?? (error as any)?.statusCode;
+          console.warn(
+            `Upload attempt ${attempt}/${MAX_UPLOAD_RETRIES} failed (bucket=${bucket}, status=${status}):`,
+            error.message
+          );
+
+          if (attempt < MAX_UPLOAD_RETRIES) {
+            // Exponential backoff + jitter
+            const delay = BASE_DELAY_MS * Math.pow(2, attempt - 1) + Math.floor(Math.random() * 250);
+            await new Promise((resolve) => setTimeout(resolve, delay));
+          }
+        }
+
+        return false;
+      };
+
+      for (const bucket of UPLOAD_BUCKETS) {
+        const ok = await uploadWithRetry(bucket);
+        if (ok) {
+          uploadedBucket = bucket;
           break;
         }
-        
-        uploadError = error;
-        console.warn(`Upload attempt ${attempt}/${MAX_UPLOAD_RETRIES} failed:`, error.message);
-        
-        if (attempt < MAX_UPLOAD_RETRIES) {
-          // Exponential backoff: 1s, 2s, 4s
-          const delay = Math.pow(2, attempt - 1) * 1000;
-          console.log(`Retrying upload in ${delay}ms...`);
-          await new Promise(resolve => setTimeout(resolve, delay));
-        }
-      }
 
-      if (uploadError) {
-        console.error('All upload attempts failed:', uploadError);
-        throw new Error('Failed to upload generated image after multiple retries');
+        console.warn(`Upload failed in bucket ${bucket}, trying next bucket...`);
+      };
+
+      if (!uploadedBucket) {
+        console.error('All upload attempts failed:', lastUploadError);
+        throw new Error('Failed to upload generated image');
       }
 
       const { data: urlData } = supabase.storage
-        .from('ai-generated-images')
+        .from(uploadedBucket)
         .getPublicUrl(fileName);
 
-      console.log(`Image uploaded: ${urlData.publicUrl}`);
+      console.log(`Image uploaded (${uploadedBucket}): ${urlData.publicUrl}`);
       return urlData.publicUrl;
     };
 
