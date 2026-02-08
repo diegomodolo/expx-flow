@@ -66,7 +66,8 @@ Deno.serve(async (req) => {
       extraPrompt,
       isCarousel = false,
       slides = [],
-      additionalImageToMerge
+      additionalImageToMerge,
+      orientation // New: custom orientation from image editor
     } = await req.json();
 
     console.log('Request data received:', {
@@ -163,29 +164,21 @@ Deno.serve(async (req) => {
       banner_vertical: '1:2',
     };
 
-    const aspectRatio = aspectRatioMap[normalizedCreativeType] || '1:1';
-    console.log('Selected aspect ratio:', aspectRatio, 'for type:', normalizedCreativeType);
-
-    // Dimensões exatas a serem solicitadas no prompt
-    const sizeMap: Record<string, { width: number; height: number }> = {
-      instagram_feed: { width: 1080, height: 1440 },
-      facebook_feed: { width: 1080, height: 1440 },
-      linkedin_post: { width: 1080, height: 1440 },
-
-      instagram_story: { width: 1080, height: 1920 },
-      instagram_reels: { width: 1080, height: 1920 },
-      facebook_story: { width: 1080, height: 1920 },
-      whatsapp_status: { width: 1080, height: 1920 },
-      tiktok_video: { width: 1080, height: 1920 },
-
-      youtube_thumbnail: { width: 1280, height: 720 },
-      twitter_post: { width: 1200, height: 675 },
-
-      banner_horizontal: { width: 1920, height: 600 },
-      banner_vertical: { width: 600, height: 1200 },
-    };
-
-    const targetSize = sizeMap[normalizedCreativeType] || null;
+    // Use custom orientation if provided (from image editor), otherwise use creativeType mapping
+    let aspectRatio: string;
+    let targetSize: { width: number; height: number } | null;
+    
+    if (orientation && orientation.ratio && orientation.width && orientation.height) {
+      // Custom orientation from image editor takes priority
+      aspectRatio = orientation.ratio;
+      targetSize = { width: orientation.width, height: orientation.height };
+      console.log('Using custom orientation:', orientation.id, aspectRatio, targetSize);
+    } else {
+      // Fall back to creativeType-based mapping
+      aspectRatio = aspectRatioMap[normalizedCreativeType] || '1:1';
+      targetSize = sizeMap[normalizedCreativeType] || null;
+      console.log('Using creativeType-based aspect ratio:', aspectRatio, 'for type:', normalizedCreativeType);
+    }
 
     // Coletar todas as imagens de referência (do request + do cliente)
     const allReferenceImages: string[] = [...references];
