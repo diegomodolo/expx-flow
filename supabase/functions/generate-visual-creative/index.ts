@@ -291,7 +291,13 @@ ${extraPrompt || 'Incorporate the additional image naturally into the compositio
 ` : '';
 
     const fullPrompt = isEditingExisting 
-      ? `EDIT the provided reference image with the following modifications:
+      ? `**MANDATORY OUTPUT FORMAT** (HIGHEST PRIORITY):
+- The generated image MUST have aspect ratio: ${aspectRatio}
+${targetSize ? `- The image MUST be exactly ${targetSize.width}x${targetSize.height} pixels` : ''}
+- DO NOT change the aspect ratio from the reference image unless the dimensions above are different
+- This is the MOST IMPORTANT rule - the output dimensions MUST match exactly
+
+EDIT the provided reference image with the following modifications:
 
 ${hasMergeImage ? mergeInstructions : (extraPrompt ? `REQUESTED CHANGES:
 ${extraPrompt}
@@ -303,13 +309,12 @@ CRITICAL RULES FOR EDITING:
 - Preserve the original composition, layout, and style
 - Only modify what was explicitly requested
 - The output should look like a refined version of the input
-- Maintain the same aspect ratio: ${aspectRatio}
-${targetSize ? `- Output size: ${targetSize.width}x${targetSize.height} pixels` : ''}
+- REMEMBER: Output MUST be ${aspectRatio} ratio${targetSize ? ` (${targetSize.width}x${targetSize.height}px)` : ''}
 - Keep the same visual language, colors, and design approach unless specifically asked to change them
 - If text changes are requested, spell the new text EXACTLY as provided
 ${hasMergeImage ? '- INTEGRATE the additional image as described by the user' : ''}
 
-Generate the edited image now.`
+Generate the edited image now with the EXACT dimensions specified above.`
       
       : `Generate a professional marketing creative image with the following specifications:
 
