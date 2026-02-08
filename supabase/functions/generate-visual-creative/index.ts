@@ -517,16 +517,37 @@ Generate the image now.`;
         bytes[i] = binaryString.charCodeAt(i);
       }
 
-      const { error: uploadError } = await supabase.storage
-        .from('ai-generated-images')
-        .upload(fileName, bytes, {
-          contentType: `image/${extension}`,
-          upsert: true
-        });
+      // Upload to Supabase Storage with retry logic
+      const MAX_UPLOAD_RETRIES = 3;
+      let uploadError: any = null;
+      
+      for (let attempt = 1; attempt <= MAX_UPLOAD_RETRIES; attempt++) {
+        const { error } = await supabase.storage
+          .from('ai-generated-images')
+          .upload(fileName, bytes, {
+            contentType: `image/${extension}`,
+            upsert: true
+          });
+        
+        if (!error) {
+          uploadError = null;
+          break;
+        }
+        
+        uploadError = error;
+        console.warn(`Upload attempt ${attempt}/${MAX_UPLOAD_RETRIES} failed:`, error.message);
+        
+        if (attempt < MAX_UPLOAD_RETRIES) {
+          // Exponential backoff: 1s, 2s, 4s
+          const delay = Math.pow(2, attempt - 1) * 1000;
+          console.log(`Retrying upload in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
 
       if (uploadError) {
-        console.error('Error uploading image:', uploadError);
-        throw new Error('Failed to upload generated image');
+        console.error('All upload attempts failed:', uploadError);
+        throw new Error('Failed to upload generated image after multiple retries');
       }
 
       const { data: urlData } = supabase.storage
