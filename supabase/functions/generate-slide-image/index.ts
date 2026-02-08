@@ -118,57 +118,95 @@ The slide should look like it belongs to the same visual family as the thumbnail
 
     console.log(`[generate-slide-image] Generating image with Nano Banana Pro...`);
 
-    // Generate image using Gemini 3 Pro Image (Nano Banana Pro)
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-pro-image-preview",
-        messages,
-        modalities: ["image", "text"],
-      }),
-    });
+    // Retry logic for AI generation
+    const MAX_RETRIES = 3;
+    let imageUrl: string | null = null;
+    let lastError: Error | null = null;
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("[generate-slide-image] AI error:", response.status, errorText);
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      console.log(`[generate-slide-image] Attempt ${attempt}/${MAX_RETRIES}...`);
       
-      await supabase
-        .from("youtube_script_slides")
-        .update({ status: "error" })
-        .eq("id", slideId);
+      try {
+        const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-3-pro-image-preview",
+            messages,
+            modalities: ["image", "text"],
+          }),
+        });
 
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`[generate-slide-image] AI error (attempt ${attempt}):`, response.status, errorText);
+          
+          if (response.status === 429) {
+            await supabase
+              .from("youtube_script_slides")
+              .update({ status: "error" })
+              .eq("id", slideId);
+
+            return new Response(
+              JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
+              { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+          if (response.status === 402) {
+            await supabase
+              .from("youtube_script_slides")
+              .update({ status: "error" })
+              .eq("id", slideId);
+
+            return new Response(
+              JSON.stringify({ error: "Payment required. Please add credits to continue." }),
+              { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+          
+          lastError = new Error(`API returned ${response.status}`);
+          // Wait before retry with exponential backoff
+          if (attempt < MAX_RETRIES) {
+            await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+            continue;
+          }
+        } else {
+          const data = await response.json();
+          imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+          
+          if (imageUrl) {
+            console.log(`[generate-slide-image] Image generated successfully on attempt ${attempt}`);
+            break;
+          } else {
+            console.warn(`[generate-slide-image] No image in response on attempt ${attempt}`);
+            lastError = new Error("No image in API response");
+            // Wait before retry
+            if (attempt < MAX_RETRIES) {
+              await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+            }
+          }
+        }
+      } catch (fetchError: any) {
+        console.error(`[generate-slide-image] Fetch error (attempt ${attempt}):`, fetchError);
+        lastError = fetchError;
+        if (attempt < MAX_RETRIES) {
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+        }
       }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "Payment required. Please add credits to continue." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      
-      throw new Error("Failed to generate image");
     }
 
-    const data = await response.json();
-    const imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-
     if (!imageUrl) {
-      console.error("[generate-slide-image] No image in response");
+      console.error("[generate-slide-image] Failed to generate image after all retries:", lastError?.message);
       
       await supabase
         .from("youtube_script_slides")
         .update({ status: "error" })
         .eq("id", slideId);
       
-      throw new Error("No image generated");
+      throw new Error(lastError?.message || "No image generated after retries");
     }
 
     console.log(`[generate-slide-image] Image generated, uploading to storage...`);
