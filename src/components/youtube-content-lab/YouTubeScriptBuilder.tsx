@@ -20,6 +20,7 @@ import {
   Image,
   Pencil,
   RefreshCw,
+  Presentation,
 } from "lucide-react";
 import {
   Select,
@@ -32,6 +33,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ReactMarkdown from "react-markdown";
 import { GenerateThumbnailModal } from "./GenerateThumbnailModal";
 import { ImageEditorModal } from "@/components/image-editor/ImageEditorModal";
+import { SlidesSection } from "./SlidesSection";
 
 interface YouTubeScriptBuilderProps {
   script: YouTubeScript;
@@ -274,37 +276,49 @@ export function YouTubeScriptBuilder({
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-0">
-        {/* Script Editor */}
-        <Card className="lg:col-span-2 flex flex-col">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base">Roteiro</CardTitle>
-              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "edit" | "preview")}>
-                <TabsList className="h-8">
-                  <TabsTrigger value="edit" className="text-xs">Editar</TabsTrigger>
-                  <TabsTrigger value="preview" className="text-xs">Preview</TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </div>
-          </CardHeader>
-          <CardContent className="flex-1 overflow-hidden">
-            {activeTab === "edit" ? (
-              <Textarea
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                className="h-full min-h-[400px] font-mono text-sm resize-none"
-                placeholder="Escreva seu roteiro aqui..."
-              />
-            ) : (
-              <ScrollArea className="h-full min-h-[400px]">
-                <div className="prose prose-sm dark:prose-invert max-w-none">
-                  <ReactMarkdown>{content}</ReactMarkdown>
-                </div>
-              </ScrollArea>
-            )}
-          </CardContent>
-        </Card>
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-0 overflow-auto">
+        {/* Script Editor and Slides */}
+        <div className="lg:col-span-2 flex flex-col gap-4">
+          {/* Script Editor */}
+          <Card className="flex flex-col">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base">Roteiro</CardTitle>
+                <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "edit" | "preview")}>
+                  <TabsList className="h-8">
+                    <TabsTrigger value="edit" className="text-xs">Editar</TabsTrigger>
+                    <TabsTrigger value="preview" className="text-xs">Preview</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
+            </CardHeader>
+            <CardContent className="overflow-hidden">
+              {activeTab === "edit" ? (
+                <Textarea
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  className="min-h-[300px] font-mono text-sm resize-none"
+                  placeholder="Escreva seu roteiro aqui..."
+                />
+              ) : (
+                <ScrollArea className="min-h-[300px] max-h-[400px]">
+                  <div className="prose prose-sm dark:prose-invert max-w-none">
+                    <ReactMarkdown>{content}</ReactMarkdown>
+                  </div>
+                </ScrollArea>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Slides Section */}
+          <SlidesSection
+            scriptId={script.id}
+            scriptContent={content}
+            scriptTitle={title}
+            clientId={clientId}
+            companyId={companyId}
+          />
+        </div>
 
         {/* Thumbnail, Chat & Titles */}
         <div className="flex flex-col gap-4 min-h-0">
