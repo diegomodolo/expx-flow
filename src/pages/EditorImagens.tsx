@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { ImagePlus, Upload, Home } from "lucide-react";
@@ -12,30 +12,66 @@ export default function EditorImagens() {
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
 
+  // Mantém referência ao último blob URL para evitar vazamento de memória
+  const lastObjectUrlRef = useRef<string | null>(null);
+
+  const revokeLastObjectUrl = useCallback(() => {
+    const last = lastObjectUrlRef.current;
+    if (last && last.startsWith("blob:")) {
+      URL.revokeObjectURL(last);
+    }
+    lastObjectUrlRef.current = null;
+  }, []);
+
+  const setImageAndOpen = useCallback(
+    (url: string) => {
+      // Se havia uma imagem anterior via blob:, limpe antes de trocar
+      revokeLastObjectUrl();
+      lastObjectUrlRef.current = url;
+      setSelectedImages([url]);
+      setIsEditorOpen(true);
+    },
+    [revokeLastObjectUrl]
+  );
+
+  const handleModalOpenChange = useCallback(
+    (nextOpen: boolean) => {
+      if (!nextOpen) {
+        revokeLastObjectUrl();
+        setSelectedImages([]);
+      }
+      setIsEditorOpen(nextOpen);
+    },
+    [revokeLastObjectUrl]
+  );
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const input = e.currentTarget;
+    const file = input.files?.[0];
+
+    // Importante: permite selecionar o MESMO arquivo novamente
+    input.value = "";
+
     if (file) {
       // Cria URL temporária instantaneamente (não bloqueia)
       const objectUrl = URL.createObjectURL(file);
-      setSelectedImages([objectUrl]);
       // Abre o modal IMEDIATAMENTE
-      setIsEditorOpen(true);
+      setImageAndOpen(objectUrl);
     }
   };
 
   const handleCreateNew = () => {
     // Imagem transparente 1080x1080 como base
-    const canvas = document.createElement('canvas');
+    const canvas = document.createElement("canvas");
     canvas.width = 1080;
     canvas.height = 1080;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     if (ctx) {
-      ctx.fillStyle = '#1a1a2e';
+      ctx.fillStyle = "#1a1a2e";
       ctx.fillRect(0, 0, 1080, 1080);
     }
-    const blankImage = canvas.toDataURL('image/png');
-    setSelectedImages([blankImage]);
-    setIsEditorOpen(true);
+    const blankImage = canvas.toDataURL("image/png");
+    setImageAndOpen(blankImage);
   };
 
   return (
@@ -68,8 +104,10 @@ export default function EditorImagens() {
         <div className="grid gap-6 md:grid-cols-2 max-w-2xl">
           {/* Criar do zero */}
           <div 
-            onClick={handleCreateNew}
-            className="group cursor-pointer rounded-xl border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 p-8 transition-all hover:bg-muted/30"
+            onClick={activeCompany ? handleCreateNew : undefined}
+            className={`group rounded-xl border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 p-8 transition-all hover:bg-muted/30 ${
+              activeCompany ? "cursor-pointer" : "pointer-events-none opacity-60"
+            }`}
           >
             <div className="flex flex-col items-center text-center gap-4">
               <div className="p-4 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors">
@@ -85,12 +123,21 @@ export default function EditorImagens() {
           </div>
 
           {/* Upload de imagem */}
-          <label className="group cursor-pointer rounded-xl border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 p-8 transition-all hover:bg-muted/30">
+          <label className={`group rounded-xl border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 p-8 transition-all hover:bg-muted/30 ${
+            activeCompany ? "cursor-pointer" : "pointer-events-none opacity-60"
+          }`}>
+
             <input
               type="file"
               accept="image/*"
+              onClick={(e) => {
+                // Se o usuário cancelar o seletor, o onChange não dispara.
+                // Limpando aqui garantimos que escolher o mesmo arquivo novamente funcione.
+                (e.currentTarget as HTMLInputElement).value = "";
+              }}
               onChange={handleFileUpload}
               className="hidden"
+              disabled={!activeCompany}
             />
             <div className="flex flex-col items-center text-center gap-4">
               <div className="p-4 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors">
@@ -110,13 +157,13 @@ export default function EditorImagens() {
         {activeCompany && (
           <ImageEditorModal
             open={isEditorOpen}
-            onOpenChange={setIsEditorOpen}
+            onOpenChange={handleModalOpenChange}
             images={selectedImages}
             clientId=""
             companyId={activeCompany.company_id}
             onSave={(newImages) => {
               console.log("Imagens salvas:", newImages);
-              setIsEditorOpen(false);
+              handleModalOpenChange(false);
             }}
           />
         )}
