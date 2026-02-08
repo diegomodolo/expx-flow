@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { EditorHeader } from './EditorHeader';
 import { EditorToolbar } from './EditorToolbar';
@@ -6,8 +6,9 @@ import { EditorCanvas } from './EditorCanvas';
 import { EditorAIChat } from './EditorAIChat';
 import { useImageEditor } from './hooks/useImageEditor';
 import { exportAndUpload, downloadCanvas } from './utils/canvasExport';
+import { detectOrientationFromUrl } from './utils/detectOrientation';
 import { toast } from '@/hooks/use-toast';
-import { Orientation } from './OrientationSelector';
+import { Orientation, ORIENTATIONS } from './OrientationSelector';
 
 interface ImageEditorModalProps {
   open: boolean;
@@ -29,6 +30,7 @@ export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
   const canvasRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [isFinalizing, setIsFinalizing] = useState(false);
+  const detectedOrientationRef = useRef<string | null>(null);
 
   const {
     state,
@@ -48,6 +50,22 @@ export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
     setProcessingAI,
     setOrientation,
   } = useImageEditor({ initialImages: images });
+
+  // Detectar orientação automaticamente quando uma nova imagem é carregada
+  useEffect(() => {
+    if (open && images.length > 0 && images[0]) {
+      const imageUrl = images[0];
+      // Só detecta se for uma imagem diferente da última detectada
+      if (detectedOrientationRef.current !== imageUrl) {
+        detectedOrientationRef.current = imageUrl;
+        
+        detectOrientationFromUrl(imageUrl).then((detectedOrientation) => {
+          console.log('Detected orientation:', detectedOrientation.id, detectedOrientation.ratio);
+          setOrientation(detectedOrientation.id);
+        });
+      }
+    }
+  }, [open, images, setOrientation]);
 
   const handleOrientationChange = useCallback((orientation: Orientation) => {
     setOrientation(orientation.id);
