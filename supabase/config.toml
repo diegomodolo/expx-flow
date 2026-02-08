@@ -480,3 +480,9 @@ verify_jwt = true
 
 [functions.generate-youtube-thumbnail]
 verify_jwt = true
+
+[functions.generate-presentation-slides]
+verify_jwt = true
+
+[functions.generate-slide-image]
+verify_jwt = true

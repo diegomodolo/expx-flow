@@ -12599,6 +12599,53 @@ export type Database = {
           },
         ]
       }
+      youtube_script_slides: {
+        Row: {
+          content: string | null
+          created_at: string
+          id: string
+          image_url: string | null
+          script_id: string
+          slide_order: number
+          status: string
+          title: string
+          updated_at: string
+          visual_suggestion: string | null
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          script_id: string
+          slide_order?: number
+          status?: string
+          title: string
+          updated_at?: string
+          visual_suggestion?: string | null
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          script_id?: string
+          slide_order?: number
+          status?: string
+          title?: string
+          updated_at?: string
+          visual_suggestion?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "youtube_script_slides_script_id_fkey"
+            columns: ["script_id"]
+            isOneToOne: false
+            referencedRelation: "youtube_scripts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       youtube_scripts: {
         Row: {
           client_id: string
