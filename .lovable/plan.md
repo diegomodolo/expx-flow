@@ -1,264 +1,223 @@
 
-# Plano: Gerador de Thumbnails para YouTube Content Lab
+# Plano: Gerador de Slides de Apresentação para Roteiros do YouTube
 
-## Visão Geral
+## Visao Geral
 
-Implementar um sistema completo de geração de thumbnails para vídeos do YouTube, integrado aos roteiros existentes no YouTube Content Lab. O fluxo será:
-
-1. **Configurar** → Fotos do modelo/pessoa + thumbnails de referência (aba Thumbnails)
-2. **Gerar** → Botão no roteiro analisa tudo e gera a thumb
-3. **Editar** → Abre no ImageEditorModal para ajustes finos
-4. **Salvar** → Associa a thumbnail ao roteiro automaticamente
+Adicionar uma nova funcionalidade ao **YouTubeScriptBuilder** que permite gerar slides de apresentacao baseados no conteudo do roteiro. A IA vai analisar o roteiro, detalhar os slides sugeridos, e apos aprovacao, gerar as imagens dos slides que poderao ser visualizados em um carrossel interativo com navegacao, modo tela cheia e integracao com o editor de imagens.
 
 ---
 
-## Componentes da Solução
-
-### 1. Nova Aba "Thumbnails" no Content Lab
-
-Uma nova aba entre "Roteiros" e a UI atual para configurar:
-
-- **Fotos do Modelo/Pessoa**: Upload de até 5 fotos da pessoa que aparecerá nas thumbnails
-- **Thumbnails de Referência**: Upload de thumbnails de outros vídeos como inspiração visual
-- **Preview**: Visualização das imagens configuradas
-
-### 2. Botão "Gerar Thumb" no Script Builder
-
-No header do `YouTubeScriptBuilder`, ao lado de "Copiar" e "Salvar":
-
-- Botão com ícone de imagem + texto "Gerar Thumb"
-- Abre modal de progresso durante geração
-- Ao finalizar, abre o `ImageEditorModal` com a thumb gerada
-
-### 3. Fluxo de Geração
+## Fluxo do Usuario
 
 ```text
-┌─────────────────────────────────────────────────────────┐
-│  Clique em "Gerar Thumb"                                │
-└─────────────────────────────────────────────────────────┘
-                           │
-                           ▼
-┌─────────────────────────────────────────────────────────┐
-│  Modal "Gerando Thumbnail..."                           │
-│  - Coletando informações do roteiro                     │
-│  - Analisando fotos do modelo                           │
-│  - Processando referências visuais                      │
-└─────────────────────────────────────────────────────────┘
-                           │
-                           ▼
-┌─────────────────────────────────────────────────────────┐
-│  Edge Function: generate-youtube-thumbnail              │
-│  - Analisa: título, headlines do roteiro                │
-│  - Usa: fotos do modelo como referência                 │
-│  - Aplica: estilo das thumbnails de referência          │
-│  - Gera: imagem 1280x720 (16:9)                         │
-└─────────────────────────────────────────────────────────┘
-                           │
-                           ▼
-┌─────────────────────────────────────────────────────────┐
-│  ImageEditorModal abre automaticamente                  │
-│  - Thumb gerada pronta para edição                      │
-│  - Pode adicionar texto, ajustar cores, etc.            │
-└─────────────────────────────────────────────────────────┘
-                           │
-                           ▼
-┌─────────────────────────────────────────────────────────┐
-│  Ao finalizar no editor                                 │
-│  - Salva no Storage                                     │
-│  - Atualiza youtube_scripts.thumbnail_url               │
-└─────────────────────────────────────────────────────────┘
+1. Usuario abre um roteiro no YouTubeScriptBuilder
+2. Clica em "Gerar Slides" (novo botao)
+3. IA analisa o roteiro e retorna estrutura detalhada dos slides:
+   - Titulo do slide
+   - Conteudo/bullets
+   - Sugestao visual (elementos, cores, icones)
+4. Usuario visualiza a estrutura e pode:
+   - Editar o texto de cada slide
+   - Aprovar e gerar as imagens
+5. Sistema gera as imagens de cada slide via IA (Gemini)
+6. Slides sao exibidos em um carrossel com:
+   - Navegacao esquerda/direita
+   - Indicador de slide atual
+   - Botao de tela cheia
+   - Botao para editar cada slide no ImageEditorModal
+7. Slides sao salvos vinculados ao roteiro
 ```
 
 ---
 
-## Detalhes Técnicos
+## Componentes da Solucao
 
-### Banco de Dados
+### 1. Nova Tabela no Banco de Dados
 
-**Nova tabela: `youtube_thumbnail_configs`**
+**Tabela: `youtube_script_slides`**
 
-| Coluna | Tipo | Descrição |
+| Coluna | Tipo | Descricao |
 |--------|------|-----------|
-| id | uuid | Chave primária |
-| client_id | uuid | FK para clients |
-| company_id | uuid | FK para companies |
-| model_photos | jsonb | Array com URLs das fotos do modelo |
-| reference_thumbnails | jsonb | Array com URLs das thumbs de referência |
-| style_notes | text | Notas sobre estilo visual (opcional) |
-| created_at | timestamp | Data de criação |
-| updated_at | timestamp | Data de atualização |
+| id | UUID | Chave primaria |
+| script_id | UUID | FK para youtube_scripts |
+| slide_order | INTEGER | Ordem do slide (1, 2, 3...) |
+| title | TEXT | Titulo do slide |
+| content | TEXT | Conteudo/bullets do slide |
+| visual_suggestion | TEXT | Sugestao visual para a IA |
+| image_url | TEXT | URL da imagem gerada (nullable) |
+| status | TEXT | draft, generating, completed, error |
+| created_at | TIMESTAMPTZ | Data de criacao |
+| updated_at | TIMESTAMPTZ | Data de atualizacao |
 
-### Arquivos a Criar
+### 2. Nova Edge Function
 
-1. **`src/components/youtube-content-lab/YouTubeThumbnailConfig.tsx`**
-   - Interface para configurar fotos do modelo e referências
-   - Upload de imagens para Storage
-   - Preview das imagens configuradas
+**`generate-presentation-slides`**
 
-2. **`src/hooks/useYouTubeThumbnails.tsx`**
-   - CRUD para youtube_thumbnail_configs
-   - Função para gerar thumbnail
-   - Integração com o hook de scripts
+Funcionalidade:
+- Recebe o `scriptId` e conteudo do roteiro
+- Envia para Gemini com prompt especializado para estruturar apresentacao
+- Retorna array de slides com:
+  - title, content, visual_suggestion
+- Salva na tabela `youtube_script_slides` com status "draft"
 
-3. **`supabase/functions/generate-youtube-thumbnail/index.ts`**
-   - Edge function dedicada para thumbnails
-   - Prompt especializado para YouTube thumbnails
-   - Usa modelo Gemini 3 Pro Image
+**`generate-slide-image`**
 
-4. **`src/components/youtube-content-lab/GenerateThumbnailModal.tsx`**
-   - Modal de progresso durante geração
-   - Estados: preparando, gerando, concluído
+Funcionalidade:
+- Recebe dados de um slide especifico
+- Usa o `generate-visual-creative` existente como base
+- Gera imagem no formato 16:9 (YouTube/apresentacao)
+- Atualiza o slide com a URL da imagem
 
-### Arquivos a Modificar
+### 3. Novo Hook
 
-1. **`src/pages/cliente/ClienteYouTubeContentLab.tsx`**
-   - Adicionar 5ª aba "Thumbnails" 
-   - Integrar novo componente de configuração
+**`useYouTubeSlides.tsx`**
 
-2. **`src/components/youtube-content-lab/YouTubeScriptBuilder.tsx`**
-   - Adicionar botão "Gerar Thumb" no header
-   - Integrar modal de geração
-   - Integrar ImageEditorModal
-   - Handler para salvar thumbnail no script
+```typescript
+interface Slide {
+  id: string;
+  script_id: string;
+  slide_order: number;
+  title: string;
+  content: string;
+  visual_suggestion: string;
+  image_url: string | null;
+  status: 'draft' | 'generating' | 'completed' | 'error';
+}
 
-3. **`src/hooks/useYouTubeScripts.tsx`**
-   - Adicionar função generateThumbnail
-   - Handler para atualizar thumbnail_url
-
-### Edge Function: generate-youtube-thumbnail
-
-Prompt especializado que considera:
-- Título do vídeo e títulos sugeridos
-- Conteúdo/tema do roteiro
-- Fotos do modelo para manter consistência facial
-- Thumbnails de referência para estilo visual
-- Aspectos como:
-  - Expressões faciais impactantes
-  - Texto grande e legível
-  - Contraste e cores vibrantes
-  - Composição típica de YouTube
-
-### Migração SQL
-
-```sql
--- Criar tabela de configurações de thumbnails
-CREATE TABLE youtube_thumbnail_configs (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  client_id UUID NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
-  company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
-  model_photos JSONB DEFAULT '[]'::jsonb,
-  reference_thumbnails JSONB DEFAULT '[]'::jsonb,
-  style_notes TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(client_id, company_id)
-);
-
--- Habilitar RLS
-ALTER TABLE youtube_thumbnail_configs ENABLE ROW LEVEL SECURITY;
-
--- Políticas RLS (padrão do projeto)
-CREATE POLICY "Users can view their company thumbnail configs"
-  ON youtube_thumbnail_configs FOR SELECT
-  USING (company_id IN (
-    SELECT company_id FROM company_employees WHERE user_id = auth.uid()
-  ));
-
-CREATE POLICY "Users can insert thumbnail configs for their company"
-  ON youtube_thumbnail_configs FOR INSERT
-  WITH CHECK (company_id IN (
-    SELECT company_id FROM company_employees WHERE user_id = auth.uid()
-  ));
-
-CREATE POLICY "Users can update thumbnail configs for their company"
-  ON youtube_thumbnail_configs FOR UPDATE
-  USING (company_id IN (
-    SELECT company_id FROM company_employees WHERE user_id = auth.uid()
-  ));
+// Funcoes:
+- fetchSlides(scriptId)
+- generateStructure(scriptId, scriptContent)
+- updateSlide(slideId, updates)
+- generateSlideImage(slideId)
+- generateAllImages()
+- deleteSlide(slideId)
+- reorderSlides(slideId, newOrder)
 ```
+
+### 4. Novos Componentes UI
+
+**`SlidesGeneratorSection.tsx`** (Secao dentro do ScriptBuilder)
+
+- Botao "Gerar Slides" na barra superior
+- Quando clicado, abre painel lateral ou modal
+- Exibe status de geracao
+
+**`SlideStructureEditor.tsx`**
+
+- Lista editavel dos slides antes de gerar imagens
+- Campos: titulo, conteudo, sugestao visual
+- Botoes: adicionar slide, remover, reordenar (drag-and-drop)
+- Botao "Gerar Todas as Imagens"
+
+**`SlideCarousel.tsx`**
+
+- Usa o componente Carousel existente (embla-carousel)
+- Exibe cada slide em proporcao 16:9
+- Navegacao com setas e indicadores
+- Overlay com botoes:
+  - Tela cheia (usando Dialog fullscreen)
+  - Editar no ImageEditorModal
+- Loading state para slides sendo gerados
+
+**`SlideFullscreenViewer.tsx`**
+
+- Modal de tela cheia para visualizar slides
+- Navegacao com teclado (setas)
+- Indicador de slide atual
+- Botao de fechar
+
+### 5. Modificacoes no YouTubeScriptBuilder
+
+- Adicionar novo botao "Slides" no header (ao lado de Gerar Thumb)
+- Adicionar nova secao/card para os slides gerados
+- Integrar com ImageEditorModal existente
 
 ---
 
-## Interface do Usuário
+## Detalhes Tecnicos
 
-### Aba Thumbnails (Configuração)
-
-```text
-┌────────────────────────────────────────────────────────────┐
-│ ⚙️ Configuração de Thumbnails                              │
-├────────────────────────────────────────────────────────────┤
-│                                                            │
-│ 📸 Fotos do Modelo                                         │
-│ ┌─────────────────────────────────────────────────────────┐│
-│ │ Adicione fotos da pessoa que aparecerá nas thumbnails  ││
-│ │                                                         ││
-│ │  ┌─────┐  ┌─────┐  ┌─────┐  ┌───────┐                  ││
-│ │  │ 📷  │  │ 📷  │  │ 📷  │  │  +    │                  ││
-│ │  │foto1│  │foto2│  │foto3│  │Adicionar│                ││
-│ │  └─────┘  └─────┘  └─────┘  └───────┘                  ││
-│ └─────────────────────────────────────────────────────────┘│
-│                                                            │
-│ 🎨 Thumbnails de Referência                                │
-│ ┌─────────────────────────────────────────────────────────┐│
-│ │ Adicione thumbnails de outros vídeos como referência   ││
-│ │                                                         ││
-│ │  ┌─────────┐  ┌─────────┐  ┌───────────┐               ││
-│ │  │  thumb1 │  │  thumb2 │  │    +      │               ││
-│ │  │  16:9   │  │  16:9   │  │ Adicionar │               ││
-│ │  └─────────┘  └─────────┘  └───────────┘               ││
-│ └─────────────────────────────────────────────────────────┘│
-│                                                            │
-│ ┌────────────────────────────────────────────────────────┐ │
-│ │ 💾 Salvar Configurações                                │ │
-│ └────────────────────────────────────────────────────────┘ │
-└────────────────────────────────────────────────────────────┘
-```
-
-### Botão no Script Builder
-
-No header, ao lado dos botões existentes:
+### Prompt para Estruturar Slides
 
 ```text
-[ Copiar ]  [ 🖼️ Gerar Thumb ]  [ Salvar ]
+Voce e um especialista em criar apresentacoes de slides para videos do YouTube.
+
+Analise o roteiro abaixo e crie uma estrutura de apresentacao profissional.
+
+Para cada slide, defina:
+1. Titulo (maximo 6 palavras, impactante)
+2. Conteudo (3-5 bullets concisos)
+3. Sugestao visual (elementos graficos, icones, estilo)
+
+Quantidade sugerida: 8-12 slides
+
+Roteiro:
+{script_content}
+
+Retorne em JSON:
+{
+  "slides": [
+    {
+      "title": "...",
+      "content": "...",
+      "visual_suggestion": "..."
+    }
+  ]
+}
 ```
 
-### Modal de Geração
+### Integracao com ImageEditorModal
 
-```text
-┌────────────────────────────────────────────┐
-│          Gerando Thumbnail...              │
-│                                            │
-│    ⏳ Analisando roteiro e referências     │
-│    ✅ Processando fotos do modelo          │
-│    ⏳ Gerando imagem com IA...             │
-│                                            │
-│    [████████████░░░░░░░░░░░] 60%           │
-└────────────────────────────────────────────┘
+Ao clicar em "Editar" em um slide:
+```typescript
+<ImageEditorModal
+  open={showEditor}
+  onOpenChange={setShowEditor}
+  images={[slide.image_url]}
+  onSave={(newImages) => updateSlide(slide.id, { image_url: newImages[0] })}
+  clientId={clientId}
+  companyId={companyId}
+/>
 ```
+
+### Formato dos Slides
+
+- Proporcao: 16:9 (1920x1080)
+- Usa a mesma logica de orientacao do ImageEditor
+- Integra com o branding do cliente (cores, logo)
 
 ---
 
-## Resultado Esperado
+## Arquivos a Criar
 
-Após implementação, o usuário poderá:
+| Arquivo | Descricao |
+|---------|-----------|
+| `supabase/migrations/xxx_youtube_script_slides.sql` | Schema da tabela |
+| `supabase/functions/generate-presentation-slides/index.ts` | Edge function para estruturar slides |
+| `supabase/functions/generate-slide-image/index.ts` | Edge function para gerar imagem de slide |
+| `src/hooks/useYouTubeSlides.tsx` | Hook para gerenciar slides |
+| `src/components/youtube-content-lab/SlidesSection.tsx` | Secao principal de slides |
+| `src/components/youtube-content-lab/SlideStructureEditor.tsx` | Editor de estrutura |
+| `src/components/youtube-content-lab/SlideCarousel.tsx` | Carrossel de slides |
+| `src/components/youtube-content-lab/SlideFullscreenViewer.tsx` | Visualizador tela cheia |
 
-1. Acessar a aba **Thumbnails** e configurar:
-   - Fotos do modelo/pessoa (rosto visível)
-   - Thumbnails de referência de outros canais
+## Arquivos a Modificar
 
-2. Ao editar um roteiro, clicar em **"Gerar Thumb"** que irá:
-   - Analisar o título e conteúdo do roteiro
-   - Usar as fotos do modelo como referência
-   - Aplicar o estilo das thumbnails de referência
-   - Gerar uma thumbnail 1280x720 otimizada para YouTube
+| Arquivo | Modificacao |
+|---------|-------------|
+| `src/components/youtube-content-lab/YouTubeScriptBuilder.tsx` | Adicionar botao e secao de slides |
+| `src/hooks/useYouTubeScripts.tsx` | Adicionar campo slides_generated ao tipo |
+| `supabase/config.toml` | Adicionar novas edge functions |
 
-3. A thumbnail gerada abrirá automaticamente no **Editor de Imagem** para:
-   - Ajustar textos
-   - Modificar cores
-   - Adicionar elementos
-   - Fazer correções finas
+---
 
-4. Ao salvar no editor, a thumbnail será:
-   - Armazenada no Storage
-   - Vinculada ao roteiro (`thumbnail_url`)
-   - Visível na lista de roteiros
+## Experiencia do Usuario Final
+
+1. **Botao "Gerar Slides"** aparece no header do ScriptBuilder
+2. Ao clicar, mostra loading enquanto IA estrutura a apresentacao
+3. Exibe lista editavel com os slides sugeridos
+4. Usuario pode ajustar textos e reordenar
+5. Clica em "Gerar Imagens" para criar os visuais
+6. Slides aparecem em um carrossel bonito abaixo do roteiro
+7. Pode navegar pelos slides, ver em tela cheia
+8. Pode editar qualquer slide no editor de imagens
+9. Slides ficam salvos e vinculados ao roteiro
