@@ -441,12 +441,12 @@ const App = () => {
                     <RepositorioCriativos />
                   </PermissionProtectedRoute>
                 } />
-                 {/* Editor de Imagens */}
+                 {/* Editor de Imagens - Acesso direto ao editor visual */}
                  <Route path="/editor-imagens" element={
                   <PermissionProtectedRoute requiredPermission="geradores">
                     <EditorImagens />
                   </PermissionProtectedRoute>
-                } />
+                 } />
                  {/* Rotas antigas - redirects para compatibilidade */}
                  <Route path="/gerador-campanhas" element={
                   <PermissionProtectedRoute requiredPermission="gerador-campanhas">
