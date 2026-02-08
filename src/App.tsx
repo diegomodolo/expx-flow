@@ -41,6 +41,7 @@ import RelatoriosMarketing from "./pages/marketing/RelatoriosMarketing";
 import GeradorCampanhas from "./pages/GeradorCampanhas";
 import GeradorConteudo from "./pages/GeradorConteudo";
 import GeradorCriativos from "./pages/GeradorCriativos";
+import EditorImagens from "./pages/EditorImagens";
 import GeradorApresentacoes from "./pages/GeradorApresentacoes";
 import ApresentacaoDetalhes from "./pages/ApresentacaoDetalhes";
 import Geradores from "./pages/Geradores";
@@ -438,6 +439,12 @@ const App = () => {
                  <Route path="/repositorio-criativos" element={
                   <PermissionProtectedRoute requiredPermission="gerador-criativos">
                     <RepositorioCriativos />
+                  </PermissionProtectedRoute>
+                } />
+                 {/* Editor de Imagens */}
+                 <Route path="/editor-imagens" element={
+                  <PermissionProtectedRoute requiredPermission="geradores">
+                    <EditorImagens />
                   </PermissionProtectedRoute>
                 } />
                  {/* Rotas antigas - redirects para compatibilidade */}
