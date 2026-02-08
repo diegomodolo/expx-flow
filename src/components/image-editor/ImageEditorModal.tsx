@@ -183,6 +183,7 @@ export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
             onImageGenerated={handleImageGenerated}
             clientId={clientId}
             companyId={companyId}
+            orientation={state.orientation}
           />
         </div>
       </DialogContent>

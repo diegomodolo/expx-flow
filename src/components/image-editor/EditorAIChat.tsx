@@ -17,6 +17,7 @@ import {
 import { AIMessage } from './hooks/useImageEditor';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { ORIENTATIONS } from './OrientationSelector';
 
 interface EditorAIChatProps {
   messages: AIMessage[];
@@ -26,6 +27,7 @@ interface EditorAIChatProps {
   onImageGenerated: (newImageUrl: string) => void;
   clientId: string;
   companyId: string;
+  orientation: string;
 }
 
 const quickActions = [
@@ -43,12 +45,16 @@ export const EditorAIChat: React.FC<EditorAIChatProps> = ({
   onImageGenerated,
   clientId,
   companyId,
+  orientation,
 }) => {
   const [inputValue, setInputValue] = useState('');
   const [attachedImage, setAttachedImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  
+  // Get orientation details
+  const orientationData = ORIENTATIONS.find(o => o.id === orientation) || ORIENTATIONS[0];
 
   const handleSend = async () => {
     if (!inputValue.trim() && !attachedImage) return;
@@ -76,6 +82,10 @@ export const EditorAIChat: React.FC<EditorAIChatProps> = ({
 
     setIsGenerating(true);
 
+    // Add orientation instruction to the prompt
+    const orientationInstruction = `IMPORTANTE: A imagem DEVE ter proporção ${orientationData.ratio} (${orientationData.width}x${orientationData.height} pixels). Mantenha essa proporção ao gerar a imagem.`;
+    const fullPrompt = `${orientationInstruction}\n\n${prompt}`;
+
     try {
       const { data, error } = await supabase.functions.invoke('generate-visual-creative', {
         body: {
@@ -83,6 +93,12 @@ export const EditorAIChat: React.FC<EditorAIChatProps> = ({
           clientId,
           companyId,
           theme: 'Edição de imagem',
+          orientation: {
+            id: orientationData.id,
+            ratio: orientationData.ratio,
+            width: orientationData.width,
+            height: orientationData.height,
+          },
           context: {
             title: '',
             description: '',
@@ -93,7 +109,7 @@ export const EditorAIChat: React.FC<EditorAIChatProps> = ({
             }
           },
           references: [currentImageUrl],
-          extraPrompt: prompt,
+          extraPrompt: fullPrompt,
           additionalImageToMerge: additionalImage,
         },
       });
