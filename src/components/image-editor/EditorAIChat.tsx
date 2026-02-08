@@ -70,6 +70,33 @@ export const EditorAIChat: React.FC<EditorAIChatProps> = ({
     await generateWithAI(messageText, imageToMerge || undefined);
   };
 
+  // Convert image URL (including blob:) to base64
+  const urlToBase64 = async (url: string): Promise<string | null> => {
+    try {
+      // Already base64
+      if (url.startsWith('data:image/')) {
+        return url;
+      }
+
+      const response = await fetch(url);
+      if (!response.ok) {
+        console.warn('Failed to fetch image:', url.substring(0, 50));
+        return null;
+      }
+
+      const blob = await response.blob();
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(blob);
+      });
+    } catch (error) {
+      console.error('Error converting to base64:', error);
+      return null;
+    }
+  };
+
   const generateWithAI = async (prompt: string, additionalImage?: string) => {
     if (!currentImageUrl) {
       toast({
@@ -87,6 +114,20 @@ export const EditorAIChat: React.FC<EditorAIChatProps> = ({
     const fullPrompt = `${orientationInstruction}\n\n${prompt}`;
 
     try {
+      // Convert current image to base64 if it's a blob URL (local file)
+      // This is CRITICAL because blob: URLs can't be fetched by the server
+      let referenceImageBase64 = currentImageUrl;
+      if (currentImageUrl.startsWith('blob:') || !currentImageUrl.startsWith('data:image/')) {
+        console.log('Converting reference image to base64...');
+        const converted = await urlToBase64(currentImageUrl);
+        if (converted) {
+          referenceImageBase64 = converted;
+          console.log('Reference image converted to base64 successfully');
+        } else {
+          throw new Error('Falha ao processar a imagem de referência');
+        }
+      }
+
       const { data, error } = await supabase.functions.invoke('generate-visual-creative', {
         body: {
           creativeType: 'instagram_feed',
@@ -108,7 +149,7 @@ export const EditorAIChat: React.FC<EditorAIChatProps> = ({
               hasMergeImage: !!additionalImage,
             }
           },
-          references: [currentImageUrl],
+          references: [referenceImageBase64],
           extraPrompt: fullPrompt,
           additionalImageToMerge: additionalImage,
         },
