@@ -34,6 +34,7 @@ import {
   Rocket,
   Briefcase,
   NotebookText,
+  ImagePlus,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useEmployeePermissions, MenuItemType } from "@/hooks/useEmployeePermissions";
@@ -105,6 +106,7 @@ const menuCategories: MenuCategory[] = [
         { title: "Agendamento", url: "/agendamento", icon: CalendarClock, permission: "campanhas" as MenuItemType },
         { title: "Automatizadores", url: "/automatizadores", icon: Zap, permission: "campanhas" as MenuItemType },
         { title: "Dashboard TV", url: "#social-tv-dashboard", icon: Tv, permission: "geradores" as MenuItemType, isExternal: true },
+        { title: "Editor de Imagens", url: "/editor-imagens", icon: ImagePlus, permission: "geradores" as MenuItemType },
         { title: "Geradores", url: "/geradores", icon: Wand2, permission: "geradores" as MenuItemType },
         { title: "Planejador de Conteúdo", url: "/geradores/planejamento-conteudo", icon: FileText, permission: "geradores" as MenuItemType },
         { title: "Repositório de Criativos", url: "/repositorio-criativos", icon: Images, permission: "geradores" as MenuItemType },
