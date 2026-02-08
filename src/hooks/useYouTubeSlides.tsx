@@ -20,6 +20,7 @@ export function useYouTubeSlides(scriptId: string | null) {
   const [loading, setLoading] = useState(false);
   const [generatingStructure, setGeneratingStructure] = useState(false);
   const [generatingImages, setGeneratingImages] = useState<Set<string>>(new Set());
+  const [generatingThumbnailFirst, setGeneratingThumbnailFirst] = useState(false);
 
   const fetchSlides = useCallback(async () => {
     if (!scriptId) return [];
@@ -106,7 +107,11 @@ export function useYouTubeSlides(scriptId: string | null) {
     }
   }, []);
 
-  const generateSlideImage = useCallback(async (slideId: string, companyId: string) => {
+  const generateSlideImage = useCallback(async (
+    slideId: string, 
+    companyId: string,
+    thumbnailUrl?: string | null
+  ) => {
     setGeneratingImages(prev => new Set(prev).add(slideId));
     
     // Update local state to show generating
@@ -116,7 +121,7 @@ export function useYouTubeSlides(scriptId: string | null) {
 
     try {
       const { data, error } = await supabase.functions.invoke("generate-slide-image", {
-        body: { slideId, companyId },
+        body: { slideId, companyId, thumbnailUrl },
       });
 
       if (error) throw error;
@@ -145,7 +150,11 @@ export function useYouTubeSlides(scriptId: string | null) {
     }
   }, []);
 
-  const generateAllImages = useCallback(async (companyId: string) => {
+  const generateAllImages = useCallback(async (
+    companyId: string,
+    thumbnailUrl?: string | null,
+    onThumbnailNeeded?: () => Promise<string | null>
+  ) => {
     const slidesToGenerate = slides.filter(s => !s.image_url || s.status === "draft" || s.status === "error");
     
     if (slidesToGenerate.length === 0) {
@@ -153,14 +162,38 @@ export function useYouTubeSlides(scriptId: string | null) {
       return;
     }
 
-    toast.info(`Gerando ${slidesToGenerate.length} imagens...`);
+    let effectiveThumbnailUrl = thumbnailUrl;
+
+    // If no thumbnail, we need to generate one first
+    if (!effectiveThumbnailUrl && onThumbnailNeeded) {
+      setGeneratingThumbnailFirst(true);
+      toast.info("Gerando thumbnail primeiro para definir o estilo visual...");
+      
+      try {
+        effectiveThumbnailUrl = await onThumbnailNeeded();
+        if (!effectiveThumbnailUrl) {
+          toast.error("Não foi possível gerar a thumbnail. Tente novamente.");
+          setGeneratingThumbnailFirst(false);
+          return;
+        }
+        toast.success("Thumbnail gerada! Agora gerando os slides...");
+      } catch (error) {
+        console.error("Error generating thumbnail first:", error);
+        toast.error("Erro ao gerar thumbnail");
+        setGeneratingThumbnailFirst(false);
+        return;
+      }
+      setGeneratingThumbnailFirst(false);
+    }
+
+    toast.info(`Gerando ${slidesToGenerate.length} imagens com o estilo da thumbnail...`);
 
     let successCount = 0;
     for (const slide of slidesToGenerate) {
-      const result = await generateSlideImage(slide.id, companyId);
+      const result = await generateSlideImage(slide.id, companyId, effectiveThumbnailUrl);
       if (result) successCount++;
-      // Small delay between requests
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Small delay between requests to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
     if (successCount === slidesToGenerate.length) {
@@ -221,6 +254,7 @@ export function useYouTubeSlides(scriptId: string | null) {
     loading,
     generatingStructure,
     generatingImages,
+    generatingThumbnailFirst,
     hasSlides,
     allImagesGenerated,
     pendingImages,

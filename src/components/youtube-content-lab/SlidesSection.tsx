@@ -13,10 +13,12 @@ import {
   Images,
   Settings,
   RefreshCw,
+  AlertCircle,
 } from "lucide-react";
 import { SlideCarousel } from "./SlideCarousel";
 import { SlideStructureEditor } from "./SlideStructureEditor";
 import { ImageEditorModal } from "@/components/image-editor/ImageEditorModal";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface SlidesSectionProps {
   scriptId: string;
@@ -24,6 +26,8 @@ interface SlidesSectionProps {
   scriptTitle: string;
   clientId: string;
   companyId: string;
+  thumbnailUrl?: string | null;
+  onGenerateThumbnailFirst?: () => Promise<string | null>;
 }
 
 export function SlidesSection({
@@ -32,12 +36,15 @@ export function SlidesSection({
   scriptTitle,
   clientId,
   companyId,
+  thumbnailUrl,
+  onGenerateThumbnailFirst,
 }: SlidesSectionProps) {
   const {
     slides,
     loading,
     generatingStructure,
     generatingImages,
+    generatingThumbnailFirst,
     hasSlides,
     allImagesGenerated,
     pendingImages,
@@ -71,7 +78,11 @@ export function SlidesSection({
   };
 
   const handleRegenerateImage = async (slideId: string) => {
-    await generateSlideImage(slideId, companyId);
+    await generateSlideImage(slideId, companyId, thumbnailUrl);
+  };
+
+  const handleGenerateAllImages = async () => {
+    await generateAllImages(companyId, thumbnailUrl, onGenerateThumbnailFirst);
   };
 
   const handleImageEditorSave = async (newImages: string[]) => {
@@ -84,10 +95,11 @@ export function SlidesSection({
 
   const completedCount = slides.filter(s => s.status === "completed").length;
   const generatingCount = generatingImages.size;
+  const isGenerating = generatingCount > 0 || generatingThumbnailFirst;
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
+    <Card className="h-full flex flex-col overflow-hidden">
+      <CardHeader className="pb-3 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <CardTitle className="text-base flex items-center gap-2">
@@ -123,10 +135,15 @@ export function SlidesSection({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => generateAllImages(companyId)}
-                disabled={generatingCount > 0}
+                onClick={handleGenerateAllImages}
+                disabled={isGenerating}
               >
-                {generatingCount > 0 ? (
+                {generatingThumbnailFirst ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    Gerando thumb...
+                  </>
+                ) : generatingCount > 0 ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-1 animate-spin" />
                     Gerando {generatingCount}...
@@ -166,7 +183,7 @@ export function SlidesSection({
         </div>
       </CardHeader>
 
-      <CardContent>
+      <CardContent className="flex-1 overflow-auto">
         {loading ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -182,36 +199,49 @@ export function SlidesSection({
             </p>
           </div>
         ) : (
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
-            <TabsList className="mb-4">
-              <TabsTrigger value="carousel" className="flex items-center gap-1">
-                <Images className="h-4 w-4" />
-                Visualizar
-              </TabsTrigger>
-              <TabsTrigger value="editor" className="flex items-center gap-1">
-                <Settings className="h-4 w-4" />
-                Editar Estrutura
-              </TabsTrigger>
-            </TabsList>
+          <>
+            {/* Info about thumbnail reference */}
+            {!thumbnailUrl && pendingImages > 0 && (
+              <Alert className="mb-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  Nenhuma thumbnail gerada ainda. Ao gerar as imagens, uma thumbnail será criada primeiro 
+                  para definir o estilo visual de todos os slides.
+                </AlertDescription>
+              </Alert>
+            )}
 
-            <TabsContent value="carousel">
-              <SlideCarousel
-                slides={slides}
-                generatingImages={generatingImages}
-                onEditSlide={handleEditSlide}
-                onRegenerateImage={handleRegenerateImage}
-              />
-            </TabsContent>
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+              <TabsList className="mb-4">
+                <TabsTrigger value="carousel" className="flex items-center gap-1">
+                  <Images className="h-4 w-4" />
+                  Visualizar
+                </TabsTrigger>
+                <TabsTrigger value="editor" className="flex items-center gap-1">
+                  <Settings className="h-4 w-4" />
+                  Editar Estrutura
+                </TabsTrigger>
+              </TabsList>
 
-            <TabsContent value="editor">
-              <SlideStructureEditor
-                slides={slides}
-                onUpdateSlide={updateSlide}
-                onDeleteSlide={deleteSlide}
-                onReorderSlide={reorderSlides}
-              />
-            </TabsContent>
-          </Tabs>
+              <TabsContent value="carousel">
+                <SlideCarousel
+                  slides={slides}
+                  generatingImages={generatingImages}
+                  onEditSlide={handleEditSlide}
+                  onRegenerateImage={handleRegenerateImage}
+                />
+              </TabsContent>
+
+              <TabsContent value="editor">
+                <SlideStructureEditor
+                  slides={slides}
+                  onUpdateSlide={updateSlide}
+                  onDeleteSlide={deleteSlide}
+                  onReorderSlide={reorderSlides}
+                />
+              </TabsContent>
+            </Tabs>
+          </>
         )}
       </CardContent>
 

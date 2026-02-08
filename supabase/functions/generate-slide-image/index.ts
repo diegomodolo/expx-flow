@@ -21,7 +21,7 @@ serve(async (req) => {
   }
 
   try {
-    const { slideId, companyId } = await req.json();
+    const { slideId, companyId, thumbnailUrl } = await req.json();
 
     if (!slideId) {
       return new Response(
@@ -31,6 +31,7 @@ serve(async (req) => {
     }
 
     console.log(`[generate-slide-image] Generating image for slide: ${slideId}`);
+    console.log(`[generate-slide-image] Using thumbnail reference: ${thumbnailUrl ? "yes" : "no"}`);
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -44,7 +45,7 @@ serve(async (req) => {
     // Get slide data
     const { data: slide, error: slideError } = await supabase
       .from("youtube_script_slides")
-      .select("*, youtube_scripts!inner(company_id, client_id, title)")
+      .select("*, youtube_scripts!inner(company_id, client_id, title, thumbnail_url)")
       .eq("id", slideId)
       .single();
 
@@ -60,27 +61,64 @@ serve(async (req) => {
       .eq("id", slideId);
 
     const scriptInfo = slide.youtube_scripts as any;
+    
+    // Use the thumbnail URL from the request or from the script
+    const referenceThumbnail = thumbnailUrl || scriptInfo.thumbnail_url;
 
-    // Build detailed image prompt
-    const imagePrompt = `Create a professional YouTube video presentation slide with 16:9 aspect ratio.
+    // Build detailed image prompt with style reference
+    let imagePrompt = `Create a professional YouTube video presentation slide with 16:9 aspect ratio (1920x1080 pixels).
 
 SLIDE DETAILS:
+- Slide Number: ${slide.slide_order} of the presentation
 - Title: "${slide.title}"
 - Content/Topic: ${slide.content || "Main presentation slide"}
-- Visual Style: ${slide.visual_suggestion || "Clean, modern, professional design with bold typography"}
+- Visual Style Suggestion: ${slide.visual_suggestion || "Clean, modern, professional design with bold typography"}
 
-REQUIREMENTS:
-- High contrast, readable text overlay
+DESIGN REQUIREMENTS:
+- High contrast, highly readable text overlay
 - Professional presentation style suitable for YouTube videos
 - Bold, impactful typography for the title
 - Visual hierarchy that draws attention to key points
 - Modern gradient or solid color background
 - Icons or visual elements that support the message
-- Ultra high resolution, 16:9 aspect ratio presentation slide`;
+- Ultra high resolution, 16:9 aspect ratio presentation slide
 
-    console.log(`[generate-slide-image] Generating image with prompt...`);
+VIDEO CONTEXT: This is for the video "${scriptInfo.title}"`;
 
-    // Generate image using Gemini
+    // Build messages array
+    const messages: any[] = [];
+    const userContent: any[] = [];
+
+    // Add reference thumbnail if available
+    if (referenceThumbnail) {
+      imagePrompt += `
+
+CRITICAL STYLE INSTRUCTION:
+The attached image is the thumbnail for this video. You MUST create the slide following the EXACT same visual style, including:
+- Same color palette and gradients
+- Same typography style and font appearance
+- Same visual treatment (shadows, effects, overlays)
+- Same overall mood and aesthetic
+- Consistent brand identity with the thumbnail
+
+The slide should look like it belongs to the same visual family as the thumbnail - someone looking at both should immediately know they're from the same video/presentation.`;
+
+      userContent.push({
+        type: "image_url",
+        image_url: { url: referenceThumbnail },
+      });
+    }
+
+    userContent.push({ type: "text", text: imagePrompt });
+
+    messages.push({
+      role: "user",
+      content: userContent,
+    });
+
+    console.log(`[generate-slide-image] Generating image with Nano Banana Pro...`);
+
+    // Generate image using Gemini 3 Pro Image (Nano Banana Pro)
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -88,22 +126,33 @@ REQUIREMENTS:
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image",
-        messages: [
-          { role: "user", content: imagePrompt }
-        ],
+        model: "google/gemini-3-pro-image-preview",
+        messages,
         modalities: ["image", "text"],
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("[generate-slide-image] AI error:", errorText);
+      console.error("[generate-slide-image] AI error:", response.status, errorText);
       
       await supabase
         .from("youtube_script_slides")
         .update({ status: "error" })
         .eq("id", slideId);
+
+      if (response.status === 429) {
+        return new Response(
+          JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (response.status === 402) {
+        return new Response(
+          JSON.stringify({ error: "Payment required. Please add credits to continue." }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
       
       throw new Error("Failed to generate image");
     }
@@ -135,7 +184,7 @@ REQUIREMENTS:
     const imageBytes = base64ToUint8Array(base64Data);
 
     // Upload to storage
-    const fileName = `slides/${scriptInfo.company_id}/${slide.script_id}/${slideId}.${imageFormat}`;
+    const fileName = `slides/${scriptInfo.company_id}/${slide.script_id}/${slideId}_${Date.now()}.${imageFormat}`;
     
     const { error: uploadError } = await supabase.storage
       .from("ai-generated-images")
