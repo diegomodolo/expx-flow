@@ -15,13 +15,11 @@ export default function EditorImagens() {
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const imageUrl = event.target?.result as string;
-        setSelectedImages([imageUrl]);
-        setIsEditorOpen(true);
-      };
-      reader.readAsDataURL(file);
+      // Cria URL temporária instantaneamente (não bloqueia)
+      const objectUrl = URL.createObjectURL(file);
+      setSelectedImages([objectUrl]);
+      // Abre o modal IMEDIATAMENTE
+      setIsEditorOpen(true);
     }
   };
 
