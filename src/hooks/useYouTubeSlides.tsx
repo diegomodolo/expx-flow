@@ -245,9 +245,56 @@ export function useYouTubeSlides(scriptId: string | null) {
     }
   }, []);
 
+  const [exportingToGoogleSlides, setExportingToGoogleSlides] = useState(false);
+
+  const exportToGoogleSlides = useCallback(async (scriptTitle: string, shareWithEmail?: string) => {
+    if (!scriptId || slides.length === 0) return null;
+
+    const slidesWithImages = slides.filter(s => s.image_url);
+    if (slidesWithImages.length === 0) {
+      toast.error("Nenhum slide com imagem para exportar");
+      return null;
+    }
+
+    setExportingToGoogleSlides(true);
+    toast.info("Exportando para Google Slides...");
+
+    try {
+      const { data, error } = await supabase.functions.invoke("export-to-google-slides", {
+        body: {
+          scriptId,
+          scriptTitle,
+          slides: slidesWithImages.map(s => ({
+            id: s.id,
+            title: s.title,
+            image_url: s.image_url,
+            slide_order: s.slide_order,
+          })),
+          shareWithEmail,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.presentationUrl) {
+        toast.success(`Apresentação criada com ${data.slidesCount} slides!`);
+        return data.presentationUrl;
+      }
+
+      throw new Error("Nenhuma URL retornada");
+    } catch (error: any) {
+      console.error("Error exporting to Google Slides:", error);
+      toast.error(error.message || "Erro ao exportar para Google Slides");
+      return null;
+    } finally {
+      setExportingToGoogleSlides(false);
+    }
+  }, [scriptId, slides]);
+
   const hasSlides = slides.length > 0;
   const allImagesGenerated = slides.every(s => s.image_url && s.status === "completed");
   const pendingImages = slides.filter(s => !s.image_url || s.status === "draft" || s.status === "error").length;
+  const slidesWithImages = slides.filter(s => s.image_url).length;
 
   return {
     slides,
@@ -255,9 +302,11 @@ export function useYouTubeSlides(scriptId: string | null) {
     generatingStructure,
     generatingImages,
     generatingThumbnailFirst,
+    exportingToGoogleSlides,
     hasSlides,
     allImagesGenerated,
     pendingImages,
+    slidesWithImages,
     fetchSlides,
     generateStructure,
     updateSlide,
@@ -265,5 +314,6 @@ export function useYouTubeSlides(scriptId: string | null) {
     generateAllImages,
     deleteSlide,
     reorderSlides,
+    exportToGoogleSlides,
   };
 }

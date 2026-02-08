@@ -486,3 +486,6 @@ verify_jwt = true
 
 [functions.generate-slide-image]
 verify_jwt = true
+
+[functions.export-to-google-slides]
+verify_jwt = true

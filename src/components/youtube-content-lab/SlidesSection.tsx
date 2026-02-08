@@ -14,6 +14,8 @@ import {
   Settings,
   RefreshCw,
   AlertCircle,
+  FileUp,
+  ExternalLink,
 } from "lucide-react";
 import { SlideCarousel } from "./SlideCarousel";
 import { SlideStructureEditor } from "./SlideStructureEditor";
@@ -45,9 +47,11 @@ export function SlidesSection({
     generatingStructure,
     generatingImages,
     generatingThumbnailFirst,
+    exportingToGoogleSlides,
     hasSlides,
     allImagesGenerated,
     pendingImages,
+    slidesWithImages,
     fetchSlides,
     generateStructure,
     updateSlide,
@@ -55,6 +59,7 @@ export function SlidesSection({
     generateAllImages,
     deleteSlide,
     reorderSlides,
+    exportToGoogleSlides,
   } = useYouTubeSlides(scriptId);
 
   const [numberOfSlides, setNumberOfSlides] = useState(10);
@@ -91,6 +96,13 @@ export function SlidesSection({
     }
     setShowImageEditor(false);
     setSlideToEdit(null);
+  };
+
+  const handleExportToGoogleSlides = async () => {
+    const url = await exportToGoogleSlides(scriptTitle);
+    if (url) {
+      window.open(url, "_blank");
+    }
   };
 
   const completedCount = slides.filter(s => s.status === "completed").length;
@@ -152,6 +164,29 @@ export function SlidesSection({
                   <>
                     <Images className="h-4 w-4 mr-1" />
                     Gerar {pendingImages} imagens
+                  </>
+                )}
+              </Button>
+            )}
+
+            {hasSlides && slidesWithImages > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportToGoogleSlides}
+                disabled={exportingToGoogleSlides || isGenerating}
+                className="gap-1"
+              >
+                {exportingToGoogleSlides ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Exportando...
+                  </>
+                ) : (
+                  <>
+                    <FileUp className="h-4 w-4" />
+                    Google Slides
+                    <ExternalLink className="h-3 w-3 ml-1" />
                   </>
                 )}
               </Button>
