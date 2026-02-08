@@ -87,39 +87,45 @@ Deno.serve(async (req) => {
 
     // Validar dados obrigatórios
     if (!creativeType) throw new Error('Creative type is required');
-    if (!clientId) throw new Error('Client ID is required');
     if (!companyId) throw new Error('Company ID is required');
-    if (!context) throw new Error('Context is required');
     if (!lovableApiKey) throw new Error('LOVABLE_API_KEY is not configured');
 
-    // Buscar dados completos do cliente incluindo logo e imagens de referência
-    const { data: clientData, error: clientError } = await supabase
-      .from('clients')
-      .select(`
-        name, 
-        sector, 
-        ai_briefing, 
-        target_audience,
-        avatar,
-        ai_reference_image_1,
-        ai_reference_image_2,
-        ai_reference_image_3
-      `)
-      .eq('id', clientId)
-      .eq('company_id', companyId)
-      .single();
+    // clientId é opcional para o Editor de Imagens standalone
+    let clientData: any = null;
+    
+    if (clientId) {
+      // Buscar dados completos do cliente incluindo logo e imagens de referência
+      const { data, error: clientError } = await supabase
+        .from('clients')
+        .select(`
+          name, 
+          sector, 
+          ai_briefing, 
+          target_audience,
+          avatar,
+          ai_reference_image_1,
+          ai_reference_image_2,
+          ai_reference_image_3
+        `)
+        .eq('id', clientId)
+        .eq('company_id', companyId)
+        .single();
 
-    if (clientError || !clientData) {
-      console.error('Error fetching client data:', clientError);
-      throw new Error('Cliente não encontrado');
+      if (clientError || !data) {
+        console.warn('Client data not found, proceeding without client context:', clientError);
+      } else {
+        clientData = data;
+      }
+
+      console.log('Client data retrieved:', {
+        clientName: clientData?.name,
+        sector: clientData?.sector,
+        hasAvatar: !!clientData?.avatar,
+        hasReferenceImages: !!(clientData?.ai_reference_image_1 || clientData?.ai_reference_image_2 || clientData?.ai_reference_image_3)
+      });
+    } else {
+      console.log('No clientId provided - using standalone mode');
     }
-
-    console.log('Client data retrieved:', {
-      clientName: clientData.name,
-      sector: clientData.sector,
-      hasAvatar: !!clientData.avatar,
-      hasReferenceImages: !!(clientData.ai_reference_image_1 || clientData.ai_reference_image_2 || clientData.ai_reference_image_3)
-    });
 
     // Extrair informações do contexto
     const {
@@ -185,7 +191,7 @@ Deno.serve(async (req) => {
     const hasSpecificReference = references && references.length > 0;
     
     // Adicionar imagens de referência do cliente se não houver do request
-    if (allReferenceImages.length === 0) {
+    if (allReferenceImages.length === 0 && clientData) {
       if (clientData.ai_reference_image_1) allReferenceImages.push(clientData.ai_reference_image_1);
       if (clientData.ai_reference_image_2) allReferenceImages.push(clientData.ai_reference_image_2);
       if (clientData.ai_reference_image_3) allReferenceImages.push(clientData.ai_reference_image_3);
@@ -200,9 +206,9 @@ Deno.serve(async (req) => {
 
     // Montar o prompt para geração de imagem
     const creativeTypeName = normalizedCreativeType.replace(/[_-]/g, ' ');
-    const sectorContext = clientData.sector || '';
-    const audienceContext = clientData.target_audience || targetAudience || '';
-    const clientBriefing = clientData.ai_briefing || '';
+    const sectorContext = clientData?.sector || '';
+    const audienceContext = clientData?.target_audience || targetAudience || '';
+    const clientBriefing = clientData?.ai_briefing || '';
 
     // Build message content for Gemini multimodal request
     const messageContent: any[] = [];
@@ -211,7 +217,7 @@ Deno.serve(async (req) => {
     console.log('Converting images to base64...');
     
     // Adicionar logo do cliente se disponível (para que a IA respeite)
-    if (clientData.avatar && clientData.avatar.startsWith('http')) {
+    if (clientData?.avatar && clientData.avatar.startsWith('http')) {
       console.log('Converting client logo to base64');
       const logoBase64 = await urlToBase64(clientData.avatar);
       if (logoBase64) {
@@ -324,9 +330,9 @@ IMAGE FORMAT:
 - Type: ${creativeTypeName}
 
 BRAND CONTEXT:
-- Client: ${clientData.name}
-- Industry/Sector: ${sectorContext}
-- Target Audience: ${audienceContext}
+- Client: ${clientData?.name || 'Brand'}
+- Industry/Sector: ${sectorContext || 'General'}
+- Target Audience: ${audienceContext || 'General audience'}
 ${clientBriefing ? `- Brand Guidelines: ${clientBriefing.substring(0, 300)}` : ''}
 
 CAMPAIGN DETAILS:
@@ -352,7 +358,7 @@ CAROUSEL SLIDE CONSISTENCY (HIGHEST PRIORITY):
 ` : `- This is NOT a generic brand reference - it was specifically chosen for this creative.
 - Replicate the visual approach, layout style, and aesthetic of this reference as closely as possible.`}` : `- Study the reference images carefully and match their visual style
 - Follow the same color palette, typography style, and design language`}
-${clientData.avatar ? '- The first image is the client LOGO - incorporate it subtly if appropriate' : ''}
+${clientData?.avatar ? '- The first image is the client LOGO - incorporate it subtly if appropriate' : ''}
 ${additionalImageBase64 ? '- The LAST image in the provided images is an ADDITIONAL IMAGE TO MERGE - integrate it as described in the user instructions' : ''}
 - The generated image should look like it belongs to the same brand family` : ''}
 
@@ -448,7 +454,7 @@ Generate the image now.`;
         const retryPrompt = `Generate a ${aspectRatio} (${targetSize ? `${targetSize.width}x${targetSize.height}px` : 'use correct pixel size'}) professional marketing image for ${creativeTypeName}.
 
 Theme: ${theme}
-Brand: ${clientData.name} (${sectorContext})
+Brand: ${clientData?.name || 'Brand'} (${sectorContext || 'General'})
 ${textToUse ? `Include this text prominently: "${textToUse}"` : ''}
 
 Create a clean, professional, marketing-ready visual.
@@ -551,7 +557,7 @@ Generate the image now.`;
               role: 'user', 
               content: `Crie uma legenda para redes sociais:
 
-CLIENTE: ${clientData.name} (${clientData.sector})
+CLIENTE: ${clientData?.name || 'Brand'} (${clientData?.sector || 'General'})
 PÚBLICO: ${audienceContext}
 TEMA: ${theme}
 TÍTULO: ${title}
@@ -574,7 +580,7 @@ Responda APENAS com a legenda.`
         }),
       });
 
-      let suggestedCaption = `🚀 ${clientData.name} apresenta: ${title || theme}! #${clientData.sector.replace(/\s+/g, '')} #Marketing`;
+      let suggestedCaption = `🚀 ${clientData?.name || 'Brand'} apresenta: ${title || theme}! #${(clientData?.sector || 'Marketing').replace(/\s+/g, '')} #Marketing`;
       
       if (captionResponse.ok) {
         const captionData = await captionResponse.json();
