@@ -197,6 +197,8 @@ export function YouTubeScriptBuilder({
       console.log('Thumbnail generated, URL:', imageUrl);
       
       if (imageUrl) {
+        // Update local state with the new thumbnail
+        setThumbnailUrl(imageUrl);
         // Close progress modal first
         setShowThumbnailModal(false);
         // Set the image to edit and open editor
@@ -211,6 +213,27 @@ export function YouTubeScriptBuilder({
     } catch (error: any) {
       console.error('Thumbnail generation error:', error);
       setThumbnailError(error.message || "Erro desconhecido");
+    }
+  };
+
+  // Generate thumbnail silently (for slides) - returns URL without opening editor
+  const handleGenerateThumbnailForSlides = async (): Promise<string | null> => {
+    try {
+      const imageUrl = await onGenerateThumbnail(
+        script.id,
+        title,
+        content,
+        script.suggested_titles
+      );
+      
+      if (imageUrl) {
+        setThumbnailUrl(imageUrl);
+        return imageUrl;
+      }
+      return null;
+    } catch (error: any) {
+      console.error('Thumbnail generation error:', error);
+      return null;
     }
   };
 
@@ -360,6 +383,8 @@ export function YouTubeScriptBuilder({
                     scriptTitle={title}
                     clientId={clientId}
                     companyId={companyId}
+                    thumbnailUrl={thumbnailUrl}
+                    onGenerateThumbnailFirst={handleGenerateThumbnailForSlides}
                   />
                 </div>
               </ResizablePanel>
