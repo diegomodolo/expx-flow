@@ -21,7 +21,31 @@ export type MenuItemType =
   | 'editar-agentes'
   | 'editor-funil'
   | 'whatsapp'
-  | 'ver-quadros-outros';
+  | 'ver-quadros-outros'
+  | 'radar-saude'
+  | 'rotinas'
+  | 'lead-intelligence'
+  | 'cs-cockpit'
+  | 'cs-carteira'
+  | 'cs-jornada'
+  | 'cs-acoes'
+  | 'cs-clientes'
+  | 'cs-tv'
+  | 'agendamento'
+  | 'automatizadores'
+  | 'social-tv'
+  | 'editor-imagens'
+  | 'planejador-conteudo'
+  | 'repositorio-criativos'
+  | 'alertas'
+  | 'tarefas-recorrentes'
+  | 'workspace'
+  | 'automacoes'
+  | 'campanhas-unificadas'
+  | 'marketing-tv'
+  | 'keyword-planner'
+  | 'radar-tv'
+  | 'relatorios-marketing';
 
 export interface EmployeePermission {
   id: string;
@@ -132,7 +156,16 @@ export function useEmployeePermissions() {
 
       // Se for proprietário, não precisa verificar permissões específicas
       if (userIsOwner) {
-        const allPermissions: MenuItemType[] = ['dashboard', 'clientes', 'campanhas', 'squad', 'tarefas', 'colaboradores', 'relatorios', 'gerador-campanhas', 'gerador-conteudo', 'gerador-criativos', 'geradores', 'ia', 'configuracoes', 'agentes-ia', 'editar-agentes', 'editor-funil', 'whatsapp', 'ver-quadros-outros'];
+        const allPermissions: MenuItemType[] = [
+          'dashboard', 'clientes', 'campanhas', 'squad', 'tarefas', 'colaboradores', 'relatorios',
+          'gerador-campanhas', 'gerador-conteudo', 'gerador-criativos', 'geradores', 'ia', 'configuracoes',
+          'agentes-ia', 'editar-agentes', 'editor-funil', 'whatsapp', 'ver-quadros-outros',
+          'radar-saude', 'rotinas', 'lead-intelligence', 'cs-cockpit', 'cs-carteira', 'cs-jornada',
+          'cs-acoes', 'cs-clientes', 'cs-tv', 'agendamento', 'automatizadores', 'social-tv',
+          'editor-imagens', 'planejador-conteudo', 'repositorio-criativos', 'alertas', 'tarefas-recorrentes',
+          'workspace', 'automacoes', 'campanhas-unificadas', 'marketing-tv', 'keyword-planner', 'radar-tv',
+          'relatorios-marketing'
+        ];
         setCurrentUserPermissions(allPermissions);
         setPermissionsLoading(false);
         return;

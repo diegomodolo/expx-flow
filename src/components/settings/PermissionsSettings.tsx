@@ -12,26 +12,57 @@ import { useEmployeePermissions, MenuItemType } from "@/hooks/useEmployeePermiss
 import { Search, RotateCcw, Shield, ChevronDown, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-const MENU_ITEMS: { key: MenuItemType; label: string; description: string; category?: string }[] = [
-  { key: 'dashboard', label: 'Dashboard', description: 'Página inicial e visão geral', category: 'menu' },
-  { key: 'clientes', label: 'Clientes', description: 'Gestão de clientes', category: 'menu' },
-  { key: 'campanhas', label: 'Campanhas', description: 'Gestão de campanhas publicitárias', category: 'menu' },
-  { key: 'editor-funil', label: 'Funis', description: 'Editor e visualização de funis de conversão', category: 'menu' },
-  { key: 'squad', label: 'Squad', description: 'Gestão de equipes', category: 'menu' },
-  { key: 'tarefas', label: 'Tarefas', description: 'Gerenciamento de tarefas', category: 'menu' },
-  { key: 'colaboradores', label: 'Colaboradores', description: 'Gestão de funcionários', category: 'menu' },
-  { key: 'relatorios', label: 'Relatórios', description: 'Relatórios e análises', category: 'menu' },
-  { key: 'geradores', label: 'Geradores', description: 'Menu de ferramentas de geração', category: 'menu' },
-  { key: 'gerador-campanhas', label: 'Gerador de Campanhas', description: 'Ferramenta de criação de campanhas', category: 'menu' },
-  { key: 'gerador-conteudo', label: 'Gerador de Conteúdo', description: 'Ferramenta de criação de conteúdo com IA', category: 'menu' },
-  { key: 'gerador-criativos', label: 'Gerador de Criativos', description: 'Ferramenta de criação de criativos visuais com IA', category: 'menu' },
-  { key: 'ia', label: 'IA Chat', description: 'Chat com inteligência artificial', category: 'menu' },
-  { key: 'agentes-ia', label: 'Agentes IA', description: 'Acesso ao menu de Agentes de IA', category: 'menu' },
-  { key: 'editar-agentes', label: 'Editar Agentes', description: 'Criar, editar, duplicar e excluir agentes de IA', category: 'menu' },
-  { key: 'whatsapp', label: 'WhatsApp', description: 'Módulo de notificações WhatsApp', category: 'menu' },
-  { key: 'configuracoes', label: 'Configurações', description: 'Configurações do sistema', category: 'menu' },
+const MENU_ITEMS: { key: MenuItemType; label: string; description: string; category: string }[] = [
+  // Visão Geral
+  { key: 'dashboard', label: 'Dashboard', description: 'Página inicial e visão geral', category: 'Visão Geral' },
+  { key: 'radar-saude', label: 'Radar de Saúde', description: 'Monitoramento de saúde dos clientes', category: 'Visão Geral' },
+  { key: 'rotinas', label: 'Rotinas Diárias', description: 'Checklists e rotinas operacionais', category: 'Visão Geral' },
+  // Clientes & Leads
+  { key: 'clientes', label: 'Clientes', description: 'Gestão de clientes', category: 'Clientes & Leads' },
+  { key: 'editor-funil', label: 'Funis', description: 'Editor e visualização de funis de conversão', category: 'Clientes & Leads' },
+  { key: 'lead-intelligence', label: 'Lead Intelligence', description: 'Inteligência e enriquecimento de leads', category: 'Clientes & Leads' },
+  // Customer Success
+  { key: 'cs-cockpit', label: 'CS Cockpit', description: 'Painel geral de Customer Success', category: 'Customer Success' },
+  { key: 'cs-carteira', label: 'CS Carteira', description: 'Carteira de clientes do CS', category: 'Customer Success' },
+  { key: 'cs-jornada', label: 'CS Jornada', description: 'Jornada do cliente', category: 'Customer Success' },
+  { key: 'cs-acoes', label: 'CS Ações', description: 'Ações de Customer Success', category: 'Customer Success' },
+  { key: 'cs-clientes', label: 'CS Clientes', description: 'Lista de clientes CS', category: 'Customer Success' },
+  { key: 'cs-tv', label: 'CS TV', description: 'Dashboard TV de Customer Success', category: 'Customer Success' },
+  // Conteúdo & Social
+  { key: 'agendamento', label: 'Agendamento', description: 'Agendamento de publicações', category: 'Conteúdo & Social' },
+  { key: 'automatizadores', label: 'Automatizadores', description: 'Automações de conteúdo', category: 'Conteúdo & Social' },
+  { key: 'social-tv', label: 'Dashboard TV Social', description: 'Dashboard TV de redes sociais', category: 'Conteúdo & Social' },
+  { key: 'editor-imagens', label: 'Editor de Imagens', description: 'Edição e criação de imagens', category: 'Conteúdo & Social' },
+  { key: 'geradores', label: 'Geradores', description: 'Menu de ferramentas de geração', category: 'Conteúdo & Social' },
+  { key: 'gerador-campanhas', label: 'Gerador de Campanhas', description: 'Criação de campanhas com IA', category: 'Conteúdo & Social' },
+  { key: 'gerador-conteudo', label: 'Gerador de Conteúdo', description: 'Criação de conteúdo com IA', category: 'Conteúdo & Social' },
+  { key: 'gerador-criativos', label: 'Gerador de Criativos', description: 'Criação de criativos visuais com IA', category: 'Conteúdo & Social' },
+  { key: 'planejador-conteudo', label: 'Planejador de Conteúdo', description: 'Planejamento de conteúdo', category: 'Conteúdo & Social' },
+  { key: 'repositorio-criativos', label: 'Repositório de Criativos', description: 'Biblioteca de criativos', category: 'Conteúdo & Social' },
+  { key: 'whatsapp', label: 'WhatsApp', description: 'Módulo de notificações WhatsApp', category: 'Conteúdo & Social' },
+  // Marketing & Tráfego
+  { key: 'automacoes', label: 'Automações', description: 'Automações de campanhas', category: 'Marketing & Tráfego' },
+  { key: 'campanhas', label: 'Campanhas', description: 'Gestão de campanhas publicitárias', category: 'Marketing & Tráfego' },
+  { key: 'campanhas-unificadas', label: 'Campanhas Unificadas', description: 'Visão unificada de campanhas', category: 'Marketing & Tráfego' },
+  { key: 'marketing-tv', label: 'Dashboard TV Marketing', description: 'Dashboard TV de marketing', category: 'Marketing & Tráfego' },
+  { key: 'keyword-planner', label: 'Keyword Planner', description: 'Planejador de palavras-chave', category: 'Marketing & Tráfego' },
+  { key: 'radar-tv', label: 'Radar TV', description: 'Dashboard TV de radar', category: 'Marketing & Tráfego' },
+  { key: 'relatorios-marketing', label: 'Relatórios Marketing', description: 'Relatórios de marketing', category: 'Marketing & Tráfego' },
+  // Inteligência Artificial
+  { key: 'ia', label: 'IA Chat', description: 'Chat com inteligência artificial', category: 'Inteligência Artificial' },
+  { key: 'agentes-ia', label: 'Agentes IA', description: 'Acesso ao menu de Agentes de IA', category: 'Inteligência Artificial' },
+  { key: 'editar-agentes', label: 'Editar Agentes', description: 'Criar, editar, duplicar e excluir agentes', category: 'Inteligência Artificial' },
+  // Equipe & Sistema
+  { key: 'alertas', label: 'Alertas', description: 'Alertas e notificações do sistema', category: 'Equipe & Sistema' },
+  { key: 'colaboradores', label: 'Colaboradores', description: 'Gestão de funcionários', category: 'Equipe & Sistema' },
+  { key: 'configuracoes', label: 'Configurações', description: 'Configurações do sistema', category: 'Equipe & Sistema' },
+  { key: 'relatorios', label: 'Relatórios', description: 'Relatórios e análises gerais', category: 'Equipe & Sistema' },
+  { key: 'squad', label: 'Squad', description: 'Gestão de equipes', category: 'Equipe & Sistema' },
+  { key: 'tarefas', label: 'Tarefas', description: 'Gerenciamento de tarefas', category: 'Equipe & Sistema' },
+  { key: 'tarefas-recorrentes', label: 'Tarefas Recorrentes', description: 'Tarefas repetitivas automáticas', category: 'Equipe & Sistema' },
+  { key: 'workspace', label: 'Workspace', description: 'Área de trabalho e anotações', category: 'Equipe & Sistema' },
   // Permissões especiais
-  { key: 'ver-quadros-outros', label: 'Ver Quadros de Outros', description: 'Permite visualizar o quadro de tarefas de outros colaboradores', category: 'special' },
+  { key: 'ver-quadros-outros', label: 'Ver Quadros de Outros', description: 'Visualizar quadro de tarefas de outros colaboradores', category: 'Especial' },
 ];
 
 export function PermissionsSettings() {
@@ -245,43 +276,56 @@ export function PermissionsSettings() {
                       </CollapsibleTrigger>
                       <CollapsibleContent>
                         <CardContent className="pt-0">
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {MENU_ITEMS.map((menuItem) => {
-                              const isEnabled = getPermissionValue(employee.id, menuItem.key);
-                              const isDefaultPermission = menuItem.key === 'dashboard' || menuItem.key === 'tarefas';
-                              
+                          <div className="space-y-4">
+                          {(() => {
+                            const categories = [...new Set(MENU_ITEMS.map(item => item.category))];
+                            return categories.map(category => {
+                              const categoryItems = MENU_ITEMS.filter(item => item.category === category);
                               return (
-                                <div
-                                  key={menuItem.key}
-                                  className={`flex items-center justify-between p-3 rounded-lg border ${
-                                    isDefaultPermission ? 'bg-muted/30' : ''
-                                  }`}
-                                >
-                                  <div className="flex-1">
-                                    <Label
-                                      htmlFor={`${employee.id}-${menuItem.key}`}
-                                      className="text-sm font-medium cursor-pointer"
-                                    >
-                                      {menuItem.label}
-                                    </Label>
-                                    <p className="text-xs text-muted-foreground mt-1">
-                                      {menuItem.description}
-                                    </p>
-                                    {isDefaultPermission && (
-                                      <Badge variant="outline" className="mt-1 text-xs">
-                                        Padrão
-                                      </Badge>
-                                    )}
+                                <div key={category} className="col-span-full space-y-3">
+                                  <h4 className="text-sm font-semibold text-muted-foreground border-b border-border pb-1 pt-2">{category}</h4>
+                                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                    {categoryItems.map((menuItem) => {
+                                      const isEnabled = getPermissionValue(employee.id, menuItem.key);
+                                      const isDefaultPermission = menuItem.key === 'dashboard' || menuItem.key === 'tarefas';
+                                      
+                                      return (
+                                        <div
+                                          key={menuItem.key}
+                                          className={`flex items-center justify-between p-3 rounded-lg border ${
+                                            isDefaultPermission ? 'bg-muted/30' : ''
+                                          }`}
+                                        >
+                                          <div className="flex-1">
+                                            <Label
+                                              htmlFor={`${employee.id}-${menuItem.key}`}
+                                              className="text-sm font-medium cursor-pointer"
+                                            >
+                                              {menuItem.label}
+                                            </Label>
+                                            <p className="text-xs text-muted-foreground mt-1">
+                                              {menuItem.description}
+                                            </p>
+                                            {isDefaultPermission && (
+                                              <Badge variant="outline" className="mt-1 text-xs">
+                                                Padrão
+                                              </Badge>
+                                            )}
+                                          </div>
+                                          <Switch
+                                            id={`${employee.id}-${menuItem.key}`}
+                                            checked={isEnabled}
+                                            onCheckedChange={() => handleTogglePermission(employee.id, menuItem.key)}
+                                            disabled={isDefaultPermission}
+                                          />
+                                        </div>
+                                      );
+                                    })}
                                   </div>
-                                  <Switch
-                                    id={`${employee.id}-${menuItem.key}`}
-                                    checked={isEnabled}
-                                    onCheckedChange={() => handleTogglePermission(employee.id, menuItem.key)}
-                                    disabled={isDefaultPermission}
-                                  />
                                 </div>
                               );
-                            })}
+                            });
+                          })()}
                           </div>
                         </CardContent>
                       </CollapsibleContent>
