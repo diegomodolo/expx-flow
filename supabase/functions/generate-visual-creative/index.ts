@@ -170,6 +170,21 @@ Deno.serve(async (req) => {
       banner_vertical: '1:2',
     };
 
+    const sizeMap: Record<string, { width: number; height: number }> = {
+      instagram_story: { width: 1080, height: 1920 },
+      instagram_reels: { width: 1080, height: 1920 },
+      tiktok_video: { width: 1080, height: 1920 },
+      facebook_story: { width: 1080, height: 1920 },
+      whatsapp_status: { width: 1080, height: 1920 },
+      instagram_feed: { width: 1080, height: 1440 },
+      facebook_feed: { width: 1080, height: 1440 },
+      linkedin_post: { width: 1080, height: 1440 },
+      youtube_thumbnail: { width: 1280, height: 720 },
+      twitter_post: { width: 1280, height: 720 },
+      banner_horizontal: { width: 1920, height: 600 },
+      banner_vertical: { width: 600, height: 1200 },
+    };
+
     // Use custom orientation if provided (from image editor), otherwise use creativeType mapping
     let aspectRatio: string;
     let targetSize: { width: number; height: number } | null;
