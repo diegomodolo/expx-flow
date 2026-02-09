@@ -273,9 +273,31 @@ export function PermissionGroupsSettings() {
                                 </div>
                                 {categories.map(category => {
                                   const categoryItems = MENU_ITEMS.filter(i => i.category === category);
+                                  const allCategoryEnabled = categoryItems.every(item => group.items.includes(item.key));
+                                  const someCategoryEnabled = categoryItems.some(item => group.items.includes(item.key));
                                   return (
                                     <div key={category}>
-                                      <h4 className="text-sm font-semibold text-muted-foreground border-b border-border pb-1 mb-3">{category}</h4>
+                                      <div className="flex items-center justify-between border-b border-border pb-1 mb-3">
+                                        <h4 className="text-sm font-semibold text-muted-foreground">{category}</h4>
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-xs text-muted-foreground">
+                                            {categoryItems.filter(i => group.items.includes(i.key)).length}/{categoryItems.length}
+                                          </span>
+                                          <Switch
+                                            checked={allCategoryEnabled}
+                                            onCheckedChange={(checked) => {
+                                              const keys = categoryItems.map(i => i.key);
+                                              if (checked) {
+                                                const toAdd = keys.filter(k => !group.items.includes(k));
+                                                toAdd.forEach(k => toggleGroupItem(group.id, k));
+                                              } else {
+                                                const toRemove = keys.filter(k => group.items.includes(k));
+                                                toRemove.forEach(k => toggleGroupItem(group.id, k));
+                                              }
+                                            }}
+                                          />
+                                        </div>
+                                      </div>
                                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                                         {categoryItems.map(item => (
                                           <div key={item.key} className="flex items-center justify-between p-3 rounded-lg border">
