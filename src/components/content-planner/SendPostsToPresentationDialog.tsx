@@ -38,6 +38,7 @@ interface PostToSend {
   post_type: string;
   slides?: SlideToSend[];
   reels_uploaded_video_url?: string | null;
+  reels_cover_url?: string | null;
 }
 
 interface SendPostsToPresentationDialogProps {
@@ -230,6 +231,7 @@ export function SendPostsToPresentationDialog({
               order_index: nextOrderIndex,
               caption: post.caption || "",
               current_status: "pending",
+              reels_cover_url: post.reels_cover_url || null,
             })
             .select()
             .single();

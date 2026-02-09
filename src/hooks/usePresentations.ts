@@ -44,6 +44,7 @@ export interface PresentationCreative {
   hashtags: string | null;
   script: { scene: string; text: string }[];
   current_status?: 'pending' | 'approved' | 'rejected' | 'resubmitted' | 'scheduled';
+  reels_cover_url?: string | null;
   created_at: string;
   updated_at: string;
   creative_media?: CreativeMedia[];

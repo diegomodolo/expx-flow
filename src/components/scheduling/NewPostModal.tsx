@@ -10,7 +10,8 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CalendarIcon, Image, Video, Film, Images, Loader2 } from 'lucide-react';
+import { CalendarIcon, Image, Video, Film, Images, Loader2, X } from 'lucide-react';
+import { ImageUploader } from '@/components/ui/image-uploader';
 import { FaFacebook, FaInstagram } from 'react-icons/fa';
 import { useScheduledPosts, ScheduledPost, CreateScheduledPostInput } from '@/hooks/useScheduledPosts';
 import { FacebookPage, InstagramAccount } from '@/hooks/useFacebookPages';
@@ -32,6 +33,7 @@ interface NewPostModalProps {
   initialMediaUrls?: string[];
   initialCaption?: string;
   initialClientId?: string;
+  initialThumbnailUrl?: string;
 }
 
 type ContentType = 'image' | 'video' | 'carousel' | 'reel';
@@ -53,6 +55,7 @@ export const NewPostModal: React.FC<NewPostModalProps> = ({
   initialMediaUrls,
   initialCaption,
   initialClientId,
+  initialThumbnailUrl,
 }) => {
   const { createPost, updatePost } = useScheduledPosts();
   const { clients } = useClients();
@@ -68,6 +71,7 @@ export const NewPostModal: React.FC<NewPostModalProps> = ({
   const [selectedClient, setSelectedClient] = useState<string>('');
   const [scheduledDate, setScheduledDate] = useState<Date | undefined>(undefined);
   const [scheduledTime, setScheduledTime] = useState('12:00');
+  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
 
   // Get linked accounts for selected client
   const selectedClientData = clients.find(c => c.id === selectedClient);
@@ -100,6 +104,7 @@ export const NewPostModal: React.FC<NewPostModalProps> = ({
         setSelectedClient(post.client_id || '');
         setScheduledDate(new Date(post.scheduled_at));
         setScheduledTime(format(new Date(post.scheduled_at), 'HH:mm'));
+        setThumbnailUrl(post.thumbnail_url || null);
       } else {
         // New post mode - use initial values if provided (from creative generator)
         setContentType('image');
@@ -111,9 +116,10 @@ export const NewPostModal: React.FC<NewPostModalProps> = ({
         setSelectedClient(initialClientId || '');
         setScheduledDate(initialDate || new Date());
         setScheduledTime('12:00');
+        setThumbnailUrl(initialThumbnailUrl || null);
       }
     }
-  }, [open, post, initialDate, initialMediaUrls, initialCaption, initialClientId]);
+  }, [open, post, initialDate, initialMediaUrls, initialCaption, initialClientId, initialThumbnailUrl]);
 
   // Clear media when content type changes (but not on initial render with prefilled media)
   const [hasInitialMedia] = useState(() => (initialMediaUrls?.length ?? 0) > 0);
@@ -152,6 +158,7 @@ export const NewPostModal: React.FC<NewPostModalProps> = ({
         client_id: selectedClient || null,
         scheduled_at: scheduledAt.toISOString(),
         status: 'scheduled',
+        thumbnail_url: contentType === 'reel' ? thumbnailUrl : null,
       };
 
       if (post) {
@@ -257,6 +264,51 @@ export const NewPostModal: React.FC<NewPostModalProps> = ({
               onMediaChange={setMediaUrls}
             />
           </div>
+
+          {/* Reels Cover */}
+          {contentType === 'reel' && (
+            <div className="space-y-3">
+              <Label className="flex items-center gap-2">
+                <Film className="w-4 h-4" />
+                Capa do Reels
+              </Label>
+              {thumbnailUrl ? (
+                <div className="flex items-start gap-3">
+                  <div className="relative group w-20 h-24 rounded-lg overflow-hidden bg-muted border">
+                    <img src={thumbnailUrl} alt="Capa do Reels" className="w-full h-full object-cover" />
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-1 right-1 h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => setThumbnailUrl(null)}
+                    >
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
+                  <ImageUploader
+                    bucket="client-media"
+                    folder={`scheduled-posts/covers`}
+                    currentImageUrl={thumbnailUrl}
+                    onImageUploaded={(url) => setThumbnailUrl(url)}
+                    onImageRemoved={() => setThumbnailUrl(null)}
+                    compact
+                    className="flex-1"
+                  />
+                </div>
+              ) : (
+                <ImageUploader
+                  bucket="client-media"
+                  folder={`scheduled-posts/covers`}
+                  onImageUploaded={(url) => setThumbnailUrl(url)}
+                  onImageRemoved={() => setThumbnailUrl(null)}
+                  compact
+                />
+              )}
+              <p className="text-[10px] text-muted-foreground">
+                Imagem que aparecerá como capa do Reels no feed
+              </p>
+            </div>
+          )}
 
           {/* Caption */}
           <div>
