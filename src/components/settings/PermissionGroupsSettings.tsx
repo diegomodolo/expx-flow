@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePermissionGroups } from "@/hooks/usePermissionGroups";
 import { useEmployeePermissions, MenuItemType } from "@/hooks/useEmployeePermissions";
@@ -69,7 +69,7 @@ export function PermissionGroupsSettings() {
   const [newName, setNewName] = useState("");
   const [newDescription, setNewDescription] = useState("");
   const [addMemberGroupId, setAddMemberGroupId] = useState<string | null>(null);
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
+  const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
 
   useEffect(() => {
     fetchAllEmployeePermissions();
@@ -105,10 +105,12 @@ export function PermissionGroupsSettings() {
     }
   };
 
-  const handleAddMember = async (groupId: string) => {
-    if (!selectedEmployeeId) return;
-    await addMember(groupId, selectedEmployeeId);
-    setSelectedEmployeeId("");
+  const handleAddMembers = async (groupId: string) => {
+    if (selectedEmployeeIds.length === 0) return;
+    for (const empId of selectedEmployeeIds) {
+      await addMember(groupId, empId);
+    }
+    setSelectedEmployeeIds([]);
   };
 
   const getEmployeeName = (employeeId: string) => {
@@ -118,7 +120,15 @@ export function PermissionGroupsSettings() {
   const getAvailableEmployees = (groupId: string) => {
     const group = groups.find(g => g.id === groupId);
     const memberIds = group?.members.map(m => m.employee_id) || [];
-    return employeesWithPermissions.filter(e => !memberIds.includes(e.id));
+    return employeesWithPermissions
+      .filter(e => !memberIds.includes(e.id))
+      .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  };
+
+  const toggleEmployeeSelection = (empId: string) => {
+    setSelectedEmployeeIds(prev =>
+      prev.includes(empId) ? prev.filter(id => id !== empId) : [...prev, empId]
+    );
   };
 
   const categories = [...new Set(MENU_ITEMS.map(i => i.category))];
@@ -320,26 +330,45 @@ export function PermissionGroupsSettings() {
 
                             <TabsContent value="members">
                               <div className="space-y-4">
-                                {/* Add member */}
-                                <div className="flex gap-2">
-                                  <Select value={selectedEmployeeId} onValueChange={setSelectedEmployeeId}>
-                                    <SelectTrigger className="flex-1">
-                                      <SelectValue placeholder="Selecione um colaborador..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
+                                {/* Add members - multi-select */}
+                                <div className="space-y-2">
+                                  <div className="flex gap-2">
+                                    <div className="flex-1 min-h-[40px] border rounded-md p-2 flex flex-wrap gap-1.5 items-center cursor-pointer">
+                                      {selectedEmployeeIds.length === 0 && (
+                                        <span className="text-sm text-muted-foreground">Selecione colaboradores...</span>
+                                      )}
+                                      {selectedEmployeeIds.map(empId => {
+                                        const emp = employeesWithPermissions.find(e => e.id === empId);
+                                        return (
+                                          <Badge key={empId} variant="secondary" className="flex items-center gap-1 text-xs">
+                                            {emp?.name || "?"}
+                                            <X className="h-3 w-3 cursor-pointer" onClick={() => toggleEmployeeSelection(empId)} />
+                                          </Badge>
+                                        );
+                                      })}
+                                    </div>
+                                    <Button onClick={() => handleAddMembers(group.id)} disabled={selectedEmployeeIds.length === 0}
+                                      className="flex items-center gap-2"
+                                    >
+                                      <UserPlus className="h-4 w-4" />
+                                      Adicionar ({selectedEmployeeIds.length})
+                                    </Button>
+                                  </div>
+                                  {getAvailableEmployees(group.id).length > 0 && (
+                                    <div className="border rounded-md max-h-48 overflow-y-auto">
                                       {getAvailableEmployees(group.id).map(emp => (
-                                        <SelectItem key={emp.id} value={emp.id}>
-                                          {emp.name} ({emp.role})
-                                        </SelectItem>
+                                        <div
+                                          key={emp.id}
+                                          className={`flex items-center gap-2 p-2 cursor-pointer hover:bg-muted/50 transition-colors text-sm ${selectedEmployeeIds.includes(emp.id) ? 'bg-primary/10' : ''}`}
+                                          onClick={() => toggleEmployeeSelection(emp.id)}
+                                        >
+                                          <input type="checkbox" checked={selectedEmployeeIds.includes(emp.id)} readOnly className="rounded" />
+                                          <span>{emp.name}</span>
+                                          {emp.role && <Badge variant="outline" className="text-xs ml-auto">{emp.role}</Badge>}
+                                        </div>
                                       ))}
-                                    </SelectContent>
-                                  </Select>
-                                  <Button onClick={() => handleAddMember(group.id)} disabled={!selectedEmployeeId}
-                                    className="flex items-center gap-2"
-                                  >
-                                    <UserPlus className="h-4 w-4" />
-                                    Adicionar
-                                  </Button>
+                                    </div>
+                                  )}
                                 </div>
 
                                 {/* Members list */}
