@@ -138,6 +138,38 @@ export function usePermissionGroups() {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     }
   };
+  const setAllGroupItems = async (groupId: string, allMenuItems: MenuItemType[], enable: boolean) => {
+    try {
+      if (enable) {
+        // Insert all items that don't exist yet
+        const group = groups.find(g => g.id === groupId);
+        const existingItems = group?.items || [];
+        const newItems = allMenuItems.filter(item => !existingItems.includes(item));
+        if (newItems.length > 0) {
+          const { error } = await supabase
+            .from('permission_group_items')
+            .insert(newItems.map(item => ({ group_id: groupId, menu_item: item as any })));
+          if (error) throw error;
+        }
+      } else {
+        // Delete all items
+        const { error } = await supabase
+          .from('permission_group_items')
+          .delete()
+          .eq('group_id', groupId);
+        if (error) throw error;
+      }
+
+      setGroups(prev => prev.map(g => {
+        if (g.id !== groupId) return g;
+        return { ...g, items: enable ? [...allMenuItems] : [] };
+      }));
+
+      toast({ title: enable ? "Todas permissões ativadas" : "Todas permissões desativadas" });
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    }
+  };
 
   const addMember = async (groupId: string, employeeId: string) => {
     try {
@@ -189,6 +221,7 @@ export function usePermissionGroups() {
     updateGroup,
     deleteGroup,
     toggleGroupItem,
+    setAllGroupItems,
     addMember,
     removeMember,
   };

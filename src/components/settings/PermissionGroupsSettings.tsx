@@ -61,7 +61,7 @@ const MENU_ITEMS: { key: MenuItemType; label: string; category: string }[] = [
 ];
 
 export function PermissionGroupsSettings() {
-  const { groups, loading, createGroup, updateGroup, deleteGroup, toggleGroupItem, addMember, removeMember } = usePermissionGroups();
+  const { groups, loading, createGroup, updateGroup, deleteGroup, toggleGroupItem, setAllGroupItems, addMember, removeMember } = usePermissionGroups();
   const { employeesWithPermissions, fetchAllEmployeePermissions } = useEmployeePermissions();
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -253,6 +253,24 @@ export function PermissionGroupsSettings() {
 
                             <TabsContent value="permissions">
                               <div className="space-y-4">
+                                <div className="flex gap-2 justify-end">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setAllGroupItems(group.id, MENU_ITEMS.map(i => i.key), true)}
+                                    disabled={group.items.length === MENU_ITEMS.length}
+                                  >
+                                    Ativar Todos
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setAllGroupItems(group.id, MENU_ITEMS.map(i => i.key), false)}
+                                    disabled={group.items.length === 0}
+                                  >
+                                    Desativar Todos
+                                  </Button>
+                                </div>
                                 {categories.map(category => {
                                   const categoryItems = MENU_ITEMS.filter(i => i.category === category);
                                   return (
