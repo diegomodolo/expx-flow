@@ -9093,6 +9093,106 @@ export type Database = {
         }
         Relationships: []
       }
+      permission_group_items: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          menu_item: Database["public"]["Enums"]["menu_item_type"]
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          menu_item: Database["public"]["Enums"]["menu_item_type"]
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          menu_item?: Database["public"]["Enums"]["menu_item_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "permission_group_items_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "permission_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      permission_group_members: {
+        Row: {
+          created_at: string
+          employee_id: string
+          group_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          employee_id: string
+          group_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          employee_id?: string
+          group_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "permission_group_members_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "permission_group_members_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "permission_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      permission_groups: {
+        Row: {
+          company_id: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "permission_groups_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pixel_events_log: {
         Row: {
           action_source: string | null

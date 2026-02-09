@@ -184,14 +184,34 @@ export function useEmployeePermissions() {
         return;
       }
 
-      // Buscar permissões habilitadas
+      // Buscar permissões habilitadas (individuais)
       const { data: permissions } = await supabase
         .from('employee_permissions')
         .select('menu_item')
         .eq('employee_id', employee.id)
         .eq('is_enabled', true);
 
-      const enabledMenus = permissions?.map(p => p.menu_item as MenuItemType) || [];
+      const individualMenus = permissions?.map(p => p.menu_item as MenuItemType) || [];
+
+      // Buscar permissões de grupos
+      const { data: groupMemberships } = await supabase
+        .from('permission_group_members')
+        .select('group_id')
+        .eq('employee_id', employee.id);
+
+      let groupMenus: MenuItemType[] = [];
+      if (groupMemberships && groupMemberships.length > 0) {
+        const groupIds = groupMemberships.map(gm => gm.group_id);
+        const { data: groupItems } = await supabase
+          .from('permission_group_items')
+          .select('menu_item')
+          .in('group_id', groupIds);
+        
+        groupMenus = groupItems?.map(gi => gi.menu_item as MenuItemType) || [];
+      }
+
+      // Merge individual + group permissions (union)
+      const enabledMenus = [...new Set([...individualMenus, ...groupMenus])];
       setCurrentUserPermissions(enabledMenus);
     } catch (err: any) {
       console.error('Erro ao buscar permissões do usuário atual:', err);
