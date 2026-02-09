@@ -1,0 +1,27 @@
+
+-- Add new menu_item_type values for individual sidebar permissions
+ALTER TYPE public.menu_item_type ADD VALUE IF NOT EXISTS 'radar-saude';
+ALTER TYPE public.menu_item_type ADD VALUE IF NOT EXISTS 'rotinas';
+ALTER TYPE public.menu_item_type ADD VALUE IF NOT EXISTS 'lead-intelligence';
+ALTER TYPE public.menu_item_type ADD VALUE IF NOT EXISTS 'cs-cockpit';
+ALTER TYPE public.menu_item_type ADD VALUE IF NOT EXISTS 'cs-carteira';
+ALTER TYPE public.menu_item_type ADD VALUE IF NOT EXISTS 'cs-jornada';
+ALTER TYPE public.menu_item_type ADD VALUE IF NOT EXISTS 'cs-acoes';
+ALTER TYPE public.menu_item_type ADD VALUE IF NOT EXISTS 'cs-clientes';
+ALTER TYPE public.menu_item_type ADD VALUE IF NOT EXISTS 'cs-tv';
+ALTER TYPE public.menu_item_type ADD VALUE IF NOT EXISTS 'agendamento';
+ALTER TYPE public.menu_item_type ADD VALUE IF NOT EXISTS 'automatizadores';
+ALTER TYPE public.menu_item_type ADD VALUE IF NOT EXISTS 'social-tv';
+ALTER TYPE public.menu_item_type ADD VALUE IF NOT EXISTS 'editor-imagens';
+ALTER TYPE public.menu_item_type ADD VALUE IF NOT EXISTS 'planejador-conteudo';
+ALTER TYPE public.menu_item_type ADD VALUE IF NOT EXISTS 'repositorio-criativos';
+ALTER TYPE public.menu_item_type ADD VALUE IF NOT EXISTS 'alertas';
+ALTER TYPE public.menu_item_type ADD VALUE IF NOT EXISTS 'tarefas-recorrentes';
+ALTER TYPE public.menu_item_type ADD VALUE IF NOT EXISTS 'workspace';
+ALTER TYPE public.menu_item_type ADD VALUE IF NOT EXISTS 'automacoes';
+ALTER TYPE public.menu_item_type ADD VALUE IF NOT EXISTS 'campanhas-unificadas';
+ALTER TYPE public.menu_item_type ADD VALUE IF NOT EXISTS 'marketing-tv';
+ALTER TYPE public.menu_item_type ADD VALUE IF NOT EXISTS 'keyword-planner';
+ALTER TYPE public.menu_item_type ADD VALUE IF NOT EXISTS 'radar-tv';
+ALTER TYPE public.menu_item_type ADD VALUE IF NOT EXISTS 'relatorios-marketing';
+ALTER TYPE public.menu_item_type ADD VALUE IF NOT EXISTS 'ver-quadros-outros';

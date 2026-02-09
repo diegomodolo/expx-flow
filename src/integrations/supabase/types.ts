@@ -13048,6 +13048,31 @@ export type Database = {
         | "editor-funil"
         | "geradores"
         | "whatsapp"
+        | "radar-saude"
+        | "rotinas"
+        | "lead-intelligence"
+        | "cs-cockpit"
+        | "cs-carteira"
+        | "cs-jornada"
+        | "cs-acoes"
+        | "cs-clientes"
+        | "cs-tv"
+        | "agendamento"
+        | "automatizadores"
+        | "social-tv"
+        | "editor-imagens"
+        | "planejador-conteudo"
+        | "repositorio-criativos"
+        | "alertas"
+        | "tarefas-recorrentes"
+        | "workspace"
+        | "automacoes"
+        | "campanhas-unificadas"
+        | "marketing-tv"
+        | "keyword-planner"
+        | "radar-tv"
+        | "relatorios-marketing"
+        | "ver-quadros-outros"
       payment_type: "prepaid" | "postpaid"
       routine_category:
         | "saldo"
@@ -13224,6 +13249,31 @@ export const Constants = {
         "editor-funil",
         "geradores",
         "whatsapp",
+        "radar-saude",
+        "rotinas",
+        "lead-intelligence",
+        "cs-cockpit",
+        "cs-carteira",
+        "cs-jornada",
+        "cs-acoes",
+        "cs-clientes",
+        "cs-tv",
+        "agendamento",
+        "automatizadores",
+        "social-tv",
+        "editor-imagens",
+        "planejador-conteudo",
+        "repositorio-criativos",
+        "alertas",
+        "tarefas-recorrentes",
+        "workspace",
+        "automacoes",
+        "campanhas-unificadas",
+        "marketing-tv",
+        "keyword-planner",
+        "radar-tv",
+        "relatorios-marketing",
+        "ver-quadros-outros",
       ],
       payment_type: ["prepaid", "postpaid"],
       routine_category: [
