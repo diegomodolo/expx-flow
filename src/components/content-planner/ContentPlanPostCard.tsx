@@ -55,6 +55,7 @@ import {
   Pencil,
 } from "lucide-react";
 import { ImageEditorModal } from "@/components/image-editor/ImageEditorModal";
+import { ReelsCoverSection } from "@/components/shared/ReelsCoverSection";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ImageUploader } from "@/components/ui/image-uploader";
@@ -1541,6 +1542,24 @@ Responda APENAS com o texto solicitado, sem explicações adicionais.`;
                       }}
                     />
                   )}
+
+                  {/* Reels Cover */}
+                  <ReelsCoverSection
+                    coverUrl={post.reels_cover_url || null}
+                    onCoverChange={(url) => {
+                      onUpdate({ reels_cover_url: url });
+                      onRefetch();
+                    }}
+                    clientId={clientId}
+                    companyId={activeCompany?.company_id}
+                    headline={headlineField.value}
+                    subheadline={subheadlineField.value}
+                    objective={objectiveField.value}
+                    script={scriptField.value}
+                    uploadBucket="client-media"
+                    uploadFolder={`content-plans/${post.id}/covers`}
+                    hasCreativeFactory={hasCreativeFactory}
+                  />
                 </div>
               )}
 
@@ -1809,6 +1828,7 @@ Responda APENAS com o texto solicitado, sem explicações adicionais.`;
             post_type: post.post_type,
             slides: post.slides,
             reels_uploaded_video_url: post.reels_uploaded_video_url,
+            reels_cover_url: post.reels_cover_url,
           }]}
         />
       )}

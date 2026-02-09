@@ -10,6 +10,8 @@ import { useCreatives } from "@/hooks/useCreatives";
 import { usePresentationDetails, PresentationCreative, CreativeMedia } from "@/hooks/usePresentations";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { ReelsCoverSection } from "@/components/shared/ReelsCoverSection";
+import { useCompany } from "@/contexts/CompanyContext";
 
 interface CreativeFormProps {
   presentationId: string;
@@ -33,6 +35,7 @@ export function CreativeForm({ presentationId, editingId, onClose }: CreativeFor
   const { toast } = useToast();
   const { createCreative, updateCreative } = useCreatives(presentationId);
   const { data: presentation } = usePresentationDetails(presentationId);
+  const { activeCompany } = useCompany();
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadingMedia, setUploadingMedia] = useState(false);
@@ -49,6 +52,7 @@ export function CreativeForm({ presentationId, editingId, onClose }: CreativeFor
     caption: "",
     hashtags: "",
     script: [] as SceneItem[],
+    reels_cover_url: null as string | null,
   });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -71,6 +75,7 @@ export function CreativeForm({ presentationId, editingId, onClose }: CreativeFor
           caption: creative.caption || "",
           hashtags: creative.hashtags || "",
           script: creative.script || [],
+          reels_cover_url: creative.reels_cover_url || null,
         });
         setExistingMedia(creative.creative_media || []);
         setOriginalStatus(creative.current_status || null);
@@ -149,6 +154,7 @@ export function CreativeForm({ presentationId, editingId, onClose }: CreativeFor
         caption: formData.caption || null,
         hashtags: formData.hashtags || null,
         script: formData.script,
+        reels_cover_url: formData.reels_cover_url || null,
       };
 
       let creativeId: string;
@@ -389,52 +395,68 @@ export function CreativeForm({ presentationId, editingId, onClose }: CreativeFor
 
       {/* Script for Reels */}
       {isReels && (
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base">Roteiro</CardTitle>
-              <Button variant="outline" size="sm" onClick={addScene} className="gap-2">
-                <Plus className="w-4 h-4" />
-                Adicionar Cena
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {formData.script.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                Nenhuma cena adicionada. Clique em "Adicionar Cena" para começar.
-              </p>
-            ) : (
-              formData.script.map((scene, index) => (
-                <div key={index} className="flex gap-3 items-start p-3 bg-muted/50 rounded-lg">
-                  <GripVertical className="w-4 h-4 mt-2 text-muted-foreground cursor-grab" />
-                  <div className="flex-1 space-y-2">
-                    <Input
-                      value={scene.scene}
-                      onChange={(e) => updateScene(index, 'scene', e.target.value)}
-                      placeholder="Nome da cena"
-                      className="font-medium"
-                    />
-                    <Textarea
-                      value={scene.text}
-                      onChange={(e) => updateScene(index, 'text', e.target.value)}
-                      placeholder="Descrição/Texto da cena..."
-                      rows={2}
-                    />
+        <>
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base">Roteiro</CardTitle>
+                <Button variant="outline" size="sm" onClick={addScene} className="gap-2">
+                  <Plus className="w-4 h-4" />
+                  Adicionar Cena
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {formData.script.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  Nenhuma cena adicionada. Clique em "Adicionar Cena" para começar.
+                </p>
+              ) : (
+                formData.script.map((scene, index) => (
+                  <div key={index} className="flex gap-3 items-start p-3 bg-muted/50 rounded-lg">
+                    <GripVertical className="w-4 h-4 mt-2 text-muted-foreground cursor-grab" />
+                    <div className="flex-1 space-y-2">
+                      <Input
+                        value={scene.scene}
+                        onChange={(e) => updateScene(index, 'scene', e.target.value)}
+                        placeholder="Nome da cena"
+                        className="font-medium"
+                      />
+                      <Textarea
+                        value={scene.text}
+                        onChange={(e) => updateScene(index, 'text', e.target.value)}
+                        placeholder="Descrição/Texto da cena..."
+                        rows={2}
+                      />
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => removeScene(index)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-destructive hover:text-destructive"
-                    onClick={() => removeScene(index)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
+                ))
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Reels Cover */}
+          <ReelsCoverSection
+            coverUrl={formData.reels_cover_url}
+            onCoverChange={(url) => setFormData(prev => ({ ...prev, reels_cover_url: url }))}
+            clientId={presentation?.client_id}
+            companyId={activeCompany?.company_id}
+            headline={formData.headline}
+            subheadline={formData.subheadline}
+            objective={formData.objective}
+            script={formData.script.map(s => `${s.scene}: ${s.text}`).join('\n')}
+            uploadBucket="presentation-media"
+            uploadFolder={`${presentationId}/covers`}
+          />
+        </>
       )}
 
       <div className="flex justify-end gap-2 pt-4 border-t">

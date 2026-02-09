@@ -3586,6 +3586,7 @@ export type Database = {
           objective: string | null
           order_index: number
           post_type: string
+          reels_cover_url: string | null
           reels_generation_progress: Json | null
           reels_generation_status: string | null
           reels_uploaded_video_url: string | null
@@ -3609,6 +3610,7 @@ export type Database = {
           objective?: string | null
           order_index?: number
           post_type?: string
+          reels_cover_url?: string | null
           reels_generation_progress?: Json | null
           reels_generation_status?: string | null
           reels_uploaded_video_url?: string | null
@@ -3632,6 +3634,7 @@ export type Database = {
           objective?: string | null
           order_index?: number
           post_type?: string
+          reels_cover_url?: string | null
           reels_generation_progress?: Json | null
           reels_generation_status?: string | null
           reels_uploaded_video_url?: string | null
@@ -9422,6 +9425,7 @@ export type Database = {
           objective: string | null
           order_index: number
           presentation_id: string
+          reels_cover_url: string | null
           scheduled_date: string | null
           scheduled_post_id: string | null
           scheduled_time: string | null
@@ -9442,6 +9446,7 @@ export type Database = {
           objective?: string | null
           order_index?: number
           presentation_id: string
+          reels_cover_url?: string | null
           scheduled_date?: string | null
           scheduled_post_id?: string | null
           scheduled_time?: string | null
@@ -9462,6 +9467,7 @@ export type Database = {
           objective?: string | null
           order_index?: number
           presentation_id?: string
+          reels_cover_url?: string | null
           scheduled_date?: string | null
           scheduled_post_id?: string | null
           scheduled_time?: string | null

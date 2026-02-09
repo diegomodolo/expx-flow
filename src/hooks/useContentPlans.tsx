@@ -33,6 +33,7 @@ export interface ContentPlanPost {
   reels_uploaded_video_url?: string | null;
   reels_generation_status?: string | null;
   reels_generation_progress?: any | null;
+  reels_cover_url?: string | null;
   created_at: string;
   updated_at: string;
   slides?: ContentPlanSlide[];
