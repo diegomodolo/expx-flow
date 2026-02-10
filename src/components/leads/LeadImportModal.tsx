@@ -264,12 +264,20 @@ export const LeadImportModal = ({ open, onOpenChange, companyId }: LeadImportMod
           }
         });
         
+        // Fallback: use company_name or company_trade_name as full_name if not provided
+        if (!leadData.full_name) {
+          const fallbackName = leadData.company_trade_name || leadData.company_name;
+          if (fallbackName) {
+            leadData.full_name = fallbackName;
+          }
+        }
+
         return leadData;
       });
 
       // Filter out leads without identifiable data
       const validLeads = leadsWithMappedData.filter(
-        lead => lead.full_name || lead.email || lead.phone
+        lead => lead.full_name || lead.email || lead.phone || lead.company_name || lead.cnpj
       );
 
       setImportProgress(10);
@@ -375,7 +383,10 @@ export const LeadImportModal = ({ open, onOpenChange, companyId }: LeadImportMod
       const totalBatches = Math.ceil(newLeads.length / insertBatchSize);
 
       for (let i = 0; i < totalBatches; i++) {
-        const batch = newLeads.slice(i * insertBatchSize, (i + 1) * insertBatchSize);
+        const batch = newLeads.slice(i * insertBatchSize, (i + 1) * insertBatchSize).map(lead => ({
+          ...lead,
+          full_name: lead.full_name || lead.company_name || lead.company_trade_name || lead.email || lead.cnpj || 'Lead sem nome'
+        }));
         
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { data: insertedBatch, error } = await supabase
