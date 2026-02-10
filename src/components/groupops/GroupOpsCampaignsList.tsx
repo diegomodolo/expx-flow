@@ -35,6 +35,7 @@ import {
   Shuffle,
   ListChecks,
   History,
+  AlertTriangle,
 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
@@ -286,7 +287,7 @@ interface FormModalProps {
   open: boolean;
   onClose: () => void;
   campaign: GroupOpsCampaign | null;
-  groups: Array<{ id: string; name: string }>;
+  groups: Array<{ id: string; name: string; config_json?: any }>;
   templates: Array<{ id: string; title: string; category: string }>;
   instances: Array<{ id: string; instance_name: string; is_connected: boolean; connected_phone: string | null }>;
   onSave: (data: Partial<GroupOpsCampaign>) => void;
@@ -385,7 +386,15 @@ function CampaignFormModal({ open, onClose, campaign, groups, templates, instanc
 
           <div className="space-y-2">
             <Label>Grupo</Label>
-            <Select value={groupId} onValueChange={setGroupId}>
+            <Select value={groupId} onValueChange={(gid) => {
+              setGroupId(gid);
+              // Auto-set instance from group's config
+              const group = groups.find(g => g.id === gid);
+              const groupInstanceId = group?.config_json?.instance_id;
+              if (groupInstanceId) {
+                setInstanceId(groupInstanceId);
+              }
+            }}>
               <SelectTrigger><SelectValue placeholder="Selecione o grupo" /></SelectTrigger>
               <SelectContent>
                 {groups.map((g) => (
@@ -446,25 +455,49 @@ function CampaignFormModal({ open, onClose, campaign, groups, templates, instanc
             )}
           </div>
 
-          {/* Instance selector */}
-          <div className="space-y-2">
-            <Label>Instância WhatsApp</Label>
-            <Select value={instanceId} onValueChange={setInstanceId}>
-              <SelectTrigger>
-                <Smartphone className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Selecione a instância" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Nenhuma (definir depois)</SelectItem>
-                {instances.filter(i => i.is_connected).map((inst) => (
-                  <SelectItem key={inst.id} value={inst.id}>
-                    {inst.instance_name} {inst.connected_phone ? `(${inst.connected_phone})` : ''}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">Por qual número/instância enviar as mensagens</p>
-          </div>
+          {/* Instance selector with validation */}
+          {(() => {
+            const selectedGroup = groups.find(g => g.id === groupId);
+            const groupInstanceId = selectedGroup?.config_json?.instance_id;
+            const instanceMismatch = groupId && instanceId && instanceId !== 'none' && groupInstanceId && instanceId !== groupInstanceId;
+            const groupInstanceName = instances.find(i => i.id === groupInstanceId)?.instance_name;
+            
+            return (
+              <div className="space-y-2">
+                <Label>Instância WhatsApp</Label>
+                <Select value={instanceId} onValueChange={setInstanceId}>
+                  <SelectTrigger className={instanceMismatch ? 'border-destructive' : ''}>
+                    <Smartphone className="h-4 w-4 mr-2" />
+                    <SelectValue placeholder="Selecione a instância" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhuma (definir depois)</SelectItem>
+                    {instances.filter(i => i.is_connected).map((inst) => {
+                      const isGroupInstance = inst.id === groupInstanceId;
+                      return (
+                        <SelectItem key={inst.id} value={inst.id}>
+                          {inst.instance_name} {inst.connected_phone ? `(${inst.connected_phone})` : ''} {isGroupInstance ? '✅' : ''}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+                {groupId && groupInstanceId && (
+                  <p className="text-xs text-muted-foreground">
+                    Instância do grupo: <strong>{groupInstanceName ?? 'Desconhecida'}</strong>
+                  </p>
+                )}
+                {instanceMismatch && (
+                  <div className="flex items-start gap-2 p-2 rounded-md bg-destructive/10 border border-destructive/20">
+                    <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+                    <p className="text-xs text-destructive">
+                      A instância selecionada não é a mesma do grupo. A campanha não conseguirá enviar mensagens nesse grupo. Selecione a instância correta ({groupInstanceName}).
+                    </p>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
