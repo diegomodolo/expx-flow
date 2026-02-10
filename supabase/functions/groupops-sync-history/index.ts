@@ -263,7 +263,7 @@ serve(async (req) => {
       const batch = validInserts.slice(i, i + batchSize);
       const { error: msgErr } = await supabase
         .from("groupops_messages")
-        .upsert(batch, { onConflict: "provider_message_id", ignoreDuplicates: true });
+        .upsert(batch, { onConflict: "provider_message_id", ignoreDuplicates: false });
 
       if (msgErr) {
         console.warn(`[groupops-sync-history] Batch insert error:`, msgErr.message);
