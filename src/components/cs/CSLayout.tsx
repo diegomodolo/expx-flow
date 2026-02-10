@@ -9,6 +9,7 @@ import {
   Target, 
   Users,
   Tv,
+  MessageSquare,
   LucideIcon
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -58,6 +59,12 @@ const csMenuItems: CSMenuItem[] = [
     icon: Tv,
     description: "Dashboard para TV"
   },
+  { 
+    title: "GroupOps", 
+    url: "/cs/groupops", 
+    icon: MessageSquare,
+    description: "Gestão de Grupos WhatsApp"
+  },
 ];
 
 function CSLayoutContent() {
@@ -77,7 +84,7 @@ function CSLayoutContent() {
             </div>
             
             {csMenuItems.map((item) => {
-              const isActive = location.pathname === item.url;
+              const isActive = location.pathname === item.url || location.pathname.startsWith(item.url + '/');
               
               return (
                 <Tooltip key={item.url}>

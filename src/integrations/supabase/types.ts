@@ -6446,6 +6446,727 @@ export type Database = {
           },
         ]
       }
+      groupops_badges: {
+        Row: {
+          company_id: string
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          name: string
+          rule_json: Json | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+          rule_json?: Json | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+          rule_json?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "groupops_badges_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      groupops_campaigns: {
+        Row: {
+          approval_required: boolean | null
+          company_id: string
+          cooldown_rule_json: Json | null
+          created_at: string
+          delivery_mode: string | null
+          group_id: string
+          id: string
+          schedule_rule: string | null
+          scoring_profile_id: string | null
+          status: string
+          targeting_rule_json: Json | null
+          template_id: string | null
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          approval_required?: boolean | null
+          company_id: string
+          cooldown_rule_json?: Json | null
+          created_at?: string
+          delivery_mode?: string | null
+          group_id: string
+          id?: string
+          schedule_rule?: string | null
+          scoring_profile_id?: string | null
+          status?: string
+          targeting_rule_json?: Json | null
+          template_id?: string | null
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          approval_required?: boolean | null
+          company_id?: string
+          cooldown_rule_json?: Json | null
+          created_at?: string
+          delivery_mode?: string | null
+          group_id?: string
+          id?: string
+          schedule_rule?: string | null
+          scoring_profile_id?: string | null
+          status?: string
+          targeting_rule_json?: Json | null
+          template_id?: string | null
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "groupops_campaigns_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "groupops_campaigns_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groupops_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "groupops_campaigns_scoring_profile_id_fkey"
+            columns: ["scoring_profile_id"]
+            isOneToOne: false
+            referencedRelation: "groupops_scoring_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "groupops_campaigns_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "groupops_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      groupops_events: {
+        Row: {
+          company_id: string
+          created_at: string
+          group_id: string
+          id: string
+          member_id: string | null
+          payload_json: Json | null
+          timestamp: string
+          type: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          group_id: string
+          id?: string
+          member_id?: string | null
+          payload_json?: Json | null
+          timestamp?: string
+          type: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          group_id?: string
+          id?: string
+          member_id?: string | null
+          payload_json?: Json | null
+          timestamp?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "groupops_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "groupops_events_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groupops_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "groupops_events_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "groupops_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      groupops_groups: {
+        Row: {
+          company_id: string
+          config_json: Json
+          created_at: string
+          description: string | null
+          id: string
+          language: string | null
+          name: string
+          provider: string
+          provider_group_id: string | null
+          rules_text: string | null
+          status: string
+          timezone: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          config_json?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          language?: string | null
+          name: string
+          provider?: string
+          provider_group_id?: string | null
+          rules_text?: string | null
+          status?: string
+          timezone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          config_json?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          language?: string | null
+          name?: string
+          provider?: string
+          provider_group_id?: string | null
+          rules_text?: string | null
+          status?: string
+          timezone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "groupops_groups_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      groupops_member_badges: {
+        Row: {
+          badge_id: string
+          company_id: string
+          earned_at: string
+          id: string
+          member_id: string
+        }
+        Insert: {
+          badge_id: string
+          company_id: string
+          earned_at?: string
+          id?: string
+          member_id: string
+        }
+        Update: {
+          badge_id?: string
+          company_id?: string
+          earned_at?: string
+          id?: string
+          member_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "groupops_member_badges_badge_id_fkey"
+            columns: ["badge_id"]
+            isOneToOne: false
+            referencedRelation: "groupops_badges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "groupops_member_badges_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "groupops_member_badges_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "groupops_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      groupops_members: {
+        Row: {
+          company_id: string
+          company_name: string | null
+          created_at: string
+          display_name: string | null
+          group_id: string
+          id: string
+          last_message_at: string | null
+          last_participation_at: string | null
+          phone_e164: string | null
+          primary_pain: string | null
+          privacy_flags: Json | null
+          risk_level: string | null
+          role: string | null
+          segment: string | null
+          silent_days: number | null
+          size_bucket: string | null
+          status: string
+          streak_days: number | null
+          tags: string[] | null
+          updated_at: string
+          wa_user_id: string | null
+        }
+        Insert: {
+          company_id: string
+          company_name?: string | null
+          created_at?: string
+          display_name?: string | null
+          group_id: string
+          id?: string
+          last_message_at?: string | null
+          last_participation_at?: string | null
+          phone_e164?: string | null
+          primary_pain?: string | null
+          privacy_flags?: Json | null
+          risk_level?: string | null
+          role?: string | null
+          segment?: string | null
+          silent_days?: number | null
+          size_bucket?: string | null
+          status?: string
+          streak_days?: number | null
+          tags?: string[] | null
+          updated_at?: string
+          wa_user_id?: string | null
+        }
+        Update: {
+          company_id?: string
+          company_name?: string | null
+          created_at?: string
+          display_name?: string | null
+          group_id?: string
+          id?: string
+          last_message_at?: string | null
+          last_participation_at?: string | null
+          phone_e164?: string | null
+          primary_pain?: string | null
+          privacy_flags?: Json | null
+          risk_level?: string | null
+          role?: string | null
+          segment?: string | null
+          silent_days?: number | null
+          size_bucket?: string | null
+          status?: string
+          streak_days?: number | null
+          tags?: string[] | null
+          updated_at?: string
+          wa_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "groupops_members_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "groupops_members_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groupops_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      groupops_messages: {
+        Row: {
+          author_member_id: string | null
+          company_id: string
+          created_at: string
+          group_id: string
+          id: string
+          media_type: string | null
+          media_url: string | null
+          mentions: string[] | null
+          provider_message_id: string | null
+          reply_to_message_id: string | null
+          text: string | null
+          timestamp: string
+        }
+        Insert: {
+          author_member_id?: string | null
+          company_id: string
+          created_at?: string
+          group_id: string
+          id?: string
+          media_type?: string | null
+          media_url?: string | null
+          mentions?: string[] | null
+          provider_message_id?: string | null
+          reply_to_message_id?: string | null
+          text?: string | null
+          timestamp?: string
+        }
+        Update: {
+          author_member_id?: string | null
+          company_id?: string
+          created_at?: string
+          group_id?: string
+          id?: string
+          media_type?: string | null
+          media_url?: string | null
+          mentions?: string[] | null
+          provider_message_id?: string | null
+          reply_to_message_id?: string | null
+          text?: string | null
+          timestamp?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "groupops_messages_author_member_id_fkey"
+            columns: ["author_member_id"]
+            isOneToOne: false
+            referencedRelation: "groupops_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "groupops_messages_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "groupops_messages_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groupops_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "groupops_messages_reply_to_message_id_fkey"
+            columns: ["reply_to_message_id"]
+            isOneToOne: false
+            referencedRelation: "groupops_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      groupops_moderation_actions: {
+        Row: {
+          action_type: string
+          company_id: string
+          created_at: string
+          group_id: string
+          id: string
+          member_id: string | null
+          message_id: string | null
+          reason: string | null
+          resolved: boolean | null
+          resolved_at: string | null
+          resolved_by: string | null
+          rule_id: string | null
+        }
+        Insert: {
+          action_type: string
+          company_id: string
+          created_at?: string
+          group_id: string
+          id?: string
+          member_id?: string | null
+          message_id?: string | null
+          reason?: string | null
+          resolved?: boolean | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          rule_id?: string | null
+        }
+        Update: {
+          action_type?: string
+          company_id?: string
+          created_at?: string
+          group_id?: string
+          id?: string
+          member_id?: string | null
+          message_id?: string | null
+          reason?: string | null
+          resolved?: boolean | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          rule_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "groupops_moderation_actions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "groupops_moderation_actions_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groupops_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "groupops_moderation_actions_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "groupops_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "groupops_moderation_actions_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "groupops_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "groupops_moderation_actions_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "groupops_moderation_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      groupops_moderation_rules: {
+        Row: {
+          action_type: string
+          company_id: string
+          config_json: Json
+          created_at: string
+          group_id: string
+          id: string
+          is_active: boolean | null
+          name: string
+          type: string
+        }
+        Insert: {
+          action_type?: string
+          company_id: string
+          config_json?: Json
+          created_at?: string
+          group_id: string
+          id?: string
+          is_active?: boolean | null
+          name: string
+          type: string
+        }
+        Update: {
+          action_type?: string
+          company_id?: string
+          config_json?: Json
+          created_at?: string
+          group_id?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "groupops_moderation_rules_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "groupops_moderation_rules_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groupops_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      groupops_score_ledger: {
+        Row: {
+          company_id: string
+          event_id: string | null
+          group_id: string
+          id: string
+          member_id: string
+          points: number
+          reason: string
+          timestamp: string
+        }
+        Insert: {
+          company_id: string
+          event_id?: string | null
+          group_id: string
+          id?: string
+          member_id: string
+          points: number
+          reason: string
+          timestamp?: string
+        }
+        Update: {
+          company_id?: string
+          event_id?: string | null
+          group_id?: string
+          id?: string
+          member_id?: string
+          points?: number
+          reason?: string
+          timestamp?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "groupops_score_ledger_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "groupops_score_ledger_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "groupops_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "groupops_score_ledger_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groupops_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "groupops_score_ledger_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "groupops_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      groupops_scoring_profiles: {
+        Row: {
+          company_id: string
+          created_at: string
+          description: string | null
+          id: string
+          is_default: boolean | null
+          name: string
+          rules_json: Json
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_default?: boolean | null
+          name: string
+          rules_json?: Json
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_default?: boolean | null
+          name?: string
+          rules_json?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "groupops_scoring_profiles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      groupops_templates: {
+        Row: {
+          body: string
+          category: string
+          company_id: string
+          constraints_json: Json | null
+          created_at: string
+          id: string
+          placeholders: string[] | null
+          title: string
+          tone: string | null
+          updated_at: string
+          variants: Json | null
+        }
+        Insert: {
+          body: string
+          category?: string
+          company_id: string
+          constraints_json?: Json | null
+          created_at?: string
+          id?: string
+          placeholders?: string[] | null
+          title: string
+          tone?: string | null
+          updated_at?: string
+          variants?: Json | null
+        }
+        Update: {
+          body?: string
+          category?: string
+          company_id?: string
+          constraints_json?: Json | null
+          created_at?: string
+          id?: string
+          placeholders?: string[] | null
+          title?: string
+          tone?: string | null
+          updated_at?: string
+          variants?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "groupops_templates_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ia_agent_conversations: {
         Row: {
           agent_id: string
