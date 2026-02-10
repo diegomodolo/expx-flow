@@ -383,7 +383,10 @@ export const LeadImportModal = ({ open, onOpenChange, companyId }: LeadImportMod
       const totalBatches = Math.ceil(newLeads.length / insertBatchSize);
 
       for (let i = 0; i < totalBatches; i++) {
-        const batch = newLeads.slice(i * insertBatchSize, (i + 1) * insertBatchSize);
+        const batch = newLeads.slice(i * insertBatchSize, (i + 1) * insertBatchSize).map(lead => ({
+          ...lead,
+          full_name: lead.full_name || lead.company_name || lead.company_trade_name || lead.email || lead.cnpj || 'Lead sem nome'
+        }));
         
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { data: insertedBatch, error } = await supabase
