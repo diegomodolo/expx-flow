@@ -1,13 +1,16 @@
 import { useState, useEffect, useCallback } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
-import { Building2, Plus, X, Loader2, DatabaseIcon, Search, Users } from "lucide-react";
+import { Building2, Plus, X, Loader2, DatabaseIcon, Search, Users, Filter, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -35,12 +38,63 @@ interface LeadPreview {
   uf: string | null;
   capital_social: number | null;
   situacao_cadastral: string | null;
+  porte: string | null;
+  natureza_juridica: string | null;
+  simples_option: string | null;
+  mei_option: string | null;
+  data_abertura: string | null;
+  bairro: string | null;
 }
 
 interface CnaeSummary {
   cnae: string;
   count: number;
 }
+
+interface Filters {
+  uf: string;
+  municipio: string;
+  bairro: string;
+  situacao_cadastral: string;
+  porte: string;
+  natureza_juridica: string;
+  simples_option: string;
+  mei_option: string;
+  capital_social_min: string;
+  capital_social_max: string;
+  data_abertura_min: string;
+  data_abertura_max: string;
+  has_email: boolean;
+  has_phone: boolean;
+  razao_social: string;
+}
+
+const EMPTY_FILTERS: Filters = {
+  uf: "",
+  municipio: "",
+  bairro: "",
+  situacao_cadastral: "",
+  porte: "",
+  natureza_juridica: "",
+  simples_option: "",
+  mei_option: "",
+  capital_social_min: "",
+  capital_social_max: "",
+  data_abertura_min: "",
+  data_abertura_max: "",
+  has_email: false,
+  has_phone: false,
+  razao_social: "",
+};
+
+const UF_OPTIONS = [
+  "AC","AL","AM","AP","BA","CE","DF","ES","GO","MA","MG","MS","MT",
+  "PA","PB","PE","PI","PR","RJ","RN","RO","RR","RS","SC","SE","SP","TO"
+];
+
+const SITUACAO_OPTIONS = ["Ativa", "Baixada", "Inapta", "Suspensa", "Nula"];
+const PORTE_OPTIONS = ["ME", "EPP", "Demais"];
+const SIMPLES_OPTIONS = ["Sim", "Não"];
 
 export const ImportFromBaseModal = ({ open, onOpenChange, companyId, segment }: ImportFromBaseModalProps) => {
   const queryClient = useQueryClient();
@@ -53,6 +107,49 @@ export const ImportFromBaseModal = ({ open, onOpenChange, companyId, segment }: 
   const [isImporting, setIsImporting] = useState(false);
   const [cnaeSummary, setCnaeSummary] = useState<CnaeSummary[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
+  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [activeFilterCount, setActiveFilterCount] = useState(0);
+
+  // Count active filters
+  useEffect(() => {
+    let count = 0;
+    if (filters.uf) count++;
+    if (filters.municipio) count++;
+    if (filters.bairro) count++;
+    if (filters.situacao_cadastral) count++;
+    if (filters.porte) count++;
+    if (filters.natureza_juridica) count++;
+    if (filters.simples_option) count++;
+    if (filters.mei_option) count++;
+    if (filters.capital_social_min) count++;
+    if (filters.capital_social_max) count++;
+    if (filters.data_abertura_min) count++;
+    if (filters.data_abertura_max) count++;
+    if (filters.has_email) count++;
+    if (filters.has_phone) count++;
+    if (filters.razao_social) count++;
+    setActiveFilterCount(count);
+  }, [filters]);
+
+  const applyFilters = useCallback((query: any) => {
+    if (filters.uf) query = query.eq("uf", filters.uf);
+    if (filters.municipio) query = query.ilike("municipio", `%${filters.municipio}%`);
+    if (filters.bairro) query = query.ilike("bairro", `%${filters.bairro}%`);
+    if (filters.situacao_cadastral) query = query.eq("situacao_cadastral", filters.situacao_cadastral);
+    if (filters.porte) query = query.eq("porte", filters.porte);
+    if (filters.natureza_juridica) query = query.ilike("natureza_juridica", `%${filters.natureza_juridica}%`);
+    if (filters.simples_option) query = query.eq("simples_option", filters.simples_option);
+    if (filters.mei_option) query = query.eq("mei_option", filters.mei_option);
+    if (filters.capital_social_min) query = query.gte("capital_social", parseFloat(filters.capital_social_min));
+    if (filters.capital_social_max) query = query.lte("capital_social", parseFloat(filters.capital_social_max));
+    if (filters.data_abertura_min) query = query.gte("data_abertura", filters.data_abertura_min);
+    if (filters.data_abertura_max) query = query.lte("data_abertura", filters.data_abertura_max);
+    if (filters.has_email) query = query.not("email", "is", null).neq("email", "");
+    if (filters.has_phone) query = query.not("phone", "is", null).neq("phone", "");
+    if (filters.razao_social) query = query.ilike("razao_social", `%${filters.razao_social}%`);
+    return query;
+  }, [filters]);
 
   const fetchLeads = useCallback(async () => {
     if (cnaes.length === 0) {
@@ -70,12 +167,15 @@ export const ImportFromBaseModal = ({ open, onOpenChange, companyId, segment }: 
     try {
       const cnaeFilters = cnaes.map(c => `cnae_code.eq.${c}`).join(",");
 
-      // Get count and preview from cnae_lead_pool
-      const { data, error, count } = await supabase
+      let query = supabase
         .from("cnae_lead_pool")
-        .select("id, razao_social, nome_fantasia, cnae_code, cnae_description, cnpj, email, phone, municipio, uf, capital_social, situacao_cadastral", { count: "exact" })
+        .select("id, razao_social, nome_fantasia, cnae_code, cnae_description, cnpj, email, phone, municipio, uf, capital_social, situacao_cadastral, porte, natureza_juridica, simples_option, mei_option, data_abertura, bairro", { count: "exact" })
         .eq("company_id", companyId)
-        .or(cnaeFilters)
+        .or(cnaeFilters);
+
+      query = applyFilters(query);
+
+      const { data, error, count } = await query
         .order("capital_social", { ascending: false, nullsFirst: false })
         .limit(50);
 
@@ -84,28 +184,28 @@ export const ImportFromBaseModal = ({ open, onOpenChange, companyId, segment }: 
       setLeads(data || []);
       setTotalMatching(count || 0);
 
-      // CNAE summary counts
+      // CNAE summary counts (with filters)
       const summaryPromises = cnaes.map(async (cnae) => {
-        const { count: cnaeCount } = await supabase
+        let q = supabase
           .from("cnae_lead_pool")
           .select("id", { count: "exact", head: true })
           .eq("company_id", companyId)
           .eq("cnae_code", cnae);
+        q = applyFilters(q);
+        const { count: cnaeCount } = await q;
         return { cnae, count: cnaeCount || 0 };
       });
       setCnaeSummary(await Promise.all(summaryPromises));
 
-      // Check how many CNPJs already exist in lead_master_pool (already imported)
-      if (data && data.length > 0) {
-        const sampleCnpjs = data.map(l => l.cnpj).filter(Boolean);
-        if (sampleCnpjs.length > 0) {
-          const { count: existingCount } = await supabase
-            .from("lead_master_pool")
-            .select("id", { count: "exact", head: true })
-            .eq("company_id", companyId)
-            .or(cnaeFilters.replace(/cnae_code/g, "cnae_code"));
-          setAlreadyInPool(existingCount || 0);
-        }
+      // Check already in pool
+      if (count && count > 0) {
+        let poolQuery = supabase
+          .from("lead_master_pool")
+          .select("id", { count: "exact", head: true })
+          .eq("company_id", companyId)
+          .or(cnaeFilters.replace(/cnae_code/g, "cnae_code"));
+        const { count: existingCount } = await poolQuery;
+        setAlreadyInPool(existingCount || 0);
       } else {
         setAlreadyInPool(0);
       }
@@ -115,12 +215,14 @@ export const ImportFromBaseModal = ({ open, onOpenChange, companyId, segment }: 
     } finally {
       setIsLoading(false);
     }
-  }, [cnaes, companyId]);
+  }, [cnaes, companyId, applyFilters]);
 
   useEffect(() => {
     if (open) {
       setCnaes(segment.cnaes || []);
       setHasSearched(false);
+      setFilters(EMPTY_FILTERS);
+      setFiltersOpen(false);
     }
   }, [open, segment.cnaes]);
 
@@ -146,10 +248,15 @@ export const ImportFromBaseModal = ({ open, onOpenChange, companyId, segment }: 
   };
 
   const handleCnaeKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      handleAddCnae();
-    }
+    if (e.key === "Enter") { e.preventDefault(); handleAddCnae(); }
+  };
+
+  const updateFilter = (key: keyof Filters, value: string | boolean) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleClearFilters = () => {
+    setFilters(EMPTY_FILTERS);
   };
 
   const handleImport = async () => {
@@ -159,19 +266,22 @@ export const ImportFromBaseModal = ({ open, onOpenChange, companyId, segment }: 
     try {
       const cnaeFilters = cnaes.map(c => `cnae_code.eq.${c}`).join(",");
 
-      // Fetch ALL matching leads from cnae_lead_pool (paginated)
+      // Fetch ALL matching leads with filters (paginated)
       const allLeads: Array<{ cnpj: string; razao_social: string | null; nome_fantasia: string | null; cnae_code: string; cnae_description: string | null; email: string | null; phone: string | null; municipio: string | null; uf: string | null; capital_social: number | null }> = [];
       const pageSize = 1000;
       let from = 0;
       let hasMore = true;
 
       while (hasMore) {
-        const { data, error } = await supabase
+        let query = supabase
           .from("cnae_lead_pool")
           .select("cnpj, razao_social, nome_fantasia, cnae_code, cnae_description, email, phone, municipio, uf, capital_social")
           .eq("company_id", companyId)
-          .or(cnaeFilters)
-          .range(from, from + pageSize - 1);
+          .or(cnaeFilters);
+        
+        query = applyFilters(query);
+
+        const { data, error } = await query.range(from, from + pageSize - 1);
 
         if (error) throw error;
         if (data && data.length > 0) {
@@ -188,10 +298,10 @@ export const ImportFromBaseModal = ({ open, onOpenChange, companyId, segment }: 
         return;
       }
 
-      // Check which CNPJs already exist in lead_master_pool
+      // Dedup by CNPJ
       const allCnpjs = allLeads.map(l => l.cnpj).filter(Boolean);
       const existingCnpjs = new Set<string>();
-      
+
       for (let i = 0; i < allCnpjs.length; i += 500) {
         const batch = allCnpjs.slice(i, i + 500);
         const { data: existing } = await supabase
@@ -209,7 +319,6 @@ export const ImportFromBaseModal = ({ open, onOpenChange, companyId, segment }: 
         return;
       }
 
-      // Insert into lead_master_pool
       const batchSize = 100;
       const insertedIds: string[] = [];
 
@@ -241,7 +350,6 @@ export const ImportFromBaseModal = ({ open, onOpenChange, companyId, segment }: 
 
         if (error) {
           console.error("Batch insert error:", error);
-          // Try one by one
           for (const lead of batch) {
             const { data: single, error: singleErr } = await supabase
               .from("lead_master_pool")
@@ -255,7 +363,6 @@ export const ImportFromBaseModal = ({ open, onOpenChange, companyId, segment }: 
         }
       }
 
-      // Assign to segment
       if (insertedIds.length > 0) {
         for (let i = 0; i < insertedIds.length; i += 500) {
           const batch = insertedIds.slice(i, i + 500).map(leadId => ({
@@ -266,7 +373,6 @@ export const ImportFromBaseModal = ({ open, onOpenChange, companyId, segment }: 
         }
       }
 
-      // Update segment CNAEs if changed
       const cnaesChanged = JSON.stringify(cnaes.sort()) !== JSON.stringify((segment.cnaes || []).sort());
       if (cnaesChanged) {
         await supabase.from("lead_segments").update({ cnaes }).eq("id", segment.id);
@@ -288,14 +394,14 @@ export const ImportFromBaseModal = ({ open, onOpenChange, companyId, segment }: 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+      <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <DatabaseIcon className="h-5 w-5" />
             Importar da Base CNAE — {segment.name}
           </DialogTitle>
           <DialogDescription>
-            Busque leads da sua base de CNAEs e importe para este segmento e para o pool principal.
+            Busque leads da sua base de CNAEs, aplique filtros e importe para este segmento.
           </DialogDescription>
         </DialogHeader>
 
@@ -308,23 +414,18 @@ export const ImportFromBaseModal = ({ open, onOpenChange, companyId, segment }: 
             </Label>
             <div className="flex gap-2">
               <Input
-                placeholder="Digite o código CNAE (ex: 4930202)"
+                placeholder="Código CNAE (ex: 4930202)"
                 value={cnaeInput}
                 onChange={(e) => setCnaeInput(e.target.value)}
                 onKeyDown={handleCnaeKeyDown}
                 className="font-mono"
               />
-              <Button variant="outline" onClick={handleAddCnae} disabled={!cnaeInput.trim()}>
+              <Button variant="outline" onClick={handleAddCnae} disabled={!cnaeInput.trim()} size="icon">
                 <Plus className="h-4 w-4" />
               </Button>
-              <Button onClick={fetchLeads} disabled={isLoading || cnaes.length === 0}>
-                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                <span className="ml-2">Buscar</span>
-              </Button>
             </div>
-
             {cnaes.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-2">
+              <div className="flex flex-wrap gap-2">
                 {cnaes.map((cnae) => {
                   const summary = cnaeSummary.find(s => s.cnae === cnae);
                   return (
@@ -342,6 +443,170 @@ export const ImportFromBaseModal = ({ open, onOpenChange, companyId, segment }: 
               </div>
             )}
           </div>
+
+          {/* Filters */}
+          <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
+            <CollapsibleTrigger asChild>
+              <Button variant="outline" className="w-full justify-between">
+                <div className="flex items-center gap-2">
+                  <Filter className="h-4 w-4" />
+                  <span>Filtros</span>
+                  {activeFilterCount > 0 && (
+                    <Badge variant="default" className="text-xs">{activeFilterCount}</Badge>
+                  )}
+                </div>
+                {filtersOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-3">
+              <div className="border rounded-lg p-4 space-y-4 bg-muted/30">
+                {/* Row 1: Location */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">UF</Label>
+                    <Select value={filters.uf} onValueChange={(v) => updateFilter("uf", v === "_all" ? "" : v)}>
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Todos" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="_all">Todos</SelectItem>
+                        {UF_OPTIONS.map(uf => (
+                          <SelectItem key={uf} value={uf}>{uf}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Município</Label>
+                    <Input className="h-8 text-xs" placeholder="Buscar..." value={filters.municipio} onChange={(e) => updateFilter("municipio", e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Bairro</Label>
+                    <Input className="h-8 text-xs" placeholder="Buscar..." value={filters.bairro} onChange={(e) => updateFilter("bairro", e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Razão Social</Label>
+                    <Input className="h-8 text-xs" placeholder="Buscar..." value={filters.razao_social} onChange={(e) => updateFilter("razao_social", e.target.value)} />
+                  </div>
+                </div>
+
+                {/* Row 2: Status */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Situação Cadastral</Label>
+                    <Select value={filters.situacao_cadastral} onValueChange={(v) => updateFilter("situacao_cadastral", v === "_all" ? "" : v)}>
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Todas" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="_all">Todas</SelectItem>
+                        {SITUACAO_OPTIONS.map(s => (
+                          <SelectItem key={s} value={s}>{s}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Porte</Label>
+                    <Select value={filters.porte} onValueChange={(v) => updateFilter("porte", v === "_all" ? "" : v)}>
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Todos" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="_all">Todos</SelectItem>
+                        {PORTE_OPTIONS.map(p => (
+                          <SelectItem key={p} value={p}>{p}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Simples Nacional</Label>
+                    <Select value={filters.simples_option} onValueChange={(v) => updateFilter("simples_option", v === "_all" ? "" : v)}>
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Todos" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="_all">Todos</SelectItem>
+                        {SIMPLES_OPTIONS.map(s => (
+                          <SelectItem key={s} value={s}>{s}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">MEI</Label>
+                    <Select value={filters.mei_option} onValueChange={(v) => updateFilter("mei_option", v === "_all" ? "" : v)}>
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Todos" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="_all">Todos</SelectItem>
+                        {SIMPLES_OPTIONS.map(s => (
+                          <SelectItem key={s} value={s}>{s}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Row 3: Financial & Date */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Capital Social Mín (R$)</Label>
+                    <Input className="h-8 text-xs font-mono" type="number" placeholder="0" value={filters.capital_social_min} onChange={(e) => updateFilter("capital_social_min", e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Capital Social Máx (R$)</Label>
+                    <Input className="h-8 text-xs font-mono" type="number" placeholder="∞" value={filters.capital_social_max} onChange={(e) => updateFilter("capital_social_max", e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Abertura Desde</Label>
+                    <Input className="h-8 text-xs" type="date" value={filters.data_abertura_min} onChange={(e) => updateFilter("data_abertura_min", e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Abertura Até</Label>
+                    <Input className="h-8 text-xs" type="date" value={filters.data_abertura_max} onChange={(e) => updateFilter("data_abertura_max", e.target.value)} />
+                  </div>
+                </div>
+
+                {/* Row 4: Natureza Jurídica + Contact + Actions */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 items-end">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Natureza Jurídica</Label>
+                    <Input className="h-8 text-xs" placeholder="Buscar..." value={filters.natureza_juridica} onChange={(e) => updateFilter("natureza_juridica", e.target.value)} />
+                  </div>
+                  <div className="flex items-center gap-4 pt-2">
+                    <div className="flex items-center gap-2">
+                      <Checkbox id="has_email" checked={filters.has_email} onCheckedChange={(v) => updateFilter("has_email", !!v)} />
+                      <Label htmlFor="has_email" className="text-xs cursor-pointer">Com e-mail</Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Checkbox id="has_phone" checked={filters.has_phone} onCheckedChange={(v) => updateFilter("has_phone", !!v)} />
+                      <Label htmlFor="has_phone" className="text-xs cursor-pointer">Com telefone</Label>
+                    </div>
+                  </div>
+                  <div className="col-span-2 sm:col-span-2 flex justify-end gap-2">
+                    <Button variant="ghost" size="sm" onClick={handleClearFilters} className="text-xs">
+                      Limpar filtros
+                    </Button>
+                    <Button size="sm" onClick={fetchLeads} disabled={isLoading || cnaes.length === 0} className="text-xs">
+                      {isLoading ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Search className="h-3 w-3 mr-1" />}
+                      Buscar
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+
+          {/* Search button when filters closed */}
+          {!filtersOpen && (
+            <Button onClick={fetchLeads} disabled={isLoading || cnaes.length === 0} className="w-full">
+              {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Search className="h-4 w-4 mr-2" />}
+              Buscar na base
+            </Button>
+          )}
 
           {/* Summary Cards */}
           {hasSearched && !isLoading && (
@@ -377,13 +642,14 @@ export const ImportFromBaseModal = ({ open, onOpenChange, companyId, segment }: 
                     <TableHead>CNAE</TableHead>
                     <TableHead>Contato</TableHead>
                     <TableHead>Cidade/UF</TableHead>
+                    <TableHead className="text-right">Capital</TableHead>
                     <TableHead className="text-center">Situação</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {leads.map((lead) => (
                     <TableRow key={lead.id}>
-                      <TableCell className="max-w-[200px]">
+                      <TableCell className="max-w-[180px]">
                         <div className="truncate font-medium text-sm">
                           {lead.nome_fantasia || lead.razao_social || "—"}
                         </div>
@@ -391,17 +657,16 @@ export const ImportFromBaseModal = ({ open, onOpenChange, companyId, segment }: 
                           <div className="text-xs text-muted-foreground truncate">{lead.razao_social}</div>
                         )}
                       </TableCell>
-                      <TableCell className="font-mono text-xs">
-                        {lead.cnpj || "—"}
-                      </TableCell>
-                      <TableCell className="font-mono text-xs">
-                        {lead.cnae_code}
-                      </TableCell>
-                      <TableCell className="text-xs max-w-[150px]">
+                      <TableCell className="font-mono text-xs">{lead.cnpj || "—"}</TableCell>
+                      <TableCell className="font-mono text-xs">{lead.cnae_code}</TableCell>
+                      <TableCell className="text-xs max-w-[130px]">
                         <div className="truncate">{lead.email || lead.phone || "—"}</div>
                       </TableCell>
                       <TableCell className="text-xs">
                         {lead.municipio && lead.uf ? `${lead.municipio}/${lead.uf}` : lead.uf || "—"}
+                      </TableCell>
+                      <TableCell className="text-right text-xs tabular-nums">
+                        {lead.capital_social ? `R$ ${lead.capital_social.toLocaleString("pt-BR")}` : "—"}
                       </TableCell>
                       <TableCell className="text-center">
                         <Badge variant={lead.situacao_cadastral === "Ativa" ? "default" : "secondary"} className="text-xs">
@@ -414,14 +679,14 @@ export const ImportFromBaseModal = ({ open, onOpenChange, companyId, segment }: 
               </Table>
               {totalMatching > 50 && (
                 <div className="text-center py-2 text-xs text-muted-foreground border-t">
-                  Exibindo 50 de {totalMatching.toLocaleString("pt-BR")} leads (ordenados por capital social)
+                  Exibindo 50 de {totalMatching.toLocaleString("pt-BR")} leads
                 </div>
               )}
             </ScrollArea>
           ) : hasSearched ? (
             <div className="text-center py-8 text-muted-foreground">
               <Users className="h-10 w-10 mx-auto mb-2 opacity-20" />
-              <p>Nenhum lead encontrado com esses CNAEs</p>
+              <p>Nenhum lead encontrado com esses filtros</p>
             </div>
           ) : cnaes.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
@@ -432,23 +697,12 @@ export const ImportFromBaseModal = ({ open, onOpenChange, companyId, segment }: 
         </div>
 
         <DialogFooter className="mt-4">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancelar
-          </Button>
-          <Button
-            onClick={handleImport}
-            disabled={isImporting || !hasSearched || totalMatching <= 0}
-          >
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={handleImport} disabled={isImporting || !hasSearched || totalMatching <= 0}>
             {isImporting ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                Importando...
-              </>
+              <><Loader2 className="h-4 w-4 animate-spin mr-2" />Importando...</>
             ) : (
-              <>
-                <DatabaseIcon className="h-4 w-4 mr-2" />
-                Importar ~{newToImport.toLocaleString("pt-BR")} leads
-              </>
+              <><DatabaseIcon className="h-4 w-4 mr-2" />Importar ~{newToImport.toLocaleString("pt-BR")} leads</>
             )}
           </Button>
         </DialogFooter>
