@@ -17,6 +17,8 @@ export interface GroupOpsGroup {
   config_json: any;
   created_at: string;
   updated_at: string;
+  member_count?: number;
+  messages_7d?: number;
 }
 
 export function useGroupOpsGroups() {
@@ -34,7 +36,43 @@ export function useGroupOpsGroups() {
         .eq('company_id', companyId)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data as GroupOpsGroup[];
+
+      const groups = data as GroupOpsGroup[];
+      if (groups.length === 0) return groups;
+
+      const groupIds = groups.map(g => g.id);
+
+      // Fetch member counts per group
+      const { data: memberRows } = await supabase
+        .from('groupops_members')
+        .select('group_id')
+        .eq('company_id', companyId)
+        .in('group_id', groupIds);
+
+      const memberMap = new Map<string, number>();
+      memberRows?.forEach(m => {
+        memberMap.set(m.group_id, (memberMap.get(m.group_id) || 0) + 1);
+      });
+
+      // Fetch message counts last 7 days per group
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const { data: msgRows } = await supabase
+        .from('groupops_messages')
+        .select('group_id')
+        .eq('company_id', companyId)
+        .gte('timestamp', sevenDaysAgo)
+        .in('group_id', groupIds);
+
+      const msgMap = new Map<string, number>();
+      msgRows?.forEach(m => {
+        msgMap.set(m.group_id, (msgMap.get(m.group_id) || 0) + 1);
+      });
+
+      return groups.map(g => ({
+        ...g,
+        member_count: memberMap.get(g.id) || 0,
+        messages_7d: msgMap.get(g.id) || 0,
+      }));
     },
     enabled: !!companyId,
   });
@@ -77,7 +115,6 @@ export function useGroupOpsGroups() {
 
   const deleteGroup = useMutation({
     mutationFn: async (id: string) => {
-      // Delete members first (cascade might not be set)
       await supabase.from('groupops_members').delete().eq('group_id', id);
       await supabase.from('groupops_events').delete().eq('group_id', id);
       await supabase.from('groupops_messages').delete().eq('group_id', id);
