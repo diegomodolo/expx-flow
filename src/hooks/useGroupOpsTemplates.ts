@@ -175,33 +175,11 @@ export function useGroupOpsTemplates() {
     onError: () => toast.error('Erro ao excluir template'),
   });
 
-  const seedDefaultTemplates = useMutation({
+  const seedAllTemplates = useMutation({
     mutationFn: async () => {
       if (!companyId) throw new Error('Sem company_id');
-      const rows = DEFAULT_TEMPLATES.map((t) => ({
-        company_id: companyId,
-        title: t.title,
-        category: t.category,
-        tone: t.tone,
-        body: t.body,
-        placeholders: extractPlaceholders(t.body),
-      }));
-      const { error } = await supabase
-        .from('groupops_templates')
-        .insert(rows as any);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['groupops-templates'] });
-      toast.success('30 templates padrão carregados!');
-    },
-    onError: () => toast.error('Erro ao carregar templates padrão'),
-  });
-
-  const seedProvocacoes = useMutation({
-    mutationFn: async () => {
-      if (!companyId) throw new Error('Sem company_id');
-      const rows = PROVOCACOES_AGRESSIVAS.map((t) => ({
+      const allTemplates = [...DEFAULT_TEMPLATES, ...PROVOCACOES_AGRESSIVAS];
+      const rows = allTemplates.map((t) => ({
         company_id: companyId,
         title: t.title,
         category: t.category,
@@ -220,9 +198,9 @@ export function useGroupOpsTemplates() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['groupops-templates'] });
-      toast.success(`${PROVOCACOES_AGRESSIVAS.length} provocações agressivas carregadas!`);
+      toast.success('Todos os templates carregados!');
     },
-    onError: () => toast.error('Erro ao carregar provocações'),
+    onError: () => toast.error('Erro ao carregar templates'),
   });
 
   return {
@@ -231,7 +209,6 @@ export function useGroupOpsTemplates() {
     createTemplate,
     updateTemplate,
     deleteTemplate,
-    seedDefaultTemplates,
-    seedProvocacoes,
+    seedAllTemplates,
   };
 }

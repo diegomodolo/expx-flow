@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -34,10 +34,20 @@ export default function GroupOpsTemplatesList() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [viewTab, setViewTab] = useState<'defaults' | 'custom'>('defaults');
 
-  const { templates, isLoading, createTemplate, updateTemplate, deleteTemplate, seedDefaultTemplates, seedProvocacoes } = useGroupOpsTemplates();
+  const { templates, isLoading, createTemplate, updateTemplate, deleteTemplate, seedAllTemplates } = useGroupOpsTemplates();
+
+  // Auto-seed all templates when list is empty (runs once)
+  const hasSeeded = useRef(false);
+  useEffect(() => {
+    if (!isLoading && templates.length === 0 && !hasSeeded.current && !seedAllTemplates.isPending) {
+      hasSeeded.current = true;
+      seedAllTemplates.mutate();
+    }
+  }, [isLoading, templates.length]);
 
   // Convert DEFAULT_TEMPLATES to pseudo-GroupOpsTemplate for preview/edit
-  const defaultTemplatesAsGroupOps: GroupOpsTemplate[] = DEFAULT_TEMPLATES.map((t, i) => ({
+  const allDefaultTemplates = [...DEFAULT_TEMPLATES, ...PROVOCACOES_AGRESSIVAS];
+  const defaultTemplatesAsGroupOps: GroupOpsTemplate[] = allDefaultTemplates.map((t, i) => ({
     id: `default-${i}`,
     company_id: '',
     title: t.title,
@@ -112,15 +122,7 @@ export default function GroupOpsTemplatesList() {
           <h2 className="text-lg font-semibold">Templates</h2>
           <p className="text-sm text-muted-foreground">Modelos de mensagem com formatação WhatsApp e placeholders</p>
         </div>
-        <div className="flex gap-2 flex-wrap">
-          {viewTab === 'defaults' && templates.length === 0 && (
-            <Button variant="outline" onClick={() => seedDefaultTemplates.mutate()} disabled={seedDefaultTemplates.isPending}>
-              <Download className="h-4 w-4 mr-2" /> Carregar Todos no Banco
-            </Button>
-          )}
-          <Button variant="outline" onClick={() => seedProvocacoes.mutate()} disabled={seedProvocacoes.isPending}>
-            <Download className="h-4 w-4 mr-2" /> {seedProvocacoes.isPending ? 'Carregando...' : `Carregar ${PROVOCACOES_AGRESSIVAS.length} Provocações`}
-          </Button>
+        <div className="flex gap-2">
           <Button onClick={() => setShowCreateModal(true)}>
             <Plus className="h-4 w-4 mr-2" /> Novo Template
           </Button>
