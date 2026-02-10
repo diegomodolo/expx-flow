@@ -93,7 +93,7 @@ export default function GroupOpsMembersList() {
     }
   };
 
-  const handleLinkClient = async (phone: string, clientId: string, clientName: string) => {
+  const handleLinkClient = async (phone: string, clientId: string, clientName: string, memberName?: string) => {
     if (!companyId || !phone) return;
     setLinkingMemberId(phone);
     try {
@@ -126,7 +126,7 @@ export default function GroupOpsMembersList() {
           company_id: companyId,
           client_id: clientId,
           phone: phone,
-          contact_name: null,
+          contact_name: memberName || phone,
           is_active: true,
         } as any);
 
@@ -312,7 +312,7 @@ export default function GroupOpsMembersList() {
                             phone={m.phone_e164}
                             clients={clientsQuery.data ?? []}
                             isLinking={linkingMemberId === m.phone_e164}
-                            onLink={(clientId, clientName) => handleLinkClient(m.phone_e164!, clientId, clientName)}
+                            onLink={(clientId, clientName) => handleLinkClient(m.phone_e164!, clientId, clientName, m.display_name || undefined)}
                           />
                         ) : (
                           <span className="text-muted-foreground">-</span>
