@@ -115,6 +115,7 @@ export const LeadSegmentsDashboard = ({
 
   // Modal states
   const [importModalSegment, setImportModalSegment] = useState<{ id: string; name: string; cnaes: string[] } | null>(null);
+  const [importingFromBase, setImportingFromBase] = useState<string | null>(null);
 
   // Sync dialog state with external prop
   useEffect(() => {
