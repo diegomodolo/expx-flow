@@ -1,143 +1,86 @@
 
-# GroupOps - Gestao e Engajamento de Grupo WhatsApp
 
-## Visao Geral
-Modulo completo de gestao de grupos WhatsApp dentro do menu Customer Success, cobrindo dashboard, campanhas automatizadas, gamificacao, moderacao e CRM de membros. Devido ao tamanho do modulo, a implementacao sera dividida em **3 fases** para garantir qualidade e funcionalidade incremental.
+# Plano: Carga dos 30 Templates Prontos + Scoring/Badges Configurados
 
----
+## Resumo
 
-## Fase 1 - Fundacao (esta implementacao)
-Banco de dados completo + navegacao + telas de Dashboard, Grupos e Membros
+Vou implementar 3 grandes melhorias no modulo GroupOps:
 
-## Fase 2 - Campanhas e Templates
-Telas de Campanhas, Templates, calendario semanal, editor com placeholders e preview WhatsApp
-
-## Fase 3 - Motor, Moderacao e Eventos
-Scoring engine, badges, feed de eventos, moderacao automatica, regras anti-spam, modos do bot
+1. **Seed de 30 templates prontos** -- botao "Carregar Templates Padrao" que insere todos os 30 templates fornecidos de uma vez
+2. **Scoring pre-configurado** -- ajustar as regras padrao e criar o perfil automaticamente com os valores especificados
+3. **4 Badges pre-configurados** -- botao para criar os badges padrao (CEO Estrategico, Gestor de Processo, Alta Performance, Previsivel)
 
 ---
 
-## O que sera feito agora (Fase 1)
+## O que sera feito
 
-### 1. Migracao de Banco de Dados
-Criacao de todas as tabelas do modelo de dados para nao precisar migrar depois:
+### 1. Seed de Templates (30 templates)
 
-- `groupops_groups` - grupos gerenciados (config_json, rules, status, quiet_hours, rate_limit, auto_reply_mode)
-- `groupops_members` - membros com perfil completo (role, segment, size_bucket, primary_pain, tags, engagement_state, risk_level)
-- `groupops_messages` - mensagens auditaveis (author, media, mentions, reply_to)
-- `groupops_events` - motor de eventos (MESSAGE, CHECKIN_REPLY, CHALLENGE_JOIN, etc.)
-- `groupops_score_ledger` - registro de pontuacao (+/-)
-- `groupops_badges` - definicao de badges com regras
-- `groupops_member_badges` - badges conquistados
-- `groupops_campaigns` - automacoes (DAILY_PROMPT, CHECKIN, CHALLENGE, etc.)
-- `groupops_templates` - templates com placeholders, variantes A/B, tone
-- `groupops_moderation_rules` - regras de moderacao (flood, spam, agressividade)
-- `groupops_moderation_actions` - historico de acoes de moderacao
-- `groupops_scoring_profiles` - perfis de pontuacao (Padrao, Hardcore, Elite)
+Criar uma funcao `seedDefaultTemplates` no hook `useGroupOpsTemplates.ts` que insere em batch todos os 30 templates:
 
-Todas com `company_id` e RLS habilitado.
+- **10 Provocacao Diaria** (P1-P10) -- categoria `DAILY_PROMPT`, tom `provocative`
+- **5 Check-in** (C1-C5) -- categoria `CHECKIN`, tom `professional`
+- **5 Desafio 48h** (D1-D5) -- categoria `CHALLENGE`, tom `provocative`
+- **4 Case Anonimo** (CA1-CA4) -- categoria `CASE_STUDY`, tom `professional`
+- **3 Ranking Semanal** (R1-R3) -- categoria `RANKING`, tom `motivational`
+- **3 Boas-vindas/Reativacao** (B1-B3) -- categorias `WELCOME`/`REACTIVATION`, tom `casual`
 
-### 2. Navegacao
-- Adicionar item "GroupOps" no menu lateral do CS (`CSLayout.tsx`) com icone `MessageSquare`
-- Criar sub-layout `GroupOpsLayout.tsx` com abas internas: Dashboard, Grupos, Campanhas, Templates, Membros, Pontuacao, Eventos, Moderacao, Relatorios, Configuracoes
-- Registrar rotas em `App.tsx` sob `/cs/groupops/*`
+Cada template tera os placeholders extraidos automaticamente do corpo da mensagem.
 
-### 3. Tela: Dashboard
-- Seletor de grupo no header
-- Cards KPI: Engajamento 24h/7d/30d, Mensagens/dia (sparkline com Recharts), % participacao check-ins, Silenciosos (>=14 dias), Risco de abandono
-- Top 10 da semana com badges
-- Radar do Grupo: temas quentes, perguntas sem resposta, membros em risco
-- Acoes rapidas: Criar campanha, Postar provocacao, Pausar bot, Gerar ranking
+Na UI de Templates (`GroupOpsTemplatesList.tsx`), adicionar um botao **"Carregar Templates Padrao"** que so aparece quando nao ha templates cadastrados (ou como opcao no header). Ao clicar, insere todos os 30 de uma vez.
 
-### 4. Tela: Grupos
-- Lista de grupos gerenciados com status (enabled/paused/archived)
-- Modal de configuracao: quiet hours, rate limit, auto-reply mode (off/safe/full), approval_required
-- Regras do grupo (textarea)
-- Visao de calendario semanal de campanhas (placeholder para Fase 2)
+### 2. Scoring Pre-Configurado
 
-### 5. Tela: Membros (CRM do Grupo)
-- Tabela com filtros por tags, dor, risco, segmento
-- Perfil do membro: historico de eventos, score ledger, badges
-- Botoes de acao: DM, Mencao, Mute, Ban
-- Indicadores de engagement_state: streak, silent_days, risk_level
+Atualizar `DEFAULT_SCORING_RULES` no hook `useGroupOpsScoring.ts` para refletir exatamente a tabela fornecida:
 
-### 6. Hooks e Tipos
-- `useGroupOpsGroups.ts` - CRUD de grupos
-- `useGroupOpsMembers.ts` - listagem e gestao de membros
-- `useGroupOpsDashboard.ts` - dados agregados para dashboard
-- Tipos TypeScript atualizados automaticamente via migracao
+| Acao | Pontos |
+|------|--------|
+| Responder check-in | +2 |
+| Completar desafio 48h | +6 |
+| Enviar case | +5 |
+| Responder provocacao | +2 |
+| Streak 3 check-ins | +4 |
+| Flood / spam | -5 |
+
+Remover `warning: -3` e ajustar `message: 0` para `provocacao: 2` (responder provocacao).
+
+### 3. Badges Pre-Configurados
+
+Adicionar botao **"Carregar Badges Padrao"** na aba de Badges que cria os 4 badges:
+
+- **CEO Estrategico** (icone: brain) -- condicao: 3 check-ins seguidos
+- **Gestor de Processo** (icone: gear) -- condicao: 2 desafios concluidos
+- **Alta Performance** (icone: fire) -- condicao: Top 3 da semana
+- **Previsivel** (icone: chart) -- condicao: Media >= 8 em check-ins
+
+### 4. Placeholders extras para Ranking
+
+Adicionar placeholders de ranking no hook de templates:
+- `{{top1_nome}}`, `{{top1_score}}`
+- `{{top2_nome}}`, `{{top2_score}}`
+- `{{top3_nome}}`, `{{top3_score}}`
+- `{{dor_principal}}`
 
 ---
 
 ## Detalhes Tecnicos
 
-### Estrutura de Arquivos
+### Arquivos modificados
 
-```text
-src/
-  components/
-    groupops/
-      GroupOpsLayout.tsx          -- Sub-layout com abas
-      GroupOpsDashboard.tsx       -- Dashboard principal
-      GroupOpsGroupsList.tsx      -- Lista de grupos
-      GroupOpsGroupConfigModal.tsx -- Config do grupo
-      GroupOpsMembersList.tsx     -- Tabela de membros
-      GroupOpsMemberProfile.tsx   -- Perfil detalhado
-      GroupOpsCampaignsList.tsx   -- Placeholder Fase 2
-      GroupOpsTemplatesList.tsx   -- Placeholder Fase 2
-      GroupOpsEventsFeed.tsx      -- Placeholder Fase 3
-      GroupOpsModeration.tsx      -- Placeholder Fase 3
-      GroupOpsScoring.tsx         -- Placeholder Fase 3
-  pages/
-    cs/
-      GroupOpsPage.tsx            -- Pagina wrapper
-  hooks/
-    useGroupOpsGroups.ts
-    useGroupOpsMembers.ts
-    useGroupOpsDashboard.ts
-```
+1. **`src/hooks/useGroupOpsTemplates.ts`**
+   - Adicionar array `DEFAULT_TEMPLATES` com os 30 templates
+   - Adicionar placeholders de ranking ao `AVAILABLE_PLACEHOLDERS`
+   - Adicionar mutation `seedDefaultTemplates` que faz batch insert
 
-### Modelo de Dados - Tabelas Principais
+2. **`src/hooks/useGroupOpsScoring.ts`**
+   - Atualizar `DEFAULT_SCORING_RULES` com valores corretos
+   - Ajustar labels no componente
+   - Adicionar mutation `seedDefaultBadges` para criar os 4 badges padrao
 
-**groupops_groups**
-- id, company_id, provider (default 'uazapi'), provider_group_id, name, description
-- status (enabled/paused/archived), timezone, language, rules_text
-- config_json (quiet_hours, rate_limit, auto_reply_mode, approval_required, default_scoring_profile_id)
-- created_at, updated_at
+3. **`src/components/groupops/GroupOpsTemplatesList.tsx`**
+   - Adicionar botao "Carregar Templates Padrao" no header (ou no estado vazio)
 
-**groupops_members**
-- id, group_id, company_id, wa_user_id, phone_e164, display_name
-- company_name, role, segment, size_bucket, primary_pain
-- tags (text[]), status (active/muted/banned/left)
-- last_message_at, last_participation_at, streak_days, silent_days, risk_level
-- privacy_flags (jsonb)
-- created_at, updated_at
+4. **`src/components/groupops/GroupOpsScoring.tsx`**
+   - Atualizar `SCORING_RULE_LABELS` para refletir as novas chaves
+   - Adicionar botao "Carregar Badges Padrao" na aba de Badges
 
-**groupops_scoring_profiles**
-- id, company_id, name, description, rules_json
-- Exemplos de regras: message=0, checkin=+2, challenge_done=+6, case=+5, useful_reply=+3, streak_bonus=+4, spam=-5
-
-### RLS
-Todas as tabelas terao RLS habilitado com policies baseadas em `company_id` do usuario autenticado, seguindo o mesmo padrao das tabelas existentes no projeto.
-
-### Integracao com UazapiGO
-Na Fase 1, os grupos serao cadastrados manualmente (provider_group_id). Na Fase 3, sera implementada sincronizacao automatica via webhook existente do UazapiGO para popular mensagens e eventos em tempo real.
-
----
-
-## Fases Futuras (nao implementadas agora)
-
-**Fase 2 - Campanhas e Templates**
-- Editor de templates com placeholders, variantes A/B, preview WhatsApp
-- Calendario de campanhas (arrastaveis)
-- 5 tipos de campanha: Provocacao diaria, Check-in, Desafio 48h, Case anonimo, Ranking semanal
-- Scheduling com cron e targeting por segmento
-
-**Fase 3 - Motor, Moderacao e Eventos**
-- Intent Engine (parser de comandos: /ranking, /ajuda, /case)
-- Campaign Window (janelas de pontuacao)
-- Feed de eventos em tempo real
-- Moderacao automatica (flood, spam, agressividade)
-- Modos do bot (Safe/Full/Off)
-- Regras anti-spam fixas
-- Edge functions para processamento de webhook e scoring
