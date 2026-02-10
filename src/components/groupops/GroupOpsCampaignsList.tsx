@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -10,7 +10,9 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { useGroupOpsCampaigns, CAMPAIGN_TYPES, DELIVERY_MODES, type GroupOpsCampaign } from '@/hooks/useGroupOpsCampaigns';
 import { useGroupOpsGroups } from '@/hooks/useGroupOpsGroups';
-import { useGroupOpsTemplates } from '@/hooks/useGroupOpsTemplates';
+import { useGroupOpsTemplates, TEMPLATE_CATEGORIES } from '@/hooks/useGroupOpsTemplates';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Plus,
   Search,
@@ -22,6 +24,9 @@ import {
   Target,
   Megaphone,
   Filter,
+  FileText,
+  X,
+  ChevronDown,
 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
@@ -287,18 +292,11 @@ function CampaignFormModal({ open, onClose, campaign, groups, templates, onSave 
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label>Template (opcional)</Label>
-            <Select value={templateId} onValueChange={setTemplateId}>
-              <SelectTrigger><SelectValue placeholder="Selecione um template" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Nenhum</SelectItem>
-                {filteredTemplates.map((t) => (
-                  <SelectItem key={t.id} value={t.id}>{t.title}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <TemplateSearchSelect
+            templates={filteredTemplates}
+            value={templateId}
+            onChange={setTemplateId}
+          />
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -352,5 +350,109 @@ function CampaignFormModal({ open, onClose, campaign, groups, templates, onSave 
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/* ===== Template Search Select ===== */
+function TemplateSearchSelect({
+  templates,
+  value,
+  onChange,
+}: {
+  templates: Array<{ id: string; title: string; category: string }>;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+
+  const selectedTemplate = templates.find((t) => t.id === value);
+
+  const filtered = useMemo(() => {
+    if (!search) return templates;
+    const q = search.toLowerCase();
+    return templates.filter(
+      (t) => t.title.toLowerCase().includes(q) || t.category.toLowerCase().includes(q)
+    );
+  }, [templates, search]);
+
+  const getCategoryLabel = (cat: string) =>
+    TEMPLATE_CATEGORIES.find((c) => c.value === cat)?.label ?? cat;
+
+  return (
+    <div className="space-y-2">
+      <Label>Template (opcional)</Label>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className="w-full justify-between font-normal h-10"
+          >
+            {selectedTemplate ? (
+              <span className="truncate">{selectedTemplate.title}</span>
+            ) : (
+              <span className="text-muted-foreground">Buscar e selecionar template...</span>
+            )}
+            <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[400px] p-0" align="start">
+          <div className="p-2 border-b">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Pesquisar template..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-8 h-9"
+                autoFocus
+              />
+            </div>
+          </div>
+          <ScrollArea className="max-h-[280px]">
+            {/* Option: None */}
+            <button
+              className={`w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors flex items-center gap-2 ${
+                !value || value === 'none' ? 'bg-accent' : ''
+              }`}
+              onClick={() => { onChange('none'); setOpen(false); setSearch(''); }}
+            >
+              <X className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-muted-foreground">Nenhum template</span>
+            </button>
+
+            {filtered.length === 0 ? (
+              <div className="px-3 py-6 text-center text-sm text-muted-foreground">
+                <FileText className="h-8 w-8 mx-auto mb-2 opacity-40" />
+                Nenhum template encontrado
+              </div>
+            ) : (
+              filtered.map((t) => (
+                <button
+                  key={t.id}
+                  className={`w-full text-left px-3 py-2.5 text-sm hover:bg-accent transition-colors border-b last:border-0 ${
+                    value === t.id ? 'bg-accent' : ''
+                  }`}
+                  onClick={() => { onChange(t.id); setOpen(false); setSearch(''); }}
+                >
+                  <div className="font-medium truncate">{t.title}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">{getCategoryLabel(t.category)}</div>
+                </button>
+              ))
+            )}
+          </ScrollArea>
+        </PopoverContent>
+      </Popover>
+      {selectedTemplate && (
+        <button
+          className="text-xs text-muted-foreground hover:text-foreground underline"
+          onClick={() => onChange('none')}
+        >
+          Remover template selecionado
+        </button>
+      )}
+    </div>
   );
 }
