@@ -258,24 +258,23 @@ serve(async (req) => {
             let sendResponse: Response;
 
             if (template.category === "POLL") {
-              // Send as poll/enquete
+              // Send as poll/enquete via /send/menu (type: poll)
               const pollData = template.constraints_json as any;
               const pollOptions = pollData?.poll_options ?? [];
               const selectableCount = pollData?.selectable_count ?? 1;
 
-              sendResponse = await fetch(`${endpoint}/message/send-poll`, {
+              sendResponse = await fetch(`${endpoint}/send/menu`, {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
                   token: token || "",
                 },
                 body: JSON.stringify({
-                  phone: groupJid,
-                  poll: {
-                    name: messageBody,
-                    options: pollOptions,
-                    selectableCount: selectableCount,
-                  },
+                  number: groupJid,
+                  type: "poll",
+                  text: messageBody,
+                  choices: pollOptions,
+                  selectableCount: selectableCount,
                 }),
               });
             } else {
@@ -350,7 +349,7 @@ serve(async (req) => {
           console.log(`[groupops-campaign-cron] Test execution for campaign ${campaign.id} - schedule not updated`);
         }
 
-        console.log(`[groupops-campaign-cron] Campaign ${campaign.id} next execution: ${nextExec}`);
+        executed++;
       } catch (err: any) {
         console.error(`[groupops-campaign-cron] Error processing campaign ${campaign.id}:`, err);
         errors.push(`Campaign ${campaign.id}: ${err.message}`);
