@@ -1,4 +1,4 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -71,27 +71,75 @@ serve(async (req) => {
     }
 
     // 4. Fetch messages from UazapiGO
-    const count = sync_mode === "quantity" ? (sync_value || 500) : 2000; // For date mode, fetch max and filter
-    const fetchUrl = `${endpoint}/chat/messages/${encodeURIComponent(chatId)}/${count}`;
-    console.log(`[groupops-sync-history] Fetching from: ${fetchUrl}`);
+    // UazapiGO v2 uses POST /chat/findMessages with JSON body
+    const count = sync_mode === "quantity" ? (sync_value || 500) : 2000;
 
-    const response = await fetch(fetchUrl, {
-      method: "GET",
-      headers: { token: token || "" },
-    });
+    // Try multiple endpoint patterns (UazapiGO varies by version/proxy)
+    const endpointsToTry = [
+      { url: `${endpoint}/chat/findMessages`, method: "POST", body: { where: { key: { remoteJid: chatId } }, limit: count } },
+      { url: `${endpoint}/chat/findMessages`, method: "POST", body: { remoteJid: chatId, limit: count } },
+      { url: `${endpoint}/chat/findMessages`, method: "POST", body: { chatId, limit: count } },
+      { url: `${endpoint}/chat/messages/${chatId}/${count}`, method: "GET", body: null },
+      { url: `${endpoint}/chat/messages/${chatId}`, method: "GET", body: null },
+      { url: `${endpoint}/chat/find`, method: "POST", body: { where: { key: { remoteJid: chatId } } } },
+    ];
 
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`UazapiGO API error ${response.status}: ${errText}`);
+    let messages: any[] = [];
+    let fetchSuccess = false;
+
+    for (const ep of endpointsToTry) {
+      try {
+        console.log(`[groupops-sync-history] Trying: ${ep.method} ${ep.url}`);
+        const fetchOptions: RequestInit = {
+          method: ep.method,
+          headers: {
+            token: token || "",
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+        };
+        if (ep.body && ep.method === "POST") {
+          fetchOptions.body = JSON.stringify(ep.body);
+        }
+
+        const response = await fetch(ep.url, fetchOptions);
+        if (!response.ok) {
+          const errText = await response.text();
+          console.log(`[groupops-sync-history] ${ep.url} returned ${response.status}: ${errText.substring(0, 200)}`);
+          continue;
+        }
+
+        const responseData = await response.json();
+        let parsed: any[] = [];
+
+        if (Array.isArray(responseData)) {
+          parsed = responseData;
+        } else if (responseData?.data && Array.isArray(responseData.data)) {
+          parsed = responseData.data;
+        } else if (responseData?.messages && Array.isArray(responseData.messages)) {
+          parsed = responseData.messages;
+        } else if (responseData?.records && Array.isArray(responseData.records)) {
+          parsed = responseData.records;
+        }
+
+        if (parsed.length > 0) {
+          messages = parsed;
+          fetchSuccess = true;
+          console.log(`[groupops-sync-history] Success with ${ep.method} ${ep.url}: ${messages.length} messages`);
+          break;
+        } else {
+          console.log(`[groupops-sync-history] ${ep.url} returned empty array`);
+        }
+      } catch (e: any) {
+        console.log(`[groupops-sync-history] ${ep.url} error: ${e.message}`);
+      }
     }
 
-    let messages = await response.json();
-    console.log(`[groupops-sync-history] Fetched ${Array.isArray(messages) ? messages.length : 0} messages from API`);
-
-    if (!Array.isArray(messages)) {
-      // Some responses wrap in a data field
-      messages = messages?.data || messages?.messages || [];
+    if (!fetchSuccess) {
+      throw new Error("Could not fetch messages from UazapiGO. Tried multiple endpoint patterns.");
     }
+
+    console.log(`[groupops-sync-history] Fetched ${messages.length} messages from API`);
 
     // 5. Filter by date if sync_mode is "date"
     if (sync_mode === "date" && sync_value) {
