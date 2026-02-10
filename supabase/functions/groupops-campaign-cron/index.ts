@@ -250,7 +250,7 @@ serve(async (req) => {
                   token: token || "",
                 },
                 body: JSON.stringify({
-                  phone: groupJid,
+                  number: groupJid,
                   poll: {
                     name: messageBody,
                     options: pollOptions,
@@ -259,7 +259,7 @@ serve(async (req) => {
                 }),
               });
             } else {
-              // Send as regular text message
+              // Send as regular text message (UazapiGO uses "number" and "text")
               sendResponse = await fetch(`${endpoint}/send/text`, {
                 method: "POST",
                 headers: {
@@ -267,8 +267,8 @@ serve(async (req) => {
                   token: token || "",
                 },
                 body: JSON.stringify({
-                  phone: groupJid,
-                  message: messageBody,
+                  number: groupJid,
+                  text: messageBody,
                 }),
               });
             }
@@ -276,11 +276,33 @@ serve(async (req) => {
             const sendResult = await sendResponse.json();
             console.log(`[groupops-campaign-cron] Send result:`, JSON.stringify(sendResult));
 
+            const deliveryStatus = sendResponse.ok ? "sent" : "error";
             if (sendResponse.ok) {
               executed++;
             } else {
               errors.push(`Campaign ${campaign.id}: ${JSON.stringify(sendResult)}`);
             }
+
+            // Get cycle number
+            const { count: prevCount } = await supabase
+              .from("groupops_campaign_send_log")
+              .select("id", { count: "exact", head: true })
+              .eq("campaign_id", campaign.id);
+            const cycleNumber = (prevCount ?? 0) + 1;
+
+            // Log the send attempt (success or error)
+            await supabase.from("groupops_campaign_send_log").insert({
+              company_id: campaign.company_id,
+              campaign_id: campaign.id,
+              template_id: template.id,
+              group_id: campaign.group_id,
+              sent_at: new Date().toISOString(),
+              cycle_number: cycleNumber,
+              message_preview: messageBody.substring(0, 200),
+              delivery_status: deliveryStatus,
+              metadata: { send_result: sendResult, template_title: template.title },
+            });
+            console.log(`[groupops-campaign-cron] Send log saved (status: ${deliveryStatus}, cycle: ${cycleNumber})`);
           }
         }
 
