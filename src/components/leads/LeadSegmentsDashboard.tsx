@@ -647,19 +647,13 @@ export const LeadSegmentsDashboard = ({
                                 <Button 
                                   size="icon" 
                                   variant="ghost"
-                                  onClick={() => {
-                                    if (!segment.cnaes || segment.cnaes.length === 0) {
-                                      toast.error("Adicione CNAEs a este segmento primeiro (botão editar)");
-                                      return;
-                                    }
-                                    handleImportFromBase(segment.id, segment.name, segment.cnaes);
-                                  }}
-                                  disabled={importingFromBase === segment.id}
+                                  onClick={() => setImportFromBaseSegment({ 
+                                    id: segment.id, 
+                                    name: segment.name, 
+                                    cnaes: segment.cnaes || [] 
+                                  })}
                                 >
-                                  {importingFromBase === segment.id 
-                                    ? <Loader2 className="h-4 w-4 animate-spin" />
-                                    : <DatabaseIcon className="h-4 w-4 text-primary" />
-                                  }
+                                  <DatabaseIcon className="h-4 w-4 text-primary" />
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>
