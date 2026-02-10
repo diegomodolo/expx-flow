@@ -131,7 +131,8 @@ serve(async (req) => {
       const msgType = msg.messageType || msg.message?.messageType || msg.type || "";
       if (msgType === "protocolMessage" || msgType === "senderKeyDistributionMessage") continue;
 
-      const sender = msg.sender || msg.message?.sender || msg.participant || "";
+      // In group messages, "participant" is the actual sender; "sender" is often the instance/group JID
+      const sender = msg.participant || msg.message?.participant || msg.sender || msg.message?.sender || "";
       const senderName = msg.senderName || msg.message?.senderName || msg.pushName || "";
       const text = msg.text || msg.content || msg.message?.text || msg.message?.content || "";
       const msgId = msg.id || msg.messageid || msg.message?.id || "";
