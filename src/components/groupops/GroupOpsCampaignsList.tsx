@@ -247,6 +247,14 @@ export default function GroupOpsCampaignsList() {
                     <Button size="sm" variant="outline" onClick={() => setLogCampaignId(campaign.id)}>
                       <History className="h-3 w-3 mr-1" /> Log
                     </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      disabled={testCampaign.isPending}
+                      onClick={() => testCampaign.mutate(campaign.id)}
+                    >
+                      <Play className="h-3 w-3 mr-1" /> Testar
+                    </Button>
                     <Button size="sm" variant="ghost" className="text-destructive ml-auto" onClick={() => setDeletingId(campaign.id)}>
                       <Trash2 className="h-3 w-3" />
                     </Button>
