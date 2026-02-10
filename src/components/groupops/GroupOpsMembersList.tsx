@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useGroupOpsMembers } from '@/hooks/useGroupOpsMembers';
 import { useGroupOpsGroups } from '@/hooks/useGroupOpsGroups';
 import { useCompany } from '@/contexts/CompanyContext';
@@ -157,10 +158,11 @@ export default function GroupOpsMembersList() {
           <CardContent className="p-0">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
+               <TableRow>
+                  <TableHead>Membro</TableHead>
+                  <TableHead>Telefone</TableHead>
+                  <TableHead>Função</TableHead>
                   <TableHead>Empresa</TableHead>
-                  <TableHead>Cargo</TableHead>
                   <TableHead>Dor</TableHead>
                   <TableHead>Risco</TableHead>
                   <TableHead>Streak</TableHead>
@@ -170,23 +172,52 @@ export default function GroupOpsMembersList() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((m) => (
-                  <TableRow key={m.id}>
-                    <TableCell className="font-medium">{m.display_name ?? 'Sem nome'}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{m.company_name ?? '-'}</TableCell>
-                    <TableCell className="text-sm">{m.role ?? '-'}</TableCell>
-                    <TableCell className="text-sm">{m.primary_pain ?? '-'}</TableCell>
-                    <TableCell>
-                      <Badge className={riskColor[m.risk_level]}>{m.risk_level}</Badge>
-                    </TableCell>
-                    <TableCell>{m.streak_days}d</TableCell>
-                    <TableCell>{m.silent_days}d</TableCell>
-                    <TableCell>
-                      <Badge variant={m.status === 'active' ? 'default' : 'secondary'}>{m.status}</Badge>
-                    </TableCell>
-                    <TableCell className="text-right">{statusActions(m.id, m.status)}</TableCell>
-                  </TableRow>
-                ))}
+                {filtered.map((m) => {
+                  const profilePic = (m.privacy_flags as any)?.profile_pic || null;
+                  const roleLabel: Record<string, string> = { dono: 'Dono', admin: 'Admin', membro: 'Membro', member: 'Membro', owner: 'Dono' };
+                  const formatPhone = (phone: string | null) => {
+                    if (!phone) return '-';
+                    // Format as +55 (22) 99782-5387
+                    if (phone.length >= 12 && phone.startsWith('55')) {
+                      const ddd = phone.substring(2, 4);
+                      const rest = phone.substring(4);
+                      if (rest.length === 9) return `+55 (${ddd}) ${rest.substring(0, 5)}-${rest.substring(5)}`;
+                      if (rest.length === 8) return `+55 (${ddd}) ${rest.substring(0, 4)}-${rest.substring(4)}`;
+                    }
+                    return `+${phone}`;
+                  };
+
+                  return (
+                    <TableRow key={m.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-8 w-8">
+                            <AvatarImage src={profilePic} alt={m.display_name || ''} />
+                            <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                              {(m.display_name || '?').substring(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="font-medium">{m.display_name || 'Sem nome'}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground font-mono">{formatPhone(m.phone_e164)}</TableCell>
+                      <TableCell className="text-sm">
+                        <Badge variant="outline">{roleLabel[m.role ?? 'membro'] ?? m.role}</Badge>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{m.company_name ?? '-'}</TableCell>
+                      <TableCell className="text-sm">{m.primary_pain ?? '-'}</TableCell>
+                      <TableCell>
+                        <Badge className={riskColor[m.risk_level]}>{m.risk_level}</Badge>
+                      </TableCell>
+                      <TableCell>{m.streak_days}d</TableCell>
+                      <TableCell>{m.silent_days}d</TableCell>
+                      <TableCell>
+                        <Badge variant={m.status === 'active' ? 'default' : 'secondary'}>{m.status}</Badge>
+                      </TableCell>
+                      <TableCell className="text-right">{statusActions(m.id, m.status)}</TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </CardContent>

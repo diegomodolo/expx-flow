@@ -73,169 +73,169 @@ serve(async (req) => {
       "Authorization": `Bearer ${token}`,
     };
 
-    // Try to fetch group participants
+    // ---- STEP 1: Fetch group participants ----
     let participants: any[] = [];
     const attemptLogs: string[] = [];
-
-    // Clean group JID for API calls
     const groupId = group_jid.replace("@g.us", "");
 
     const endpointsToTry = [
-      // UazapiGO group info endpoints
-      { url: `${endpoint}/group/participants`, method: "POST", body: { groupJid: group_jid } },
-      { url: `${endpoint}/group/participants`, method: "POST", body: { id: group_jid } },
-      { url: `${endpoint}/group/findParticipants`, method: "POST", body: { groupJid: group_jid } },
-      { url: `${endpoint}/group/metadata`, method: "POST", body: { groupJid: group_jid } },
       { url: `${endpoint}/group/info`, method: "POST", body: { groupJid: group_jid } },
-      { url: `${endpoint}/group/info`, method: "POST", body: { id: group_jid } },
-      { url: `${endpoint}/group/${groupId}`, method: "GET", body: null },
-      { url: `${endpoint}/group/find`, method: "POST", body: { groupJid: group_jid } },
-      // Chat-based fallback 
-      { url: `${endpoint}/chat/find`, method: "POST", body: { where: { id: group_jid } } },
+      { url: `${endpoint}/group/participants`, method: "POST", body: { groupJid: group_jid } },
+      { url: `${endpoint}/group/metadata`, method: "POST", body: { groupJid: group_jid } },
     ];
 
     for (const ep of endpointsToTry) {
       try {
         console.log(`[sync-groupops-members] Trying ${ep.method} ${ep.url}`);
-        const fetchOpts: RequestInit = { method: ep.method, headers };
-        if (ep.body && ep.method === "POST") {
-          fetchOpts.body = JSON.stringify(ep.body);
-        }
-
-        const response = await fetch(ep.url, fetchOpts);
+        const response = await fetch(ep.url, {
+          method: ep.method,
+          headers,
+          body: ep.body ? JSON.stringify(ep.body) : undefined,
+        });
         if (!response.ok) {
           attemptLogs.push(`❌ ${ep.url}: HTTP ${response.status}`);
           continue;
         }
 
-        const responseText = await response.text();
-        let data: any;
-        try {
-          data = JSON.parse(responseText);
-        } catch {
-          attemptLogs.push(`❌ ${ep.url}: invalid JSON`);
-          continue;
-        }
+        const data = await response.json();
+        console.log(`[sync-groupops-members] Response keys from ${ep.url}:`, Object.keys(data));
 
-        console.log(`[sync-groupops-members] Response from ${ep.url}:`, JSON.stringify(data).substring(0, 1000));
+        // Extract participants (PascalCase for UazapiGO)
+        const found =
+          data.Participants || data.participants ||
+          data.data?.Participants || data.data?.participants ||
+          data.groupMetadata?.Participants || data.groupMetadata?.participants ||
+          data.result?.Participants || data.result?.participants ||
+          data.members || [];
 
-        // Extract participants from various response formats
-        let found: any[] = [];
-        if (Array.isArray(data)) {
-          found = data;
-        } else if (data.Participants && Array.isArray(data.Participants)) {
-          // UazapiGO /group/info returns PascalCase
-          found = data.Participants;
-        } else if (data.participants && Array.isArray(data.participants)) {
-          found = data.participants;
-        } else if (data.data?.participants && Array.isArray(data.data.participants)) {
-          found = data.data.participants;
-        } else if (data.data?.Participants && Array.isArray(data.data.Participants)) {
-          found = data.data.Participants;
-        } else if (data.groupMetadata?.participants) {
-          found = data.groupMetadata.participants;
-        } else if (data.groupMetadata?.Participants) {
-          found = data.groupMetadata.Participants;
-        } else if (data.result?.participants) {
-          found = data.result.participants;
-        } else if (data.result?.Participants) {
-          found = data.result.Participants;
-        } else if (data.members && Array.isArray(data.members)) {
-          found = data.members;
-        }
-        // Also check if response is a single chat with participants inside
-        if (found.length === 0 && Array.isArray(data)) {
-          const chat = data.find((c: any) => {
-            const cid = c.wa_chatid || c.id?._serialized || c.id || "";
-            return typeof cid === "string" && cid.includes(groupId);
-          });
-          if (chat?.participants) found = chat.participants;
-          if (chat?.Participants) found = chat.Participants;
-          if (chat?.groupMetadata?.participants) found = chat.groupMetadata.participants;
-          if (chat?.groupMetadata?.Participants) found = chat.groupMetadata.Participants;
-        }
-
-        if (found.length > 0) {
+        if (Array.isArray(found) && found.length > 0) {
           participants = found;
           attemptLogs.push(`✅ ${ep.url}: ${found.length} participants`);
-          console.log(`[sync-groupops-members] Found ${found.length} participants`);
-          if (found.length > 0) {
-            console.log(`[sync-groupops-members] Sample participant:`, JSON.stringify(found[0]).substring(0, 300));
-          }
+          console.log(`[sync-groupops-members] Sample:`, JSON.stringify(found[0]).substring(0, 500));
           break;
         } else {
-          attemptLogs.push(`⚠️ ${ep.url}: OK but no participants found`);
+          attemptLogs.push(`⚠️ ${ep.url}: OK but no participants`);
         }
       } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        attemptLogs.push(`❌ ${ep.url}: ${msg}`);
+        attemptLogs.push(`❌ ${ep.url}: ${err instanceof Error ? err.message : String(err)}`);
       }
+    }
+
+    // ---- STEP 2: Fetch contacts/chats to enrich with names & photos ----
+    // Build a phone→{name, image} lookup from /chat/find
+    const contactLookup: Record<string, { name: string; image: string }> = {};
+
+    try {
+      console.log(`[sync-groupops-members] Fetching contacts for name enrichment...`);
+      const chatResp = await fetch(`${endpoint}/chat/find`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({}),
+      });
+
+      if (chatResp.ok) {
+        const chats = await chatResp.json();
+        const chatList = Array.isArray(chats) ? chats : chats?.data || chats?.chats || [];
+
+        for (const c of chatList) {
+          // Extract phone from chat
+          const chatPhone = (c.phone || c.wa_chatid || c.id || "")
+            .replace("@s.whatsapp.net", "")
+            .replace("@c.us", "")
+            .replace(/\D/g, "");
+
+          if (!chatPhone || chatPhone.length < 8) continue;
+
+          const chatName = c.wa_contactName || c.lead_name || c.lead_fullName || c.name || c.wa_name || "";
+          const chatImage = c.image || c.imagePreview || c.profilePicUrl || "";
+
+          if (chatName || chatImage) {
+            contactLookup[chatPhone] = {
+              name: chatName || "",
+              image: chatImage || "",
+            };
+          }
+        }
+        console.log(`[sync-groupops-members] Contact lookup built with ${Object.keys(contactLookup).length} entries`);
+      } else {
+        console.log(`[sync-groupops-members] chat/find returned ${chatResp.status}, skipping enrichment`);
+      }
+    } catch (err) {
+      console.log(`[sync-groupops-members] Error fetching contacts for enrichment:`, err);
     }
 
     console.log(`[sync-groupops-members] Attempts:`, attemptLogs);
 
-    // Upsert members into groupops_members
+    // ---- STEP 3: Upsert members ----
     let synced = 0;
-    let errors: string[] = [];
+    const errors: string[] = [];
 
     for (const p of participants) {
       try {
-        // Extract participant data - support both camelCase and PascalCase (UazapiGO)
+        // Extract participant data - PascalCase (UazapiGO) + camelCase
         const jid = p.JID || p.id?._serialized || p.id || p.jid || p.wa_user_id || "";
         const phoneRaw = p.PhoneNumber || p.phoneNumber || "";
         const phoneFromJid = (typeof jid === "string" ? jid : "")
-          .replace("@s.whatsapp.net", "")
-          .replace("@c.us", "")
-          .replace("@lid", "")
-          .replace(/\D/g, "");
-        // PhoneNumber field from UazapiGO comes as "5522997825387@s.whatsapp.net"
+          .replace("@s.whatsapp.net", "").replace("@c.us", "").replace("@lid", "").replace(/\D/g, "");
         const phoneFromField = (typeof phoneRaw === "string" ? phoneRaw : "")
-          .replace("@s.whatsapp.net", "")
-          .replace("@c.us", "")
-          .replace(/\D/g, "");
+          .replace("@s.whatsapp.net", "").replace("@c.us", "").replace(/\D/g, "");
         const phone = phoneFromField || phoneFromJid;
-        
-        const name = p.name || p.pushName || p.notify || p.displayName || p.shortName || p.Name || null;
-        const isAdmin = p.IsAdmin || p.admin === "admin" || p.admin === "superadmin" || p.isAdmin || p.isSuperAdmin || false;
-        const isSuperAdmin = p.IsSuperAdmin || p.admin === "superadmin" || p.isSuperAdmin || false;
-        const role = isSuperAdmin ? "owner" : isAdmin ? "admin" : "member";
 
         if (!phone || phone.length < 8) continue;
 
-        // Upsert: use wa_user_id + group_id as unique key
-        const { data: existing } = await supabase
+        // Name from participant data
+        const participantName = p.DisplayName || p.name || p.pushName || p.notify || p.displayName || p.shortName || p.Name || "";
+
+        // Enrich from contact lookup
+        const contact = contactLookup[phone] || null;
+        const finalName = participantName || contact?.name || null;
+        const profilePic = contact?.image || null;
+
+        const isAdmin = p.IsAdmin || p.admin === "admin" || p.admin === "superadmin" || p.isAdmin || false;
+        const isSuperAdmin = p.IsSuperAdmin || p.admin === "superadmin" || p.isSuperAdmin || false;
+        const role = isSuperAdmin ? "dono" : isAdmin ? "admin" : "membro";
+
+        // Upsert by wa_user_id + group_id OR phone + group_id
+        const { data: existingByJid } = await supabase
           .from("groupops_members")
           .select("id")
           .eq("group_id", groupops_group_id)
           .eq("wa_user_id", jid)
           .maybeSingle();
 
+        const existing = existingByJid || (
+          await supabase
+            .from("groupops_members")
+            .select("id")
+            .eq("group_id", groupops_group_id)
+            .eq("phone_e164", phone)
+            .maybeSingle()
+        ).data;
+
+        const memberData: Record<string, any> = {
+          phone_e164: phone,
+          role,
+          status: "active",
+          wa_user_id: jid,
+        };
+        // Only update name/pic if we have actual data
+        if (finalName) memberData.display_name = finalName;
+        if (profilePic) {
+          // Store profile pic in privacy_flags JSON (reusing existing column)
+          memberData.privacy_flags = { profile_pic: profilePic };
+        }
+
         if (existing) {
-          // Update existing member
-          await supabase
-            .from("groupops_members")
-            .update({
-              display_name: name || undefined,
-              phone_e164: phone,
-              role,
-              status: "active",
-            })
-            .eq("id", existing.id);
+          await supabase.from("groupops_members").update(memberData).eq("id", existing.id);
         } else {
-          // Insert new member
-          await supabase
-            .from("groupops_members")
-            .insert({
-              company_id,
-              group_id: groupops_group_id,
-              wa_user_id: jid,
-              phone_e164: phone,
-              display_name: name,
-              role,
-              status: "active",
-              silent_days: 0,
-              streak_days: 0,
-            });
+          await supabase.from("groupops_members").insert({
+            company_id,
+            group_id: groupops_group_id,
+            ...memberData,
+            display_name: finalName,
+            silent_days: 0,
+            streak_days: 0,
+          });
         }
         synced++;
       } catch (err: any) {
@@ -243,18 +243,23 @@ serve(async (req) => {
       }
     }
 
-    // Also create a MEMBER_SYNC event
+    // Create MEMBER_SYNC event
     if (synced > 0) {
       await supabase.from("groupops_events").insert({
         company_id,
         group_id: groupops_group_id,
         type: "MEMBER_SYNC",
-        payload_json: { synced, total_participants: participants.length, errors: errors.length },
+        payload_json: {
+          synced,
+          total_participants: participants.length,
+          errors: errors.length,
+          contacts_enriched: Object.keys(contactLookup).length,
+        },
         timestamp: new Date().toISOString(),
       });
     }
 
-    console.log(`[sync-groupops-members] Synced ${synced}/${participants.length} members, ${errors.length} errors`);
+    console.log(`[sync-groupops-members] Synced ${synced}/${participants.length}, ${errors.length} errors, ${Object.keys(contactLookup).length} contacts enriched`);
 
     return new Response(
       JSON.stringify({ success: true, synced, total: participants.length, errors: errors.length, attempts: attemptLogs }),
