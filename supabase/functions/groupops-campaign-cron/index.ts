@@ -243,14 +243,14 @@ serve(async (req) => {
               const pollOptions = pollData?.poll_options ?? [];
               const selectableCount = pollData?.selectable_count ?? 1;
 
-              sendResponse = await fetch(`${endpoint}/send/poll`, {
+              sendResponse = await fetch(`${endpoint}/message/send-poll`, {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
                   token: token || "",
                 },
                 body: JSON.stringify({
-                  number: groupJid,
+                  phone: groupJid,
                   poll: {
                     name: messageBody,
                     options: pollOptions,
