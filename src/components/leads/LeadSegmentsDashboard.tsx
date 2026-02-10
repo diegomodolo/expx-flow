@@ -735,6 +735,16 @@ export const LeadSegmentsDashboard = ({
           segment={importModalSegment}
         />
       )}
+
+      {/* Import from Base Modal */}
+      {companyId && importFromBaseSegment && (
+        <ImportFromBaseModal
+          open={!!importFromBaseSegment}
+          onOpenChange={(open) => !open && setImportFromBaseSegment(null)}
+          companyId={companyId}
+          segment={importFromBaseSegment}
+        />
+      )}
     </div>
   );
 };
