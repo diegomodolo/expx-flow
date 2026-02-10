@@ -492,3 +492,6 @@ verify_jwt = true
 
 [functions.groupops-campaign-cron]
 verify_jwt = false
+
+[functions.generate-groupops-template]
+verify_jwt = false
