@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
-import { Tag, Trophy, Medal, Award, Trash2, RefreshCw, Plus, Edit, X, Building2, Search, LayoutGrid } from "lucide-react";
+import { Tag, Trophy, Medal, Award, Trash2, RefreshCw, Plus, Edit, X, Building2, Search, LayoutGrid, DatabaseIcon, Loader2 } from "lucide-react";
 import { useLeadScoring } from "@/hooks/useLeadScoring";
 import { toast } from "sonner";
 import { format } from "date-fns";
