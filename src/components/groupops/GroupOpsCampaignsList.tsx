@@ -77,6 +77,9 @@ export default function GroupOpsCampaignsList() {
         body: { campaign_id: campaignId },
       });
       if (error) throw error;
+      if (data?.errors?.length > 0) {
+        throw new Error(data.errors.join('; '));
+      }
       return data;
     },
     onSuccess: (data) => {
@@ -86,8 +89,8 @@ export default function GroupOpsCampaignsList() {
         toast.error('Nenhuma mensagem enviada. Verifique se há templates configurados.');
       }
     },
-    onError: () => {
-      toast.error('Erro ao enviar teste');
+    onError: (err: any) => {
+      toast.error(`Erro ao enviar teste: ${err?.message || 'Erro desconhecido'}`, { duration: 10000 });
     },
   });
 
