@@ -1,86 +1,91 @@
 
 
-# Plano: Carga dos 30 Templates Prontos + Scoring/Badges Configurados
+## Enquetes via UazapiGO + Templates de Enquete
 
-## Resumo
+### Pesquisa realizada
 
-Vou implementar 3 grandes melhorias no modulo GroupOps:
+A API do UazapiGO, sendo baseada na mesma stack de bibliotecas WhatsApp multi-device (whatsmeow/Baileys), suporta o envio de enquetes (polls). O endpoint padrao e `POST /message/send-poll` com o seguinte payload:
 
-1. **Seed de 30 templates prontos** -- botao "Carregar Templates Padrao" que insere todos os 30 templates fornecidos de uma vez
-2. **Scoring pre-configurado** -- ajustar as regras padrao e criar o perfil automaticamente com os valores especificados
-3. **4 Badges pre-configurados** -- botao para criar os badges padrao (CEO Estrategico, Gestor de Processo, Alta Performance, Previsivel)
+```text
+{
+  "phone": "groupJid@g.us",
+  "poll": {
+    "name": "Texto da pergunta",
+    "options": ["Opcao 1", "Opcao 2", "Opcao 3"],
+    "selectableCount": 1
+  }
+}
+```
 
----
-
-## O que sera feito
-
-### 1. Seed de Templates (30 templates)
-
-Criar uma funcao `seedDefaultTemplates` no hook `useGroupOpsTemplates.ts` que insere em batch todos os 30 templates:
-
-- **10 Provocacao Diaria** (P1-P10) -- categoria `DAILY_PROMPT`, tom `provocative`
-- **5 Check-in** (C1-C5) -- categoria `CHECKIN`, tom `professional`
-- **5 Desafio 48h** (D1-D5) -- categoria `CHALLENGE`, tom `provocative`
-- **4 Case Anonimo** (CA1-CA4) -- categoria `CASE_STUDY`, tom `professional`
-- **3 Ranking Semanal** (R1-R3) -- categoria `RANKING`, tom `motivational`
-- **3 Boas-vindas/Reativacao** (B1-B3) -- categorias `WELCOME`/`REACTIVATION`, tom `casual`
-
-Cada template tera os placeholders extraidos automaticamente do corpo da mensagem.
-
-Na UI de Templates (`GroupOpsTemplatesList.tsx`), adicionar um botao **"Carregar Templates Padrao"** que so aparece quando nao ha templates cadastrados (ou como opcao no header). Ao clicar, insere todos os 30 de uma vez.
-
-### 2. Scoring Pre-Configurado
-
-Atualizar `DEFAULT_SCORING_RULES` no hook `useGroupOpsScoring.ts` para refletir exatamente a tabela fornecida:
-
-| Acao | Pontos |
-|------|--------|
-| Responder check-in | +2 |
-| Completar desafio 48h | +6 |
-| Enviar case | +5 |
-| Responder provocacao | +2 |
-| Streak 3 check-ins | +4 |
-| Flood / spam | -5 |
-
-Remover `warning: -3` e ajustar `message: 0` para `provocacao: 2` (responder provocacao).
-
-### 3. Badges Pre-Configurados
-
-Adicionar botao **"Carregar Badges Padrao"** na aba de Badges que cria os 4 badges:
-
-- **CEO Estrategico** (icone: brain) -- condicao: 3 check-ins seguidos
-- **Gestor de Processo** (icone: gear) -- condicao: 2 desafios concluidos
-- **Alta Performance** (icone: fire) -- condicao: Top 3 da semana
-- **Previsivel** (icone: chart) -- condicao: Media >= 8 em check-ins
-
-### 4. Placeholders extras para Ranking
-
-Adicionar placeholders de ranking no hook de templates:
-- `{{top1_nome}}`, `{{top1_score}}`
-- `{{top2_nome}}`, `{{top2_score}}`
-- `{{top3_nome}}`, `{{top3_score}}`
-- `{{dor_principal}}`
+Onde `selectableCount` define quantas opcoes o usuario pode selecionar (1 = selecao unica, N = multipla escolha).
 
 ---
 
-## Detalhes Tecnicos
+### O que sera implementado
 
-### Arquivos modificados
+**1. Novo tipo de template: POLL (Enquete)**
 
-1. **`src/hooks/useGroupOpsTemplates.ts`**
-   - Adicionar array `DEFAULT_TEMPLATES` com os 30 templates
-   - Adicionar placeholders de ranking ao `AVAILABLE_PLACEHOLDERS`
-   - Adicionar mutation `seedDefaultTemplates` que faz batch insert
+Adicionar a categoria `POLL` ao sistema de templates existente. O template de enquete tera:
+- Titulo (como todo template)
+- Pergunta da enquete (campo `body` existente)
+- Opcoes de resposta (array de strings, armazenado no campo `constraints_json` ja existente)
+- Selecao unica ou multipla (`selectableCount`)
+- Suporte a Variante A/B (pergunta alternativa com opcoes diferentes)
 
-2. **`src/hooks/useGroupOpsScoring.ts`**
-   - Atualizar `DEFAULT_SCORING_RULES` com valores corretos
-   - Ajustar labels no componente
-   - Adicionar mutation `seedDefaultBadges` para criar os 4 badges padrao
+**2. UI do formulario de template**
 
-3. **`src/components/groupops/GroupOpsTemplatesList.tsx`**
-   - Adicionar botao "Carregar Templates Padrao" no header (ou no estado vazio)
+Quando a categoria `POLL` for selecionada no formulario de criacao/edicao:
+- O campo "Mensagem" se torna "Pergunta da Enquete"
+- Aparece um bloco de opcoes (minimo 2, maximo 12) com botoes de adicionar/remover
+- Toggle para "Multipla Escolha" (selectableCount > 1)
+- Preview no estilo WhatsApp mostrando como a enquete aparecera
 
-4. **`src/components/groupops/GroupOpsScoring.tsx`**
-   - Atualizar `SCORING_RULE_LABELS` para refletir as novas chaves
-   - Adicionar botao "Carregar Badges Padrao" na aba de Badges
+**3. Preview WhatsApp para enquetes**
+
+O mini-preview e o modal de preview exibirao um mockup visual da enquete no estilo nativo do WhatsApp, com a pergunta e as opcoes de voto.
+
+**4. Envio via Edge Function**
+
+Atualizar a `groupops-campaign-cron` para detectar templates do tipo POLL e usar o endpoint `/message/send-poll` em vez de `/message/send-text`.
+
+---
+
+### Detalhes tecnicos
+
+**Banco de dados**: Nenhuma alteracao de schema necessaria. O campo `constraints_json` (jsonb) ja existe na tabela `groupops_templates` e sera usado para armazenar:
+```text
+{
+  "poll_options": ["Opcao 1", "Opcao 2", "Opcao 3"],
+  "selectable_count": 1
+}
+```
+
+**Arquivos a modificar**:
+
+| Arquivo | Alteracao |
+|---|---|
+| `src/hooks/useGroupOpsTemplates.ts` | Adicionar `POLL` a `TEMPLATE_CATEGORIES` |
+| `src/components/groupops/GroupOpsTemplatesList.tsx` | Formulario condicional para enquetes (opcoes, selectableCount), preview de enquete |
+| `supabase/functions/groupops-campaign-cron/index.ts` | Logica de envio: se template.category === 'POLL', usar `/message/send-poll` com payload adequado |
+
+**Fluxo de envio na edge function**:
+```text
+if (template.category === "POLL") {
+  const pollData = template.constraints_json;
+  await fetch(`${endpoint}/message/send-poll`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", token },
+    body: JSON.stringify({
+      phone: groupJid,
+      poll: {
+        name: messageBody,  // pergunta com placeholders preenchidos
+        options: pollData.poll_options,
+        selectableCount: pollData.selectable_count || 1
+      }
+    })
+  });
+}
+```
+
+**Nota importante**: O endpoint exato (`/message/send-poll`) precisara ser validado contra sua instancia UazapiGO. Caso o path seja diferente (ex: `/chat/sendPoll`), sera necessario apenas ajustar a URL na edge function.
 
