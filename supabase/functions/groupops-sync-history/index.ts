@@ -244,13 +244,15 @@ serve(async (req) => {
     // 8. Insert messages in batches (skip duplicates by provider_message_id)
     let messagesInserted = 0;
     const batchSize = 100;
-    for (let i = 0; i < messageInserts.length; i += batchSize) {
-      const batch = messageInserts.slice(i, i + batchSize);
-      // Filter out messages without provider_message_id (can't dedup)
-      const { error: msgErr, count } = await supabase
+    // Filter out messages without provider_message_id (can't dedup without it)
+    const validInserts = messageInserts.filter(m => m.provider_message_id);
+    console.log(`[groupops-sync-history] Valid messages with provider_message_id: ${validInserts.length} of ${messageInserts.length}`);
+    
+    for (let i = 0; i < validInserts.length; i += batchSize) {
+      const batch = validInserts.slice(i, i + batchSize);
+      const { error: msgErr } = await supabase
         .from("groupops_messages")
-        .upsert(batch, { onConflict: "provider_message_id", ignoreDuplicates: true })
-        .select("id", { count: "exact", head: true });
+        .upsert(batch, { onConflict: "provider_message_id", ignoreDuplicates: true });
 
       if (msgErr) {
         console.warn(`[groupops-sync-history] Batch insert error:`, msgErr.message);
