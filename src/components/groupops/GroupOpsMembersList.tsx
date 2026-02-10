@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -15,7 +15,7 @@ import { useGroupOpsGroups } from '@/hooks/useGroupOpsGroups';
 import { useCompany } from '@/contexts/CompanyContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Users, Search, MessageCircle, Volume2, VolumeX, Ban, RefreshCw, Loader2, Building2, Link, MoreHorizontal, UserPlus, Trash2, X, Plus } from 'lucide-react';
+import { Users, Search, MessageCircle, Volume2, VolumeX, Ban, RefreshCw, Loader2, Building2, Link, MoreHorizontal, UserPlus, Trash2, X, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import type { GroupOpsMember } from '@/hooks/useGroupOpsMembers';
 
@@ -34,6 +34,8 @@ export default function GroupOpsMembersList() {
   const [search, setSearch] = useState('');
   const [riskFilter, setRiskFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 20;
   const [syncing, setSyncing] = useState(false);
   const [linkingMemberId, setLinkingMemberId] = useState<string | null>(null);
 
@@ -179,6 +181,18 @@ export default function GroupOpsMembersList() {
     return true;
   });
 
+  // Reset page when filters change
+  const filterKey = `${search}-${riskFilter}-${statusFilter}-${selectedGroup}`;
+  const [prevFilterKey, setPrevFilterKey] = useState(filterKey);
+  if (filterKey !== prevFilterKey) {
+    setPrevFilterKey(filterKey);
+    setCurrentPage(1);
+  }
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginatedMembers = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
   const riskColor: Record<string, string> = {
     low: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
     mid: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
@@ -286,135 +300,176 @@ export default function GroupOpsMembersList() {
           </CardContent>
         </Card>
       ) : (
-        <Card>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Membro</TableHead>
-                  <TableHead>Telefone</TableHead>
-                  <TableHead>Grupos</TableHead>
-                  <TableHead>Empresa</TableHead>
-                  <TableHead>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="cursor-help border-b border-dashed border-muted-foreground/40">Dor Principal</span>
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="max-w-[240px] text-xs">
-                        Principal desafio ou necessidade do membro (ex: gerar leads, escalar vendas). Pode ser preenchido manualmente ou via CRM.
-                      </TooltipContent>
-                    </Tooltip>
-                  </TableHead>
-                  <TableHead>Risco</TableHead>
-                  <TableHead>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="cursor-help border-b border-dashed border-muted-foreground/40">Sequência</span>
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="max-w-[220px] text-xs">
-                        Dias consecutivos com participação ativa no grupo (check-ins, mensagens, etc.)
-                      </TooltipContent>
-                    </Tooltip>
-                  </TableHead>
-                  <TableHead>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="cursor-help border-b border-dashed border-muted-foreground/40">Silêncio</span>
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="max-w-[220px] text-xs">
-                        Dias sem nenhuma interação no grupo
-                      </TooltipContent>
-                    </Tooltip>
-                  </TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right w-10"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map((mm) => {
-                  const m = mm.primary;
-                  const profilePic = (m.privacy_flags as any)?.profile_pic || null;
-                  const match = m.phone_e164 ? clientMap[m.phone_e164] : null;
+        <>
+          <Card>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Membro</TableHead>
+                    <TableHead>Telefone</TableHead>
+                    <TableHead>Grupos</TableHead>
+                    <TableHead>Empresa</TableHead>
+                    <TableHead>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="cursor-help border-b border-dashed border-muted-foreground/40">Dor Principal</span>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-[240px] text-xs">
+                          Principal desafio ou necessidade do membro (ex: gerar leads, escalar vendas). Pode ser preenchido manualmente ou via CRM.
+                        </TooltipContent>
+                      </Tooltip>
+                    </TableHead>
+                    <TableHead>Risco</TableHead>
+                    <TableHead>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="cursor-help border-b border-dashed border-muted-foreground/40">Sequência</span>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-[220px] text-xs">
+                          Dias consecutivos com participação ativa no grupo (check-ins, mensagens, etc.)
+                        </TooltipContent>
+                      </Tooltip>
+                    </TableHead>
+                    <TableHead>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="cursor-help border-b border-dashed border-muted-foreground/40">Silêncio</span>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-[220px] text-xs">
+                          Dias sem nenhuma interação no grupo
+                        </TooltipContent>
+                      </Tooltip>
+                    </TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right w-10"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginatedMembers.map((mm) => {
+                    const m = mm.primary;
+                    const profilePic = (m.privacy_flags as any)?.profile_pic || null;
+                    const match = m.phone_e164 ? clientMap[m.phone_e164] : null;
 
-                  return (
-                    <TableRow key={m.phone_e164 || m.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-8 w-8">
-                            <AvatarImage src={profilePic} alt={m.display_name || ''} />
-                            <AvatarFallback className="text-xs bg-primary/10 text-primary">
-                              {(m.display_name || '?').substring(0, 2).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="font-medium">{m.display_name || 'Sem nome'}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground font-mono">{formatPhone(m.phone_e164)}</TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {mm.groupIds.map((gid) => {
-                            const g = groupMap[gid];
-                            if (!g) return null;
-                            return (
-                              <Tooltip key={gid}>
-                                <TooltipTrigger asChild>
-                                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5 max-w-[100px] truncate cursor-default">
-                                    {g.name}
-                                  </Badge>
-                                </TooltipTrigger>
-                                <TooltipContent side="top"><p>{g.name}</p></TooltipContent>
-                              </Tooltip>
-                            );
-                          })}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {match ? (
-                          <div className="flex items-center gap-2">
-                            <Avatar className="h-6 w-6">
-                              <AvatarImage src={match.avatar || undefined} alt={match.name} />
-                              <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
-                                <Building2 className="h-3 w-3" />
+                    return (
+                      <TableRow key={m.phone_e164 || m.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-8 w-8">
+                              <AvatarImage src={profilePic} alt={m.display_name || ''} />
+                              <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                                {(m.display_name || '?').substring(0, 2).toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
-                            <span className="font-medium truncate max-w-[140px]">{match.name}</span>
+                            <span className="font-medium">{m.display_name || 'Sem nome'}</span>
                           </div>
-                        ) : m.phone_e164 ? (
-                          <ClientLinkerPopover
-                            phone={m.phone_e164}
-                            clients={clientsQuery.data ?? []}
-                            isLinking={linkingMemberId === m.phone_e164}
-                            onLink={(clientId, clientName) => handleLinkClient(m.phone_e164!, clientId, clientName, m.display_name || undefined)}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground font-mono">{formatPhone(m.phone_e164)}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {mm.groupIds.map((gid) => {
+                              const g = groupMap[gid];
+                              if (!g) return null;
+                              return (
+                                <Tooltip key={gid}>
+                                  <TooltipTrigger asChild>
+                                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5 max-w-[100px] truncate cursor-default">
+                                      {g.name}
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top"><p>{g.name}</p></TooltipContent>
+                                </Tooltip>
+                              );
+                            })}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {match ? (
+                            <div className="flex items-center gap-2">
+                              <Avatar className="h-6 w-6">
+                                <AvatarImage src={match.avatar || undefined} alt={match.name} />
+                                <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
+                                  <Building2 className="h-3 w-3" />
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="font-medium truncate max-w-[140px]">{match.name}</span>
+                            </div>
+                          ) : m.phone_e164 ? (
+                            <ClientLinkerPopover
+                              phone={m.phone_e164}
+                              clients={clientsQuery.data ?? []}
+                              isLinking={linkingMemberId === m.phone_e164}
+                              onLink={(clientId, clientName) => handleLinkClient(m.phone_e164!, clientId, clientName, m.display_name || undefined)}
+                            />
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm">{m.primary_pain ?? '-'}</TableCell>
+                        <TableCell>
+                          <Badge className={riskColor[m.risk_level]}>{m.risk_level}</Badge>
+                        </TableCell>
+                        <TableCell>{m.streak_days}d</TableCell>
+                        <TableCell>{m.silent_days}d</TableCell>
+                        <TableCell>
+                          <Badge variant={m.status === 'active' ? 'default' : 'secondary'}>{m.status}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <MemberActionsMenu
+                            memberIds={mm.memberIds}
+                            currentStatus={m.status}
+                            onUpdateStatus={(status) => {
+                              mm.memberIds.forEach((mid) => updateMember.mutate({ id: mid, status }));
+                            }}
                           />
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-sm">{m.primary_pain ?? '-'}</TableCell>
-                      <TableCell>
-                        <Badge className={riskColor[m.risk_level]}>{m.risk_level}</Badge>
-                      </TableCell>
-                      <TableCell>{m.streak_days}d</TableCell>
-                      <TableCell>{m.silent_days}d</TableCell>
-                      <TableCell>
-                        <Badge variant={m.status === 'active' ? 'default' : 'secondary'}>{m.status}</Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <MemberActionsMenu
-                          memberIds={mm.memberIds}
-                          currentStatus={m.status}
-                          onUpdateStatus={(status) => {
-                            mm.memberIds.forEach((mid) => updateMember.mutate({ id: mid, status }));
-                          }}
-                        />
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between pt-2">
+              <span className="text-sm text-muted-foreground">
+                Mostrando {(safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, filtered.length)} de {filtered.length}
+              </span>
+              <div className="flex items-center gap-1">
+                <Button size="sm" variant="outline" disabled={safePage <= 1} onClick={() => setCurrentPage(safePage - 1)}>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter(p => p === 1 || p === totalPages || Math.abs(p - safePage) <= 1)
+                  .reduce<(number | 'ellipsis')[]>((acc, p, idx, arr) => {
+                    if (idx > 0 && p - (arr[idx - 1] as number) > 1) acc.push('ellipsis');
+                    acc.push(p);
+                    return acc;
+                  }, [])
+                  .map((p, i) =>
+                    p === 'ellipsis' ? (
+                      <span key={`e${i}`} className="px-1 text-muted-foreground">…</span>
+                    ) : (
+                      <Button
+                        key={p}
+                        size="sm"
+                        variant={p === safePage ? 'default' : 'outline'}
+                        className="min-w-[32px]"
+                        onClick={() => setCurrentPage(p as number)}
+                      >
+                        {p}
+                      </Button>
+                    )
+                  )}
+                <Button size="sm" variant="outline" disabled={safePage >= totalPages} onClick={() => setCurrentPage(safePage + 1)}>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* Add Members Dialog */}
