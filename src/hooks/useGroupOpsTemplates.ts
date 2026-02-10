@@ -27,6 +27,7 @@ export const TEMPLATE_CATEGORIES = [
   { value: 'WELCOME', label: 'Boas-vindas' },
   { value: 'REACTIVATION', label: 'Reativação' },
   { value: 'CUSTOM', label: 'Personalizada' },
+  { value: 'POLL', label: '📊 Enquete' },
 ];
 
 export const TEMPLATE_TONES = [

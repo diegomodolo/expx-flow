@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useGroupOpsTemplates, TEMPLATE_CATEGORIES, TEMPLATE_TONES, AVAILABLE_PLACEHOLDERS, type GroupOpsTemplate } from '@/hooks/useGroupOpsTemplates';
 import { parseWhatsAppFormatting } from '@/lib/whatsappFormatting';
+import { Switch } from '@/components/ui/switch';
 import {
   Plus,
   Search,
@@ -20,6 +21,8 @@ import {
   Tag,
   Filter,
   Download,
+  BarChart3,
+  X,
 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
@@ -53,6 +56,7 @@ export default function GroupOpsTemplatesList() {
       'WELCOME': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
       'REACTIVATION': 'bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300',
       'CUSTOM': 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300',
+      'POLL': 'bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300',
     };
     return colors[cat] ?? '';
   };
@@ -67,6 +71,7 @@ export default function GroupOpsTemplatesList() {
       'WELCOME': '👋',
       'REACTIVATION': '🔄',
       'CUSTOM': '✏️',
+      'POLL': '📊',
     };
     return emojis[cat] ?? '📄';
   };
@@ -145,9 +150,18 @@ export default function GroupOpsTemplatesList() {
                   {/* WhatsApp Preview Mini */}
                   <div className="bg-[#e5ddd5] rounded-lg p-3 max-h-[100px] overflow-hidden relative">
                     <div className="bg-[#dcf8c6] rounded-lg p-2 text-sm text-[#303030] shadow-sm max-w-[90%] ml-auto">
-                      {parseWhatsAppFormatting(template.body.slice(0, 120) + (template.body.length > 120 ? '...' : ''))}
+                      {template.category === 'POLL' ? (
+                        <div>
+                          <p className="font-medium text-xs mb-1">📊 {template.body.slice(0, 60)}{template.body.length > 60 ? '...' : ''}</p>
+                          {(template.constraints_json as any)?.poll_options?.slice(0, 3).map((opt: string, i: number) => (
+                            <div key={i} className="bg-white/40 rounded px-2 py-0.5 text-xs mt-0.5">{opt}</div>
+                          ))}
+                        </div>
+                      ) : (
+                        parseWhatsAppFormatting(template.body.slice(0, 120) + (template.body.length > 120 ? '...' : ''))
+                      )}
                     </div>
-                    {template.body.length > 120 && (
+                    {template.body.length > 120 && template.category !== 'POLL' && (
                       <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-[#e5ddd5] to-transparent" />
                     )}
                   </div>
@@ -249,6 +263,14 @@ function TemplateFormModal({ open, onClose, template, onSave }: FormModalProps) 
   const [variantB, setVariantB] = useState<string>((template?.variants as any)?.b ?? '');
   const [showVariantB, setShowVariantB] = useState(!!((template?.variants as any)?.b));
 
+  // Poll-specific state
+  const constraints = template?.constraints_json as any;
+  const [pollOptions, setPollOptions] = useState<string[]>(constraints?.poll_options ?? ['', '']);
+  const [multipleChoice, setMultipleChoice] = useState<boolean>((constraints?.selectable_count ?? 1) > 1);
+  const [pollOptionsB, setPollOptionsB] = useState<string[]>(constraints?.poll_options_b ?? ['', '']);
+
+  const isPoll = category === 'POLL';
+
   React.useEffect(() => {
     if (template) {
       setTitle(template.title);
@@ -258,6 +280,10 @@ function TemplateFormModal({ open, onClose, template, onSave }: FormModalProps) 
       const vb = (template.variants as any)?.b ?? '';
       setVariantB(vb);
       setShowVariantB(!!vb);
+      const c = template.constraints_json as any;
+      setPollOptions(c?.poll_options ?? ['', '']);
+      setMultipleChoice((c?.selectable_count ?? 1) > 1);
+      setPollOptionsB(c?.poll_options_b ?? ['', '']);
     } else {
       setTitle('');
       setCategory('DAILY_PROMPT');
@@ -265,16 +291,59 @@ function TemplateFormModal({ open, onClose, template, onSave }: FormModalProps) 
       setBody('');
       setVariantB('');
       setShowVariantB(false);
+      setPollOptions(['', '']);
+      setMultipleChoice(false);
+      setPollOptionsB(['', '']);
     }
   }, [template, open]);
 
-  // Extract placeholders from body
   const extractedPlaceholders = Array.from(new Set(
     [...(body.match(/\{\{[^}]+\}\}/g) ?? []), ...(variantB.match(/\{\{[^}]+\}\}/g) ?? [])]
   ));
 
   const insertPlaceholder = (key: string) => {
     setBody((prev) => prev + key);
+  };
+
+  const updatePollOption = (index: number, value: string, isB = false) => {
+    const setter = isB ? setPollOptionsB : setPollOptions;
+    setter(prev => { const copy = [...prev]; copy[index] = value; return copy; });
+  };
+  const addPollOption = (isB = false) => {
+    const setter = isB ? setPollOptionsB : setPollOptions;
+    const current = isB ? pollOptionsB : pollOptions;
+    if (current.length < 12) setter(prev => [...prev, '']);
+  };
+  const removePollOption = (index: number, isB = false) => {
+    const setter = isB ? setPollOptionsB : setPollOptions;
+    const current = isB ? pollOptionsB : pollOptions;
+    if (current.length > 2) setter(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const validPollOptions = pollOptions.filter(o => o.trim());
+  const canSave = title && body && (!isPoll || validPollOptions.length >= 2);
+
+  const handleSave = () => {
+    const data: Partial<GroupOpsTemplate> = {
+      title,
+      category,
+      tone,
+      body,
+      placeholders: extractedPlaceholders.length > 0 ? extractedPlaceholders : null,
+      variants: variantB ? { b: variantB } : null,
+    };
+    if (isPoll) {
+      const pollConstraints: any = {
+        poll_options: validPollOptions,
+        selectable_count: multipleChoice ? validPollOptions.length : 1,
+      };
+      if (showVariantB) {
+        const validB = pollOptionsB.filter(o => o.trim());
+        if (validB.length >= 2) pollConstraints.poll_options_b = validB;
+      }
+      data.constraints_json = pollConstraints;
+    }
+    onSave(data);
   };
 
   return (
@@ -326,21 +395,57 @@ function TemplateFormModal({ open, onClose, template, onSave }: FormModalProps) 
             </div>
           </div>
 
-          {/* Body A */}
+          {/* Body */}
           <div className="space-y-2">
-            <Label>Mensagem {showVariantB ? '(Variante A)' : ''}</Label>
-            <Textarea value={body} onChange={(e) => setBody(e.target.value)} rows={5}
-              placeholder="Use *negrito*, _itálico_, ~riscado~ e {{placeholders}}" className="font-mono text-sm" />
+            <Label>{isPoll ? 'Pergunta da Enquete' : `Mensagem ${showVariantB ? '(Variante A)' : ''}`}</Label>
+            <Textarea value={body} onChange={(e) => setBody(e.target.value)} rows={isPoll ? 3 : 5}
+              placeholder={isPoll ? 'Ex: Qual é o maior desafio da sua empresa hoje?' : 'Use *negrito*, _itálico_, ~riscado~ e {{placeholders}}'} className="font-mono text-sm" />
           </div>
 
-          {/* Live preview A */}
+          {/* Poll Options */}
+          {isPoll && (
+            <div className="space-y-3 p-3 border rounded-lg bg-muted/30">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium">Opções da Enquete {showVariantB ? '(Variante A)' : ''}</Label>
+                <div className="flex items-center gap-2">
+                  <Label className="text-xs text-muted-foreground">Múltipla escolha</Label>
+                  <Switch checked={multipleChoice} onCheckedChange={setMultipleChoice} />
+                </div>
+              </div>
+              <div className="space-y-2">
+                {pollOptions.map((opt, i) => (
+                  <div key={i} className="flex gap-2 items-center">
+                    <span className="text-xs text-muted-foreground w-5">{i + 1}.</span>
+                    <Input value={opt} onChange={e => updatePollOption(i, e.target.value)}
+                      placeholder={`Opção ${i + 1}`} className="flex-1 h-8 text-sm" />
+                    {pollOptions.length > 2 && (
+                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => removePollOption(i)}>
+                        <X className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+              {pollOptions.length < 12 && (
+                <Button size="sm" variant="outline" className="text-xs" onClick={() => addPollOption()}>
+                  <Plus className="h-3 w-3 mr-1" /> Adicionar opção
+                </Button>
+              )}
+            </div>
+          )}
+
+          {/* Live preview */}
           {body && (
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">Preview WhatsApp</Label>
               <div className="bg-[#e5ddd5] rounded-lg p-3">
-                <div className="bg-[#dcf8c6] rounded-lg p-3 text-sm text-[#303030] shadow-sm max-w-[85%] ml-auto whitespace-pre-wrap">
-                  {parseWhatsAppFormatting(body)}
-                </div>
+                {isPoll ? (
+                  <PollPreviewBubble question={body} options={validPollOptions} multipleChoice={multipleChoice} />
+                ) : (
+                  <div className="bg-[#dcf8c6] rounded-lg p-3 text-sm text-[#303030] shadow-sm max-w-[85%] ml-auto whitespace-pre-wrap">
+                    {parseWhatsAppFormatting(body)}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -354,18 +459,45 @@ function TemplateFormModal({ open, onClose, template, onSave }: FormModalProps) 
             ) : (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label>Mensagem (Variante B)</Label>
-                  <Button size="sm" variant="ghost" className="text-xs text-destructive" onClick={() => { setShowVariantB(false); setVariantB(''); }}>
+                  <Label>{isPoll ? 'Pergunta (Variante B)' : 'Mensagem (Variante B)'}</Label>
+                  <Button size="sm" variant="ghost" className="text-xs text-destructive" onClick={() => { setShowVariantB(false); setVariantB(''); setPollOptionsB(['', '']); }}>
                     Remover
                   </Button>
                 </div>
-                <Textarea value={variantB} onChange={(e) => setVariantB(e.target.value)} rows={4}
+                <Textarea value={variantB} onChange={(e) => setVariantB(e.target.value)} rows={isPoll ? 3 : 4}
                   placeholder="Texto alternativo para teste A/B" className="font-mono text-sm" />
-                {variantB && (
+                {isPoll && (
+                  <div className="space-y-2 p-3 border rounded-lg bg-muted/30">
+                    <Label className="text-sm font-medium">Opções (Variante B)</Label>
+                    {pollOptionsB.map((opt, i) => (
+                      <div key={i} className="flex gap-2 items-center">
+                        <span className="text-xs text-muted-foreground w-5">{i + 1}.</span>
+                        <Input value={opt} onChange={e => updatePollOption(i, e.target.value, true)}
+                          placeholder={`Opção ${i + 1}`} className="flex-1 h-8 text-sm" />
+                        {pollOptionsB.length > 2 && (
+                          <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => removePollOption(i, true)}>
+                            <X className="h-3 w-3" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                    {pollOptionsB.length < 12 && (
+                      <Button size="sm" variant="outline" className="text-xs" onClick={() => addPollOption(true)}>
+                        <Plus className="h-3 w-3 mr-1" /> Adicionar opção
+                      </Button>
+                    )}
+                  </div>
+                )}
+                {variantB && !isPoll && (
                   <div className="bg-[#e5ddd5] rounded-lg p-3">
                     <div className="bg-[#dcf8c6] rounded-lg p-3 text-sm text-[#303030] shadow-sm max-w-[85%] ml-auto whitespace-pre-wrap">
                       {parseWhatsAppFormatting(variantB)}
                     </div>
+                  </div>
+                )}
+                {variantB && isPoll && (
+                  <div className="bg-[#e5ddd5] rounded-lg p-3">
+                    <PollPreviewBubble question={variantB} options={pollOptionsB.filter(o => o.trim())} multipleChoice={multipleChoice} />
                   </div>
                 )}
               </div>
@@ -374,14 +506,7 @@ function TemplateFormModal({ open, onClose, template, onSave }: FormModalProps) 
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
-          <Button disabled={!title || !body} onClick={() => onSave({
-            title,
-            category,
-            tone,
-            body,
-            placeholders: extractedPlaceholders.length > 0 ? extractedPlaceholders : null,
-            variants: variantB ? { b: variantB } : null,
-          })}>
+          <Button disabled={!canSave} onClick={handleSave}>
             {template ? 'Salvar' : 'Criar Template'}
           </Button>
         </DialogFooter>
@@ -443,19 +568,35 @@ function WhatsAppPreviewModal({ open, onClose, template }: { open: boolean; onCl
               {/* Variante A */}
               <div>
                 {variantB && <p className="text-[10px] text-[#8696a0] mb-1 text-right">Variante A</p>}
-                <div className="bg-[#005c4b] rounded-lg p-2.5 text-sm text-[#e9edef] shadow-sm max-w-[90%] ml-auto whitespace-pre-wrap">
-                  {parseWhatsAppFormatting(fillPlaceholders(template.body))}
-                  <p className="text-[10px] text-[#ffffff99] text-right mt-1">09:00</p>
-                </div>
+                {template.category === 'POLL' ? (
+                  <PollPreviewBubbleDark
+                    question={fillPlaceholders(template.body)}
+                    options={(template.constraints_json as any)?.poll_options ?? []}
+                    multipleChoice={((template.constraints_json as any)?.selectable_count ?? 1) > 1}
+                  />
+                ) : (
+                  <div className="bg-[#005c4b] rounded-lg p-2.5 text-sm text-[#e9edef] shadow-sm max-w-[90%] ml-auto whitespace-pre-wrap">
+                    {parseWhatsAppFormatting(fillPlaceholders(template.body))}
+                    <p className="text-[10px] text-[#ffffff99] text-right mt-1">09:00</p>
+                  </div>
+                )}
               </div>
               {/* Variante B */}
               {variantB && (
                 <div>
                   <p className="text-[10px] text-[#8696a0] mb-1 text-right">Variante B</p>
-                  <div className="bg-[#005c4b] rounded-lg p-2.5 text-sm text-[#e9edef] shadow-sm max-w-[90%] ml-auto whitespace-pre-wrap">
-                    {parseWhatsAppFormatting(fillPlaceholders(variantB))}
-                    <p className="text-[10px] text-[#ffffff99] text-right mt-1">09:00</p>
-                  </div>
+                  {template.category === 'POLL' ? (
+                    <PollPreviewBubbleDark
+                      question={fillPlaceholders(variantB)}
+                      options={(template.constraints_json as any)?.poll_options_b ?? (template.constraints_json as any)?.poll_options ?? []}
+                      multipleChoice={((template.constraints_json as any)?.selectable_count ?? 1) > 1}
+                    />
+                  ) : (
+                    <div className="bg-[#005c4b] rounded-lg p-2.5 text-sm text-[#e9edef] shadow-sm max-w-[90%] ml-auto whitespace-pre-wrap">
+                      {parseWhatsAppFormatting(fillPlaceholders(variantB))}
+                      <p className="text-[10px] text-[#ffffff99] text-right mt-1">09:00</p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -473,5 +614,42 @@ function WhatsAppPreviewModal({ open, onClose, template }: { open: boolean; onCl
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/* ===== Poll Preview Bubble (Light - form preview) ===== */
+function PollPreviewBubble({ question, options, multipleChoice }: { question: string; options: string[]; multipleChoice: boolean }) {
+  return (
+    <div className="bg-[#dcf8c6] rounded-lg p-3 shadow-sm max-w-[85%] ml-auto">
+      <p className="text-sm text-[#303030] font-medium whitespace-pre-wrap mb-2">{parseWhatsAppFormatting(question)}</p>
+      <div className="space-y-1.5">
+        {options.map((opt, i) => (
+          <div key={i} className="flex items-center gap-2 bg-white/60 rounded-md px-3 py-1.5">
+            <div className={`w-4 h-4 border-2 border-[#25D366] flex-shrink-0 flex items-center justify-center ${multipleChoice ? 'rounded' : 'rounded-full'}`} />
+            <span className="text-sm text-[#303030]">{opt}</span>
+          </div>
+        ))}
+      </div>
+      <p className="text-[10px] text-[#00000066] mt-2">{multipleChoice ? 'Múltipla escolha' : 'Seleção única'} · {options.length} opções</p>
+    </div>
+  );
+}
+
+/* ===== Poll Preview Bubble (Dark - modal preview) ===== */
+function PollPreviewBubbleDark({ question, options, multipleChoice }: { question: string; options: string[]; multipleChoice: boolean }) {
+  return (
+    <div className="bg-[#005c4b] rounded-lg p-2.5 shadow-sm max-w-[90%] ml-auto">
+      <p className="text-sm text-[#e9edef] font-medium whitespace-pre-wrap mb-2">{parseWhatsAppFormatting(question)}</p>
+      <div className="space-y-1.5">
+        {options.map((opt, i) => (
+          <div key={i} className="flex items-center gap-2 bg-[#ffffff15] rounded-md px-3 py-1.5">
+            <div className={`w-4 h-4 border-2 border-[#25D366] flex-shrink-0 ${multipleChoice ? 'rounded' : 'rounded-full'}`} />
+            <span className="text-sm text-[#e9edef]">{opt}</span>
+          </div>
+        ))}
+      </div>
+      <p className="text-[10px] text-[#ffffff66] mt-2">{multipleChoice ? 'Múltipla escolha' : 'Seleção única'} · {options.length} opções</p>
+      <p className="text-[10px] text-[#ffffff99] text-right mt-1">09:00</p>
+    </div>
   );
 }

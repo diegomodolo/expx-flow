@@ -115,7 +115,7 @@ serve(async (req) => {
       .select(`
         *,
         groupops_templates!groupops_campaigns_template_id_fkey (
-          id, title, body, placeholders, category
+          id, title, body, placeholders, category, constraints_json
         ),
         groupops_groups!groupops_campaigns_group_id_fkey (
           id, name, provider_group_id
@@ -205,19 +205,45 @@ serve(async (req) => {
             const endpoint = config.uazapi_endpoint.replace(/\/$/, "");
             const token = instance.uazapi_token;
 
-            console.log(`[groupops-campaign-cron] Sending to group: ${groupJid}`);
+            console.log(`[groupops-campaign-cron] Sending to group: ${groupJid} (category: ${template.category})`);
 
-            const sendResponse = await fetch(`${endpoint}/message/send-text`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                token: token || "",
-              },
-              body: JSON.stringify({
-                phone: groupJid,
-                message: messageBody,
-              }),
-            });
+            let sendResponse: Response;
+
+            if (template.category === "POLL") {
+              // Send as poll/enquete
+              const pollData = template.constraints_json as any;
+              const pollOptions = pollData?.poll_options ?? [];
+              const selectableCount = pollData?.selectable_count ?? 1;
+
+              sendResponse = await fetch(`${endpoint}/message/send-poll`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  token: token || "",
+                },
+                body: JSON.stringify({
+                  phone: groupJid,
+                  poll: {
+                    name: messageBody,
+                    options: pollOptions,
+                    selectableCount: selectableCount,
+                  },
+                }),
+              });
+            } else {
+              // Send as regular text message
+              sendResponse = await fetch(`${endpoint}/message/send-text`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  token: token || "",
+                },
+                body: JSON.stringify({
+                  phone: groupJid,
+                  message: messageBody,
+                }),
+              });
+            }
 
             const sendResult = await sendResponse.json();
             console.log(`[groupops-campaign-cron] Send result:`, JSON.stringify(sendResult));
