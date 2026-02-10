@@ -350,7 +350,7 @@ serve(async (req) => {
           console.log(`[groupops-campaign-cron] Test execution for campaign ${campaign.id} - schedule not updated`);
         }
 
-        console.log(`[groupops-campaign-cron] Campaign ${campaign.id} next execution: ${nextExec}`);
+        executed++;
       } catch (err: any) {
         console.error(`[groupops-campaign-cron] Error processing campaign ${campaign.id}:`, err);
         errors.push(`Campaign ${campaign.id}: ${err.message}`);
