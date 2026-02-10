@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,8 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useGroupOpsTemplates, TEMPLATE_CATEGORIES, TEMPLATE_TONES, AVAILABLE_PLACEHOLDERS, DEFAULT_TEMPLATES, type GroupOpsTemplate } from '@/hooks/useGroupOpsTemplates';
-import { PROVOCACOES_AGRESSIVAS } from '@/data/groupopsProvocacoes';
+import { useGroupOpsTemplates, TEMPLATE_CATEGORIES, TEMPLATE_TONES, AVAILABLE_PLACEHOLDERS, type GroupOpsTemplate } from '@/hooks/useGroupOpsTemplates';
 import { parseWhatsAppFormatting } from '@/lib/whatsappFormatting';
 import {
   Plus,
@@ -32,41 +31,10 @@ export default function GroupOpsTemplatesList() {
   const [editingTemplate, setEditingTemplate] = useState<GroupOpsTemplate | null>(null);
   const [previewTemplate, setPreviewTemplate] = useState<GroupOpsTemplate | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [viewTab, setViewTab] = useState<'defaults' | 'custom'>('defaults');
 
-  const { templates, isLoading, createTemplate, updateTemplate, deleteTemplate, seedAllTemplates } = useGroupOpsTemplates();
+  const { templates, isLoading, createTemplate, updateTemplate, deleteTemplate } = useGroupOpsTemplates();
 
-  // Auto-seed all templates when list is empty (runs once)
-  const hasSeeded = useRef(false);
-  useEffect(() => {
-    if (!isLoading && templates.length === 0 && !hasSeeded.current && !seedAllTemplates.isPending) {
-      hasSeeded.current = true;
-      seedAllTemplates.mutate();
-    }
-  }, [isLoading, templates.length]);
-
-  // Convert DEFAULT_TEMPLATES to pseudo-GroupOpsTemplate for preview/edit
-  const allDefaultTemplates = [...DEFAULT_TEMPLATES, ...PROVOCACOES_AGRESSIVAS];
-  const defaultTemplatesAsGroupOps: GroupOpsTemplate[] = allDefaultTemplates.map((t, i) => ({
-    id: `default-${i}`,
-    company_id: '',
-    title: t.title,
-    category: t.category,
-    body: t.body,
-    variants: null,
-    placeholders: t.body.match(/\{\{[^}]+\}\}/g) ?? null,
-    tone: t.tone,
-    constraints_json: null,
-    created_at: '',
-    updated_at: '',
-  }));
-
-  // Check which default templates are already saved in the database (by title match)
-  const savedTitles = new Set(templates.map(t => t.title));
-
-  const activeList = viewTab === 'defaults' ? defaultTemplatesAsGroupOps : templates;
-
-  const filtered = activeList.filter((t) => {
+  const filtered = templates.filter((t) => {
     if (filterCategory !== 'all' && t.category !== filterCategory) return false;
     if (search && !t.title.toLowerCase().includes(search.toLowerCase()) && !t.body.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
@@ -103,16 +71,8 @@ export default function GroupOpsTemplatesList() {
     return emojis[cat] ?? '📄';
   };
 
-  const handleSaveDefaultToDb = (template: GroupOpsTemplate) => {
-    createTemplate.mutate({
-      title: template.title,
-      category: template.category,
-      tone: template.tone,
-      body: template.body,
-      placeholders: template.placeholders,
-      variants: template.variants,
-    });
-  };
+
+
 
   return (
     <div className="space-y-4">
@@ -127,24 +87,6 @@ export default function GroupOpsTemplatesList() {
             <Plus className="h-4 w-4 mr-2" /> Novo Template
           </Button>
         </div>
-      </div>
-
-      {/* Tab toggle */}
-      <div className="flex gap-2 border-b pb-2">
-        <Button
-          variant={viewTab === 'defaults' ? 'default' : 'ghost'}
-          size="sm"
-          onClick={() => setViewTab('defaults')}
-        >
-          📦 Pré-configurados ({DEFAULT_TEMPLATES.length})
-        </Button>
-        <Button
-          variant={viewTab === 'custom' ? 'default' : 'ghost'}
-          size="sm"
-          onClick={() => setViewTab('custom')}
-        >
-          ✏️ Meus Templates ({templates.length})
-        </Button>
       </div>
 
       {/* Filters */}
@@ -168,29 +110,22 @@ export default function GroupOpsTemplatesList() {
       </div>
 
       {/* Template Cards */}
-      {isLoading && viewTab === 'custom' ? (
+      {isLoading ? (
         <div className="text-center py-12 text-muted-foreground">Carregando templates...</div>
       ) : filtered.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
             <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-medium">Nenhum template encontrado</h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              {viewTab === 'custom' ? 'Crie seu primeiro template de mensagem' : 'Nenhum resultado para este filtro'}
-            </p>
-            {viewTab === 'custom' && (
-              <Button className="mt-4" onClick={() => setShowCreateModal(true)}>
-                <Plus className="h-4 w-4 mr-2" /> Criar Template
-              </Button>
-            )}
+            <p className="text-sm text-muted-foreground mt-1">Crie seu primeiro template de mensagem</p>
+            <Button className="mt-4" onClick={() => setShowCreateModal(true)}>
+              <Plus className="h-4 w-4 mr-2" /> Criar Template
+            </Button>
           </CardContent>
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filtered.map((template) => {
-            const isDefault = template.id.startsWith('default-');
-            const alreadySaved = isDefault && savedTitles.has(template.title);
-
             return (
               <Card key={template.id} className="hover:shadow-md transition-shadow group">
                 <CardHeader className="pb-3">
@@ -202,9 +137,6 @@ export default function GroupOpsTemplatesList() {
                           {getCategoryEmoji(template.category)} {getCategoryLabel(template.category)}
                         </Badge>
                         {template.tone && <Badge variant="secondary" className="text-xs">{getToneLabel(template.tone)}</Badge>}
-                        {isDefault && alreadySaved && (
-                          <Badge variant="outline" className="text-xs text-green-600 border-green-300">✓ Salvo</Badge>
-                        )}
                       </div>
                     </div>
                   </div>
@@ -240,31 +172,18 @@ export default function GroupOpsTemplatesList() {
                     <Button size="sm" variant="outline" onClick={() => setPreviewTemplate(template)}>
                       <Eye className="h-3 w-3 mr-1" /> Preview
                     </Button>
-                    {isDefault ? (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={alreadySaved || createTemplate.isPending}
-                        onClick={() => handleSaveDefaultToDb(template)}
-                      >
-                        <Download className="h-3 w-3 mr-1" /> {alreadySaved ? 'Salvo' : 'Salvar'}
-                      </Button>
-                    ) : (
-                      <>
-                        <Button size="sm" variant="outline" onClick={() => setEditingTemplate(template)}>
-                          <Edit className="h-3 w-3 mr-1" /> Editar
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => {
-                          navigator.clipboard.writeText(template.body);
-                          toast.success('Texto copiado');
-                        }}>
-                          <Copy className="h-3 w-3" />
-                        </Button>
-                        <Button size="sm" variant="ghost" className="text-destructive ml-auto" onClick={() => setDeletingId(template.id)}>
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </>
-                    )}
+                    <Button size="sm" variant="outline" onClick={() => setEditingTemplate(template)}>
+                      <Edit className="h-3 w-3 mr-1" /> Editar
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => {
+                      navigator.clipboard.writeText(template.body);
+                      toast.success('Texto copiado');
+                    }}>
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                    <Button size="sm" variant="ghost" className="text-destructive ml-auto" onClick={() => setDeletingId(template.id)}>
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
