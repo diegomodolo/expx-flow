@@ -36,15 +36,20 @@ export interface GroupOpsScoreLedgerEntry {
 }
 
 export const DEFAULT_SCORING_RULES = {
-  message: 0,
   checkin: 2,
   challenge_done: 6,
   case: 5,
-  useful_reply: 3,
+  provocacao: 2,
   streak_bonus: 4,
   spam: -5,
-  warning: -3,
 };
+
+export const DEFAULT_BADGES = [
+  { name: 'CEO Estratégico', icon: '🧠', description: '3 check-ins seguidos', rule_json: { condition: '3 check-ins seguidos', type: 'streak', event: 'checkin', count: 3 } },
+  { name: 'Gestor de Processo', icon: '⚙️', description: '2 desafios concluídos', rule_json: { condition: '2 desafios concluídos', type: 'count', event: 'challenge_done', count: 2 } },
+  { name: 'Alta Performance', icon: '🔥', description: 'Top 3 da semana', rule_json: { condition: 'Top 3 da semana', type: 'ranking', position: 3 } },
+  { name: 'Previsível', icon: '📊', description: 'Média ≥ 8 em check-ins', rule_json: { condition: 'Média ≥ 8 em check-ins', type: 'average', event: 'checkin', min_avg: 8 } },
+];
 
 export function useGroupOpsScoring() {
   const { activeCompany } = useCompany();
@@ -163,6 +168,28 @@ export function useGroupOpsScoring() {
     onError: () => toast.error('Erro ao excluir badge'),
   });
 
+  const seedDefaultBadges = useMutation({
+    mutationFn: async () => {
+      if (!companyId) throw new Error('Sem company_id');
+      const rows = DEFAULT_BADGES.map((b) => ({
+        company_id: companyId,
+        name: b.name,
+        icon: b.icon,
+        description: b.description,
+        rule_json: b.rule_json,
+      }));
+      const { error } = await supabase
+        .from('groupops_badges')
+        .insert(rows as any);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['groupops-badges'] });
+      toast.success('4 badges padrão criados!');
+    },
+    onError: () => toast.error('Erro ao criar badges padrão'),
+  });
+
   return {
     profiles: profilesQuery.data ?? [],
     badges: badgesQuery.data ?? [],
@@ -170,5 +197,6 @@ export function useGroupOpsScoring() {
     isLoading: profilesQuery.isLoading || badgesQuery.isLoading,
     createProfile, updateProfile, deleteProfile,
     createBadge, updateBadge, deleteBadge,
+    seedDefaultBadges,
   };
 }

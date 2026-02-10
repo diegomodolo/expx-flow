@@ -10,19 +10,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Switch } from '@/components/ui/switch';
 import { useGroupOpsScoring, DEFAULT_SCORING_RULES, type GroupOpsScoringProfile, type GroupOpsBadge } from '@/hooks/useGroupOpsScoring';
-import { Trophy, Award, Star, Plus, Trash2, Edit, TrendingUp, TrendingDown, History } from 'lucide-react';
+import { Trophy, Award, Star, Plus, Trash2, Edit, TrendingUp, TrendingDown, History, Download } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 const SCORING_RULE_LABELS: Record<string, string> = {
-  message: 'Mensagem enviada',
-  checkin: 'Resposta a check-in',
-  challenge_done: 'Desafio concluído',
-  case: 'Case compartilhado',
-  useful_reply: 'Resposta útil',
-  streak_bonus: 'Bônus de streak',
-  spam: 'Spam detectado',
-  warning: 'Advertência',
+  checkin: 'Responder check-in',
+  challenge_done: 'Completar desafio 48h',
+  case: 'Enviar case',
+  provocacao: 'Responder provocação',
+  streak_bonus: 'Streak 3 check-ins',
+  spam: 'Flood / spam',
 };
 
 const BADGE_ICONS = ['🏆', '🎖️', '⭐', '🔥', '💎', '🚀', '👑', '🎯', '💪', '🧠', '🌟', '🏅'];
@@ -175,7 +173,7 @@ function ProfileFormModal({ open, onClose, profile, onSave }: { open: boolean; o
 
 /* ===== Badges Tab ===== */
 function BadgesTab() {
-  const { badges, isLoading, createBadge, updateBadge, deleteBadge } = useGroupOpsScoring();
+  const { badges, isLoading, createBadge, updateBadge, deleteBadge, seedDefaultBadges } = useGroupOpsScoring();
   const [showCreate, setShowCreate] = useState(false);
   const [editingBadge, setEditingBadge] = useState<GroupOpsBadge | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -184,7 +182,12 @@ function BadgesTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        {badges.length === 0 && (
+          <Button variant="outline" onClick={() => seedDefaultBadges.mutate()} disabled={seedDefaultBadges.isPending}>
+            <Download className="h-4 w-4 mr-2" /> Carregar Badges Padrão
+          </Button>
+        )}
         <Button onClick={() => setShowCreate(true)}><Plus className="h-4 w-4 mr-2" /> Novo Badge</Button>
       </div>
 

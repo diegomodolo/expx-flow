@@ -19,6 +19,7 @@ import {
   Eye,
   Tag,
   Filter,
+  Download,
 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
@@ -31,7 +32,7 @@ export default function GroupOpsTemplatesList() {
   const [previewTemplate, setPreviewTemplate] = useState<GroupOpsTemplate | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const { templates, isLoading, createTemplate, updateTemplate, deleteTemplate } = useGroupOpsTemplates();
+  const { templates, isLoading, createTemplate, updateTemplate, deleteTemplate, seedDefaultTemplates } = useGroupOpsTemplates();
 
   const filtered = templates.filter((t) => {
     if (filterCategory !== 'all' && t.category !== filterCategory) return false;
@@ -50,9 +51,16 @@ export default function GroupOpsTemplatesList() {
           <h2 className="text-lg font-semibold">Templates</h2>
           <p className="text-sm text-muted-foreground">Modelos de mensagem com formatação WhatsApp e placeholders</p>
         </div>
-        <Button onClick={() => setShowCreateModal(true)}>
-          <Plus className="h-4 w-4 mr-2" /> Novo Template
-        </Button>
+        <div className="flex gap-2">
+          {templates.length === 0 && (
+            <Button variant="outline" onClick={() => seedDefaultTemplates.mutate()} disabled={seedDefaultTemplates.isPending}>
+              <Download className="h-4 w-4 mr-2" /> Carregar Templates Padrão
+            </Button>
+          )}
+          <Button onClick={() => setShowCreateModal(true)}>
+            <Plus className="h-4 w-4 mr-2" /> Novo Template
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -365,6 +373,13 @@ function WhatsAppPreviewModal({ open, onClose, template }: { open: boolean; onCl
     '{{pontos}}': '142',
     '{{ranking}}': '3º',
     '{{dia_semana}}': 'segunda-feira',
+    '{{top1_nome}}': 'Carlos Mendes',
+    '{{top1_score}}': '48',
+    '{{top2_nome}}': 'Ana Souza',
+    '{{top2_score}}': '35',
+    '{{top3_nome}}': 'João Silva',
+    '{{top3_score}}': '29',
+    '{{dor_principal}}': 'churn alto',
   };
 
   const fillPlaceholders = (text: string) => {
