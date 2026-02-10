@@ -264,12 +264,20 @@ export const LeadImportModal = ({ open, onOpenChange, companyId }: LeadImportMod
           }
         });
         
+        // Fallback: use company_name or company_trade_name as full_name if not provided
+        if (!leadData.full_name) {
+          const fallbackName = leadData.company_trade_name || leadData.company_name;
+          if (fallbackName) {
+            leadData.full_name = fallbackName;
+          }
+        }
+
         return leadData;
       });
 
       // Filter out leads without identifiable data
       const validLeads = leadsWithMappedData.filter(
-        lead => lead.full_name || lead.email || lead.phone
+        lead => lead.full_name || lead.email || lead.phone || lead.company_name || lead.cnpj
       );
 
       setImportProgress(10);
