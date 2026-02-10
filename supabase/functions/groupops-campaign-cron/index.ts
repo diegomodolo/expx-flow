@@ -144,14 +144,56 @@ serve(async (req) => {
 
     for (const campaign of campaigns) {
       try {
-        console.log(`[groupops-campaign-cron] Processing campaign: ${campaign.id} (type: ${campaign.type})`);
+        console.log(`[groupops-campaign-cron] Processing campaign: ${campaign.id} (type: ${campaign.type}, template_mode: ${campaign.template_mode})`);
 
-        const template = campaign.groupops_templates;
+        let template = campaign.groupops_templates;
         const group = campaign.groupops_groups;
 
+        // If no direct template, resolve based on template_mode
         if (!template) {
-          console.warn(`[groupops-campaign-cron] Campaign ${campaign.id} has no template, skipping`);
-          continue;
+          if (campaign.template_mode === 'random') {
+            // Pick a random template matching the campaign type (category)
+            const { data: randomTemplates, error: rtErr } = await supabase
+              .from('groupops_templates')
+              .select('id, title, body, placeholders, category, constraints_json')
+              .eq('company_id', campaign.company_id)
+              .eq('category', campaign.type);
+
+            if (rtErr) {
+              console.error(`[groupops-campaign-cron] Error fetching random templates:`, rtErr);
+              continue;
+            }
+
+            if (!randomTemplates || randomTemplates.length === 0) {
+              console.warn(`[groupops-campaign-cron] Campaign ${campaign.id}: no templates found for category ${campaign.type}, skipping`);
+              continue;
+            }
+
+            // Pick one at random
+            template = randomTemplates[Math.floor(Math.random() * randomTemplates.length)];
+            console.log(`[groupops-campaign-cron] Randomly selected template: ${template.id} (${template.title})`);
+
+          } else if (campaign.template_mode === 'selected' && campaign.selected_template_ids?.length > 0) {
+            // Pick a random template from the selected list
+            const randomId = campaign.selected_template_ids[Math.floor(Math.random() * campaign.selected_template_ids.length)];
+            const { data: selTemplate } = await supabase
+              .from('groupops_templates')
+              .select('id, title, body, placeholders, category, constraints_json')
+              .eq('id', randomId)
+              .single();
+
+            if (!selTemplate) {
+              console.warn(`[groupops-campaign-cron] Campaign ${campaign.id}: selected template ${randomId} not found, skipping`);
+              continue;
+            }
+
+            template = selTemplate;
+            console.log(`[groupops-campaign-cron] Using selected template: ${template.id} (${template.title})`);
+
+          } else {
+            console.warn(`[groupops-campaign-cron] Campaign ${campaign.id} has no template and no valid template_mode, skipping`);
+            continue;
+          }
         }
 
         if (!group) {
