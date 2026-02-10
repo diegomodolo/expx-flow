@@ -84,11 +84,12 @@ function ImportGroupsModal({ onClose, onImported }: { onClose: () => void; onImp
     if (selectedGroupIds.size === 0) return;
     setSaving(true);
     let imported = 0;
+    const importedGroups: { id: string; jid: string }[] = [];
     for (const jid of selectedGroupIds) {
       const wg = whatsappGroups.find(g => g.jid === jid);
       if (!wg) continue;
       try {
-        await createGroup.mutateAsync({
+        const result = await createGroup.mutateAsync({
           name: wg.name,
           description: wg.description,
           provider_group_id: wg.jid,
@@ -101,14 +102,35 @@ function ImportGroupsModal({ onClose, onImported }: { onClose: () => void; onImp
           },
         });
         imported++;
+        if (result?.id) {
+          importedGroups.push({ id: result.id, jid: wg.jid });
+        }
       } catch {
         // skip duplicates / errors
       }
     }
-    setSaving(false);
-    toast.success(`${imported} grupo(s) importado(s) com sucesso`);
+    toast.success(`${imported} grupo(s) importado(s). Sincronizando membros...`);
     onImported();
     onClose();
+
+    // Sync members in background for each imported group
+    for (const g of importedGroups) {
+      supabase.functions.invoke('sync-groupops-members', {
+        body: {
+          company_id: companyId,
+          instance_id: selectedInstance?.id,
+          group_jid: g.jid,
+          groupops_group_id: g.id,
+        },
+      }).then(({ data, error }) => {
+        if (error) {
+          console.error('Erro ao sincronizar membros:', error);
+        } else {
+          toast.success(`${data?.synced || 0} membro(s) sincronizado(s) para o grupo`);
+        }
+      });
+    }
+    setSaving(false);
   };
 
   const filteredGroups = whatsappGroups.filter(g =>

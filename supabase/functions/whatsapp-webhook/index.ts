@@ -86,17 +86,119 @@ serve(async (req) => {
           if (instanceToken) {
             const { data: instanceConfig } = await supabase
               .from("whatsapp_instances")
-              .select("receive_group_messages")
+              .select("receive_group_messages, id, company_id")
               .eq("uazapi_token", instanceToken)
               .maybeSingle();
             
             receiveGroups = instanceConfig?.receive_group_messages ?? false;
+
+            // === GroupOps Integration ===
+            // Check if this group is managed by GroupOps and route message/events
+            if (instanceConfig?.company_id) {
+              const groupJid = chatId; // e.g. 120363123456789@g.us
+              const { data: gopsGroup } = await supabase
+                .from("groupops_groups")
+                .select("id")
+                .eq("company_id", instanceConfig.company_id)
+                .eq("provider_group_id", groupJid)
+                .eq("status", "enabled")
+                .maybeSingle();
+
+              if (gopsGroup) {
+                console.log("[whatsapp-webhook] GroupOps managed group detected:", gopsGroup.id);
+                const senderJid = message.sender_pn || message.participant || "";
+                const senderPhone = senderJid.replace("@s.whatsapp.net", "").replace("@c.us", "").replace(/\D/g, "");
+                const senderName = message.senderName || message.pushName || null;
+                const msgContent = (() => {
+                  if (message.content) {
+                    if (typeof message.content === "string") return message.content;
+                    if (message.content.text) return message.content.text;
+                    if (message.content.caption) return message.content.caption;
+                  }
+                  return message.text || "[Mídia]";
+                })();
+                const msgType = (message.messageType || message.mediaType || "text").toLowerCase();
+                const msgMediaUrl = message.content?.URL || message.content?.url || message.fileURL || null;
+                const msgId = message.id || message.messageid || null;
+                const msgFromMe = message.fromMe || false;
+
+                // Find or create member
+                let memberId: string | null = null;
+                if (senderPhone && senderPhone.length >= 8) {
+                  const { data: existingMember } = await supabase
+                    .from("groupops_members")
+                    .select("id")
+                    .eq("group_id", gopsGroup.id)
+                    .eq("wa_user_id", senderJid)
+                    .maybeSingle();
+
+                  if (existingMember) {
+                    memberId = existingMember.id;
+                    // Update last activity
+                    await supabase.from("groupops_members").update({
+                      last_message_at: new Date().toISOString(),
+                      last_participation_at: new Date().toISOString(),
+                      silent_days: 0,
+                      display_name: senderName || undefined,
+                    }).eq("id", memberId);
+                  } else {
+                    // Auto-create member
+                    const { data: newMember } = await supabase
+                      .from("groupops_members")
+                      .insert({
+                        company_id: instanceConfig.company_id,
+                        group_id: gopsGroup.id,
+                        wa_user_id: senderJid,
+                        phone_e164: senderPhone,
+                        display_name: senderName,
+                        role: "member",
+                        status: "active",
+                        last_message_at: new Date().toISOString(),
+                        last_participation_at: new Date().toISOString(),
+                        silent_days: 0,
+                        streak_days: 0,
+                      })
+                      .select("id")
+                      .maybeSingle();
+                    memberId = newMember?.id || null;
+                  }
+                }
+
+                // Insert into groupops_messages
+                await supabase.from("groupops_messages").insert({
+                  company_id: instanceConfig.company_id,
+                  group_id: gopsGroup.id,
+                  author_member_id: memberId,
+                  text: msgContent,
+                  media_type: msgType !== "text" ? msgType : null,
+                  media_url: msgMediaUrl,
+                  provider_message_id: msgId,
+                  timestamp: new Date().toISOString(),
+                }).then(({ error: msgErr }) => {
+                  if (msgErr) console.error("[whatsapp-webhook] GroupOps message insert error:", msgErr);
+                });
+
+                // Insert MESSAGE event
+                await supabase.from("groupops_events").insert({
+                  company_id: instanceConfig.company_id,
+                  group_id: gopsGroup.id,
+                  member_id: memberId,
+                  type: "MESSAGE",
+                  payload_json: { text: msgContent?.substring(0, 200), media_type: msgType, from_me: msgFromMe },
+                  timestamp: new Date().toISOString(),
+                }).then(({ error: evtErr }) => {
+                  if (evtErr) console.error("[whatsapp-webhook] GroupOps event insert error:", evtErr);
+                });
+
+                console.log("[whatsapp-webhook] GroupOps message+event saved for group:", gopsGroup.id);
+              }
+            }
           }
           
           if (!receiveGroups) {
-            console.log("[whatsapp-webhook] Ignoring group message (config: receive_group_messages=false)");
+            console.log("[whatsapp-webhook] Ignoring group message for main inbox (config: receive_group_messages=false)");
             return new Response(
-              JSON.stringify({ success: true, message: "Group message ignored (config)" }),
+              JSON.stringify({ success: true, message: "Group message processed by GroupOps only" }),
               { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
           }
