@@ -6,14 +6,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useGroupOpsGroups, GroupOpsGroup } from '@/hooks/useGroupOpsGroups';
 import { useWhatsAppInstances, WhatsAppInstance } from '@/hooks/useWhatsAppInstances';
 import { useCompany } from '@/contexts/CompanyContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Plus, Settings, MessageSquare, Import, Loader2, Search, Users, Wifi, WifiOff, Trash2 } from 'lucide-react';
+import { Plus, Settings, MessageSquare, Import, Loader2, Search, Users, Wifi, WifiOff, Trash2, RefreshCw, History } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
@@ -366,12 +366,133 @@ function GroupConfigModal({ group, onClose }: { group?: GroupOpsGroup; onClose: 
   );
 }
 
+// ----------- Sync History Dialog -----------
+function SyncHistoryDialog({ group, instances, onClose }: { 
+  group: GroupOpsGroup; 
+  instances: WhatsAppInstance[]; 
+  onClose: () => void;
+}) {
+  const [syncMode, setSyncMode] = useState<'quantity' | 'date'>('quantity');
+  const [quantity, setQuantity] = useState(500);
+  const [sinceDate, setSinceDate] = useState('');
+  const [selectedInstance, setSelectedInstance] = useState(instances.find(i => i.is_connected)?.id ?? '');
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [result, setResult] = useState<any>(null);
+
+  const handleSync = async () => {
+    if (!selectedInstance) {
+      toast.error('Selecione uma instância');
+      return;
+    }
+    setIsSyncing(true);
+    setResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke('groupops-sync-history', {
+        body: {
+          group_id: group.id,
+          instance_id: selectedInstance,
+          sync_mode: syncMode,
+          sync_value: syncMode === 'quantity' ? quantity : sinceDate,
+        },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Erro desconhecido');
+      setResult(data);
+      toast.success(`Sincronização concluída: ${data.messages_imported} mensagens, ${data.members_processed} membros`);
+    } catch (err: any) {
+      toast.error(`Erro na sincronização: ${err.message}`, { duration: 10000 });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const connectedInstances = instances.filter(i => i.is_connected);
+
+  return (
+    <div className="space-y-4">
+      <DialogDescription>
+        Importa mensagens do histórico do grupo para calcular scores, detectar membros ativos e identificar silenciosos.
+      </DialogDescription>
+
+      <div className="space-y-2">
+        <Label>Instância WhatsApp</Label>
+        <Select value={selectedInstance} onValueChange={setSelectedInstance}>
+          <SelectTrigger><SelectValue placeholder="Selecione uma instância" /></SelectTrigger>
+          <SelectContent>
+            {connectedInstances.map(inst => (
+              <SelectItem key={inst.id} value={inst.id}>{inst.instance_name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {connectedInstances.length === 0 && (
+          <p className="text-xs text-destructive">Nenhuma instância conectada disponível</p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <Label>Método de sincronização</Label>
+        <Select value={syncMode} onValueChange={(v) => setSyncMode(v as 'quantity' | 'date')}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="quantity">Por quantidade de mensagens</SelectItem>
+            <SelectItem value="date">Por data (desde)</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {syncMode === 'quantity' ? (
+        <div className="space-y-2">
+          <Label>Quantidade de mensagens</Label>
+          <Select value={String(quantity)} onValueChange={(v) => setQuantity(Number(v))}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="100">100 mensagens</SelectItem>
+              <SelectItem value="250">250 mensagens</SelectItem>
+              <SelectItem value="500">500 mensagens</SelectItem>
+              <SelectItem value="1000">1.000 mensagens</SelectItem>
+              <SelectItem value="2000">2.000 mensagens</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <Label>Desde a data</Label>
+          <Input type="date" value={sinceDate} onChange={(e) => setSinceDate(e.target.value)} />
+        </div>
+      )}
+
+      {result && (
+        <div className="bg-muted p-3 rounded-lg space-y-1 text-sm">
+          <p className="font-medium text-foreground">✅ Sincronização concluída</p>
+          <div className="grid grid-cols-2 gap-1 text-muted-foreground">
+            <span>Mensagens importadas:</span><span className="font-medium text-foreground">{result.messages_imported}</span>
+            <span>Membros novos:</span><span className="font-medium text-foreground">{result.members_created}</span>
+            <span>Membros atualizados:</span><span className="font-medium text-foreground">{result.members_updated}</span>
+            <span>Scores atualizados:</span><span className="font-medium text-foreground">{result.scores_updated}</span>
+            <span>Membros silenciosos:</span><span className="font-medium text-destructive">{result.silent_members}</span>
+          </div>
+        </div>
+      )}
+
+      <div className="flex justify-end gap-2">
+        <Button variant="outline" onClick={onClose} disabled={isSyncing}>Fechar</Button>
+        <Button onClick={handleSync} disabled={isSyncing || !selectedInstance || (syncMode === 'date' && !sinceDate)}>
+          {isSyncing ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Sincronizando...</> : <><RefreshCw className="h-4 w-4 mr-2" /> Sincronizar</>}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 // ----------- Main List -----------
 export default function GroupOpsGroupsList() {
   const { groups, isLoading, deleteGroup } = useGroupOpsGroups();
   const [editGroup, setEditGroup] = useState<GroupOpsGroup | undefined>();
   const [configOpen, setConfigOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [syncGroup, setSyncGroup] = useState<GroupOpsGroup | undefined>();
+  const { activeCompany } = useCompany();
+  const { instances } = useWhatsAppInstances(activeCompany?.company_id);
 
   const statusColor: Record<string, string> = {
     enabled: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
@@ -458,6 +579,9 @@ export default function GroupOpsGroupsList() {
                 <div className="flex items-center gap-3">
                   <Badge className={statusColor[group.status]}>{statusLabel[group.status]}</Badge>
                   <Badge variant="outline">Bot: {group.config_json?.auto_reply_mode ?? 'safe'}</Badge>
+                  <Button size="icon" variant="ghost" title="Sincronizar histórico" onClick={() => setSyncGroup(group)}>
+                    <History className="h-4 w-4" />
+                  </Button>
                   <Button size="icon" variant="ghost" onClick={() => { setEditGroup(group); setConfigOpen(true); }}>
                     <Settings className="h-4 w-4" />
                   </Button>
@@ -491,6 +615,22 @@ export default function GroupOpsGroupsList() {
           ))}
         </div>
       )}
+
+      {/* Sync History Dialog */}
+      <Dialog open={!!syncGroup} onOpenChange={(o) => { if (!o) setSyncGroup(undefined); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Sincronizar Histórico - {syncGroup?.name}</DialogTitle>
+          </DialogHeader>
+          {syncGroup && (
+            <SyncHistoryDialog 
+              group={syncGroup} 
+              instances={instances} 
+              onClose={() => setSyncGroup(undefined)} 
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
