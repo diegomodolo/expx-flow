@@ -37,6 +37,7 @@ export const CAMPAIGN_TYPES = [
   { value: 'RANKING', label: 'Ranking Semanal', description: 'Divulgação do ranking de pontuação', icon: '🏅' },
   { value: 'WELCOME', label: 'Boas-vindas', description: 'Mensagem para novos membros', icon: '👋' },
   { value: 'REACTIVATION', label: 'Reativação', description: 'Mensagem para membros silenciosos', icon: '🔄' },
+  { value: 'POLL', label: '📊 Enquete', description: 'Enquete interativa enviada no grupo', icon: '📊' },
   { value: 'CUSTOM', label: 'Personalizada', description: 'Configuração livre', icon: '⚙️' },
 ];
 
