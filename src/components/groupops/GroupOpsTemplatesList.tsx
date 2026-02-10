@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useGroupOpsTemplates, TEMPLATE_CATEGORIES, TEMPLATE_TONES, AVAILABLE_PLACEHOLDERS, type GroupOpsTemplate } from '@/hooks/useGroupOpsTemplates';
 import { parseWhatsAppFormatting } from '@/lib/whatsappFormatting';
 import { Switch } from '@/components/ui/switch';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Plus,
   Search,
@@ -23,6 +24,9 @@ import {
   Download,
   BarChart3,
   X,
+  Sparkles,
+  Loader2,
+  MessageSquare,
 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
@@ -31,11 +35,19 @@ export default function GroupOpsTemplatesList() {
   const [filterCategory, setFilterCategory] = useState('all');
   const [search, setSearch] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showTypeChooser, setShowTypeChooser] = useState(false);
+  const [createAsPoll, setCreateAsPoll] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<GroupOpsTemplate | null>(null);
   const [previewTemplate, setPreviewTemplate] = useState<GroupOpsTemplate | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const { templates, isLoading, createTemplate, updateTemplate, deleteTemplate } = useGroupOpsTemplates();
+
+  const handleNewTemplate = (isPoll: boolean) => {
+    setCreateAsPoll(isPoll);
+    setShowTypeChooser(false);
+    setShowCreateModal(true);
+  };
 
   const filtered = templates.filter((t) => {
     if (filterCategory !== 'all' && t.category !== filterCategory) return false;
@@ -88,7 +100,7 @@ export default function GroupOpsTemplatesList() {
           <p className="text-sm text-muted-foreground">Modelos de mensagem com formatação WhatsApp e placeholders</p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={() => setShowCreateModal(true)}>
+          <Button onClick={() => setShowTypeChooser(true)}>
             <Plus className="h-4 w-4 mr-2" /> Novo Template
           </Button>
         </div>
@@ -123,7 +135,7 @@ export default function GroupOpsTemplatesList() {
             <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-medium">Nenhum template encontrado</h3>
             <p className="text-sm text-muted-foreground mt-1">Crie seu primeiro template de mensagem</p>
-            <Button className="mt-4" onClick={() => setShowCreateModal(true)}>
+            <Button className="mt-4" onClick={() => setShowTypeChooser(true)}>
               <Plus className="h-4 w-4 mr-2" /> Criar Template
             </Button>
           </CardContent>
@@ -205,11 +217,43 @@ export default function GroupOpsTemplatesList() {
           })}
         </div>
       )}
+      {/* Type Chooser Dialog */}
+      <Dialog open={showTypeChooser} onOpenChange={setShowTypeChooser}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Novo Template</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-3 py-4">
+            <button
+              onClick={() => handleNewTemplate(false)}
+              className="flex flex-col items-center gap-3 p-6 border rounded-xl hover:bg-accent transition-colors"
+            >
+              <MessageSquare className="h-10 w-10 text-primary" />
+              <div className="text-center">
+                <p className="font-medium text-sm">Mensagem</p>
+                <p className="text-xs text-muted-foreground mt-1">Texto com formatação WhatsApp</p>
+              </div>
+            </button>
+            <button
+              onClick={() => handleNewTemplate(true)}
+              className="flex flex-col items-center gap-3 p-6 border rounded-xl hover:bg-accent transition-colors"
+            >
+              <BarChart3 className="h-10 w-10 text-teal-600" />
+              <div className="text-center">
+                <p className="font-medium text-sm">Enquete</p>
+                <p className="text-xs text-muted-foreground mt-1">Pergunta com opções de voto</p>
+              </div>
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Create/Edit Modal */}
       <TemplateFormModal
         open={showCreateModal || !!editingTemplate}
         onClose={() => { setShowCreateModal(false); setEditingTemplate(null); }}
         template={editingTemplate}
+        defaultPoll={createAsPoll}
         onSave={(data) => {
           if (editingTemplate) {
             updateTemplate.mutate({ id: editingTemplate.id, ...data });
@@ -252,16 +296,19 @@ interface FormModalProps {
   open: boolean;
   onClose: () => void;
   template: GroupOpsTemplate | null;
+  defaultPoll?: boolean;
   onSave: (data: Partial<GroupOpsTemplate>) => void;
 }
 
-function TemplateFormModal({ open, onClose, template, onSave }: FormModalProps) {
+function TemplateFormModal({ open, onClose, template, defaultPoll, onSave }: FormModalProps) {
   const [title, setTitle] = useState(template?.title ?? '');
-  const [category, setCategory] = useState(template?.category ?? 'DAILY_PROMPT');
+  const [category, setCategory] = useState(template?.category ?? (defaultPoll ? 'POLL' : 'DAILY_PROMPT'));
   const [tone, setTone] = useState(template?.tone ?? 'casual');
   const [body, setBody] = useState(template?.body ?? '');
   const [variantB, setVariantB] = useState<string>((template?.variants as any)?.b ?? '');
   const [showVariantB, setShowVariantB] = useState(!!((template?.variants as any)?.b));
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
 
   // Poll-specific state
   const constraints = template?.constraints_json as any;
@@ -286,7 +333,7 @@ function TemplateFormModal({ open, onClose, template, onSave }: FormModalProps) 
       setPollOptionsB(c?.poll_options_b ?? ['', '']);
     } else {
       setTitle('');
-      setCategory('DAILY_PROMPT');
+      setCategory(defaultPoll ? 'POLL' : 'DAILY_PROMPT');
       setTone('casual');
       setBody('');
       setVariantB('');
@@ -294,8 +341,9 @@ function TemplateFormModal({ open, onClose, template, onSave }: FormModalProps) 
       setPollOptions(['', '']);
       setMultipleChoice(false);
       setPollOptionsB(['', '']);
+      setAiPrompt('');
     }
-  }, [template, open]);
+  }, [template, open, defaultPoll]);
 
   const extractedPlaceholders = Array.from(new Set(
     [...(body.match(/\{\{[^}]+\}\}/g) ?? []), ...(variantB.match(/\{\{[^}]+\}\}/g) ?? [])]
@@ -303,6 +351,39 @@ function TemplateFormModal({ open, onClose, template, onSave }: FormModalProps) 
 
   const insertPlaceholder = (key: string) => {
     setBody((prev) => prev + key);
+  };
+
+  const generateWithAI = async () => {
+    if (!aiPrompt.trim()) return;
+    setIsGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-groupops-template', {
+        body: { prompt: aiPrompt, type: isPoll ? 'poll' : 'message', tone },
+      });
+      if (error) throw error;
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
+      const result = data?.result;
+      if (!result) throw new Error('Sem resultado');
+
+      if (isPoll && result.question) {
+        setTitle(result.title || title);
+        setBody(result.question);
+        if (result.options?.length >= 2) setPollOptions(result.options);
+        if (result.multiple_choice !== undefined) setMultipleChoice(result.multiple_choice);
+      } else if (result.body) {
+        setTitle(result.title || title);
+        setBody(result.body);
+      }
+      toast.success('Template gerado com IA!');
+    } catch (e: any) {
+      console.error(e);
+      toast.error('Erro ao gerar com IA');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const updatePollOption = (index: number, value: string, isB = false) => {
@@ -381,6 +462,27 @@ function TemplateFormModal({ open, onClose, template, onSave }: FormModalProps) 
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          {/* AI Generation */}
+          <div className="space-y-2 p-3 border rounded-lg bg-gradient-to-r from-primary/5 to-accent/5">
+            <Label className="text-sm font-medium flex items-center gap-1.5">
+              <Sparkles className="h-4 w-4 text-primary" /> Gerar com IA
+            </Label>
+            <div className="flex gap-2">
+              <Input
+                value={aiPrompt}
+                onChange={(e) => setAiPrompt(e.target.value)}
+                placeholder={isPoll ? 'Ex: enquete sobre maior desafio de churn em SaaS' : 'Ex: provocação sobre empresários que não delegam'}
+                className="flex-1 text-sm"
+                onKeyDown={(e) => { if (e.key === 'Enter' && !isGenerating) generateWithAI(); }}
+              />
+              <Button onClick={generateWithAI} disabled={isGenerating || !aiPrompt.trim()} size="sm" className="shrink-0">
+                {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                {isGenerating ? 'Gerando...' : 'Gerar'}
+              </Button>
+            </div>
+            <p className="text-[11px] text-muted-foreground">Descreva o que deseja e a IA gera {isPoll ? 'a enquete com opções' : 'a mensagem'} automaticamente</p>
           </div>
 
           {/* Placeholders bar */}
