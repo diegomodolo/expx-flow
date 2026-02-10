@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -6,29 +6,26 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useGroupOpsMembers } from '@/hooks/useGroupOpsMembers';
 import { useGroupOpsGroups } from '@/hooks/useGroupOpsGroups';
 import { useCompany } from '@/contexts/CompanyContext';
 import { supabase } from '@/integrations/supabase/client';
-import { useQuery } from '@tanstack/react-query';
-import { Users, Search, MessageCircle, Volume2, VolumeX, Ban, RefreshCw, Loader2, Building2 } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Users, Search, MessageCircle, Volume2, VolumeX, Ban, RefreshCw, Loader2, Building2, Link, Check } from 'lucide-react';
 import { toast } from 'sonner';
-
-interface ClientMatch {
-  phone: string;
-  client_name: string;
-  client_avatar: string | null;
-}
 
 export default function GroupOpsMembersList() {
   const { groups } = useGroupOpsGroups();
   const { activeCompany } = useCompany();
   const companyId = activeCompany?.company_id;
+  const queryClient = useQueryClient();
   const [selectedGroup, setSelectedGroup] = useState<string | undefined>();
   const [search, setSearch] = useState('');
   const [riskFilter, setRiskFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [syncing, setSyncing] = useState(false);
+  const [linkingMemberId, setLinkingMemberId] = useState<string | null>(null);
 
   const { members, isLoading, updateMember } = useGroupOpsMembers(selectedGroup);
 
@@ -50,6 +47,22 @@ export default function GroupOpsMembersList() {
         }
       }
       return map;
+    },
+    enabled: !!companyId,
+  });
+
+  // Fetch all clients for the linker
+  const clientsQuery = useQuery({
+    queryKey: ['all-clients-for-link', companyId],
+    queryFn: async () => {
+      if (!companyId) return [];
+      const { data, error } = await supabase
+        .from('clients')
+        .select('id, name, avatar')
+        .eq('company_id', companyId)
+        .order('name', { ascending: true });
+      if (error) throw error;
+      return data as Array<{ id: string; name: string; avatar: string | null }>;
     },
     enabled: !!companyId,
   });
@@ -77,6 +90,53 @@ export default function GroupOpsMembersList() {
       toast.error(err.message || 'Erro ao sincronizar membros');
     } finally {
       setSyncing(false);
+    }
+  };
+
+  const handleLinkClient = async (phone: string, clientId: string, clientName: string) => {
+    if (!companyId || !phone) return;
+    setLinkingMemberId(phone);
+    try {
+      // Check if already exists
+      const { data: existing } = await supabase
+        .from('whatsapp_client_contacts')
+        .select('id')
+        .eq('company_id', companyId)
+        .eq('phone', phone)
+        .eq('client_id', clientId)
+        .maybeSingle();
+
+      if (existing) {
+        toast.info('Este número já está associado a este cliente');
+        setLinkingMemberId(null);
+        return;
+      }
+
+      // Remove any previous association for this phone
+      await supabase
+        .from('whatsapp_client_contacts')
+        .delete()
+        .eq('company_id', companyId)
+        .eq('phone', phone);
+
+      // Insert new association
+      const { error } = await supabase
+        .from('whatsapp_client_contacts')
+        .insert({
+          company_id: companyId,
+          client_id: clientId,
+          phone: phone,
+          contact_name: null,
+          is_active: true,
+        } as any);
+
+      if (error) throw error;
+      toast.success(`Número associado a ${clientName}`);
+      queryClient.invalidateQueries({ queryKey: ['groupops-client-matches'] });
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao associar cliente');
+    } finally {
+      setLinkingMemberId(null);
     }
   };
 
@@ -208,7 +268,6 @@ export default function GroupOpsMembersList() {
                   const roleLabel: Record<string, string> = { dono: 'Dono', admin: 'Admin', membro: 'Membro', member: 'Membro', owner: 'Dono' };
                   const formatPhone = (phone: string | null) => {
                     if (!phone) return '-';
-                    // Format as +55 (22) 99782-5387
                     if (phone.length >= 12 && phone.startsWith('55')) {
                       const ddd = phone.substring(2, 4);
                       const rest = phone.substring(4);
@@ -217,6 +276,8 @@ export default function GroupOpsMembersList() {
                     }
                     return `+${phone}`;
                   };
+
+                  const match = m.phone_e164 ? clientMap[m.phone_e164] : null;
 
                   return (
                     <TableRow key={m.id}>
@@ -236,21 +297,26 @@ export default function GroupOpsMembersList() {
                         <Badge variant="outline">{roleLabel[m.role ?? 'membro'] ?? m.role}</Badge>
                       </TableCell>
                       <TableCell className="text-sm">
-                        {(() => {
-                          const match = m.phone_e164 ? clientMap[m.phone_e164] : null;
-                          if (!match) return <span className="text-muted-foreground">-</span>;
-                          return (
-                            <div className="flex items-center gap-2">
-                              <Avatar className="h-6 w-6">
-                                <AvatarImage src={match.avatar || undefined} alt={match.name} />
-                                <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
-                                  <Building2 className="h-3 w-3" />
-                                </AvatarFallback>
-                              </Avatar>
-                              <span className="font-medium truncate max-w-[140px]">{match.name}</span>
-                            </div>
-                          );
-                        })()}
+                        {match ? (
+                          <div className="flex items-center gap-2">
+                            <Avatar className="h-6 w-6">
+                              <AvatarImage src={match.avatar || undefined} alt={match.name} />
+                              <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
+                                <Building2 className="h-3 w-3" />
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="font-medium truncate max-w-[140px]">{match.name}</span>
+                          </div>
+                        ) : m.phone_e164 ? (
+                          <ClientLinkerPopover
+                            phone={m.phone_e164}
+                            clients={clientsQuery.data ?? []}
+                            isLinking={linkingMemberId === m.phone_e164}
+                            onLink={(clientId, clientName) => handleLinkClient(m.phone_e164!, clientId, clientName)}
+                          />
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-sm">{m.primary_pain ?? '-'}</TableCell>
                       <TableCell>
@@ -271,5 +337,78 @@ export default function GroupOpsMembersList() {
         </Card>
       )}
     </div>
+  );
+}
+
+/* ===== Client Linker Popover ===== */
+function ClientLinkerPopover({
+  phone,
+  clients,
+  isLinking,
+  onLink,
+}: {
+  phone: string;
+  clients: Array<{ id: string; name: string; avatar: string | null }>;
+  isLinking: boolean;
+  onLink: (clientId: string, clientName: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [clientSearch, setClientSearch] = useState('');
+
+  const filteredClients = useMemo(() => {
+    if (!clientSearch) return clients;
+    const q = clientSearch.toLowerCase();
+    return clients.filter((c) => c.name.toLowerCase().includes(q));
+  }, [clients, clientSearch]);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs" disabled={isLinking}>
+          {isLinking ? <Loader2 className="h-3 w-3 animate-spin" /> : <Link className="h-3 w-3" />}
+          Associar
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-72 p-0" align="start">
+        <div className="p-2 border-b">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              value={clientSearch}
+              onChange={(e) => setClientSearch(e.target.value)}
+              placeholder="Buscar cliente..."
+              className="h-8 pl-8 text-sm"
+              autoFocus
+            />
+          </div>
+        </div>
+        <div className="max-h-[240px] overflow-y-auto">
+          {filteredClients.length === 0 ? (
+            <div className="py-6 text-center text-sm text-muted-foreground">Nenhum cliente encontrado</div>
+          ) : (
+            filteredClients.map((client) => (
+              <button
+                key={client.id}
+                type="button"
+                className="flex items-center gap-2.5 w-full px-3 py-2 text-left text-sm hover:bg-accent transition-colors"
+                onClick={() => {
+                  onLink(client.id, client.name);
+                  setOpen(false);
+                  setClientSearch('');
+                }}
+              >
+                <Avatar className="h-6 w-6 shrink-0">
+                  <AvatarImage src={client.avatar || undefined} alt={client.name} />
+                  <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
+                    <Building2 className="h-3 w-3" />
+                  </AvatarFallback>
+                </Avatar>
+                <span className="truncate">{client.name}</span>
+              </button>
+            ))
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
