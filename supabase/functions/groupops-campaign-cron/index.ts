@@ -118,7 +118,7 @@ serve(async (req) => {
           id, title, body, placeholders, category
         ),
         groupops_groups!groupops_campaigns_group_id_fkey (
-          id, name, jid, instance_id
+          id, name, provider_group_id
         )
       `)
       .eq("status", "active")
@@ -159,8 +159,8 @@ serve(async (req) => {
           continue;
         }
 
-        // Determine which instance to use
-        const instanceId = campaign.instance_id || group.instance_id;
+        // Determine which instance to use (campaign-level or fallback)
+        const instanceId = campaign.instance_id;
         if (!instanceId) {
           console.warn(`[groupops-campaign-cron] Campaign ${campaign.id} has no instance configured, skipping`);
           continue;
@@ -200,7 +200,7 @@ serve(async (req) => {
 
         // If delivery mode is 'group', send to the group JID
         if (campaign.delivery_mode === "group" || campaign.delivery_mode === "both") {
-          const groupJid = group.jid;
+          const groupJid = group.provider_group_id;
           if (groupJid && config.provider === "uazapi") {
             const endpoint = config.uazapi_endpoint.replace(/\/$/, "");
             const token = instance.uazapi_token;
