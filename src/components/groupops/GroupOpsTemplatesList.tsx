@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useGroupOpsTemplates, TEMPLATE_CATEGORIES, TEMPLATE_TONES, AVAILABLE_PLACEHOLDERS, type GroupOpsTemplate } from '@/hooks/useGroupOpsTemplates';
+import { useGroupOpsTemplates, TEMPLATE_CATEGORIES, TEMPLATE_TONES, AVAILABLE_PLACEHOLDERS, DEFAULT_TEMPLATES, type GroupOpsTemplate } from '@/hooks/useGroupOpsTemplates';
 import { parseWhatsAppFormatting } from '@/lib/whatsappFormatting';
 import {
   Plus,
@@ -31,10 +31,31 @@ export default function GroupOpsTemplatesList() {
   const [editingTemplate, setEditingTemplate] = useState<GroupOpsTemplate | null>(null);
   const [previewTemplate, setPreviewTemplate] = useState<GroupOpsTemplate | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [viewTab, setViewTab] = useState<'defaults' | 'custom'>('defaults');
 
   const { templates, isLoading, createTemplate, updateTemplate, deleteTemplate, seedDefaultTemplates } = useGroupOpsTemplates();
 
-  const filtered = templates.filter((t) => {
+  // Convert DEFAULT_TEMPLATES to pseudo-GroupOpsTemplate for preview/edit
+  const defaultTemplatesAsGroupOps: GroupOpsTemplate[] = DEFAULT_TEMPLATES.map((t, i) => ({
+    id: `default-${i}`,
+    company_id: '',
+    title: t.title,
+    category: t.category,
+    body: t.body,
+    variants: null,
+    placeholders: t.body.match(/\{\{[^}]+\}\}/g) ?? null,
+    tone: t.tone,
+    constraints_json: null,
+    created_at: '',
+    updated_at: '',
+  }));
+
+  // Check which default templates are already saved in the database (by title match)
+  const savedTitles = new Set(templates.map(t => t.title));
+
+  const activeList = viewTab === 'defaults' ? defaultTemplatesAsGroupOps : templates;
+
+  const filtered = activeList.filter((t) => {
     if (filterCategory !== 'all' && t.category !== filterCategory) return false;
     if (search && !t.title.toLowerCase().includes(search.toLowerCase()) && !t.body.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
@@ -42,6 +63,45 @@ export default function GroupOpsTemplatesList() {
 
   const getCategoryLabel = (cat: string) => TEMPLATE_CATEGORIES.find((c) => c.value === cat)?.label ?? cat;
   const getToneLabel = (tone: string | null) => TEMPLATE_TONES.find((t) => t.value === tone)?.label ?? tone;
+
+  const getCategoryColor = (cat: string) => {
+    const colors: Record<string, string> = {
+      'DAILY_PROMPT': 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
+      'CHECKIN': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+      'CHALLENGE': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
+      'CASE_STUDY': 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
+      'RANKING': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
+      'WELCOME': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+      'REACTIVATION': 'bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300',
+      'CUSTOM': 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300',
+    };
+    return colors[cat] ?? '';
+  };
+
+  const getCategoryEmoji = (cat: string) => {
+    const emojis: Record<string, string> = {
+      'DAILY_PROMPT': '🔥',
+      'CHECKIN': '📊',
+      'CHALLENGE': '⏱️',
+      'CASE_STUDY': '📉',
+      'RANKING': '🏆',
+      'WELCOME': '👋',
+      'REACTIVATION': '🔄',
+      'CUSTOM': '✏️',
+    };
+    return emojis[cat] ?? '📄';
+  };
+
+  const handleSaveDefaultToDb = (template: GroupOpsTemplate) => {
+    createTemplate.mutate({
+      title: template.title,
+      category: template.category,
+      tone: template.tone,
+      body: template.body,
+      placeholders: template.placeholders,
+      variants: template.variants,
+    });
+  };
 
   return (
     <div className="space-y-4">
@@ -52,15 +112,33 @@ export default function GroupOpsTemplatesList() {
           <p className="text-sm text-muted-foreground">Modelos de mensagem com formatação WhatsApp e placeholders</p>
         </div>
         <div className="flex gap-2">
-          {templates.length === 0 && (
+          {viewTab === 'defaults' && templates.length === 0 && (
             <Button variant="outline" onClick={() => seedDefaultTemplates.mutate()} disabled={seedDefaultTemplates.isPending}>
-              <Download className="h-4 w-4 mr-2" /> Carregar Templates Padrão
+              <Download className="h-4 w-4 mr-2" /> Carregar Todos no Banco
             </Button>
           )}
           <Button onClick={() => setShowCreateModal(true)}>
             <Plus className="h-4 w-4 mr-2" /> Novo Template
           </Button>
         </div>
+      </div>
+
+      {/* Tab toggle */}
+      <div className="flex gap-2 border-b pb-2">
+        <Button
+          variant={viewTab === 'defaults' ? 'default' : 'ghost'}
+          size="sm"
+          onClick={() => setViewTab('defaults')}
+        >
+          📦 Pré-configurados ({DEFAULT_TEMPLATES.length})
+        </Button>
+        <Button
+          variant={viewTab === 'custom' ? 'default' : 'ghost'}
+          size="sm"
+          onClick={() => setViewTab('custom')}
+        >
+          ✏️ Meus Templates ({templates.length})
+        </Button>
       </div>
 
       {/* Filters */}
@@ -84,84 +162,110 @@ export default function GroupOpsTemplatesList() {
       </div>
 
       {/* Template Cards */}
-      {isLoading ? (
+      {isLoading && viewTab === 'custom' ? (
         <div className="text-center py-12 text-muted-foreground">Carregando templates...</div>
       ) : filtered.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
             <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-medium">Nenhum template encontrado</h3>
-            <p className="text-sm text-muted-foreground mt-1">Crie seu primeiro template de mensagem</p>
-            <Button className="mt-4" onClick={() => setShowCreateModal(true)}>
-              <Plus className="h-4 w-4 mr-2" /> Criar Template
-            </Button>
+            <p className="text-sm text-muted-foreground mt-1">
+              {viewTab === 'custom' ? 'Crie seu primeiro template de mensagem' : 'Nenhum resultado para este filtro'}
+            </p>
+            {viewTab === 'custom' && (
+              <Button className="mt-4" onClick={() => setShowCreateModal(true)}>
+                <Plus className="h-4 w-4 mr-2" /> Criar Template
+              </Button>
+            )}
           </CardContent>
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filtered.map((template) => (
-            <Card key={template.id} className="hover:shadow-md transition-shadow">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <CardTitle className="text-base">{template.title}</CardTitle>
-                    <div className="flex gap-2 mt-1">
-                      <Badge variant="outline">{getCategoryLabel(template.category)}</Badge>
-                      {template.tone && <Badge variant="secondary">{getToneLabel(template.tone)}</Badge>}
+          {filtered.map((template) => {
+            const isDefault = template.id.startsWith('default-');
+            const alreadySaved = isDefault && savedTitles.has(template.title);
+
+            return (
+              <Card key={template.id} className="hover:shadow-md transition-shadow group">
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-base truncate">{template.title}</CardTitle>
+                      <div className="flex gap-2 mt-1.5 flex-wrap">
+                        <Badge className={`text-xs ${getCategoryColor(template.category)}`}>
+                          {getCategoryEmoji(template.category)} {getCategoryLabel(template.category)}
+                        </Badge>
+                        {template.tone && <Badge variant="secondary" className="text-xs">{getToneLabel(template.tone)}</Badge>}
+                        {isDefault && alreadySaved && (
+                          <Badge variant="outline" className="text-xs text-green-600 border-green-300">✓ Salvo</Badge>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {/* WhatsApp Preview Mini */}
-                <div className="bg-[#e5ddd5] rounded-lg p-3 max-h-[100px] overflow-hidden relative">
-                  <div className="bg-[#dcf8c6] rounded-lg p-2 text-sm text-[#303030] shadow-sm max-w-[90%] ml-auto">
-                    {parseWhatsAppFormatting(template.body.slice(0, 120) + (template.body.length > 120 ? '...' : ''))}
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {/* WhatsApp Preview Mini */}
+                  <div className="bg-[#e5ddd5] rounded-lg p-3 max-h-[100px] overflow-hidden relative">
+                    <div className="bg-[#dcf8c6] rounded-lg p-2 text-sm text-[#303030] shadow-sm max-w-[90%] ml-auto">
+                      {parseWhatsAppFormatting(template.body.slice(0, 120) + (template.body.length > 120 ? '...' : ''))}
+                    </div>
+                    {template.body.length > 120 && (
+                      <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-[#e5ddd5] to-transparent" />
+                    )}
                   </div>
-                  {template.body.length > 120 && (
-                    <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-[#e5ddd5] to-transparent" />
+
+                  {/* Placeholders */}
+                  {template.placeholders && template.placeholders.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {template.placeholders.map((p) => (
+                        <Badge key={p} variant="outline" className="text-xs gap-1">
+                          <Tag className="h-3 w-3" />{p}
+                        </Badge>
+                      ))}
+                    </div>
                   )}
-                </div>
 
-                {/* Placeholders */}
-                {template.placeholders && template.placeholders.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {template.placeholders.map((p) => (
-                      <Badge key={p} variant="outline" className="text-xs gap-1">
-                        <Tag className="h-3 w-3" />{p}
-                      </Badge>
-                    ))}
+                  {/* Variant indicator */}
+                  {template.variants && (
+                    <Badge variant="secondary" className="text-xs">Variante A/B</Badge>
+                  )}
+
+                  <div className="flex gap-2 pt-2 border-t">
+                    <Button size="sm" variant="outline" onClick={() => setPreviewTemplate(template)}>
+                      <Eye className="h-3 w-3 mr-1" /> Preview
+                    </Button>
+                    {isDefault ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={alreadySaved || createTemplate.isPending}
+                        onClick={() => handleSaveDefaultToDb(template)}
+                      >
+                        <Download className="h-3 w-3 mr-1" /> {alreadySaved ? 'Salvo' : 'Salvar'}
+                      </Button>
+                    ) : (
+                      <>
+                        <Button size="sm" variant="outline" onClick={() => setEditingTemplate(template)}>
+                          <Edit className="h-3 w-3 mr-1" /> Editar
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => {
+                          navigator.clipboard.writeText(template.body);
+                          toast.success('Texto copiado');
+                        }}>
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                        <Button size="sm" variant="ghost" className="text-destructive ml-auto" onClick={() => setDeletingId(template.id)}>
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </>
+                    )}
                   </div>
-                )}
-
-                {/* Variant indicator */}
-                {template.variants && (
-                  <Badge variant="secondary" className="text-xs">Variante A/B</Badge>
-                )}
-
-                <div className="flex gap-2 pt-2 border-t">
-                  <Button size="sm" variant="outline" onClick={() => setPreviewTemplate(template)}>
-                    <Eye className="h-3 w-3 mr-1" /> Preview
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={() => setEditingTemplate(template)}>
-                    <Edit className="h-3 w-3 mr-1" /> Editar
-                  </Button>
-                  <Button size="sm" variant="ghost" onClick={() => {
-                    navigator.clipboard.writeText(template.body);
-                    toast.success('Texto copiado');
-                  }}>
-                    <Copy className="h-3 w-3" />
-                  </Button>
-                  <Button size="sm" variant="ghost" className="text-destructive ml-auto" onClick={() => setDeletingId(template.id)}>
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
-
       {/* Create/Edit Modal */}
       <TemplateFormModal
         open={showCreateModal || !!editingTemplate}
