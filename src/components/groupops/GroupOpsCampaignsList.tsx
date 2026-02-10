@@ -7,10 +7,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useGroupOpsCampaigns, CAMPAIGN_TYPES, DELIVERY_MODES, type GroupOpsCampaign } from '@/hooks/useGroupOpsCampaigns';
 import { useGroupOpsGroups } from '@/hooks/useGroupOpsGroups';
 import { useGroupOpsTemplates, TEMPLATE_CATEGORIES } from '@/hooks/useGroupOpsTemplates';
+import { useWhatsAppInstances } from '@/hooks/useWhatsAppInstances';
+import { useCompany } from '@/contexts/CompanyContext';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
@@ -27,6 +29,8 @@ import {
   FileText,
   X,
   ChevronDown,
+  Clock,
+  Smartphone,
 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
@@ -36,6 +40,21 @@ const STATUS_MAP: Record<string, { label: string; variant: 'default' | 'secondar
   draft: { label: 'Rascunho', variant: 'outline' },
   completed: { label: 'Concluída', variant: 'secondary' },
 };
+
+const WEEKDAYS = [
+  { value: 0, label: 'Dom' },
+  { value: 1, label: 'Seg' },
+  { value: 2, label: 'Ter' },
+  { value: 3, label: 'Qua' },
+  { value: 4, label: 'Qui' },
+  { value: 5, label: 'Sex' },
+  { value: 6, label: 'Sáb' },
+];
+
+const HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) => {
+  const h = String(i).padStart(2, '0');
+  return `${h}:00`;
+});
 
 export default function GroupOpsCampaignsList() {
   const [selectedGroupId, setSelectedGroupId] = useState<string | undefined>();
@@ -48,6 +67,9 @@ export default function GroupOpsCampaignsList() {
   const { groups } = useGroupOpsGroups();
   const { campaigns, isLoading, createCampaign, updateCampaign, deleteCampaign } = useGroupOpsCampaigns(selectedGroupId);
   const { templates } = useGroupOpsTemplates();
+  const { activeCompany } = useCompany();
+  const { instances } = useWhatsAppInstances(activeCompany?.company_id);
+  
 
   const filtered = campaigns.filter((c) => {
     if (filterType !== 'all' && c.type !== filterType) return false;
@@ -57,6 +79,20 @@ export default function GroupOpsCampaignsList() {
 
   const getCampaignType = (type: string) => CAMPAIGN_TYPES.find((t) => t.value === type);
   const getGroupName = (groupId: string) => groups.find((g) => g.id === groupId)?.name ?? 'Grupo';
+
+  const formatSchedule = (campaign: GroupOpsCampaign) => {
+    const freq = campaign.schedule_frequency;
+    const times = campaign.schedule_times?.join(', ') || '';
+    if (freq === 'daily') return `Diário às ${times}`;
+    if (freq === 'weekly') {
+      const days = campaign.schedule_days_of_week?.map(d => WEEKDAYS.find(w => w.value === d)?.label).join(', ') || '';
+      return `Semanal (${days}) às ${times}`;
+    }
+    if (freq === 'monthly') {
+      return `Mensal (dia ${campaign.schedule_day_of_month}) às ${times}`;
+    }
+    return campaign.schedule_rule || 'Não configurado';
+  };
 
   return (
     <div className="space-y-4">
@@ -121,6 +157,7 @@ export default function GroupOpsCampaignsList() {
           {filtered.map((campaign) => {
             const typeInfo = getCampaignType(campaign.type);
             const statusInfo = STATUS_MAP[campaign.status] ?? { label: campaign.status, variant: 'outline' as const };
+            const instanceName = instances.find(i => i.id === campaign.instance_id)?.instance_name;
             return (
               <Card key={campaign.id} className="hover:shadow-md transition-shadow">
                 <CardHeader className="pb-3">
@@ -145,10 +182,14 @@ export default function GroupOpsCampaignsList() {
                         {DELIVERY_MODES.find((d) => d.value === campaign.delivery_mode)?.label ?? campaign.delivery_mode}
                       </Badge>
                     )}
-                    {campaign.schedule_rule && (
+                    <Badge variant="outline" className="gap-1">
+                      <Clock className="h-3 w-3" />
+                      {formatSchedule(campaign)}
+                    </Badge>
+                    {instanceName && (
                       <Badge variant="outline" className="gap-1">
-                        <Calendar className="h-3 w-3" />
-                        {campaign.schedule_rule}
+                        <Smartphone className="h-3 w-3" />
+                        {instanceName}
                       </Badge>
                     )}
                     {campaign.approval_required && (
@@ -187,6 +228,7 @@ export default function GroupOpsCampaignsList() {
         campaign={editingCampaign}
         groups={groups}
         templates={templates}
+        instances={instances}
         onSave={(data) => {
           if (editingCampaign) {
             updateCampaign.mutate({ id: editingCampaign.id, ...data });
@@ -224,17 +266,24 @@ interface FormModalProps {
   campaign: GroupOpsCampaign | null;
   groups: Array<{ id: string; name: string }>;
   templates: Array<{ id: string; title: string; category: string }>;
+  instances: Array<{ id: string; instance_name: string; is_connected: boolean; connected_phone: string | null }>;
   onSave: (data: Partial<GroupOpsCampaign>) => void;
 }
 
-function CampaignFormModal({ open, onClose, campaign, groups, templates, onSave }: FormModalProps) {
+function CampaignFormModal({ open, onClose, campaign, groups, templates, instances, onSave }: FormModalProps) {
   const [type, setType] = useState(campaign?.type ?? 'DAILY_PROMPT');
   const [groupId, setGroupId] = useState(campaign?.group_id ?? '');
   const [templateId, setTemplateId] = useState(campaign?.template_id ?? '');
   const [deliveryMode, setDeliveryMode] = useState(campaign?.delivery_mode ?? 'group');
-  const [scheduleRule, setScheduleRule] = useState(campaign?.schedule_rule ?? '');
   const [approvalRequired, setApprovalRequired] = useState(campaign?.approval_required ?? false);
   const [status, setStatus] = useState(campaign?.status ?? 'draft');
+  const [instanceId, setInstanceId] = useState(campaign?.instance_id ?? '');
+
+  // Scheduling state
+  const [frequency, setFrequency] = useState(campaign?.schedule_frequency ?? 'daily');
+  const [scheduleTimes, setScheduleTimes] = useState<string[]>(campaign?.schedule_times ?? ['09:00']);
+  const [daysOfWeek, setDaysOfWeek] = useState<number[]>(campaign?.schedule_days_of_week ?? [1]);
+  const [dayOfMonth, setDayOfMonth] = useState(campaign?.schedule_day_of_month ?? 1);
 
   React.useEffect(() => {
     if (campaign) {
@@ -242,25 +291,51 @@ function CampaignFormModal({ open, onClose, campaign, groups, templates, onSave 
       setGroupId(campaign.group_id);
       setTemplateId(campaign.template_id ?? '');
       setDeliveryMode(campaign.delivery_mode ?? 'group');
-      setScheduleRule(campaign.schedule_rule ?? '');
       setApprovalRequired(campaign.approval_required ?? false);
       setStatus(campaign.status);
+      setInstanceId(campaign.instance_id ?? '');
+      setFrequency(campaign.schedule_frequency ?? 'daily');
+      setScheduleTimes(campaign.schedule_times ?? ['09:00']);
+      setDaysOfWeek(campaign.schedule_days_of_week ?? [1]);
+      setDayOfMonth(campaign.schedule_day_of_month ?? 1);
     } else {
       setType('DAILY_PROMPT');
       setGroupId('');
       setTemplateId('');
       setDeliveryMode('group');
-      setScheduleRule('');
       setApprovalRequired(false);
       setStatus('draft');
+      setInstanceId('');
+      setFrequency('daily');
+      setScheduleTimes(['09:00']);
+      setDaysOfWeek([1]);
+      setDayOfMonth(1);
     }
   }, [campaign, open]);
 
   const filteredTemplates = templates.filter((t) => t.category === type || type === 'CUSTOM');
 
+  const toggleDayOfWeek = (day: number) => {
+    setDaysOfWeek(prev =>
+      prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day].sort()
+    );
+  };
+
+  const addTime = () => {
+    setScheduleTimes(prev => [...prev, '09:00']);
+  };
+
+  const removeTime = (index: number) => {
+    setScheduleTimes(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const updateTime = (index: number, value: string) => {
+    setScheduleTimes(prev => prev.map((t, i) => i === index ? value : t));
+  };
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{campaign ? 'Editar Campanha' : 'Nova Campanha'}</DialogTitle>
         </DialogHeader>
@@ -292,11 +367,32 @@ function CampaignFormModal({ open, onClose, campaign, groups, templates, onSave 
             </Select>
           </div>
 
+          {/* Template search select */}
           <TemplateSearchSelect
             templates={filteredTemplates}
             value={templateId}
             onChange={setTemplateId}
           />
+
+          {/* Instance selector */}
+          <div className="space-y-2">
+            <Label>Instância WhatsApp</Label>
+            <Select value={instanceId} onValueChange={setInstanceId}>
+              <SelectTrigger>
+                <Smartphone className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="Selecione a instância" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Nenhuma (definir depois)</SelectItem>
+                {instances.filter(i => i.is_connected).map((inst) => (
+                  <SelectItem key={inst.id} value={inst.id}>
+                    {inst.instance_name} {inst.connected_phone ? `(${inst.connected_phone})` : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">Por qual número/instância enviar as mensagens</p>
+          </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -323,10 +419,89 @@ function CampaignFormModal({ open, onClose, campaign, groups, templates, onSave 
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label>Regra de Agendamento</Label>
-            <Input placeholder="Ex: diário às 9h, seg/qua/sex" value={scheduleRule} onChange={(e) => setScheduleRule(e.target.value)} />
-            <p className="text-xs text-muted-foreground">Descreva quando a campanha deve ser executada</p>
+          {/* ===== Structured Scheduling ===== */}
+          <div className="space-y-3 border rounded-lg p-4">
+            <Label className="text-sm font-semibold flex items-center gap-2">
+              <Calendar className="h-4 w-4" /> Agendamento
+            </Label>
+
+            <div className="space-y-2">
+              <Label className="text-xs">Frequência</Label>
+              <Select value={frequency} onValueChange={setFrequency}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="daily">Diário</SelectItem>
+                  <SelectItem value="weekly">Semanal</SelectItem>
+                  <SelectItem value="monthly">Mensal</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Weekly: Day of week selector */}
+            {frequency === 'weekly' && (
+              <div className="space-y-2">
+                <Label className="text-xs">Dias da semana</Label>
+                <div className="flex gap-1 flex-wrap">
+                  {WEEKDAYS.map(day => (
+                    <Button
+                      key={day.value}
+                      type="button"
+                      size="sm"
+                      variant={daysOfWeek.includes(day.value) ? 'default' : 'outline'}
+                      className="h-8 w-11 text-xs"
+                      onClick={() => toggleDayOfWeek(day.value)}
+                    >
+                      {day.label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Monthly: Day of month */}
+            {frequency === 'monthly' && (
+              <div className="space-y-2">
+                <Label className="text-xs">Dia do mês</Label>
+                <Select value={String(dayOfMonth)} onValueChange={(v) => setDayOfMonth(Number(v))}>
+                  <SelectTrigger className="w-[100px]"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 31 }, (_, i) => i + 1).map(d => (
+                      <SelectItem key={d} value={String(d)}>Dia {d}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Times */}
+            <div className="space-y-2">
+              <Label className="text-xs">Horários (São Paulo)</Label>
+              <div className="space-y-2">
+                {scheduleTimes.map((time, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <Select value={time} onValueChange={(v) => updateTime(i, v)}>
+                      <SelectTrigger className="w-[120px]">
+                        <Clock className="h-3 w-3 mr-1" />
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {HOUR_OPTIONS.map(h => (
+                          <SelectItem key={h} value={h}>{h}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {scheduleTimes.length > 1 && (
+                      <Button type="button" size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive" onClick={() => removeTime(i)}>
+                        <X className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                <Button type="button" size="sm" variant="outline" onClick={addTime} className="text-xs">
+                  <Plus className="h-3 w-3 mr-1" /> Adicionar horário
+                </Button>
+              </div>
+            </div>
           </div>
 
           <div className="flex items-center gap-3">
@@ -341,7 +516,11 @@ function CampaignFormModal({ open, onClose, campaign, groups, templates, onSave 
             group_id: groupId,
             template_id: templateId && templateId !== 'none' ? templateId : null,
             delivery_mode: deliveryMode,
-            schedule_rule: scheduleRule || null,
+            schedule_frequency: frequency,
+            schedule_times: scheduleTimes,
+            schedule_days_of_week: frequency === 'weekly' ? daysOfWeek : null,
+            schedule_day_of_month: frequency === 'monthly' ? dayOfMonth : null,
+            instance_id: instanceId && instanceId !== 'none' ? instanceId : null,
             approval_required: approvalRequired,
             status,
           })}>
@@ -412,7 +591,6 @@ function TemplateSearchSelect({
             </div>
           </div>
           <ScrollArea className="max-h-[280px]">
-            {/* Option: None */}
             <button
               className={`w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors flex items-center gap-2 ${
                 !value || value === 'none' ? 'bg-accent' : ''
