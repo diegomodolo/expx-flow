@@ -6,13 +6,24 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// São Paulo timezone offset helper
-function getSaoPauloTime(): Date {
+// São Paulo timezone helper using only UTC methods (no runtime timezone dependency)
+function getSaoPauloTime(): { hours: number; minutes: number; day: number; date: number; baseDate: Date } {
   const now = new Date();
-  // São Paulo is UTC-3
-  const spOffset = -3 * 60;
-  const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
-  return new Date(utcMs + spOffset * 60000);
+  const spTotalMinutes = now.getUTCHours() * 60 + now.getUTCMinutes() - 180; // UTC-3
+  const dayShift = spTotalMinutes < 0 ? -1 : spTotalMinutes >= 1440 ? 1 : 0;
+  const normalizedMinutes = ((spTotalMinutes % 1440) + 1440) % 1440;
+  const hours = Math.floor(normalizedMinutes / 60);
+  const minutes = normalizedMinutes % 60;
+  const baseDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + dayShift));
+  return { hours, minutes, day: baseDate.getUTCDay(), date: baseDate.getUTCDate(), baseDate };
+}
+
+// Convert São Paulo HH:MM on a given base date to UTC ISO string
+function spTimeToUTC(base: Date, time: string): string {
+  const [h, m] = time.split(':').map(Number);
+  const d = new Date(base);
+  d.setUTCHours(h + 3, m, 0, 0); // São Paulo + 3h = UTC
+  return d.toISOString();
 }
 
 function getNextExecution(
@@ -22,75 +33,50 @@ function getNextExecution(
   dayOfMonth: number | null
 ): string | null {
   const sp = getSaoPauloTime();
-  const currentHHMM = `${String(sp.getHours()).padStart(2, "0")}:${String(sp.getMinutes()).padStart(2, "0")}`;
-  const currentDay = sp.getDay(); // 0=Sun
-  const currentDate = sp.getDate();
-
-  // Sort times
+  const currentHHMM = `${String(sp.hours).padStart(2, "0")}:${String(sp.minutes).padStart(2, "0")}`;
   const sortedTimes = [...times].sort();
 
   if (frequency === "daily") {
-    // Find the next time today or tomorrow
     const nextTimeToday = sortedTimes.find((t) => t > currentHHMM);
     if (nextTimeToday) {
-      const [h, m] = nextTimeToday.split(":").map(Number);
-      const next = new Date(sp);
-      next.setHours(h, m, 0, 0);
-      // Convert back to UTC: add 3 hours
-      return new Date(next.getTime() + 3 * 3600000).toISOString();
+      return spTimeToUTC(sp.baseDate, nextTimeToday);
     }
-    // Tomorrow, first time
-    const [h, m] = sortedTimes[0].split(":").map(Number);
-    const next = new Date(sp);
-    next.setDate(next.getDate() + 1);
-    next.setHours(h, m, 0, 0);
-    return new Date(next.getTime() + 3 * 3600000).toISOString();
+    const tomorrow = new Date(sp.baseDate);
+    tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+    return spTimeToUTC(tomorrow, sortedTimes[0]);
   }
 
   if (frequency === "weekly" && daysOfWeek && daysOfWeek.length > 0) {
     const sortedDays = [...daysOfWeek].sort();
-    // Check if today is a valid day and there's a time left
-    if (sortedDays.includes(currentDay)) {
+    if (sortedDays.includes(sp.day)) {
       const nextTimeToday = sortedTimes.find((t) => t > currentHHMM);
       if (nextTimeToday) {
-        const [h, m] = nextTimeToday.split(":").map(Number);
-        const next = new Date(sp);
-        next.setHours(h, m, 0, 0);
-        return new Date(next.getTime() + 3 * 3600000).toISOString();
+        return spTimeToUTC(sp.baseDate, nextTimeToday);
       }
     }
-    // Find next valid day
     for (let offset = 1; offset <= 7; offset++) {
-      const checkDay = (currentDay + offset) % 7;
+      const checkDay = (sp.day + offset) % 7;
       if (sortedDays.includes(checkDay)) {
-        const [h, m] = sortedTimes[0].split(":").map(Number);
-        const next = new Date(sp);
-        next.setDate(next.getDate() + offset);
-        next.setHours(h, m, 0, 0);
-        return new Date(next.getTime() + 3 * 3600000).toISOString();
+        const target = new Date(sp.baseDate);
+        target.setUTCDate(target.getUTCDate() + offset);
+        return spTimeToUTC(target, sortedTimes[0]);
       }
     }
   }
 
   if (frequency === "monthly" && dayOfMonth) {
-    const [h, m] = sortedTimes[0].split(":").map(Number);
-    if (currentDate === dayOfMonth) {
+    if (sp.date === dayOfMonth) {
       const nextTimeToday = sortedTimes.find((t) => t > currentHHMM);
       if (nextTimeToday) {
-        const [h2, m2] = nextTimeToday.split(":").map(Number);
-        const next = new Date(sp);
-        next.setHours(h2, m2, 0, 0);
-        return new Date(next.getTime() + 3 * 3600000).toISOString();
+        return spTimeToUTC(sp.baseDate, nextTimeToday);
       }
     }
-    // Next month
-    const next = new Date(sp);
-    if (currentDate >= dayOfMonth) {
-      next.setMonth(next.getMonth() + 1);
+    const next = new Date(sp.baseDate);
+    if (sp.date >= dayOfMonth) {
+      next.setUTCMonth(next.getUTCMonth() + 1);
     }
-    next.setDate(dayOfMonth);
-    next.setHours(h, m, 0, 0);
-    return new Date(next.getTime() + 3 * 3600000).toISOString();
+    next.setUTCDate(dayOfMonth);
+    return spTimeToUTC(next, sortedTimes[0]);
   }
 
   return null;
@@ -238,7 +224,7 @@ serve(async (req) => {
         const spNow = getSaoPauloTime();
         const daysOfWeek = ["domingo", "segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado"];
         messageBody = messageBody.replace(/\{\{grupo\}\}/g, group.name || "Grupo");
-        messageBody = messageBody.replace(/\{\{dia_semana\}\}/g, daysOfWeek[spNow.getDay()]);
+        messageBody = messageBody.replace(/\{\{dia_semana\}\}/g, daysOfWeek[spNow.day]);
 
         // If delivery mode is 'group', send to the group JID
         if (campaign.delivery_mode === "group" || campaign.delivery_mode === "both") {

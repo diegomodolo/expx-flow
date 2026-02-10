@@ -53,6 +53,7 @@ export const SCHEDULE_FREQUENCIES = [
 ];
 
 // Calculate next execution time based on schedule config (São Paulo timezone)
+// Uses only UTC methods to avoid browser timezone dependency
 function calculateNextExecution(
   frequency: string,
   times: string[],
@@ -60,31 +61,38 @@ function calculateNextExecution(
   dayOfMonth: number | null
 ): string | null {
   if (!times || times.length === 0) return null;
-  
+
   const now = new Date();
-  // São Paulo is UTC-3
-  const spOffset = -3 * 60;
-  const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
-  const sp = new Date(utcMs + spOffset * 60000);
-  const currentHHMM = `${String(sp.getHours()).padStart(2, '0')}:${String(sp.getMinutes()).padStart(2, '0')}`;
-  const currentDay = sp.getDay();
-  const currentDate = sp.getDate();
+  // Calculate São Paulo time using UTC methods only (UTC-3)
+  const spTotalMinutes = now.getUTCHours() * 60 + now.getUTCMinutes() - 180; // -3h in minutes
+  const dayShift = spTotalMinutes < 0 ? -1 : spTotalMinutes >= 1440 ? 1 : 0;
+  const normalizedMinutes = ((spTotalMinutes % 1440) + 1440) % 1440;
+  const spHours = Math.floor(normalizedMinutes / 60);
+  const spMinutes = normalizedMinutes % 60;
+  const currentHHMM = `${String(spHours).padStart(2, '0')}:${String(spMinutes).padStart(2, '0')}`;
+
+  // Base date = "today" in São Paulo, represented as UTC midnight
+  const baseDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + dayShift));
+  const currentDay = baseDate.getUTCDay();
+  const currentDate = baseDate.getUTCDate();
   const sortedTimes = [...times].sort();
 
-  const toUTC = (d: Date) => new Date(d.getTime() + 3 * 3600000).toISOString();
+  // Convert São Paulo HH:MM on a given base date to UTC ISO string
+  const toUTCISO = (base: Date, time: string): string => {
+    const [h, m] = time.split(':').map(Number);
+    const d = new Date(base);
+    d.setUTCHours(h + 3, m, 0, 0); // São Paulo + 3h = UTC
+    return d.toISOString();
+  };
 
   if (frequency === 'daily') {
     const nextTimeToday = sortedTimes.find(t => t > currentHHMM);
-    const next = new Date(sp);
     if (nextTimeToday) {
-      const [h, m] = nextTimeToday.split(':').map(Number);
-      next.setHours(h, m, 0, 0);
-    } else {
-      const [h, m] = sortedTimes[0].split(':').map(Number);
-      next.setDate(next.getDate() + 1);
-      next.setHours(h, m, 0, 0);
+      return toUTCISO(baseDate, nextTimeToday);
     }
-    return toUTC(next);
+    const tomorrow = new Date(baseDate);
+    tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+    return toUTCISO(tomorrow, sortedTimes[0]);
   }
 
   if (frequency === 'weekly' && daysOfWeek && daysOfWeek.length > 0) {
@@ -92,41 +100,32 @@ function calculateNextExecution(
     if (sortedDays.includes(currentDay)) {
       const nextTimeToday = sortedTimes.find(t => t > currentHHMM);
       if (nextTimeToday) {
-        const [h, m] = nextTimeToday.split(':').map(Number);
-        const next = new Date(sp);
-        next.setHours(h, m, 0, 0);
-        return toUTC(next);
+        return toUTCISO(baseDate, nextTimeToday);
       }
     }
     for (let offset = 1; offset <= 7; offset++) {
       const checkDay = (currentDay + offset) % 7;
       if (sortedDays.includes(checkDay)) {
-        const [h, m] = sortedTimes[0].split(':').map(Number);
-        const next = new Date(sp);
-        next.setDate(next.getDate() + offset);
-        next.setHours(h, m, 0, 0);
-        return toUTC(next);
+        const target = new Date(baseDate);
+        target.setUTCDate(target.getUTCDate() + offset);
+        return toUTCISO(target, sortedTimes[0]);
       }
     }
   }
 
   if (frequency === 'monthly' && dayOfMonth) {
-    const next = new Date(sp);
     if (currentDate === dayOfMonth) {
       const nextTimeToday = sortedTimes.find(t => t > currentHHMM);
       if (nextTimeToday) {
-        const [h, m] = nextTimeToday.split(':').map(Number);
-        next.setHours(h, m, 0, 0);
-        return toUTC(next);
+        return toUTCISO(baseDate, nextTimeToday);
       }
     }
+    const next = new Date(baseDate);
     if (currentDate >= dayOfMonth) {
-      next.setMonth(next.getMonth() + 1);
+      next.setUTCMonth(next.getUTCMonth() + 1);
     }
-    const [h, m] = sortedTimes[0].split(':').map(Number);
-    next.setDate(dayOfMonth);
-    next.setHours(h, m, 0, 0);
-    return toUTC(next);
+    next.setUTCDate(dayOfMonth);
+    return toUTCISO(next, sortedTimes[0]);
   }
 
   return null;
