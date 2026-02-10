@@ -86,9 +86,9 @@ export default function GroupOpsMembersList() {
   const clientMap = clientMatchQuery.data ?? {};
 
   const groupMap = useMemo(() => {
-    const map: Record<string, { name: string; avatar?: string | null }> = {};
+    const map: Record<string, { name: string; avatar?: string | null; profile_pic?: string | null }> = {};
     for (const g of groups) {
-      map[g.id] = { name: g.name, avatar: (g as any).avatar_url };
+      map[g.id] = { name: g.name, avatar: (g as any).avatar_url, profile_pic: g.config_json?.profile_pic };
     }
     return map;
   }, [groups]);
@@ -305,45 +305,34 @@ export default function GroupOpsMembersList() {
             <CardContent className="p-0">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Membro</TableHead>
-                    <TableHead>Telefone</TableHead>
-                    <TableHead>Grupos</TableHead>
-                    <TableHead>Empresa</TableHead>
-                    <TableHead>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="cursor-help border-b border-dashed border-muted-foreground/40">Dor Principal</span>
-                        </TooltipTrigger>
-                        <TooltipContent side="top" className="max-w-[240px] text-xs">
-                          Principal desafio ou necessidade do membro (ex: gerar leads, escalar vendas). Pode ser preenchido manualmente ou via CRM.
-                        </TooltipContent>
-                      </Tooltip>
-                    </TableHead>
-                    <TableHead>Risco</TableHead>
-                    <TableHead>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="cursor-help border-b border-dashed border-muted-foreground/40">Sequência</span>
-                        </TooltipTrigger>
-                        <TooltipContent side="top" className="max-w-[220px] text-xs">
-                          Dias consecutivos com participação ativa no grupo (check-ins, mensagens, etc.)
-                        </TooltipContent>
-                      </Tooltip>
-                    </TableHead>
-                    <TableHead>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="cursor-help border-b border-dashed border-muted-foreground/40">Silêncio</span>
-                        </TooltipTrigger>
-                        <TooltipContent side="top" className="max-w-[220px] text-xs">
-                          Dias sem nenhuma interação no grupo
-                        </TooltipContent>
-                      </Tooltip>
-                    </TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right w-10"></TableHead>
-                  </TableRow>
+                   <TableRow>
+                     <TableHead>Membro</TableHead>
+                     <TableHead>Grupos</TableHead>
+                     <TableHead>Empresa</TableHead>
+                     <TableHead>Risco</TableHead>
+                     <TableHead>
+                       <Tooltip>
+                         <TooltipTrigger asChild>
+                           <span className="cursor-help border-b border-dashed border-muted-foreground/40">Sequência</span>
+                         </TooltipTrigger>
+                         <TooltipContent side="top" className="max-w-[220px] text-xs">
+                           Dias consecutivos com participação ativa no grupo (check-ins, mensagens, etc.)
+                         </TooltipContent>
+                       </Tooltip>
+                     </TableHead>
+                     <TableHead>
+                       <Tooltip>
+                         <TooltipTrigger asChild>
+                           <span className="cursor-help border-b border-dashed border-muted-foreground/40">Silêncio</span>
+                         </TooltipTrigger>
+                         <TooltipContent side="top" className="max-w-[220px] text-xs">
+                           Dias sem nenhuma interação no grupo
+                         </TooltipContent>
+                       </Tooltip>
+                     </TableHead>
+                     <TableHead>Status</TableHead>
+                     <TableHead className="text-right w-10"></TableHead>
+                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {paginatedMembers.map((mm) => {
@@ -353,60 +342,67 @@ export default function GroupOpsMembersList() {
 
                     return (
                       <TableRow key={m.phone_e164 || m.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-8 w-8">
-                              <AvatarImage src={profilePic} alt={m.display_name || ''} />
-                              <AvatarFallback className="text-xs bg-primary/10 text-primary">
-                                {(m.display_name || '?').substring(0, 2).toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                            <span className="font-medium">{m.display_name || 'Sem nome'}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground font-mono">{formatPhone(m.phone_e164)}</TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1">
-                            {mm.groupIds.map((gid) => {
-                              const g = groupMap[gid];
-                              if (!g) return null;
-                              return (
-                                <Tooltip key={gid}>
-                                  <TooltipTrigger asChild>
-                                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5 max-w-[100px] truncate cursor-default">
-                                      {g.name}
-                                    </Badge>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top"><p>{g.name}</p></TooltipContent>
-                                </Tooltip>
-                              );
-                            })}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {match ? (
-                            <div className="flex items-center gap-2">
-                              <Avatar className="h-6 w-6">
-                                <AvatarImage src={match.avatar || undefined} alt={match.name} />
-                                <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
-                                  <Building2 className="h-3 w-3" />
-                                </AvatarFallback>
-                              </Avatar>
-                              <span className="font-medium truncate max-w-[140px]">{match.name}</span>
-                            </div>
-                          ) : m.phone_e164 ? (
-                            <ClientLinkerPopover
-                              phone={m.phone_e164}
-                              clients={clientsQuery.data ?? []}
-                              isLinking={linkingMemberId === m.phone_e164}
-                              onLink={(clientId, clientName) => handleLinkClient(m.phone_e164!, clientId, clientName, m.display_name || undefined)}
-                            />
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-sm">{m.primary_pain ?? '-'}</TableCell>
-                        <TableCell>
+                         <TableCell>
+                           <div className="flex items-center gap-3">
+                             <Avatar className="h-8 w-8">
+                               <AvatarImage src={profilePic} alt={m.display_name || ''} />
+                               <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                                 {(m.display_name || '?').substring(0, 2).toUpperCase()}
+                               </AvatarFallback>
+                             </Avatar>
+                             <div className="flex flex-col">
+                               <span className="font-medium">{m.display_name || 'Sem nome'}</span>
+                               {m.phone_e164 && (
+                                 <span className="text-xs text-muted-foreground font-mono">{formatPhone(m.phone_e164)}</span>
+                               )}
+                             </div>
+                           </div>
+                         </TableCell>
+                         <TableCell>
+                           <div className="flex items-center -space-x-2">
+                             {mm.groupIds.map((gid) => {
+                               const g = groupMap[gid];
+                               if (!g) return null;
+                               const pic = g.profile_pic;
+                               return (
+                                 <Tooltip key={gid}>
+                                   <TooltipTrigger asChild>
+                                     <Avatar className="h-7 w-7 border-2 border-background cursor-default">
+                                       <AvatarImage src={pic} alt={g.name} />
+                                       <AvatarFallback className="text-[9px] bg-primary/10 text-primary">
+                                         {g.name.substring(0, 2).toUpperCase()}
+                                       </AvatarFallback>
+                                     </Avatar>
+                                   </TooltipTrigger>
+                                   <TooltipContent side="top"><p>{g.name}</p></TooltipContent>
+                                 </Tooltip>
+                               );
+                             })}
+                           </div>
+                         </TableCell>
+                         <TableCell className="text-sm">
+                           {match ? (
+                             <div className="flex items-center gap-2">
+                               <Avatar className="h-6 w-6">
+                                 <AvatarImage src={match.avatar || undefined} alt={match.name} />
+                                 <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
+                                   <Building2 className="h-3 w-3" />
+                                 </AvatarFallback>
+                               </Avatar>
+                               <span className="font-medium truncate max-w-[140px]">{match.name}</span>
+                             </div>
+                           ) : m.phone_e164 ? (
+                             <ClientLinkerPopover
+                               phone={m.phone_e164}
+                               clients={clientsQuery.data ?? []}
+                               isLinking={linkingMemberId === m.phone_e164}
+                               onLink={(clientId, clientName) => handleLinkClient(m.phone_e164!, clientId, clientName, m.display_name || undefined)}
+                             />
+                           ) : (
+                             <span className="text-muted-foreground">-</span>
+                           )}
+                         </TableCell>
+                         <TableCell>
                           <Badge className={riskColor[m.risk_level]}>{m.risk_level}</Badge>
                         </TableCell>
                         <TableCell>{m.streak_days}d</TableCell>
