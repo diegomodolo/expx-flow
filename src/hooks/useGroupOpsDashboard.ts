@@ -22,6 +22,8 @@ export function useGroupOpsDashboard(groupId?: string) {
       let msgs7dQ = supabase.from('groupops_messages').select('id', { count: 'exact' }).eq('company_id', companyId).gte('timestamp', d7);
       let msgs30dQ = supabase.from('groupops_messages').select('id', { count: 'exact' }).eq('company_id', companyId).gte('timestamp', d30);
       let topScoresQ = supabase.from('groupops_score_ledger').select('member_id, points').eq('company_id', companyId).gte('timestamp', d7);
+      // Also fetch messages with sender info for fallback ranking
+      let msgRankQ = supabase.from('groupops_messages').select('author_member_id').eq('company_id', companyId).gte('timestamp', d7).not('author_member_id', 'is', null);
 
       if (groupId) {
         membersQ = membersQ.eq('group_id', groupId);
@@ -29,14 +31,16 @@ export function useGroupOpsDashboard(groupId?: string) {
         msgs7dQ = msgs7dQ.eq('group_id', groupId);
         msgs30dQ = msgs30dQ.eq('group_id', groupId);
         topScoresQ = topScoresQ.eq('group_id', groupId);
+        msgRankQ = msgRankQ.eq('group_id', groupId);
       }
 
-      const [membersRes, msgs24h, msgs7d, msgs30d, topScores] = await Promise.all([
+      const [membersRes, msgs24h, msgs7d, msgs30d, topScores, msgRank] = await Promise.all([
         membersQ,
         msgs24hQ,
         msgs7dQ,
         msgs30dQ,
         topScoresQ,
+        msgRankQ,
       ]);
 
       const members = membersRes.data ?? [];
@@ -48,13 +52,34 @@ export function useGroupOpsDashboard(groupId?: string) {
       (topScores.data ?? []).forEach((s: any) => {
         scoreMap.set(s.member_id, (scoreMap.get(s.member_id) ?? 0) + s.points);
       });
-      const top10 = Array.from(scoreMap.entries())
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 10)
-        .map(([memberId, score]) => {
-          const member = members.find(m => m.id === memberId);
-          return { memberId, name: member?.display_name ?? 'Desconhecido', score };
+
+      let top10: { memberId: string; name: string; score: number }[];
+
+      if (scoreMap.size > 0) {
+        // Use score_ledger data
+        top10 = Array.from(scoreMap.entries())
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 10)
+          .map(([memberId, score]) => {
+            const member = members.find(m => m.id === memberId);
+            return { memberId, name: member?.display_name ?? 'Desconhecido', score };
+          });
+      } else {
+        // Fallback: rank by message count in last 7 days
+        const msgCountMap = new Map<string, number>();
+        (msgRank.data ?? []).forEach((m: any) => {
+          if (m.author_member_id) {
+            msgCountMap.set(m.author_member_id, (msgCountMap.get(m.author_member_id) || 0) + 1);
+          }
         });
+        top10 = Array.from(msgCountMap.entries())
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 10)
+          .map(([memberId, count]) => {
+            const member = members.find(m => m.id === memberId);
+            return { memberId, name: member?.display_name ?? 'Desconhecido', score: count };
+          });
+      }
 
       return {
         totalMembers: membersRes.count ?? 0,

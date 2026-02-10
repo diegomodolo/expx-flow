@@ -165,7 +165,7 @@ serve(async (req) => {
         });
       }
 
-      // Build message insert
+      // Build message insert (senderKey will be resolved to author_member_id after members are upserted)
       messageInserts.push({
         company_id: group.company_id,
         group_id: group.id,
@@ -173,6 +173,7 @@ serve(async (req) => {
         text: typeof text === 'string' ? text.substring(0, 5000) : (text ? String(text).substring(0, 5000) : null),
         media_type: msgType === "imageMessage" ? "image" : msgType === "videoMessage" ? "video" : msgType === "audioMessage" ? "audio" : msgType === "documentMessage" ? "document" : null,
         timestamp: msgTimeISO,
+        _senderKey: memberKey, // temporary, will be replaced
       });
     }
 
@@ -241,11 +242,20 @@ serve(async (req) => {
       }
     }
 
-    // 8. Insert messages in batches (skip duplicates by provider_message_id)
+    // 8. Resolve author_member_id on message inserts
+    const senderToMemberId = new Map<string, string>();
+    memberResults.forEach(m => senderToMemberId.set(m.wa_user_id, m.id));
+
+    // 9. Insert messages in batches (skip duplicates by provider_message_id)
     let messagesInserted = 0;
     const batchSize = 100;
-    // Filter out messages without provider_message_id (can't dedup without it)
-    const validInserts = messageInserts.filter(m => m.provider_message_id);
+    // Filter out messages without provider_message_id and resolve author
+    const validInserts = messageInserts
+      .filter(m => m.provider_message_id)
+      .map(m => {
+        const { _senderKey, ...rest } = m;
+        return { ...rest, author_member_id: senderToMemberId.get(_senderKey) || null };
+      });
     console.log(`[groupops-sync-history] Valid messages with provider_message_id: ${validInserts.length} of ${messageInserts.length}`);
     
     for (let i = 0; i < validInserts.length; i += batchSize) {
