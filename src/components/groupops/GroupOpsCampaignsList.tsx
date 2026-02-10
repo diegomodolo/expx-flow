@@ -1,4 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -455,49 +457,13 @@ function CampaignFormModal({ open, onClose, campaign, groups, templates, instanc
             )}
           </div>
 
-          {/* Instance selector with validation */}
-          {(() => {
-            const selectedGroup = groups.find(g => g.id === groupId);
-            const groupInstanceId = selectedGroup?.config_json?.instance_id;
-            const instanceMismatch = groupId && instanceId && instanceId !== 'none' && groupInstanceId && instanceId !== groupInstanceId;
-            const groupInstanceName = instances.find(i => i.id === groupInstanceId)?.instance_name;
-            
-            return (
-              <div className="space-y-2">
-                <Label>Instância WhatsApp</Label>
-                <Select value={instanceId} onValueChange={setInstanceId}>
-                  <SelectTrigger className={instanceMismatch ? 'border-destructive' : ''}>
-                    <Smartphone className="h-4 w-4 mr-2" />
-                    <SelectValue placeholder="Selecione a instância" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Nenhuma (definir depois)</SelectItem>
-                    {instances.filter(i => i.is_connected).map((inst) => {
-                      const isGroupInstance = inst.id === groupInstanceId;
-                      return (
-                        <SelectItem key={inst.id} value={inst.id}>
-                          {inst.instance_name} {inst.connected_phone ? `(${inst.connected_phone})` : ''} {isGroupInstance ? '✅' : ''}
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-                {groupId && groupInstanceId && (
-                  <p className="text-xs text-muted-foreground">
-                    Instância do grupo: <strong>{groupInstanceName ?? 'Desconhecida'}</strong>
-                  </p>
-                )}
-                {instanceMismatch && (
-                  <div className="flex items-start gap-2 p-2 rounded-md bg-destructive/10 border border-destructive/20">
-                    <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
-                    <p className="text-xs text-destructive">
-                      A instância selecionada não é a mesma do grupo. A campanha não conseguirá enviar mensagens nesse grupo. Selecione a instância correta ({groupInstanceName}).
-                    </p>
-                  </div>
-                )}
-              </div>
-            );
-          })()}
+          <InstanceValidationSelect
+            groupId={groupId}
+            instanceId={instanceId}
+            onInstanceChange={setInstanceId}
+            instances={instances}
+            groups={groups}
+          />
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -784,5 +750,116 @@ function CampaignSendLogDialog({
         </ScrollArea>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/* ===== Instance Validation Select ===== */
+function InstanceValidationSelect({
+  groupId,
+  instanceId,
+  onInstanceChange,
+  instances,
+  groups,
+}: {
+  groupId: string;
+  instanceId: string;
+  onInstanceChange: (id: string) => void;
+  instances: Array<{ id: string; instance_name: string; is_connected: boolean; connected_phone: string | null }>;
+  groups: Array<{ id: string; name: string; config_json?: any }>;
+}) {
+  // Fetch group members' phones to validate instance membership
+  const { data: memberPhones } = useQuery({
+    queryKey: ['groupops-member-phones', groupId],
+    queryFn: async () => {
+      if (!groupId) return [];
+      const { data, error } = await supabase
+        .from('groupops_members' as any)
+        .select('phone_e164')
+        .eq('group_id', groupId)
+        .not('phone_e164', 'is', null);
+      if (error) return [];
+      return (data ?? []).map((m: any) => m.phone_e164 as string);
+    },
+    enabled: !!groupId,
+  });
+
+  const selectedGroup = groups.find(g => g.id === groupId);
+  const groupInstanceId = selectedGroup?.config_json?.instance_id;
+
+  // Check if instance phone is a member of the group
+  const selectedInstance = instances.find(i => i.id === instanceId);
+  const instancePhone = selectedInstance?.connected_phone;
+  
+  // Determine validation status for each instance
+  const getInstanceStatus = (inst: typeof instances[0]) => {
+    if (inst.id === groupInstanceId) return 'owner'; // Instance that imported/owns the group
+    if (!inst.connected_phone || !memberPhones) return 'unknown';
+    // Normalize phone for comparison (strip leading +)
+    const normalizedPhone = inst.connected_phone.replace(/\D/g, '');
+    const isMember = memberPhones.some(p => {
+      const normalized = p.replace(/\D/g, '');
+      return normalized === normalizedPhone || normalized.endsWith(normalizedPhone) || normalizedPhone.endsWith(normalized);
+    });
+    return isMember ? 'member' : 'not_member';
+  };
+
+  const currentStatus = instanceId && instanceId !== 'none' 
+    ? getInstanceStatus(instances.find(i => i.id === instanceId)!) 
+    : null;
+
+  const isMismatch = currentStatus === 'not_member';
+  const isOwner = currentStatus === 'owner';
+  const isMember = currentStatus === 'member';
+  const isUnknown = currentStatus === 'unknown';
+
+  return (
+    <div className="space-y-2">
+      <Label>Instância WhatsApp</Label>
+      <Select value={instanceId} onValueChange={onInstanceChange}>
+        <SelectTrigger className={isMismatch ? 'border-destructive' : ''}>
+          <Smartphone className="h-4 w-4 mr-2" />
+          <SelectValue placeholder="Selecione a instância" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="none">Nenhuma (definir depois)</SelectItem>
+          {instances.filter(i => i.is_connected).map((inst) => {
+            const status = getInstanceStatus(inst);
+            const statusIcon = status === 'owner' ? '✅' : status === 'member' ? '✅' : status === 'not_member' ? '⚠️' : '';
+            return (
+              <SelectItem key={inst.id} value={inst.id}>
+                {inst.instance_name} {inst.connected_phone ? `(${inst.connected_phone})` : ''} {statusIcon}
+              </SelectItem>
+            );
+          })}
+        </SelectContent>
+      </Select>
+
+      {groupId && isOwner && (
+        <p className="text-xs text-primary flex items-center gap-1">
+          ✅ Esta instância é dona/administradora do grupo
+        </p>
+      )}
+      {groupId && isMember && (
+        <p className="text-xs text-primary flex items-center gap-1">
+          ✅ O telefone desta instância é membro do grupo
+        </p>
+      )}
+      {groupId && isUnknown && instanceId && instanceId !== 'none' && (
+        <div className="flex items-start gap-2 p-2 rounded-md bg-muted border border-border">
+          <AlertTriangle className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+          <p className="text-xs text-muted-foreground">
+            Não foi possível verificar se esta instância é membro do grupo (telefone não cadastrado). Verifique manualmente se o número está no grupo.
+          </p>
+        </div>
+      )}
+      {groupId && isMismatch && (
+        <div className="flex items-start gap-2 p-2 rounded-md bg-destructive/10 border border-destructive/20">
+          <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+          <p className="text-xs text-destructive">
+            O telefone desta instância ({instancePhone}) <strong>não é membro</strong> do grupo selecionado. A campanha não conseguirá enviar mensagens. Selecione uma instância que faça parte do grupo.
+          </p>
+        </div>
+      )}
+    </div>
   );
 }
