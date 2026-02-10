@@ -17,6 +17,7 @@ import {
   Zap,
   CalendarClock,
   MessageCircle,
+  MessageSquare,
   Database,
   ChevronDown,
   Activity,
@@ -97,6 +98,7 @@ const menuCategories: MenuCategory[] = [
         { title: "Ações", url: "/cs/acoes", icon: Zap, permission: "cs-acoes" as MenuItemType },
         { title: "Clientes CS", url: "/cs/clientes", icon: Users, permission: "cs-clientes" as MenuItemType },
         { title: "CS TV", url: "#cs-tv-dashboard", icon: Tv, permission: "cs-tv" as MenuItemType, isExternal: true },
+        { title: "GroupOps", url: "/cs/groupops", icon: MessageSquare, permission: "cs-cockpit" as MenuItemType },
       ].sort((a, b) => a.title.localeCompare(b.title, 'pt-BR')),
     },
     {
