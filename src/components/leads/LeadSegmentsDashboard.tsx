@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ListaCnaeImportModal } from "./ListaCnaeImportModal";
+import { ImportFromBaseModal } from "./ImportFromBaseModal";
 import { useCompany } from "@/contexts/CompanyContext";
 
 interface LeadSegmentsDashboardProps {
