@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useGroupOpsDashboard } from '@/hooks/useGroupOpsDashboard';
 import { useGroupOpsGroups } from '@/hooks/useGroupOpsGroups';
 import {
@@ -19,8 +20,15 @@ import {
 
 export default function GroupOpsDashboard() {
   const [selectedGroupId, setSelectedGroupId] = useState<string | undefined>();
+  const [rankingGroupId, setRankingGroupId] = useState<string | undefined>();
   const { groups } = useGroupOpsGroups();
   const { stats, isLoading } = useGroupOpsDashboard(selectedGroupId);
+  const { stats: rankingStats } = useGroupOpsDashboard(rankingGroupId);
+
+  const podiumColors = ['text-yellow-500', 'text-slate-400', 'text-amber-700'];
+  const podiumEmojis = ['🥇', '🥈', '🥉'];
+  const top3 = rankingStats?.top10.slice(0, 3) ?? [];
+  const restRanking = rankingStats?.top10.slice(3) ?? [];
 
   return (
     <div className="space-y-6">
@@ -87,29 +95,71 @@ export default function GroupOpsDashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Top 10 */}
-        <Card>
-          <CardHeader>
+        <Card className="lg:col-span-2">
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <Trophy className="h-5 w-5 text-yellow-500" />
-              Top 10 da Semana
+              Ranking de Engajamento — Semana
             </CardTitle>
+            <Select value={rankingGroupId ?? 'all'} onValueChange={(v) => setRankingGroupId(v === 'all' ? undefined : v)}>
+              <SelectTrigger className="w-52">
+                <SelectValue placeholder="Todos os grupos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os grupos</SelectItem>
+                {groups.map((g) => (
+                  <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </CardHeader>
           <CardContent>
-            {!stats?.top10.length ? (
-              <p className="text-sm text-muted-foreground">Nenhum dado de pontuação ainda</p>
+            {top3.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-6">Nenhum dado de engajamento ainda. Sincronize o histórico de mensagens para ver o ranking.</p>
             ) : (
-              <div className="space-y-3">
-                {stats.top10.map((entry, i) => (
-                  <div key={entry.memberId} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <span className={`text-sm font-bold w-6 ${i < 3 ? 'text-yellow-500' : 'text-muted-foreground'}`}>
-                        #{i + 1}
-                      </span>
-                      <span className="text-sm font-medium">{entry.name}</span>
-                    </div>
-                    <Badge variant="secondary">{entry.score} pts</Badge>
+              <div className="space-y-6">
+                {/* Podium - Top 3 */}
+                <div className="grid grid-cols-3 gap-4">
+                  {[1, 0, 2].map((idx) => {
+                    const entry = top3[idx];
+                    if (!entry) return <div key={idx} />;
+                    const isFirst = idx === 0;
+                    return (
+                      <div
+                        key={entry.memberId}
+                        className={`flex flex-col items-center gap-2 py-4 rounded-lg ${isFirst ? 'bg-yellow-500/10 border border-yellow-500/30' : 'bg-muted/50'}`}
+                      >
+                        <span className="text-2xl">{podiumEmojis[idx]}</span>
+                        <Avatar className={`${isFirst ? 'h-14 w-14' : 'h-10 w-10'} border-2 ${isFirst ? 'border-yellow-500' : 'border-muted-foreground/30'}`}>
+                          <AvatarFallback className={`text-sm font-bold ${podiumColors[idx]} bg-background`}>
+                            {(entry.name || '?').substring(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className={`text-sm font-semibold text-center truncate max-w-full px-2 ${podiumColors[idx]}`}>
+                          {entry.name}
+                        </span>
+                        <Badge variant="secondary" className={isFirst ? 'bg-yellow-500/20 text-yellow-600' : ''}>
+                          {entry.score} msgs
+                        </Badge>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Rest of ranking */}
+                {restRanking.length > 0 && (
+                  <div className="space-y-2">
+                    {restRanking.map((entry, i) => (
+                      <div key={entry.memberId} className="flex items-center justify-between py-1.5 border-b last:border-0 border-border/50">
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs font-bold text-muted-foreground w-5">#{i + 4}</span>
+                          <span className="text-sm">{entry.name}</span>
+                        </div>
+                        <Badge variant="outline" className="text-xs">{entry.score} msgs</Badge>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
             )}
           </CardContent>
