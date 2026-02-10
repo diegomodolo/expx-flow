@@ -579,6 +579,9 @@ export default function GroupOpsGroupsList() {
                 <div className="flex items-center gap-3">
                   <Badge className={statusColor[group.status]}>{statusLabel[group.status]}</Badge>
                   <Badge variant="outline">Bot: {group.config_json?.auto_reply_mode ?? 'safe'}</Badge>
+                  <Button size="icon" variant="ghost" title="Sincronizar histórico" onClick={() => setSyncGroup(group)}>
+                    <History className="h-4 w-4" />
+                  </Button>
                   <Button size="icon" variant="ghost" onClick={() => { setEditGroup(group); setConfigOpen(true); }}>
                     <Settings className="h-4 w-4" />
                   </Button>
