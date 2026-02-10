@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useGroupOpsTemplates, TEMPLATE_CATEGORIES, TEMPLATE_TONES, AVAILABLE_PLACEHOLDERS, DEFAULT_TEMPLATES, type GroupOpsTemplate } from '@/hooks/useGroupOpsTemplates';
+import { PROVOCACOES_AGRESSIVAS } from '@/data/groupopsProvocacoes';
 import { parseWhatsAppFormatting } from '@/lib/whatsappFormatting';
 import {
   Plus,
@@ -33,7 +34,7 @@ export default function GroupOpsTemplatesList() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [viewTab, setViewTab] = useState<'defaults' | 'custom'>('defaults');
 
-  const { templates, isLoading, createTemplate, updateTemplate, deleteTemplate, seedDefaultTemplates } = useGroupOpsTemplates();
+  const { templates, isLoading, createTemplate, updateTemplate, deleteTemplate, seedDefaultTemplates, seedProvocacoes } = useGroupOpsTemplates();
 
   // Convert DEFAULT_TEMPLATES to pseudo-GroupOpsTemplate for preview/edit
   const defaultTemplatesAsGroupOps: GroupOpsTemplate[] = DEFAULT_TEMPLATES.map((t, i) => ({
@@ -111,12 +112,15 @@ export default function GroupOpsTemplatesList() {
           <h2 className="text-lg font-semibold">Templates</h2>
           <p className="text-sm text-muted-foreground">Modelos de mensagem com formatação WhatsApp e placeholders</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {viewTab === 'defaults' && templates.length === 0 && (
             <Button variant="outline" onClick={() => seedDefaultTemplates.mutate()} disabled={seedDefaultTemplates.isPending}>
               <Download className="h-4 w-4 mr-2" /> Carregar Todos no Banco
             </Button>
           )}
+          <Button variant="outline" onClick={() => seedProvocacoes.mutate()} disabled={seedProvocacoes.isPending}>
+            <Download className="h-4 w-4 mr-2" /> {seedProvocacoes.isPending ? 'Carregando...' : `Carregar ${PROVOCACOES_AGRESSIVAS.length} Provocações`}
+          </Button>
           <Button onClick={() => setShowCreateModal(true)}>
             <Plus className="h-4 w-4 mr-2" /> Novo Template
           </Button>
