@@ -123,6 +123,11 @@ import CSActionsPage from "./pages/cs/CSActionsPage";
 import CSClientsList from "./pages/cs/CSClientsList";
 import CSTVPage from "./pages/cs/CSTVPage";
 import ValueStatementPublic from "./pages/cs/ValueStatementPublic";
+import GroupOpsPage from "./pages/cs/GroupOpsPage";
+import GroupOpsDashboard from "./components/groupops/GroupOpsDashboard";
+import GroupOpsGroupsList from "./components/groupops/GroupOpsGroupsList";
+import GroupOpsMembersList from "./components/groupops/GroupOpsMembersList";
+import GroupOpsPlaceholder from "./components/groupops/GroupOpsPlaceholder";
 import Workspace from "./pages/Workspace";
 import { AuthProvider } from "@/hooks/useAuth";
 import { CompanyProvider } from "@/contexts/CompanyContext";
@@ -622,6 +627,18 @@ const App = () => {
                   <Route path="acoes" element={<CSActionsPage />} />
                   <Route path="clientes" element={<CSClientsList />} />
                   <Route path="tv" element={<CSTVPage />} />
+                  <Route path="groupops" element={<GroupOpsPage />}>
+                    <Route index element={<GroupOpsDashboard />} />
+                    <Route path="grupos" element={<GroupOpsGroupsList />} />
+                    <Route path="membros" element={<GroupOpsMembersList />} />
+                    <Route path="campanhas" element={<GroupOpsPlaceholder title="Campanhas" phase={2} />} />
+                    <Route path="templates" element={<GroupOpsPlaceholder title="Templates" phase={2} />} />
+                    <Route path="pontuacao" element={<GroupOpsPlaceholder title="Pontuação & Badges" phase={3} />} />
+                    <Route path="eventos" element={<GroupOpsPlaceholder title="Feed de Eventos" phase={3} />} />
+                    <Route path="moderacao" element={<GroupOpsPlaceholder title="Moderação" phase={3} />} />
+                    <Route path="relatorios" element={<GroupOpsPlaceholder title="Relatórios" phase={2} />} />
+                    <Route path="configuracoes" element={<GroupOpsPlaceholder title="Configurações" phase={2} />} />
+                  </Route>
                 </Route>
                 
                 {/* Public CS Routes */}
