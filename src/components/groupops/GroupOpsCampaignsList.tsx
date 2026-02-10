@@ -72,7 +72,6 @@ export default function GroupOpsCampaignsList() {
 
   const testCampaign = useMutation({
     mutationFn: async (campaignId: string) => {
-      setTestingId(campaignId);
       const { data, error } = await supabase.functions.invoke('groupops-campaign-cron', {
         body: { campaign_id: campaignId },
       });
@@ -80,8 +79,6 @@ export default function GroupOpsCampaignsList() {
       return data;
     },
     onSuccess: (data) => {
-      setTestingId(null);
-      const { toast } = await import('sonner');
       if (data?.executed > 0) {
         toast.success('Envio de teste realizado com sucesso');
       } else {
@@ -89,8 +86,6 @@ export default function GroupOpsCampaignsList() {
       }
     },
     onError: () => {
-      setTestingId(null);
-      const { toast } = await import('sonner');
       toast.error('Erro ao enviar teste');
     },
   });
