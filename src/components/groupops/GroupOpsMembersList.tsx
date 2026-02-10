@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,13 +7,25 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useGroupOpsMembers } from '@/hooks/useGroupOpsMembers';
 import { useGroupOpsGroups } from '@/hooks/useGroupOpsGroups';
 import { useCompany } from '@/contexts/CompanyContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Users, Search, MessageCircle, Volume2, VolumeX, Ban, RefreshCw, Loader2, Building2, Link, Check } from 'lucide-react';
+import { Users, Search, MessageCircle, Volume2, VolumeX, Ban, RefreshCw, Loader2, Building2, Link, MoreHorizontal } from 'lucide-react';
 import { toast } from 'sonner';
+import type { GroupOpsMember } from '@/hooks/useGroupOpsMembers';
+
+interface MergedMember {
+  /** Primary member record (first found) */
+  primary: GroupOpsMember;
+  /** All group_ids this phone belongs to */
+  groupIds: string[];
+  /** All member record ids (for actions) */
+  memberIds: string[];
+}
 
 export default function GroupOpsMembersList() {
   const { groups } = useGroupOpsGroups();
@@ -27,6 +39,7 @@ export default function GroupOpsMembersList() {
   const [syncing, setSyncing] = useState(false);
   const [linkingMemberId, setLinkingMemberId] = useState<string | null>(null);
 
+  // When a specific group is selected, fetch only that group; otherwise fetch all
   const { members, isLoading, updateMember } = useGroupOpsMembers(selectedGroup);
 
   // Fetch client associations by phone
@@ -69,6 +82,40 @@ export default function GroupOpsMembersList() {
 
   const clientMap = clientMatchQuery.data ?? {};
 
+  // Build a group name map
+  const groupMap = useMemo(() => {
+    const map: Record<string, { name: string; avatar?: string | null }> = {};
+    for (const g of groups) {
+      map[g.id] = { name: g.name, avatar: (g as any).avatar_url };
+    }
+    return map;
+  }, [groups]);
+
+  // Merge members by phone_e164 (group dedup)
+  const mergedMembers = useMemo(() => {
+    const phoneMap = new Map<string, MergedMember>();
+    const noPhoneList: MergedMember[] = [];
+
+    for (const m of members) {
+      const key = m.phone_e164;
+      if (!key) {
+        noPhoneList.push({ primary: m, groupIds: [m.group_id], memberIds: [m.id] });
+        continue;
+      }
+      const existing = phoneMap.get(key);
+      if (existing) {
+        if (!existing.groupIds.includes(m.group_id)) existing.groupIds.push(m.group_id);
+        existing.memberIds.push(m.id);
+        // Keep the record with the most data as primary
+        if (!existing.primary.display_name && m.display_name) existing.primary = m;
+      } else {
+        phoneMap.set(key, { primary: m, groupIds: [m.group_id], memberIds: [m.id] });
+      }
+    }
+
+    return [...phoneMap.values(), ...noPhoneList];
+  }, [members]);
+
   const selectedGroupData = groups.find(g => g.id === selectedGroup);
 
   const handleResync = async () => {
@@ -97,7 +144,6 @@ export default function GroupOpsMembersList() {
     if (!companyId || !phone) return;
     setLinkingMemberId(phone);
     try {
-      // Check if already exists
       const { data: existing } = await supabase
         .from('whatsapp_client_contacts')
         .select('id')
@@ -112,14 +158,12 @@ export default function GroupOpsMembersList() {
         return;
       }
 
-      // Remove any previous association for this phone
       await supabase
         .from('whatsapp_client_contacts')
         .delete()
         .eq('company_id', companyId)
         .eq('phone', phone);
 
-      // Insert new association
       const { error } = await supabase
         .from('whatsapp_client_contacts')
         .insert({
@@ -140,10 +184,14 @@ export default function GroupOpsMembersList() {
     }
   };
 
-  const filtered = members.filter((m) => {
+  // Filter on merged members
+  const filtered = mergedMembers.filter((mm) => {
+    const m = mm.primary;
     if (search && !m.display_name?.toLowerCase().includes(search.toLowerCase()) && !m.phone_e164?.includes(search)) return false;
     if (riskFilter !== 'all' && m.risk_level !== riskFilter) return false;
     if (statusFilter !== 'all' && m.status !== statusFilter) return false;
+    // If filtering by group, only show members that belong to that group
+    if (selectedGroup && !mm.groupIds.includes(selectedGroup)) return false;
     return true;
   });
 
@@ -153,27 +201,18 @@ export default function GroupOpsMembersList() {
     high: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
   };
 
-  const statusActions = (memberId: string, currentStatus: string) => (
-    <div className="flex gap-1">
-      <Button size="icon" variant="ghost" title="DM" disabled>
-        <MessageCircle className="h-4 w-4" />
-      </Button>
-      {currentStatus === 'muted' ? (
-        <Button size="icon" variant="ghost" title="Desmutar" onClick={() => updateMember.mutate({ id: memberId, status: 'active' })}>
-          <Volume2 className="h-4 w-4" />
-        </Button>
-      ) : (
-        <Button size="icon" variant="ghost" title="Mutar" onClick={() => updateMember.mutate({ id: memberId, status: 'muted' })}>
-          <VolumeX className="h-4 w-4" />
-        </Button>
-      )}
-      {currentStatus !== 'banned' && (
-        <Button size="icon" variant="ghost" title="Banir" onClick={() => updateMember.mutate({ id: memberId, status: 'banned' })}>
-          <Ban className="h-4 w-4 text-destructive" />
-        </Button>
-      )}
-    </div>
-  );
+  const roleLabel: Record<string, string> = { dono: 'Dono', admin: 'Admin', membro: 'Membro', member: 'Membro', owner: 'Dono' };
+
+  const formatPhone = (phone: string | null) => {
+    if (!phone) return '-';
+    if (phone.length >= 12 && phone.startsWith('55')) {
+      const ddd = phone.substring(2, 4);
+      const rest = phone.substring(4);
+      if (rest.length === 9) return `+55 (${ddd}) ${rest.substring(0, 5)}-${rest.substring(5)}`;
+      if (rest.length === 8) return `+55 (${ddd}) ${rest.substring(0, 4)}-${rest.substring(4)}`;
+    }
+    return `+${phone}`;
+  };
 
   return (
     <div className="space-y-4">
@@ -252,35 +291,24 @@ export default function GroupOpsMembersList() {
                <TableRow>
                   <TableHead>Membro</TableHead>
                   <TableHead>Telefone</TableHead>
-                  <TableHead>Função</TableHead>
+                  <TableHead>Grupos</TableHead>
                   <TableHead>Empresa</TableHead>
                   <TableHead>Dor</TableHead>
                   <TableHead>Risco</TableHead>
                   <TableHead>Streak</TableHead>
                   <TableHead>Silêncio</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
+                  <TableHead className="text-right w-10"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((m) => {
+                {filtered.map((mm) => {
+                  const m = mm.primary;
                   const profilePic = (m.privacy_flags as any)?.profile_pic || null;
-                  const roleLabel: Record<string, string> = { dono: 'Dono', admin: 'Admin', membro: 'Membro', member: 'Membro', owner: 'Dono' };
-                  const formatPhone = (phone: string | null) => {
-                    if (!phone) return '-';
-                    if (phone.length >= 12 && phone.startsWith('55')) {
-                      const ddd = phone.substring(2, 4);
-                      const rest = phone.substring(4);
-                      if (rest.length === 9) return `+55 (${ddd}) ${rest.substring(0, 5)}-${rest.substring(5)}`;
-                      if (rest.length === 8) return `+55 (${ddd}) ${rest.substring(0, 4)}-${rest.substring(4)}`;
-                    }
-                    return `+${phone}`;
-                  };
-
                   const match = m.phone_e164 ? clientMap[m.phone_e164] : null;
 
                   return (
-                    <TableRow key={m.id}>
+                    <TableRow key={m.phone_e164 || m.id}>
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <Avatar className="h-8 w-8">
@@ -293,8 +321,23 @@ export default function GroupOpsMembersList() {
                         </div>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground font-mono">{formatPhone(m.phone_e164)}</TableCell>
-                      <TableCell className="text-sm">
-                        <Badge variant="outline">{roleLabel[m.role ?? 'membro'] ?? m.role}</Badge>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {mm.groupIds.map((gid) => {
+                            const g = groupMap[gid];
+                            if (!g) return null;
+                            return (
+                              <Tooltip key={gid}>
+                                <TooltipTrigger asChild>
+                                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5 max-w-[100px] truncate cursor-default">
+                                    {g.name}
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent side="top"><p>{g.name}</p></TooltipContent>
+                              </Tooltip>
+                            );
+                          })}
+                        </div>
                       </TableCell>
                       <TableCell className="text-sm">
                         {match ? (
@@ -327,7 +370,16 @@ export default function GroupOpsMembersList() {
                       <TableCell>
                         <Badge variant={m.status === 'active' ? 'default' : 'secondary'}>{m.status}</Badge>
                       </TableCell>
-                      <TableCell className="text-right">{statusActions(m.id, m.status)}</TableCell>
+                      <TableCell className="text-right">
+                        <MemberActionsMenu
+                          memberIds={mm.memberIds}
+                          currentStatus={m.status}
+                          onUpdateStatus={(status) => {
+                            // Update all member records for this person
+                            mm.memberIds.forEach((mid) => updateMember.mutate({ id: mid, status }));
+                          }}
+                        />
+                      </TableCell>
                     </TableRow>
                   );
                 })}
@@ -337,6 +389,46 @@ export default function GroupOpsMembersList() {
         </Card>
       )}
     </div>
+  );
+}
+
+/* ===== Member Actions Dropdown ===== */
+function MemberActionsMenu({
+  memberIds,
+  currentStatus,
+  onUpdateStatus,
+}: {
+  memberIds: string[];
+  currentStatus: string;
+  onUpdateStatus: (status: string) => void;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button size="icon" variant="ghost" className="h-8 w-8">
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem disabled className="gap-2">
+          <MessageCircle className="h-4 w-4" /> Enviar DM
+        </DropdownMenuItem>
+        {currentStatus === 'muted' ? (
+          <DropdownMenuItem onClick={() => onUpdateStatus('active')} className="gap-2">
+            <Volume2 className="h-4 w-4" /> Desmutar
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem onClick={() => onUpdateStatus('muted')} className="gap-2">
+            <VolumeX className="h-4 w-4" /> Mutar
+          </DropdownMenuItem>
+        )}
+        {currentStatus !== 'banned' && (
+          <DropdownMenuItem onClick={() => onUpdateStatus('banned')} className="gap-2 text-destructive focus:text-destructive">
+            <Ban className="h-4 w-4" /> Banir
+          </DropdownMenuItem>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
