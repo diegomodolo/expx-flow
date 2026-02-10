@@ -127,7 +127,8 @@ import GroupOpsPage from "./pages/cs/GroupOpsPage";
 import GroupOpsDashboard from "./components/groupops/GroupOpsDashboard";
 import GroupOpsGroupsList from "./components/groupops/GroupOpsGroupsList";
 import GroupOpsMembersList from "./components/groupops/GroupOpsMembersList";
-import GroupOpsPlaceholder from "./components/groupops/GroupOpsPlaceholder";
+import GroupOpsReports from "./components/groupops/GroupOpsReports";
+import GroupOpsSettings from "./components/groupops/GroupOpsSettings";
 import GroupOpsCampaignsList from "./components/groupops/GroupOpsCampaignsList";
 import GroupOpsTemplatesList from "./components/groupops/GroupOpsTemplatesList";
 import GroupOpsScoring from "./components/groupops/GroupOpsScoring";
@@ -641,8 +642,8 @@ const App = () => {
                     <Route path="pontuacao" element={<GroupOpsScoring />} />
                     <Route path="eventos" element={<GroupOpsEventsFeed />} />
                     <Route path="moderacao" element={<GroupOpsModeration />} />
-                    <Route path="relatorios" element={<GroupOpsPlaceholder title="Relatórios" phase={2} />} />
-                    <Route path="configuracoes" element={<GroupOpsPlaceholder title="Configurações" phase={2} />} />
+                    <Route path="relatorios" element={<GroupOpsReports />} />
+                    <Route path="configuracoes" element={<GroupOpsSettings />} />
                   </Route>
                 </Route>
                 
