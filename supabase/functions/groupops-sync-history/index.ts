@@ -70,90 +70,42 @@ serve(async (req) => {
       throw new Error("Group has no provider_group_id");
     }
 
-    // 4. Fetch messages from UazapiGO
+    // 4. Fetch messages from UazapiGO via POST /message/find
     const count = sync_mode === "quantity" ? (sync_value || 500) : 2000;
 
-    // Both POST /chat/fetchMessages and POST /chat/findMessages return 405 (Method Not Allowed)
-    // This means these routes exist but need GET method (or PUT)
-    // GET with path params returns 404, so try query params only
-    const endpointsToTry = [
-      // GET /chat/fetchMessages with query params (POST returned 405 = route exists, wrong method)
-      { url: `${endpoint}/chat/fetchMessages?chatId=${encodeURIComponent(chatId)}&count=${count}`, method: "GET", body: null },
-      { url: `${endpoint}/chat/fetchMessages?remoteJid=${encodeURIComponent(chatId)}&limit=${count}`, method: "GET", body: null },
-      { url: `${endpoint}/chat/fetchMessages?chatId=${encodeURIComponent(chatId)}`, method: "GET", body: null },
-      // PUT /chat/fetchMessages (since POST returned 405)
-      { url: `${endpoint}/chat/fetchMessages`, method: "PUT", body: { chatId: chatId, count: count } },
-      { url: `${endpoint}/chat/fetchMessages`, method: "PUT", body: { remoteJid: chatId, limit: count } },
-      // GET /chat/findMessages with query params
-      { url: `${endpoint}/chat/findMessages?chatId=${encodeURIComponent(chatId)}&count=${count}`, method: "GET", body: null },
-      { url: `${endpoint}/chat/findMessages?remoteJid=${encodeURIComponent(chatId)}&limit=${count}`, method: "GET", body: null },
-      // PUT /chat/findMessages
-      { url: `${endpoint}/chat/findMessages`, method: "PUT", body: { where: { key: { remoteJid: chatId } }, limit: count } },
-      // GET with non-encoded chatId in path (@ not encoded)
-      { url: `${endpoint}/chat/fetchMessages/${chatId}`, method: "GET", body: null },
-      { url: `${endpoint}/chat/findMessages/${chatId}`, method: "GET", body: null },
-      // POST /chat/find returns 500 but may work with different body
-      { url: `${endpoint}/chat/find`, method: "POST", body: { chatId: chatId } },
-      { url: `${endpoint}/chat/find`, method: "POST", body: { remoteJid: chatId } },
-      { url: `${endpoint}/chat/find`, method: "POST", body: { where: { key: { remoteJid: chatId } } } },
-    ];
+    console.log(`[groupops-sync-history] Fetching via POST /message/find, chatId: ${chatId}, limit: ${count}`);
+    
+    const msgResponse = await fetch(`${endpoint}/message/find`, {
+      method: "POST",
+      headers: {
+        token: token || "",
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({ chatid: chatId, limit: count }),
+    });
+
+    if (!msgResponse.ok) {
+      const errText = await msgResponse.text();
+      console.error(`[groupops-sync-history] POST /message/find returned ${msgResponse.status}: ${errText}`);
+      throw new Error(`UazapiGO /message/find error ${msgResponse.status}: ${errText}`);
+    }
+
+    const responseData = await msgResponse.json();
+    console.log(`[groupops-sync-history] Response: type=${typeof responseData}, isArray=${Array.isArray(responseData)}, keys=${typeof responseData === 'object' && responseData ? Object.keys(responseData).join(',') : 'N/A'}, preview=${JSON.stringify(responseData).substring(0, 500)}`);
 
     let messages: any[] = [];
-    let fetchSuccess = false;
-
-    for (const ep of endpointsToTry) {
-      try {
-        console.log(`[groupops-sync-history] Trying: ${ep.method} ${ep.url}`);
-        const fetchOptions: RequestInit = {
-          method: ep.method,
-          headers: {
-            token: token || "",
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-        };
-        if (ep.body && ep.method === "POST") {
-          fetchOptions.body = JSON.stringify(ep.body);
-        }
-
-        const response = await fetch(ep.url, fetchOptions);
-        if (!response.ok) {
-          const errText = await response.text();
-          console.log(`[groupops-sync-history] ${ep.url} returned ${response.status}: ${errText.substring(0, 200)}`);
-          continue;
-        }
-
-        const responseData = await response.json();
-        console.log(`[groupops-sync-history] ${ep.url} response type: ${typeof responseData}, isArray: ${Array.isArray(responseData)}, keys: ${typeof responseData === 'object' && responseData ? Object.keys(responseData).join(',') : 'N/A'}, preview: ${JSON.stringify(responseData).substring(0, 300)}`);
-        
-        let parsed: any[] = [];
-
-        if (Array.isArray(responseData)) {
-          parsed = responseData;
-        } else if (responseData?.data && Array.isArray(responseData.data)) {
-          parsed = responseData.data;
-        } else if (responseData?.messages && Array.isArray(responseData.messages)) {
-          parsed = responseData.messages;
-        } else if (responseData?.records && Array.isArray(responseData.records)) {
-          parsed = responseData.records;
-        }
-
-        if (parsed.length > 0) {
-          messages = parsed;
-          fetchSuccess = true;
-          console.log(`[groupops-sync-history] Success with ${ep.method} ${ep.url}: ${messages.length} messages`);
-          break;
-        } else {
-          console.log(`[groupops-sync-history] ${ep.url} returned ${parsed.length} parsed messages`);
-        }
-      } catch (e: any) {
-        console.log(`[groupops-sync-history] ${ep.url} error: ${e.message}`);
-      }
+    if (Array.isArray(responseData)) {
+      messages = responseData;
+    } else if (responseData?.data && Array.isArray(responseData.data)) {
+      messages = responseData.data;
+    } else if (responseData?.messages && Array.isArray(responseData.messages)) {
+      messages = responseData.messages;
+    } else if (responseData?.records && Array.isArray(responseData.records)) {
+      messages = responseData.records;
     }
 
-    if (!fetchSuccess) {
-      throw new Error("Could not fetch messages from UazapiGO. Tried multiple endpoint patterns.");
-    }
+    console.log(`[groupops-sync-history] Parsed ${messages.length} messages`);
 
     console.log(`[groupops-sync-history] Fetched ${messages.length} messages from API`);
 
