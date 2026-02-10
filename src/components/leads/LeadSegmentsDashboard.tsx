@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
-import { Tag, Trophy, Medal, Award, Trash2, RefreshCw, Plus, Edit, X, Building2, Search, LayoutGrid } from "lucide-react";
+import { Tag, Trophy, Medal, Award, Trash2, RefreshCw, Plus, Edit, X, Building2, Search, LayoutGrid, DatabaseIcon, Loader2 } from "lucide-react";
 import { useLeadScoring } from "@/hooks/useLeadScoring";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -115,6 +115,7 @@ export const LeadSegmentsDashboard = ({
 
   // Modal states
   const [importModalSegment, setImportModalSegment] = useState<{ id: string; name: string; cnaes: string[] } | null>(null);
+  const [importingFromBase, setImportingFromBase] = useState<string | null>(null);
 
   // Sync dialog state with external prop
   useEffect(() => {
@@ -387,6 +388,63 @@ export const LeadSegmentsDashboard = ({
     }
   };
 
+  const handleImportFromBase = async (segmentId: string, segmentName: string, cnaes: string[]) => {
+    if (!companyId || cnaes.length === 0) return;
+    setImportingFromBase(segmentId);
+
+    try {
+      // Build OR filter for cnae_code matching any of the segment's CNAEs
+      const cnaeFilters = cnaes.map(c => `cnae_code.eq.${c}`).join(',');
+
+      // Fetch all leads from lead_master_pool matching any CNAE
+      const { data: matchingLeads, error: fetchError } = await supabase
+        .from('lead_master_pool')
+        .select('id')
+        .eq('company_id', companyId)
+        .or(cnaeFilters);
+
+      if (fetchError) throw fetchError;
+
+      if (!matchingLeads || matchingLeads.length === 0) {
+        toast.info(`Nenhum lead na base com CNAEs do segmento "${segmentName}"`);
+        return;
+      }
+
+      // Fetch existing assignments to avoid duplicates
+      const existingLeadIds = new Set(await fetchAllAssignments(segmentId));
+
+      const newLeadIds = matchingLeads
+        .map(l => l.id)
+        .filter(id => !existingLeadIds.has(id));
+
+      if (newLeadIds.length === 0) {
+        toast.info(`Todos os leads com esses CNAEs já estão no segmento "${segmentName}"`);
+        return;
+      }
+
+      // Batch insert assignments
+      const batchSize = 500;
+      for (let i = 0; i < newLeadIds.length; i += batchSize) {
+        const batch = newLeadIds.slice(i, i + batchSize).map(leadId => ({
+          lead_id: leadId,
+          segment_id: segmentId,
+        }));
+        const { error: insertError } = await supabase
+          .from('lead_segment_assignments')
+          .insert(batch);
+        if (insertError) throw insertError;
+      }
+
+      toast.success(`${newLeadIds.length} leads importados da base para "${segmentName}"`);
+      queryClient.invalidateQueries({ queryKey: ['lead-segments-dashboard'] });
+    } catch (error) {
+      console.error('Error importing from base:', error);
+      toast.error(`Erro ao importar leads da base para "${segmentName}"`);
+    } finally {
+      setImportingFromBase(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Create/Edit Dialog - kept separate to open from multiple places */}
@@ -625,20 +683,40 @@ export const LeadSegmentsDashboard = ({
                         <div className="flex items-center justify-center gap-1">
                           <TooltipProvider delayDuration={300}>
                             {segment.cnaes && segment.cnaes.length > 0 && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button 
-                                    size="icon" 
-                                    variant="ghost"
-                                    onClick={() => setImportModalSegment({ id: segment.id, name: segment.name, cnaes: segment.cnaes })}
-                                  >
-                                    <Search className="h-4 w-4 text-primary" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Buscar leads na ListaCNAE</p>
-                                </TooltipContent>
-                              </Tooltip>
+                              <>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button 
+                                      size="icon" 
+                                      variant="ghost"
+                                      onClick={() => setImportModalSegment({ id: segment.id, name: segment.name, cnaes: segment.cnaes })}
+                                    >
+                                      <Search className="h-4 w-4 text-primary" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Buscar leads na ListaCNAE</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button 
+                                      size="icon" 
+                                      variant="ghost"
+                                      onClick={() => handleImportFromBase(segment.id, segment.name, segment.cnaes)}
+                                      disabled={importingFromBase === segment.id}
+                                    >
+                                      {importingFromBase === segment.id 
+                                        ? <Loader2 className="h-4 w-4 animate-spin" />
+                                        : <DatabaseIcon className="h-4 w-4 text-primary" />
+                                      }
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Importar leads da base por CNAE</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </>
                             )}
                             <Tooltip>
                               <TooltipTrigger asChild>
