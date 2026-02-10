@@ -6549,9 +6549,11 @@ export type Database = {
           schedule_rule: string | null
           schedule_times: string[] | null
           scoring_profile_id: string | null
+          selected_template_ids: string[] | null
           status: string
           targeting_rule_json: Json | null
           template_id: string | null
+          template_mode: string
           type: string
           updated_at: string
         }
@@ -6572,9 +6574,11 @@ export type Database = {
           schedule_rule?: string | null
           schedule_times?: string[] | null
           scoring_profile_id?: string | null
+          selected_template_ids?: string[] | null
           status?: string
           targeting_rule_json?: Json | null
           template_id?: string | null
+          template_mode?: string
           type: string
           updated_at?: string
         }
@@ -6595,9 +6599,11 @@ export type Database = {
           schedule_rule?: string | null
           schedule_times?: string[] | null
           scoring_profile_id?: string | null
+          selected_template_ids?: string[] | null
           status?: string
           targeting_rule_json?: Json | null
           template_id?: string | null
+          template_mode?: string
           type?: string
           updated_at?: string
         }

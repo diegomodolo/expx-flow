@@ -58,10 +58,7 @@ const WEEKDAYS = [
   { value: 6, label: 'Sáb' },
 ];
 
-const HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) => {
-  const h = String(i).padStart(2, '0');
-  return `${h}:00`;
-});
+// Time options removed - using native time input instead
 
 export default function GroupOpsCampaignsList() {
   const [selectedGroupId, setSelectedGroupId] = useState<string | undefined>();
@@ -550,17 +547,15 @@ function CampaignFormModal({ open, onClose, campaign, groups, templates, instanc
               <div className="space-y-2">
                 {scheduleTimes.map((time, i) => (
                   <div key={i} className="flex items-center gap-2">
-                    <Select value={time} onValueChange={(v) => updateTime(i, v)}>
-                      <SelectTrigger className="w-[120px]">
-                        <Clock className="h-3 w-3 mr-1" />
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {HOUR_OPTIONS.map(h => (
-                          <SelectItem key={h} value={h}>{h}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="relative">
+                      <Clock className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                      <Input
+                        type="time"
+                        value={time}
+                        onChange={(e) => updateTime(i, e.target.value)}
+                        className="w-[140px] pl-8 h-9"
+                      />
+                    </div>
                     {scheduleTimes.length > 1 && (
                       <Button type="button" size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive" onClick={() => removeTime(i)}>
                         <X className="h-3 w-3" />
