@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useCompany } from '@/contexts/CompanyContext';
 import { toast } from 'sonner';
+import { PROVOCACOES_AGRESSIVAS } from '@/data/groupopsProvocacoes';
 
 export interface GroupOpsTemplate {
   id: string;
@@ -197,6 +198,33 @@ export function useGroupOpsTemplates() {
     onError: () => toast.error('Erro ao carregar templates padrão'),
   });
 
+  const seedProvocacoes = useMutation({
+    mutationFn: async () => {
+      if (!companyId) throw new Error('Sem company_id');
+      const rows = PROVOCACOES_AGRESSIVAS.map((t) => ({
+        company_id: companyId,
+        title: t.title,
+        category: t.category,
+        tone: t.tone,
+        body: t.body,
+        placeholders: extractPlaceholders(t.body),
+      }));
+      // Insert in batches of 50
+      for (let i = 0; i < rows.length; i += 50) {
+        const batch = rows.slice(i, i + 50);
+        const { error } = await supabase
+          .from('groupops_templates')
+          .insert(batch as any);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['groupops-templates'] });
+      toast.success(`${PROVOCACOES_AGRESSIVAS.length} provocações agressivas carregadas!`);
+    },
+    onError: () => toast.error('Erro ao carregar provocações'),
+  });
+
   return {
     templates: templatesQuery.data ?? [],
     isLoading: templatesQuery.isLoading,
@@ -204,5 +232,6 @@ export function useGroupOpsTemplates() {
     updateTemplate,
     deleteTemplate,
     seedDefaultTemplates,
+    seedProvocacoes,
   };
 }
