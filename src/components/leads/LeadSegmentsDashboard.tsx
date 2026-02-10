@@ -683,20 +683,40 @@ export const LeadSegmentsDashboard = ({
                         <div className="flex items-center justify-center gap-1">
                           <TooltipProvider delayDuration={300}>
                             {segment.cnaes && segment.cnaes.length > 0 && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button 
-                                    size="icon" 
-                                    variant="ghost"
-                                    onClick={() => setImportModalSegment({ id: segment.id, name: segment.name, cnaes: segment.cnaes })}
-                                  >
-                                    <Search className="h-4 w-4 text-primary" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Buscar leads na ListaCNAE</p>
-                                </TooltipContent>
-                              </Tooltip>
+                              <>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button 
+                                      size="icon" 
+                                      variant="ghost"
+                                      onClick={() => setImportModalSegment({ id: segment.id, name: segment.name, cnaes: segment.cnaes })}
+                                    >
+                                      <Search className="h-4 w-4 text-primary" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Buscar leads na ListaCNAE</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button 
+                                      size="icon" 
+                                      variant="ghost"
+                                      onClick={() => handleImportFromBase(segment.id, segment.name, segment.cnaes)}
+                                      disabled={importingFromBase === segment.id}
+                                    >
+                                      {importingFromBase === segment.id 
+                                        ? <Loader2 className="h-4 w-4 animate-spin" />
+                                        : <DatabaseIcon className="h-4 w-4 text-primary" />
+                                      }
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Importar leads da base por CNAE</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </>
                             )}
                             <Tooltip>
                               <TooltipTrigger asChild>
