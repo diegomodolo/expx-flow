@@ -243,7 +243,7 @@ serve(async (req) => {
               const pollOptions = pollData?.poll_options ?? [];
               const selectableCount = pollData?.selectable_count ?? 1;
 
-              sendResponse = await fetch(`${endpoint}/message/send-poll`, {
+              sendResponse = await fetch(`${endpoint}/send/poll`, {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
@@ -260,7 +260,7 @@ serve(async (req) => {
               });
             } else {
               // Send as regular text message
-              sendResponse = await fetch(`${endpoint}/message/send-text`, {
+              sendResponse = await fetch(`${endpoint}/send/text`, {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
