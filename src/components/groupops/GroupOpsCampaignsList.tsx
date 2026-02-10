@@ -68,6 +68,32 @@ export default function GroupOpsCampaignsList() {
   const [editingCampaign, setEditingCampaign] = useState<GroupOpsCampaign | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [logCampaignId, setLogCampaignId] = useState<string | null>(null);
+  const [testingId, setTestingId] = useState<string | null>(null);
+
+  const testCampaign = useMutation({
+    mutationFn: async (campaignId: string) => {
+      setTestingId(campaignId);
+      const { data, error } = await supabase.functions.invoke('groupops-campaign-cron', {
+        body: { campaign_id: campaignId },
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      setTestingId(null);
+      const { toast } = await import('sonner');
+      if (data?.executed > 0) {
+        toast.success('Envio de teste realizado com sucesso');
+      } else {
+        toast.error('Nenhuma mensagem enviada. Verifique se há templates configurados.');
+      }
+    },
+    onError: () => {
+      setTestingId(null);
+      const { toast } = await import('sonner');
+      toast.error('Erro ao enviar teste');
+    },
+  });
 
   const { groups } = useGroupOpsGroups();
   const { campaigns, isLoading, createCampaign, updateCampaign, deleteCampaign } = useGroupOpsCampaigns(selectedGroupId);
