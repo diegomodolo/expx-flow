@@ -24,16 +24,17 @@ interface ImportFromBaseModalProps {
 
 interface LeadPreview {
   id: string;
-  full_name: string | null;
-  company_name: string | null;
-  cnae_code: string | null;
+  razao_social: string | null;
+  nome_fantasia: string | null;
+  cnae_code: string;
   cnae_description: string | null;
+  cnpj: string;
   email: string | null;
   phone: string | null;
-  city: string | null;
-  state: string | null;
-  lead_classification: string | null;
-  global_score: number | null;
+  municipio: string | null;
+  uf: string | null;
+  capital_social: number | null;
+  situacao_cadastral: string | null;
 }
 
 interface CnaeSummary {
@@ -47,7 +48,7 @@ export const ImportFromBaseModal = ({ open, onOpenChange, companyId, segment }: 
   const [cnaeInput, setCnaeInput] = useState("");
   const [leads, setLeads] = useState<LeadPreview[]>([]);
   const [totalMatching, setTotalMatching] = useState(0);
-  const [alreadyAssigned, setAlreadyAssigned] = useState(0);
+  const [alreadyInPool, setAlreadyInPool] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [cnaeSummary, setCnaeSummary] = useState<CnaeSummary[]>([]);
@@ -57,7 +58,7 @@ export const ImportFromBaseModal = ({ open, onOpenChange, companyId, segment }: 
     if (cnaes.length === 0) {
       setLeads([]);
       setTotalMatching(0);
-      setAlreadyAssigned(0);
+      setAlreadyInPool(0);
       setCnaeSummary([]);
       setHasSearched(false);
       return;
@@ -69,13 +70,13 @@ export const ImportFromBaseModal = ({ open, onOpenChange, companyId, segment }: 
     try {
       const cnaeFilters = cnaes.map(c => `cnae_code.eq.${c}`).join(",");
 
-      // Get count and preview leads
+      // Get count and preview from cnae_lead_pool
       const { data, error, count } = await supabase
-        .from("lead_master_pool")
-        .select("id, full_name, company_name, cnae_code, cnae_description, email, phone, city, state, lead_classification, global_score", { count: "exact" })
+        .from("cnae_lead_pool")
+        .select("id, razao_social, nome_fantasia, cnae_code, cnae_description, cnpj, email, phone, municipio, uf, capital_social, situacao_cadastral", { count: "exact" })
         .eq("company_id", companyId)
         .or(cnaeFilters)
-        .order("global_score", { ascending: false })
+        .order("capital_social", { ascending: false, nullsFirst: false })
         .limit(50);
 
       if (error) throw error;
@@ -83,44 +84,39 @@ export const ImportFromBaseModal = ({ open, onOpenChange, companyId, segment }: 
       setLeads(data || []);
       setTotalMatching(count || 0);
 
-      // Calculate CNAE summary
-      if (count && count > 0) {
-        const summaryMap = new Map<string, number>();
-        // For accurate counts per CNAE, query each
-        for (const cnae of cnaes) {
-          const { count: cnaeCount } = await supabase
+      // CNAE summary counts
+      const summaryPromises = cnaes.map(async (cnae) => {
+        const { count: cnaeCount } = await supabase
+          .from("cnae_lead_pool")
+          .select("id", { count: "exact", head: true })
+          .eq("company_id", companyId)
+          .eq("cnae_code", cnae);
+        return { cnae, count: cnaeCount || 0 };
+      });
+      setCnaeSummary(await Promise.all(summaryPromises));
+
+      // Check how many CNPJs already exist in lead_master_pool (already imported)
+      if (data && data.length > 0) {
+        const sampleCnpjs = data.map(l => l.cnpj).filter(Boolean);
+        if (sampleCnpjs.length > 0) {
+          const { count: existingCount } = await supabase
             .from("lead_master_pool")
             .select("id", { count: "exact", head: true })
             .eq("company_id", companyId)
-            .eq("cnae_code", cnae);
-          summaryMap.set(cnae, cnaeCount || 0);
+            .or(cnaeFilters.replace(/cnae_code/g, "cnae_code"));
+          setAlreadyInPool(existingCount || 0);
         }
-        setCnaeSummary(Array.from(summaryMap.entries()).map(([cnae, cnt]) => ({ cnae, count: cnt })));
       } else {
-        setCnaeSummary(cnaes.map(c => ({ cnae: c, count: 0 })));
-      }
-
-      // Check how many are already assigned
-      const allIds = data?.map(l => l.id) || [];
-      if (allIds.length > 0) {
-        const { data: existing } = await supabase
-          .from("lead_segment_assignments")
-          .select("lead_id")
-          .eq("segment_id", segment.id)
-          .in("lead_id", allIds);
-        setAlreadyAssigned(existing?.length || 0);
-      } else {
-        setAlreadyAssigned(0);
+        setAlreadyInPool(0);
       }
     } catch (err) {
       console.error("Error fetching leads:", err);
-      toast.error("Erro ao buscar leads da base");
+      toast.error("Erro ao buscar leads da base CNAE");
     } finally {
       setIsLoading(false);
     }
-  }, [cnaes, companyId, segment.id]);
+  }, [cnaes, companyId]);
 
-  // Fetch on open
   useEffect(() => {
     if (open) {
       setCnaes(segment.cnaes || []);
@@ -132,7 +128,7 @@ export const ImportFromBaseModal = ({ open, onOpenChange, companyId, segment }: 
     if (open && cnaes.length > 0) {
       fetchLeads();
     }
-  }, [open]); // Only auto-fetch on open
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleAddCnae = () => {
     const cnae = cnaeInput.trim().replace(/\D/g, "");
@@ -163,23 +159,23 @@ export const ImportFromBaseModal = ({ open, onOpenChange, companyId, segment }: 
     try {
       const cnaeFilters = cnaes.map(c => `cnae_code.eq.${c}`).join(",");
 
-      // Fetch ALL matching lead IDs (paginated)
-      const allLeadIds: string[] = [];
+      // Fetch ALL matching leads from cnae_lead_pool (paginated)
+      const allLeads: Array<{ cnpj: string; razao_social: string | null; nome_fantasia: string | null; cnae_code: string; cnae_description: string | null; email: string | null; phone: string | null; municipio: string | null; uf: string | null; capital_social: number | null }> = [];
       const pageSize = 1000;
       let from = 0;
       let hasMore = true;
 
       while (hasMore) {
         const { data, error } = await supabase
-          .from("lead_master_pool")
-          .select("id")
+          .from("cnae_lead_pool")
+          .select("cnpj, razao_social, nome_fantasia, cnae_code, cnae_description, email, phone, municipio, uf, capital_social")
           .eq("company_id", companyId)
           .or(cnaeFilters)
           .range(from, from + pageSize - 1);
 
         if (error) throw error;
         if (data && data.length > 0) {
-          allLeadIds.push(...data.map(l => l.id));
+          allLeads.push(...data);
           from += pageSize;
           hasMore = data.length === pageSize;
         } else {
@@ -187,54 +183,98 @@ export const ImportFromBaseModal = ({ open, onOpenChange, companyId, segment }: 
         }
       }
 
-      if (allLeadIds.length === 0) {
+      if (allLeads.length === 0) {
         toast.info("Nenhum lead encontrado");
         return;
       }
 
-      // Fetch existing assignments
-      const existingIds = new Set<string>();
-      for (let i = 0; i < allLeadIds.length; i += 500) {
-        const batch = allLeadIds.slice(i, i + 500);
+      // Check which CNPJs already exist in lead_master_pool
+      const allCnpjs = allLeads.map(l => l.cnpj).filter(Boolean);
+      const existingCnpjs = new Set<string>();
+      
+      for (let i = 0; i < allCnpjs.length; i += 500) {
+        const batch = allCnpjs.slice(i, i + 500);
         const { data: existing } = await supabase
-          .from("lead_segment_assignments")
-          .select("lead_id")
-          .eq("segment_id", segment.id)
-          .in("lead_id", batch);
-        existing?.forEach(e => existingIds.add(e.lead_id));
+          .from("lead_master_pool")
+          .select("cnpj")
+          .eq("company_id", companyId)
+          .in("cnpj", batch);
+        existing?.forEach(e => { if (e.cnpj) existingCnpjs.add(e.cnpj); });
       }
 
-      const newIds = allLeadIds.filter(id => !existingIds.has(id));
+      const newLeads = allLeads.filter(l => !existingCnpjs.has(l.cnpj));
 
-      if (newIds.length === 0) {
-        toast.info("Todos os leads já estão neste segmento");
+      if (newLeads.length === 0) {
+        toast.info("Todos os leads dessa base CNAE já estão importados");
         return;
       }
 
-      // Batch insert
-      const batchSize = 500;
-      for (let i = 0; i < newIds.length; i += batchSize) {
-        const batch = newIds.slice(i, i + batchSize).map(leadId => ({
-          lead_id: leadId,
-          segment_id: segment.id,
+      // Insert into lead_master_pool
+      const batchSize = 100;
+      const insertedIds: string[] = [];
+
+      for (let i = 0; i < newLeads.length; i += batchSize) {
+        const batch = newLeads.slice(i, i + batchSize).map(lead => ({
+          company_id: companyId,
+          full_name: lead.nome_fantasia || lead.razao_social || lead.cnpj,
+          company_name: lead.razao_social,
+          company_trade_name: lead.nome_fantasia,
+          cnpj: lead.cnpj,
+          cnae_code: lead.cnae_code,
+          cnae_description: lead.cnae_description,
+          email: lead.email,
+          phone: lead.phone,
+          city: lead.municipio,
+          state: lead.uf,
+          share_capital: lead.capital_social,
+          global_score: 0,
+          total_conversions: 0,
+          total_value: 0,
+          created_at: new Date().toISOString(),
+          first_captured_at: new Date().toISOString(),
         }));
-        const { error: insertError } = await supabase
-          .from("lead_segment_assignments")
-          .insert(batch);
-        if (insertError) throw insertError;
+
+        const { data: inserted, error } = await supabase
+          .from("lead_master_pool")
+          .insert(batch as any)
+          .select("id");
+
+        if (error) {
+          console.error("Batch insert error:", error);
+          // Try one by one
+          for (const lead of batch) {
+            const { data: single, error: singleErr } = await supabase
+              .from("lead_master_pool")
+              .insert(lead as any)
+              .select("id")
+              .maybeSingle();
+            if (!singleErr && single) insertedIds.push(single.id);
+          }
+        } else if (inserted) {
+          insertedIds.push(...inserted.map(r => r.id));
+        }
       }
 
-      // Also update segment CNAEs if changed
+      // Assign to segment
+      if (insertedIds.length > 0) {
+        for (let i = 0; i < insertedIds.length; i += 500) {
+          const batch = insertedIds.slice(i, i + 500).map(leadId => ({
+            lead_id: leadId,
+            segment_id: segment.id,
+          }));
+          await supabase.from("lead_segment_assignments").insert(batch);
+        }
+      }
+
+      // Update segment CNAEs if changed
       const cnaesChanged = JSON.stringify(cnaes.sort()) !== JSON.stringify((segment.cnaes || []).sort());
       if (cnaesChanged) {
-        await supabase
-          .from("lead_segments")
-          .update({ cnaes })
-          .eq("id", segment.id);
+        await supabase.from("lead_segments").update({ cnaes }).eq("id", segment.id);
       }
 
-      toast.success(`${newIds.length} leads importados para "${segment.name}"`);
+      toast.success(`${insertedIds.length} leads importados da base CNAE para "${segment.name}"`);
       queryClient.invalidateQueries({ queryKey: ["lead-segments-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["lead-pool"] });
       onOpenChange(false);
     } catch (err) {
       console.error("Error importing:", err);
@@ -244,16 +284,7 @@ export const ImportFromBaseModal = ({ open, onOpenChange, companyId, segment }: 
     }
   };
 
-  const classificationColor = (c: string | null) => {
-    switch (c) {
-      case "ouro": return "text-yellow-500";
-      case "prata": return "text-muted-foreground";
-      case "bronze": return "text-amber-600";
-      default: return "text-muted-foreground";
-    }
-  };
-
-  const newToImport = totalMatching - alreadyAssigned;
+  const newToImport = Math.max(0, totalMatching - alreadyInPool);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -261,10 +292,10 @@ export const ImportFromBaseModal = ({ open, onOpenChange, companyId, segment }: 
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <DatabaseIcon className="h-5 w-5" />
-            Importar da Base — {segment.name}
+            Importar da Base CNAE — {segment.name}
           </DialogTitle>
           <DialogDescription>
-            Busque leads existentes na sua base pelo CNAE e importe para este segmento.
+            Busque leads da sua base de CNAEs e importe para este segmento e para o pool principal.
           </DialogDescription>
         </DialogHeader>
 
@@ -277,7 +308,7 @@ export const ImportFromBaseModal = ({ open, onOpenChange, companyId, segment }: 
             </Label>
             <div className="flex gap-2">
               <Input
-                placeholder="Digite o código CNAE (ex: 6201501)"
+                placeholder="Digite o código CNAE (ex: 4930202)"
                 value={cnaeInput}
                 onChange={(e) => setCnaeInput(e.target.value)}
                 onKeyDown={handleCnaeKeyDown}
@@ -316,15 +347,15 @@ export const ImportFromBaseModal = ({ open, onOpenChange, companyId, segment }: 
           {hasSearched && !isLoading && (
             <div className="grid grid-cols-3 gap-3">
               <div className="rounded-lg border p-3 text-center">
-                <div className="text-2xl font-bold">{totalMatching}</div>
-                <div className="text-xs text-muted-foreground">Total encontrados</div>
+                <div className="text-2xl font-bold">{totalMatching.toLocaleString("pt-BR")}</div>
+                <div className="text-xs text-muted-foreground">Na base CNAE</div>
               </div>
               <div className="rounded-lg border p-3 text-center">
-                <div className="text-2xl font-bold">{alreadyAssigned}</div>
-                <div className="text-xs text-muted-foreground">Já no segmento</div>
+                <div className="text-2xl font-bold">{alreadyInPool.toLocaleString("pt-BR")}</div>
+                <div className="text-xs text-muted-foreground">Já no pool principal</div>
               </div>
               <div className="rounded-lg border p-3 text-center bg-primary/5">
-                <div className="text-2xl font-bold text-primary">{newToImport > 0 ? newToImport : 0}</div>
+                <div className="text-2xl font-bold text-primary">~{newToImport.toLocaleString("pt-BR")}</div>
                 <div className="text-xs text-muted-foreground">Novos para importar</div>
               </div>
             </div>
@@ -341,12 +372,12 @@ export const ImportFromBaseModal = ({ open, onOpenChange, companyId, segment }: 
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Empresa / Nome</TableHead>
+                    <TableHead>Empresa</TableHead>
+                    <TableHead>CNPJ</TableHead>
                     <TableHead>CNAE</TableHead>
                     <TableHead>Contato</TableHead>
                     <TableHead>Cidade/UF</TableHead>
-                    <TableHead className="text-center">Score</TableHead>
-                    <TableHead className="text-center">Class.</TableHead>
+                    <TableHead className="text-center">Situação</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -354,28 +385,28 @@ export const ImportFromBaseModal = ({ open, onOpenChange, companyId, segment }: 
                     <TableRow key={lead.id}>
                       <TableCell className="max-w-[200px]">
                         <div className="truncate font-medium text-sm">
-                          {lead.company_name || lead.full_name || "—"}
+                          {lead.nome_fantasia || lead.razao_social || "—"}
                         </div>
-                        {lead.company_name && lead.full_name && lead.full_name !== lead.company_name && (
-                          <div className="text-xs text-muted-foreground truncate">{lead.full_name}</div>
+                        {lead.nome_fantasia && lead.razao_social && lead.nome_fantasia !== lead.razao_social && (
+                          <div className="text-xs text-muted-foreground truncate">{lead.razao_social}</div>
                         )}
                       </TableCell>
                       <TableCell className="font-mono text-xs">
-                        {lead.cnae_code || "—"}
+                        {lead.cnpj || "—"}
+                      </TableCell>
+                      <TableCell className="font-mono text-xs">
+                        {lead.cnae_code}
                       </TableCell>
                       <TableCell className="text-xs max-w-[150px]">
                         <div className="truncate">{lead.email || lead.phone || "—"}</div>
                       </TableCell>
                       <TableCell className="text-xs">
-                        {lead.city && lead.state ? `${lead.city}/${lead.state}` : lead.state || "—"}
-                      </TableCell>
-                      <TableCell className="text-center tabular-nums text-sm font-medium">
-                        {lead.global_score ?? 0}
+                        {lead.municipio && lead.uf ? `${lead.municipio}/${lead.uf}` : lead.uf || "—"}
                       </TableCell>
                       <TableCell className="text-center">
-                        <span className={`text-xs font-medium capitalize ${classificationColor(lead.lead_classification)}`}>
-                          {lead.lead_classification || "—"}
-                        </span>
+                        <Badge variant={lead.situacao_cadastral === "Ativa" ? "default" : "secondary"} className="text-xs">
+                          {lead.situacao_cadastral || "—"}
+                        </Badge>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -383,7 +414,7 @@ export const ImportFromBaseModal = ({ open, onOpenChange, companyId, segment }: 
               </Table>
               {totalMatching > 50 && (
                 <div className="text-center py-2 text-xs text-muted-foreground border-t">
-                  Exibindo 50 de {totalMatching} leads (ordenados por score)
+                  Exibindo 50 de {totalMatching.toLocaleString("pt-BR")} leads (ordenados por capital social)
                 </div>
               )}
             </ScrollArea>
@@ -406,7 +437,7 @@ export const ImportFromBaseModal = ({ open, onOpenChange, companyId, segment }: 
           </Button>
           <Button
             onClick={handleImport}
-            disabled={isImporting || !hasSearched || newToImport <= 0}
+            disabled={isImporting || !hasSearched || totalMatching <= 0}
           >
             {isImporting ? (
               <>
@@ -416,7 +447,7 @@ export const ImportFromBaseModal = ({ open, onOpenChange, companyId, segment }: 
             ) : (
               <>
                 <DatabaseIcon className="h-4 w-4 mr-2" />
-                Importar {newToImport > 0 ? newToImport : 0} leads
+                Importar ~{newToImport.toLocaleString("pt-BR")} leads
               </>
             )}
           </Button>
