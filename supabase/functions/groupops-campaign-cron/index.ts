@@ -92,11 +92,21 @@ serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
-    console.log("[groupops-campaign-cron] Starting campaign check...");
+    // Check if this is a forced test execution for a specific campaign
+    let forcedCampaignId: string | null = null;
+    if (req.method === "POST") {
+      try {
+        const body = await req.json();
+        if (body?.campaign_id) {
+          forcedCampaignId = body.campaign_id;
+        }
+      } catch (_) { /* no body or invalid json, proceed normally */ }
+    }
+
+    console.log(`[groupops-campaign-cron] Starting campaign check...${forcedCampaignId ? ` (forced test: ${forcedCampaignId})` : ''}`);
     const now = new Date().toISOString();
 
-    // Find active campaigns that are due for execution
-    const { data: campaigns, error: campaignsError } = await supabase
+    let query = supabase
       .from("groupops_campaigns")
       .select(`
         *,
@@ -106,10 +116,20 @@ serve(async (req) => {
         groupops_groups!groupops_campaigns_group_id_fkey (
           id, name, provider_group_id
         )
-      `)
-      .eq("status", "active")
-      .not("next_execution_at", "is", null)
-      .lte("next_execution_at", now);
+      `);
+
+    if (forcedCampaignId) {
+      // For test execution, just filter by ID (ignore status and schedule)
+      query = query.eq("id", forcedCampaignId);
+    } else {
+      // Normal cron: find active campaigns that are due
+      query = query
+        .eq("status", "active")
+        .not("next_execution_at", "is", null)
+        .lte("next_execution_at", now);
+    }
+
+    const { data: campaigns, error: campaignsError } = await query;
 
     if (campaignsError) {
       console.error("[groupops-campaign-cron] Error fetching campaigns:", campaignsError);
@@ -308,21 +328,27 @@ serve(async (req) => {
 
         // TODO: If delivery_mode is 'dm' or 'both', iterate members and send individual messages
 
-        // Calculate next execution and update campaign
-        const nextExec = getNextExecution(
-          campaign.schedule_frequency || "daily",
-          campaign.schedule_times || ["09:00"],
-          campaign.schedule_days_of_week,
-          campaign.schedule_day_of_month
-        );
+        // Calculate next execution and update campaign (skip schedule update for forced tests)
+        if (!forcedCampaignId) {
+          const nextExec = getNextExecution(
+            campaign.schedule_frequency || "daily",
+            campaign.schedule_times || ["09:00"],
+            campaign.schedule_days_of_week,
+            campaign.schedule_day_of_month
+          );
 
-        await supabase
-          .from("groupops_campaigns")
-          .update({
-            last_execution_at: now,
-            next_execution_at: nextExec,
-          })
-          .eq("id", campaign.id);
+          await supabase
+            .from("groupops_campaigns")
+            .update({
+              last_execution_at: now,
+              next_execution_at: nextExec,
+            })
+            .eq("id", campaign.id);
+
+          console.log(`[groupops-campaign-cron] Campaign ${campaign.id} next execution: ${nextExec}`);
+        } else {
+          console.log(`[groupops-campaign-cron] Test execution for campaign ${campaign.id} - schedule not updated`);
+        }
 
         console.log(`[groupops-campaign-cron] Campaign ${campaign.id} next execution: ${nextExec}`);
       } catch (err: any) {

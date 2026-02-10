@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -68,6 +69,27 @@ export default function GroupOpsCampaignsList() {
   const [editingCampaign, setEditingCampaign] = useState<GroupOpsCampaign | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [logCampaignId, setLogCampaignId] = useState<string | null>(null);
+  const [testingId, setTestingId] = useState<string | null>(null);
+
+  const testCampaign = useMutation({
+    mutationFn: async (campaignId: string) => {
+      const { data, error } = await supabase.functions.invoke('groupops-campaign-cron', {
+        body: { campaign_id: campaignId },
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      if (data?.executed > 0) {
+        toast.success('Envio de teste realizado com sucesso');
+      } else {
+        toast.error('Nenhuma mensagem enviada. Verifique se há templates configurados.');
+      }
+    },
+    onError: () => {
+      toast.error('Erro ao enviar teste');
+    },
+  });
 
   const { groups } = useGroupOpsGroups();
   const { campaigns, isLoading, createCampaign, updateCampaign, deleteCampaign } = useGroupOpsCampaigns(selectedGroupId);
@@ -224,6 +246,14 @@ export default function GroupOpsCampaignsList() {
                     </Button>
                     <Button size="sm" variant="outline" onClick={() => setLogCampaignId(campaign.id)}>
                       <History className="h-3 w-3 mr-1" /> Log
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      disabled={testCampaign.isPending}
+                      onClick={() => testCampaign.mutate(campaign.id)}
+                    >
+                      <Play className="h-3 w-3 mr-1" /> Testar
                     </Button>
                     <Button size="sm" variant="ghost" className="text-destructive ml-auto" onClick={() => setDeletingId(campaign.id)}>
                       <Trash2 className="h-3 w-3" />
