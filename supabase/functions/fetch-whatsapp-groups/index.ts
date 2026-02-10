@@ -180,7 +180,7 @@ serve(async (req) => {
           name: chat.name || chat.subject || chat.pushName || chat.groupName || chat.wa_chatname || jid,
           description: chat.description || chat.desc || null,
           participants_count: chat.participants?.length || chat.participantsCount || chat.size || null,
-          profile_pic: chat.profilePicUrl || chat.imgUrl || chat.picture || chat.wa_profilepicurl || null,
+          profile_pic: chat.profilePicUrl || chat.imgUrl || chat.image || chat.imagePreview || chat.picture || chat.wa_profilepicurl || null,
         };
       });
 
