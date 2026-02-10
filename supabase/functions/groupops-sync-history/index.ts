@@ -74,13 +74,22 @@ serve(async (req) => {
     // UazapiGO v2 uses POST /chat/findMessages with JSON body
     const count = sync_mode === "quantity" ? (sync_value || 500) : 2000;
 
-    // Try multiple endpoint patterns (UazapiGO varies by version/proxy)
+    // Try multiple endpoint patterns (UazapiGO varies by version)
+    // /chat/findMessages returned 405 on POST, so it's a GET endpoint
     const endpointsToTry = [
-      { url: `${endpoint}/chat/findMessages`, method: "POST", body: { where: { key: { remoteJid: chatId } }, limit: count } },
-      { url: `${endpoint}/chat/findMessages`, method: "POST", body: { remoteJid: chatId, limit: count } },
-      { url: `${endpoint}/chat/findMessages`, method: "POST", body: { chatId, limit: count } },
+      // GET variants for /chat/findMessages (405 on POST = exists as GET)
+      { url: `${endpoint}/chat/findMessages/${encodeURIComponent(chatId)}?limit=${count}`, method: "GET", body: null },
+      { url: `${endpoint}/chat/findMessages/${chatId}?limit=${count}`, method: "GET", body: null },
+      { url: `${endpoint}/chat/findMessages?remoteJid=${encodeURIComponent(chatId)}&limit=${count}`, method: "GET", body: null },
+      { url: `${endpoint}/chat/findMessages?chatId=${encodeURIComponent(chatId)}&limit=${count}`, method: "GET", body: null },
+      { url: `${endpoint}/chat/findMessages`, method: "GET", body: null },
+      // Other common patterns
+      { url: `${endpoint}/message/findMessages/${encodeURIComponent(chatId)}`, method: "GET", body: null },
+      { url: `${endpoint}/message/find/${encodeURIComponent(chatId)}`, method: "GET", body: null },
       { url: `${endpoint}/chat/messages/${chatId}/${count}`, method: "GET", body: null },
       { url: `${endpoint}/chat/messages/${chatId}`, method: "GET", body: null },
+      // POST variants as fallback
+      { url: `${endpoint}/chat/findMessages`, method: "POST", body: { where: { key: { remoteJid: chatId } }, limit: count } },
       { url: `${endpoint}/chat/find`, method: "POST", body: { where: { key: { remoteJid: chatId } } } },
     ];
 
@@ -110,6 +119,8 @@ serve(async (req) => {
         }
 
         const responseData = await response.json();
+        console.log(`[groupops-sync-history] ${ep.url} response type: ${typeof responseData}, isArray: ${Array.isArray(responseData)}, keys: ${typeof responseData === 'object' && responseData ? Object.keys(responseData).join(',') : 'N/A'}, preview: ${JSON.stringify(responseData).substring(0, 300)}`);
+        
         let parsed: any[] = [];
 
         if (Array.isArray(responseData)) {
@@ -128,7 +139,7 @@ serve(async (req) => {
           console.log(`[groupops-sync-history] Success with ${ep.method} ${ep.url}: ${messages.length} messages`);
           break;
         } else {
-          console.log(`[groupops-sync-history] ${ep.url} returned empty array`);
+          console.log(`[groupops-sync-history] ${ep.url} returned ${parsed.length} parsed messages`);
         }
       } catch (e: any) {
         console.log(`[groupops-sync-history] ${ep.url} error: ${e.message}`);
