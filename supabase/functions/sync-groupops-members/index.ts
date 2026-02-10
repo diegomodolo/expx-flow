@@ -123,14 +123,23 @@ serve(async (req) => {
         let found: any[] = [];
         if (Array.isArray(data)) {
           found = data;
+        } else if (data.Participants && Array.isArray(data.Participants)) {
+          // UazapiGO /group/info returns PascalCase
+          found = data.Participants;
         } else if (data.participants && Array.isArray(data.participants)) {
           found = data.participants;
         } else if (data.data?.participants && Array.isArray(data.data.participants)) {
           found = data.data.participants;
+        } else if (data.data?.Participants && Array.isArray(data.data.Participants)) {
+          found = data.data.Participants;
         } else if (data.groupMetadata?.participants) {
           found = data.groupMetadata.participants;
+        } else if (data.groupMetadata?.Participants) {
+          found = data.groupMetadata.Participants;
         } else if (data.result?.participants) {
           found = data.result.participants;
+        } else if (data.result?.Participants) {
+          found = data.result.Participants;
         } else if (data.members && Array.isArray(data.members)) {
           found = data.members;
         }
@@ -141,7 +150,9 @@ serve(async (req) => {
             return typeof cid === "string" && cid.includes(groupId);
           });
           if (chat?.participants) found = chat.participants;
+          if (chat?.Participants) found = chat.Participants;
           if (chat?.groupMetadata?.participants) found = chat.groupMetadata.participants;
+          if (chat?.groupMetadata?.Participants) found = chat.groupMetadata.Participants;
         }
 
         if (found.length > 0) {
@@ -169,16 +180,25 @@ serve(async (req) => {
 
     for (const p of participants) {
       try {
-        // Extract participant data from various formats
-        const jid = p.id?._serialized || p.id || p.jid || p.wa_user_id || "";
-        const phone = (typeof jid === "string" ? jid : "")
+        // Extract participant data - support both camelCase and PascalCase (UazapiGO)
+        const jid = p.JID || p.id?._serialized || p.id || p.jid || p.wa_user_id || "";
+        const phoneRaw = p.PhoneNumber || p.phoneNumber || "";
+        const phoneFromJid = (typeof jid === "string" ? jid : "")
+          .replace("@s.whatsapp.net", "")
+          .replace("@c.us", "")
+          .replace("@lid", "")
+          .replace(/\D/g, "");
+        // PhoneNumber field from UazapiGO comes as "5522997825387@s.whatsapp.net"
+        const phoneFromField = (typeof phoneRaw === "string" ? phoneRaw : "")
           .replace("@s.whatsapp.net", "")
           .replace("@c.us", "")
           .replace(/\D/g, "");
+        const phone = phoneFromField || phoneFromJid;
         
-        const name = p.name || p.pushName || p.notify || p.displayName || p.shortName || null;
-        const isAdmin = p.admin === "admin" || p.admin === "superadmin" || p.isAdmin || p.isSuperAdmin || false;
-        const role = p.admin === "superadmin" || p.isSuperAdmin ? "owner" : isAdmin ? "admin" : "member";
+        const name = p.name || p.pushName || p.notify || p.displayName || p.shortName || p.Name || null;
+        const isAdmin = p.IsAdmin || p.admin === "admin" || p.admin === "superadmin" || p.isAdmin || p.isSuperAdmin || false;
+        const isSuperAdmin = p.IsSuperAdmin || p.admin === "superadmin" || p.isSuperAdmin || false;
+        const role = isSuperAdmin ? "owner" : isAdmin ? "admin" : "member";
 
         if (!phone || phone.length < 8) continue;
 
