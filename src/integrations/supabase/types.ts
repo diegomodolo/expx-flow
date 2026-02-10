@@ -6484,6 +6484,53 @@ export type Database = {
           },
         ]
       }
+      groupops_campaign_send_log: {
+        Row: {
+          campaign_id: string
+          company_id: string
+          cycle_number: number
+          delivery_status: string | null
+          group_id: string
+          id: string
+          message_preview: string | null
+          metadata: Json | null
+          sent_at: string
+          template_id: string
+        }
+        Insert: {
+          campaign_id: string
+          company_id: string
+          cycle_number?: number
+          delivery_status?: string | null
+          group_id: string
+          id?: string
+          message_preview?: string | null
+          metadata?: Json | null
+          sent_at?: string
+          template_id: string
+        }
+        Update: {
+          campaign_id?: string
+          company_id?: string
+          cycle_number?: number
+          delivery_status?: string | null
+          group_id?: string
+          id?: string
+          message_preview?: string | null
+          metadata?: Json | null
+          sent_at?: string
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "groupops_campaign_send_log_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       groupops_campaigns: {
         Row: {
           approval_required: boolean | null

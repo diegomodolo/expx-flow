@@ -10,6 +10,8 @@ export interface GroupOpsCampaign {
   type: string;
   status: string;
   template_id: string | null;
+  template_mode: string;
+  selected_template_ids: string[] | null;
   scoring_profile_id: string | null;
   schedule_rule: string | null;
   schedule_frequency: string | null;

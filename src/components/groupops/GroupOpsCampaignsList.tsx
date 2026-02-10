@@ -12,6 +12,7 @@ import { useGroupOpsCampaigns, CAMPAIGN_TYPES, DELIVERY_MODES, type GroupOpsCamp
 import { useGroupOpsGroups } from '@/hooks/useGroupOpsGroups';
 import { useGroupOpsTemplates, TEMPLATE_CATEGORIES } from '@/hooks/useGroupOpsTemplates';
 import { useWhatsAppInstances } from '@/hooks/useWhatsAppInstances';
+import { useGroupOpsCampaignSendLog } from '@/hooks/useGroupOpsCampaignSendLog';
 import { useCompany } from '@/contexts/CompanyContext';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -31,6 +32,9 @@ import {
   ChevronDown,
   Clock,
   Smartphone,
+  Shuffle,
+  ListChecks,
+  History,
 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
@@ -63,6 +67,7 @@ export default function GroupOpsCampaignsList() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState<GroupOpsCampaign | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [logCampaignId, setLogCampaignId] = useState<string | null>(null);
 
   const { groups } = useGroupOpsGroups();
   const { campaigns, isLoading, createCampaign, updateCampaign, deleteCampaign } = useGroupOpsCampaigns(selectedGroupId);
@@ -192,6 +197,13 @@ export default function GroupOpsCampaignsList() {
                         {instanceName}
                       </Badge>
                     )}
+                    <Badge variant="outline" className="gap-1">
+                      {campaign.template_mode === 'selected' ? (
+                        <><ListChecks className="h-3 w-3" /> {(campaign.selected_template_ids?.length || 0)} templates</>
+                      ) : (
+                        <><Shuffle className="h-3 w-3" /> Aleatório</>
+                      )}
+                    </Badge>
                     {campaign.approval_required && (
                       <Badge variant="outline" className="gap-1">Aprovação</Badge>
                     )}
@@ -209,6 +221,9 @@ export default function GroupOpsCampaignsList() {
                     )}
                     <Button size="sm" variant="outline" onClick={() => setEditingCampaign(campaign)}>
                       <Settings className="h-3 w-3 mr-1" /> Editar
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setLogCampaignId(campaign.id)}>
+                      <History className="h-3 w-3 mr-1" /> Log
                     </Button>
                     <Button size="sm" variant="ghost" className="text-destructive ml-auto" onClick={() => setDeletingId(campaign.id)}>
                       <Trash2 className="h-3 w-3" />
@@ -255,6 +270,13 @@ export default function GroupOpsCampaignsList() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Send Log Dialog */}
+      <CampaignSendLogDialog
+        campaignId={logCampaignId}
+        onClose={() => setLogCampaignId(null)}
+        templates={templates}
+      />
     </div>
   );
 }
@@ -274,6 +296,8 @@ function CampaignFormModal({ open, onClose, campaign, groups, templates, instanc
   const [type, setType] = useState(campaign?.type ?? 'DAILY_PROMPT');
   const [groupId, setGroupId] = useState(campaign?.group_id ?? '');
   const [templateId, setTemplateId] = useState(campaign?.template_id ?? '');
+  const [templateMode, setTemplateMode] = useState(campaign?.template_mode ?? 'random');
+  const [selectedTemplateIds, setSelectedTemplateIds] = useState<string[]>(campaign?.selected_template_ids ?? []);
   const [deliveryMode, setDeliveryMode] = useState(campaign?.delivery_mode ?? 'group');
   const [approvalRequired, setApprovalRequired] = useState(campaign?.approval_required ?? false);
   const [status, setStatus] = useState(campaign?.status ?? 'draft');
@@ -290,6 +314,8 @@ function CampaignFormModal({ open, onClose, campaign, groups, templates, instanc
       setType(campaign.type);
       setGroupId(campaign.group_id);
       setTemplateId(campaign.template_id ?? '');
+      setTemplateMode(campaign.template_mode ?? 'random');
+      setSelectedTemplateIds(campaign.selected_template_ids ?? []);
       setDeliveryMode(campaign.delivery_mode ?? 'group');
       setApprovalRequired(campaign.approval_required ?? false);
       setStatus(campaign.status);
@@ -302,6 +328,8 @@ function CampaignFormModal({ open, onClose, campaign, groups, templates, instanc
       setType('DAILY_PROMPT');
       setGroupId('');
       setTemplateId('');
+      setTemplateMode('random');
+      setSelectedTemplateIds([]);
       setDeliveryMode('group');
       setApprovalRequired(false);
       setStatus('draft');
@@ -367,12 +395,56 @@ function CampaignFormModal({ open, onClose, campaign, groups, templates, instanc
             </Select>
           </div>
 
-          {/* Template search select */}
-          <TemplateSearchSelect
-            templates={filteredTemplates}
-            value={templateId}
-            onChange={setTemplateId}
-          />
+          {/* Template Mode Selection */}
+          <div className="space-y-3 border rounded-lg p-4">
+            <Label className="text-sm font-semibold flex items-center gap-2">
+              <FileText className="h-4 w-4" /> Templates
+            </Label>
+
+            {/* Mode toggle */}
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant={templateMode === 'random' ? 'default' : 'outline'}
+                className="flex-1 gap-2"
+                onClick={() => setTemplateMode('random')}
+              >
+                <Shuffle className="h-3.5 w-3.5" /> Aleatório
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={templateMode === 'selected' ? 'default' : 'outline'}
+                className="flex-1 gap-2"
+                onClick={() => setTemplateMode('selected')}
+              >
+                <ListChecks className="h-3.5 w-3.5" /> Selecionar
+              </Button>
+            </div>
+
+            {templateMode === 'random' ? (
+              <p className="text-xs text-muted-foreground">
+                Todos os templates da categoria <strong>{CAMPAIGN_TYPES.find(t => t.value === type)?.label}</strong> serão usados aleatoriamente sem repetir. Quando todos forem enviados, o ciclo recomeça.
+              </p>
+            ) : (
+              <>
+                <p className="text-xs text-muted-foreground">
+                  Selecione os templates que deseja usar. Serão enviados sem repetir até esgotar a lista, depois o ciclo recomeça.
+                </p>
+                <TemplateMultiSelect
+                  templates={filteredTemplates}
+                  selectedIds={selectedTemplateIds}
+                  onChange={setSelectedTemplateIds}
+                />
+                {selectedTemplateIds.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {selectedTemplateIds.length} template(s) selecionado(s)
+                  </p>
+                )}
+              </>
+            )}
+          </div>
 
           {/* Instance selector */}
           <div className="space-y-2">
@@ -514,7 +586,9 @@ function CampaignFormModal({ open, onClose, campaign, groups, templates, instanc
           <Button disabled={!groupId} onClick={() => onSave({
             type,
             group_id: groupId,
-            template_id: templateId && templateId !== 'none' ? templateId : null,
+            template_id: templateMode === 'selected' && selectedTemplateIds.length === 1 ? selectedTemplateIds[0] : null,
+            template_mode: templateMode,
+            selected_template_ids: templateMode === 'selected' ? selectedTemplateIds : [],
             delivery_mode: deliveryMode,
             schedule_frequency: frequency,
             schedule_times: scheduleTimes,
@@ -532,20 +606,17 @@ function CampaignFormModal({ open, onClose, campaign, groups, templates, instanc
   );
 }
 
-/* ===== Template Search Select ===== */
-function TemplateSearchSelect({
+/* ===== Template Multi-Select ===== */
+function TemplateMultiSelect({
   templates,
-  value,
+  selectedIds,
   onChange,
 }: {
   templates: Array<{ id: string; title: string; category: string }>;
-  value: string;
-  onChange: (v: string) => void;
+  selectedIds: string[];
+  onChange: (ids: string[]) => void;
 }) {
-  const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
-
-  const selectedTemplate = templates.find((t) => t.id === value);
 
   const filtered = useMemo(() => {
     if (!search) return templates;
@@ -558,79 +629,127 @@ function TemplateSearchSelect({
   const getCategoryLabel = (cat: string) =>
     TEMPLATE_CATEGORIES.find((c) => c.value === cat)?.label ?? cat;
 
+  const toggleTemplate = (id: string) => {
+    onChange(
+      selectedIds.includes(id)
+        ? selectedIds.filter((i) => i !== id)
+        : [...selectedIds, id]
+    );
+  };
+
+  const selectAll = () => onChange(filtered.map((t) => t.id));
+  const deselectAll = () => onChange([]);
+
   return (
     <div className="space-y-2">
-      <Label>Template (opcional)</Label>
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            role="combobox"
-            aria-expanded={open}
-            className="w-full justify-between font-normal h-10"
-          >
-            {selectedTemplate ? (
-              <span className="truncate">{selectedTemplate.title}</span>
-            ) : (
-              <span className="text-muted-foreground">Buscar e selecionar template...</span>
-            )}
-            <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-[400px] p-0" align="start">
-          <div className="p-2 border-b">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Pesquisar template..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-8 h-9"
-                autoFocus
-              />
-            </div>
+      <div className="relative">
+        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Pesquisar templates..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-8 h-9"
+        />
+      </div>
+      <div className="flex gap-2">
+        <Button type="button" size="sm" variant="ghost" className="text-xs h-7" onClick={selectAll}>
+          Selecionar todos
+        </Button>
+        <Button type="button" size="sm" variant="ghost" className="text-xs h-7" onClick={deselectAll}>
+          Limpar
+        </Button>
+      </div>
+      <ScrollArea className="max-h-[220px] border rounded-md">
+        {filtered.length === 0 ? (
+          <div className="px-3 py-6 text-center text-sm text-muted-foreground">
+            <FileText className="h-8 w-8 mx-auto mb-2 opacity-40" />
+            Nenhum template encontrado
           </div>
-          <ScrollArea className="max-h-[280px]">
+        ) : (
+          filtered.map((t) => (
             <button
-              className={`w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors flex items-center gap-2 ${
-                !value || value === 'none' ? 'bg-accent' : ''
+              key={t.id}
+              type="button"
+              className={`w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors border-b last:border-0 flex items-center gap-3 ${
+                selectedIds.includes(t.id) ? 'bg-accent/50' : ''
               }`}
-              onClick={() => { onChange('none'); setOpen(false); setSearch(''); }}
+              onClick={() => toggleTemplate(t.id)}
             >
-              <X className="h-3.5 w-3.5 text-muted-foreground" />
-              <span className="text-muted-foreground">Nenhum template</span>
-            </button>
-
-            {filtered.length === 0 ? (
-              <div className="px-3 py-6 text-center text-sm text-muted-foreground">
-                <FileText className="h-8 w-8 mx-auto mb-2 opacity-40" />
-                Nenhum template encontrado
+              <Checkbox
+                checked={selectedIds.includes(t.id)}
+                onCheckedChange={() => toggleTemplate(t.id)}
+                className="pointer-events-none"
+              />
+              <div className="flex-1 min-w-0">
+                <div className="font-medium truncate text-xs">{t.title}</div>
+                <div className="text-xs text-muted-foreground">{getCategoryLabel(t.category)}</div>
               </div>
-            ) : (
-              filtered.map((t) => (
-                <button
-                  key={t.id}
-                  className={`w-full text-left px-3 py-2.5 text-sm hover:bg-accent transition-colors border-b last:border-0 ${
-                    value === t.id ? 'bg-accent' : ''
-                  }`}
-                  onClick={() => { onChange(t.id); setOpen(false); setSearch(''); }}
-                >
-                  <div className="font-medium truncate">{t.title}</div>
-                  <div className="text-xs text-muted-foreground mt-0.5">{getCategoryLabel(t.category)}</div>
-                </button>
-              ))
-            )}
-          </ScrollArea>
-        </PopoverContent>
-      </Popover>
-      {selectedTemplate && (
-        <button
-          className="text-xs text-muted-foreground hover:text-foreground underline"
-          onClick={() => onChange('none')}
-        >
-          Remover template selecionado
-        </button>
-      )}
+            </button>
+          ))
+        )}
+      </ScrollArea>
     </div>
+  );
+}
+
+/* ===== Campaign Send Log Dialog ===== */
+function CampaignSendLogDialog({
+  campaignId,
+  onClose,
+  templates,
+}: {
+  campaignId: string | null;
+  onClose: () => void;
+  templates: Array<{ id: string; title: string }>;
+}) {
+  const { logs, isLoading } = useGroupOpsCampaignSendLog(campaignId ?? undefined);
+
+  const getTemplateName = (id: string) =>
+    templates.find((t) => t.id === id)?.title ?? 'Template removido';
+
+  return (
+    <Dialog open={!!campaignId} onOpenChange={onClose}>
+      <DialogContent className="max-w-lg max-h-[80vh]">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <History className="h-5 w-5" /> Histórico de Envios
+          </DialogTitle>
+        </DialogHeader>
+        <ScrollArea className="max-h-[60vh]">
+          {isLoading ? (
+            <div className="text-center py-8 text-muted-foreground">Carregando...</div>
+          ) : logs.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <History className="h-10 w-10 mx-auto mb-3 opacity-30" />
+              <p>Nenhum envio registrado ainda</p>
+              <p className="text-xs mt-1">Os envios aparecerão aqui quando a campanha for executada</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {logs.map((log) => (
+                <div key={log.id} className="border rounded-md p-3 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium truncate flex-1">{getTemplateName(log.template_id)}</span>
+                    <Badge variant="outline" className="text-xs ml-2">Ciclo {log.cycle_number}</Badge>
+                  </div>
+                  {log.message_preview && (
+                    <p className="text-xs text-muted-foreground line-clamp-2">{log.message_preview}</p>
+                  )}
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Clock className="h-3 w-3" />
+                    {new Date(log.sent_at).toLocaleString('pt-BR')}
+                    {log.delivery_status && (
+                      <Badge variant={log.delivery_status === 'sent' ? 'default' : 'destructive'} className="text-xs h-5">
+                        {log.delivery_status === 'sent' ? 'Enviado' : log.delivery_status}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </ScrollArea>
+      </DialogContent>
+    </Dialog>
   );
 }
