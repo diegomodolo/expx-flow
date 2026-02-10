@@ -489,3 +489,6 @@ verify_jwt = true
 
 [functions.export-to-google-slides]
 verify_jwt = true
+
+[functions.groupops-campaign-cron]
+verify_jwt = false

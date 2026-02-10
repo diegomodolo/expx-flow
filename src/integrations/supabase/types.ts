@@ -6493,7 +6493,14 @@ export type Database = {
           delivery_mode: string | null
           group_id: string
           id: string
+          instance_id: string | null
+          last_execution_at: string | null
+          next_execution_at: string | null
+          schedule_day_of_month: number | null
+          schedule_days_of_week: number[] | null
+          schedule_frequency: string | null
           schedule_rule: string | null
+          schedule_times: string[] | null
           scoring_profile_id: string | null
           status: string
           targeting_rule_json: Json | null
@@ -6509,7 +6516,14 @@ export type Database = {
           delivery_mode?: string | null
           group_id: string
           id?: string
+          instance_id?: string | null
+          last_execution_at?: string | null
+          next_execution_at?: string | null
+          schedule_day_of_month?: number | null
+          schedule_days_of_week?: number[] | null
+          schedule_frequency?: string | null
           schedule_rule?: string | null
+          schedule_times?: string[] | null
           scoring_profile_id?: string | null
           status?: string
           targeting_rule_json?: Json | null
@@ -6525,7 +6539,14 @@ export type Database = {
           delivery_mode?: string | null
           group_id?: string
           id?: string
+          instance_id?: string | null
+          last_execution_at?: string | null
+          next_execution_at?: string | null
+          schedule_day_of_month?: number | null
+          schedule_days_of_week?: number[] | null
+          schedule_frequency?: string | null
           schedule_rule?: string | null
+          schedule_times?: string[] | null
           scoring_profile_id?: string | null
           status?: string
           targeting_rule_json?: Json | null
@@ -6546,6 +6567,13 @@ export type Database = {
             columns: ["group_id"]
             isOneToOne: false
             referencedRelation: "groupops_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "groupops_campaigns_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_instances"
             referencedColumns: ["id"]
           },
           {
