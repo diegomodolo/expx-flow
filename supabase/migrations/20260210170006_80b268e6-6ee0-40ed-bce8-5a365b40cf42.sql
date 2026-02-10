@@ -1,0 +1,1 @@
+UPDATE public.groupops_templates SET company_id = 'a50dd995-0e29-4a6f-a0a7-0f558c51818a' WHERE company_id = '39420d18-85a2-4e52-aa9c-312d7f2e6343' AND category = 'POLL';
