@@ -75,5 +75,21 @@ export function useGroupOpsGroups() {
     onError: () => toast.error('Erro ao atualizar grupo'),
   });
 
-  return { groups: groupsQuery.data ?? [], isLoading: groupsQuery.isLoading, createGroup, updateGroup };
+  const deleteGroup = useMutation({
+    mutationFn: async (id: string) => {
+      // Delete members first (cascade might not be set)
+      await supabase.from('groupops_members').delete().eq('group_id', id);
+      await supabase.from('groupops_events').delete().eq('group_id', id);
+      await supabase.from('groupops_messages').delete().eq('group_id', id);
+      const { error } = await supabase.from('groupops_groups').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['groupops-groups'] });
+      toast.success('Grupo removido com sucesso');
+    },
+    onError: () => toast.error('Erro ao remover grupo'),
+  });
+
+  return { groups: groupsQuery.data ?? [], isLoading: groupsQuery.isLoading, createGroup, updateGroup, deleteGroup };
 }

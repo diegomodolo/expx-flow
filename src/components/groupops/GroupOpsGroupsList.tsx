@@ -13,7 +13,9 @@ import { useGroupOpsGroups, GroupOpsGroup } from '@/hooks/useGroupOpsGroups';
 import { useWhatsAppInstances, WhatsAppInstance } from '@/hooks/useWhatsAppInstances';
 import { useCompany } from '@/contexts/CompanyContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Plus, Settings, MessageSquare, Import, Loader2, Search, Users, Wifi, WifiOff } from 'lucide-react';
+import { Plus, Settings, MessageSquare, Import, Loader2, Search, Users, Wifi, WifiOff, Trash2 } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
 
 interface WhatsAppGroup {
@@ -99,6 +101,7 @@ function ImportGroupsModal({ onClose, onImported }: { onClose: () => void; onImp
             auto_reply_mode: 'safe',
             instance_id: selectedInstance?.id,
             participants_count: wg.participants_count,
+            profile_pic: wg.profile_pic || null,
           },
         });
         imported++;
@@ -365,7 +368,7 @@ function GroupConfigModal({ group, onClose }: { group?: GroupOpsGroup; onClose: 
 
 // ----------- Main List -----------
 export default function GroupOpsGroupsList() {
-  const { groups, isLoading } = useGroupOpsGroups();
+  const { groups, isLoading, deleteGroup } = useGroupOpsGroups();
   const [editGroup, setEditGroup] = useState<GroupOpsGroup | undefined>();
   const [configOpen, setConfigOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
@@ -441,9 +444,12 @@ export default function GroupOpsGroupsList() {
             <Card key={group.id}>
               <CardContent className="flex items-center justify-between py-4">
                 <div className="flex items-center gap-4">
-                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    <MessageSquare className="h-5 w-5 text-primary" />
-                  </div>
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage src={group.config_json?.profile_pic} alt={group.name} />
+                    <AvatarFallback className="bg-primary/10">
+                      <MessageSquare className="h-5 w-5 text-primary" />
+                    </AvatarFallback>
+                  </Avatar>
                   <div>
                     <p className="font-medium">{group.name}</p>
                     <p className="text-sm text-muted-foreground">{group.description ?? 'Sem descrição'}</p>
@@ -455,6 +461,30 @@ export default function GroupOpsGroupsList() {
                   <Button size="icon" variant="ghost" onClick={() => { setEditGroup(group); setConfigOpen(true); }}>
                     <Settings className="h-4 w-4" />
                   </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button size="icon" variant="ghost" title="Excluir grupo">
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Excluir grupo gerenciado?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Isso removerá o grupo "{group.name}" e todos os dados associados (membros, mensagens, eventos). Esta ação não pode ser desfeita.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          onClick={() => deleteGroup.mutate(group.id)}
+                        >
+                          Excluir
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </CardContent>
             </Card>

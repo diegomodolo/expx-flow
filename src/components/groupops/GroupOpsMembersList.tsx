@@ -7,16 +7,46 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useGroupOpsMembers } from '@/hooks/useGroupOpsMembers';
 import { useGroupOpsGroups } from '@/hooks/useGroupOpsGroups';
-import { Users, Search, MessageCircle, Volume2, VolumeX, Ban } from 'lucide-react';
+import { useCompany } from '@/contexts/CompanyContext';
+import { supabase } from '@/integrations/supabase/client';
+import { Users, Search, MessageCircle, Volume2, VolumeX, Ban, RefreshCw, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function GroupOpsMembersList() {
   const { groups } = useGroupOpsGroups();
+  const { activeCompany } = useCompany();
+  const companyId = activeCompany?.company_id;
   const [selectedGroup, setSelectedGroup] = useState<string | undefined>();
   const [search, setSearch] = useState('');
   const [riskFilter, setRiskFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [syncing, setSyncing] = useState(false);
 
   const { members, isLoading, updateMember } = useGroupOpsMembers(selectedGroup);
+
+  const selectedGroupData = groups.find(g => g.id === selectedGroup);
+
+  const handleResync = async () => {
+    if (!selectedGroup || !selectedGroupData || !companyId) return;
+    const instanceId = selectedGroupData.config_json?.instance_id;
+    const groupJid = selectedGroupData.provider_group_id;
+    if (!instanceId || !groupJid) {
+      toast.error('Grupo sem instância ou JID configurado');
+      return;
+    }
+    setSyncing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('sync-groupops-members', {
+        body: { company_id: companyId, instance_id: instanceId, group_jid: groupJid, groupops_group_id: selectedGroup },
+      });
+      if (error) throw error;
+      toast.success(`${data?.synced || 0} membro(s) sincronizado(s)`);
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao sincronizar membros');
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const filtered = members.filter((m) => {
     if (search && !m.display_name?.toLowerCase().includes(search.toLowerCase()) && !m.phone_e164?.includes(search)) return false;
@@ -60,6 +90,12 @@ export default function GroupOpsMembersList() {
           <Users className="h-5 w-5" />
           Membros ({filtered.length})
         </h2>
+        {selectedGroup && (
+          <Button size="sm" variant="outline" className="gap-2" onClick={handleResync} disabled={syncing}>
+            {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            Reimportar Membros
+          </Button>
+        )}
       </div>
 
       {/* Filters */}
