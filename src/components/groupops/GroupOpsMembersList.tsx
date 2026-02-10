@@ -297,8 +297,26 @@ export default function GroupOpsMembersList() {
                   <TableHead>Empresa</TableHead>
                   <TableHead>Dor</TableHead>
                   <TableHead>Risco</TableHead>
-                  <TableHead>Streak</TableHead>
-                  <TableHead>Silêncio</TableHead>
+                  <TableHead>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="cursor-help border-b border-dashed border-muted-foreground/40">Sequência</span>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-[220px] text-xs">
+                        Dias consecutivos com participação ativa no grupo (check-ins, mensagens, etc.)
+                      </TooltipContent>
+                    </Tooltip>
+                  </TableHead>
+                  <TableHead>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="cursor-help border-b border-dashed border-muted-foreground/40">Silêncio</span>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-[220px] text-xs">
+                        Dias sem nenhuma interação no grupo
+                      </TooltipContent>
+                    </Tooltip>
+                  </TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right w-10"></TableHead>
                 </TableRow>
