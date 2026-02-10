@@ -292,7 +292,7 @@ function CampaignFormModal({ open, onClose, campaign, groups, templates, onSave 
             <Select value={templateId} onValueChange={setTemplateId}>
               <SelectTrigger><SelectValue placeholder="Selecione um template" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Nenhum</SelectItem>
+                <SelectItem value="none">Nenhum</SelectItem>
                 {filteredTemplates.map((t) => (
                   <SelectItem key={t.id} value={t.id}>{t.title}</SelectItem>
                 ))}
@@ -341,7 +341,7 @@ function CampaignFormModal({ open, onClose, campaign, groups, templates, onSave 
           <Button disabled={!groupId} onClick={() => onSave({
             type,
             group_id: groupId,
-            template_id: templateId || null,
+            template_id: templateId && templateId !== 'none' ? templateId : null,
             delivery_mode: deliveryMode,
             schedule_rule: scheduleRule || null,
             approval_required: approvalRequired,
