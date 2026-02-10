@@ -128,6 +128,8 @@ import GroupOpsDashboard from "./components/groupops/GroupOpsDashboard";
 import GroupOpsGroupsList from "./components/groupops/GroupOpsGroupsList";
 import GroupOpsMembersList from "./components/groupops/GroupOpsMembersList";
 import GroupOpsPlaceholder from "./components/groupops/GroupOpsPlaceholder";
+import GroupOpsCampaignsList from "./components/groupops/GroupOpsCampaignsList";
+import GroupOpsTemplatesList from "./components/groupops/GroupOpsTemplatesList";
 import Workspace from "./pages/Workspace";
 import { AuthProvider } from "@/hooks/useAuth";
 import { CompanyProvider } from "@/contexts/CompanyContext";
@@ -631,8 +633,8 @@ const App = () => {
                     <Route index element={<GroupOpsDashboard />} />
                     <Route path="grupos" element={<GroupOpsGroupsList />} />
                     <Route path="membros" element={<GroupOpsMembersList />} />
-                    <Route path="campanhas" element={<GroupOpsPlaceholder title="Campanhas" phase={2} />} />
-                    <Route path="templates" element={<GroupOpsPlaceholder title="Templates" phase={2} />} />
+                    <Route path="campanhas" element={<GroupOpsCampaignsList />} />
+                    <Route path="templates" element={<GroupOpsTemplatesList />} />
                     <Route path="pontuacao" element={<GroupOpsPlaceholder title="Pontuação & Badges" phase={3} />} />
                     <Route path="eventos" element={<GroupOpsPlaceholder title="Feed de Eventos" phase={3} />} />
                     <Route path="moderacao" element={<GroupOpsPlaceholder title="Moderação" phase={3} />} />
