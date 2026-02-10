@@ -71,25 +71,23 @@ serve(async (req) => {
     }
 
     // 4. Fetch messages from UazapiGO
-    // UazapiGO v2 uses POST /chat/findMessages with JSON body
+    // UazapiGO v2 uses POST /chat/fetchMessages (NOT findMessages)
     const count = sync_mode === "quantity" ? (sync_value || 500) : 2000;
 
-    // Try multiple endpoint patterns (UazapiGO varies by version)
-    // /chat/findMessages returned 405 on POST, so it's a GET endpoint
+    // Primary endpoint: POST /chat/fetchMessages per docs.uazapi.com
     const endpointsToTry = [
-      // GET variants for /chat/findMessages (405 on POST = exists as GET)
-      { url: `${endpoint}/chat/findMessages/${encodeURIComponent(chatId)}?limit=${count}`, method: "GET", body: null },
-      { url: `${endpoint}/chat/findMessages/${chatId}?limit=${count}`, method: "GET", body: null },
-      { url: `${endpoint}/chat/findMessages?remoteJid=${encodeURIComponent(chatId)}&limit=${count}`, method: "GET", body: null },
-      { url: `${endpoint}/chat/findMessages?chatId=${encodeURIComponent(chatId)}&limit=${count}`, method: "GET", body: null },
-      { url: `${endpoint}/chat/findMessages`, method: "GET", body: null },
-      // Other common patterns
-      { url: `${endpoint}/message/findMessages/${encodeURIComponent(chatId)}`, method: "GET", body: null },
-      { url: `${endpoint}/message/find/${encodeURIComponent(chatId)}`, method: "GET", body: null },
-      { url: `${endpoint}/chat/messages/${chatId}/${count}`, method: "GET", body: null },
-      { url: `${endpoint}/chat/messages/${chatId}`, method: "GET", body: null },
-      // POST variants as fallback
+      // POST /chat/fetchMessages - documented UazapiGO v2 endpoint
+      { url: `${endpoint}/chat/fetchMessages`, method: "POST", body: { chatId: chatId, count: count } },
+      { url: `${endpoint}/chat/fetchMessages`, method: "POST", body: { remoteJid: chatId, limit: count } },
+      { url: `${endpoint}/chat/fetchMessages`, method: "POST", body: { wuid: chatId, pageNumber: 1, fromGroup: true, fromMe: false } },
+      { url: `${endpoint}/chat/fetchMessages`, method: "POST", body: { where: { key: { remoteJid: chatId } }, limit: count } },
+      // Alternative paths
+      { url: `${endpoint}/message/fetchMessages`, method: "POST", body: { chatId: chatId, count: count } },
       { url: `${endpoint}/chat/findMessages`, method: "POST", body: { where: { key: { remoteJid: chatId } }, limit: count } },
+      // GET fallbacks  
+      { url: `${endpoint}/chat/fetchMessages/${encodeURIComponent(chatId)}?limit=${count}`, method: "GET", body: null },
+      { url: `${endpoint}/chat/messages/${chatId}/${count}`, method: "GET", body: null },
+      // POST /chat/find filtered to specific chat
       { url: `${endpoint}/chat/find`, method: "POST", body: { where: { key: { remoteJid: chatId } } } },
     ];
 
