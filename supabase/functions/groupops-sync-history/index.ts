@@ -170,7 +170,7 @@ serve(async (req) => {
         company_id: group.company_id,
         group_id: group.id,
         provider_message_id: msgId || null,
-        text: text?.substring(0, 5000) || null,
+        text: typeof text === 'string' ? text.substring(0, 5000) : (text ? String(text).substring(0, 5000) : null),
         media_type: msgType === "imageMessage" ? "image" : msgType === "videoMessage" ? "video" : msgType === "audioMessage" ? "audio" : msgType === "documentMessage" ? "document" : null,
         timestamp: msgTimeISO,
       });
