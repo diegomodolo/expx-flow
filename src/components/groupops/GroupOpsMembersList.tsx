@@ -10,8 +10,15 @@ import { useGroupOpsMembers } from '@/hooks/useGroupOpsMembers';
 import { useGroupOpsGroups } from '@/hooks/useGroupOpsGroups';
 import { useCompany } from '@/contexts/CompanyContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Users, Search, MessageCircle, Volume2, VolumeX, Ban, RefreshCw, Loader2 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { Users, Search, MessageCircle, Volume2, VolumeX, Ban, RefreshCw, Loader2, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
+
+interface ClientMatch {
+  phone: string;
+  client_name: string;
+  client_avatar: string | null;
+}
 
 export default function GroupOpsMembersList() {
   const { groups } = useGroupOpsGroups();
@@ -24,6 +31,30 @@ export default function GroupOpsMembersList() {
   const [syncing, setSyncing] = useState(false);
 
   const { members, isLoading, updateMember } = useGroupOpsMembers(selectedGroup);
+
+  // Fetch client associations by phone
+  const clientMatchQuery = useQuery({
+    queryKey: ['groupops-client-matches', companyId],
+    queryFn: async () => {
+      if (!companyId) return {};
+      const { data, error } = await supabase
+        .from('whatsapp_client_contacts')
+        .select('phone, clients!whatsapp_client_contacts_client_id_fkey(name, avatar)')
+        .eq('company_id', companyId);
+      if (error) throw error;
+      const map: Record<string, { name: string; avatar: string | null }> = {};
+      for (const row of (data || [])) {
+        const client = row.clients as any;
+        if (row.phone && client) {
+          map[row.phone] = { name: client.name, avatar: client.avatar };
+        }
+      }
+      return map;
+    },
+    enabled: !!companyId,
+  });
+
+  const clientMap = clientMatchQuery.data ?? {};
 
   const selectedGroupData = groups.find(g => g.id === selectedGroup);
 
@@ -204,7 +235,23 @@ export default function GroupOpsMembersList() {
                       <TableCell className="text-sm">
                         <Badge variant="outline">{roleLabel[m.role ?? 'membro'] ?? m.role}</Badge>
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{m.company_name ?? '-'}</TableCell>
+                      <TableCell className="text-sm">
+                        {(() => {
+                          const match = m.phone_e164 ? clientMap[m.phone_e164] : null;
+                          if (!match) return <span className="text-muted-foreground">-</span>;
+                          return (
+                            <div className="flex items-center gap-2">
+                              <Avatar className="h-6 w-6">
+                                <AvatarImage src={match.avatar || undefined} alt={match.name} />
+                                <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
+                                  <Building2 className="h-3 w-3" />
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="font-medium truncate max-w-[140px]">{match.name}</span>
+                            </div>
+                          );
+                        })()}
+                      </TableCell>
                       <TableCell className="text-sm">{m.primary_pain ?? '-'}</TableCell>
                       <TableCell>
                         <Badge className={riskColor[m.risk_level]}>{m.risk_level}</Badge>
