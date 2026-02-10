@@ -276,7 +276,6 @@ serve(async (req) => {
                   choices: pollOptions,
                   selectableCount: selectableCount,
                 }),
-                }),
               });
             } else {
               // Send as regular text message (UazapiGO uses "number" and "text")
