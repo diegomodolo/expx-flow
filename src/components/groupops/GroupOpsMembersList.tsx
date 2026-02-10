@@ -295,7 +295,16 @@ export default function GroupOpsMembersList() {
                   <TableHead>Telefone</TableHead>
                   <TableHead>Grupos</TableHead>
                   <TableHead>Empresa</TableHead>
-                  <TableHead>Dor</TableHead>
+                  <TableHead>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="cursor-help border-b border-dashed border-muted-foreground/40">Dor Principal</span>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-[240px] text-xs">
+                        Principal desafio ou necessidade do membro (ex: gerar leads, escalar vendas). Pode ser preenchido manualmente ou via CRM.
+                      </TooltipContent>
+                    </Tooltip>
+                  </TableHead>
                   <TableHead>Risco</TableHead>
                   <TableHead>
                     <Tooltip>
