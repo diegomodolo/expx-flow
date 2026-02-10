@@ -573,7 +573,17 @@ export default function GroupOpsGroupsList() {
                   </Avatar>
                   <div>
                     <p className="font-medium">{group.name}</p>
-                    <p className="text-sm text-muted-foreground">{group.description ?? 'Sem descrição'}</p>
+                    <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                      <span>{group.description ?? 'Sem descrição'}</span>
+                      <span className="flex items-center gap-1">
+                        <Users className="h-3.5 w-3.5" />
+                        {group.member_count ?? 0} participantes
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <MessageSquare className="h-3.5 w-3.5" />
+                        {group.messages_7d ?? 0} msgs (7d)
+                      </span>
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
