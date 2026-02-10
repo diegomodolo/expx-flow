@@ -424,7 +424,7 @@ function MemberActionsMenu({
         )}
         {currentStatus !== 'banned' && (
           <DropdownMenuItem onClick={() => onUpdateStatus('banned')} className="gap-2 text-destructive focus:text-destructive">
-            <Ban className="h-4 w-4" /> Banir
+            <Ban className="h-4 w-4" /> Remover do grupo
           </DropdownMenuItem>
         )}
       </DropdownMenuContent>
