@@ -615,6 +615,22 @@ export default function GroupOpsGroupsList() {
           ))}
         </div>
       )}
+
+      {/* Sync History Dialog */}
+      <Dialog open={!!syncGroup} onOpenChange={(o) => { if (!o) setSyncGroup(undefined); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Sincronizar Histórico - {syncGroup?.name}</DialogTitle>
+          </DialogHeader>
+          {syncGroup && (
+            <SyncHistoryDialog 
+              group={syncGroup} 
+              instances={instances} 
+              onClose={() => setSyncGroup(undefined)} 
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
