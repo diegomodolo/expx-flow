@@ -94,7 +94,10 @@ const UF_OPTIONS = [
 
 const SITUACAO_OPTIONS = ["Ativa", "Baixada", "Inapta", "Suspensa", "Nula"];
 const PORTE_OPTIONS = ["ME", "EPP", "Demais"];
-const SIMPLES_OPTIONS = ["Sim", "Não"];
+const SIMPLES_OPTIONS = [
+  { value: "S", label: "Sim" },
+  { value: "N", label: "Não" },
+];
 
 export const ImportFromBaseModal = ({ open, onOpenChange, companyId, segment }: ImportFromBaseModalProps) => {
   const queryClient = useQueryClient();
@@ -529,7 +532,7 @@ export const ImportFromBaseModal = ({ open, onOpenChange, companyId, segment }: 
                       <SelectContent>
                         <SelectItem value="_all">Todos</SelectItem>
                         {SIMPLES_OPTIONS.map(s => (
-                          <SelectItem key={s} value={s}>{s}</SelectItem>
+                          <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -543,7 +546,7 @@ export const ImportFromBaseModal = ({ open, onOpenChange, companyId, segment }: 
                       <SelectContent>
                         <SelectItem value="_all">Todos</SelectItem>
                         {SIMPLES_OPTIONS.map(s => (
-                          <SelectItem key={s} value={s}>{s}</SelectItem>
+                          <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
