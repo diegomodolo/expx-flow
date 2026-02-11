@@ -14,10 +14,19 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Progress } from "@/components/ui/progress";
 import { MetaAudience, UserData, UploadResult } from "@/hooks/useMetaAudiences";
-import { Upload, FileText, Keyboard, Loader2, CheckCircle, AlertCircle, Database } from "lucide-react";
+import { Upload, FileText, Keyboard, Loader2, CheckCircle, AlertCircle, Database, Hash, Send, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/CompanyContext";
+
+interface UploadStep {
+  id: string;
+  label: string;
+  icon: React.ReactNode;
+  status: 'pending' | 'active' | 'done' | 'error';
+  detail?: string;
+}
 
 interface UploadLeadsModalProps {
   open: boolean;
@@ -50,6 +59,9 @@ export function UploadLeadsModal({
   const [selectedSegmentId, setSelectedSegmentId] = useState<string>("");
   const [segmentLeadsCount, setSegmentLeadsCount] = useState<number>(0);
   const [loadingSegmentLeads, setLoadingSegmentLeads] = useState(false);
+  const [uploadSteps, setUploadSteps] = useState<UploadStep[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   // Fetch segments from Lead Intelligence Hub
   const { data: segments = [], isLoading: loadingSegments } = useQuery({
@@ -216,34 +228,88 @@ export function UploadLeadsModal({
     return users;
   };
 
+  const updateStep = (stepId: string, updates: Partial<UploadStep>) => {
+    setUploadSteps(prev => prev.map(s => s.id === stepId ? { ...s, ...updates } : s));
+  };
+
   const handleSubmit = async () => {
     if (!audience) return;
 
+    setIsUploading(true);
+    setUploadProgress(0);
+    setResult(null);
+
+    const steps: UploadStep[] = [
+      { id: 'collect', label: 'Coletando leads', icon: <Database className="h-4 w-4" />, status: 'pending' },
+      { id: 'validate', label: 'Validando dados', icon: <ShieldCheck className="h-4 w-4" />, status: 'pending' },
+      { id: 'hash', label: 'Criptografando (SHA256)', icon: <Hash className="h-4 w-4" />, status: 'pending' },
+      { id: 'send', label: 'Enviando para o Meta', icon: <Send className="h-4 w-4" />, status: 'pending' },
+    ];
+    setUploadSteps(steps);
+
     let users: UserData[] = [];
 
-    if (mode === "csv") {
-      users = parseCSV(csvData);
-    } else if (mode === "manual") {
-      users = getValidManualData();
-    } else if (mode === "segment") {
-      if (!selectedSegmentId) return;
-      
-      setLoadingSegmentLeads(true);
-      try {
+    // Step 1: Collect
+    updateStep('collect', { status: 'active' });
+    setUploadProgress(5);
+
+    try {
+      if (mode === "csv") {
+        users = parseCSV(csvData);
+      } else if (mode === "manual") {
+        users = getValidManualData();
+      } else if (mode === "segment") {
+        if (!selectedSegmentId) return;
+        setLoadingSegmentLeads(true);
         users = await fetchLeadsFromSegment(selectedSegmentId);
-      } catch (error: any) {
-        console.error('Error fetching segment leads:', error);
         setLoadingSegmentLeads(false);
+      }
+
+      updateStep('collect', { status: 'done', detail: `${users.length} leads coletados` });
+      setUploadProgress(25);
+
+      if (users.length === 0) {
+        updateStep('validate', { status: 'error', detail: 'Nenhum lead válido encontrado' });
+        setIsUploading(false);
         return;
       }
+
+      // Step 2: Validate
+      updateStep('validate', { status: 'active' });
+      await new Promise(r => setTimeout(r, 300)); // brief pause for UI
+      const validUsers = users.filter(u => u.email || u.phone);
+      updateStep('validate', { status: 'done', detail: `${validUsers.length} leads válidos` });
+      setUploadProgress(40);
+
+      // Step 3: Hash + Send (done by edge function)
+      updateStep('hash', { status: 'active', detail: `Processando em lotes de 5.000...` });
+      setUploadProgress(50);
+
+      // Small delay to show hashing step
+      await new Promise(r => setTimeout(r, 500));
+      updateStep('hash', { status: 'done', detail: 'Dados criptografados' });
+      setUploadProgress(60);
+
+      // Step 4: Send to Meta
+      updateStep('send', { status: 'active', detail: `Enviando ${validUsers.length} leads...` });
+      setUploadProgress(70);
+
+      const uploadResult = await onUpload(audience.id, validUsers);
+
+      if (uploadResult) {
+        updateStep('send', { status: 'done', detail: `${uploadResult.num_received} recebidos pelo Meta` });
+        setUploadProgress(100);
+        setResult(uploadResult);
+      } else {
+        updateStep('send', { status: 'error', detail: 'Erro ao enviar para o Meta' });
+      }
+    } catch (error: any) {
+      console.error('Error in upload process:', error);
+      // Mark current active step as error
+      setUploadSteps(prev => prev.map(s => s.status === 'active' ? { ...s, status: 'error', detail: error.message } : s));
       setLoadingSegmentLeads(false);
-    }
-
-    if (users.length === 0) return;
-
-    const uploadResult = await onUpload(audience.id, users);
-    if (uploadResult) {
-      setResult(uploadResult);
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -254,6 +320,9 @@ export function UploadLeadsModal({
     setParsedCount(0);
     setSelectedSegmentId("");
     setSegmentLeadsCount(0);
+    setUploadSteps([]);
+    setIsUploading(false);
+    setUploadProgress(0);
     onOpenChange(false);
   };
 
@@ -262,7 +331,7 @@ export function UploadLeadsModal({
     (mode === "manual" && getValidManualData().length > 0) ||
     (mode === "segment" && selectedSegmentId && segmentLeadsCount > 0);
 
-  const isProcessing = loading || loadingSegmentLeads;
+  const isProcessing = loading || loadingSegmentLeads || isUploading;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -276,7 +345,64 @@ export function UploadLeadsModal({
           )}
         </DialogHeader>
 
-        {result ? (
+        {/* Progress / Upload Steps View */}
+        {(isUploading || uploadSteps.length > 0) && !result ? (
+          <div className="py-6 space-y-5">
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Progresso</span>
+                <span className="font-medium">{uploadProgress}%</span>
+              </div>
+              <Progress value={uploadProgress} className="h-2" />
+            </div>
+
+            <div className="space-y-3">
+              {uploadSteps.map((step) => (
+                <div
+                  key={step.id}
+                  className={`flex items-start gap-3 p-3 rounded-lg border transition-colors ${
+                    step.status === 'active' ? 'border-primary bg-primary/5' :
+                    step.status === 'done' ? 'border-green-500/30 bg-green-500/5' :
+                    step.status === 'error' ? 'border-destructive/30 bg-destructive/5' :
+                    'border-border bg-muted/30'
+                  }`}
+                >
+                  <div className="mt-0.5">
+                    {step.status === 'active' ? (
+                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    ) : step.status === 'done' ? (
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                    ) : step.status === 'error' ? (
+                      <AlertCircle className="h-4 w-4 text-destructive" />
+                    ) : (
+                      <span className="text-muted-foreground">{step.icon}</span>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm font-medium ${
+                      step.status === 'active' ? 'text-primary' :
+                      step.status === 'done' ? 'text-green-600 dark:text-green-400' :
+                      step.status === 'error' ? 'text-destructive' :
+                      'text-muted-foreground'
+                    }`}>
+                      {step.label}
+                    </p>
+                    {step.detail && (
+                      <p className="text-xs text-muted-foreground mt-0.5">{step.detail}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {!isUploading && uploadSteps.some(s => s.status === 'error') && (
+              <DialogFooter>
+                <Button variant="outline" onClick={handleClose}>Fechar</Button>
+                <Button onClick={handleSubmit}>Tentar Novamente</Button>
+              </DialogFooter>
+            )}
+          </div>
+        ) : result ? (
           <div className="py-6 space-y-4">
             <div className="flex items-center justify-center">
               <CheckCircle className="h-12 w-12 text-green-500" />
@@ -298,14 +424,20 @@ export function UploadLeadsModal({
                   <span className="font-medium">{result.num_invalid_entries}</span>
                 </div>
               )}
+              {(result as any).batches_processed > 1 && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Lotes processados:</span>
+                  <span className="font-medium">{(result as any).batches_processed}</span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Session ID:</span>
                 <span className="font-mono text-xs">{result.session_id}</span>
               </div>
             </div>
-            <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded-md text-sm">
+            <div className="bg-accent/50 p-3 rounded-md text-sm">
               <p className="flex items-start gap-2">
-                <AlertCircle className="h-4 w-4 mt-0.5 text-blue-500" />
+                <AlertCircle className="h-4 w-4 mt-0.5 text-primary" />
                 <span>
                   O Meta pode levar até 24 horas para processar completamente os leads
                   e atualizar o tamanho do público.
