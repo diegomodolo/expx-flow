@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
-import { Tag, Trash2, RefreshCw, Plus, Edit, X, Building2, Search, LayoutGrid, DatabaseIcon, MoreHorizontal } from "lucide-react";
+import { Tag, Trash2, RefreshCw, Plus, Edit, X, Building2, Search, LayoutGrid, DatabaseIcon, MoreHorizontal, Trophy } from "lucide-react";
 import { useLeadScoring } from "@/hooks/useLeadScoring";
 import { toast } from "sonner";
 import { ListaCnaeImportModal } from "./ListaCnaeImportModal";
