@@ -192,30 +192,59 @@ export function useMetaAudiences(clientId: string | null) {
 
   const addUsersToAudience = useCallback(async (
     audienceId: string,
-    users: UserData[]
+    users: UserData[],
+    onProgress?: (batch: number, totalBatches: number, partialResult: UploadResult) => void
   ): Promise<UploadResult | null> => {
     if (!clientId) return null;
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('manage-audience-users', {
-        body: {
-          action: 'add',
-          clientId,
-          audienceId,
-          users,
-        },
-      });
+      const FRONT_BATCH_SIZE = 5000;
+      const totalBatches = Math.ceil(users.length / FRONT_BATCH_SIZE);
+      let totalReceived = 0;
+      let totalInvalid = 0;
+      let lastSessionId = '';
 
-      if (error) throw error;
-      if (!data.success) throw new Error(data.error);
+      for (let i = 0; i < totalBatches; i++) {
+        const batchUsers = users.slice(i * FRONT_BATCH_SIZE, (i + 1) * FRONT_BATCH_SIZE);
+
+        const { data, error } = await supabase.functions.invoke('manage-audience-users', {
+          body: {
+            action: 'add',
+            clientId,
+            audienceId,
+            users: batchUsers,
+          },
+        });
+
+        if (error) throw error;
+        if (!data.success) throw new Error(data.error);
+
+        totalReceived += data.result.num_received || 0;
+        totalInvalid += data.result.num_invalid_entries || 0;
+        lastSessionId = data.result.session_id || lastSessionId;
+
+        if (onProgress) {
+          onProgress(i + 1, totalBatches, {
+            session_id: lastSessionId,
+            num_received: totalReceived,
+            num_invalid_entries: totalInvalid,
+          });
+        }
+      }
+
+      const finalResult: UploadResult = {
+        session_id: lastSessionId,
+        num_received: totalReceived,
+        num_invalid_entries: totalInvalid,
+      };
 
       toast({
         title: 'Leads adicionados',
-        description: `${data.result.num_received} leads enviados para processamento.`,
+        description: `${totalReceived} leads enviados em ${totalBatches} lote(s).`,
       });
 
-      return data.result;
+      return finalResult;
     } catch (error: any) {
       console.error('Error adding users:', error);
       toast({

@@ -32,7 +32,7 @@ interface UploadLeadsModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   audience: MetaAudience | null;
-  onUpload: (audienceId: string, users: UserData[]) => Promise<UploadResult | null>;
+  onUpload: (audienceId: string, users: UserData[], onProgress?: (batch: number, totalBatches: number, partialResult: UploadResult) => void) => Promise<UploadResult | null>;
   loading: boolean;
 }
 
@@ -281,23 +281,31 @@ export function UploadLeadsModal({
       updateStep('validate', { status: 'done', detail: `${validUsers.length} leads válidos` });
       setUploadProgress(40);
 
-      // Step 3: Hash + Send (done by edge function)
-      updateStep('hash', { status: 'active', detail: `Processando em lotes de 5.000...` });
+      // Step 3: Hash info (hashing happens per batch in edge function)
+      updateStep('hash', { status: 'active', detail: `Preparando ${validUsers.length} leads em lotes de 5.000...` });
       setUploadProgress(50);
+      await new Promise(r => setTimeout(r, 400));
+      updateStep('hash', { status: 'done', detail: 'Dados preparados para criptografia' });
+      setUploadProgress(55);
 
-      // Small delay to show hashing step
-      await new Promise(r => setTimeout(r, 500));
-      updateStep('hash', { status: 'done', detail: 'Dados criptografados' });
+      // Step 4: Send to Meta in front-end batches
+      const totalBatches = Math.ceil(validUsers.length / 5000);
+      updateStep('send', { status: 'active', detail: `Enviando lote 1/${totalBatches}...` });
       setUploadProgress(60);
 
-      // Step 4: Send to Meta
-      updateStep('send', { status: 'active', detail: `Enviando ${validUsers.length} leads...` });
-      setUploadProgress(70);
-
-      const uploadResult = await onUpload(audience.id, validUsers);
+      const uploadResult = await onUpload(audience.id, validUsers, (batch, total, partial) => {
+        const batchProgress = 60 + Math.round((batch / total) * 35);
+        setUploadProgress(batchProgress);
+        updateStep('send', {
+          status: 'active',
+          detail: batch < total
+            ? `Enviando lote ${batch + 1}/${total}... (${partial.num_received} recebidos)`
+            : `Finalizando... ${partial.num_received} recebidos`,
+        });
+      });
 
       if (uploadResult) {
-        updateStep('send', { status: 'done', detail: `${uploadResult.num_received} recebidos pelo Meta` });
+        updateStep('send', { status: 'done', detail: `${uploadResult.num_received} recebidos pelo Meta em ${totalBatches} lote(s)` });
         setUploadProgress(100);
         setResult(uploadResult);
       } else {
