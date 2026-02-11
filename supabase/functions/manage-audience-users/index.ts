@@ -40,11 +40,9 @@ async function normalizeAndHash(value: string | undefined, type: string): Promis
 
   switch (type) {
     case 'email':
-      // Remove extra spaces, lowercase
       normalized = normalized.replace(/\s+/g, '');
       break;
     case 'phone':
-      // Remove all non-numeric characters, add country code if missing
       normalized = normalized.replace(/\D/g, '');
       if (!normalized.startsWith('55') && normalized.length <= 11) {
         normalized = '55' + normalized;
@@ -54,15 +52,12 @@ async function normalizeAndHash(value: string | undefined, type: string): Promis
     case 'lastName':
     case 'city':
     case 'state':
-      // Just lowercase and trim
       normalized = normalized.replace(/\s+/g, ' ').trim();
       break;
     case 'country':
-      // Use ISO country code
       normalized = normalized.length === 2 ? normalized : 'br';
       break;
     case 'zipCode':
-      // Remove non-alphanumeric characters
       normalized = normalized.replace(/[^a-z0-9]/g, '');
       break;
   }
@@ -70,14 +65,11 @@ async function normalizeAndHash(value: string | undefined, type: string): Promis
   return await sha256(normalized);
 }
 
-// Build user data array for Meta API
+// Build user data array for a batch
 async function buildUserDataForMeta(users: UserData[]): Promise<string[][]> {
   const result: string[][] = [];
 
   for (const user of users) {
-    const row: string[] = [];
-
-    // Hash each field
     const emailHash = await normalizeAndHash(user.email, 'email');
     const phoneHash = await normalizeAndHash(user.phone, 'phone');
     const fnHash = await normalizeAndHash(user.firstName, 'firstName');
@@ -87,20 +79,22 @@ async function buildUserDataForMeta(users: UserData[]): Promise<string[][]> {
     const countryHash = await normalizeAndHash(user.country, 'country');
     const zipHash = await normalizeAndHash(user.zipCode, 'zipCode');
 
-    row.push(emailHash || '');
-    row.push(phoneHash || '');
-    row.push(fnHash || '');
-    row.push(lnHash || '');
-    row.push(ctHash || '');
-    row.push(stHash || '');
-    row.push(countryHash || '');
-    row.push(zipHash || '');
-
-    result.push(row);
+    result.push([
+      emailHash || '',
+      phoneHash || '',
+      fnHash || '',
+      lnHash || '',
+      ctHash || '',
+      stHash || '',
+      countryHash || '',
+      zipHash || '',
+    ]);
   }
 
   return result;
 }
+
+const BATCH_SIZE = 5000; // Meta recommends up to 10k, we use 5k to stay safe on CPU
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -144,7 +138,6 @@ serve(async (req) => {
       throw new Error('Client not found');
     }
 
-    // Buscar integração Facebook
     const { data: integration, error: integrationError } = await supabase
       .from('facebook_integrations')
       .select('access_token, expires_at')
@@ -153,7 +146,6 @@ serve(async (req) => {
       .single();
 
     if (integrationError || !integration) {
-      console.error('[manage-audience-users] Integration error:', integrationError);
       throw new Error('Facebook integration not found');
     }
 
@@ -165,7 +157,7 @@ serve(async (req) => {
     const graphApiUrl = 'https://graph.facebook.com/v22.0';
 
     // Buscar audiência local
-    const { data: audience, error: audienceError } = await supabase
+    const { data: audience } = await supabase
       .from('meta_audiences')
       .select('id, meta_audience_id')
       .eq('meta_audience_id', audienceId)
@@ -190,70 +182,60 @@ serve(async (req) => {
       console.error('[manage-audience-users] Upload insert error:', uploadError);
     }
 
-    // Build hashed user data
-    const hashedData = await buildUserDataForMeta(users);
-
-    // Schema for Meta API
     const schema = ['EMAIL', 'PHONE', 'FN', 'LN', 'CT', 'ST', 'COUNTRY', 'ZIP'];
+    const totalBatches = Math.ceil(users.length / BATCH_SIZE);
+    let totalReceived = 0;
+    let totalInvalid = 0;
+    let lastSessionId = '';
 
-    // Determine endpoint based on action
-    let url: string;
-    let method: string;
-    let payload: any;
+    console.log(`[manage-audience-users] Processing ${totalBatches} batches of ${BATCH_SIZE}`);
 
-    if (action === 'add' || action === 'replace') {
-      url = `${graphApiUrl}/${audienceId}/users`;
-      method = 'POST';
-      payload = {
-        payload: {
-          schema,
-          data: hashedData,
-        },
+    for (let i = 0; i < totalBatches; i++) {
+      const batchUsers = users.slice(i * BATCH_SIZE, (i + 1) * BATCH_SIZE);
+      console.log(`[manage-audience-users] Batch ${i + 1}/${totalBatches}: ${batchUsers.length} users`);
+
+      const hashedData = await buildUserDataForMeta(batchUsers);
+
+      const url = `${graphApiUrl}/${audienceId}/users`;
+      const method = action === 'remove' ? 'DELETE' : 'POST';
+      const payload = {
+        payload: { schema, data: hashedData },
         access_token: accessToken,
       };
-    } else if (action === 'remove') {
-      url = `${graphApiUrl}/${audienceId}/users`;
-      method = 'DELETE';
-      payload = {
-        payload: {
-          schema,
-          data: hashedData,
-        },
-        access_token: accessToken,
-      };
-    } else {
-      throw new Error(`Unknown action: ${action}`);
-    }
 
-    console.log(`[manage-audience-users] Sending request to Meta API`);
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
 
-    const response = await fetch(url, {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
+      const data = await response.json();
 
-    const data = await response.json();
+      if (data.error) {
+        console.error(`[manage-audience-users] Meta API error on batch ${i + 1}:`, data.error);
+        
+        if (upload) {
+          await supabase
+            .from('meta_audience_uploads')
+            .update({
+              status: 'failed',
+              error_message: `Batch ${i + 1}/${totalBatches}: ${data.error.message}`,
+              records_received: totalReceived,
+              records_invalid: totalInvalid,
+              completed_at: new Date().toISOString(),
+            })
+            .eq('id', upload.id);
+        }
 
-    if (data.error) {
-      console.error('[manage-audience-users] Meta API error:', data.error);
-      
-      // Update upload status
-      if (upload) {
-        await supabase
-          .from('meta_audience_uploads')
-          .update({
-            status: 'failed',
-            error_message: data.error.message,
-            completed_at: new Date().toISOString(),
-          })
-          .eq('id', upload.id);
+        throw new Error(data.error.message);
       }
 
-      throw new Error(data.error.message);
-    }
+      totalReceived += data.num_received || 0;
+      totalInvalid += data.num_invalid_entries || 0;
+      lastSessionId = data.session_id || lastSessionId;
 
-    console.log(`[manage-audience-users] Meta response:`, data);
+      console.log(`[manage-audience-users] Batch ${i + 1} done: received=${data.num_received}, invalid=${data.num_invalid_entries}`);
+    }
 
     // Update upload status
     if (upload) {
@@ -261,21 +243,23 @@ serve(async (req) => {
         .from('meta_audience_uploads')
         .update({
           status: 'completed',
-          session_id: data.session_id,
-          records_received: data.num_received,
-          records_invalid: data.num_invalid_entries,
+          session_id: lastSessionId,
+          records_received: totalReceived,
+          records_invalid: totalInvalid,
           completed_at: new Date().toISOString(),
         })
         .eq('id', upload.id);
     }
 
+    console.log(`[manage-audience-users] All batches complete. Total received: ${totalReceived}, invalid: ${totalInvalid}`);
+
     return new Response(JSON.stringify({
       success: true,
       result: {
-        session_id: data.session_id,
-        num_received: data.num_received,
-        num_invalid_entries: data.num_invalid_entries,
-        invalid_entry_samples: data.invalid_entry_samples,
+        session_id: lastSessionId,
+        num_received: totalReceived,
+        num_invalid_entries: totalInvalid,
+        batches_processed: totalBatches,
       },
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
