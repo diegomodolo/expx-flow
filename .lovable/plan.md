@@ -1,91 +1,55 @@
 
+# Agendamento com Collab no Instagram
 
-## Enquetes via UazapiGO + Templates de Enquete
+## Objetivo
+Adicionar a funcionalidade de **post em colaboracao (Collab)** no agendamento de publicacoes do Instagram, permitindo convidar outras contas do Instagram como colaboradores.
 
-### Pesquisa realizada
+## Como funciona no Instagram
+A API Graph do Instagram permite enviar o parametro `collaborators` (lista de usernames) ao criar o container de midia. Ate 5 contas podem ser convidadas como colaboradores. O post aparece nos dois perfis apos o colaborador aceitar o convite.
 
-A API do UazapiGO, sendo baseada na mesma stack de bibliotecas WhatsApp multi-device (whatsmeow/Baileys), suporta o envio de enquetes (polls). O endpoint padrao e `POST /message/send-poll` com o seguinte payload:
+Formatos suportados: Imagem, Carrossel e Reels (Stories nao e suportado).
 
-```text
-{
-  "phone": "groupJid@g.us",
-  "poll": {
-    "name": "Texto da pergunta",
-    "options": ["Opcao 1", "Opcao 2", "Opcao 3"],
-    "selectableCount": 1
-  }
-}
-```
+## Alteracoes
 
-Onde `selectableCount` define quantas opcoes o usuario pode selecionar (1 = selecao unica, N = multipla escolha).
+### 1. Banco de Dados
+- Adicionar coluna `collaborators` (tipo `text[]`) na tabela `scheduled_posts` para armazenar os usernames dos colaboradores
 
----
+### 2. Frontend - NewPostModal.tsx
+- Adicionar campo de input para usernames de colaboradores (visivel apenas quando Instagram esta selecionado)
+- Interface com chips/tags: o usuario digita um @username e pressiona Enter para adicionar
+- Limite visual de 5 colaboradores
+- Salvar os usernames no campo `collaborators` do post
 
-### O que sera implementado
+### 3. Frontend - Hook useScheduledPosts
+- Atualizar o tipo `ScheduledPost` e `CreateScheduledPostInput` para incluir `collaborators: string[]`
 
-**1. Novo tipo de template: POLL (Enquete)**
+### 4. Backend - publish-scheduled-post Edge Function
+- Na funcao `publishToInstagram`, ao montar o `containerBody`, incluir o parametro `collaborators` com a lista de usernames quando disponivel
+- Formato: `collaborators: JSON.stringify(usernames)`
 
-Adicionar a categoria `POLL` ao sistema de templates existente. O template de enquete tera:
-- Titulo (como todo template)
-- Pergunta da enquete (campo `body` existente)
-- Opcoes de resposta (array de strings, armazenado no campo `constraints_json` ja existente)
-- Selecao unica ou multipla (`selectableCount`)
-- Suporte a Variante A/B (pergunta alternativa com opcoes diferentes)
-
-**2. UI do formulario de template**
-
-Quando a categoria `POLL` for selecionada no formulario de criacao/edicao:
-- O campo "Mensagem" se torna "Pergunta da Enquete"
-- Aparece um bloco de opcoes (minimo 2, maximo 12) com botoes de adicionar/remover
-- Toggle para "Multipla Escolha" (selectableCount > 1)
-- Preview no estilo WhatsApp mostrando como a enquete aparecera
-
-**3. Preview WhatsApp para enquetes**
-
-O mini-preview e o modal de preview exibirao um mockup visual da enquete no estilo nativo do WhatsApp, com a pergunta e as opcoes de voto.
-
-**4. Envio via Edge Function**
-
-Atualizar a `groupops-campaign-cron` para detectar templates do tipo POLL e usar o endpoint `/message/send-poll` em vez de `/message/send-text`.
+### 5. Frontend - PostCard e PostPreviewModal
+- Exibir os colaboradores listados no card/preview do post agendado
 
 ---
 
-### Detalhes tecnicos
+## Detalhes Tecnicos
 
-**Banco de dados**: Nenhuma alteracao de schema necessaria. O campo `constraints_json` (jsonb) ja existe na tabela `groupops_templates` e sera usado para armazenar:
-```text
-{
-  "poll_options": ["Opcao 1", "Opcao 2", "Opcao 3"],
-  "selectable_count": 1
-}
+**Parametro da API Meta:**
+```
+POST graph.facebook.com/{ig-user-id}/media
+  ?image_url=...
+  &caption=...
+  &collaborators=['username1','username2']
 ```
 
-**Arquivos a modificar**:
-
-| Arquivo | Alteracao |
-|---|---|
-| `src/hooks/useGroupOpsTemplates.ts` | Adicionar `POLL` a `TEMPLATE_CATEGORIES` |
-| `src/components/groupops/GroupOpsTemplatesList.tsx` | Formulario condicional para enquetes (opcoes, selectableCount), preview de enquete |
-| `supabase/functions/groupops-campaign-cron/index.ts` | Logica de envio: se template.category === 'POLL', usar `/message/send-poll` com payload adequado |
-
-**Fluxo de envio na edge function**:
-```text
-if (template.category === "POLL") {
-  const pollData = template.constraints_json;
-  await fetch(`${endpoint}/message/send-poll`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", token },
-    body: JSON.stringify({
-      phone: groupJid,
-      poll: {
-        name: messageBody,  // pergunta com placeholders preenchidos
-        options: pollData.poll_options,
-        selectableCount: pollData.selectable_count || 1
-      }
-    })
-  });
-}
+**Migracao SQL:**
+```sql
+ALTER TABLE scheduled_posts ADD COLUMN collaborators text[] DEFAULT '{}';
 ```
 
-**Nota importante**: O endpoint exato (`/message/send-poll`) precisara ser validado contra sua instancia UazapiGO. Caso o path seja diferente (ex: `/chat/sendPoll`), sera necessario apenas ajustar a URL na edge function.
-
+**Arquivos modificados:**
+- `supabase/functions/publish-scheduled-post/index.ts`
+- `src/components/scheduling/NewPostModal.tsx`
+- `src/hooks/useScheduledPosts.tsx` (tipos)
+- `src/components/scheduling/PostCard.tsx` (exibicao)
+- `src/components/scheduling/PostPreviewModal.tsx` (exibicao)
