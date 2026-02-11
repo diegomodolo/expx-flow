@@ -24,6 +24,7 @@ export interface ScheduledPost {
   error_message: string | null;
   retry_count: number;
   visual_creative_id: string | null;
+  collaborators: string[];
   metadata: Record<string, any>;
   created_at: string;
   updated_at: string;
@@ -58,6 +59,7 @@ export interface CreateScheduledPostInput {
   timezone?: string;
   status?: 'draft' | 'scheduled';
   visual_creative_id?: string | null;
+  collaborators?: string[];
   metadata?: Record<string, any>;
 }
 
@@ -136,6 +138,7 @@ export const useScheduledPosts = () => {
           timezone: input.timezone || 'America/Sao_Paulo',
           status: input.status || 'scheduled',
           visual_creative_id: input.visual_creative_id || null,
+          collaborators: input.collaborators || [],
           metadata: input.metadata || {},
         })
         .select()

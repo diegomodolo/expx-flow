@@ -210,6 +210,17 @@ export const PostCard: React.FC<PostCardProps> = ({
                   )}
                 </div>
 
+                {/* Collaborators */}
+                {(post as any).collaborators?.length > 0 && (
+                  <div className="flex items-center gap-1 flex-wrap mt-1">
+                    {(post as any).collaborators.map((collab: string, i: number) => (
+                      <Badge key={i} variant="secondary" className="text-[10px] px-1.5 py-0">
+                        @{collab}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+
                 {/* Caption */}
                 <p className="text-sm text-foreground line-clamp-2">
                   {post.caption || 'Sem legenda'}

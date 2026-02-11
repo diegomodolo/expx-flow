@@ -72,6 +72,8 @@ export const NewPostModal: React.FC<NewPostModalProps> = ({
   const [scheduledDate, setScheduledDate] = useState<Date | undefined>(undefined);
   const [scheduledTime, setScheduledTime] = useState('12:00');
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
+  const [collaborators, setCollaborators] = useState<string[]>([]);
+  const [collaboratorInput, setCollaboratorInput] = useState('');
 
   // Get linked accounts for selected client
   const selectedClientData = clients.find(c => c.id === selectedClient);
@@ -105,6 +107,7 @@ export const NewPostModal: React.FC<NewPostModalProps> = ({
         setScheduledDate(new Date(post.scheduled_at));
         setScheduledTime(format(new Date(post.scheduled_at), 'HH:mm'));
         setThumbnailUrl(post.thumbnail_url || null);
+        setCollaborators((post as any).collaborators || []);
       } else {
         // New post mode - use initial values if provided (from creative generator)
         setContentType('image');
@@ -117,6 +120,8 @@ export const NewPostModal: React.FC<NewPostModalProps> = ({
         setScheduledDate(initialDate || new Date());
         setScheduledTime('12:00');
         setThumbnailUrl(initialThumbnailUrl || null);
+        setCollaborators([]);
+        setCollaboratorInput('');
       }
     }
   }, [open, post, initialDate, initialMediaUrls, initialCaption, initialClientId, initialThumbnailUrl]);
@@ -159,6 +164,7 @@ export const NewPostModal: React.FC<NewPostModalProps> = ({
         scheduled_at: scheduledAt.toISOString(),
         status: 'scheduled',
         thumbnail_url: contentType === 'reel' ? thumbnailUrl : null,
+        collaborators: selectedPlatforms.includes('instagram') ? collaborators : [],
       };
 
       if (post) {
@@ -327,6 +333,52 @@ export const NewPostModal: React.FC<NewPostModalProps> = ({
               maxLength={2200}
             />
           </div>
+
+          {/* Instagram Collaborators */}
+          {selectedPlatforms.includes('instagram') && (
+            <div>
+              <Label className="mb-2 block">
+                Colaboradores (Collab)
+                <span className="text-muted-foreground ml-2 text-xs">
+                  {collaborators.length}/5
+                </span>
+              </Label>
+              <div className="flex flex-wrap gap-2 mb-2">
+                {collaborators.map((collab, index) => (
+                  <Badge key={index} variant="secondary" className="gap-1 pr-1">
+                    @{collab}
+                    <button
+                      type="button"
+                      onClick={() => setCollaborators(prev => prev.filter((_, i) => i !== index))}
+                      className="ml-1 hover:text-destructive"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+              {collaborators.length < 5 && (
+                <Input
+                  placeholder="@username e pressione Enter"
+                  value={collaboratorInput}
+                  onChange={(e) => setCollaboratorInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const username = collaboratorInput.replace(/^@/, '').trim();
+                      if (username && !collaborators.includes(username)) {
+                        setCollaborators(prev => [...prev, username]);
+                        setCollaboratorInput('');
+                      }
+                    }
+                  }}
+                />
+              )}
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Convide até 5 contas para colaborar no post. O colaborador receberá um convite.
+              </p>
+            </div>
+          )}
 
           {/* Platforms */}
           <div>
