@@ -10723,6 +10723,7 @@ export type Database = {
         Row: {
           caption: string | null
           client_id: string | null
+          collaborators: string[] | null
           company_id: string
           content_type: string
           created_at: string | null
@@ -10748,6 +10749,7 @@ export type Database = {
         Insert: {
           caption?: string | null
           client_id?: string | null
+          collaborators?: string[] | null
           company_id: string
           content_type: string
           created_at?: string | null
@@ -10773,6 +10775,7 @@ export type Database = {
         Update: {
           caption?: string | null
           client_id?: string | null
+          collaborators?: string[] | null
           company_id?: string
           content_type?: string
           created_at?: string | null
