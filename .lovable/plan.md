@@ -1,55 +1,62 @@
 
-# Agendamento com Collab no Instagram
 
-## Objetivo
-Adicionar a funcionalidade de **post em colaboracao (Collab)** no agendamento de publicacoes do Instagram, permitindo convidar outras contas do Instagram como colaboradores.
+# Ajustar IA para Distinguir Problemas Internos vs. Externos
 
-## Como funciona no Instagram
-A API Graph do Instagram permite enviar o parametro `collaborators` (lista de usernames) ao criar o container de midia. Ate 5 contas podem ser convidadas como colaboradores. O post aparece nos dois perfis apos o colaborador aceitar o convite.
+## Problema
 
-Formatos suportados: Imagem, Carrossel e Reels (Stories nao e suportado).
+Quando o cliente reclama de um problema que nao e responsabilidade da sua empresa (ex: bug de um parceiro/fornecedor), a IA interpreta como atendimento ruim e da nota baixa. A IA precisa ser inteligente o suficiente para entender o contexto e so penalizar a nota quando o problema for de responsabilidade da sua empresa.
 
-## Alteracoes
+## Solucao
 
-### 1. Banco de Dados
-- Adicionar coluna `collaborators` (tipo `text[]`) na tabela `scheduled_posts` para armazenar os usernames dos colaboradores
+Ajustar o prompt de analise na edge function `whatsapp-ai-assistant` para incluir instrucoes claras sobre como diferenciar problemas internos de externos, adicionando um novo campo no JSON de resposta e ajustando os criterios de nota.
 
-### 2. Frontend - NewPostModal.tsx
-- Adicionar campo de input para usernames de colaboradores (visivel apenas quando Instagram esta selecionado)
-- Interface com chips/tags: o usuario digita um @username e pressiona Enter para adicionar
-- Limite visual de 5 colaboradores
-- Salvar os usernames no campo `collaborators` do post
+## Mudancas
 
-### 3. Frontend - Hook useScheduledPosts
-- Atualizar o tipo `ScheduledPost` e `CreateScheduledPostInput` para incluir `collaborators: string[]`
+### 1. Edge Function `whatsapp-ai-assistant/index.ts`
 
-### 4. Backend - publish-scheduled-post Edge Function
-- Na funcao `publishToInstagram`, ao montar o `containerBody`, incluir o parametro `collaborators` com a lista de usernames quando disponivel
-- Formato: `collaborators: JSON.stringify(usernames)`
+Alterar a funcao `buildAnalysisPrompt` para:
 
-### 5. Frontend - PostCard e PostPreviewModal
-- Exibir os colaboradores listados no card/preview do post agendado
+**Adicionar instrucao de contexto de responsabilidade** no prompt, antes dos criterios de nota:
 
----
-
-## Detalhes Tecnicos
-
-**Parametro da API Meta:**
 ```
-POST graph.facebook.com/{ig-user-id}/media
-  ?image_url=...
-  &caption=...
-  &collaborators=['username1','username2']
+IMPORTANTE - CONTEXTO DE RESPONSABILIDADE:
+Antes de avaliar, identifique se o problema mencionado pelo cliente:
+a) E de responsabilidade da NOSSA empresa (nosso produto, nosso servico, nosso atendimento)
+b) E de responsabilidade de TERCEIROS (parceiros, fornecedores, outras empresas, problemas pessoais do cliente)
+
+Se o cliente estiver desabafando ou reclamando de problemas de TERCEIROS/PARCEIROS/FORNECEDORES que NAO sao da nossa empresa:
+- A nota NAO deve ser penalizada por isso
+- A temperature deve refletir o tom do ATENDIMENTO prestado, nao a frustacao do cliente com terceiros
+- O atendente deve ser avaliado pela forma como acolheu e respondeu, nao pelo problema externo
 ```
 
-**Migracao SQL:**
-```sql
-ALTER TABLE scheduled_posts ADD COLUMN collaborators text[] DEFAULT '{}';
+**Adicionar novo campo no JSON de resposta**:
+```
+"issueContext": {
+  "isOurResponsibility": true | false,
+  "source": "interno" | "externo" | "misto",
+  "explanation": "Breve explicacao de por que o problema e ou nao da nossa empresa (1 frase)"
+}
 ```
 
-**Arquivos modificados:**
-- `supabase/functions/publish-scheduled-post/index.ts`
-- `src/components/scheduling/NewPostModal.tsx`
-- `src/hooks/useScheduledPosts.tsx` (tipos)
-- `src/components/scheduling/PostCard.tsx` (exibicao)
-- `src/components/scheduling/PostPreviewModal.tsx` (exibicao)
+**Ajustar criterios de nota** para incluir:
+```
+Criterios para a nota (score):
+- A nota avalia EXCLUSIVAMENTE a qualidade do atendimento prestado pela NOSSA equipe
+- Se o cliente reclama de problema de terceiro/parceiro/fornecedor, avalie apenas como o atendente lidou com a situacao (acolhimento, empatia, encaminhamento)
+- NAO penalize a nota por problemas que nao sao de responsabilidade da empresa
+- 0-3: Atendimento ruim (rude, confuso, nao resolve o que esta ao nosso alcance)
+- 4-6: Atendimento regular (basico, pode melhorar)
+- 7-8: Bom atendimento (cordial, claro, encaminha bem)
+- 9-10: Excelente (supera expectativas, empatico, resolve rapido o que pode)
+```
+
+### Arquivo modificado
+- `supabase/functions/whatsapp-ai-assistant/index.ts` - Prompt de analise atualizado
+
+### Resultado esperado
+Quando um cliente desabafar sobre problemas de parceiros ou terceiros, a IA vai:
+1. Identificar que o problema nao e da sua empresa (`isOurResponsibility: false`)
+2. Manter a nota baseada apenas na qualidade do atendimento prestado
+3. Sugerir ao atendente como acolher o cliente sem assumir culpa
+
