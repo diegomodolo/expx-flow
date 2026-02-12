@@ -45,6 +45,18 @@ function buildAnalysisPrompt(department: string, objective: string): string {
 
 Objetivo principal do agente: ${objective || "Resolver a demanda do cliente"}
 
+IMPORTANTE - CONTEXTO DE RESPONSABILIDADE:
+Antes de avaliar, identifique se o problema mencionado pelo cliente:
+a) É de responsabilidade da NOSSA empresa (nosso produto, nosso serviço, nosso atendimento)
+b) É de responsabilidade de TERCEIROS (parceiros, fornecedores, outras empresas, problemas pessoais do cliente)
+c) É MISTO (parte nossa, parte de terceiros)
+
+Se o cliente estiver desabafando ou reclamando de problemas de TERCEIROS/PARCEIROS/FORNECEDORES que NÃO são da nossa empresa:
+- A nota NÃO deve ser penalizada por isso
+- A temperature deve refletir o tom do ATENDIMENTO prestado, não a frustração do cliente com terceiros
+- O atendente deve ser avaliado pela forma como acolheu e respondeu, não pelo problema externo
+- Se o atendente demonstrou empatia e acolhimento diante do desabafo, isso deve ser considerado POSITIVO
+
 Analise a conversa e retorne APENAS um JSON válido (sem markdown, sem \`\`\`) no seguinte formato:
 {
   "temperature": "positive" | "neutral" | "negative",
@@ -56,7 +68,12 @@ Analise a conversa e retorne APENAS um JSON válido (sem markdown, sem \`\`\`) n
     "actionItems": ["Ação 1", "Ação 2"] (máximo 3 itens curtos)
   },
   "alerts": ["Alerta se houver algo urgente"] (pode ser array vazio),
-  "score": 7 (nota de 0 a 10 avaliando a qualidade do atendimento até agora - considere: cordialidade, clareza, resolutividade, tom adequado, tempo de resposta implícito),
+  "score": 7 (nota de 0 a 10 - veja critérios abaixo),
+  "issueContext": {
+    "isOurResponsibility": true ou false,
+    "source": "interno" | "externo" | "misto",
+    "explanation": "Breve explicação de por que o problema é ou não da nossa empresa (1 frase)"
+  },
   "needsResponse": true ou false (indica se a última mensagem do cliente REALMENTE precisa de uma resposta do atendente),
   "readyMessage": "Uma mensagem pronta e completa que o atendente pode enviar diretamente ao cliente. Esta mensagem deve ser a resposta ideal para a situação atual, com tom adequado para WhatsApp (conversacional mas profissional). Não use saudações como 'Olá' se a conversa já está em andamento. Seja direto e resolva a demanda do cliente."
 }
@@ -66,16 +83,20 @@ Critérios para needsResponse:
 - FALSE: Cliente apenas confirmou/agradeceu (ok, beleza, obrigado, valeu, 👍, perfeito, entendi, certo), despediu-se (tchau, até mais), ou enviou reação/emoji de aprovação
 
 Critérios para a nota (score):
-- 0-3: Atendimento ruim (rude, confuso, não resolve)
+- A nota avalia EXCLUSIVAMENTE a qualidade do atendimento prestado pela NOSSA equipe
+- Se o cliente reclama de problema de terceiro/parceiro/fornecedor, avalie apenas como o atendente lidou com a situação (acolhimento, empatia, encaminhamento)
+- NÃO penalize a nota por problemas que não são de responsabilidade da empresa
+- 0-3: Atendimento ruim (rude, confuso, não resolve o que está ao nosso alcance)
 - 4-6: Atendimento regular (básico, pode melhorar)
 - 7-8: Bom atendimento (cordial, claro, encaminha bem)
-- 9-10: Excelente (supera expectativas, empático, resolve rápido)
+- 9-10: Excelente (supera expectativas, empático, resolve rápido o que pode)
 
 IMPORTANTE sobre readyMessage:
 - Escreva como se fosse o atendente falando diretamente com o cliente
 - Use emojis moderadamente se apropriado para o contexto
 - Seja objetivo mas empático
 - A mensagem deve estar pronta para envio imediato
+- Se o problema é de terceiros, acolha o cliente sem assumir culpa indevida
 
 Seja direto e prático. Foque no que é acionável AGORA.`;
 }

@@ -13,6 +13,11 @@ export interface RealtimeAnalysis {
   };
   alerts: string[];
   score: number; // 0-10 rating
+  issueContext?: {
+    isOurResponsibility: boolean;
+    source: "interno" | "externo" | "misto";
+    explanation: string;
+  };
   needsResponse: boolean; // AI-determined: does this conversation need a response?
   readyMessage: string; // Ready-to-send message
   timestamp: string;

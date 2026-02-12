@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
-import { X, Send, Loader2, Sparkles, Copy, Check, MessageSquare, Trash2, Zap, Lightbulb, Target, MessageCircle, MessageSquareText, ChevronUp } from "lucide-react";
+import { X, Send, Loader2, Sparkles, Copy, Check, MessageSquare, Trash2, Zap, Lightbulb, Target, MessageCircle, MessageSquareText, ChevronUp, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -98,6 +98,34 @@ function AnalysisChatMessage({
                   ))}
                 </ul>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Issue Context - Responsibility */}
+      {analysisData.issueContext && (
+        <div className={`rounded-lg px-2.5 py-1.5 mr-4 border ${
+          analysisData.issueContext.source === "externo" 
+            ? "bg-amber-500/10 border-amber-500/20" 
+            : analysisData.issueContext.source === "misto"
+            ? "bg-orange-500/10 border-orange-500/20"
+            : "bg-slate-500/10 border-slate-500/20"
+        }`}>
+          <div className="flex items-start gap-1.5">
+            <AlertTriangle className={`h-3 w-3 mt-0.5 shrink-0 ${
+              analysisData.issueContext.source === "externo" ? "text-amber-500" : 
+              analysisData.issueContext.source === "misto" ? "text-orange-500" : "text-slate-500"
+            }`} />
+            <div>
+              <p className={`text-[10px] font-medium mb-0.5 ${
+                analysisData.issueContext.source === "externo" ? "text-amber-600 dark:text-amber-400" : 
+                analysisData.issueContext.source === "misto" ? "text-orange-600 dark:text-orange-400" : "text-slate-600 dark:text-slate-400"
+              }`}>
+                Contexto: {analysisData.issueContext.source === "externo" ? "Problema de Terceiros" : 
+                  analysisData.issueContext.source === "misto" ? "Problema Misto" : "Problema Interno"}
+              </p>
+              <p className="text-xs leading-relaxed">{analysisData.issueContext.explanation}</p>
             </div>
           </div>
         </div>
@@ -204,6 +232,7 @@ export function WhatsAppAIAssistant({
         departmentInsight: analysis.departmentInsight,
         alerts: analysis.alerts,
         score: analysis.score,
+        issueContext: analysis.issueContext,
         readyMessage: analysis.readyMessage,
       };
       
