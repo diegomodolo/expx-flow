@@ -25,6 +25,11 @@ export interface AnalysisMessageContent {
   };
   alerts: string[];
   score: number;
+  issueContext?: {
+    isOurResponsibility: boolean;
+    source: "interno" | "externo" | "misto";
+    explanation: string;
+  };
   readyMessage: string;
 }
 
