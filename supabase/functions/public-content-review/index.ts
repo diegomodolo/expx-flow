@@ -80,7 +80,8 @@ serve(async (req) => {
           .from("content_plan_slides")
           .select("*")
           .in("post_id", postIds)
-          .order("order_index", { ascending: true });
+          .order("order_index", { ascending: true })
+          .order("created_at", { ascending: true });
 
         if (slidesError) {
           console.error("Error fetching slides:", slidesError);

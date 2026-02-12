@@ -159,7 +159,8 @@ export function useContentPlans(clientId?: string) {
         .from("content_plan_slides")
         .select("*")
         .in("post_id", carouselPostIds)
-        .order("order_index", { ascending: true });
+        .order("order_index", { ascending: true })
+        .order("created_at", { ascending: true });
 
       if (slidesError) throw slidesError;
       slides = (slidesData || []).map((s: any) => ({
