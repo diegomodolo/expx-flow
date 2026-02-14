@@ -70,8 +70,12 @@ export function YouTubeVideoAnalytics({
   const [contentTypeFilter, setContentTypeFilter] = useState<'all' | 'videos' | 'shorts'>('all');
 
   const filteredByContentType = videos.filter((v) => {
-    if (contentTypeFilter === 'shorts') return (v.duration_seconds ?? 0) <= 60;
-    if (contentTypeFilter === 'videos') return (v.duration_seconds ?? 0) > 60;
+    const duration = v.duration_seconds ?? 0;
+    // YouTube Shorts: até 3 minutos (180s)
+    const isShort = duration > 0 && duration <= 180;
+    
+    if (contentTypeFilter === 'shorts') return isShort;
+    if (contentTypeFilter === 'videos') return !isShort || duration === 0;
     return true;
   });
 
