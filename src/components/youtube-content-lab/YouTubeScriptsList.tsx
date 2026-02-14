@@ -2,9 +2,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { YouTubeScript } from "@/hooks/useYouTubeScripts";
-import { FileText, Plus, Trash2, Loader2, Clock } from "lucide-react";
+import { FileText, Plus, Trash2, Loader2, Clock, Eye, ThumbsUp, MessageCircle, TrendingUp, Youtube } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -130,6 +131,55 @@ export function YouTubeScriptsList({
                           </Badge>
                         )}
                       </div>
+
+                      {/* Source Video Info */}
+                      {script.source_videos && script.source_videos.length > 0 && (
+                        <div className="mt-3 space-y-1.5">
+                          {script.source_videos.map((video, idx) => (
+                            <div
+                              key={idx}
+                              className="flex items-center gap-2 rounded-md bg-muted/50 px-2.5 py-1.5 text-xs"
+                            >
+                              <Youtube className="h-3.5 w-3.5 text-destructive shrink-0" />
+                              <span className="truncate font-medium flex-1 min-w-0" title={video.title}>
+                                {video.title}
+                              </span>
+                              <span className="text-muted-foreground shrink-0">
+                                {video.channel_name}
+                              </span>
+                              <TooltipProvider delayDuration={200}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="flex items-center gap-0.5 text-muted-foreground shrink-0">
+                                      <Eye className="h-3 w-3" />
+                                      {video.view_count >= 1000
+                                        ? `${(video.view_count / 1000).toFixed(1)}k`
+                                        : video.view_count}
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent>{video.view_count.toLocaleString('pt-BR')} views</TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                              <span className="flex items-center gap-0.5 text-muted-foreground shrink-0">
+                                <ThumbsUp className="h-3 w-3" />
+                                {video.like_count >= 1000
+                                  ? `${(video.like_count / 1000).toFixed(1)}k`
+                                  : video.like_count}
+                              </span>
+                              <span className="flex items-center gap-0.5 text-muted-foreground shrink-0">
+                                <MessageCircle className="h-3 w-3" />
+                                {video.comment_count}
+                              </span>
+                              {video.engagement_rate != null && (
+                                <span className="flex items-center gap-0.5 text-green-600 dark:text-green-400 font-medium shrink-0">
+                                  <TrendingUp className="h-3 w-3" />
+                                  {video.engagement_rate.toFixed(1)}%
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
 

@@ -2,6 +2,16 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
+export interface SourceVideoInfo {
+  title: string;
+  channel_name: string;
+  view_count: number;
+  like_count: number;
+  comment_count: number;
+  engagement_rate: number | null;
+  thumbnail_url: string | null;
+}
+
 export interface YouTubeScript {
   id: string;
   client_id: string;
@@ -16,6 +26,7 @@ export interface YouTubeScript {
   status: 'draft' | 'review' | 'approved' | 'produced';
   created_at: string;
   updated_at: string;
+  source_videos?: SourceVideoInfo[];
 }
 
 export interface ScriptMessage {
@@ -38,24 +49,80 @@ export function useYouTubeScripts(clientId: string, companyId: string) {
     try {
       const { data, error } = await supabase
         .from('youtube_scripts')
-        .select('*')
+        .select('*, youtube_content_suggestions(based_on_videos)')
         .eq('client_id', clientId)
         .eq('company_id', companyId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       
+      // Collect all video titles from suggestions to fetch in bulk
+      const allVideoTitles: string[] = [];
+      (data || []).forEach((s: any) => {
+        const suggestion = s.youtube_content_suggestions;
+        if (suggestion?.based_on_videos && Array.isArray(suggestion.based_on_videos)) {
+          allVideoTitles.push(...suggestion.based_on_videos);
+        }
+      });
+
+      // Fetch video data for all referenced titles
+      let videoMap = new Map<string, SourceVideoInfo>();
+      if (allVideoTitles.length > 0) {
+        const uniqueTitles = [...new Set(allVideoTitles)];
+        const { data: videosData } = await supabase
+          .from('youtube_video_analyses')
+          .select('title, view_count, like_count, comment_count, engagement_rate, thumbnail_url, channel_id')
+          .in('title', uniqueTitles)
+          .eq('client_id', clientId);
+
+        if (videosData && videosData.length > 0) {
+          // Fetch channel names
+          const channelIds = [...new Set(videosData.map(v => v.channel_id))];
+          const { data: channelsData } = await supabase
+            .from('youtube_monitored_channels')
+            .select('id, channel_name')
+            .in('id', channelIds);
+          
+          const channelMap = new Map((channelsData || []).map(c => [c.id, c.channel_name]));
+
+          videosData.forEach(v => {
+            videoMap.set(v.title, {
+              title: v.title,
+              channel_name: channelMap.get(v.channel_id) || 'Desconhecido',
+              view_count: v.view_count,
+              like_count: v.like_count,
+              comment_count: v.comment_count,
+              engagement_rate: v.engagement_rate,
+              thumbnail_url: v.thumbnail_url,
+            });
+          });
+        }
+      }
+
       // Parse JSON fields with proper typing
-      const parsedScripts: YouTubeScript[] = (data || []).map(s => ({
-        ...s,
-        status: s.status as YouTubeScript['status'],
-        suggested_titles: Array.isArray(s.suggested_titles) 
-          ? (s.suggested_titles as unknown as string[]) 
-          : [],
-        reference_thumbnails: Array.isArray(s.reference_thumbnails) 
-          ? (s.reference_thumbnails as unknown as string[]) 
-          : [],
-      }));
+      const parsedScripts: YouTubeScript[] = (data || []).map((s: any) => {
+        const suggestion = s.youtube_content_suggestions;
+        const basedOnVideos: string[] = suggestion?.based_on_videos && Array.isArray(suggestion.based_on_videos) 
+          ? suggestion.based_on_videos 
+          : [];
+        
+        const sourceVideos = basedOnVideos
+          .map(title => videoMap.get(title))
+          .filter((v): v is SourceVideoInfo => !!v);
+
+        return {
+          ...s,
+          youtube_content_suggestions: undefined,
+          status: s.status as YouTubeScript['status'],
+          suggested_titles: Array.isArray(s.suggested_titles) 
+            ? (s.suggested_titles as unknown as string[]) 
+            : [],
+          reference_thumbnails: Array.isArray(s.reference_thumbnails) 
+            ? (s.reference_thumbnails as unknown as string[]) 
+            : [],
+          source_videos: sourceVideos.length > 0 ? sourceVideos : undefined,
+        };
+      });
       
       setScripts(parsedScripts);
     } catch (error) {
