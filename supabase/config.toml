@@ -495,3 +495,6 @@ verify_jwt = false
 
 [functions.generate-groupops-template]
 verify_jwt = false
+
+[functions.youtube-posting-behavior-report]
+verify_jwt = false

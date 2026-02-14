@@ -10,6 +10,7 @@ import { YouTubeAnalysisFilters } from "./YouTubeAnalysisFilters";
 import { YouTubeChannelComparison } from "./YouTubeChannelComparison";
 import { YouTubeTrendAnalysis } from "./YouTubeTrendAnalysis";
 import { YouTubeDurationAnalysis } from "./YouTubeDurationAnalysis";
+import { YouTubePostingBehavior } from "./YouTubePostingBehavior";
 import { TranslatedTitle } from "./TranslatedTitle";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
@@ -209,7 +210,7 @@ export function YouTubeVideoAnalytics({
 
       {/* Analysis Tabs */}
       <Tabs value={analysisTab} onValueChange={setAnalysisTab}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="ranking" className="flex items-center gap-2">
             <TrendingUp className="h-4 w-4" />
             <span className="hidden sm:inline">Ranking</span>
@@ -225,6 +226,10 @@ export function YouTubeVideoAnalytics({
           <TabsTrigger value="duration" className="flex items-center gap-2">
             <Clock className="h-4 w-4" />
             <span className="hidden sm:inline">Duração</span>
+          </TabsTrigger>
+          <TabsTrigger value="behavior" className="flex items-center gap-2">
+            <Eye className="h-4 w-4" />
+            <span className="hidden sm:inline">Comportamento</span>
           </TabsTrigger>
         </TabsList>
 
@@ -416,6 +421,11 @@ export function YouTubeVideoAnalytics({
         {/* Duration Tab */}
         <TabsContent value="duration" className="mt-6">
           <YouTubeDurationAnalysis videos={videos} />
+        </TabsContent>
+
+        {/* Posting Behavior Tab */}
+        <TabsContent value="behavior" className="mt-6">
+          <YouTubePostingBehavior videos={videos} channels={channels} />
         </TabsContent>
       </Tabs>
     </div>
