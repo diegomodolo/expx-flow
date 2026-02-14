@@ -4,8 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Checkbox } from "@/components/ui/checkbox";
 import { YouTubeChannel } from "@/hooks/useYouTubeChannels";
-import { Plus, RefreshCw, Trash2, Users, Video, Loader2 } from "lucide-react";
+import { YouTubeCategory } from "@/hooks/useYouTubeCategories";
+import { Plus, RefreshCw, Trash2, Users, Video, Loader2, Tags } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -18,6 +20,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface YouTubeChannelManagerProps {
   channels: YouTubeChannel[];
@@ -26,6 +33,9 @@ interface YouTubeChannelManagerProps {
   onAddChannel: (url: string, periodDays?: number) => Promise<any>;
   onRefreshChannel: (channelId: string, periodDays?: number) => Promise<any>;
   onRemoveChannel: (channelId: string) => Promise<void>;
+  categories?: YouTubeCategory[];
+  onLinkChannel?: (categoryId: string, channelId: string) => Promise<void>;
+  onUnlinkChannel?: (categoryId: string, channelId: string) => Promise<void>;
 }
 
 export function YouTubeChannelManager({
@@ -35,6 +45,9 @@ export function YouTubeChannelManager({
   onAddChannel,
   onRefreshChannel,
   onRemoveChannel,
+  categories = [],
+  onLinkChannel,
+  onUnlinkChannel,
 }: YouTubeChannelManagerProps) {
   const [channelUrl, setChannelUrl] = useState("");
   const [removeChannelId, setRemoveChannelId] = useState<string | null>(null);
@@ -52,6 +65,18 @@ export function YouTubeChannelManager({
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
     if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
     return num.toString();
+  };
+
+  const getChannelCategories = (channelId: string) => {
+    return categories.filter(cat => cat.channel_ids.includes(channelId));
+  };
+
+  const toggleCategory = async (categoryId: string, channelId: string, isLinked: boolean) => {
+    if (isLinked) {
+      await onUnlinkChannel?.(categoryId, channelId);
+    } else {
+      await onLinkChannel?.(categoryId, channelId);
+    }
   };
 
   if (loading) {
@@ -114,75 +139,140 @@ export function YouTubeChannelManager({
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {channels.map((channel) => (
-            <Card key={channel.id} className="group">
-              <CardContent className="p-4">
-                <div className="flex items-start gap-3">
-                  <Avatar className="h-12 w-12">
-                    <AvatarImage src={channel.thumbnail_url || undefined} />
-                    <AvatarFallback>
-                      {channel.channel_name.substring(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold truncate" title={channel.channel_name}>
-                      {channel.channel_name}
-                    </h3>
-                    {channel.channel_handle && (
-                      <p className="text-sm text-muted-foreground truncate">
-                        @{channel.channel_handle.replace("@", "")}
-                      </p>
-                    )}
-                    <div className="flex items-center gap-3 mt-2 text-sm text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Users className="h-3.5 w-3.5" />
-                        {formatNumber(channel.subscriber_count)}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Video className="h-3.5 w-3.5" />
-                        {formatNumber(channel.video_count)}
-                      </span>
+          {channels.map((channel) => {
+            const channelCats = getChannelCategories(channel.id);
+            return (
+              <Card key={channel.id} className="group">
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3">
+                    <Avatar className="h-12 w-12">
+                      <AvatarImage src={channel.thumbnail_url || undefined} />
+                      <AvatarFallback>
+                        {channel.channel_name.substring(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold truncate" title={channel.channel_name}>
+                        {channel.channel_name}
+                      </h3>
+                      {channel.channel_handle && (
+                        <p className="text-sm text-muted-foreground truncate">
+                          @{channel.channel_handle.replace("@", "")}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-3 mt-2 text-sm text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Users className="h-3.5 w-3.5" />
+                          {formatNumber(channel.subscriber_count)}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Video className="h-3.5 w-3.5" />
+                          {formatNumber(channel.video_count)}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="flex items-center justify-between mt-4 pt-3 border-t">
-                  <div>
-                    {channel.last_analyzed_at && (
-                      <Badge variant="outline" className="text-xs">
-                        Analisado{" "}
-                        {formatDistanceToNow(new Date(channel.last_analyzed_at), {
-                          addSuffix: true,
-                          locale: ptBR,
-                        })}
-                      </Badge>
-                    )}
+                  {/* Category badges */}
+                  {channelCats.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-3">
+                      {channelCats.map((cat) => (
+                        <Badge
+                          key={cat.id}
+                          variant="secondary"
+                          className="text-xs gap-1"
+                        >
+                          <div
+                            className="h-2 w-2 rounded-full"
+                            style={{ backgroundColor: cat.color }}
+                          />
+                          {cat.name}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between mt-4 pt-3 border-t">
+                    <div>
+                      {channel.last_analyzed_at && (
+                        <Badge variant="outline" className="text-xs">
+                          Analisado{" "}
+                          {formatDistanceToNow(new Date(channel.last_analyzed_at), {
+                            addSuffix: true,
+                            locale: ptBR,
+                          })}
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {/* Categories popover */}
+                      {categories.length > 0 && (
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              title="Categorias"
+                            >
+                              <Tags className="h-4 w-4" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-52 p-2" align="end">
+                            <p className="text-xs font-medium text-muted-foreground px-2 mb-2">
+                              Categorias
+                            </p>
+                            <div className="space-y-1">
+                              {categories.map((cat) => {
+                                const isLinked = cat.channel_ids.includes(channel.id);
+                                return (
+                                  <label
+                                    key={cat.id}
+                                    className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-muted cursor-pointer"
+                                  >
+                                    <Checkbox
+                                      checked={isLinked}
+                                      onCheckedChange={() =>
+                                        toggleCategory(cat.id, channel.id, isLinked)
+                                      }
+                                    />
+                                    <div
+                                      className="h-2.5 w-2.5 rounded-full shrink-0"
+                                      style={{ backgroundColor: cat.color }}
+                                    />
+                                    <span className="text-sm truncate">{cat.name}</span>
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => onRefreshChannel(channel.id)}
+                        disabled={analyzing}
+                        title="Atualizar análise"
+                      >
+                        <RefreshCw className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive"
+                        onClick={() => setRemoveChannelId(channel.id)}
+                        title="Remover canal"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => onRefreshChannel(channel.id)}
-                      disabled={analyzing}
-                      title="Atualizar análise"
-                    >
-                      <RefreshCw className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-destructive"
-                      onClick={() => setRemoveChannelId(channel.id)}
-                      title="Remover canal"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
 
