@@ -15,6 +15,7 @@ import { YouTubeScriptsList } from "@/components/youtube-content-lab/YouTubeScri
 import { YouTubeScriptBuilder } from "@/components/youtube-content-lab/YouTubeScriptBuilder";
 import { YouTubeThumbnailConfig } from "@/components/youtube-content-lab/YouTubeThumbnailConfig";
 import { YouTubeCategorySidebar } from "@/components/youtube-content-lab/YouTubeCategorySidebar";
+import { YouTubeRefreshModal, ChannelRefreshStatus } from "@/components/youtube-content-lab/YouTubeRefreshModal";
 import { Youtube, BarChart3, Lightbulb, FileText, Loader2, Image } from "lucide-react";
 
 export default function ClienteYouTubeContentLab() {
@@ -25,6 +26,9 @@ export default function ClienteYouTubeContentLab() {
   const [activeTab, setActiveTab] = useState("channels");
   const [selectedScriptId, setSelectedScriptId] = useState<string | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [refreshModalOpen, setRefreshModalOpen] = useState(false);
+  const [refreshStatuses, setRefreshStatuses] = useState<ChannelRefreshStatus[]>([]);
+  const [refreshFinished, setRefreshFinished] = useState(false);
 
   const channelsHook = useYouTubeChannels(clientId || "", companyId);
   const analyticsHook = useYouTubeAnalytics(clientId || "", companyId);
@@ -212,10 +216,44 @@ export default function ClienteYouTubeContentLab() {
                   setActiveTab("scripts");
                 }}
                 onRefreshAnalysis={async () => {
-                  for (const channel of filteredChannels) {
-                    await channelsHook.refreshChannel(channel.id);
+                  const channelsToRefresh = filteredChannels;
+                  const statuses: ChannelRefreshStatus[] = channelsToRefresh.map((ch) => ({
+                    channelId: ch.id,
+                    channelName: ch.channel_name,
+                    status: "pending" as const,
+                  }));
+                  setRefreshStatuses(statuses);
+                  setRefreshFinished(false);
+                  setRefreshModalOpen(true);
+
+                  for (let i = 0; i < channelsToRefresh.length; i++) {
+                    const channel = channelsToRefresh[i];
+                    setRefreshStatuses((prev) =>
+                      prev.map((s, idx) =>
+                        idx === i ? { ...s, status: "loading" as const } : s
+                      )
+                    );
+
+                    try {
+                      const data = await channelsHook.refreshChannel(channel.id);
+                      setRefreshStatuses((prev) =>
+                        prev.map((s, idx) =>
+                          idx === i
+                            ? { ...s, status: "success" as const, videoCount: data?.analyzedCount ?? 0 }
+                            : s
+                        )
+                      );
+                    } catch {
+                      setRefreshStatuses((prev) =>
+                        prev.map((s, idx) =>
+                          idx === i ? { ...s, status: "error" as const } : s
+                        )
+                      );
+                    }
                   }
+
                   await analyticsHook.refetch();
+                  setRefreshFinished(true);
                 }}
                 refreshing={channelsHook.analyzing}
               />
@@ -255,6 +293,12 @@ export default function ClienteYouTubeContentLab() {
           </Tabs>
         </div>
       </div>
+      <YouTubeRefreshModal
+        open={refreshModalOpen}
+        onOpenChange={setRefreshModalOpen}
+        channels={refreshStatuses}
+        finished={refreshFinished}
+      />
     </div>
   );
 }
