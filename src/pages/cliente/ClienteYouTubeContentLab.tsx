@@ -281,6 +281,7 @@ export default function ClienteYouTubeContentLab() {
                 onCreateNew={() => {
                   scriptsHook.generateScript("Novo roteiro");
                 }}
+                onUpdateStatus={(scriptId, status) => scriptsHook.updateScript(scriptId, { status })}
               />
             </TabsContent>
 
