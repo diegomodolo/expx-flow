@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { YouTubeVideo, PeriodOption, SortOption } from "@/hooks/useYouTubeAnalytics";
 import { YouTubeChannel } from "@/hooks/useYouTubeChannels";
-import { Eye, ThumbsUp, MessageCircle, TrendingUp, FileText, Loader2, ExternalLink, BarChart3, Clock, Hash, Youtube, X, RefreshCw } from "lucide-react";
+import { Eye, ThumbsUp, MessageCircle, TrendingUp, FileText, Loader2, ExternalLink, BarChart3, Clock, Hash, Youtube, X, RefreshCw, Film, Zap } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { YouTubeAnalysisFilters } from "./YouTubeAnalysisFilters";
 import { YouTubeChannelComparison } from "./YouTubeChannelComparison";
@@ -67,6 +67,13 @@ export function YouTubeVideoAnalytics({
   refreshing,
 }: YouTubeVideoAnalyticsProps) {
   const [analysisTab, setAnalysisTab] = useState("ranking");
+  const [contentTypeFilter, setContentTypeFilter] = useState<'all' | 'videos' | 'shorts'>('all');
+
+  const filteredByContentType = videos.filter((v) => {
+    if (contentTypeFilter === 'shorts') return (v.duration_seconds ?? 0) <= 60;
+    if (contentTypeFilter === 'videos') return (v.duration_seconds ?? 0) > 60;
+    return true;
+  });
 
   const formatNumber = (num: number) => {
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
@@ -238,8 +245,37 @@ export function YouTubeVideoAnalytics({
           <Card>
             <CardHeader className="space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <CardTitle>Vídeos de Maior Destaque</CardTitle>
+               <CardTitle>Vídeos de Maior Destaque</CardTitle>
                 <div className="flex flex-wrap gap-2">
+                  {/* Content type filter */}
+                  <div className="flex items-center gap-1 mr-2 border-r pr-3">
+                    <Button
+                      size="sm"
+                      variant={contentTypeFilter === 'all' ? 'default' : 'outline'}
+                      onClick={() => setContentTypeFilter('all')}
+                      className="h-7 text-xs"
+                    >
+                      Todos
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={contentTypeFilter === 'videos' ? 'default' : 'outline'}
+                      onClick={() => setContentTypeFilter('videos')}
+                      className="h-7 text-xs flex items-center gap-1"
+                    >
+                      <Film className="h-3.5 w-3.5" />
+                      Vídeos
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={contentTypeFilter === 'shorts' ? 'default' : 'outline'}
+                      onClick={() => setContentTypeFilter('shorts')}
+                      className="h-7 text-xs flex items-center gap-1"
+                    >
+                      <Zap className="h-3.5 w-3.5" />
+                      Shorts
+                    </Button>
+                  </div>
                   <Button
                     size="sm"
                     variant={sortBy === 'engagement' ? 'default' : 'outline'}
@@ -331,7 +367,7 @@ export function YouTubeVideoAnalytics({
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {videos.slice(0, 15).map((video, index) => (
+                  {filteredByContentType.slice(0, 15).map((video, index) => (
                     <div
                       key={video.id}
                       className="flex items-start gap-4 p-3 rounded-lg hover:bg-muted/50 transition-colors group"
