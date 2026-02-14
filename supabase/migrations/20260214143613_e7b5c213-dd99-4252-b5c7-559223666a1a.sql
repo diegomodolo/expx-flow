@@ -1,0 +1,1 @@
+ALTER TABLE public.youtube_scripts ADD COLUMN source_video_id TEXT NULL;

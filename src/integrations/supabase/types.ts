@@ -13661,6 +13661,7 @@ export type Database = {
           id: string
           reference_thumbnails: Json | null
           script_content: string
+          source_video_id: string | null
           status: string
           suggested_titles: Json | null
           suggestion_id: string | null
@@ -13678,6 +13679,7 @@ export type Database = {
           id?: string
           reference_thumbnails?: Json | null
           script_content?: string
+          source_video_id?: string | null
           status?: string
           suggested_titles?: Json | null
           suggestion_id?: string | null
@@ -13695,6 +13697,7 @@ export type Database = {
           id?: string
           reference_thumbnails?: Json | null
           script_content?: string
+          source_video_id?: string | null
           status?: string
           suggested_titles?: Json | null
           suggestion_id?: string | null
