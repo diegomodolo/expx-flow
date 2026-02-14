@@ -45,7 +45,7 @@ export function YouTubeRefreshModal({
             </p>
           )}
 
-          <ScrollArea className="max-h-[300px]">
+          <ScrollArea className="max-h-[60vh]">
             <div className="space-y-2 pr-3">
               {channels.map((ch) => (
                 <div
