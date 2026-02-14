@@ -173,6 +173,9 @@ export default function ClienteYouTubeContentLab() {
                 onAddChannel={channelsHook.addChannel}
                 onRefreshChannel={channelsHook.refreshChannel}
                 onRemoveChannel={channelsHook.removeChannel}
+                categories={categoriesHook.categories}
+                onLinkChannel={categoriesHook.linkChannel}
+                onUnlinkChannel={categoriesHook.unlinkChannel}
               />
             </TabsContent>
 
