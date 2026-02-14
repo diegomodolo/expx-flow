@@ -13,6 +13,15 @@ interface YouTubeTrendAnalysisProps {
 
 const dayNames = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
+/** Convert a date string to a Date adjusted to São Paulo timezone (UTC-3) */
+function toSaoPauloDate(dateStr: string): Date {
+  const utc = new Date(dateStr);
+  const spOffset = -180;
+  const localOffset = utc.getTimezoneOffset();
+  const diff = spOffset - (-localOffset);
+  return new Date(utc.getTime() + diff * 60000);
+}
+
 export function YouTubeTrendAnalysis({ videos }: YouTubeTrendAnalysisProps) {
   // Extract keywords from titles
   const keywordStats = useMemo(() => {
@@ -60,7 +69,7 @@ export function YouTubeTrendAnalysis({ videos }: YouTubeTrendAnalysisProps) {
     const dayMap = new Map<number, { count: number; totalEngagement: number; totalViews: number }>();
 
     videos.forEach((video) => {
-      const day = getDay(parseISO(video.published_at));
+      const day = toSaoPauloDate(video.published_at).getDay();
       const existing = dayMap.get(day) || { count: 0, totalEngagement: 0, totalViews: 0 };
       dayMap.set(day, {
         count: existing.count + 1,
@@ -85,7 +94,7 @@ export function YouTubeTrendAnalysis({ videos }: YouTubeTrendAnalysisProps) {
     const hourMap = new Map<number, { count: number; totalEngagement: number; totalViews: number }>();
 
     videos.forEach((video) => {
-      const hour = getHours(parseISO(video.published_at));
+      const hour = toSaoPauloDate(video.published_at).getHours();
       const existing = hourMap.get(hour) || { count: 0, totalEngagement: 0, totalViews: 0 };
       hourMap.set(hour, {
         count: existing.count + 1,

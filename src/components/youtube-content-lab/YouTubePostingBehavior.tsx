@@ -46,6 +46,16 @@ const COLORS = [
   "hsl(var(--chart-5, 340 75% 55%))",
 ];
 
+/** Convert a date string to a Date adjusted to São Paulo timezone (UTC-3) */
+function toSaoPauloDate(dateStr: string): Date {
+  const utc = new Date(dateStr);
+  // Offset São Paulo = -180 minutes (UTC-3)
+  const spOffset = -180;
+  const localOffset = utc.getTimezoneOffset(); // in minutes, e.g. 0 for UTC, 180 for UTC-3
+  const diff = spOffset - (-localOffset); // difference between SP and local
+  return new Date(utc.getTime() + diff * 60000);
+}
+
 function classifyDuration(seconds: number | null): string {
   if (!seconds) return "Desconhecido";
   if (seconds <= 60) return "Shorts (≤1min)";
@@ -66,7 +76,7 @@ export function YouTubePostingBehavior({
   const frequencyData = useMemo(() => {
     if (videos.length === 0) return null;
 
-    const dates = videos.map((v) => new Date(v.published_at));
+    const dates = videos.map((v) => toSaoPauloDate(v.published_at));
     const sortedDates = [...dates].sort((a, b) => a.getTime() - b.getTime());
     const firstDate = sortedDates[0];
     const lastDate = sortedDates[sortedDates.length - 1];
@@ -113,7 +123,7 @@ export function YouTubePostingBehavior({
     const hourEngCount = Array(24).fill(0);
 
     videos.forEach((v) => {
-      const h = new Date(v.published_at).getHours();
+      const h = toSaoPauloDate(v.published_at).getHours();
       hourCounts[h]++;
       if (v.engagement_rate) {
         hourEngagement[h] += v.engagement_rate;
@@ -179,7 +189,7 @@ export function YouTubePostingBehavior({
       const chVideos = videos.filter((v) => v.channel_id === ch.id);
       if (chVideos.length === 0) return null;
 
-      const dates = chVideos.map((v) => new Date(v.published_at));
+      const dates = chVideos.map((v) => toSaoPauloDate(v.published_at));
       const sorted = [...dates].sort((a, b) => a.getTime() - b.getTime());
       const daySpan = Math.max(
         1,
