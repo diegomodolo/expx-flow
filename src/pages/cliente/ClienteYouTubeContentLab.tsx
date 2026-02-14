@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useClientDetails } from "@/hooks/useClientDetails";
@@ -35,6 +35,15 @@ export default function ClienteYouTubeContentLab() {
 
   // Get channel IDs for the selected category
   const categoryChannelIds = categoriesHook.getChannelIdsForCategory(selectedCategoryId);
+
+  // Sync category filter into analytics hook
+  useEffect(() => {
+    if (categoryChannelIds) {
+      analyticsHook.setSelectedChannelIds(categoryChannelIds);
+    } else {
+      analyticsHook.setSelectedChannelIds([]);
+    }
+  }, [categoryChannelIds]);
 
   // Filter channels by category
   const filteredChannels = useMemo(() => {
