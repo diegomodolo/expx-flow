@@ -13355,9 +13355,94 @@ export type Database = {
         }
         Relationships: []
       }
+      youtube_channel_categories: {
+        Row: {
+          client_id: string
+          color: string | null
+          company_id: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          color?: string | null
+          company_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          color?: string | null
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "youtube_channel_categories_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "youtube_channel_categories_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      youtube_channel_category_links: {
+        Row: {
+          category_id: string
+          channel_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          category_id: string
+          channel_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          category_id?: string
+          channel_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "youtube_channel_category_links_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "youtube_channel_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "youtube_channel_category_links_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "youtube_monitored_channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       youtube_content_suggestions: {
         Row: {
           based_on_videos: Json | null
+          category_id: string | null
           client_id: string
           company_id: string
           created_at: string
@@ -13371,6 +13456,7 @@ export type Database = {
         }
         Insert: {
           based_on_videos?: Json | null
+          category_id?: string | null
           client_id: string
           company_id: string
           created_at?: string
@@ -13384,6 +13470,7 @@ export type Database = {
         }
         Update: {
           based_on_videos?: Json | null
+          category_id?: string | null
           client_id?: string
           company_id?: string
           created_at?: string
@@ -13396,6 +13483,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "youtube_content_suggestions_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "youtube_channel_categories"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "youtube_content_suggestions_client_id_fkey"
             columns: ["client_id"]
@@ -13559,6 +13653,7 @@ export type Database = {
       }
       youtube_scripts: {
         Row: {
+          category_id: string | null
           client_id: string
           company_id: string
           created_at: string
@@ -13575,6 +13670,7 @@ export type Database = {
           video_duration_target: number | null
         }
         Insert: {
+          category_id?: string | null
           client_id: string
           company_id: string
           created_at?: string
@@ -13591,6 +13687,7 @@ export type Database = {
           video_duration_target?: number | null
         }
         Update: {
+          category_id?: string | null
           client_id?: string
           company_id?: string
           created_at?: string
@@ -13607,6 +13704,13 @@ export type Database = {
           video_duration_target?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "youtube_scripts_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "youtube_channel_categories"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "youtube_scripts_client_id_fkey"
             columns: ["client_id"]
