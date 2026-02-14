@@ -56,19 +56,26 @@ export function useYouTubeScripts(clientId: string, companyId: string) {
 
       if (error) throw error;
       
-      // Collect all video titles from suggestions to fetch in bulk
+      // Collect all video titles from suggestions AND script titles (for direct video→script creation)
       const allVideoTitles: string[] = [];
+      const scriptsWithoutSuggestion: string[] = [];
       (data || []).forEach((s: any) => {
         const suggestion = s.youtube_content_suggestions;
         if (suggestion?.based_on_videos && Array.isArray(suggestion.based_on_videos)) {
           allVideoTitles.push(...suggestion.based_on_videos);
+        } else {
+          // Script created directly from a video (no suggestion) — try matching by title
+          scriptsWithoutSuggestion.push(s.title);
         }
       });
 
+      // Combine all titles to fetch
+      const combinedTitles = [...allVideoTitles, ...scriptsWithoutSuggestion];
+
       // Fetch video data for all referenced titles
       let videoMap = new Map<string, SourceVideoInfo>();
-      if (allVideoTitles.length > 0) {
-        const uniqueTitles = [...new Set(allVideoTitles)];
+      if (combinedTitles.length > 0) {
+        const uniqueTitles = [...new Set(combinedTitles)];
         const { data: videosData } = await supabase
           .from('youtube_video_analyses')
           .select('title, view_count, like_count, comment_count, engagement_rate, thumbnail_url, channel_id')
@@ -106,9 +113,17 @@ export function useYouTubeScripts(clientId: string, companyId: string) {
           ? suggestion.based_on_videos 
           : [];
         
-        const sourceVideos = basedOnVideos
+        // Try suggestion-based videos first, then fall back to title match
+        let sourceVideos = basedOnVideos
           .map(title => videoMap.get(title))
           .filter((v): v is SourceVideoInfo => !!v);
+        
+        if (sourceVideos.length === 0) {
+          const titleMatch = videoMap.get(s.title);
+          if (titleMatch) {
+            sourceVideos = [titleMatch];
+          }
+        }
 
         return {
           ...s,
