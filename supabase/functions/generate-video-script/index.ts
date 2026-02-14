@@ -176,6 +176,7 @@ Deno.serve(async (req) => {
       clientContext,
       referenceVideoIds,
       durationTarget = 600, // 10 minutes default
+      sourceVideoTitle,
     } = await req.json();
 
     console.log('Generating script for topic:', topic);
@@ -238,6 +239,7 @@ Deno.serve(async (req) => {
         client_id: clientId,
         company_id: companyId,
         suggestion_id: suggestionId || null,
+        source_video_id: sourceVideoTitle || null,
         title: suggestedTitles[0] || topic,
         script_content: scriptContent,
         suggested_titles: suggestedTitles,

@@ -212,7 +212,7 @@ export default function ClienteYouTubeContentLab() {
                 topByEngagement={analyticsHook.topByEngagement}
                 channels={filteredChannels}
                 onCreateScript={(topic) => {
-                  scriptsHook.generateScript(topic);
+                  scriptsHook.generateScript(topic, { sourceVideoTitle: topic });
                   setActiveTab("scripts");
                 }}
                 onRefreshAnalysis={async () => {

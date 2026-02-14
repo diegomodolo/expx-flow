@@ -56,21 +56,21 @@ export function useYouTubeScripts(clientId: string, companyId: string) {
 
       if (error) throw error;
       
-      // Collect all video titles from suggestions AND script titles (for direct video→script creation)
+      // Collect all video titles from suggestions AND source_video_id column
       const allVideoTitles: string[] = [];
-      const scriptsWithoutSuggestion: string[] = [];
       (data || []).forEach((s: any) => {
         const suggestion = s.youtube_content_suggestions;
         if (suggestion?.based_on_videos && Array.isArray(suggestion.based_on_videos)) {
           allVideoTitles.push(...suggestion.based_on_videos);
-        } else {
-          // Script created directly from a video (no suggestion) — try matching by title
-          scriptsWithoutSuggestion.push(s.title);
+        }
+        // Also include source_video_id (stores the original video title)
+        if (s.source_video_id) {
+          allVideoTitles.push(s.source_video_id);
         }
       });
 
-      // Combine all titles to fetch
-      const combinedTitles = [...allVideoTitles, ...scriptsWithoutSuggestion];
+      // Fetch video data for all referenced titles
+      const combinedTitles = allVideoTitles;
 
       // Fetch video data for all referenced titles
       let videoMap = new Map<string, SourceVideoInfo>();
@@ -113,15 +113,15 @@ export function useYouTubeScripts(clientId: string, companyId: string) {
           ? suggestion.based_on_videos 
           : [];
         
-        // Try suggestion-based videos first, then fall back to title match
+        // Try suggestion-based videos first, then source_video_id
         let sourceVideos = basedOnVideos
           .map(title => videoMap.get(title))
           .filter((v): v is SourceVideoInfo => !!v);
         
-        if (sourceVideos.length === 0) {
-          const titleMatch = videoMap.get(s.title);
-          if (titleMatch) {
-            sourceVideos = [titleMatch];
+        if (sourceVideos.length === 0 && s.source_video_id) {
+          const match = videoMap.get(s.source_video_id);
+          if (match) {
+            sourceVideos = [match];
           }
         }
 
@@ -158,6 +158,7 @@ export function useYouTubeScripts(clientId: string, companyId: string) {
       clientContext?: string;
       referenceVideoIds?: string[];
       durationTarget?: number;
+      sourceVideoTitle?: string;
     }
   ) => {
     setGenerating(true);
@@ -171,6 +172,7 @@ export function useYouTubeScripts(clientId: string, companyId: string) {
           clientContext: options?.clientContext,
           referenceVideoIds: options?.referenceVideoIds,
           durationTarget: options?.durationTarget || 600,
+          sourceVideoTitle: options?.sourceVideoTitle,
         },
       });
 
