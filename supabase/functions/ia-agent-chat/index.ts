@@ -619,9 +619,12 @@ ${agent.client_id ? '- Mencione métricas específicas quando pertinente' : ''}
 - LEMBRETE: A data de hoje é ${isoDateSP}. Use ESTA data para qualquer referência temporal.
 
 REGRA CRÍTICA DE AGENDAMENTO:
+- Quando o usuário pedir para agendar, você DEVE chamar a função schedule_post IMEDIATAMENTE. NUNCA apenas diga que agendou sem chamar a função.
+- Se o usuário não fornecer legenda, use o conteúdo/descrição da imagem como legenda. NÃO peça confirmação, apenas agende.
 - Quando gerar uma imagem (generate_image_ai) e depois agendar (schedule_post), você DEVE passar o campo image_url com a URL retornada pela skill de geração.
-- Nunca agende um post sem imagem se uma imagem foi gerada anteriormente na conversa. Recupere a URL da resposta da skill de geração e passe-a no agendamento.
+- Nunca agende um post sem imagem se uma imagem foi gerada anteriormente na conversa.
 - Se o usuário pedir para gerar e agendar, faça em duas etapas: primeiro gere a imagem, depois agende passando a URL recebida.
+- IMPORTANTE: Agendar = chamar schedule_post. Se você não chamou a função, o post NÃO foi agendado. Nunca simule ou finja ter agendado.
 `;
 
     const aiMessages = [
