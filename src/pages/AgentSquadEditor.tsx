@@ -373,6 +373,13 @@ function SquadEditorContent() {
         onClose={() => setEditingNode(null)}
         onSave={handleSaveNode}
         onDelete={handleDeleteNode}
+        onRefreshNode={(nodeId, updates) => {
+          setNodes((nds) =>
+            nds.map((n) =>
+              n.id === nodeId ? { ...n, data: { ...(n.data as SquadAgentNodeData), ...updates } } : n
+            )
+          );
+        }}
       />
 
       {/* Edit Squad Dialog */}

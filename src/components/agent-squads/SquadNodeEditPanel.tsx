@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,12 +17,26 @@ interface SquadNodeEditPanelProps {
   onClose: () => void;
   onSave: (id: string, data: Partial<SquadAgentNodeData>) => void;
   onDelete: (id: string) => void;
+  onRefreshNode?: (nodeId: string, updates: Partial<SquadAgentNodeData>) => void;
 }
 
-export function SquadNodeEditPanel({ node, isOpen, onClose, onSave, onDelete }: SquadNodeEditPanelProps) {
+export function SquadNodeEditPanel({ node, isOpen, onClose, onSave, onDelete, onRefreshNode }: SquadNodeEditPanelProps) {
   const [role, setRole] = useState<string>("executor");
   const [instructions, setInstructions] = useState("");
   const [editAgentOpen, setEditAgentOpen] = useState(false);
+
+  const handleAgentUpdated = useCallback(async () => {
+    if (!node) return;
+    const nd = node.data as SquadAgentNodeData;
+    const { data } = await supabase
+      .from("ia_agents")
+      .select("agent_name, description")
+      .eq("id", nd.agent_id)
+      .single();
+    if (data && onRefreshNode) {
+      onRefreshNode(node.id, { label: data.agent_name, description: data.description || "" });
+    }
+  }, [node, onRefreshNode]);
 
   useEffect(() => {
     if (node) {
@@ -31,8 +46,9 @@ export function SquadNodeEditPanel({ node, isOpen, onClose, onSave, onDelete }: 
     }
   }, [node]);
 
-  if (!node) return null;
-  const nodeData = node.data as SquadAgentNodeData;
+  const nodeData = node ? (node.data as SquadAgentNodeData) : null;
+
+  if (!node || !nodeData) return null;
 
   return (
     <>
@@ -141,6 +157,7 @@ export function SquadNodeEditPanel({ node, isOpen, onClose, onSave, onDelete }: 
       open={editAgentOpen}
       onOpenChange={setEditAgentOpen}
       agentId={nodeData.agent_id}
+      onAgentUpdated={handleAgentUpdated}
     />
     </>
   );
