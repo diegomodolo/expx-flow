@@ -157,35 +157,108 @@ Deno.serve(async (req) => {
     const update = await req.json();
     const message = update?.message;
 
-    if (!message?.text || message.text.startsWith('/start')) {
-      if (message?.text?.startsWith('/start')) {
-        const supabaseClient = createClient(
-          Deno.env.get('SUPABASE_URL') ?? '',
-          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-        );
+    // Handle /start command
+    if (message?.text?.startsWith('/start')) {
+      const supabaseClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      );
 
-        const { data: agent } = await supabaseClient
-          .from('ia_agents')
-          .select('agent_name, telegram_bot_token')
-          .eq('id', agentId)
-          .single();
+      const { data: agent } = await supabaseClient
+        .from('ia_agents')
+        .select('agent_name, telegram_bot_token')
+        .eq('id', agentId)
+        .single();
 
-        if (agent?.telegram_bot_token) {
-          await fetch(`https://api.telegram.org/bot${agent.telegram_bot_token}/sendMessage`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              chat_id: message.chat.id,
-              text: `👋 Olá! Eu sou o ${agent.agent_name}. Como posso te ajudar?`,
-            }),
-          });
-        }
+      if (agent?.telegram_bot_token) {
+        await fetch(`https://api.telegram.org/bot${agent.telegram_bot_token}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: message.chat.id,
+            text: `👋 Olá! Eu sou o ${agent.agent_name}. Como posso te ajudar?`,
+          }),
+        });
       }
       return new Response('OK', { status: 200 });
     }
 
     const chatId = message.chat.id;
-    const userText = message.text;
+    let userText = message?.text || '';
+
+    // Handle voice/audio messages - transcribe them
+    const voiceOrAudio = message?.voice || message?.audio;
+    if (voiceOrAudio && !userText) {
+      try {
+        const supabaseClient = createClient(
+          Deno.env.get('SUPABASE_URL') ?? '',
+          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+        );
+
+        // Get agent's bot token
+        const { data: agentForToken } = await supabaseClient
+          .from('ia_agents')
+          .select('telegram_bot_token')
+          .eq('id', agentId)
+          .single();
+
+        if (!agentForToken?.telegram_bot_token) {
+          return new Response('Bot token not found', { status: 400 });
+        }
+
+        const botToken = agentForToken.telegram_bot_token;
+
+        // Get file path from Telegram
+        const fileResp = await fetch(
+          `https://api.telegram.org/bot${botToken}/getFile?file_id=${voiceOrAudio.file_id}`
+        );
+        const fileData = await fileResp.json();
+        const filePath = fileData?.result?.file_path;
+
+        if (!filePath) {
+          throw new Error('Could not get file path from Telegram');
+        }
+
+        // Download the audio file
+        const audioResp = await fetch(
+          `https://api.telegram.org/file/bot${botToken}/${filePath}`
+        );
+        const audioBlob = await audioResp.blob();
+
+        // Transcribe via Lovable AI Gateway (Whisper)
+        const formData = new FormData();
+        formData.append('file', audioBlob, 'audio.ogg');
+        formData.append('model', 'whisper-1');
+
+        const transcribeResp = await fetch(
+          'https://ai.gateway.lovable.dev/v1/audio/transcriptions',
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${Deno.env.get('LOVABLE_API_KEY')}`,
+            },
+            body: formData,
+          }
+        );
+
+        if (transcribeResp.ok) {
+          const transcription = await transcribeResp.json();
+          userText = transcription.text || '';
+          console.log('Audio transcribed:', userText.substring(0, 100));
+        } else {
+          console.error('Transcription failed:', transcribeResp.status, await transcribeResp.text());
+          userText = '[O usuário enviou um áudio que não pôde ser transcrito]';
+        }
+      } catch (err) {
+        console.error('Error processing audio:', err);
+        userText = '[O usuário enviou um áudio que não pôde ser processado]';
+      }
+    }
+
+    // Skip if no content at all
+    if (!userText && !voiceOrAudio) {
+      return new Response('OK', { status: 200 });
+    }
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
