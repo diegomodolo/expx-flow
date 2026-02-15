@@ -320,6 +320,11 @@ async function chatWithToolCalling(
     }
   }
 
+  // Write back resolved client_id to the original context
+  if (mutableContext.client_id) {
+    agentContext.client_id = mutableContext.client_id;
+  }
+
   const finalResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -505,14 +510,16 @@ ${client.ai_briefing ? `\n[BRIEFING DETALHADO]\n${client.ai_briefing}\n` : ''}`;
     // Conversation history
     const { data: existingConv } = await supabaseClient
       .from('ia_agent_telegram_conversations')
-      .select('id, messages')
+      .select('id, messages, resolved_client_id')
       .eq('agent_id', agentId)
       .eq('telegram_chat_id', chatId)
       .single();
 
     let conversationMessages: Array<{ role: string; content: string }> = [];
+    let resolvedClientId: string | null = null;
     if (existingConv) {
       conversationMessages = (existingConv.messages as Array<{ role: string; content: string }>) || [];
+      resolvedClientId = (existingConv as any).resolved_client_id || null;
     }
     conversationMessages.push({ role: 'user', content: userText });
     if (conversationMessages.length > 20) {
@@ -554,16 +561,21 @@ INSTRUÇÕES IMPORTANTES:
       ...conversationMessages,
     ];
 
+    const agentContext = {
+      client_id: agent.client_id || resolvedClientId || undefined,
+      company_id: agent.company_id,
+    };
+
     const assistantMessage = await chatWithToolCalling(
       aiMessages,
       tools,
       enabledSkills,
-      {
-        client_id: agent.client_id,
-        company_id: agent.company_id,
-      },
+      agentContext,
       agent.model || 'google/gemini-2.5-flash'
     );
+
+    // Persist resolved client_id if it was discovered during tool calling
+    const finalClientId = agentContext.client_id || null;
 
     conversationMessages.push({ role: 'assistant', content: assistantMessage });
 
@@ -573,6 +585,7 @@ INSTRUÇÕES IMPORTANTES:
         agent_id: agentId,
         telegram_chat_id: chatId,
         messages: conversationMessages,
+        resolved_client_id: finalClientId,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'agent_id,telegram_chat_id' });
 

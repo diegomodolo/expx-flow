@@ -7463,6 +7463,7 @@ export type Database = {
           created_at: string
           id: string
           messages: Json
+          resolved_client_id: string | null
           telegram_chat_id: number
           updated_at: string
         }
@@ -7471,6 +7472,7 @@ export type Database = {
           created_at?: string
           id?: string
           messages?: Json
+          resolved_client_id?: string | null
           telegram_chat_id: number
           updated_at?: string
         }
@@ -7479,6 +7481,7 @@ export type Database = {
           created_at?: string
           id?: string
           messages?: Json
+          resolved_client_id?: string | null
           telegram_chat_id?: number
           updated_at?: string
         }
@@ -7488,6 +7491,13 @@ export type Database = {
             columns: ["agent_id"]
             isOneToOne: false
             referencedRelation: "ia_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_agent_telegram_conversations_resolved_client_id_fkey"
+            columns: ["resolved_client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
             referencedColumns: ["id"]
           },
         ]
