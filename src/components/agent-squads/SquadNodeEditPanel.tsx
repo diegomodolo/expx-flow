@@ -5,9 +5,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
-import { Crown, Shield, Wrench, Trash2, ExternalLink } from "lucide-react";
+import { Crown, Shield, Wrench, Trash2, Pencil } from "lucide-react";
 import type { Node } from "@xyflow/react";
 import type { SquadAgentNodeData } from "./SquadAgentNode";
+import { EditAgentModal } from "./EditAgentModal";
 
 interface SquadNodeEditPanelProps {
   node: Node | null;
@@ -20,6 +21,7 @@ interface SquadNodeEditPanelProps {
 export function SquadNodeEditPanel({ node, isOpen, onClose, onSave, onDelete }: SquadNodeEditPanelProps) {
   const [role, setRole] = useState<string>("executor");
   const [instructions, setInstructions] = useState("");
+  const [editAgentOpen, setEditAgentOpen] = useState(false);
 
   useEffect(() => {
     if (node) {
@@ -33,6 +35,7 @@ export function SquadNodeEditPanel({ node, isOpen, onClose, onSave, onDelete }: 
   const nodeData = node.data as SquadAgentNodeData;
 
   return (
+    <>
     <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <SheetContent className="sm:max-w-md">
         <SheetHeader>
@@ -47,9 +50,9 @@ export function SquadNodeEditPanel({ node, isOpen, onClose, onSave, onDelete }: 
                 variant="outline"
                 size="sm"
                 className="h-7 text-xs"
-                onClick={() => window.open(`/ia/agents/${nodeData.agent_id}/edit`, "_blank")}
+                onClick={() => setEditAgentOpen(true)}
               >
-                <ExternalLink className="h-3 w-3 mr-1" />
+                <Pencil className="h-3 w-3 mr-1" />
                 Editar Agente
               </Button>
             </div>
@@ -133,5 +136,12 @@ export function SquadNodeEditPanel({ node, isOpen, onClose, onSave, onDelete }: 
         </SheetFooter>
       </SheetContent>
     </Sheet>
+
+    <EditAgentModal
+      open={editAgentOpen}
+      onOpenChange={setEditAgentOpen}
+      agentId={nodeData.agent_id}
+    />
+    </>
   );
 }
