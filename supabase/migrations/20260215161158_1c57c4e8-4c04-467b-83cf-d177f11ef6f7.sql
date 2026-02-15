@@ -1,0 +1,1 @@
+DELETE FROM public.scheduled_posts WHERE id = '35e3a3bb-4560-4422-9fda-d961f346d861';
