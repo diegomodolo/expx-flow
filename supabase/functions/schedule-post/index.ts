@@ -30,10 +30,57 @@ serve(async (req) => {
       image_url,
     } = body;
 
-    console.log(`[schedule-post] Scheduling post for client_id=${client_id}, company_id=${company_id}`);
+    // Also accept client_name for lookup
+    const { client_name } = body;
+
+    console.log(`[schedule-post] Scheduling post for client_id=${client_id}, client_name=${client_name}, company_id=${company_id}`);
 
     if (!company_id) {
       throw new Error("company_id é obrigatório");
+    }
+
+    // Resolve client_id: lookup by name if needed
+    let resolvedClientId: string | null = client_id || null;
+
+    if (!resolvedClientId && client_name) {
+      const { data: clients } = await supabase
+        .from('clients')
+        .select('id')
+        .eq('company_id', company_id)
+        .ilike('company_name', `%${client_name}%`)
+        .limit(1);
+      
+      if (clients && clients.length > 0) {
+        resolvedClientId = clients[0].id;
+        console.log(`[schedule-post] Resolved client "${client_name}" to id=${resolvedClientId}`);
+      }
+    } else if (resolvedClientId) {
+      // Validate the client_id exists
+      const { data: clientCheck } = await supabase
+        .from('clients')
+        .select('id')
+        .eq('id', resolvedClientId)
+        .eq('company_id', company_id)
+        .maybeSingle();
+      
+      if (!clientCheck) {
+        console.warn(`[schedule-post] client_id=${resolvedClientId} not found, trying as name...`);
+        // Maybe the agent sent the name instead of UUID
+        const { data: clients } = await supabase
+          .from('clients')
+          .select('id')
+          .eq('company_id', company_id)
+          .ilike('company_name', `%${resolvedClientId}%`)
+          .limit(1);
+        
+        if (clients && clients.length > 0) {
+          resolvedClientId = clients[0].id;
+          console.log(`[schedule-post] Resolved client name to id=${resolvedClientId}`);
+        } else {
+          resolvedClientId = null;
+          console.warn(`[schedule-post] Could not resolve client, proceeding without client_id`);
+        }
+      }
     }
 
     if (!scheduled_for) {
@@ -125,7 +172,7 @@ serve(async (req) => {
       .from('scheduled_posts')
       .insert({
         company_id,
-        client_id: client_id || null,
+        client_id: resolvedClientId,
         created_by: createdBy,
         content_type: content_type || 'image',
         caption: postCaption,
