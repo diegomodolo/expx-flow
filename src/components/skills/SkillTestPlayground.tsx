@@ -171,8 +171,9 @@ export function SkillTestPlayground({ skill }: Props) {
         if (params[k] === "" || params[k] === undefined) delete params[k];
       });
       
-      const { data, error } = await supabase.functions.invoke(skill.edge_function, {
-        body: { ...params, _test: true },
+      // Use test-skill-execution which tries the real function first, then simulates
+      const { data, error } = await supabase.functions.invoke("test-skill-execution", {
+        body: { skill_id: skill.id, params },
       });
       if (error) throw error;
       setResult(JSON.stringify(data, null, 2));
