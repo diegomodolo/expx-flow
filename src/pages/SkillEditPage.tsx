@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { ArrowLeft, Save, Trash2 } from "lucide-react";
+import { SkillAIGenerator } from "@/components/skills/SkillAIGenerator";
 import { toast } from "sonner";
 import { SkillParametersEditor } from "@/components/skills/SkillParametersEditor";
 import { SkillTestPlayground } from "@/components/skills/SkillTestPlayground";
@@ -113,6 +114,9 @@ export default function SkillEditPage() {
           {!isNew && <p className="text-xs text-muted-foreground font-mono">{form.id}</p>}
         </div>
         <div className="flex gap-2">
+          {isNew && (
+            <SkillAIGenerator onGenerate={(generated) => setForm(prev => ({ ...prev, ...generated }))} />
+          )}
           {!isNew && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
