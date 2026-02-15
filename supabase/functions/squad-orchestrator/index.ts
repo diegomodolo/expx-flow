@@ -255,9 +255,23 @@ Todas as skills que requerem client_id já terão este ID injetado automaticamen
 `;
   }
 
+  // Build list of other agent names so we can warn the LLM not to call them as tools
+  const otherAgentNames = nextAgents.map(a => a.agent.agent_name.toLowerCase());
+
   let skillInstructions = '';
   if (skills.length > 0) {
     skillInstructions = `\n\nVocê tem as seguintes FERRAMENTAS/SKILLS disponíveis para executar tarefas reais:\n${skills.map(s => `- ${s.name}: ${s.description}`).join('\n')}\nUse estas ferramentas quando precisar EXECUTAR ações (gerar imagem, agendar post, etc.). NÃO simule ou invente resultados — SEMPRE use a ferramenta.\n`;
+  }
+
+  // Critical: prevent the agent from trying to call other agents as tools
+  let delegationWarning = '';
+  if (!isLeader && otherAgentNames.length > 0) {
+    delegationWarning = `
+ATENÇÃO CRÍTICA - NÃO TENTE CHAMAR OUTROS AGENTES:
+Os seguintes nomes são AGENTES da squad, NÃO são ferramentas/skills que você pode chamar: ${otherAgentNames.join(', ')}.
+A delegação para esses agentes é feita AUTOMATICAMENTE pelo sistema de orquestração. Você NÃO precisa e NÃO deve tentar chamá-los.
+Seu trabalho é: produzir sua resposta usando APENAS suas próprias skills listadas acima. Após sua resposta, o sistema automaticamente passará o resultado para o próximo agente na cadeia.
+`;
   }
 
   const systemPrompt = `${agent.prompt_base}
@@ -271,6 +285,7 @@ ${clientContextInstructions}
 ${stepsContext}
 ${delegationInstructions}
 ${skillInstructions}
+${delegationWarning}
 
 INSTRUÇÕES DE RESPOSTA:
 - A SOLICITAÇÃO ORIGINAL DO USUÁRIO está na mensagem do usuário abaixo. NUNCA ignore ou substitua o pedido original.
