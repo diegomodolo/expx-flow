@@ -138,22 +138,26 @@ serve(async (req) => {
       platformsArray = ['instagram', 'facebook'];
     }
 
-    // Get facebook page and instagram account for this client/company
+    // Get facebook page and instagram account for this client/company (optional)
     let facebookPageId: string | null = null;
     let instagramAccountId: string | null = null;
 
-    const { data: pages } = await supabase
-      .from('facebook_pages')
-      .select('id, instagram_business_account_id')
-      .eq('company_id', company_id)
-      .eq('is_active', true)
-      .limit(1);
+    try {
+      const { data: pages } = await supabase
+        .from('facebook_pages')
+        .select('id, instagram_business_account_id')
+        .eq('company_id', company_id)
+        .eq('is_active', true)
+        .limit(1);
 
-    if (pages && pages.length > 0) {
-      facebookPageId = pages[0].id;
-      if (pages[0].instagram_business_account_id) {
-        instagramAccountId = pages[0].id; // Same record
+      if (pages && pages.length > 0) {
+        facebookPageId = pages[0].id;
+        if (pages[0].instagram_business_account_id) {
+          instagramAccountId = pages[0].id;
+        }
       }
+    } catch (e) {
+      console.warn('[schedule-post] Could not fetch social accounts:', e.message);
     }
 
     // Build the caption
@@ -167,29 +171,34 @@ serve(async (req) => {
       mediaUrlsArray = [image_url];
     }
 
+    // Build insert payload, only include FK fields if they have valid values
+    const insertPayload: Record<string, any> = {
+      company_id,
+      created_by: createdBy,
+      content_type: content_type || 'image',
+      caption: postCaption,
+      media_urls: mediaUrlsArray,
+      platforms: platformsArray,
+      scheduled_at: scheduledAt.toISOString(),
+      status: 'scheduled',
+      metadata: {
+        created_via: 'ai_agent',
+        original_request: {
+          content: content?.substring(0, 200),
+          scheduled_for,
+        },
+      },
+    };
+
+    // Only set FK fields if they have valid values
+    if (resolvedClientId) insertPayload.client_id = resolvedClientId;
+    if (facebookPageId) insertPayload.facebook_page_id = facebookPageId;
+    if (instagramAccountId) insertPayload.instagram_account_id = instagramAccountId;
+
     // Insert the scheduled post
     const { data: newPost, error: insertError } = await supabase
       .from('scheduled_posts')
-      .insert({
-        company_id,
-        client_id: resolvedClientId,
-        created_by: createdBy,
-        content_type: content_type || 'image',
-        caption: postCaption,
-        media_urls: mediaUrlsArray,
-        platforms: platformsArray,
-        facebook_page_id: facebookPageId,
-        instagram_account_id: instagramAccountId,
-        scheduled_at: scheduledAt.toISOString(),
-        status: 'scheduled',
-        metadata: {
-          created_via: 'ai_agent',
-          original_request: {
-            content: content?.substring(0, 200),
-            scheduled_for,
-          },
-        },
-      })
+      .insert(insertPayload)
       .select('id, scheduled_at, status, platforms, caption')
       .single();
 
