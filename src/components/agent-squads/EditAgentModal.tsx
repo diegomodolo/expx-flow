@@ -11,7 +11,7 @@ interface EditAgentModalProps {
 export function EditAgentModal({ open, onOpenChange, agentId, onAgentUpdated }: EditAgentModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl h-[85vh] p-0 overflow-hidden">
+      <DialogContent className="max-w-5xl h-[85vh] p-0 overflow-hidden flex flex-col">
         <AgentEditContent
           agentId={agentId}
           defaultSection="geral"
