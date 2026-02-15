@@ -10,6 +10,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
+  Database,
   Palette,
   Youtube,
   BarChart3,
@@ -24,6 +25,7 @@ import {
 } from "lucide-react";
 
 const categoryConfig: Record<string, { label: string; icon: React.ElementType; color: string }> = {
+  dados: { label: "Acesso a Dados", icon: Database, color: "bg-cyan-500/10 text-cyan-600" },
   conteudo: { label: "Geração de Conteúdo", icon: Palette, color: "bg-pink-500/10 text-pink-600" },
   youtube: { label: "YouTube", icon: Youtube, color: "bg-red-500/10 text-red-600" },
   campanhas: { label: "Gestão de Campanhas", icon: BarChart3, color: "bg-blue-500/10 text-blue-600" },

@@ -113,6 +113,128 @@ async function handleLookupClient(
   return { clients: data };
 }
 
+async function handleBuiltinQuery(
+  skillId: string,
+  args: Record<string, unknown>,
+  companyId: string,
+  clientId?: string
+): Promise<Record<string, unknown>> {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+  const supabase = createClient(supabaseUrl, serviceRoleKey);
+  const limit = Math.min(Number(args.limit) || 20, 50);
+
+  try {
+    switch (skillId) {
+      case 'data_clients': {
+        let q = supabase.from('clients').select('id, name, company, sector, status, monthly_budget, leads_generated, last_sync_at').eq('company_id', companyId);
+        if (args.search) q = q.or(`name.ilike.%${args.search}%,company.ilike.%${args.search}%`);
+        if (args.status) q = q.eq('status', args.status);
+        const { data, error } = await q.order('name').limit(limit);
+        if (error) return { error: error.message };
+        return { clients: data, total: data?.length };
+      }
+      case 'data_client_details': {
+        const cid = clientId || args.client_id as string;
+        if (!cid && args.client_name) {
+          const { data } = await supabase.from('clients').select('id').eq('company_id', companyId).ilike('name', `%${args.client_name}%`).limit(1);
+          if (data?.[0]) return handleBuiltinQuery(skillId, { ...args, client_id: data[0].id }, companyId, data[0].id);
+          return { error: 'Cliente não encontrado' };
+        }
+        if (!cid) return { error: 'client_id necessário' };
+        const [clientRes, campaignsRes] = await Promise.all([
+          supabase.from('clients').select('*').eq('id', cid).single(),
+          supabase.from('campaigns').select('id, name, status, spend, cpc, ctr, conversions, cpa').eq('client_id', cid).eq('status', 'active').order('spend', { ascending: false }).limit(10),
+        ]);
+        return { client: clientRes.data, active_campaigns: campaignsRes.data };
+      }
+      case 'data_campaigns': {
+        if (!clientId) return { error: 'client_id necessário' };
+        let q = supabase.from('campaigns').select('id, name, status, objective, spend, cpc, ctr, conversions, cpa, impressions, clicks, daily_budget').eq('client_id', clientId);
+        if (args.status) q = q.eq('status', args.status);
+        const { data, error } = await q.order('spend', { ascending: false }).limit(limit);
+        if (error) return { error: error.message };
+        return { campaigns: data, total: data?.length };
+      }
+      case 'data_ads': {
+        if (!clientId) return { error: 'client_id necessário' };
+        let q = supabase.from('ads').select('id, name, status, spend, cpc, ctr, impressions, clicks, conversions, cpa, creative_title, creative_body, image_url').eq('client_id', clientId);
+        if (args.campaign_id) q = q.eq('campaign_id', args.campaign_id as string);
+        const { data, error } = await q.order('spend', { ascending: false }).limit(limit);
+        if (error) return { error: error.message };
+        return { ads: data, total: data?.length };
+      }
+      case 'data_client_health': {
+        if (!clientId) return { error: 'client_id necessário' };
+        const { data, error } = await supabase.from('client_health_config').select('*').eq('client_id', clientId).single();
+        if (error) return { error: error.message };
+        return { health: data };
+      }
+      case 'data_client_milestones': {
+        if (!clientId) return { error: 'client_id necessário' };
+        const { data, error } = await supabase.from('client_milestones').select('*').eq('client_id', clientId).order('milestone_order');
+        if (error) return { error: error.message };
+        return { milestones: data };
+      }
+      case 'data_leads': {
+        let q = supabase.from('lead_master_pool').select('id, full_name, email, phone, city, state, lead_score, conversion_status, created_at').eq('company_id', companyId);
+        if (args.min_score) q = q.gte('lead_score', args.min_score);
+        const { data, error } = await q.order('lead_score', { ascending: false }).limit(limit);
+        if (error) return { error: error.message };
+        return { leads: data, total: data?.length };
+      }
+      case 'data_lead_segments': {
+        const { data, error } = await supabase.from('lead_segments').select('*').eq('company_id', companyId).order('name');
+        if (error) return { error: error.message };
+        return { segments: data };
+      }
+      case 'data_automation_rules': {
+        let q = supabase.from('campaign_automation_rules').select('id, rule_name, rule_description, entity_type, action_type, is_active, execution_count, last_execution_at').eq('company_id', companyId);
+        if (args.is_active !== undefined) q = q.eq('is_active', args.is_active);
+        const { data, error } = await q.order('rule_order').limit(limit);
+        if (error) return { error: error.message };
+        return { rules: data, total: data?.length };
+      }
+      case 'data_automation_logs': {
+        let q = supabase.from('campaign_automation_logs').select('id, rule_id, action_type, action_result, entity_type, old_status, new_status, executed_at, error_message').eq('company_id', companyId);
+        const { data, error } = await q.order('executed_at', { ascending: false }).limit(limit);
+        if (error) return { error: error.message };
+        return { logs: data, total: data?.length };
+      }
+      case 'data_competitors': {
+        if (!clientId) return { error: 'client_id necessário' };
+        const { data, error } = await supabase.from('competitors').select('*').eq('client_id', clientId);
+        if (error) return { error: error.message };
+        return { competitors: data };
+      }
+      case 'data_scheduled_posts': {
+        if (!clientId) return { error: 'client_id necessário' };
+        let q = supabase.from('scheduled_posts').select('id, title, platform, status, scheduled_for, published_at, post_type, caption').eq('client_id', clientId);
+        if (args.status) q = q.eq('status', args.status as string);
+        const { data, error } = await q.order('scheduled_for', { ascending: false }).limit(limit);
+        if (error) return { error: error.message };
+        return { posts: data, total: data?.length };
+      }
+      case 'data_activity_feed': {
+        const { data, error } = await supabase.from('activity_feed').select('*').eq('company_id', companyId).order('created_at', { ascending: false }).limit(limit);
+        if (error) return { error: error.message };
+        return { activities: data };
+      }
+      case 'data_benchmarks': {
+        if (!clientId) return { error: 'client_id necessário' };
+        const { data, error } = await supabase.from('client_metric_benchmarks').select('*').eq('client_id', clientId);
+        if (error) return { error: error.message };
+        return { benchmarks: data };
+      }
+      default:
+        return { error: `Query builtin "${skillId}" não reconhecida` };
+    }
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { error: msg };
+  }
+}
+
 async function chatWithToolCalling(
   messages: Array<{ role: string; content: string }>,
   tools: ReturnType<typeof buildToolsFromSkills>,
@@ -178,6 +300,11 @@ async function chatWithToolCalling(
           mutableContext.client_id = clients[0].id;
           console.log('Client auto-set from lookup:', mutableContext.client_id);
         }
+      } else if (fnName.startsWith('data_')) {
+        if (fnArgs.client_id && !mutableContext.client_id) {
+          mutableContext.client_id = fnArgs.client_id as string;
+        }
+        result = await handleBuiltinQuery(fnName, fnArgs, mutableContext.company_id || '', mutableContext.client_id);
       } else {
         if (fnArgs.client_id && !mutableContext.client_id) {
           mutableContext.client_id = fnArgs.client_id as string;
