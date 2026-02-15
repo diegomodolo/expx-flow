@@ -11,10 +11,29 @@ interface SkillRecord {
   description: string;
   edge_function: string;
   tool_parameters: Record<string, unknown>;
+  requires_client?: boolean;
 }
 
-function buildToolsFromSkills(skills: SkillRecord[]) {
-  return skills.map((skill) => ({
+const LOOKUP_CLIENT_TOOL = {
+  type: 'function' as const,
+  function: {
+    name: '_lookup_client',
+    description: 'Busca um cliente pelo nome na base de dados da empresa. Use quando precisar identificar qual cliente o usuário está se referindo. Retorna id, nome e empresa do cliente.',
+    parameters: {
+      type: 'object',
+      properties: {
+        search_query: {
+          type: 'string',
+          description: 'Nome ou parte do nome do cliente para buscar',
+        },
+      },
+      required: ['search_query'],
+    },
+  },
+};
+
+function buildToolsFromSkills(skills: SkillRecord[], hasFixedClient: boolean) {
+  const skillTools = skills.map((skill) => ({
     type: 'function' as const,
     function: {
       name: skill.id,
@@ -22,6 +41,12 @@ function buildToolsFromSkills(skills: SkillRecord[]) {
       parameters: skill.tool_parameters || { type: 'object', properties: {} },
     },
   }));
+
+  if (!hasFixedClient && skills.some(s => s.requires_client !== false)) {
+    skillTools.push(LOOKUP_CLIENT_TOOL);
+  }
+
+  return skillTools;
 }
 
 async function executeSkill(
@@ -64,6 +89,30 @@ async function executeSkill(
   }
 }
 
+async function handleLookupClient(
+  args: Record<string, unknown>,
+  companyId: string
+): Promise<Record<string, unknown>> {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+  const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+  const query = (args.search_query as string || '').trim();
+  if (!query) return { error: 'Nenhum termo de busca informado' };
+
+  const { data, error } = await supabase
+    .from('clients')
+    .select('id, name, company, sector, status')
+    .eq('company_id', companyId)
+    .or(`name.ilike.%${query}%,company.ilike.%${query}%`)
+    .limit(5);
+
+  if (error) return { error: error.message };
+  if (!data || data.length === 0) return { clients: [], message: 'Nenhum cliente encontrado. Peça ao usuário para informar o nome correto.' };
+
+  return { clients: data };
+}
+
 async function chatWithToolCalling(
   messages: Array<{ role: string; content: string }>,
   tools: ReturnType<typeof buildToolsFromSkills>,
@@ -74,6 +123,7 @@ async function chatWithToolCalling(
   const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
   const maxIterations = 5;
   let currentMessages = [...messages];
+  const mutableContext = { ...agentContext };
 
   for (let i = 0; i < maxIterations; i++) {
     const requestBody: Record<string, unknown> = {
@@ -112,13 +162,28 @@ async function chatWithToolCalling(
 
     for (const toolCall of choice.message.tool_calls) {
       const fnName = toolCall.function.name;
-      let fnArgs = {};
+      let fnArgs: Record<string, unknown> = {};
       try {
         fnArgs = JSON.parse(toolCall.function.arguments || '{}');
       } catch { /* empty */ }
 
-      console.log(`Executing skill: ${fnName}`, fnArgs);
-      const result = await executeSkill(fnName, skills, fnArgs, agentContext);
+      console.log(`Executing tool: ${fnName}`, fnArgs);
+
+      let result: Record<string, unknown>;
+
+      if (fnName === '_lookup_client') {
+        result = await handleLookupClient(fnArgs, mutableContext.company_id || '');
+        const clients = result.clients as Array<{ id: string }> | undefined;
+        if (clients && clients.length === 1) {
+          mutableContext.client_id = clients[0].id;
+          console.log('Client auto-set from lookup:', mutableContext.client_id);
+        }
+      } else {
+        if (fnArgs.client_id && !mutableContext.client_id) {
+          mutableContext.client_id = fnArgs.client_id as string;
+        }
+        result = await executeSkill(fnName, skills, fnArgs, mutableContext);
+      }
 
       currentMessages.push({
         role: 'tool',
@@ -332,10 +397,15 @@ ${client.ai_briefing ? `\n[BRIEFING DETALHADO]\n${client.ai_briefing}\n` : ''}`;
       .map((row: any) => row.ia_agent_skills)
       .filter(Boolean);
 
-    const tools = buildToolsFromSkills(enabledSkills);
+    const hasFixedClient = !!agent.client_id;
+    const tools = buildToolsFromSkills(enabledSkills, hasFixedClient);
+
+    const clientLookupInstruction = !hasFixedClient && enabledSkills.length > 0
+      ? `\n- IMPORTANTE: Quando uma skill precisar de um cliente e nenhum cliente foi definido, use a ferramenta _lookup_client para buscar o cliente pelo nome. Se o usuário não informou qual cliente, PERGUNTE antes de executar a skill. Após encontrar o cliente, passe o client_id dele nas chamadas subsequentes.`
+      : '';
 
     const skillInstructions = enabledSkills.length > 0
-      ? `\n\n[SKILLS DISPONÍVEIS]\nVocê tem acesso a ${enabledSkills.length} skills. Use-as chamando as funções disponíveis quando pertinente.\n`
+      ? `\n\n[SKILLS DISPONÍVEIS]\nVocê tem acesso a ${enabledSkills.length} skills. Use-as chamando as funções disponíveis quando pertinente.${clientLookupInstruction}\n`
       : '';
 
     const systemPrompt = `${agent.prompt_base}
