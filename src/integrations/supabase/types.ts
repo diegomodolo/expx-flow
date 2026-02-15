@@ -7421,39 +7421,60 @@ export type Database = {
       ia_agent_skills: {
         Row: {
           category: string
+          config: Json | null
           created_at: string | null
           description: string
           edge_function: string
           id: string
+          is_active: boolean | null
+          max_tokens: number | null
+          model: string | null
           name: string
           optional_params: Json | null
           required_params: Json | null
           requires_client: boolean | null
+          system_prompt: string | null
+          temperature: number | null
           tool_parameters: Json | null
+          updated_at: string | null
         }
         Insert: {
           category: string
+          config?: Json | null
           created_at?: string | null
           description: string
           edge_function: string
           id: string
+          is_active?: boolean | null
+          max_tokens?: number | null
+          model?: string | null
           name: string
           optional_params?: Json | null
           required_params?: Json | null
           requires_client?: boolean | null
+          system_prompt?: string | null
+          temperature?: number | null
           tool_parameters?: Json | null
+          updated_at?: string | null
         }
         Update: {
           category?: string
+          config?: Json | null
           created_at?: string | null
           description?: string
           edge_function?: string
           id?: string
+          is_active?: boolean | null
+          max_tokens?: number | null
+          model?: string | null
           name?: string
           optional_params?: Json | null
           required_params?: Json | null
           requires_client?: boolean | null
+          system_prompt?: string | null
+          temperature?: number | null
           tool_parameters?: Json | null
+          updated_at?: string | null
         }
         Relationships: []
       }

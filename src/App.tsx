@@ -71,6 +71,8 @@ import GeradorCarrosseis from "./pages/GeradorCarrosseis";
 import AgentesIA from "./pages/AgentesIA";
 import AgentChat from "./pages/AgentChat";
 import AgentEdit from "./pages/AgentEdit";
+import SkillsPage from "./pages/SkillsPage";
+import SkillEditPage from "./pages/SkillEditPage";
 import EditorFunil from "./pages/EditorFunil";
 import { FunnelEditor } from "./components/funnel-editor/FunnelEditor";
 import NotFound from "./pages/NotFound";
@@ -226,9 +228,24 @@ const App = () => {
                } />
                <Route path="/ia/agents/:agentId/edit" element={
                  <PermissionProtectedRoute requiredPermission="agentes-ia">
-                   <AgentEdit />
-                 </PermissionProtectedRoute>
-               } />
+                    <AgentEdit />
+                  </PermissionProtectedRoute>
+                } />
+                <Route path="/ia/skills" element={
+                  <PermissionProtectedRoute requiredPermission="agentes-ia">
+                    <SkillsPage />
+                  </PermissionProtectedRoute>
+                } />
+                <Route path="/ia/skills/new" element={
+                  <PermissionProtectedRoute requiredPermission="editar-agentes">
+                    <SkillEditPage />
+                  </PermissionProtectedRoute>
+                } />
+                <Route path="/ia/skills/:id/edit" element={
+                  <PermissionProtectedRoute requiredPermission="agentes-ia">
+                    <SkillEditPage />
+                  </PermissionProtectedRoute>
+                } />
                 <Route path="/clientes" element={
                   <PermissionProtectedRoute requiredPermission="clientes">
                     <Clientes />
