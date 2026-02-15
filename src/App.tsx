@@ -232,17 +232,17 @@ const App = () => {
                   </PermissionProtectedRoute>
                 } />
                 <Route path="/ia/skills" element={
-                  <PermissionProtectedRoute requiredPermission="agentes-ia">
+                  <PermissionProtectedRoute requiredPermission="skills-ia">
                     <SkillsPage />
                   </PermissionProtectedRoute>
                 } />
                 <Route path="/ia/skills/new" element={
-                  <PermissionProtectedRoute requiredPermission="editar-agentes">
+                  <PermissionProtectedRoute requiredPermission="editar-skills">
                     <SkillEditPage />
                   </PermissionProtectedRoute>
                 } />
                 <Route path="/ia/skills/:id/edit" element={
-                  <PermissionProtectedRoute requiredPermission="agentes-ia">
+                  <PermissionProtectedRoute requiredPermission="skills-ia">
                     <SkillEditPage />
                   </PermissionProtectedRoute>
                 } />
