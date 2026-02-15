@@ -37,6 +37,7 @@ import {
   NotebookText,
   ImagePlus,
   Puzzle,
+  BookOpen,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useEmployeePermissions, MenuItemType } from "@/hooks/useEmployeePermissions";
@@ -122,6 +123,7 @@ const menuCategories: MenuCategory[] = [
       items: [
         { title: "Colaboradores", url: "/colaboradores", icon: UserCheck, permission: "colaboradores" as MenuItemType },
         { title: "Relatórios", url: "/relatorios", icon: BarChart3, permission: "relatorios" as MenuItemType },
+        { title: "Roteiros", url: "/roteiros", icon: BookOpen, permission: "roteiros" as MenuItemType },
         { title: "Squad", url: "/squad", icon: UsersRound, permission: "squad" as MenuItemType },
         { title: "Tarefas", url: "/tarefas", icon: CheckSquare, permission: "tarefas" as MenuItemType },
         { title: "Tarefas Recorrentes", url: "/tarefas-recorrentes", icon: RotateCcw, permission: "tarefas-recorrentes" as MenuItemType },
