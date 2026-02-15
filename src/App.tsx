@@ -221,11 +221,11 @@ const App = () => {
                } />
                <Route path="/ia/agents/:agentId" element={
                  <PermissionProtectedRoute requiredPermission="agentes-ia">
-                   <AgentChat />
+                   <AgentEdit />
                  </PermissionProtectedRoute>
                } />
                <Route path="/ia/agents/:agentId/edit" element={
-                 <PermissionProtectedRoute requiredPermission="editar-agentes">
+                 <PermissionProtectedRoute requiredPermission="agentes-ia">
                    <AgentEdit />
                  </PermissionProtectedRoute>
                } />
