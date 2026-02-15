@@ -11,11 +11,15 @@ import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { ArrowLeft, Save, Trash2 } from "lucide-react";
+import { ArrowLeft, Save, Trash2, Rocket } from "lucide-react";
 import { SkillAIGenerator } from "@/components/skills/SkillAIGenerator";
+import { SkillCodeEditor, DEFAULT_TEMPLATE } from "@/components/skills/SkillCodeEditor";
+import { SkillExternalApiConfig, ExternalApiConfig } from "@/components/skills/SkillExternalApiConfig";
+import { SkillDeployModal, DeployStep } from "@/components/skills/SkillDeployModal";
 import { toast } from "sonner";
 import { SkillParametersEditor } from "@/components/skills/SkillParametersEditor";
 import { SkillTestPlayground } from "@/components/skills/SkillTestPlayground";
+import { supabase } from "@/integrations/supabase/client";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -52,6 +56,8 @@ const emptySkill: Skill = {
   config: null,
   is_active: true,
   updated_at: null,
+  edge_function_code: null,
+  external_api_config: null,
 };
 
 export default function SkillEditPage() {
@@ -63,6 +69,12 @@ export default function SkillEditPage() {
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
 
+  // Deploy modal state
+  const [deployOpen, setDeployOpen] = useState(false);
+  const [deploySteps, setDeploySteps] = useState<DeployStep[]>([]);
+  const [deployFinished, setDeployFinished] = useState(false);
+  const [deployError, setDeployError] = useState<string | null>(null);
+
   useEffect(() => {
     if (id) {
       getSkill(id).then((s) => {
@@ -72,17 +84,79 @@ export default function SkillEditPage() {
     }
   }, [id, getSkill]);
 
-  const handleSave = async () => {
-    if (!form.id || !form.name || !form.description || !form.edge_function) {
-      toast.error("Preencha os campos obrigatórios: ID, Nome, Descrição e Edge Function");
+  const updateStep = (stepId: string, update: Partial<DeployStep>) => {
+    setDeploySteps(prev => prev.map(s => s.id === stepId ? { ...s, ...update } : s));
+  };
+
+  const handleSaveAndDeploy = async () => {
+    if (!form.id || !form.name || !form.description) {
+      toast.error("Preencha os campos obrigatórios: ID, Nome e Descrição");
       return;
     }
+
+    // Auto-generate edge_function name if empty
+    const edgeFunctionName = form.edge_function || `skill-${form.id.replace(/_/g, "-")}`;
+
+    const steps: DeployStep[] = [
+      { id: "validate", label: "Validando dados da skill...", status: "pending" },
+      { id: "save_db", label: "Salvando no banco de dados...", status: "pending" },
+      { id: "deploy_code", label: "Salvando código da Edge Function...", status: "pending" },
+      { id: "done", label: "Skill publicada com sucesso!", status: "pending" },
+    ];
+
+    setDeploySteps(steps);
+    setDeployOpen(true);
+    setDeployFinished(false);
+    setDeployError(null);
     setSaving(true);
+
     try {
-      await saveSkill(form);
-      if (isNew) navigate(`/ia/skills/${form.id}/edit`, { replace: true });
+      // Step 1: Validate
+      updateStep("validate", { status: "running" });
+      await new Promise(r => setTimeout(r, 400));
+
+      const updatedForm = { ...form, edge_function: edgeFunctionName };
+      updateStep("validate", { status: "done", detail: `Skill "${updatedForm.name}" validada` });
+
+      // Step 2: Save to DB
+      updateStep("save_db", { status: "running" });
+      await saveSkill(updatedForm);
+      updateStep("save_db", { status: "done", detail: "Registro salvo na tabela ia_agent_skills" });
+
+      // Step 3: Deploy code if present
+      updateStep("deploy_code", { status: "running" });
+      
+      if (updatedForm.edge_function_code) {
+        const { data, error } = await supabase.functions.invoke("deploy-skill-function", {
+          body: {
+            skill_id: updatedForm.id,
+            edge_function_name: edgeFunctionName,
+            code: updatedForm.edge_function_code,
+            external_api_config: updatedForm.external_api_config,
+          },
+        });
+        if (error) throw new Error(error.message);
+        if (!data?.success) throw new Error(data?.error || "Erro no deploy");
+        updateStep("deploy_code", { status: "done", detail: `Function "${edgeFunctionName}" salva` });
+      } else {
+        updateStep("deploy_code", { status: "done", detail: "Nenhum código para deploy" });
+      }
+
+      // Step 4: Done
+      updateStep("done", { status: "done" });
+      setDeployFinished(true);
+
+      setForm(updatedForm);
+      if (isNew) navigate(`/ia/skills/${updatedForm.id}/edit`, { replace: true });
     } catch (err: any) {
-      toast.error("Erro ao salvar: " + err.message);
+      const currentRunning = steps.find(s => s.status === "running");
+      if (currentRunning) {
+        setDeploySteps(prev => prev.map(s => 
+          s.status === "running" ? { ...s, status: "error", detail: err.message } : s
+        ));
+      }
+      setDeployError(err.message);
+      toast.error("Erro no deploy: " + err.message);
     } finally {
       setSaving(false);
     }
@@ -138,8 +212,8 @@ export default function SkillEditPage() {
               </AlertDialogContent>
             </AlertDialog>
           )}
-          <Button onClick={handleSave} disabled={saving}>
-            <Save className="h-4 w-4 mr-1" /> {saving ? "Salvando..." : "Salvar"}
+          <Button onClick={handleSaveAndDeploy} disabled={saving}>
+            <Rocket className="h-4 w-4 mr-1" /> {saving ? "Publicando..." : "Salvar e Publicar"}
           </Button>
         </div>
       </div>
@@ -148,6 +222,8 @@ export default function SkillEditPage() {
         <TabsList>
           <TabsTrigger value="geral">Geral</TabsTrigger>
           <TabsTrigger value="execucao">Execução</TabsTrigger>
+          <TabsTrigger value="codigo">Código</TabsTrigger>
+          <TabsTrigger value="api">API Externa</TabsTrigger>
           <TabsTrigger value="parametros">Parâmetros</TabsTrigger>
           <TabsTrigger value="teste">Teste</TabsTrigger>
         </TabsList>
@@ -208,7 +284,10 @@ export default function SkillEditPage() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label>Edge Function *</Label>
-                <Input value={form.edge_function} onChange={(e) => update("edge_function", e.target.value)} placeholder="nome-da-edge-function" />
+                <Input value={form.edge_function} onChange={(e) => update("edge_function", e.target.value)} placeholder="nome-da-edge-function (auto-gerado se vazio)" />
+                <p className="text-xs text-muted-foreground">
+                  Se vazio, será gerado automaticamente como: <code className="bg-muted px-1 rounded">skill-{form.id.replace(/_/g, "-") || "..."}</code>
+                </p>
               </div>
               <div className="space-y-2">
                 <Label>Modelo de IA</Label>
@@ -255,6 +334,23 @@ export default function SkillEditPage() {
           </Card>
         </TabsContent>
 
+        {/* TAB CÓDIGO */}
+        <TabsContent value="codigo">
+          <SkillCodeEditor
+            code={form.edge_function_code || ""}
+            onChange={(code) => update("edge_function_code", code)}
+            edgeFunctionName={form.edge_function || `skill-${form.id.replace(/_/g, "-")}`}
+          />
+        </TabsContent>
+
+        {/* TAB API EXTERNA */}
+        <TabsContent value="api">
+          <SkillExternalApiConfig
+            config={(form.external_api_config as unknown as ExternalApiConfig) || null}
+            onChange={(config) => update("external_api_config", config as any)}
+          />
+        </TabsContent>
+
         {/* TAB PARÂMETROS */}
         <TabsContent value="parametros">
           <SkillParametersEditor
@@ -269,6 +365,14 @@ export default function SkillEditPage() {
         </TabsContent>
       </Tabs>
     </div>
+
+    <SkillDeployModal
+      open={deployOpen}
+      onOpenChange={setDeployOpen}
+      steps={deploySteps}
+      finished={deployFinished}
+      error={deployError}
+    />
     </DashboardLayout>
   );
 }

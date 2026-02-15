@@ -7425,6 +7425,8 @@ export type Database = {
           created_at: string | null
           description: string
           edge_function: string
+          edge_function_code: string | null
+          external_api_config: Json | null
           id: string
           is_active: boolean | null
           max_tokens: number | null
@@ -7444,6 +7446,8 @@ export type Database = {
           created_at?: string | null
           description: string
           edge_function: string
+          edge_function_code?: string | null
+          external_api_config?: Json | null
           id: string
           is_active?: boolean | null
           max_tokens?: number | null
@@ -7463,6 +7467,8 @@ export type Database = {
           created_at?: string | null
           description?: string
           edge_function?: string
+          edge_function_code?: string | null
+          external_api_config?: Json | null
           id?: string
           is_active?: boolean | null
           max_tokens?: number | null
