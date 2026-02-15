@@ -255,11 +255,12 @@ async function chatWithToolCalling(
   skills: SkillRecord[],
   agentContext: { client_id?: string; company_id?: string; user_id?: string },
   model: string
-): Promise<string> {
+): Promise<{ text: string; images: string[] }> {
   const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
   const maxIterations = 5;
   let currentMessages = [...messages];
   const mutableContext = { ...agentContext };
+  const collectedImages: string[] = [];
 
   for (let i = 0; i < maxIterations; i++) {
     const requestBody: Record<string, unknown> = {
@@ -291,7 +292,7 @@ async function chatWithToolCalling(
     const choice = aiData.choices[0];
 
     if (!choice.message.tool_calls || choice.message.tool_calls.length === 0) {
-      return choice.message.content || '';
+      return { text: choice.message.content || '', images: collectedImages };
     }
 
     currentMessages.push(choice.message);
@@ -325,6 +326,10 @@ async function chatWithToolCalling(
           mutableContext.client_id = fnArgs.client_id as string;
         }
         result = await executeSkill(fnName, skills, fnArgs, mutableContext);
+        // Collect generated images
+        if (result.success && result.image_url && typeof result.image_url === 'string') {
+          collectedImages.push(result.image_url as string);
+        }
       }
 
       currentMessages.push({
@@ -350,7 +355,7 @@ async function chatWithToolCalling(
   });
 
   const finalData = await finalResponse.json();
-  return finalData.choices[0].message.content || '';
+  return { text: finalData.choices[0].message.content || '', images: collectedImages };
 }
 
 Deno.serve(async (req) => {
@@ -581,13 +586,16 @@ INSTRUÇÕES IMPORTANTES:
       company_id: agent.company_id,
     };
 
-    const assistantMessage = await chatWithToolCalling(
+    const aiResult = await chatWithToolCalling(
       aiMessages,
       tools,
       enabledSkills,
       agentContext,
       agent.model || 'google/gemini-2.5-flash'
     );
+
+    const assistantMessage = aiResult.text;
+    const generatedImages = aiResult.images;
 
     // Persist resolved client_id if it was discovered during tool calling
     const finalClientId = agentContext.client_id || null;
@@ -604,7 +612,31 @@ INSTRUÇÕES IMPORTANTES:
         updated_at: new Date().toISOString(),
       }, { onConflict: 'agent_id,telegram_chat_id' });
 
-    // Send to Telegram with Markdown, fallback to plain text if it fails
+    // Send generated images first via sendPhoto
+    for (const imgBase64 of generatedImages) {
+      try {
+        // Extract raw base64 data (remove data:image/...;base64, prefix if present)
+        const base64Data = imgBase64.includes(',') ? imgBase64.split(',')[1] : imgBase64;
+        const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+        const blob = new Blob([binaryData], { type: 'image/png' });
+
+        const formData = new FormData();
+        formData.append('chat_id', String(chatId));
+        formData.append('photo', blob, 'generated_image.png');
+
+        const photoResp = await fetch(`https://api.telegram.org/bot${agent.telegram_bot_token}/sendPhoto`, {
+          method: 'POST',
+          body: formData,
+        });
+        if (!photoResp.ok) {
+          console.error('Telegram sendPhoto failed:', await photoResp.text());
+        }
+      } catch (imgErr) {
+        console.error('Error sending image to Telegram:', imgErr);
+      }
+    }
+
+    // Send text message
     const sendMessage = async (text: string, parseMode?: string) => {
       const body: Record<string, unknown> = { chat_id: chatId, text };
       if (parseMode) body.parse_mode = parseMode;
@@ -622,10 +654,8 @@ INSTRUÇÕES IMPORTANTES:
     if (!tgResponse.ok) {
       const errBody = await tgResponse.text();
       console.error('Telegram sendMessage failed with Markdown:', errBody);
-      // Retry without parse_mode (plain text)
       const retryResponse = await sendMessage(assistantMessage);
       if (!retryResponse.ok) {
-        // Last resort: try splitting long messages
         const maxLen = 4096;
         if (assistantMessage.length > maxLen) {
           for (let i = 0; i < assistantMessage.length; i += maxLen) {
