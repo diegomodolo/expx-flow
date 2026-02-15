@@ -334,6 +334,11 @@ function SquadEditorContent() {
             onConnect={onConnect}
             onDrop={onDrop}
             onDragOver={onDragOver}
+            deleteKeyCode={["Backspace", "Delete"]}
+            onNodesDelete={(deletedNodes) => {
+              const deletedIds = new Set(deletedNodes.map((n) => n.id));
+              setEdges((eds) => eds.filter((e) => !deletedIds.has(e.source) && !deletedIds.has(e.target)));
+            }}
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
             defaultEdgeOptions={{ type: "labeled", animated: true, markerEnd: { type: "arrowclosed" as any } }}
