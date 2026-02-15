@@ -1,0 +1,2 @@
+ALTER TABLE public.ia_agent_squad_executions DROP CONSTRAINT ia_agent_squad_executions_status_check;
+ALTER TABLE public.ia_agent_squad_executions ADD CONSTRAINT ia_agent_squad_executions_status_check CHECK (status = ANY (ARRAY['pending'::text, 'running'::text, 'completed'::text, 'failed'::text, 'waiting_input'::text]));
