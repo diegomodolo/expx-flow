@@ -145,15 +145,23 @@ serve(async (req) => {
     try {
       const { data: pages } = await supabase
         .from('facebook_pages')
-        .select('id, instagram_business_account_id')
+        .select('id')
         .eq('company_id', company_id)
         .eq('is_active', true)
         .limit(1);
 
       if (pages && pages.length > 0) {
         facebookPageId = pages[0].id;
-        if (pages[0].instagram_business_account_id) {
-          instagramAccountId = pages[0].id;
+
+        // Look up instagram_accounts by facebook_page_id
+        const { data: igAccounts } = await supabase
+          .from('instagram_accounts')
+          .select('id')
+          .eq('facebook_page_id', facebookPageId)
+          .limit(1);
+
+        if (igAccounts && igAccounts.length > 0) {
+          instagramAccountId = igAccounts[0].id;
         }
       }
     } catch (e) {
