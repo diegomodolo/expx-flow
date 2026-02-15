@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Save, Settings, Brain, FileText, Bot } from "lucide-react";
+import { ArrowLeft, Save, Settings, Brain, FileText, Bot, Puzzle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +12,7 @@ import { useIAAgents } from "@/hooks/useIAAgents";
 import { useClients } from "@/hooks/useClients";
 import { KnowledgeDocumentsManager } from "@/components/agents/KnowledgeDocumentsManager";
 import { TelegramBotConfig } from "@/components/agents/TelegramBotConfig";
+import { AgentSkillsConfig } from "@/components/agents/AgentSkillsConfig";
 import { cn } from "@/lib/utils";
 import {
   Select,
@@ -21,12 +22,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-type Section = "geral" | "prompt" | "conhecimento" | "telegram";
+type Section = "geral" | "prompt" | "conhecimento" | "skills" | "telegram";
 
 const menuItems: { id: Section; label: string; icon: React.ElementType }[] = [
   { id: "geral", label: "Geral", icon: Settings },
   { id: "prompt", label: "Prompt & Instruções", icon: Brain },
   { id: "conhecimento", label: "Conhecimento", icon: FileText },
+  { id: "skills", label: "Skills", icon: Puzzle },
   { id: "telegram", label: "Telegram Bot", icon: Bot },
 ];
 
@@ -268,6 +270,21 @@ export default function AgentEdit() {
                     <h2 className="text-lg font-semibold mb-4">Base de Conhecimento</h2>
                   </div>
                   <KnowledgeDocumentsManager agentId={currentId} />
+                </div>
+              )}
+
+              {activeSection === "skills" && (
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="text-lg font-semibold mb-1">Skills do Agente</h2>
+                    <p className="text-sm text-muted-foreground">
+                      Habilite as capacidades que este agente pode executar durante conversas.
+                    </p>
+                  </div>
+                  <AgentSkillsConfig
+                    agentId={currentId}
+                    hasClient={formData.client_id !== "none"}
+                  />
                 </div>
               )}
 
