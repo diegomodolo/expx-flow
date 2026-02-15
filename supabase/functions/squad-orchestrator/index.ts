@@ -570,19 +570,15 @@ Deno.serve(async (req) => {
       })
     );
 
-    // 4. Create execution record
-    const { data: execution, error: execErr } = await serviceClient
+    // 4. Check for a recent "waiting_input" execution (manager paused waiting for user response)
+    const { data: waitingExecution } = await serviceClient
       .from('ia_agent_squad_executions')
-      .insert({
-        squad_id: squadId,
-        triggered_by: user?.id,
-        status: 'running',
-        input: message,
-        started_at: new Date().toISOString(),
-      })
-      .select()
+      .select('id, input')
+      .eq('squad_id', squadId)
+      .eq('status', 'waiting_input')
+      .order('created_at', { ascending: false })
+      .limit(1)
       .single();
-    if (execErr) throw execErr;
 
     // 5. Build execution order using BFS from the leader
     const leader = typedMembers.find(m => m.role === 'leader' || m.role === 'lider');
@@ -633,6 +629,258 @@ Deno.serve(async (req) => {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(eventData)}\n\n`));
         };
 
+        // ============================================================
+        // RESUMPTION PATH: If there's a waiting_input execution, resume from the paused manager
+        // ============================================================
+        if (waitingExecution) {
+          console.log(`[squad-orchestrator] Found waiting_input execution ${waitingExecution.id}, resuming...`);
+
+          // Load previous steps from the paused execution
+          const { data: prevStepsData } = await serviceClient
+            .from('ia_agent_squad_execution_steps')
+            .select('agent_id, member_id, step_order, input, output, status')
+            .eq('execution_id', waitingExecution.id)
+            .order('step_order', { ascending: true });
+
+          const previousSteps: StepResult[] = (prevStepsData || []).map((s: any) => {
+            const member = typedMembers.find(m => m.agent_id === s.agent_id);
+            return {
+              agent_id: s.agent_id,
+              agent_name: member?.agent?.agent_name || 'Unknown',
+              role: member?.role || 'executor',
+              input: s.input,
+              output: s.output,
+              step_order: s.step_order,
+              should_delegate: true,
+            };
+          });
+
+          // Find the manager that paused (last manager in the steps)
+          let pausedManager: SquadMember | undefined;
+          for (let i = previousSteps.length - 1; i >= 0; i--) {
+            const stepMember = typedMembers.find(m => m.agent_id === previousSteps[i].agent_id);
+            if (stepMember && (stepMember.role === 'manager' || stepMember.role === 'gerente')) {
+              pausedManager = stepMember;
+              break;
+            }
+          }
+
+          if (!pausedManager) {
+            console.log(`[squad-orchestrator] No paused manager found, falling through to normal execution`);
+            // Mark the waiting execution as completed and fall through
+            await serviceClient.from('ia_agent_squad_executions').update({
+              status: 'completed',
+              completed_at: new Date().toISOString(),
+            }).eq('id', waitingExecution.id);
+          } else {
+            // Update the waiting execution to running
+            await serviceClient.from('ia_agent_squad_executions').update({
+              status: 'running',
+            }).eq('id', waitingExecution.id);
+
+            const executedAgents = new Set<string>();
+            let globalStepCounter = previousSteps.length;
+
+            // Get the manager's children for delegation tools
+            const childMemberIds = typedFlows
+              .filter(f => f.source_member_id === pausedManager!.id)
+              .map(f => f.target_member_id);
+            const childMembers = childMemberIds
+              .map(id => typedMembers.find(m => m.id === id))
+              .filter(Boolean) as SquadMember[];
+
+            // Helper to execute a single agent (same as normal flow)
+            async function executeAgentResume(
+              member: SquadMember,
+              input: string,
+              currentSteps: StepResult[],
+              isManagerNode: boolean,
+              children: SquadMember[],
+            ): Promise<StepResult> {
+              globalStepCounter++;
+              const stepOrder = globalStepCounter;
+              const agentSkills = skillsMap.get(member.agent_id) || [];
+
+              sendEvent({
+                type: 'thinking',
+                agent_name: member.agent.agent_name,
+                role: member.role,
+                step_order: stepOrder,
+              });
+
+              let agentDelegationTools: any[] | undefined;
+              let agentDelegationHandler: DelegationHandler | undefined;
+
+              if (isManagerNode && children.length > 0) {
+                agentDelegationTools = buildDelegationTools(children);
+
+                agentDelegationHandler = async (memberId: string, task: string): Promise<string> => {
+                  const targetMember = typedMembers.find(m => m.id === memberId);
+                  if (!targetMember) {
+                    return JSON.stringify({ error: `Agente com ID ${memberId} não encontrado` });
+                  }
+
+                  const targetChildren = typedFlows
+                    .filter(f => f.source_member_id === targetMember.id)
+                    .map(f => typedMembers.find(m => m.id === f.target_member_id))
+                    .filter(Boolean) as SquadMember[];
+                  const isTargetManager = (targetMember.role === 'manager' || targetMember.role === 'gerente') && targetChildren.length > 0;
+
+                  const delegatedStep = await executeAgentResume(targetMember, task, currentSteps, isTargetManager, targetChildren);
+                  currentSteps.push(delegatedStep);
+
+                  await serviceClient.from('ia_agent_squad_execution_steps').insert({
+                    execution_id: waitingExecution.id,
+                    agent_id: targetMember.agent_id,
+                    member_id: targetMember.id,
+                    step_order: delegatedStep.step_order,
+                    input: task,
+                    output: delegatedStep.output,
+                    status: 'completed',
+                    started_at: new Date().toISOString(),
+                    completed_at: new Date().toISOString(),
+                  });
+
+                  sendEvent({
+                    type: 'step',
+                    agent_name: targetMember.agent.agent_name,
+                    role: targetMember.role,
+                    output: delegatedStep.output,
+                    step_order: delegatedStep.step_order,
+                    should_delegate: delegatedStep.should_delegate,
+                  });
+
+                  return delegatedStep.output;
+                };
+              }
+
+              const onToolCall = (skillName: string, args: Record<string, unknown>, result: Record<string, unknown>) => {
+                sendEvent({
+                  type: 'tool_call',
+                  agent_name: member.agent.agent_name,
+                  role: member.role,
+                  skill_name: skillName,
+                  step_order: stepOrder,
+                  success: !result.error,
+                  image_url: result.image_url || null,
+                });
+              };
+
+              const { output, should_delegate } = await callAgentWithTools(
+                member.agent,
+                member.squad_instructions,
+                member.role,
+                input,
+                currentSteps,
+                false,
+                isManagerNode,
+                [],
+                agentSkills,
+                squadClientId,
+                squadClientInfo,
+                onToolCall,
+                agentDelegationTools,
+                agentDelegationHandler,
+              );
+
+              return {
+                agent_id: member.agent_id,
+                agent_name: member.agent.agent_name,
+                role: member.role,
+                input,
+                output,
+                step_order: stepOrder,
+                should_delegate,
+              };
+            }
+
+            // Resume: execute the manager with previous context + new message
+            // The message includes the user's response (e.g., date/time)
+            const resumeInput = `[CONTINUAÇÃO - O USUÁRIO RESPONDEU À SUA PERGUNTA ANTERIOR]
+Mensagem original da squad: ${waitingExecution.input}
+Sua pergunta anterior: ${previousSteps[previousSteps.length - 1]?.output || ''}
+Resposta do usuário agora: ${message}
+
+IMPORTANTE: Você já executou os passos anteriores (veja o contexto). NÃO repita o que já foi feito. Continue de onde parou e execute APENAS o(s) passo(s) restante(s) com base na resposta do usuário.`;
+
+            try {
+              const step = await executeAgentResume(
+                pausedManager,
+                resumeInput,
+                previousSteps,
+                true,
+                childMembers,
+              );
+
+              await serviceClient.from('ia_agent_squad_execution_steps').insert({
+                execution_id: waitingExecution.id,
+                agent_id: pausedManager.agent_id,
+                member_id: pausedManager.id,
+                step_order: step.step_order,
+                input: resumeInput,
+                output: step.output,
+                status: 'completed',
+                started_at: new Date().toISOString(),
+                completed_at: new Date().toISOString(),
+              });
+
+              sendEvent({
+                type: 'step',
+                agent_name: pausedManager.agent.agent_name,
+                role: pausedManager.role,
+                output: step.output,
+                step_order: step.step_order,
+                should_delegate: step.should_delegate,
+              });
+
+              // Mark execution as completed
+              await serviceClient.from('ia_agent_squad_executions').update({
+                status: 'completed',
+                final_output: step.output,
+                completed_at: new Date().toISOString(),
+              }).eq('id', waitingExecution.id);
+
+            } catch (err) {
+              console.error(`[squad-orchestrator] Error resuming manager:`, err);
+              sendEvent({
+                type: 'error',
+                agent_name: pausedManager.agent.agent_name,
+                role: pausedManager.role,
+                output: `⚠️ Erro ao retomar: ${err.message}`,
+                step_order: globalStepCounter + 1,
+              });
+
+              await serviceClient.from('ia_agent_squad_executions').update({
+                status: 'failed',
+                final_output: `Erro: ${err.message}`,
+                completed_at: new Date().toISOString(),
+              }).eq('id', waitingExecution.id);
+            }
+
+            sendEvent({ type: 'done', execution_id: waitingExecution.id });
+            controller.close();
+            return; // Exit early — resumption complete
+          }
+        }
+
+        // ============================================================
+        // NORMAL PATH: Fresh execution from leader
+        // ============================================================
+
+        // Create new execution record
+        const { data: execution, error: execErr } = await serviceClient
+          .from('ia_agent_squad_executions')
+          .insert({
+            squad_id: squadId,
+            triggered_by: user?.id,
+            status: 'running',
+            input: message,
+            started_at: new Date().toISOString(),
+          })
+          .select()
+          .single();
+        if (execErr) throw execErr;
+
         const steps: StepResult[] = [];
         const executedAgents = new Set<string>();
         let globalStepCounter = 0;
@@ -674,14 +922,12 @@ Deno.serve(async (req) => {
                 return JSON.stringify({ error: `Agente com ID ${memberId} não encontrado na squad` });
               }
 
-              // Check if this target is also a manager (has its own children)
               const targetChildren = typedFlows
                 .filter(f => f.source_member_id === targetMember.id)
                 .map(f => typedMembers.find(m => m.id === f.target_member_id))
                 .filter(Boolean) as SquadMember[];
               const isTargetManager = (targetMember.role === 'manager' || targetMember.role === 'gerente') && targetChildren.length > 0;
 
-              // Execute the delegated agent
               const delegatedStep = await executeAgent(
                 targetMember,
                 task,
@@ -692,11 +938,9 @@ Deno.serve(async (req) => {
                 targetChildren,
               );
 
-              // Add to steps for context
               currentSteps.push(delegatedStep);
               executedAgents.add(targetMember.id);
 
-              // Persist the step
               await serviceClient.from('ia_agent_squad_execution_steps').insert({
                 execution_id: execution.id,
                 agent_id: targetMember.agent_id,
@@ -709,7 +953,6 @@ Deno.serve(async (req) => {
                 completed_at: new Date().toISOString(),
               });
 
-              // Emit step event
               sendEvent({
                 type: 'step',
                 agent_name: targetMember.agent.agent_name,
@@ -771,7 +1014,6 @@ Deno.serve(async (req) => {
 
           const isLeaderNode = member.id === leader.id;
 
-          // Detect if this member is a manager with children
           const childMemberIds = typedFlows
             .filter(f => f.source_member_id === member.id)
             .map(f => f.target_member_id);
@@ -821,8 +1063,6 @@ Deno.serve(async (req) => {
               for (const childId of childMemberIds) {
                 executedAgents.add(childId);
               }
-              // Also mark grandchildren (children of children) as executed
-              // to prevent BFS from re-executing them
               const markDescendants = (parentId: string) => {
                 const descendants = typedFlows
                   .filter(f => f.source_member_id === parentId)
@@ -834,6 +1074,30 @@ Deno.serve(async (req) => {
               };
               for (const childId of childMemberIds) {
                 markDescendants(childId);
+              }
+
+              // Check if manager paused (has children that were NOT delegated to)
+              // by comparing executedAgents before/after
+              const undelegatedChildren = childMemberIds.filter(id => {
+                // Check if this child was actually executed during this manager's run
+                return !steps.some(s => {
+                  const m = typedMembers.find(tm => tm.id === id);
+                  return m && s.agent_id === m.agent_id;
+                });
+              });
+
+              if (undelegatedChildren.length > 0) {
+                console.log(`[squad-orchestrator] Manager ${member.agent.agent_name} PAUSED — ${undelegatedChildren.length} children not delegated. Marking as waiting_input.`);
+                
+                await serviceClient.from('ia_agent_squad_executions').update({
+                  status: 'waiting_input',
+                  final_output: step.output,
+                  completed_at: new Date().toISOString(),
+                }).eq('id', execution.id);
+
+                sendEvent({ type: 'done', execution_id: execution.id });
+                controller.close();
+                return; // Exit early — manager is waiting for user input
               }
             }
 
