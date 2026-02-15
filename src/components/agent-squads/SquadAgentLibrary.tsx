@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
-import { Search, Bot, Crown, Shield, Wrench } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Search, Bot, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/CompanyContext";
+import { CreateAgentModal } from "./CreateAgentModal";
 
 interface Agent {
   id: string;
@@ -20,25 +22,28 @@ interface SquadAgentLibraryProps {
 export function SquadAgentLibrary({ clientId, onDragStart }: SquadAgentLibraryProps) {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
   const { activeCompany } = useCompany();
 
-  useEffect(() => {
+  const fetchAgents = async () => {
     if (!activeCompany?.company_id) return;
-    const fetchAgents = async () => {
-      let query = supabase
-        .from("ia_agents")
-        .select("id, agent_name, description, client_id")
-        .eq("company_id", activeCompany.company_id);
+    let query = supabase
+      .from("ia_agents")
+      .select("id, agent_name, description, client_id")
+      .eq("company_id", activeCompany.company_id);
 
-      if (clientId) {
-        query = query.or(`client_id.eq.${clientId},client_id.is.null`);
-      }
+    if (clientId) {
+      query = query.or(`client_id.eq.${clientId},client_id.is.null`);
+    }
 
-      const { data } = await query.order("agent_name");
-      setAgents((data || []) as Agent[]);
-    };
+    const { data } = await query.order("agent_name");
+    setAgents((data || []) as Agent[]);
+  };
+
+  useEffect(() => {
     fetchAgents();
-  }, [activeCompany?.company_id, clientId]);
+  }, [activeCompany?.company_id, clientId, refreshKey]);
 
   const filtered = agents.filter((a) =>
     a.agent_name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -47,9 +52,20 @@ export function SquadAgentLibrary({ clientId, onDragStart }: SquadAgentLibraryPr
   return (
     <div className="w-64 border-r bg-card h-full flex flex-col">
       <div className="p-4 border-b space-y-3">
-        <div>
-          <h3 className="font-semibold text-sm">Agentes Disponíveis</h3>
-          <p className="text-xs text-muted-foreground mt-1">Arraste para o canvas</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="font-semibold text-sm">Agentes Disponíveis</h3>
+            <p className="text-xs text-muted-foreground mt-1">Arraste para o canvas</p>
+          </div>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8 shrink-0"
+            onClick={() => setCreateModalOpen(true)}
+            title="Criar novo agente"
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
         </div>
         <div className="relative">
           <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -89,6 +105,13 @@ export function SquadAgentLibrary({ clientId, onDragStart }: SquadAgentLibraryPr
           )}
         </div>
       </ScrollArea>
+
+      <CreateAgentModal
+        open={createModalOpen}
+        onOpenChange={setCreateModalOpen}
+        defaultClientId={clientId}
+        onAgentCreated={() => setRefreshKey((k) => k + 1)}
+      />
     </div>
   );
 }
