@@ -13,7 +13,6 @@ export interface Skill {
   required_params: Record<string, unknown> | null;
   optional_params: Record<string, unknown> | null;
   created_at: string | null;
-  // New columns
   model: string | null;
   system_prompt: string | null;
   temperature: number | null;
@@ -21,6 +20,8 @@ export interface Skill {
   config: Record<string, unknown> | null;
   is_active: boolean | null;
   updated_at: string | null;
+  edge_function_code: string | null;
+  external_api_config: Record<string, unknown> | null;
 }
 
 export function useSkills() {
