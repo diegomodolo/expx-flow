@@ -33,14 +33,27 @@ const LOOKUP_CLIENT_TOOL = {
 };
 
 function buildToolsFromSkills(skills: SkillRecord[], hasFixedClient: boolean) {
-  const skillTools = skills.map((skill) => ({
-    type: 'function' as const,
-    function: {
-      name: skill.id,
-      description: skill.description,
-      parameters: skill.tool_parameters || { type: 'object', properties: {} },
-    },
-  }));
+  const skillTools = skills.map((skill) => {
+    const params = JSON.parse(JSON.stringify(skill.tool_parameters || { type: 'object', properties: {} }));
+    // Inject client_id parameter for skills that require a client (when no fixed client)
+    if (!hasFixedClient && skill.requires_client !== false) {
+      if (!params.properties) params.properties = {};
+      params.properties.client_id = {
+        type: 'string',
+        description: 'ID UUID do cliente. OBRIGATÓRIO. Use o client_id obtido via _lookup_client ou data_clients.',
+      };
+      if (!params.required) params.required = [];
+      if (!params.required.includes('client_id')) params.required.push('client_id');
+    }
+    return {
+      type: 'function' as const,
+      function: {
+        name: skill.id,
+        description: skill.description,
+        parameters: params,
+      },
+    };
+  });
 
   if (!hasFixedClient && skills.some(s => s.requires_client !== false)) {
     skillTools.push(LOOKUP_CLIENT_TOOL);
@@ -302,12 +315,13 @@ async function chatWithToolCalling(
           console.log('Client auto-set from lookup:', mutableContext.client_id);
         }
       } else if (fnName.startsWith('data_')) {
-        if (fnArgs.client_id && !mutableContext.client_id) {
+        if (fnArgs.client_id) {
           mutableContext.client_id = fnArgs.client_id as string;
         }
         result = await handleBuiltinQuery(fnName, fnArgs, mutableContext.company_id || '', mutableContext.client_id);
       } else {
-        if (fnArgs.client_id && !mutableContext.client_id) {
+        // Always pick up client_id from args (model may pass it explicitly)
+        if (fnArgs.client_id) {
           mutableContext.client_id = fnArgs.client_id as string;
         }
         result = await executeSkill(fnName, skills, fnArgs, mutableContext);

@@ -33,14 +33,26 @@ const LOOKUP_CLIENT_TOOL = {
 };
 
 function buildToolsFromSkills(skills: SkillRecord[], hasFixedClient: boolean) {
-  const skillTools = skills.map((skill) => ({
-    type: 'function' as const,
-    function: {
-      name: skill.id,
-      description: skill.description,
-      parameters: skill.tool_parameters || { type: 'object', properties: {} },
-    },
-  }));
+  const skillTools = skills.map((skill) => {
+    const params = JSON.parse(JSON.stringify(skill.tool_parameters || { type: 'object', properties: {} }));
+    if (!hasFixedClient && skill.requires_client !== false) {
+      if (!params.properties) params.properties = {};
+      params.properties.client_id = {
+        type: 'string',
+        description: 'ID UUID do cliente. OBRIGATÓRIO. Use o client_id obtido via _lookup_client ou data_clients.',
+      };
+      if (!params.required) params.required = [];
+      if (!params.required.includes('client_id')) params.required.push('client_id');
+    }
+    return {
+      type: 'function' as const,
+      function: {
+        name: skill.id,
+        description: skill.description,
+        parameters: params,
+      },
+    };
+  });
 
   // Add lookup_client tool if agent has no fixed client and has skills that need one
   if (!hasFixedClient && skills.some(s => s.requires_client !== false)) {
