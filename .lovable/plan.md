@@ -1,62 +1,94 @@
 
 
-# Ajustar IA para Distinguir Problemas Internos vs. Externos
+# Integrar Agentes de IA com Bots do Telegram
 
-## Problema
+## Resumo
 
-Quando o cliente reclama de um problema que nao e responsabilidade da sua empresa (ex: bug de um parceiro/fornecedor), a IA interpreta como atendimento ruim e da nota baixa. A IA precisa ser inteligente o suficiente para entender o contexto e so penalizar a nota quando o problema for de responsabilidade da sua empresa.
+Permitir que cada agente de IA criado no sistema seja conectado a um bot do Telegram. Quando alguem mandar mensagem para o bot, o agente responde automaticamente usando o mesmo prompt, conhecimento e contexto que ja possui.
 
-## Solucao
+## Como Funciona para o Usuario
 
-Ajustar o prompt de analise na edge function `whatsapp-ai-assistant` para incluir instrucoes claras sobre como diferenciar problemas internos de externos, adicionando um novo campo no JSON de resposta e ajustando os criterios de nota.
+1. Voce cria um bot no Telegram via @BotFather (ele te da um token)
+2. Na pagina de edicao do agente, voce cola o token do bot
+3. O sistema configura o webhook automaticamente
+4. Pronto - qualquer pessoa que mandar mensagem pro bot recebe resposta do agente
 
-## Mudancas
+## Mudancas Tecnicas
 
-### 1. Edge Function `whatsapp-ai-assistant/index.ts`
+### 1. Banco de Dados
 
-Alterar a funcao `buildAnalysisPrompt` para:
+Adicionar coluna `telegram_bot_token` na tabela `ia_agents` para armazenar o token do bot associado ao agente.
 
-**Adicionar instrucao de contexto de responsabilidade** no prompt, antes dos criterios de nota:
+### 2. Nova Edge Function: `telegram-agent-webhook`
 
+Endpoint publico que o Telegram chama quando alguem manda mensagem para o bot:
+
+- Recebe o update do Telegram (mensagem do usuario)
+- Identifica qual agente esta associado ao bot pelo token na URL
+- Busca o agente, prompt, documentos de conhecimento e contexto do cliente (mesma logica da `ia-agent-chat`)
+- Envia para o Lovable AI Gateway
+- Responde de volta no Telegram via `sendMessage`
+- Gerencia historico de conversa por `chat_id` do Telegram
+
+### 3. Nova Edge Function: `configure-telegram-webhook`
+
+Chamada internamente quando o usuario salva o token do bot:
+
+- Chama a API do Telegram `setWebhook` apontando para a URL da edge function `telegram-agent-webhook`
+- Valida se o token e valido chamando `getMe`
+- Retorna o nome do bot para exibir na interface
+
+### 4. Tabela de Conversas do Telegram
+
+Nova tabela `ia_agent_telegram_conversations` para manter historico por chat:
+
+- `agent_id` (referencia ao agente)
+- `telegram_chat_id` (ID do chat no Telegram)
+- `messages` (historico em JSON ou tabela separada)
+- Limitar historico a ultimas N mensagens para nao exceder contexto
+
+### 5. Interface - Pagina de Edicao do Agente
+
+Na pagina de edicao/criacao do agente, adicionar uma secao "Telegram":
+
+- Campo para colar o token do bot (@BotFather)
+- Botao "Conectar" que chama a edge function de configuracao
+- Status da conexao (conectado/desconectado, nome do bot)
+- Botao para desconectar/remover o bot
+- Instrucoes simples de como criar um bot no @BotFather
+
+### 6. Arquivos Modificados/Criados
+
+**Novos:**
+- `supabase/functions/telegram-agent-webhook/index.ts` - Webhook que recebe mensagens do Telegram
+- `supabase/functions/configure-telegram-webhook/index.ts` - Configura o webhook no Telegram
+
+**Modificados:**
+- `src/hooks/useIAAgents.tsx` - Adicionar funcoes para salvar/remover token do Telegram
+- Pagina/componente de edicao do agente - Adicionar secao de configuracao do Telegram
+- Migration SQL para adicionar coluna `telegram_bot_token` em `ia_agents`
+
+## Fluxo da Mensagem
+
+```text
+Usuario no Telegram
+       |
+       v
+Telegram API --> telegram-agent-webhook (Edge Function)
+       |
+       v
+Busca agente + prompt + conhecimento + contexto do cliente
+       |
+       v
+Lovable AI Gateway (mesmo modelo configurado no agente)
+       |
+       v
+Resposta enviada de volta ao Telegram via sendMessage
 ```
-IMPORTANTE - CONTEXTO DE RESPONSABILIDADE:
-Antes de avaliar, identifique se o problema mencionado pelo cliente:
-a) E de responsabilidade da NOSSA empresa (nosso produto, nosso servico, nosso atendimento)
-b) E de responsabilidade de TERCEIROS (parceiros, fornecedores, outras empresas, problemas pessoais do cliente)
 
-Se o cliente estiver desabafando ou reclamando de problemas de TERCEIROS/PARCEIROS/FORNECEDORES que NAO sao da nossa empresa:
-- A nota NAO deve ser penalizada por isso
-- A temperature deve refletir o tom do ATENDIMENTO prestado, nao a frustacao do cliente com terceiros
-- O atendente deve ser avaliado pela forma como acolheu e respondeu, nao pelo problema externo
-```
+## Consideracoes
 
-**Adicionar novo campo no JSON de resposta**:
-```
-"issueContext": {
-  "isOurResponsibility": true | false,
-  "source": "interno" | "externo" | "misto",
-  "explanation": "Breve explicacao de por que o problema e ou nao da nossa empresa (1 frase)"
-}
-```
-
-**Ajustar criterios de nota** para incluir:
-```
-Criterios para a nota (score):
-- A nota avalia EXCLUSIVAMENTE a qualidade do atendimento prestado pela NOSSA equipe
-- Se o cliente reclama de problema de terceiro/parceiro/fornecedor, avalie apenas como o atendente lidou com a situacao (acolhimento, empatia, encaminhamento)
-- NAO penalize a nota por problemas que nao sao de responsabilidade da empresa
-- 0-3: Atendimento ruim (rude, confuso, nao resolve o que esta ao nosso alcance)
-- 4-6: Atendimento regular (basico, pode melhorar)
-- 7-8: Bom atendimento (cordial, claro, encaminha bem)
-- 9-10: Excelente (supera expectativas, empatico, resolve rapido o que pode)
-```
-
-### Arquivo modificado
-- `supabase/functions/whatsapp-ai-assistant/index.ts` - Prompt de analise atualizado
-
-### Resultado esperado
-Quando um cliente desabafar sobre problemas de parceiros ou terceiros, a IA vai:
-1. Identificar que o problema nao e da sua empresa (`isOurResponsibility: false`)
-2. Manter a nota baseada apenas na qualidade do atendimento prestado
-3. Sugerir ao atendente como acolher o cliente sem assumir culpa
-
+- O token do bot e armazenado na coluna do banco, protegido por RLS
+- Cada agente pode ter no maximo 1 bot do Telegram
+- O historico de conversa no Telegram e separado do historico interno do sistema
+- O webhook e publico (sem JWT) pois o Telegram precisa acessar diretamente, mas validamos o token na URL
