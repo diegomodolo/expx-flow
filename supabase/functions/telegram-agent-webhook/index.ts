@@ -603,13 +603,28 @@ INSTRUÇÕES IMPORTANTES:
       company_id: agent.company_id,
     };
 
-    const aiResult = await chatWithToolCalling(
-      aiMessages,
-      tools,
-      enabledSkills,
-      agentContext,
-      agent.model || 'google/gemini-2.5-flash'
-    );
+    // Send "typing..." indicator and keep it alive during processing
+    const sendTyping = () => fetch(`https://api.telegram.org/bot${agent.telegram_bot_token}/sendChatAction`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, action: 'typing' }),
+    }).catch(() => {});
+
+    await sendTyping();
+    const typingInterval = setInterval(sendTyping, 4000);
+
+    let aiResult: { text: string; images: string[] };
+    try {
+      aiResult = await chatWithToolCalling(
+        aiMessages,
+        tools,
+        enabledSkills,
+        agentContext,
+        agent.model || 'google/gemini-2.5-flash'
+      );
+    } finally {
+      clearInterval(typingInterval);
+    }
 
     const assistantMessage = aiResult.text;
     const generatedImages = aiResult.images;
