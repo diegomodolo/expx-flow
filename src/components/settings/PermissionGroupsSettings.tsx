@@ -49,6 +49,8 @@ const MENU_ITEMS: { key: MenuItemType; label: string; category: string }[] = [
   { key: 'ia', label: 'IA Chat', category: 'Inteligência Artificial' },
   { key: 'agentes-ia', label: 'Agentes IA', category: 'Inteligência Artificial' },
   { key: 'editar-agentes', label: 'Editar Agentes', category: 'Inteligência Artificial' },
+  { key: 'skills-ia', label: 'Skills', category: 'Inteligência Artificial' },
+  { key: 'editar-skills', label: 'Editar Skills', category: 'Inteligência Artificial' },
   { key: 'alertas', label: 'Alertas', category: 'Equipe & Sistema' },
   { key: 'colaboradores', label: 'Colaboradores', category: 'Equipe & Sistema' },
   { key: 'configuracoes', label: 'Configurações', category: 'Equipe & Sistema' },

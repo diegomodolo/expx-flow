@@ -136,7 +136,7 @@ const menuCategories: MenuCategory[] = [
       items: [
         { title: "Agentes de IA", url: "/ia/agents", icon: Bot, permission: "agentes-ia" as MenuItemType },
         { title: "IA", url: "/ia", icon: Brain, permission: "ia" as MenuItemType },
-        { title: "Skills", url: "/ia/skills", icon: Puzzle, permission: "agentes-ia" as MenuItemType },
+        { title: "Skills", url: "/ia/skills", icon: Puzzle, permission: "skills-ia" as MenuItemType },
       ].sort((a, b) => a.title.localeCompare(b.title, 'pt-BR')),
     },
     {

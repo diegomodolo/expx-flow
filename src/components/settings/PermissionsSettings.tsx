@@ -54,6 +54,8 @@ const MENU_ITEMS: { key: MenuItemType; label: string; description: string; categ
   { key: 'ia', label: 'IA Chat', description: 'Chat com inteligência artificial', category: 'Inteligência Artificial' },
   { key: 'agentes-ia', label: 'Agentes IA', description: 'Acesso ao menu de Agentes de IA', category: 'Inteligência Artificial' },
   { key: 'editar-agentes', label: 'Editar Agentes', description: 'Criar, editar, duplicar e excluir agentes', category: 'Inteligência Artificial' },
+  { key: 'skills-ia', label: 'Skills', description: 'Visualizar e acessar a Fábrica de Skills', category: 'Inteligência Artificial' },
+  { key: 'editar-skills', label: 'Editar Skills', description: 'Criar, editar e excluir skills dos agentes', category: 'Inteligência Artificial' },
   // Equipe & Sistema
   { key: 'alertas', label: 'Alertas', description: 'Alertas e notificações do sistema', category: 'Equipe & Sistema' },
   { key: 'colaboradores', label: 'Colaboradores', description: 'Gestão de funcionários', category: 'Equipe & Sistema' },
