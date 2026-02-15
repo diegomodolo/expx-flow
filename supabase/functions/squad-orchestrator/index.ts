@@ -571,14 +571,15 @@ Deno.serve(async (req) => {
     );
 
     // 4. Check for a recent "waiting_input" execution (manager paused waiting for user response)
-    const { data: waitingExecution } = await serviceClient
+    const { data: waitingExecutions } = await serviceClient
       .from('ia_agent_squad_executions')
       .select('id, input')
       .eq('squad_id', squadId)
       .eq('status', 'waiting_input')
       .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
+      .limit(1);
+    const waitingExecution = waitingExecutions && waitingExecutions.length > 0 ? waitingExecutions[0] : null;
+    console.log(`[squad-orchestrator] Waiting execution check: found=${!!waitingExecution}, id=${waitingExecution?.id || 'none'}`);
 
     // 5. Build execution order using BFS from the leader
     const leader = typedMembers.find(m => m.role === 'leader' || m.role === 'lider');
@@ -1089,11 +1090,16 @@ IMPORTANTE: Você já executou os passos anteriores (veja o contexto). NÃO repi
               if (undelegatedChildren.length > 0) {
                 console.log(`[squad-orchestrator] Manager ${member.agent.agent_name} PAUSED — ${undelegatedChildren.length} children not delegated. Marking as waiting_input.`);
                 
-                await serviceClient.from('ia_agent_squad_executions').update({
+                const { error: waitErr } = await serviceClient.from('ia_agent_squad_executions').update({
                   status: 'waiting_input',
                   final_output: step.output,
-                  completed_at: new Date().toISOString(),
                 }).eq('id', execution.id);
+                
+                if (waitErr) {
+                  console.error(`[squad-orchestrator] FAILED to set waiting_input:`, waitErr);
+                } else {
+                  console.log(`[squad-orchestrator] Successfully set execution ${execution.id} to waiting_input`);
+                }
 
                 sendEvent({ type: 'done', execution_id: execution.id });
                 controller.close();
