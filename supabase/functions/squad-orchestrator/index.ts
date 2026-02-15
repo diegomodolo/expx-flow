@@ -207,6 +207,8 @@ async function callAgentWithTools(
   isLeader: boolean,
   nextAgents: SquadMember[],
   skills: SkillRecord[],
+  squadClientId: string | null,
+  squadClientInfo: Record<string, unknown> | null,
   onToolCall?: (skillName: string, args: Record<string, unknown>, result: Record<string, unknown>) => void,
 ): Promise<{ output: string; should_delegate: boolean }> {
   const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
@@ -236,6 +238,23 @@ ${nextAgentsList}
 `;
   }
 
+  // Build client context from squad
+  let clientContextInstructions = '';
+  if (squadClientInfo) {
+    const ci = squadClientInfo as any;
+    clientContextInstructions = `
+[CLIENTE DA SQUAD - CONTEXTO FIXO]
+O cliente desta squad já está definido. NÃO tente buscar ou consultar quem é o cliente.
+- ID: ${squadClientId}
+- Nome: ${ci.name || 'N/A'}
+- Empresa: ${ci.company || 'N/A'}
+- Setor: ${ci.sector || 'N/A'}
+${ci.ai_briefing ? `- Briefing IA: ${(ci.ai_briefing as string).substring(0, 500)}` : ''}
+${ci.voice_tone ? `- Tom de Voz: ${ci.voice_tone}` : ''}
+Todas as skills que requerem client_id já terão este ID injetado automaticamente.
+`;
+  }
+
   let skillInstructions = '';
   if (skills.length > 0) {
     skillInstructions = `\n\nVocê tem as seguintes FERRAMENTAS/SKILLS disponíveis para executar tarefas reais:\n${skills.map(s => `- ${s.name}: ${s.description}`).join('\n')}\nUse estas ferramentas quando precisar EXECUTAR ações (gerar imagem, agendar post, etc.). NÃO simule ou invente resultados — SEMPRE use a ferramenta.\n`;
@@ -248,6 +267,7 @@ ${agent.additional_instructions || ''}
 [SEU PAPEL NA SQUAD]
 Você é o "${role}" desta squad de agentes de IA.
 ${squadInstructions ? `Instruções específicas para você nesta squad: ${squadInstructions}` : ''}
+${clientContextInstructions}
 ${stepsContext}
 ${delegationInstructions}
 ${skillInstructions}
@@ -261,10 +281,12 @@ INSTRUÇÕES DE RESPOSTA:
 ${isLeader ? '- LEMBRE-SE: Você DEVE terminar com [DELEGAR] ou [FINALIZAR]. Sem essa tag, a execução ficará incorreta.' : ''}
 `;
 
-  const hasFixedClient = !!agent.client_id;
+  // Squad client_id takes priority over agent's individual client_id
+  const effectiveClientId = squadClientId || agent.client_id || undefined;
+  const hasFixedClient = !!effectiveClientId;
   const tools = buildToolsFromSkills(skills, hasFixedClient);
   const mutableContext = {
-    client_id: agent.client_id || undefined,
+    client_id: effectiveClientId,
     company_id: agent.company_id,
     user_id: undefined as string | undefined,
   };
@@ -408,14 +430,32 @@ Deno.serve(async (req) => {
     });
     const { data: { user } } = await supabaseClient.auth.getUser();
 
-    // 1. Load squad members
-    const { data: members, error: membersErr } = await serviceClient
-      .from('ia_agent_squad_members')
-      .select('id, agent_id, role, squad_instructions, agent:ia_agents(id, agent_name, prompt_base, additional_instructions, model, client_id, company_id)')
-      .eq('squad_id', squadId);
+    // 1. Load squad info (including client_id) and members in parallel
+    const [squadResult, membersResult] = await Promise.all([
+      serviceClient.from('ia_agent_squads').select('id, client_id, company_id').eq('id', squadId).single(),
+      serviceClient.from('ia_agent_squad_members')
+        .select('id, agent_id, role, squad_instructions, agent:ia_agents(id, agent_name, prompt_base, additional_instructions, model, client_id, company_id)')
+        .eq('squad_id', squadId),
+    ]);
+
+    const squad = squadResult.data;
+    const squadClientId = squad?.client_id || null;
+    const { data: members, error: membersErr } = membersResult;
 
     if (membersErr) throw membersErr;
     if (!members || members.length === 0) throw new Error('Squad sem membros');
+
+    // Load squad's client info if available
+    let squadClientInfo: Record<string, unknown> | null = null;
+    if (squadClientId) {
+      const { data: clientData } = await serviceClient
+        .from('clients')
+        .select('name, company, sector, ai_briefing, voice_tone')
+        .eq('id', squadClientId)
+        .single();
+      squadClientInfo = clientData;
+      console.log(`[squad-orchestrator] Squad client: ${clientData?.name} (${squadClientId})`);
+    }
 
     const typedMembers: SquadMember[] = members.map((m: any) => ({
       ...m,
@@ -533,6 +573,8 @@ Deno.serve(async (req) => {
               isLeader,
               nextAgents,
               agentSkills,
+              squadClientId,
+              squadClientInfo,
               onToolCall,
             );
 
