@@ -160,7 +160,18 @@ async function handleBuiltinQuery(
           supabase.from('clients').select('*').eq('id', cid).single(),
           supabase.from('campaigns').select('id, name, status, spend, cpc, ctr, conversions, cpa').eq('client_id', cid).eq('status', 'active').order('spend', { ascending: false }).limit(10),
         ]);
-        return { client: clientRes.data, active_campaigns: campaignsRes.data };
+        const clientData = clientRes.data;
+        // Include reference image URLs explicitly so the agent can share them
+        const referenceImages: string[] = [];
+        if (clientData) {
+          for (const key of ['ai_reference_image_1', 'ai_reference_image_2', 'ai_reference_image_3']) {
+            const url = (clientData as any)[key];
+            if (url && typeof url === 'string' && url.startsWith('http')) {
+              referenceImages.push(url);
+            }
+          }
+        }
+        return { client: clientData, active_campaigns: campaignsRes.data, reference_images: referenceImages };
       }
       case 'data_campaigns': {
         if (!clientId) return { error: 'client_id necessário' };
