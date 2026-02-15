@@ -504,3 +504,9 @@ verify_jwt = false
 
 [functions.configure-telegram-webhook]
 verify_jwt = true
+
+[functions.generate-skill-ai]
+verify_jwt = false
+
+[functions.deploy-skill-function]
+verify_jwt = false
