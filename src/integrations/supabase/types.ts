@@ -7293,6 +7293,42 @@ export type Database = {
           },
         ]
       }
+      ia_agent_enabled_skills: {
+        Row: {
+          agent_id: string
+          created_at: string | null
+          id: string
+          skill_id: string
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string | null
+          id?: string
+          skill_id: string
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string | null
+          id?: string
+          skill_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_agent_enabled_skills_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "ia_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_agent_enabled_skills_skill_id_fkey"
+            columns: ["skill_id"]
+            isOneToOne: false
+            referencedRelation: "ia_agent_skills"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ia_agent_knowledge_documents: {
         Row: {
           agent_id: string
@@ -7381,6 +7417,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ia_agent_skills: {
+        Row: {
+          category: string
+          created_at: string | null
+          description: string
+          edge_function: string
+          id: string
+          name: string
+          optional_params: Json | null
+          required_params: Json | null
+          requires_client: boolean | null
+          tool_parameters: Json | null
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          description: string
+          edge_function: string
+          id: string
+          name: string
+          optional_params?: Json | null
+          required_params?: Json | null
+          requires_client?: boolean | null
+          tool_parameters?: Json | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          description?: string
+          edge_function?: string
+          id?: string
+          name?: string
+          optional_params?: Json | null
+          required_params?: Json | null
+          requires_client?: boolean | null
+          tool_parameters?: Json | null
+        }
+        Relationships: []
       }
       ia_agent_telegram_conversations: {
         Row: {

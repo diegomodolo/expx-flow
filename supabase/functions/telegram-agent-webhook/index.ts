@@ -5,6 +5,142 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+interface SkillRecord {
+  id: string;
+  name: string;
+  description: string;
+  edge_function: string;
+  tool_parameters: Record<string, unknown>;
+}
+
+function buildToolsFromSkills(skills: SkillRecord[]) {
+  return skills.map((skill) => ({
+    type: 'function' as const,
+    function: {
+      name: skill.id,
+      description: skill.description,
+      parameters: skill.tool_parameters || { type: 'object', properties: {} },
+    },
+  }));
+}
+
+async function executeSkill(
+  skillId: string,
+  skills: SkillRecord[],
+  args: Record<string, unknown>,
+  agentContext: { client_id?: string; company_id?: string; user_id?: string }
+) {
+  const skill = skills.find((s) => s.id === skillId);
+  if (!skill) return { error: `Skill "${skillId}" não encontrada` };
+
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+
+  try {
+    const response = await fetch(`${supabaseUrl}/functions/v1/${skill.edge_function}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${serviceRoleKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        ...args,
+        client_id: agentContext.client_id,
+        company_id: agentContext.company_id,
+        user_id: agentContext.user_id,
+      }),
+    });
+
+    const text = await response.text();
+    try {
+      return JSON.parse(text);
+    } catch {
+      return { result: text };
+    }
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`Error executing skill ${skillId}:`, message);
+    return { error: `Erro ao executar skill: ${message}` };
+  }
+}
+
+async function chatWithToolCalling(
+  messages: Array<{ role: string; content: string }>,
+  tools: ReturnType<typeof buildToolsFromSkills>,
+  skills: SkillRecord[],
+  agentContext: { client_id?: string; company_id?: string; user_id?: string },
+  model: string
+): Promise<string> {
+  const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+  const maxIterations = 5;
+  let currentMessages = [...messages];
+
+  for (let i = 0; i < maxIterations; i++) {
+    const requestBody: Record<string, unknown> = {
+      model,
+      messages: currentMessages,
+    };
+
+    if (tools.length > 0) {
+      requestBody.tools = tools;
+      requestBody.tool_choice = 'auto';
+    }
+
+    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    if (!aiResponse.ok) {
+      const errorText = await aiResponse.text();
+      console.error('AI Gateway error:', aiResponse.status, errorText);
+      throw new Error(`AI Gateway error: ${aiResponse.status}`);
+    }
+
+    const aiData = await aiResponse.json();
+    const choice = aiData.choices[0];
+
+    if (!choice.message.tool_calls || choice.message.tool_calls.length === 0) {
+      return choice.message.content || '';
+    }
+
+    currentMessages.push(choice.message);
+
+    for (const toolCall of choice.message.tool_calls) {
+      const fnName = toolCall.function.name;
+      let fnArgs = {};
+      try {
+        fnArgs = JSON.parse(toolCall.function.arguments || '{}');
+      } catch { /* empty */ }
+
+      console.log(`Executing skill: ${fnName}`, fnArgs);
+      const result = await executeSkill(fnName, skills, fnArgs, agentContext);
+
+      currentMessages.push({
+        role: 'tool',
+        tool_call_id: toolCall.id,
+        content: JSON.stringify(result),
+      } as any);
+    }
+  }
+
+  const finalResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${Deno.env.get('LOVABLE_API_KEY')}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ model, messages: currentMessages }),
+  });
+
+  const finalData = await finalResponse.json();
+  return finalData.choices[0].message.content || '';
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -12,7 +148,6 @@ Deno.serve(async (req) => {
 
   try {
     const url = new URL(req.url);
-    // Agent ID is passed as query param: ?agent_id=xxx
     const agentId = url.searchParams.get('agent_id');
 
     if (!agentId) {
@@ -20,11 +155,9 @@ Deno.serve(async (req) => {
     }
 
     const update = await req.json();
-
-    // Only handle text messages
     const message = update?.message;
+
     if (!message?.text || message.text.startsWith('/start')) {
-      // For /start command, send a welcome message
       if (message?.text?.startsWith('/start')) {
         const supabaseClient = createClient(
           Deno.env.get('SUPABASE_URL') ?? '',
@@ -54,25 +187,27 @@ Deno.serve(async (req) => {
     const chatId = message.chat.id;
     const userText = message.text;
 
-    // Use service role key since webhook has no auth context
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Fetch agent
-    const { data: agent, error: agentError } = await supabaseClient
-      .from('ia_agents')
-      .select('*')
-      .eq('id', agentId)
-      .single();
+    // Fetch agent and enabled skills in parallel
+    const [agentResult, enabledSkillsResult] = await Promise.all([
+      supabaseClient.from('ia_agents').select('*').eq('id', agentId).single(),
+      supabaseClient
+        .from('ia_agent_enabled_skills')
+        .select('skill_id, ia_agent_skills(*)')
+        .eq('agent_id', agentId),
+    ]);
 
-    if (agentError || !agent) {
+    const agent = agentResult.data;
+    if (agentResult.error || !agent) {
       console.error('Agent not found:', agentId);
       return new Response('Agent not found', { status: 404 });
     }
 
-    // Fetch knowledge documents
+    // Fetch knowledge docs
     const { data: knowledgeDocs } = await supabaseClient
       .from('ia_agent_knowledge_documents')
       .select('content_text, file_name')
@@ -83,7 +218,7 @@ Deno.serve(async (req) => {
       .map(doc => `[Documento: ${doc.file_name}]\n${doc.content_text}`)
       .join('\n\n---\n\n');
 
-    // Fetch client context if agent has a client_id
+    // Client context
     let clientContext = '';
     if (agent.client_id) {
       const { data: client } = await supabaseClient
@@ -102,7 +237,7 @@ ${client.ai_briefing ? `\n[BRIEFING DETALHADO]\n${client.ai_briefing}\n` : ''}`;
       }
     }
 
-    // Get or create conversation history
+    // Conversation history
     const { data: existingConv } = await supabaseClient
       .from('ia_agent_telegram_conversations')
       .select('id, messages')
@@ -111,20 +246,25 @@ ${client.ai_briefing ? `\n[BRIEFING DETALHADO]\n${client.ai_briefing}\n` : ''}`;
       .single();
 
     let conversationMessages: Array<{ role: string; content: string }> = [];
-
     if (existingConv) {
       conversationMessages = (existingConv.messages as Array<{ role: string; content: string }>) || [];
     }
-
-    // Add user message to history
     conversationMessages.push({ role: 'user', content: userText });
-
-    // Keep only last 20 messages to avoid exceeding context
     if (conversationMessages.length > 20) {
       conversationMessages = conversationMessages.slice(-20);
     }
 
-    // Build system prompt
+    // Build enabled skills
+    const enabledSkills: SkillRecord[] = (enabledSkillsResult.data || [])
+      .map((row: any) => row.ia_agent_skills)
+      .filter(Boolean);
+
+    const tools = buildToolsFromSkills(enabledSkills);
+
+    const skillInstructions = enabledSkills.length > 0
+      ? `\n\n[SKILLS DISPONÍVEIS]\nVocê tem acesso a ${enabledSkills.length} skills. Use-as chamando as funções disponíveis quando pertinente.\n`
+      : '';
+
     const systemPrompt = `${agent.prompt_base}
 
 ${agent.additional_instructions || ''}
@@ -132,7 +272,7 @@ ${agent.additional_instructions || ''}
 ${knowledgeContext ? `\n[BIBLIOTECA DE CONHECIMENTO]\n${knowledgeContext}\n` : ''}
 
 ${clientContext}
-
+${skillInstructions}
 INSTRUÇÕES IMPORTANTES:
 - Use as informações da biblioteca de conhecimento quando relevante
 - Seja preciso e baseie suas respostas nos dados fornecidos
@@ -144,34 +284,19 @@ INSTRUÇÕES IMPORTANTES:
       ...conversationMessages,
     ];
 
-    // Call AI Gateway
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
+    const assistantMessage = await chatWithToolCalling(
+      aiMessages,
+      tools,
+      enabledSkills,
+      {
+        client_id: agent.client_id,
+        company_id: agent.company_id,
       },
-      body: JSON.stringify({
-        model: agent.model || 'google/gemini-2.5-flash',
-        messages: aiMessages,
-      }),
-    });
+      agent.model || 'google/gemini-2.5-flash'
+    );
 
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error('AI Gateway error:', aiResponse.status, errorText);
-      throw new Error(`AI Gateway error: ${aiResponse.status}`);
-    }
-
-    const aiData = await aiResponse.json();
-    const assistantMessage = aiData.choices[0].message.content;
-
-    // Add assistant message to history
     conversationMessages.push({ role: 'assistant', content: assistantMessage });
 
-    // Upsert conversation
     await supabaseClient
       .from('ia_agent_telegram_conversations')
       .upsert({
@@ -181,7 +306,7 @@ INSTRUÇÕES IMPORTANTES:
         updated_at: new Date().toISOString(),
       }, { onConflict: 'agent_id,telegram_chat_id' });
 
-    // Send response to Telegram
+    // Send to Telegram
     await fetch(`https://api.telegram.org/bot${agent.telegram_bot_token}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

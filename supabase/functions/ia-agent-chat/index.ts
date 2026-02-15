@@ -1,10 +1,150 @@
-// Deno.serve is available natively in modern Deno
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+interface SkillRecord {
+  id: string;
+  name: string;
+  description: string;
+  edge_function: string;
+  tool_parameters: Record<string, unknown>;
+}
+
+function buildToolsFromSkills(skills: SkillRecord[]) {
+  return skills.map((skill) => ({
+    type: 'function' as const,
+    function: {
+      name: skill.id,
+      description: skill.description,
+      parameters: skill.tool_parameters || { type: 'object', properties: {} },
+    },
+  }));
+}
+
+async function executeSkill(
+  skillId: string,
+  skills: SkillRecord[],
+  args: Record<string, unknown>,
+  agentContext: { client_id?: string; company_id?: string; user_id?: string }
+) {
+  const skill = skills.find((s) => s.id === skillId);
+  if (!skill) return { error: `Skill "${skillId}" não encontrada` };
+
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+
+  try {
+    const response = await fetch(`${supabaseUrl}/functions/v1/${skill.edge_function}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${serviceRoleKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        ...args,
+        client_id: agentContext.client_id,
+        company_id: agentContext.company_id,
+        user_id: agentContext.user_id,
+      }),
+    });
+
+    const text = await response.text();
+    try {
+      return JSON.parse(text);
+    } catch {
+      return { result: text };
+    }
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`Error executing skill ${skillId}:`, message);
+    return { error: `Erro ao executar skill: ${message}` };
+  }
+}
+
+async function chatWithToolCalling(
+  messages: Array<{ role: string; content: string }>,
+  tools: ReturnType<typeof buildToolsFromSkills>,
+  skills: SkillRecord[],
+  agentContext: { client_id?: string; company_id?: string; user_id?: string },
+  model: string
+): Promise<string> {
+  const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+  const maxIterations = 5;
+
+  let currentMessages = [...messages];
+
+  for (let i = 0; i < maxIterations; i++) {
+    const requestBody: Record<string, unknown> = {
+      model,
+      messages: currentMessages,
+    };
+
+    if (tools.length > 0) {
+      requestBody.tools = tools;
+      requestBody.tool_choice = 'auto';
+    }
+
+    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    if (!aiResponse.ok) {
+      const errorText = await aiResponse.text();
+      console.error('AI Gateway error:', aiResponse.status, errorText);
+      throw new Error(`AI Gateway error: ${aiResponse.status}`);
+    }
+
+    const aiData = await aiResponse.json();
+    const choice = aiData.choices[0];
+
+    // If no tool calls, return the content
+    if (!choice.message.tool_calls || choice.message.tool_calls.length === 0) {
+      return choice.message.content || '';
+    }
+
+    // Add assistant message with tool calls
+    currentMessages.push(choice.message);
+
+    // Execute each tool call
+    for (const toolCall of choice.message.tool_calls) {
+      const fnName = toolCall.function.name;
+      let fnArgs = {};
+      try {
+        fnArgs = JSON.parse(toolCall.function.arguments || '{}');
+      } catch { /* empty args */ }
+
+      console.log(`Executing skill: ${fnName}`, fnArgs);
+      const result = await executeSkill(fnName, skills, fnArgs, agentContext);
+
+      currentMessages.push({
+        role: 'tool',
+        tool_call_id: toolCall.id,
+        content: JSON.stringify(result),
+      } as any);
+    }
+  }
+
+  // If we exhausted iterations, do one final call without tools
+  const finalResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${Deno.env.get('LOVABLE_API_KEY')}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ model, messages: currentMessages }),
+  });
+
+  const finalData = await finalResponse.json();
+  return finalData.choices[0].message.content || '';
+}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -24,7 +164,13 @@ Deno.serve(async (req) => {
       }
     );
 
-    // Buscar informações do agente
+    // Service role client for skill execution context
+    const serviceClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    // Fetch agent
     const { data: agent, error: agentError } = await supabaseClient
       .from('ia_agents')
       .select('*')
@@ -35,20 +181,26 @@ Deno.serve(async (req) => {
       throw new Error('Agente não encontrado');
     }
 
-    // Buscar documentos de conhecimento
-    const { data: knowledgeDocs } = await supabaseClient
-      .from('ia_agent_knowledge_documents')
-      .select('content_text, file_name')
-      .eq('agent_id', agentId);
+    // Fetch knowledge docs, client data, and enabled skills in parallel
+    const [knowledgeResult, enabledSkillsResult] = await Promise.all([
+      supabaseClient
+        .from('ia_agent_knowledge_documents')
+        .select('content_text, file_name')
+        .eq('agent_id', agentId),
+      serviceClient
+        .from('ia_agent_enabled_skills')
+        .select('skill_id, ia_agent_skills(*)')
+        .eq('agent_id', agentId),
+    ]);
 
+    const knowledgeDocs = knowledgeResult.data;
     const knowledgeContext = knowledgeDocs
       ?.filter(doc => doc.content_text)
       .map(doc => `[Documento: ${doc.file_name}]\n${doc.content_text}`)
       .join('\n\n---\n\n');
 
-    // Buscar dados do cliente se houver associação
+    // Client context
     let clientContext = '';
-    
     if (agent.client_id) {
       const { data: client } = await supabaseClient
         .from('clients')
@@ -62,7 +214,6 @@ Deno.serve(async (req) => {
         .single();
 
       if (client) {
-        // Buscar campanhas ativas do cliente
         const { data: campaigns } = await supabaseClient
           .from('campaigns')
           .select('*')
@@ -73,7 +224,6 @@ Deno.serve(async (req) => {
 
         clientContext = `
 [INFORMAÇÕES DO CLIENTE ASSOCIADO]
-
 Nome: ${client.name}
 Empresa: ${client.company || 'Não informado'}
 Setor: ${client.sector || 'Não informado'}
@@ -107,7 +257,7 @@ Leads Gerados: ${client.leads_generated || 0}
       }
     }
 
-    // Salvar mensagem do usuário
+    // Save user message
     const { error: userMsgError } = await supabaseClient
       .from('ia_agent_messages')
       .insert({
@@ -118,14 +268,29 @@ Leads Gerados: ${client.leads_generated || 0}
 
     if (userMsgError) throw userMsgError;
 
-    // Buscar histórico de mensagens
+    // Fetch message history
     const { data: previousMessages } = await supabaseClient
       .from('ia_agent_messages')
       .select('role, content')
       .eq('conversation_id', conversationId)
       .order('created_at', { ascending: true });
 
-    // Construir prompt enriquecido com contexto
+    // Build enabled skills list
+    const enabledSkills: SkillRecord[] = (enabledSkillsResult.data || [])
+      .map((row: any) => row.ia_agent_skills)
+      .filter(Boolean);
+
+    const tools = buildToolsFromSkills(enabledSkills);
+
+    // Build skill instructions for the system prompt
+    const skillInstructions = enabledSkills.length > 0
+      ? `\n\n[SKILLS DISPONÍVEIS]
+Você tem acesso a ${enabledSkills.length} skills que pode executar quando o usuário pedir. Use-as chamando as funções disponíveis.
+As skills serão executadas automaticamente e você receberá o resultado para formular sua resposta.
+`
+      : '';
+
+    // Build enriched system prompt
     const systemPrompt = `${agent.prompt_base}
 
 ${agent.additional_instructions || ''}
@@ -133,7 +298,7 @@ ${agent.additional_instructions || ''}
 ${knowledgeContext ? `\n\n[BIBLIOTECA DE CONHECIMENTO]\n${knowledgeContext}\n` : ''}
 
 ${clientContext ? `\n\n${clientContext}\n` : ''}
-
+${skillInstructions}
 INSTRUÇÕES IMPORTANTES:
 - Use as informações da biblioteca de conhecimento quando relevante
 ${agent.client_id ? '- Use os dados do cliente para contextualizar suas respostas' : ''}
@@ -141,43 +306,30 @@ ${agent.client_id ? '- Mencione métricas específicas quando pertinente' : ''}
 - Seja preciso e baseie suas respostas nos dados fornecidos
 `;
 
-    // Construir array de mensagens para a API
-    const messages = [
-      {
-        role: 'system',
-        content: systemPrompt
-      },
+    const aiMessages = [
+      { role: 'system', content: systemPrompt },
       ...(previousMessages || []).map(msg => ({
         role: msg.role,
         content: msg.content
       }))
     ];
 
-    // Chamar Lovable AI
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
+    // Get user info for context
+    const { data: { user } } = await supabaseClient.auth.getUser();
+
+    const assistantMessage = await chatWithToolCalling(
+      aiMessages,
+      tools,
+      enabledSkills,
+      {
+        client_id: agent.client_id,
+        company_id: agent.company_id,
+        user_id: user?.id,
       },
-      body: JSON.stringify({
-        model: agent.model || 'google/gemini-2.5-flash',
-        messages: messages,
-      }),
-    });
+      agent.model || 'google/gemini-2.5-flash'
+    );
 
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error('AI Gateway error:', aiResponse.status, errorText);
-      throw new Error(`AI Gateway error: ${aiResponse.status}`);
-    }
-
-    const aiData = await aiResponse.json();
-    const assistantMessage = aiData.choices[0].message.content;
-
-    // Salvar resposta do assistente
+    // Save assistant response
     const { error: assistantMsgError } = await supabaseClient
       .from('ia_agent_messages')
       .insert({
@@ -188,7 +340,7 @@ ${agent.client_id ? '- Mencione métricas específicas quando pertinente' : ''}
 
     if (assistantMsgError) throw assistantMsgError;
 
-    // Atualizar título da conversa se for a primeira mensagem
+    // Update conversation title if first message
     if (previousMessages?.length === 1) {
       const conversationTitle = message.slice(0, 50) + (message.length > 50 ? '...' : '');
       await supabaseClient
@@ -197,7 +349,7 @@ ${agent.client_id ? '- Mencione métricas específicas quando pertinente' : ''}
         .eq('id', conversationId);
     }
 
-    // Atualizar updated_at da conversa
+    // Update conversation timestamp
     await supabaseClient
       .from('ia_agent_conversations')
       .update({ updated_at: new Date().toISOString() })
