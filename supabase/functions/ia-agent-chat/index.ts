@@ -516,6 +516,12 @@ As skills serão executadas automaticamente e você receberá o resultado para f
 `
       : '';
 
+    // Get current date/time in São Paulo timezone
+    const nowSP = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+    const todaySP = new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    const timeSP = new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' });
+    const isoDateSP = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' })).toISOString().split('T')[0];
+
     // Build enriched system prompt
     const systemPrompt = `${agent.prompt_base}
 
@@ -525,11 +531,21 @@ ${knowledgeContext ? `\n\n[BIBLIOTECA DE CONHECIMENTO]\n${knowledgeContext}\n` :
 
 ${clientContext ? `\n\n${clientContext}\n` : ''}
 ${skillInstructions}
+
+[DATA E HORA ATUAL]
+Hoje é ${todaySP}, ${timeSP} (horário de Brasília).
+Data ISO: ${isoDateSP}
+Use SEMPRE estas informações quando precisar referenciar datas. "Hoje" = ${isoDateSP}.
+
 INSTRUÇÕES IMPORTANTES:
 - Use as informações da biblioteca de conhecimento quando relevante
 ${agent.client_id ? '- Use os dados do cliente para contextualizar suas respostas' : ''}
 ${agent.client_id ? '- Mencione métricas específicas quando pertinente' : ''}
 - Seja preciso e baseie suas respostas nos dados fornecidos
+- Seja DIRETO e CONCISO nas respostas. Evite textos longos e repetitivos.
+- Não repita informações que o usuário já sabe ou que já foram mencionadas.
+- Ao executar uma skill com sucesso, confirme brevemente o resultado sem reexplicar todo o contexto.
+- Priorize economia de tokens: vá direto ao ponto.
 `;
 
     const aiMessages = [
