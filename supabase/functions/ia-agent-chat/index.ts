@@ -516,11 +516,21 @@ As skills serão executadas automaticamente e você receberá o resultado para f
 `
       : '';
 
-    // Get current date/time in São Paulo timezone
-    const nowSP = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
-    const todaySP = new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-    const timeSP = new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' });
-    const isoDateSP = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' })).toISOString().split('T')[0];
+    // Get current date/time in São Paulo timezone (UTC-3)
+    const nowUTC = new Date();
+    const spOffset = -3 * 60 * 60 * 1000; // UTC-3
+    const nowSPDate = new Date(nowUTC.getTime() + spOffset);
+    const year = nowSPDate.getUTCFullYear();
+    const month = String(nowSPDate.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(nowSPDate.getUTCDate()).padStart(2, '0');
+    const hours = String(nowSPDate.getUTCHours()).padStart(2, '0');
+    const minutes = String(nowSPDate.getUTCMinutes()).padStart(2, '0');
+    const isoDateSP = `${year}-${month}-${day}`;
+    const timeSP = `${hours}:${minutes}`;
+    const weekdays = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'];
+    const months = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+    const todaySP = `${weekdays[nowSPDate.getUTCDay()]}, ${parseInt(day)} de ${months[nowSPDate.getUTCMonth()]} de ${year}`;
+    console.log(`[ia-agent-chat] Current SP date: ${isoDateSP} ${timeSP}, todaySP: ${todaySP}`);
 
     // Build enriched system prompt
     const systemPrompt = `${agent.prompt_base}
