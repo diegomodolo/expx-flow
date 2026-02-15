@@ -163,7 +163,21 @@ async function handleBuiltinQuery(
         }
         if (!cid) return { error: 'client_id necessário' };
         const [clientRes, campaignsRes] = await Promise.all([
-          supabase.from('clients').select('*').eq('id', cid).single(),
+          supabase.from('clients').select(`
+            *,
+            instagram_accounts!instagram_account_id (
+              id, instagram_id, username, profile_picture_url, followers_count
+            ),
+            facebook_pages!facebook_page_id (
+              id, page_id, page_name, page_category
+            ),
+            facebook_ad_accounts!ad_account_id (
+              id, account_name, account_status, currency, balance
+            ),
+            google_ads_accounts!google_account_id (
+              id, google_customer_id, account_name, status
+            )
+          `).eq('id', cid).single(),
           supabase.from('campaigns').select('id, name, status, spend, cpc, ctr, conversions, cpa').eq('client_id', cid).eq('status', 'active').order('spend', { ascending: false }).limit(10),
         ]);
         return { client: clientRes.data, active_campaigns: campaignsRes.data };
