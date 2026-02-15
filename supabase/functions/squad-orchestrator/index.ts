@@ -91,6 +91,24 @@ function buildToolsFromSkills(skills: SkillRecord[], hasFixedClient: boolean) {
   return skillTools;
 }
 
+// Build delegation tools for a manager — one tool per child agent
+function buildDelegationTools(childMembers: SquadMember[]): any[] {
+  return childMembers.map(child => ({
+    type: 'function' as const,
+    function: {
+      name: `delegate_${child.id.replace(/-/g, '_')}`,
+      description: `Delegar tarefa para o agente "${child.agent.agent_name}" (${child.role}). Este agente será executado com suas próprias skills e retornará o resultado.`,
+      parameters: {
+        type: 'object',
+        properties: {
+          task: { type: 'string', description: 'A tarefa ou instrução específica para este agente executar. Inclua todo contexto necessário (dados de passos anteriores, pauta, etc.).' },
+        },
+        required: ['task'],
+      },
+    },
+  }));
+}
+
 async function executeSkill(
   skillId: string,
   skills: SkillRecord[],
@@ -198,6 +216,9 @@ async function loadAgentSkills(agentId: string): Promise<SkillRecord[]> {
   }));
 }
 
+// Delegation handler type: called when a manager delegates to a child agent
+type DelegationHandler = (memberId: string, task: string) => Promise<string>;
+
 async function callAgentWithTools(
   agent: SquadMember['agent'],
   squadInstructions: string | null,
@@ -205,11 +226,14 @@ async function callAgentWithTools(
   message: string,
   previousSteps: StepResult[],
   isLeader: boolean,
+  isManager: boolean,
   nextAgents: SquadMember[],
   skills: SkillRecord[],
   squadClientId: string | null,
   squadClientInfo: Record<string, unknown> | null,
   onToolCall?: (skillName: string, args: Record<string, unknown>, result: Record<string, unknown>) => void,
+  delegationTools?: any[],
+  onDelegation?: DelegationHandler,
 ): Promise<{ output: string; should_delegate: boolean }> {
   const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
@@ -255,23 +279,37 @@ Todas as skills que requerem client_id já terão este ID injetado automaticamen
 `;
   }
 
-  // Build list of other agent names so we can warn the LLM not to call them as tools
-  const otherAgentNames = nextAgents.map(a => a.agent.agent_name.toLowerCase());
-
-  let skillInstructions = '';
-  if (skills.length > 0) {
-    skillInstructions = `\n\nVocê tem as seguintes FERRAMENTAS/SKILLS disponíveis para executar tarefas reais:\n${skills.map(s => `- ${s.name}: ${s.description}`).join('\n')}\nUse estas ferramentas quando precisar EXECUTAR ações (gerar imagem, agendar post, etc.). NÃO simule ou invente resultados — SEMPRE use a ferramenta.\n`;
+  // Manager-specific instructions
+  let managerDelegationInstructions = '';
+  if (isManager && delegationTools && delegationTools.length > 0) {
+    managerDelegationInstructions = `
+INSTRUÇÕES DE ORQUESTRAÇÃO (GERENTE):
+Você é o GERENTE e tem controle total sobre a execução dos agentes da sua equipe.
+Você possui ferramentas de delegação (delegate_*) que acionam cada agente da equipe.
+- Chame cada ferramenta de delegação na ordem que desejar, passando a tarefa específica no parâmetro "task".
+- O resultado de cada agente será retornado para você. Use esse resultado para decidir o próximo passo.
+- Você pode chamar o mesmo agente mais de uma vez (ex: se o resultado não ficou bom, peça correção).
+- Quando quiser PARAR e aguardar input do usuário (ex: pedir confirmação ou data), simplesmente responda com texto SEM chamar nenhuma ferramenta.
+- Quando todo o fluxo estiver completo, responda com seu output final SEM chamar ferramentas.
+- NUNCA invente resultados. Cada delegação executa o agente de verdade.
+`;
   }
 
-  // Critical: prevent the agent from trying to call other agents as tools
+  // Warning for executors (non-managers, non-leaders) to not call agents as tools
   let delegationWarning = '';
-  if (!isLeader && otherAgentNames.length > 0) {
+  const otherAgentNames = nextAgents.map(a => a.agent.agent_name.toLowerCase());
+  if (!isLeader && !isManager && otherAgentNames.length > 0) {
     delegationWarning = `
 ATENÇÃO CRÍTICA - NÃO TENTE CHAMAR OUTROS AGENTES:
 Os seguintes nomes são AGENTES da squad, NÃO são ferramentas/skills que você pode chamar: ${otherAgentNames.join(', ')}.
 A delegação para esses agentes é feita AUTOMATICAMENTE pelo sistema de orquestração. Você NÃO precisa e NÃO deve tentar chamá-los.
 Seu trabalho é: produzir sua resposta usando APENAS suas próprias skills listadas acima. Após sua resposta, o sistema automaticamente passará o resultado para o próximo agente na cadeia.
 `;
+  }
+
+  let skillInstructions = '';
+  if (skills.length > 0) {
+    skillInstructions = `\n\nVocê tem as seguintes FERRAMENTAS/SKILLS disponíveis para executar tarefas reais:\n${skills.map(s => `- ${s.name}: ${s.description}`).join('\n')}\nUse estas ferramentas quando precisar EXECUTAR ações (gerar imagem, agendar post, etc.). NÃO simule ou invente resultados — SEMPRE use a ferramenta.\n`;
   }
 
   const systemPrompt = `${agent.prompt_base}
@@ -284,6 +322,7 @@ ${squadInstructions ? `Instruções específicas para você nesta squad: ${squad
 ${clientContextInstructions}
 ${stepsContext}
 ${delegationInstructions}
+${managerDelegationInstructions}
 ${skillInstructions}
 ${delegationWarning}
 
@@ -291,7 +330,7 @@ INSTRUÇÕES DE RESPOSTA:
 - A SOLICITAÇÃO ORIGINAL DO USUÁRIO está na mensagem do usuário abaixo. NUNCA ignore ou substitua o pedido original.
 - Considere o contexto dos agentes anteriores, mas SEMPRE mantenha o foco na solicitação original.
 - Seja objetivo e agregue valor com sua especialidade.
-- Se você é o líder, coordene e sintetize. Se é gerente, organize. Se é executor, execute a tarefa.
+- Se você é o líder, coordene e sintetize. Se é gerente, organize e delegue. Se é executor, execute a tarefa.
 - Se você tem ferramentas disponíveis, USE-AS para executar tarefas reais. NUNCA invente URLs, dados ou resultados fictícios.
 ${isLeader ? '- LEMBRE-SE: Você DEVE terminar com [DELEGAR] ou [FINALIZAR]. Sem essa tag, a execução ficará incorreta.' : ''}
 `;
@@ -299,7 +338,9 @@ ${isLeader ? '- LEMBRE-SE: Você DEVE terminar com [DELEGAR] ou [FINALIZAR]. Sem
   // Squad client_id takes priority over agent's individual client_id
   const effectiveClientId = squadClientId || agent.client_id || undefined;
   const hasFixedClient = !!effectiveClientId;
-  const tools = buildToolsFromSkills(skills, hasFixedClient);
+  const skillToolList = buildToolsFromSkills(skills, hasFixedClient);
+  // Combine skill tools + delegation tools (for managers)
+  const tools = [...skillToolList, ...(delegationTools || [])];
   const mutableContext = {
     client_id: effectiveClientId,
     company_id: agent.company_id,
@@ -307,7 +348,8 @@ ${isLeader ? '- LEMBRE-SE: Você DEVE terminar com [DELEGAR] ou [FINALIZAR]. Sem
   };
   let lastGeneratedImageUrl: string | null = null;
 
-  const maxIterations = 5;
+  // Managers need more iterations since each delegation is one iteration
+  const maxIterations = isManager ? 20 : 5;
   let currentMessages: any[] = [
     { role: 'system', content: systemPrompt },
     { role: 'user', content: message },
@@ -347,11 +389,14 @@ ${isLeader ? '- LEMBRE-SE: Você DEVE terminar com [DELEGAR] ou [FINALIZAR]. Sem
       let should_delegate = true;
       if (isLeader) {
         should_delegate = rawOutput.includes('[DELEGAR]');
-        // If leader didn't include any tag but has next agents, default to delegate for non-trivial messages
         if (!rawOutput.includes('[DELEGAR]') && !rawOutput.includes('[FINALIZAR]') && nextAgents.length > 0) {
           console.log(`[squad-orchestrator] Leader didn't include delegation tag — defaulting to DELEGATE`);
           should_delegate = true;
         }
+      }
+      // Managers don't use delegation tags — when they stop calling tools, the flow is done
+      if (isManager) {
+        should_delegate = false; // Manager handled everything, no BFS continuation needed
       }
       const output = rawOutput.replace(/\[DELEGAR\]/g, '').replace(/\[FINALIZAR\]/g, '').trim();
       return { output, should_delegate };
@@ -366,8 +411,35 @@ ${isLeader ? '- LEMBRE-SE: Você DEVE terminar com [DELEGAR] ou [FINALIZAR]. Sem
 
       console.log(`[squad-orchestrator] Tool call: ${fnName}`, fnArgs);
 
+      // Check if this is a delegation tool call
+      if (fnName.startsWith('delegate_') && onDelegation) {
+        // Extract member ID from tool name (delegate_<uuid_with_underscores>)
+        const memberIdWithUnderscores = fnName.replace('delegate_', '');
+        // Convert back: underscores to hyphens for UUID format
+        const memberId = memberIdWithUnderscores.replace(/_/g, '-');
+        const task = (fnArgs.task as string) || message;
+
+        console.log(`[squad-orchestrator] Manager delegating to member ${memberId}: ${task.substring(0, 100)}...`);
+
+        try {
+          const agentOutput = await onDelegation(memberId, task);
+          currentMessages.push({
+            role: 'tool',
+            tool_call_id: toolCall.id,
+            content: agentOutput,
+          });
+        } catch (err: unknown) {
+          const errMsg = err instanceof Error ? err.message : String(err);
+          currentMessages.push({
+            role: 'tool',
+            tool_call_id: toolCall.id,
+            content: JSON.stringify({ error: `Erro ao executar agente: ${errMsg}` }),
+          });
+        }
+        continue;
+      }
+
       let result: Record<string, unknown>;
-      // Find the skill name for display
       const skill = skills.find(s => s.id === fnName);
       const skillDisplayName = skill?.name || fnName;
 
@@ -393,7 +465,6 @@ ${isLeader ? '- LEMBRE-SE: Você DEVE terminar com [DELEGAR] ou [FINALIZAR]. Sem
         }
       }
 
-      // Emit tool_call event to chat
       if (onToolCall) {
         onToolCall(skillDisplayName, fnArgs, result);
       }
@@ -421,6 +492,9 @@ ${isLeader ? '- LEMBRE-SE: Você DEVE terminar com [DELEGAR] ou [FINALIZAR]. Sem
   if (isLeader) {
     should_delegate = rawOutput.includes('[DELEGAR]') || (!rawOutput.includes('[FINALIZAR]') && nextAgents.length > 0);
   }
+  if (isManager) {
+    should_delegate = false;
+  }
   const output = rawOutput.replace(/\[DELEGAR\]/g, '').replace(/\[FINALIZAR\]/g, '').trim();
   return { output, should_delegate };
 }
@@ -445,7 +519,7 @@ Deno.serve(async (req) => {
     });
     const { data: { user } } = await supabaseClient.auth.getUser();
 
-    // 1. Load squad info (including client_id) and members in parallel
+    // 1. Load squad info and members in parallel
     const [squadResult, membersResult] = await Promise.all([
       serviceClient.from('ia_agent_squads').select('id, client_id, company_id').eq('id', squadId).single(),
       serviceClient.from('ia_agent_squad_members')
@@ -525,8 +599,6 @@ Deno.serve(async (req) => {
       if (member) executionOrder.push(member);
       const outgoing = typedFlows.filter(f => f.source_member_id === currentId);
 
-      // Sort outgoing edges based on the current member's squad_instructions
-      // If the member defines an order like "use nessa ordem: A, B, C", respect it
       let sortedTargetIds = outgoing.map(e => e.target_member_id);
       if (member?.squad_instructions) {
         const instructions = member.squad_instructions.toLowerCase();
@@ -537,9 +609,7 @@ Deno.serve(async (req) => {
           const nameB = memberB?.agent?.agent_name?.toLowerCase() || '';
           const posA = instructions.indexOf(nameA);
           const posB = instructions.indexOf(nameB);
-          // If both found in instructions, sort by position
           if (posA !== -1 && posB !== -1) return posA - posB;
-          // If only one found, prioritize the found one
           if (posA !== -1) return -1;
           if (posB !== -1) return 1;
           return 0;
@@ -556,7 +626,6 @@ Deno.serve(async (req) => {
     console.log(`[squad-orchestrator] Execution order: ${executionOrder.map(m => `${m.agent.agent_name} (${m.role})`).join(' → ')}`);
 
     // 6. SSE streaming
-    const MAX_STEPS = executionOrder.length;
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       async start(controller) {
@@ -566,74 +635,173 @@ Deno.serve(async (req) => {
 
         const steps: StepResult[] = [];
         const executedAgents = new Set<string>();
+        let globalStepCounter = 0;
 
-        for (let i = 0; i < executionOrder.length && steps.length < MAX_STEPS; i++) {
-          const member = executionOrder[i];
-          if (executedAgents.has(member.id)) continue;
-          executedAgents.add(member.id);
-
-          const stepInput = message;
-          const nextAgents = executionOrder.slice(i + 1);
+        // Helper function to execute a single agent (used by both BFS loop and manager delegation)
+        async function executeAgent(
+          member: SquadMember,
+          input: string,
+          currentSteps: StepResult[],
+          isLeaderNode: boolean,
+          isManagerNode: boolean,
+          remainingAgents: SquadMember[],
+          childMembers: SquadMember[],
+        ): Promise<StepResult> {
+          globalStepCounter++;
+          const stepOrder = globalStepCounter;
           const agentSkills = skillsMap.get(member.agent_id) || [];
 
-          console.log(`[squad-orchestrator] Step ${i + 1}: ${member.agent.agent_name} (${member.role}) with ${agentSkills.length} skills`);
+          console.log(`[squad-orchestrator] Step ${stepOrder}: ${member.agent.agent_name} (${member.role}) with ${agentSkills.length} skills, isManager=${isManagerNode}`);
 
           sendEvent({
             type: 'thinking',
             agent_name: member.agent.agent_name,
             role: member.role,
-            step_order: i + 1,
+            step_order: stepOrder,
           });
 
-          try {
-            const isLeader = member.id === leader.id;
+          // Build delegation tools and handler for managers
+          let agentDelegationTools: any[] | undefined;
+          let agentDelegationHandler: DelegationHandler | undefined;
 
-            // Callback to emit tool_call events to the chat stream
-            const onToolCall = (skillName: string, args: Record<string, unknown>, result: Record<string, unknown>) => {
-              sendEvent({
-                type: 'tool_call',
-                agent_name: member.agent.agent_name,
-                role: member.role,
-                skill_name: skillName,
-                step_order: i + 1,
-                success: !result.error,
-                // Include image_url if present
-                image_url: result.image_url || null,
+          if (isManagerNode && childMembers.length > 0) {
+            agentDelegationTools = buildDelegationTools(childMembers);
+            console.log(`[squad-orchestrator] Manager ${member.agent.agent_name} has delegation tools for: ${childMembers.map(c => c.agent.agent_name).join(', ')}`);
+
+            agentDelegationHandler = async (memberId: string, task: string): Promise<string> => {
+              const targetMember = typedMembers.find(m => m.id === memberId);
+              if (!targetMember) {
+                return JSON.stringify({ error: `Agente com ID ${memberId} não encontrado na squad` });
+              }
+
+              // Check if this target is also a manager (has its own children)
+              const targetChildren = typedFlows
+                .filter(f => f.source_member_id === targetMember.id)
+                .map(f => typedMembers.find(m => m.id === f.target_member_id))
+                .filter(Boolean) as SquadMember[];
+              const isTargetManager = (targetMember.role === 'manager' || targetMember.role === 'gerente') && targetChildren.length > 0;
+
+              // Execute the delegated agent
+              const delegatedStep = await executeAgent(
+                targetMember,
+                task,
+                currentSteps,
+                false,
+                isTargetManager,
+                [],
+                targetChildren,
+              );
+
+              // Add to steps for context
+              currentSteps.push(delegatedStep);
+              executedAgents.add(targetMember.id);
+
+              // Persist the step
+              await serviceClient.from('ia_agent_squad_execution_steps').insert({
+                execution_id: execution.id,
+                agent_id: targetMember.agent_id,
+                member_id: targetMember.id,
+                step_order: delegatedStep.step_order,
+                input: task,
+                output: delegatedStep.output,
+                status: 'completed',
+                started_at: new Date().toISOString(),
+                completed_at: new Date().toISOString(),
               });
+
+              // Emit step event
+              sendEvent({
+                type: 'step',
+                agent_name: targetMember.agent.agent_name,
+                role: targetMember.role,
+                output: delegatedStep.output,
+                step_order: delegatedStep.step_order,
+                should_delegate: delegatedStep.should_delegate,
+              });
+
+              return delegatedStep.output;
             };
+          }
 
-            const { output, should_delegate } = await callAgentWithTools(
-              member.agent,
-              member.squad_instructions,
-              member.role,
-              stepInput,
-              steps,
-              isLeader,
-              nextAgents,
-              agentSkills,
-              squadClientId,
-              squadClientInfo,
-              onToolCall,
-            );
-
-            const step: StepResult = {
-              agent_id: member.agent_id,
+          const onToolCall = (skillName: string, args: Record<string, unknown>, result: Record<string, unknown>) => {
+            sendEvent({
+              type: 'tool_call',
               agent_name: member.agent.agent_name,
               role: member.role,
-              input: stepInput,
-              output,
-              step_order: i + 1,
-              should_delegate,
-            };
+              skill_name: skillName,
+              step_order: stepOrder,
+              success: !result.error,
+              image_url: result.image_url || null,
+            });
+          };
+
+          const { output, should_delegate } = await callAgentWithTools(
+            member.agent,
+            member.squad_instructions,
+            member.role,
+            input,
+            currentSteps,
+            isLeaderNode,
+            isManagerNode,
+            remainingAgents,
+            agentSkills,
+            squadClientId,
+            squadClientInfo,
+            onToolCall,
+            agentDelegationTools,
+            agentDelegationHandler,
+          );
+
+          return {
+            agent_id: member.agent_id,
+            agent_name: member.agent.agent_name,
+            role: member.role,
+            input,
+            output,
+            step_order: stepOrder,
+            should_delegate,
+          };
+        }
+
+        // Main BFS execution loop
+        for (let i = 0; i < executionOrder.length; i++) {
+          const member = executionOrder[i];
+          if (executedAgents.has(member.id)) continue;
+          executedAgents.add(member.id);
+
+          const isLeaderNode = member.id === leader.id;
+
+          // Detect if this member is a manager with children
+          const childMemberIds = typedFlows
+            .filter(f => f.source_member_id === member.id)
+            .map(f => f.target_member_id);
+          const childMembers = childMemberIds
+            .map(id => typedMembers.find(m => m.id === id))
+            .filter(Boolean) as SquadMember[];
+          const isManagerNode = (member.role === 'manager' || member.role === 'gerente') && childMembers.length > 0;
+
+          const remainingAgents = executionOrder.slice(i + 1);
+
+          try {
+            const step = await executeAgent(
+              member,
+              message,
+              steps,
+              isLeaderNode,
+              isManagerNode,
+              remainingAgents,
+              childMembers,
+            );
+
             steps.push(step);
 
             await serviceClient.from('ia_agent_squad_execution_steps').insert({
               execution_id: execution.id,
               agent_id: member.agent_id,
               member_id: member.id,
-              step_order: i + 1,
-              input: stepInput,
-              output,
+              step_order: step.step_order,
+              input: message,
+              output: step.output,
               status: 'completed',
               started_at: new Date().toISOString(),
               completed_at: new Date().toISOString(),
@@ -643,23 +811,45 @@ Deno.serve(async (req) => {
               type: 'step',
               agent_name: member.agent.agent_name,
               role: member.role,
-              output,
-              step_order: i + 1,
-              should_delegate,
+              output: step.output,
+              step_order: step.step_order,
+              should_delegate: step.should_delegate,
             });
 
-            if (!should_delegate) {
+            // If a manager handled its children, mark them as executed
+            if (isManagerNode) {
+              for (const childId of childMemberIds) {
+                executedAgents.add(childId);
+              }
+              // Also mark grandchildren (children of children) as executed
+              // to prevent BFS from re-executing them
+              const markDescendants = (parentId: string) => {
+                const descendants = typedFlows
+                  .filter(f => f.source_member_id === parentId)
+                  .map(f => f.target_member_id);
+                for (const descId of descendants) {
+                  executedAgents.add(descId);
+                  markDescendants(descId);
+                }
+              };
+              for (const childId of childMemberIds) {
+                markDescendants(childId);
+              }
+            }
+
+            if (!step.should_delegate) {
               console.log(`[squad-orchestrator] ${member.agent.agent_name} decided to FINALIZE.`);
               break;
             }
           } catch (err) {
-            console.error(`[squad-orchestrator] Error at step ${i + 1}:`, err);
+            console.error(`[squad-orchestrator] Error at step:`, err);
+            globalStepCounter++;
             await serviceClient.from('ia_agent_squad_execution_steps').insert({
               execution_id: execution.id,
               agent_id: member.agent_id,
               member_id: member.id,
-              step_order: i + 1,
-              input: stepInput,
+              step_order: globalStepCounter,
+              input: message,
               output: `Erro: ${err.message}`,
               status: 'failed',
               started_at: new Date().toISOString(),
@@ -671,16 +861,16 @@ Deno.serve(async (req) => {
               agent_name: member.agent.agent_name,
               role: member.role,
               output: `⚠️ Erro ao processar: ${err.message}`,
-              step_order: i + 1,
+              step_order: globalStepCounter,
             });
 
             steps.push({
               agent_id: member.agent_id,
               agent_name: member.agent.agent_name,
               role: member.role,
-              input: stepInput,
+              input: message,
               output: `⚠️ Erro: ${err.message}`,
-              step_order: i + 1,
+              step_order: globalStepCounter,
               should_delegate: false,
             });
             break;
