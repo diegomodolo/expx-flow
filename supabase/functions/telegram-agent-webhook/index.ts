@@ -558,8 +558,14 @@ ${client.ai_briefing ? `\n[BRIEFING DETALHADO]\n${client.ai_briefing}\n` : ''}`;
       ? `\n- IMPORTANTE: Quando uma skill precisar de um cliente e nenhum cliente foi definido, use a ferramenta _lookup_client para buscar o cliente pelo nome. Se o usuário não informou qual cliente, PERGUNTE antes de executar a skill. Após encontrar o cliente, passe o client_id dele nas chamadas subsequentes.`
       : '';
 
+    const skillList = enabledSkills.map(s => `  - ${s.id}: ${s.name} — ${s.description || ''}`).join('\n');
+    const hasImageSkill = enabledSkills.some(s => s.id === 'generate_image_ai');
+    const imageInstruction = hasImageSkill
+      ? `\n- GERAÇÃO DE IMAGENS: Você TEM a capacidade de gerar imagens reais usando a ferramenta generate_image_ai. Quando o usuário pedir uma imagem, criativo visual, banner ou arte, USE esta ferramenta. NÃO diga que não pode gerar imagens.`
+      : '';
+
     const skillInstructions = enabledSkills.length > 0
-      ? `\n\n[SKILLS DISPONÍVEIS]\nVocê tem acesso a ${enabledSkills.length} skills. Use-as chamando as funções disponíveis quando pertinente.${clientLookupInstruction}\n`
+      ? `\n\n[SKILLS DISPONÍVEIS]\nVocê tem acesso a ${enabledSkills.length} ferramentas que DEVE usar quando o usuário solicitar. Liste de ferramentas:\n${skillList}\n${clientLookupInstruction}${imageInstruction}\n\n- REGRA CRÍTICA: Se uma ferramenta está listada acima, você PODE e DEVE usá-la. Nunca diga que não consegue fazer algo se existe uma ferramenta disponível para isso.`
       : '';
 
     const systemPrompt = `${agent.prompt_base}
