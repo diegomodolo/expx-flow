@@ -17,12 +17,20 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { Check, ChevronsUpDown, Plus, Search, Loader2, Users, Bot, Edit, Trash2, Crown, Shield, Wrench } from "lucide-react";
+import { cn } from "@/lib/utils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,18 +41,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  Plus,
-  Search,
-  Loader2,
-  Users,
-  Bot,
-  Edit,
-  Trash2,
-  Crown,
-  Shield,
-  Wrench,
-} from "lucide-react";
 
 const roleIcons = {
   leader: Crown,
@@ -60,6 +56,14 @@ export default function AgentSquads() {
   const [createOpen, setCreateOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [formData, setFormData] = useState({ name: "", description: "", client_id: "" });
+
+  const [clientPopoverOpen, setClientPopoverOpen] = useState(false);
+
+  const sortedClients = Array.isArray(clients)
+    ? [...clients].sort((a, b) => a.name.localeCompare(b.name))
+    : [];
+
+  const selectedClientName = sortedClients.find(c => c.id === formData.client_id)?.name;
 
   const filtered = squads.filter(
     (s) =>
@@ -231,22 +235,47 @@ export default function AgentSquads() {
               </div>
               <div>
                 <Label>Cliente</Label>
-                <Select
-                  value={formData.client_id}
-                  onValueChange={(v) => setFormData({ ...formData, client_id: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione um cliente" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Array.isArray(clients) &&
-                      clients.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.name}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
+                <Popover open={clientPopoverOpen} onOpenChange={setClientPopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={clientPopoverOpen}
+                      className="w-full justify-between font-normal"
+                    >
+                      {selectedClientName || "Selecione um cliente"}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                    <Command>
+                      <CommandInput placeholder="Buscar cliente..." />
+                      <CommandList>
+                        <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+                        <CommandGroup>
+                          {sortedClients.map((c) => (
+                            <CommandItem
+                              key={c.id}
+                              value={c.name}
+                              onSelect={() => {
+                                setFormData({ ...formData, client_id: c.id });
+                                setClientPopoverOpen(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  formData.client_id === c.id ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {c.name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
             <DialogFooter>
