@@ -11,6 +11,8 @@ import type { RoteiroAtividade, AtividadeInput } from '@/hooks/useRoteiroAtivida
 import { supabase } from '@/integrations/supabase/client';
 import { useCompany } from '@/contexts/CompanyContext';
 import { useQuery } from '@tanstack/react-query';
+import { useEmployeePermissions } from '@/hooks/useEmployeePermissions';
+import { useAuth } from '@/hooks/useAuth';
 
 interface AtividadeDialogProps {
   open: boolean;
@@ -30,6 +32,8 @@ const TASK_TYPES = [
 export function AtividadeDialog({ open, onOpenChange, onSave, atividade, loading }: AtividadeDialogProps) {
   const { activeCompany } = useCompany();
   const companyId = activeCompany?.company_id;
+  const { user } = useAuth();
+  const { hasPermission, isOwner } = useEmployeePermissions();
 
   const [titulo, setTitulo] = useState('');
   const [tipo, setTipo] = useState<string>('tarefa');
@@ -44,7 +48,25 @@ export function AtividadeDialog({ open, onOpenChange, onSave, atividade, loading
   const [checklistItems, setChecklistItems] = useState<string[]>([]);
   const [newCheckItem, setNewCheckItem] = useState('');
 
-  // Fetch employees for selects
+  // Check if user is manager (owner/admin)
+  const { data: isManager } = useQuery({
+    queryKey: ['is-manager', user?.id, companyId],
+    queryFn: async () => {
+      if (!user || !companyId) return false;
+      const { data } = await supabase
+        .from('company_members')
+        .select('role')
+        .eq('user_id', user.id)
+        .eq('company_id', companyId)
+        .single();
+      return ['owner', 'admin'].includes(data?.role || '');
+    },
+    enabled: !!user && !!companyId,
+  });
+
+  const canViewOthersBoards = isOwner || isManager || hasPermission('ver-quadros-outros');
+
+  // Fetch employees
   const { data: employees = [] } = useQuery({
     queryKey: ['employees-for-roteiro', companyId],
     queryFn: async () => {
@@ -55,16 +77,23 @@ export function AtividadeDialog({ open, onOpenChange, onSave, atividade, loading
     enabled: !!companyId,
   });
 
-  // Fetch all board columns for this company, grouped by user_id
+  // Fetch board columns - all if has permission, only own if not
   const { data: allColumns = [] } = useQuery({
-    queryKey: ['all-board-columns', companyId],
+    queryKey: ['all-board-columns', companyId, canViewOthersBoards, user?.id],
     queryFn: async () => {
       if (!companyId) return [];
-      const { data } = await (supabase
+      let query = supabase
         .from('task_board_columns' as any)
         .select('*')
         .eq('company_id', companyId)
-        .order('order_index', { ascending: true }) as any);
+        .order('order_index', { ascending: true });
+
+      // If user can't view others' boards, only fetch their own
+      if (!canViewOthersBoards && user?.id) {
+        query = query.eq('user_id', user.id);
+      }
+
+      const { data } = await (query as any);
       return (data || []) as Array<{ id: string; user_id: string; name: string; color: string; order_index: number }>;
     },
     enabled: !!companyId,
@@ -109,7 +138,6 @@ export function AtividadeDialog({ open, onOpenChange, onSave, atividade, loading
 
   const handleSave = () => {
     if (!titulo.trim()) return;
-    // Derive etapa name from selected column
     const selectedCol = allColumns.find(c => c.id === quadroColumnId);
     onSave({
       titulo: titulo.trim(),
@@ -177,7 +205,7 @@ export function AtividadeDialog({ open, onOpenChange, onSave, atividade, loading
                   value={quadroUserId || ''}
                   onValueChange={v => {
                     setQuadroUserId(v || null);
-                    setQuadroColumnId(null); // reset etapa when board changes
+                    setQuadroColumnId(null);
                   }}
                 >
                   <SelectTrigger><SelectValue placeholder="Selecione o quadro..." /></SelectTrigger>
