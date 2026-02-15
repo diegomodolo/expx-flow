@@ -7433,8 +7433,10 @@ export type Database = {
           model: string | null
           name: string
           optional_params: Json | null
+          output_parameters: Json | null
           required_params: Json | null
           requires_client: boolean | null
+          skill_type: string
           system_prompt: string | null
           temperature: number | null
           tool_parameters: Json | null
@@ -7454,8 +7456,10 @@ export type Database = {
           model?: string | null
           name: string
           optional_params?: Json | null
+          output_parameters?: Json | null
           required_params?: Json | null
           requires_client?: boolean | null
+          skill_type?: string
           system_prompt?: string | null
           temperature?: number | null
           tool_parameters?: Json | null
@@ -7475,8 +7479,10 @@ export type Database = {
           model?: string | null
           name?: string
           optional_params?: Json | null
+          output_parameters?: Json | null
           required_params?: Json | null
           requires_client?: boolean | null
+          skill_type?: string
           system_prompt?: string | null
           temperature?: number | null
           tool_parameters?: Json | null

@@ -22,6 +22,8 @@ export interface Skill {
   updated_at: string | null;
   edge_function_code: string | null;
   external_api_config: Record<string, unknown> | null;
+  skill_type: string;
+  output_parameters: Record<string, unknown> | null;
 }
 
 export function useSkills() {

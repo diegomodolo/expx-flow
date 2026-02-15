@@ -16,6 +16,8 @@ interface ParamField {
 interface Props {
   toolParameters: Record<string, unknown> | null;
   onChange: (params: Record<string, unknown>) => void;
+  label?: string;
+  description?: string;
 }
 
 function parseFields(params: Record<string, unknown> | null): ParamField[] {
@@ -39,7 +41,7 @@ function fieldsToSchema(fields: ParamField[]): Record<string, unknown> {
   return { type: "object", properties, required };
 }
 
-export function SkillParametersEditor({ toolParameters, onChange }: Props) {
+export function SkillParametersEditor({ toolParameters, onChange, label = "Parâmetros (tool_parameters)", description }: Props) {
   const [fields, setFields] = useState<ParamField[]>(() => parseFields(toolParameters));
 
   const addField = () => {
@@ -63,7 +65,10 @@ export function SkillParametersEditor({ toolParameters, onChange }: Props) {
     <div className="space-y-4">
       <Card>
         <CardHeader className="flex-row items-center justify-between space-y-0">
-          <CardTitle>Parâmetros (tool_parameters)</CardTitle>
+          <div>
+            <CardTitle>{label}</CardTitle>
+            {description && <p className="text-xs text-muted-foreground mt-1">{description}</p>}
+          </div>
           <Button size="sm" variant="outline" onClick={addField}>
             <Plus className="h-4 w-4 mr-1" /> Adicionar
           </Button>

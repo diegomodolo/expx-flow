@@ -11,6 +11,7 @@ interface Props {
   code: string;
   onChange: (code: string) => void;
   edgeFunctionName: string;
+  skillType?: string;
 }
 
 const DEFAULT_TEMPLATE = `import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
@@ -49,24 +50,44 @@ serve(async (req) => {
 });
 `;
 
-export function SkillCodeEditor({ code, onChange, edgeFunctionName }: Props) {
+const JS_TEMPLATE = `// Skill JavaScript — recebe "params" como objeto de entrada
+// Retorne o resultado da skill no final
+
+const now = new Date();
+
+// Exemplo: retornar data/hora formatada
+return {
+  success: true,
+  data: {
+    iso: now.toISOString(),
+    formatted: now.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }),
+    timestamp: now.getTime(),
+  },
+};
+`;
+
+export function SkillCodeEditor({ code, onChange, edgeFunctionName, skillType = "edge_function" }: Props) {
+  const isJS = skillType === "javascript";
   const handleCopy = () => {
     navigator.clipboard.writeText(code || "");
     toast.success("Código copiado!");
   };
 
   const handleReset = () => {
-    onChange(DEFAULT_TEMPLATE);
-    toast.info("Template padrão restaurado");
+    onChange(isJS ? JS_TEMPLATE : DEFAULT_TEMPLATE);
+    toast.info(isJS ? "Template JavaScript restaurado" : "Template padrão restaurado");
   };
 
   return (
     <Card>
       <CardHeader className="flex-row items-center justify-between space-y-0">
         <div>
-          <CardTitle>Código da Edge Function</CardTitle>
+          <CardTitle>{isJS ? "Código JavaScript" : "Código da Edge Function"}</CardTitle>
           <p className="text-xs text-muted-foreground mt-1">
-            Function: <code className="bg-muted px-1 rounded">{edgeFunctionName || "não definida"}</code>
+            {isJS 
+              ? <>Tipo: <code className="bg-muted px-1 rounded">JavaScript</code> — executado pelo executor universal. Use <code className="bg-muted px-1 rounded">params</code> para acessar os parâmetros de entrada.</>
+              : <>Function: <code className="bg-muted px-1 rounded">{edgeFunctionName || "não definida"}</code></>
+            }
           </p>
         </div>
         <div className="flex gap-2">
