@@ -498,3 +498,9 @@ verify_jwt = false
 
 [functions.youtube-posting-behavior-report]
 verify_jwt = false
+
+[functions.telegram-agent-webhook]
+verify_jwt = false
+
+[functions.configure-telegram-webhook]
+verify_jwt = true

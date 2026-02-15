@@ -12,6 +12,7 @@ import { useIAAgents } from "@/hooks/useIAAgents";
 import { useClients } from "@/hooks/useClients";
 import { Separator } from "@/components/ui/separator";
 import { KnowledgeDocumentsManager } from "@/components/agents/KnowledgeDocumentsManager";
+import { TelegramBotConfig } from "@/components/agents/TelegramBotConfig";
 import {
   Select,
   SelectContent,
@@ -202,6 +203,15 @@ export default function AgentEdit() {
           <Separator />
 
           <KnowledgeDocumentsManager agentId={currentId} />
+
+          <Separator />
+
+          <TelegramBotConfig
+            agentId={currentId}
+            telegramBotToken={(currentAgent as any).telegram_bot_token || null}
+            telegramBotName={(currentAgent as any).telegram_bot_name || null}
+            onUpdate={() => loadAgent(currentId)}
+          />
 
           {showWarning && (
             <Alert variant="destructive">

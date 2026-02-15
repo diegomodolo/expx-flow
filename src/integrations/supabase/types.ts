@@ -7382,6 +7382,41 @@ export type Database = {
           },
         ]
       }
+      ia_agent_telegram_conversations: {
+        Row: {
+          agent_id: string
+          created_at: string
+          id: string
+          messages: Json
+          telegram_chat_id: number
+          updated_at: string
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          id?: string
+          messages?: Json
+          telegram_chat_id: number
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          id?: string
+          messages?: Json
+          telegram_chat_id?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_agent_telegram_conversations_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "ia_agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ia_agents: {
         Row: {
           additional_instructions: string | null
@@ -7393,6 +7428,8 @@ export type Database = {
           id: string
           model: string | null
           prompt_base: string
+          telegram_bot_name: string | null
+          telegram_bot_token: string | null
           updated_at: string | null
           user_id: string
         }
@@ -7406,6 +7443,8 @@ export type Database = {
           id?: string
           model?: string | null
           prompt_base: string
+          telegram_bot_name?: string | null
+          telegram_bot_token?: string | null
           updated_at?: string | null
           user_id: string
         }
@@ -7419,6 +7458,8 @@ export type Database = {
           id?: string
           model?: string | null
           prompt_base?: string
+          telegram_bot_name?: string | null
+          telegram_bot_token?: string | null
           updated_at?: string | null
           user_id?: string
         }
