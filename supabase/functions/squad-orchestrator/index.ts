@@ -84,8 +84,9 @@ ${stepsContext}
 ${delegationInstructions}
 
 INSTRUÇÕES DE RESPOSTA:
+- A SOLICITAÇÃO ORIGINAL DO USUÁRIO está na mensagem do usuário abaixo. NUNCA ignore ou substitua o pedido original.
+- Considere o contexto dos agentes anteriores ao elaborar sua resposta, mas SEMPRE mantenha o foco na solicitação original.
 - Seja objetivo e agregue valor com sua especialidade.
-- Considere o contexto dos agentes anteriores ao elaborar sua resposta.
 - Se você é o líder, coordene e sintetize. Se é gerente, organize. Se é executor, execute a tarefa.
 `;
 
@@ -227,7 +228,8 @@ Deno.serve(async (req) => {
           }
           executedAgents.add(member.id);
 
-          const stepInput = i === 0 ? message : steps[steps.length - 1].output;
+          // ALWAYS pass original user message — previous steps are in system prompt context
+          const stepInput = message;
 
           // Determine next agents available for delegation
           const nextAgents = executionOrder.slice(i + 1);
