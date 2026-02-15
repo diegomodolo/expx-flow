@@ -117,12 +117,10 @@ const menuCategories: MenuCategory[] = [
       ].sort((a, b) => a.title.localeCompare(b.title, 'pt-BR')),
     },
     {
-      title: "Equipe & Sistema",
+      title: "Equipe",
       icon: Building2,
       items: [
-        { title: "Alertas", url: "/alertas", icon: Bell, permission: "alertas" as MenuItemType },
         { title: "Colaboradores", url: "/colaboradores", icon: UserCheck, permission: "colaboradores" as MenuItemType },
-        { title: "Configurações", url: "/configuracoes", icon: Settings, permission: "configuracoes" as MenuItemType },
         { title: "Relatórios", url: "/relatorios", icon: BarChart3, permission: "relatorios" as MenuItemType },
         { title: "Squad", url: "/squad", icon: UsersRound, permission: "squad" as MenuItemType },
         { title: "Tarefas", url: "/tarefas", icon: CheckSquare, permission: "tarefas" as MenuItemType },
@@ -154,6 +152,15 @@ const menuCategories: MenuCategory[] = [
       ].sort((a, b) => a.title.localeCompare(b.title, 'pt-BR')),
     },
   ].sort((a, b) => a.title.localeCompare(b.title, 'pt-BR')),
+  // Sistema sempre por último
+  {
+    title: "Sistema",
+    icon: Settings,
+    items: [
+      { title: "Alertas", url: "/alertas", icon: Bell, permission: "alertas" as MenuItemType },
+      { title: "Configurações", url: "/configuracoes", icon: Settings, permission: "configuracoes" as MenuItemType },
+    ].sort((a, b) => a.title.localeCompare(b.title, 'pt-BR')),
+  },
 ];
 
 export function DashboardSidebar() {
