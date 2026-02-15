@@ -180,7 +180,32 @@ async function handleBuiltinQuery(
           `).eq('id', cid).single(),
           supabase.from('campaigns').select('id, name, status, spend, cpc, ctr, conversions, cpa').eq('client_id', cid).eq('status', 'active').order('spend', { ascending: false }).limit(10),
         ]);
-        return { client: clientRes.data, active_campaigns: campaignsRes.data };
+        const clientData = clientRes.data;
+        // Flatten social accounts for easier agent consumption
+        const socialAccounts = {
+          instagram: clientData?.instagram_accounts ? {
+            id: clientData.instagram_accounts.id,
+            username: clientData.instagram_accounts.username,
+            instagram_id: clientData.instagram_accounts.instagram_id,
+            followers_count: clientData.instagram_accounts.followers_count,
+            profile_picture_url: clientData.instagram_accounts.profile_picture_url,
+          } : null,
+          facebook_page: clientData?.facebook_pages ? {
+            id: clientData.facebook_pages.id,
+            page_id: clientData.facebook_pages.page_id,
+            page_name: clientData.facebook_pages.page_name,
+          } : null,
+          ad_account: clientData?.facebook_ad_accounts ? {
+            id: clientData.facebook_ad_accounts.id,
+            account_name: clientData.facebook_ad_accounts.account_name,
+            currency: clientData.facebook_ad_accounts.currency,
+          } : null,
+          google_ads: clientData?.google_ads_accounts ? {
+            id: clientData.google_ads_accounts.id,
+            account_name: clientData.google_ads_accounts.account_name,
+          } : null,
+        };
+        return { client: clientData, social_accounts: socialAccounts, active_campaigns: campaignsRes.data };
       }
 
       case 'data_campaigns': {
