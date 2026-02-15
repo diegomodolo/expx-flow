@@ -12,13 +12,17 @@ interface SquadChatMessagesProps {
 }
 
 const roleLabels: Record<string, string> = {
+  leader: "Líder",
   lider: "Líder",
+  manager: "Gerente",
   gerente: "Gerente",
   executor: "Executor",
 };
 
 const roleColors: Record<string, string> = {
+  leader: "bg-amber-500/15 text-amber-600 border-amber-500/30",
   lider: "bg-amber-500/15 text-amber-600 border-amber-500/30",
+  manager: "bg-blue-500/15 text-blue-600 border-blue-500/30",
   gerente: "bg-blue-500/15 text-blue-600 border-blue-500/30",
   executor: "bg-green-500/15 text-green-600 border-green-500/30",
 };
@@ -115,21 +119,34 @@ export function SquadChatMessages({ messages, loading }: SquadChatMessagesProps)
               </div>
             ))}
 
-            {loading && (
-              <div className="flex gap-3 justify-start">
+            {messages.filter(m => m.isThinking).map((thinkingMsg) => (
+              <div key={thinkingMsg.id} className="flex gap-3 justify-start">
                 <div className="flex-shrink-0">
                   <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
                     <Bot className="w-4 h-4 text-primary-foreground" />
                   </div>
                 </div>
                 <div className="bg-muted rounded-lg p-3 mr-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xs font-semibold">{thinkingMsg.agent_name}</span>
+                    {thinkingMsg.agent_role && (
+                      <Badge
+                        variant="outline"
+                        className={`text-[10px] px-1.5 py-0 h-4 ${
+                          roleColors[thinkingMsg.agent_role] || "bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        {roleLabels[thinkingMsg.agent_role] || thinkingMsg.agent_role}
+                      </Badge>
+                    )}
+                  </div>
                   <div className="flex items-center gap-2 text-muted-foreground text-sm">
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Squad trabalhando...</span>
+                    <span>Processando...</span>
                   </div>
                 </div>
               </div>
-            )}
+            ))}
           </>
         )}
         <div ref={messagesEndRef} />

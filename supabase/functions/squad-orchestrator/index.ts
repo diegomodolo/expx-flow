@@ -34,6 +34,7 @@ interface StepResult {
   input: string;
   output: string;
   step_order: number;
+  should_delegate: boolean;
 }
 
 async function callAgent(
@@ -42,15 +43,19 @@ async function callAgent(
   role: string,
   message: string,
   previousSteps: StepResult[],
-): Promise<string> {
+  nextAgents: SquadMember[],
+): Promise<{ output: string; should_delegate: boolean }> {
   const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
-  // Build context from previous agent steps
   const stepsContext = previousSteps.length > 0
     ? `\n\n[CONTEXTO DA SQUAD - Respostas anteriores dos agentes]\n${previousSteps.map(s =>
         `--- ${s.agent_name} (${s.role}) ---\n${s.output}`
       ).join('\n\n')}\n`
     : '';
+
+  const nextAgentsList = nextAgents.length > 0
+    ? `\n\nAgentes disponíveis para delegação: ${nextAgents.map(a => `${a.agent.agent_name} (${a.role})`).join(', ')}`
+    : '\n\nVocê é o último agente na cadeia, não há para quem delegar.';
 
   const systemPrompt = `${agent.prompt_base}
 
@@ -60,9 +65,17 @@ ${agent.additional_instructions || ''}
 Você é o "${role}" desta squad de agentes de IA.
 ${squadInstructions ? `Instruções específicas para você nesta squad: ${squadInstructions}` : ''}
 ${stepsContext}
+${nextAgentsList}
 
-INSTRUÇÕES:
-- Considere o contexto dos agentes anteriores ao elaborar sua resposta.
+INSTRUÇÕES CRÍTICAS DE DELEGAÇÃO:
+- Analise a mensagem/solicitação recebida e decida se você consegue responder sozinho ou se precisa delegar para outros agentes.
+- Para mensagens simples (saudações como "oi", "olá", perguntas básicas, agradecimentos), responda diretamente SEM delegar.
+- Delegue APENAS quando a tarefa realmente necessitar da expertise de outro agente.
+- Para indicar sua decisão, termine sua resposta EXATAMENTE com uma destas tags:
+  [DELEGAR] - se a tarefa precisa ser passada adiante para outros agentes
+  [FINALIZAR] - se você já resolveu a solicitação e não precisa de mais ninguém
+
+INSTRUÇÕES DE RESPOSTA:
 - Seja objetivo e agregue valor com sua especialidade.
 - Se você é o líder, coordene e sintetize. Se é gerente, organize. Se é executor, execute a tarefa.
 `;
@@ -89,7 +102,14 @@ INSTRUÇÕES:
   }
 
   const data = await aiResponse.json();
-  return data.choices[0].message.content || '';
+  const rawOutput = data.choices[0].message.content || '';
+
+  // Parse delegation decision
+  const should_delegate = rawOutput.includes('[DELEGAR]');
+  // Clean the tags from the output shown to the user
+  const output = rawOutput.replace(/\[DELEGAR\]/g, '').replace(/\[FINALIZAR\]/g, '').trim();
+
+  return { output, should_delegate };
 }
 
 Deno.serve(async (req) => {
@@ -107,13 +127,12 @@ Deno.serve(async (req) => {
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
     const serviceClient = createClient(supabaseUrl, serviceRoleKey);
 
-    // Also create an authenticated client for RLS context
     const supabaseClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY') ?? '', {
       global: { headers: { Authorization: req.headers.get('Authorization')! } },
     });
     const { data: { user } } = await supabaseClient.auth.getUser();
 
-    // 1. Load squad members with agent data
+    // 1. Load squad members
     const { data: members, error: membersErr } = await serviceClient
       .from('ia_agent_squad_members')
       .select('id, agent_id, role, squad_instructions, agent:ia_agents(id, agent_name, prompt_base, additional_instructions, model, client_id, company_id)')
@@ -122,7 +141,6 @@ Deno.serve(async (req) => {
     if (membersErr) throw membersErr;
     if (!members || members.length === 0) throw new Error('Squad sem membros');
 
-    // Flatten agent relation (Supabase returns object, not array)
     const typedMembers: SquadMember[] = members.map((m: any) => ({
       ...m,
       agent: Array.isArray(m.agent) ? m.agent[0] : m.agent,
@@ -155,7 +173,6 @@ Deno.serve(async (req) => {
     const leader = typedMembers.find(m => m.role === 'leader' || m.role === 'lider');
     if (!leader) throw new Error('Squad sem líder definido');
 
-    // BFS traversal following the flow edges
     const executionOrder: SquadMember[] = [];
     const visited = new Set<string>();
     const queue: string[] = [leader.id];
@@ -166,7 +183,6 @@ Deno.serve(async (req) => {
       const member = typedMembers.find(m => m.id === currentId);
       if (member) executionOrder.push(member);
 
-      // Find outgoing edges
       const outgoing = typedFlows.filter(f => f.source_member_id === currentId);
       for (const edge of outgoing) {
         if (!visited.has(edge.target_member_id)) {
@@ -176,97 +192,142 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Add any unvisited members (disconnected nodes)
     for (const m of typedMembers) {
       if (!visited.has(m.id)) executionOrder.push(m);
     }
 
-    // 5. Execute agents in order
-    const steps: StepResult[] = [];
-
-    for (let i = 0; i < executionOrder.length; i++) {
-      const member = executionOrder[i];
-      const stepInput = i === 0 ? message : steps[steps.length - 1].output;
-
-      console.log(`[squad-orchestrator] Step ${i + 1}: ${member.agent.agent_name} (${member.role})`);
-
-      try {
-        const output = await callAgent(
-          member.agent,
-          member.squad_instructions,
-          member.role,
-          stepInput,
-          steps,
-        );
-
-        const step: StepResult = {
-          agent_id: member.agent_id,
-          agent_name: member.agent.agent_name,
-          role: member.role,
-          input: stepInput,
-          output,
-          step_order: i + 1,
+    // 5. SSE streaming — execute agents and stream each step
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      async start(controller) {
+        const sendEvent = (eventData: any) => {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(eventData)}\n\n`));
         };
-        steps.push(step);
 
-        // Save step
-        await serviceClient.from('ia_agent_squad_execution_steps').insert({
-          execution_id: execution.id,
-          agent_id: member.agent_id,
-          member_id: member.id,
-          step_order: i + 1,
-          input: stepInput,
-          output,
+        const steps: StepResult[] = [];
+
+        for (let i = 0; i < executionOrder.length; i++) {
+          const member = executionOrder[i];
+          const stepInput = i === 0 ? message : steps[steps.length - 1].output;
+
+          // Determine next agents available for delegation
+          const nextAgents = executionOrder.slice(i + 1);
+
+          console.log(`[squad-orchestrator] Step ${i + 1}: ${member.agent.agent_name} (${member.role})`);
+
+          // Send "thinking" event
+          sendEvent({
+            type: 'thinking',
+            agent_name: member.agent.agent_name,
+            role: member.role,
+            step_order: i + 1,
+          });
+
+          try {
+            const { output, should_delegate } = await callAgent(
+              member.agent,
+              member.squad_instructions,
+              member.role,
+              stepInput,
+              steps,
+              nextAgents,
+            );
+
+            const step: StepResult = {
+              agent_id: member.agent_id,
+              agent_name: member.agent.agent_name,
+              role: member.role,
+              input: stepInput,
+              output,
+              step_order: i + 1,
+              should_delegate,
+            };
+            steps.push(step);
+
+            // Save step to DB
+            await serviceClient.from('ia_agent_squad_execution_steps').insert({
+              execution_id: execution.id,
+              agent_id: member.agent_id,
+              member_id: member.id,
+              step_order: i + 1,
+              input: stepInput,
+              output,
+              status: 'completed',
+              started_at: new Date().toISOString(),
+              completed_at: new Date().toISOString(),
+            });
+
+            // Send step result event
+            sendEvent({
+              type: 'step',
+              agent_name: member.agent.agent_name,
+              role: member.role,
+              output,
+              step_order: i + 1,
+              should_delegate,
+            });
+
+            // If agent decided NOT to delegate, stop the chain
+            if (!should_delegate) {
+              console.log(`[squad-orchestrator] ${member.agent.agent_name} decided to FINALIZE. Stopping chain.`);
+              break;
+            }
+          } catch (err) {
+            console.error(`[squad-orchestrator] Error at step ${i + 1}:`, err);
+            await serviceClient.from('ia_agent_squad_execution_steps').insert({
+              execution_id: execution.id,
+              agent_id: member.agent_id,
+              member_id: member.id,
+              step_order: i + 1,
+              input: stepInput,
+              output: `Erro: ${err.message}`,
+              status: 'failed',
+              started_at: new Date().toISOString(),
+              completed_at: new Date().toISOString(),
+            });
+
+            sendEvent({
+              type: 'error',
+              agent_name: member.agent.agent_name,
+              role: member.role,
+              output: `⚠️ Erro ao processar: ${err.message}`,
+              step_order: i + 1,
+            });
+
+            steps.push({
+              agent_id: member.agent_id,
+              agent_name: member.agent.agent_name,
+              role: member.role,
+              input: stepInput,
+              output: `⚠️ Erro: ${err.message}`,
+              step_order: i + 1,
+              should_delegate: false,
+            });
+            break;
+          }
+        }
+
+        // Mark execution as completed
+        const finalOutput = steps[steps.length - 1]?.output || '';
+        await serviceClient.from('ia_agent_squad_executions').update({
           status: 'completed',
-          started_at: new Date().toISOString(),
+          final_output: finalOutput,
           completed_at: new Date().toISOString(),
-        });
-      } catch (err) {
-        console.error(`[squad-orchestrator] Error at step ${i + 1}:`, err);
-        await serviceClient.from('ia_agent_squad_execution_steps').insert({
-          execution_id: execution.id,
-          agent_id: member.agent_id,
-          member_id: member.id,
-          step_order: i + 1,
-          input: stepInput,
-          output: `Erro: ${err.message}`,
-          status: 'failed',
-          started_at: new Date().toISOString(),
-          completed_at: new Date().toISOString(),
-        });
-        steps.push({
-          agent_id: member.agent_id,
-          agent_name: member.agent.agent_name,
-          role: member.role,
-          input: stepInput,
-          output: `⚠️ Erro ao processar: ${err.message}`,
-          step_order: i + 1,
-        });
-      }
-    }
+        }).eq('id', execution.id);
 
-    // 6. Mark execution as completed
-    const finalOutput = steps[steps.length - 1]?.output || '';
-    await serviceClient.from('ia_agent_squad_executions').update({
-      status: 'completed',
-      final_output: finalOutput,
-      completed_at: new Date().toISOString(),
-    }).eq('id', execution.id);
+        sendEvent({ type: 'done', execution_id: execution.id });
+        controller.close();
+      },
+    });
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        execution_id: execution.id,
-        steps: steps.map(s => ({
-          agent_name: s.agent_name,
-          role: s.role,
-          output: s.output,
-          step_order: s.step_order,
-        })),
-        final_output: finalOutput,
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return new Response(stream, {
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      },
+    });
 
   } catch (error) {
     console.error('[squad-orchestrator] Error:', error);
