@@ -36,7 +36,8 @@ export function AtividadeDialog({ open, onOpenChange, onSave, atividade, loading
   const [inicioAposDias, setInicioAposDias] = useState(0);
   const [duracaoDias, setDuracaoDias] = useState(1);
   const [responsavelId, setResponsavelId] = useState<string | null>(null);
-  const [etapa, setEtapa] = useState('');
+  const [quadroUserId, setQuadroUserId] = useState<string | null>(null);
+  const [quadroColumnId, setQuadroColumnId] = useState<string | null>(null);
   const [fluxo, setFluxo] = useState('');
   const [descricao, setDescricao] = useState('');
   const [autorizadorId, setAutorizadorId] = useState<string | null>(null);
@@ -48,11 +49,36 @@ export function AtividadeDialog({ open, onOpenChange, onSave, atividade, loading
     queryKey: ['employees-for-roteiro', companyId],
     queryFn: async () => {
       if (!companyId) return [];
-      const { data } = await supabase.from('employees').select('id, name').eq('company_id', companyId).eq('status', 'active').order('name');
+      const { data } = await supabase.from('employees').select('id, name, user_id').eq('company_id', companyId).eq('status', 'active').order('name');
       return data || [];
     },
     enabled: !!companyId,
   });
+
+  // Fetch all board columns for this company, grouped by user_id
+  const { data: allColumns = [] } = useQuery({
+    queryKey: ['all-board-columns', companyId],
+    queryFn: async () => {
+      if (!companyId) return [];
+      const { data } = await (supabase
+        .from('task_board_columns' as any)
+        .select('*')
+        .eq('company_id', companyId)
+        .order('order_index', { ascending: true }) as any);
+      return (data || []) as Array<{ id: string; user_id: string; name: string; color: string; order_index: number }>;
+    },
+    enabled: !!companyId,
+  });
+
+  // Employees that have boards (have columns)
+  const employeesWithBoards = employees.filter(emp =>
+    emp.user_id && allColumns.some(col => col.user_id === emp.user_id)
+  );
+
+  // Columns filtered by selected quadro (employee user_id)
+  const filteredColumns = quadroUserId
+    ? allColumns.filter(col => col.user_id === quadroUserId)
+    : [];
 
   useEffect(() => {
     if (atividade) {
@@ -61,27 +87,38 @@ export function AtividadeDialog({ open, onOpenChange, onSave, atividade, loading
       setInicioAposDias(atividade.inicio_apos_dias || 0);
       setDuracaoDias(atividade.duracao_dias || 1);
       setResponsavelId(atividade.responsavel_id);
-      setEtapa(atividade.etapa || '');
       setFluxo(atividade.fluxo || '');
       setDescricao(atividade.descricao || '');
       setAutorizadorId(atividade.autorizador_id);
       setChecklistItems(Array.isArray(atividade.checklist) ? atividade.checklist.map((c: any) => typeof c === 'string' ? c : c.text || '') : []);
+      setQuadroColumnId(atividade.quadro_column_id);
+      // Derive quadroUserId from the column
+      if (atividade.quadro_column_id) {
+        const col = allColumns.find(c => c.id === atividade.quadro_column_id);
+        if (col) setQuadroUserId(col.user_id);
+      } else {
+        setQuadroUserId(null);
+      }
     } else {
       setTitulo(''); setTipo('tarefa'); setInicioAposDias(0); setDuracaoDias(1);
-      setResponsavelId(null); setEtapa(''); setFluxo(''); setDescricao('');
+      setResponsavelId(null); setFluxo(''); setDescricao('');
       setAutorizadorId(null); setChecklistItems([]);
+      setQuadroUserId(null); setQuadroColumnId(null);
     }
-  }, [atividade, open]);
+  }, [atividade, open, allColumns]);
 
   const handleSave = () => {
     if (!titulo.trim()) return;
+    // Derive etapa name from selected column
+    const selectedCol = allColumns.find(c => c.id === quadroColumnId);
     onSave({
       titulo: titulo.trim(),
       tipo,
       inicio_apos_dias: inicioAposDias,
       duracao_dias: duracaoDias,
       responsavel_id: responsavelId,
-      etapa: etapa || null,
+      quadro_column_id: quadroColumnId,
+      etapa: selectedCol?.name || null,
       fluxo: fluxo || null,
       descricao: descricao || null,
       autorizador_id: autorizadorId,
@@ -135,6 +172,45 @@ export function AtividadeDialog({ open, onOpenChange, onSave, atividade, loading
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
+                <Label>Quadro</Label>
+                <Select
+                  value={quadroUserId || ''}
+                  onValueChange={v => {
+                    setQuadroUserId(v || null);
+                    setQuadroColumnId(null); // reset etapa when board changes
+                  }}
+                >
+                  <SelectTrigger><SelectValue placeholder="Selecione o quadro..." /></SelectTrigger>
+                  <SelectContent>
+                    {employeesWithBoards.map(e => (
+                      <SelectItem key={e.user_id} value={e.user_id!}>{e.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Etapa</Label>
+                <Select
+                  value={quadroColumnId || ''}
+                  onValueChange={v => setQuadroColumnId(v || null)}
+                  disabled={!quadroUserId}
+                >
+                  <SelectTrigger><SelectValue placeholder={quadroUserId ? "Selecione a etapa..." : "Selecione o quadro primeiro"} /></SelectTrigger>
+                  <SelectContent>
+                    {filteredColumns.map(col => (
+                      <SelectItem key={col.id} value={col.id}>
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: col.color }} />
+                          {col.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
                 <Label>Responsável</Label>
                 <Select value={responsavelId || ''} onValueChange={v => setResponsavelId(v || null)}>
                   <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
@@ -152,10 +228,6 @@ export function AtividadeDialog({ open, onOpenChange, onSave, atividade, loading
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-            <div>
-              <Label>Etapa</Label>
-              <Input value={etapa} onChange={e => setEtapa(e.target.value)} placeholder="Etapa do processo" />
             </div>
             <div>
               <Label>Descrição</Label>
