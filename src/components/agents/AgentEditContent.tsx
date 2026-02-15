@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Settings, Brain, FileText, Bot, Puzzle, MessageCircle, Save } from "lucide-react";
+import { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +12,7 @@ import { useClients } from "@/hooks/useClients";
 import { KnowledgeDocumentsManager } from "@/components/agents/KnowledgeDocumentsManager";
 import { TelegramBotConfig } from "@/components/agents/TelegramBotConfig";
 import { AgentSkillsConfig } from "@/components/agents/AgentSkillsConfig";
+import { PromptSkillInjector } from "@/components/agents/PromptSkillInjector";
 import { ChatMessages } from "@/components/ai-chat/ChatMessages";
 import { ChatInput } from "@/components/ai-chat/ChatInput";
 import { AgentConversationsSidebar } from "@/components/agents/AgentConversationsSidebar";
@@ -75,6 +77,25 @@ export function AgentEditContent({
     client_id: "none",
   });
   const [showWarning, setShowWarning] = useState(false);
+  const promptRef = useRef<HTMLTextAreaElement>(null);
+
+  const handleInsertSkill = (skillTag: string) => {
+    const textarea = promptRef.current;
+    if (!textarea) {
+      setFormData(prev => ({ ...prev, prompt_base: prev.prompt_base + " " + skillTag }));
+      return;
+    }
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = formData.prompt_base;
+    const newText = text.substring(0, start) + skillTag + text.substring(end);
+    setFormData(prev => ({ ...prev, prompt_base: newText }));
+    // Restore cursor position after React re-render
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + skillTag.length, start + skillTag.length);
+    }, 0);
+  };
 
   useEffect(() => {
     if (agentId) {
@@ -266,6 +287,7 @@ export function AgentEditContent({
                     <Label htmlFor="prompt_base">Prompt Base do Agente *</Label>
                     <Textarea
                       id="prompt_base"
+                      ref={promptRef}
                       value={formData.prompt_base}
                       onChange={(e) => {
                         setFormData({ ...formData, prompt_base: e.target.value });
@@ -279,6 +301,7 @@ export function AgentEditContent({
                       {formData.prompt_base.length}/50 caracteres mínimos
                     </p>
                   </div>
+                  <PromptSkillInjector agentId={agentId} onInsertSkill={handleInsertSkill} />
                   <div>
                     <Label htmlFor="additional_instructions">Instruções Adicionais</Label>
                     <Textarea
