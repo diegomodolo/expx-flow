@@ -603,6 +603,11 @@ ${agent.client_id ? '- Mencione métricas específicas quando pertinente' : ''}
 - Ao executar uma skill com sucesso, confirme brevemente sem reexplicar o contexto
 - Priorize economia de tokens: vá direto ao ponto
 - LEMBRETE: A data de hoje é ${isoDateSP}. Use ESTA data para qualquer referência temporal.
+
+REGRA CRÍTICA DE AGENDAMENTO:
+- Quando gerar uma imagem (generate_image_ai) e depois agendar (schedule_post), você DEVE passar o campo image_url com a URL retornada pela skill de geração.
+- Nunca agende um post sem imagem se uma imagem foi gerada anteriormente na conversa. Recupere a URL da resposta da skill de geração e passe-a no agendamento.
+- Se o usuário pedir para gerar e agendar, faça em duas etapas: primeiro gere a imagem, depois agende passando a URL recebida.
 `;
 
     const aiMessages = [
