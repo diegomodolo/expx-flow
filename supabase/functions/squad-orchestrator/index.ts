@@ -43,6 +43,7 @@ async function callAgent(
   role: string,
   message: string,
   previousSteps: StepResult[],
+  isLeader: boolean,
   nextAgents: SquadMember[],
 ): Promise<{ output: string; should_delegate: boolean }> {
   const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
@@ -53,9 +54,24 @@ async function callAgent(
       ).join('\n\n')}\n`
     : '';
 
-  const nextAgentsList = nextAgents.length > 0
-    ? `\n\nAgentes disponíveis para delegação: ${nextAgents.map(a => `${a.agent.agent_name} (${a.role})`).join(', ')}`
-    : '\n\nVocê é o último agente na cadeia, não há para quem delegar.';
+  // Only leader gets delegation instructions
+  let delegationInstructions = '';
+  if (isLeader) {
+    const nextAgentsList = nextAgents.length > 0
+      ? `Agentes disponíveis na squad: ${nextAgents.map(a => `${a.agent.agent_name} (${a.role})`).join(', ')}`
+      : '';
+
+    delegationInstructions = `
+INSTRUÇÕES CRÍTICAS DE DELEGAÇÃO (APENAS PARA VOCÊ, O LÍDER):
+- Analise a mensagem recebida e decida se você consegue responder sozinho ou se precisa acionar a squad.
+- Para mensagens simples (saudações como "oi", "olá", perguntas básicas, agradecimentos), responda diretamente SEM delegar.
+- Delegue APENAS quando a tarefa realmente necessitar do trabalho da squad.
+${nextAgentsList}
+- Para indicar sua decisão, termine sua resposta EXATAMENTE com uma destas tags:
+  [DELEGAR] - se a tarefa precisa ser passada para a squad trabalhar
+  [FINALIZAR] - se você já resolveu sozinho e não precisa de mais ninguém
+`;
+  }
 
   const systemPrompt = `${agent.prompt_base}
 
@@ -65,18 +81,11 @@ ${agent.additional_instructions || ''}
 Você é o "${role}" desta squad de agentes de IA.
 ${squadInstructions ? `Instruções específicas para você nesta squad: ${squadInstructions}` : ''}
 ${stepsContext}
-${nextAgentsList}
-
-INSTRUÇÕES CRÍTICAS DE DELEGAÇÃO:
-- Analise a mensagem/solicitação recebida e decida se você consegue responder sozinho ou se precisa delegar para outros agentes.
-- Para mensagens simples (saudações como "oi", "olá", perguntas básicas, agradecimentos), responda diretamente SEM delegar.
-- Delegue APENAS quando a tarefa realmente necessitar da expertise de outro agente.
-- Para indicar sua decisão, termine sua resposta EXATAMENTE com uma destas tags:
-  [DELEGAR] - se a tarefa precisa ser passada adiante para outros agentes
-  [FINALIZAR] - se você já resolveu a solicitação e não precisa de mais ninguém
+${delegationInstructions}
 
 INSTRUÇÕES DE RESPOSTA:
 - Seja objetivo e agregue valor com sua especialidade.
+- Considere o contexto dos agentes anteriores ao elaborar sua resposta.
 - Se você é o líder, coordene e sintetize. Se é gerente, organize. Se é executor, execute a tarefa.
 `;
 
@@ -104,11 +113,13 @@ INSTRUÇÕES DE RESPOSTA:
   const data = await aiResponse.json();
   const rawOutput = data.choices[0].message.content || '';
 
-  // Parse delegation decision
-  const should_delegate = rawOutput.includes('[DELEGAR]');
-  // Clean the tags from the output shown to the user
-  const output = rawOutput.replace(/\[DELEGAR\]/g, '').replace(/\[FINALIZAR\]/g, '').trim();
+  // Only leader can decide to stop the chain
+  let should_delegate = true; // default: continue the chain
+  if (isLeader) {
+    should_delegate = rawOutput.includes('[DELEGAR]');
+  }
 
+  const output = rawOutput.replace(/\[DELEGAR\]/g, '').replace(/\[FINALIZAR\]/g, '').trim();
   return { output, should_delegate };
 }
 
@@ -224,12 +235,14 @@ Deno.serve(async (req) => {
           });
 
           try {
+            const isLeader = member.id === leader.id;
             const { output, should_delegate } = await callAgent(
               member.agent,
               member.squad_instructions,
               member.role,
               stepInput,
               steps,
+              isLeader,
               nextAgents,
             );
 
