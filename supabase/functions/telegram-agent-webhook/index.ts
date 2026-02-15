@@ -332,9 +332,13 @@ async function chatWithToolCalling(
         }
         result = await handleBuiltinQuery(fnName, fnArgs, mutableContext.company_id || '', mutableContext.client_id);
       } else {
-        // Always pick up client_id from args (model may pass it explicitly)
-        if (fnArgs.client_id) {
+        // Use context client_id if already resolved; only override if not set yet
+        if (fnArgs.client_id && !mutableContext.client_id) {
           mutableContext.client_id = fnArgs.client_id as string;
+        }
+        // Always force the resolved client_id into args to prevent hallucinated IDs
+        if (mutableContext.client_id) {
+          fnArgs.client_id = mutableContext.client_id;
         }
         result = await executeSkill(fnName, skills, fnArgs, mutableContext);
         // Collect generated images
@@ -591,6 +595,8 @@ INSTRUÇÕES IMPORTANTES:
 - Use as informações da biblioteca de conhecimento quando relevante
 - Seja preciso e baseie suas respostas nos dados fornecidos
 - Você está respondendo via Telegram, mantenha mensagens concisas e bem formatadas
+- NUNCA invente ou fabrique UUIDs/IDs de clientes. Se você já identificou o cliente anteriormente na conversa, reutilize o mesmo client_id. Se não sabe o ID, use _lookup_client para buscar.
+- Quando executar múltiplas ações em sequência para o mesmo cliente, use sempre o client_id que já foi resolvido.
 `;
 
     const aiMessages = [
