@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { useSkills, Skill } from "@/hooks/useSkills";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -101,7 +102,8 @@ export default function SkillEditPage() {
   if (loading) return <div className="py-12 text-center text-muted-foreground">Carregando...</div>;
 
   return (
-    <div className="space-y-6">
+    <DashboardLayout>
+    <div className="space-y-6 p-6">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" onClick={() => navigate("/ia/skills")}>
           <ArrowLeft className="h-4 w-4" />
@@ -263,5 +265,6 @@ export default function SkillEditPage() {
         </TabsContent>
       </Tabs>
     </div>
+    </DashboardLayout>
   );
 }

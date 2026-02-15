@@ -10,6 +10,7 @@ import {
   BarChart3, FileText, Brain, Puzzle, Power, PowerOff
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 
 const categoryIcons: Record<string, React.ElementType> = {
   data: Database,
@@ -62,7 +63,8 @@ export default function SkillsPage() {
   }, {});
 
   return (
-    <div className="space-y-6">
+    <DashboardLayout>
+    <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Fábrica de Skills</h1>
@@ -170,5 +172,6 @@ export default function SkillsPage() {
           })
       )}
     </div>
+    </DashboardLayout>
   );
 }
