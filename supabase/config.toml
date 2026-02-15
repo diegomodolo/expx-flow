@@ -516,3 +516,6 @@ verify_jwt = false
 
 [functions.execute-skill]
 verify_jwt = false
+
+[functions.schedule-post]
+verify_jwt = false
