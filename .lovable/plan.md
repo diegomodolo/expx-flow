@@ -1,94 +1,181 @@
 
 
-# Integrar Agentes de IA com Bots do Telegram
+# Sistema de Skills para Agentes de IA
 
 ## Resumo
 
-Permitir que cada agente de IA criado no sistema seja conectado a um bot do Telegram. Quando alguem mandar mensagem para o bot, o agente responde automaticamente usando o mesmo prompt, conhecimento e contexto que ja possui.
+Criar um sistema de "Skills" que mapeia as capacidades existentes do sistema como ferramentas que os agentes de IA podem executar durante conversas. Ao conversar com um agente (no chat interno ou via Telegram), ele podera, por exemplo, gerar um criativo, analisar uma campanha ou criar uma postagem -- tudo acionado via tool calling da IA.
 
-## Como Funciona para o Usuario
+## Como Funciona
 
-1. Voce cria um bot no Telegram via @BotFather (ele te da um token)
-2. Na pagina de edicao do agente, voce cola o token do bot
-3. O sistema configura o webhook automaticamente
-4. Pronto - qualquer pessoa que mandar mensagem pro bot recebe resposta do agente
+1. O sistema tem um catalogo de skills pre-definidas (baseadas nas edge functions existentes)
+2. Na pagina de edicao do agente, voce habilita/desabilita quais skills aquele agente pode usar
+3. Quando o usuario conversa com o agente, a IA recebe as skills habilitadas como "tools" (tool calling)
+4. Quando a IA decide usar uma skill, o backend executa a edge function correspondente e retorna o resultado
+
+## Catalogo de Skills Identificadas
+
+Analisei todas as edge functions e hooks do sistema. Estas sao as skills que podem ser criadas:
+
+### Geracao de Conteudo (IA)
+| Skill | Edge Function | Descricao |
+|-------|--------------|-----------|
+| Gerar Textos Criativos | `generate-creative-texts` | Gera headlines, copys e CTAs para anuncios |
+| Gerar Conteudo AI | `generate-content-ai` | Gera conteudo por tipo (post, story, reels, etc) |
+| Gerar Variacoes de Criativo | `generate-creative-variations` | Cria variacoes visuais de um criativo |
+| Gerar Carrossel | `daily-carousel-generator` | Gera carrosseis para Instagram |
+| Gerar Post Instagram | `generate-instagram-auto-post` | Gera post automatico para Instagram |
+| Gerar Post WordPress | `generate-wordpress-auto-post` | Gera post para WordPress |
+| Gerar Post RSS | `generate-rss-post` | Gera post baseado em feed RSS |
+| Gerar Sugestoes Criativas | `generate-creative-suggestions` | Sugere ideias de criativos |
+
+### YouTube
+| Skill | Edge Function | Descricao |
+|-------|--------------|-----------|
+| Gerar Roteiro de Video | `generate-video-script` | Cria roteiro completo para YouTube |
+| Gerar Titulos YouTube | `generate-youtube-titles` | Sugere titulos otimizados |
+| Gerar Thumbnail YouTube | `generate-youtube-thumbnail` | Cria thumbnail com IA |
+| Gerar Sugestoes de Video | `generate-video-suggestions` | Sugere ideias de videos |
+| Analisar Canal YouTube | `analyze-youtube-channel` | Analisa metricas do canal |
+| Transcrever Video | `transcribe-youtube-video` | Transcreve audio de video |
+
+### Gestao de Campanhas Meta
+| Skill | Edge Function | Descricao |
+|-------|--------------|-----------|
+| Analisar Campanha | `generate-campaign-analysis` | Analise detalhada de performance |
+| Recomendacao de Campanha | `generate-campaign-recommendation` | Sugere otimizacoes |
+| Estrategia de Campanha | `generate-campaign-strategy` | Cria estrategia completa |
+| Gerenciar Campanha | `manage-facebook-campaign` | Pausar, ativar, renomear, ajustar budget |
+| Criar Campanha Completa | `create-meta-campaign-full` | Cria campanha + adset + anuncio |
+| Analisar Vencedores | `analyze-ad-winners` | Identifica anuncios com melhor performance |
+| Pontuar Anuncio | `score-generated-ad` | Da nota para um criativo gerado |
+| Sincronizar Campanhas | `sync-facebook-campaigns` | Sincroniza dados do Meta |
+| Enviar Evento Pixel | `send-pixel-event` | Dispara evento via Conversions API |
+
+### Prospeccao e Leads
+| Skill | Edge Function | Descricao |
+|-------|--------------|-----------|
+| Prospectar Google | `prospect-google-leads` | Busca leads no Google Maps |
+| Prospectar Instagram | `prospect-instagram-followers` | Busca seguidores de concorrentes |
+| Google Trends | `google-trends` | Consulta tendencias de busca |
+| Pesquisa de Mercado | `generate-research-themes` | Gera temas de pesquisa |
+
+### Utilidades
+| Skill | Edge Function | Descricao |
+|-------|--------------|-----------|
+| Traduzir Texto | `translate-text` | Traduz textos entre idiomas |
+| Corrigir Gramatica | `validate-text-grammar` | Corrige erros gramaticais |
+| Transcrever Audio | `transcribe-audio` | Transcreve audio para texto |
+| Gerar Briefing do Cliente | `generate-client-briefing` | Gera briefing automatico |
+| Analisar URL | `analyze-url-content` | Extrai conteudo de uma URL |
+| Analisar Concorrentes | `analyze-competitor-insights` | Analisa anuncios de concorrentes |
+
+### WhatsApp
+| Skill | Edge Function | Descricao |
+|-------|--------------|-----------|
+| Enviar Notificacao WhatsApp | `send-whatsapp-notification` | Envia mensagem via WhatsApp |
+
+### Publicacao
+| Skill | Edge Function | Descricao |
+|-------|--------------|-----------|
+| Publicar Post Agendado | `publish-scheduled-post` | Publica post no horario |
+| Agendar Postagem | `scheduled-post-publisher` | Agenda uma publicacao |
 
 ## Mudancas Tecnicas
 
 ### 1. Banco de Dados
 
-Adicionar coluna `telegram_bot_token` na tabela `ia_agents` para armazenar o token do bot associado ao agente.
+**Nova tabela `ia_agent_skills` (catalogo master de skills):**
+- `id` (text, PK) - identificador unico da skill (ex: "generate_creative_texts")
+- `name` - nome amigavel
+- `description` - descricao curta
+- `category` - categoria (conteudo, youtube, campanhas, prospeccao, utilidades, whatsapp, publicacao)
+- `edge_function` - nome da edge function que executa
+- `required_params` - JSON com parametros obrigatorios
+- `optional_params` - JSON com parametros opcionais
+- `requires_client` - boolean, se precisa de client_id
 
-### 2. Nova Edge Function: `telegram-agent-webhook`
+**Nova tabela `ia_agent_enabled_skills` (skills habilitadas por agente):**
+- `id` (uuid, PK)
+- `agent_id` (FK -> ia_agents)
+- `skill_id` (FK -> ia_agent_skills)
+- `created_at`
+- UNIQUE(agent_id, skill_id)
 
-Endpoint publico que o Telegram chama quando alguem manda mensagem para o bot:
+Seed das skills na migration com INSERT dos ~30 skills mapeados.
 
-- Recebe o update do Telegram (mensagem do usuario)
-- Identifica qual agente esta associado ao bot pelo token na URL
-- Busca o agente, prompt, documentos de conhecimento e contexto do cliente (mesma logica da `ia-agent-chat`)
-- Envia para o Lovable AI Gateway
-- Responde de volta no Telegram via `sendMessage`
-- Gerencia historico de conversa por `chat_id` do Telegram
+### 2. Edge Function: `ia-agent-chat` (modificar)
 
-### 3. Nova Edge Function: `configure-telegram-webhook`
+A logica principal muda para suportar tool calling:
 
-Chamada internamente quando o usuario salva o token do bot:
+1. Ao montar o request para o AI Gateway, incluir as skills habilitadas como `tools` no formato OpenAI tool calling
+2. Cada skill vira uma tool com `name`, `description` e `parameters` (JSON Schema)
+3. Quando a IA responde com `tool_calls`, o backend:
+   - Identifica qual skill foi chamada
+   - Executa a edge function correspondente (via fetch interno)
+   - Retorna o resultado para a IA como `tool` message
+   - A IA formula a resposta final para o usuario
+4. Salva a mensagem final no historico
 
-- Chama a API do Telegram `setWebhook` apontando para a URL da edge function `telegram-agent-webhook`
-- Valida se o token e valido chamando `getMe`
-- Retorna o nome do bot para exibir na interface
+### 3. Edge Function: `telegram-agent-webhook` (modificar)
 
-### 4. Tabela de Conversas do Telegram
+Mesma logica de tool calling do `ia-agent-chat`, adaptada para o fluxo do Telegram.
 
-Nova tabela `ia_agent_telegram_conversations` para manter historico por chat:
+### 4. Nova secao no menu lateral do AgentEdit: "Skills"
 
-- `agent_id` (referencia ao agente)
-- `telegram_chat_id` (ID do chat no Telegram)
-- `messages` (historico em JSON ou tabela separada)
-- Limitar historico a ultimas N mensagens para nao exceder contexto
+- Adicionar item "Skills" no menu lateral (icone `Wrench` ou `Puzzle`)
+- Componente `AgentSkillsConfig.tsx`:
+  - Lista todas as skills agrupadas por categoria
+  - Toggle (switch) para habilitar/desabilitar cada skill
+  - Descricao curta de cada skill
+  - Indicador visual de quantas skills ativas
+  - Se o agente nao tem client_id, skills que exigem cliente ficam desabilitadas com tooltip explicando
 
-### 5. Interface - Pagina de Edicao do Agente
-
-Na pagina de edicao/criacao do agente, adicionar uma secao "Telegram":
-
-- Campo para colar o token do bot (@BotFather)
-- Botao "Conectar" que chama a edge function de configuracao
-- Status da conexao (conectado/desconectado, nome do bot)
-- Botao para desconectar/remover o bot
-- Instrucoes simples de como criar um bot no @BotFather
-
-### 6. Arquivos Modificados/Criados
+### 5. Arquivos Criados/Modificados
 
 **Novos:**
-- `supabase/functions/telegram-agent-webhook/index.ts` - Webhook que recebe mensagens do Telegram
-- `supabase/functions/configure-telegram-webhook/index.ts` - Configura o webhook no Telegram
+- Migration SQL com tabelas + seed de skills
+- `src/components/agents/AgentSkillsConfig.tsx` - UI de gestao de skills
+- `src/hooks/useAgentSkills.tsx` - Hook para CRUD de skills habilitadas
 
 **Modificados:**
-- `src/hooks/useIAAgents.tsx` - Adicionar funcoes para salvar/remover token do Telegram
-- Pagina/componente de edicao do agente - Adicionar secao de configuracao do Telegram
-- Migration SQL para adicionar coluna `telegram_bot_token` em `ia_agents`
+- `supabase/functions/ia-agent-chat/index.ts` - Adicionar tool calling
+- `supabase/functions/telegram-agent-webhook/index.ts` - Adicionar tool calling
+- `src/pages/AgentEdit.tsx` - Adicionar secao "Skills" no menu lateral
 
-## Fluxo da Mensagem
+## Fluxo de Execucao de Skill
 
 ```text
-Usuario no Telegram
-       |
-       v
-Telegram API --> telegram-agent-webhook (Edge Function)
-       |
-       v
-Busca agente + prompt + conhecimento + contexto do cliente
-       |
-       v
-Lovable AI Gateway (mesmo modelo configurado no agente)
-       |
-       v
-Resposta enviada de volta ao Telegram via sendMessage
+Usuario: "Analisa a campanha X do cliente"
+         |
+         v
+ia-agent-chat recebe mensagem
+         |
+         v
+Monta request com tools[] das skills habilitadas
+         |
+         v
+AI Gateway responde com tool_call: "analyze_campaign"
+         |
+         v
+Backend executa edge function "generate-campaign-analysis"
+         |
+         v
+Resultado retornado como tool message
+         |
+         v
+AI Gateway formula resposta final com os dados
+         |
+         v
+"A campanha X gastou R$500, teve 20 conversoes..."
 ```
 
 ## Consideracoes
 
-- O token do bot e armazenado na coluna do banco, protegido por RLS
-- Cada agente pode ter no maximo 1 bot do Telegram
-- O historico de conversa no Telegram e separado do historico interno do sistema
-- O webhook e publico (sem JWT) pois o Telegram precisa acessar diretamente, mas validamos o token na URL
+- As skills sao executadas no backend com service_role, entao tem acesso total aos dados
+- O agente so pode usar skills que foram explicitamente habilitadas
+- Skills que precisam de client_id usam o client associado ao agente
+- O tool calling e nativo do AI Gateway (compativel com OpenAI format)
+- Nao ha risco de seguranca pois as skills sao pre-definidas e validadas no backend
+- O sistema e extensivel: novas edge functions podem virar novas skills adicionando um registro na tabela
+
