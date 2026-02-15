@@ -532,8 +532,14 @@ As skills serão executadas automaticamente e você receberá o resultado para f
     const todaySP = `${weekdays[nowSPDate.getUTCDay()]}, ${parseInt(day)} de ${months[nowSPDate.getUTCMonth()]} de ${year}`;
     console.log(`[ia-agent-chat] Current SP date: ${isoDateSP} ${timeSP}, todaySP: ${todaySP}`);
 
-    // Build enriched system prompt
-    const systemPrompt = `${agent.prompt_base}
+    // Build enriched system prompt - date at beginning for maximum visibility
+    const dateBlock = `[SISTEMA - DATA ATUAL: ${isoDateSP}]
+A data e hora EXATA de agora é: ${todaySP}, ${timeSP} (horário de Brasília / UTC-3).
+Quando o usuário disser "hoje", a data é ${isoDateSP}. NUNCA invente ou adivinhe a data.`;
+
+    const systemPrompt = `${dateBlock}
+
+${agent.prompt_base}
 
 ${agent.additional_instructions || ''}
 
@@ -542,20 +548,16 @@ ${knowledgeContext ? `\n\n[BIBLIOTECA DE CONHECIMENTO]\n${knowledgeContext}\n` :
 ${clientContext ? `\n\n${clientContext}\n` : ''}
 ${skillInstructions}
 
-[DATA E HORA ATUAL]
-Hoje é ${todaySP}, ${timeSP} (horário de Brasília).
-Data ISO: ${isoDateSP}
-Use SEMPRE estas informações quando precisar referenciar datas. "Hoje" = ${isoDateSP}.
-
 INSTRUÇÕES IMPORTANTES:
 - Use as informações da biblioteca de conhecimento quando relevante
 ${agent.client_id ? '- Use os dados do cliente para contextualizar suas respostas' : ''}
 ${agent.client_id ? '- Mencione métricas específicas quando pertinente' : ''}
 - Seja preciso e baseie suas respostas nos dados fornecidos
-- Seja DIRETO e CONCISO nas respostas. Evite textos longos e repetitivos.
-- Não repita informações que o usuário já sabe ou que já foram mencionadas.
-- Ao executar uma skill com sucesso, confirme brevemente o resultado sem reexplicar todo o contexto.
-- Priorize economia de tokens: vá direto ao ponto.
+- Seja DIRETO e CONCISO nas respostas. Evite textos longos e repetitivos
+- Não repita informações que o usuário já sabe
+- Ao executar uma skill com sucesso, confirme brevemente sem reexplicar o contexto
+- Priorize economia de tokens: vá direto ao ponto
+- LEMBRETE: A data de hoje é ${isoDateSP}. Use ESTA data para qualquer referência temporal.
 `;
 
     const aiMessages = [
