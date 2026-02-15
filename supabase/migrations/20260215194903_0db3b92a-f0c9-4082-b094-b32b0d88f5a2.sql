@@ -1,0 +1,1 @@
+UPDATE ia_agent_squad_executions SET status = 'failed', completed_at = now() WHERE status = 'running' AND created_at < now() - interval '10 minutes';
