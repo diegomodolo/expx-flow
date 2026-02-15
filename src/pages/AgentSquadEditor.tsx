@@ -25,9 +25,33 @@ import { SquadAgentLibrary } from "@/components/agent-squads/SquadAgentLibrary";
 import { SquadNodeEditPanel } from "@/components/agent-squads/SquadNodeEditPanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Save, Loader2, Check, X } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { ArrowLeft, Save, Loader2, Settings, Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAgentSquads } from "@/hooks/useAgentSquads";
+import { useClients } from "@/hooks/useClients";
 import { useToast } from "@/hooks/use-toast";
 
 const nodeTypes: NodeTypes = {
@@ -61,7 +85,8 @@ function SquadEditorContent() {
   const navigate = useNavigate();
   const { squadId } = useParams();
   const { toast } = useToast();
-  const { fetchSquadById, fetchSquadMembers, fetchSquadFlows, saveSquadLayout } = useAgentSquads();
+  const { fetchSquadById, fetchSquadMembers, fetchSquadFlows, saveSquadLayout, updateSquad } = useAgentSquads();
+  const { clients = [] } = useClients();
   const { screenToFlowPosition } = useReactFlow();
 
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -69,12 +94,20 @@ function SquadEditorContent() {
   const [editingNode, setEditingNode] = useState<Node | null>(null);
   const [squadName, setSquadName] = useState("Squad");
   const [squadClientId, setSquadClientId] = useState<string | undefined>();
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [tempName, setTempName] = useState("");
+  const [squadDescription, setSquadDescription] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Edit squad dialog state
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editForm, setEditForm] = useState({ name: "", description: "", client_id: "" });
+  const [clientPopoverOpen, setClientPopoverOpen] = useState(false);
+
   const nodesRef = useRef<Node[]>([]);
-  const nameInputRef = useRef<HTMLInputElement>(null);
+
+  const sortedClients = Array.isArray(clients)
+    ? [...clients].sort((a, b) => a.name.localeCompare(b.name))
+    : [];
 
   useEffect(() => {
     nodesRef.current = nodes;
@@ -94,11 +127,11 @@ function SquadEditorContent() {
         const squad = await fetchSquadById(squadId);
         setSquadName(squad.name);
         setSquadClientId(squad.client_id);
+        setSquadDescription(squad.description || "");
 
         const members = await fetchSquadMembers(squadId);
         const flows = await fetchSquadFlows(squadId);
 
-        // Build nodes from members
         const loadedNodes: Node[] = members.map((m) => ({
           id: m.id,
           type: "squadAgent",
@@ -113,7 +146,6 @@ function SquadEditorContent() {
           } as SquadAgentNodeData,
         }));
 
-        // Build edges from flows
         const loadedEdges: Edge[] = flows.map((f) => ({
           id: f.id,
           source: f.source_member_id,
@@ -228,25 +260,33 @@ function SquadEditorContent() {
     }
   };
 
-  const handleStartEditingName = () => {
-    setTempName(squadName);
-    setIsEditingName(true);
+  // Edit squad dialog handlers
+  const handleOpenEditDialog = () => {
+    setEditForm({
+      name: squadName,
+      description: squadDescription,
+      client_id: squadClientId || "",
+    });
+    setEditDialogOpen(true);
   };
 
-  const handleSaveName = async () => {
-    if (tempName.trim()) {
-      setSquadName(tempName.trim());
-      // TODO: persist name change
+  const handleSaveSquadEdit = async () => {
+    if (!squadId || !editForm.name || !editForm.client_id) return;
+    await updateSquad(squadId, {
+      name: editForm.name,
+      description: editForm.description,
+      client_id: editForm.client_id,
+    });
+    setSquadName(editForm.name);
+    setSquadDescription(editForm.description);
+    // If client changed, update the library filter
+    if (editForm.client_id !== squadClientId) {
+      setSquadClientId(editForm.client_id);
     }
-    setIsEditingName(false);
+    setEditDialogOpen(false);
   };
 
-  useEffect(() => {
-    if (isEditingName && nameInputRef.current) {
-      nameInputRef.current.focus();
-      nameInputRef.current.select();
-    }
-  }, [isEditingName]);
+  const selectedEditClientName = sortedClients.find(c => c.id === editForm.client_id)?.name;
 
   if (isLoading) {
     return (
@@ -265,40 +305,20 @@ function SquadEditorContent() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            {isEditingName ? (
-              <div className="flex items-center gap-2">
-                <Input
-                  ref={nameInputRef}
-                  value={tempName}
-                  onChange={(e) => setTempName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleSaveName();
-                    if (e.key === "Escape") setIsEditingName(false);
-                  }}
-                  className="h-8 text-lg font-semibold"
-                />
-                <Button size="icon" variant="ghost" onClick={handleSaveName}>
-                  <Check className="h-4 w-4" />
-                </Button>
-                <Button size="icon" variant="ghost" onClick={() => setIsEditingName(false)}>
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            ) : (
-              <h1
-                className="text-lg font-semibold cursor-pointer hover:text-primary transition-colors"
-                onClick={handleStartEditingName}
-              >
-                {squadName}
-              </h1>
-            )}
+            <h1 className="text-lg font-semibold">{squadName}</h1>
             <p className="text-sm text-muted-foreground">Editor Visual da Squad</p>
           </div>
         </div>
-        <Button onClick={handleSave} disabled={isSaving}>
-          {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-          Salvar
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={handleOpenEditDialog}>
+            <Settings className="h-4 w-4 mr-2" />
+            Editar Squad
+          </Button>
+          <Button onClick={handleSave} disabled={isSaving}>
+            {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+            Salvar
+          </Button>
+        </div>
       </div>
 
       {/* Main Content */}
@@ -338,6 +358,85 @@ function SquadEditorContent() {
         onSave={handleSaveNode}
         onDelete={handleDeleteNode}
       />
+
+      {/* Edit Squad Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Squad</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Nome da Squad</Label>
+              <Input
+                value={editForm.name}
+                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                placeholder="Nome da squad"
+              />
+            </div>
+            <div>
+              <Label>Descrição</Label>
+              <Textarea
+                value={editForm.description}
+                onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                placeholder="Descreva o objetivo da squad..."
+              />
+            </div>
+            <div>
+              <Label>Cliente</Label>
+              <Popover open={clientPopoverOpen} onOpenChange={setClientPopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={clientPopoverOpen}
+                    className="w-full justify-between font-normal"
+                  >
+                    {selectedEditClientName || "Selecione um cliente"}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                  <Command>
+                    <CommandInput placeholder="Buscar cliente..." />
+                    <CommandList>
+                      <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+                      <CommandGroup>
+                        {sortedClients.map((c) => (
+                          <CommandItem
+                            key={c.id}
+                            value={c.name}
+                            onSelect={() => {
+                              setEditForm({ ...editForm, client_id: c.id });
+                              setClientPopoverOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                editForm.client_id === c.id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {c.name}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveSquadEdit} disabled={!editForm.name || !editForm.client_id}>
+              Salvar Alterações
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
