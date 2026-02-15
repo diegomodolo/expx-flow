@@ -203,11 +203,10 @@ Deno.serve(async (req) => {
       }
     }
 
-    for (const m of typedMembers) {
-      if (!visited.has(m.id)) executionOrder.push(m);
-    }
+    // Do NOT add unvisited members — only execute agents that are reachable from the leader
 
     // 5. SSE streaming — execute agents and stream each step
+    const MAX_STEPS = executionOrder.length; // Never exceed the number of unique members
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       async start(controller) {
@@ -216,9 +215,18 @@ Deno.serve(async (req) => {
         };
 
         const steps: StepResult[] = [];
+        const executedAgents = new Set<string>();
 
-        for (let i = 0; i < executionOrder.length; i++) {
+        for (let i = 0; i < executionOrder.length && steps.length < MAX_STEPS; i++) {
           const member = executionOrder[i];
+
+          // Safety: skip if this agent was already executed (prevent loops)
+          if (executedAgents.has(member.id)) {
+            console.log(`[squad-orchestrator] Skipping already executed: ${member.agent.agent_name}`);
+            continue;
+          }
+          executedAgents.add(member.id);
+
           const stepInput = i === 0 ? message : steps[steps.length - 1].output;
 
           // Determine next agents available for delegation
