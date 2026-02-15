@@ -1,0 +1,1 @@
+ALTER TABLE public.ia_agent_telegram_conversations ADD COLUMN resolved_client_id uuid REFERENCES public.clients(id);
