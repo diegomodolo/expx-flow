@@ -171,8 +171,8 @@ export function SkillTestPlayground({ skill }: Props) {
         if (params[k] === "" || params[k] === undefined) delete params[k];
       });
       
-      // Use test-skill-execution which tries the real function first, then simulates
-      const { data, error } = await supabase.functions.invoke("test-skill-execution", {
+      // Use execute-skill universal executor
+      const { data, error } = await supabase.functions.invoke("execute-skill", {
         body: { skill_id: skill.id, params },
       });
       if (error) throw error;
@@ -210,7 +210,7 @@ export function SkillTestPlayground({ skill }: Props) {
         <CardHeader className="flex-row items-center justify-between space-y-0">
           <CardTitle>Playground de Teste</CardTitle>
           <div className="flex gap-2">
-            <Button size="sm" onClick={handleRun} disabled={running || !skill.edge_function}>
+            <Button size="sm" onClick={handleRun} disabled={running || (!skill.edge_function && !skill.edge_function_code)}>
               {running ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Play className="h-4 w-4 mr-1" />}
               Executar
             </Button>

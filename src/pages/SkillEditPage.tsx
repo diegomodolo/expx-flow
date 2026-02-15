@@ -58,6 +58,8 @@ const emptySkill: Skill = {
   updated_at: null,
   edge_function_code: null,
   external_api_config: null,
+  skill_type: "edge_function",
+  output_parameters: null,
 };
 
 export default function SkillEditPage() {
@@ -94,13 +96,15 @@ export default function SkillEditPage() {
       return;
     }
 
-    // Auto-generate edge_function name if empty
-    const edgeFunctionName = form.edge_function || `skill-${form.id.replace(/_/g, "-")}`;
+    const isJS = form.skill_type === "javascript";
+    // Auto-generate edge_function name if empty and not JS
+    const edgeFunctionName = isJS ? (form.edge_function || "") : (form.edge_function || `skill-${form.id.replace(/_/g, "-")}`);
 
     const steps: DeployStep[] = [
       { id: "validate", label: "Validando dados da skill...", status: "pending" },
       { id: "save_db", label: "Salvando no banco de dados...", status: "pending" },
-      { id: "deploy_code", label: "Salvando código da Edge Function...", status: "pending" },
+      { id: "deploy_code", label: isJS ? "Registrando código JavaScript..." : "Salvando código da Edge Function...", status: "pending" },
+      { id: "test", label: "Verificando execução...", status: "pending" },
       { id: "done", label: "Skill publicada com sucesso!", status: "pending" },
     ];
 
@@ -115,34 +119,65 @@ export default function SkillEditPage() {
       updateStep("validate", { status: "running" });
       await new Promise(r => setTimeout(r, 400));
 
+      if (isJS && !form.edge_function_code) {
+        throw new Error("Skill JavaScript precisa de código definido na aba Código");
+      }
+
       const updatedForm = { ...form, edge_function: edgeFunctionName };
-      updateStep("validate", { status: "done", detail: `Skill "${updatedForm.name}" validada` });
+      updateStep("validate", { status: "done", detail: `Skill "${updatedForm.name}" validada (${isJS ? "JavaScript" : "Edge Function"})` });
 
       // Step 2: Save to DB
       updateStep("save_db", { status: "running" });
       await saveSkill(updatedForm);
       updateStep("save_db", { status: "done", detail: "Registro salvo na tabela ia_agent_skills" });
 
-      // Step 3: Deploy code if present
+      // Step 3: Deploy/register code
       updateStep("deploy_code", { status: "running" });
       
       if (updatedForm.edge_function_code) {
-        const { data, error } = await supabase.functions.invoke("deploy-skill-function", {
-          body: {
-            skill_id: updatedForm.id,
-            edge_function_name: edgeFunctionName,
-            code: updatedForm.edge_function_code,
-            external_api_config: updatedForm.external_api_config,
-          },
-        });
-        if (error) throw new Error(error.message);
-        if (!data?.success) throw new Error(data?.error || "Erro no deploy");
-        updateStep("deploy_code", { status: "done", detail: `Function "${edgeFunctionName}" salva` });
+        if (isJS) {
+          // JS skills: code is already saved in DB, executor will run it
+          updateStep("deploy_code", { status: "done", detail: "Código JavaScript registrado no executor universal" });
+        } else {
+          // Edge function skills: save via deploy function
+          const { data, error } = await supabase.functions.invoke("deploy-skill-function", {
+            body: {
+              skill_id: updatedForm.id,
+              edge_function_name: edgeFunctionName,
+              code: updatedForm.edge_function_code,
+              external_api_config: updatedForm.external_api_config,
+            },
+          });
+          if (error) throw new Error(error.message);
+          if (!data?.success) throw new Error(data?.error || "Erro no deploy");
+          updateStep("deploy_code", { status: "done", detail: `Function "${edgeFunctionName}" salva` });
+        }
       } else {
         updateStep("deploy_code", { status: "done", detail: "Nenhum código para deploy" });
       }
 
-      // Step 4: Done
+      // Step 4: Quick test execution
+      updateStep("test", { status: "running" });
+      if (updatedForm.edge_function_code) {
+        try {
+          const { data: testResult, error: testError } = await supabase.functions.invoke("execute-skill", {
+            body: { skill_id: updatedForm.id, params: {} },
+          });
+          if (testError) {
+            updateStep("test", { status: "done", detail: `⚠️ Teste retornou erro: ${testError.message}` });
+          } else if (testResult?.success) {
+            updateStep("test", { status: "done", detail: `✅ Executou com sucesso (source: ${testResult.source})` });
+          } else {
+            updateStep("test", { status: "done", detail: `⚠️ ${testResult?.error || "Resultado inesperado"}` });
+          }
+        } catch {
+          updateStep("test", { status: "done", detail: "⚠️ Não foi possível testar automaticamente" });
+        }
+      } else {
+        updateStep("test", { status: "done", detail: "Sem código para testar" });
+      }
+
+      // Step 5: Done
       updateStep("done", { status: "done" });
       setDeployFinished(true);
 
@@ -264,7 +299,24 @@ export default function SkillEditPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="flex items-center gap-3 pt-6">
+                <div className="space-y-2">
+                  <Label>Tipo de Skill</Label>
+                  <Select value={form.skill_type || "edge_function"} onValueChange={(v) => update("skill_type", v)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="edge_function">Edge Function</SelectItem>
+                      <SelectItem value="javascript">JavaScript (código direto)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    {form.skill_type === "javascript" 
+                      ? "O código será executado diretamente pelo executor universal, sem precisar deployar uma Edge Function."
+                      : "O código será salvo como Edge Function. Se deployada no Supabase, será chamada diretamente."}
+                  </p>
+                </div>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="flex items-center gap-3 pt-2">
                   <Switch checked={!!form.requires_client} onCheckedChange={(v) => update("requires_client", v)} />
                   <Label>Requer cliente vinculado</Label>
                 </div>
@@ -340,6 +392,7 @@ export default function SkillEditPage() {
             code={form.edge_function_code || ""}
             onChange={(code) => update("edge_function_code", code)}
             edgeFunctionName={form.edge_function || `skill-${form.id.replace(/_/g, "-")}`}
+            skillType={form.skill_type}
           />
         </TabsContent>
 
@@ -353,10 +406,20 @@ export default function SkillEditPage() {
 
         {/* TAB PARÂMETROS */}
         <TabsContent value="parametros">
-          <SkillParametersEditor
-            toolParameters={form.tool_parameters}
-            onChange={(params) => update("tool_parameters", params)}
-          />
+          <div className="space-y-6">
+            <SkillParametersEditor
+              toolParameters={form.tool_parameters}
+              onChange={(params) => update("tool_parameters", params)}
+              label="Parâmetros de Entrada"
+              description="Defina os parâmetros que o agente deve fornecer ao chamar esta skill."
+            />
+            <SkillParametersEditor
+              toolParameters={form.output_parameters as Record<string, unknown> | null}
+              onChange={(params) => update("output_parameters", params)}
+              label="Parâmetros de Saída"
+              description="Defina o formato da resposta que esta skill retorna."
+            />
+          </div>
         </TabsContent>
 
         {/* TAB TESTE */}
