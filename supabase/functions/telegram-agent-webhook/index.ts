@@ -76,23 +76,28 @@ async function executeSkill(
 
   try {
     console.log(`executeSkill ${skillId} with client_id=${agentContext.client_id}, company_id=${agentContext.company_id}`);
-    const response = await fetch(`${supabaseUrl}/functions/v1/${skill.edge_function}`, {
+    // Use the universal executor which handles both edge functions and JS skills
+    const response = await fetch(`${supabaseUrl}/functions/v1/execute-skill`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${serviceRoleKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        ...args,
-        client_id: agentContext.client_id,
-        company_id: agentContext.company_id,
-        user_id: agentContext.user_id,
+        skill_id: skillId,
+        params: {
+          ...args,
+          client_id: agentContext.client_id,
+          company_id: agentContext.company_id,
+          user_id: agentContext.user_id,
+        },
       }),
     });
 
     const text = await response.text();
     try {
-      return JSON.parse(text);
+      const parsed = JSON.parse(text);
+      return parsed.result || parsed;
     } catch {
       return { result: text };
     }

@@ -75,23 +75,29 @@ async function executeSkill(
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
   try {
-    const response = await fetch(`${supabaseUrl}/functions/v1/${skill.edge_function}`, {
+    // Use the universal executor which handles both edge functions and JS skills
+    const response = await fetch(`${supabaseUrl}/functions/v1/execute-skill`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${serviceRoleKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        ...args,
-        client_id: agentContext.client_id,
-        company_id: agentContext.company_id,
-        user_id: agentContext.user_id,
+        skill_id: skillId,
+        params: {
+          ...args,
+          client_id: agentContext.client_id,
+          company_id: agentContext.company_id,
+          user_id: agentContext.user_id,
+        },
       }),
     });
 
     const text = await response.text();
     try {
-      return JSON.parse(text);
+      const parsed = JSON.parse(text);
+      // Return the result from the executor
+      return parsed.result || parsed;
     } catch {
       return { result: text };
     }
