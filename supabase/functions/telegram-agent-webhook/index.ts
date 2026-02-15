@@ -127,7 +127,7 @@ async function handleBuiltinQuery(
   try {
     switch (skillId) {
       case 'data_clients': {
-        let q = supabase.from('clients').select('id, name, company, sector, status, monthly_budget, leads_generated, last_sync_at').eq('company_id', companyId);
+        let q = supabase.from('clients').select('id, name, company, sector, status, monthly_budget, leads_generated, last_sync_at, ai_briefing').eq('company_id', companyId);
         if (args.search) q = q.or(`name.ilike.%${args.search}%,company.ilike.%${args.search}%`);
         if (args.status) q = q.eq('status', args.status);
         const { data, error } = await q.order('name').limit(limit);
