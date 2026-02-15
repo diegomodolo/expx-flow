@@ -1,115 +1,128 @@
 
 
-# Fabrica de Skills - Central de Gerenciamento de Skills dos Agentes
+# Squads de Agentes de IA - Editor Visual de Workflows Colaborativos
 
 ## Resumo
 
-Criar uma nova seção "Skills" dentro da area de Inteligencia Artificial (`/ia/skills`) onde voce podera visualizar, criar, editar e configurar todas as skills disponíveis para os agentes. Cada skill tera campos configuráveis (como modelo de IA, parametros, prompts) para ajuste fino sem precisar mexer no código.
+Criar um sistema de "Squads de Agentes" onde o usuario pode montar visualmente equipes de agentes de IA por cliente, definir hierarquias (lider, gerentes, executores), e configurar fluxos de delegacao automatica entre eles. O lider recebe a tarefa do usuario e orquestra os demais agentes ate gerar o produto final.
 
----
+## Estrutura da Feature
 
-## O que sera construido
+### 1. Novas tabelas no banco de dados
 
-### 1. Nova pagina: Lista de Skills (`/ia/skills`)
+- **ia_agent_squads**: Cadastro das squads (nome, descricao, client_id, company_id, user_id, status)
+- **ia_agent_squad_members**: Membros da squad (squad_id, agent_id, role [leader/manager/executor], position_x, position_y - para o canvas visual)
+- **ia_agent_squad_flows**: Conexoes/fluxos entre agentes (squad_id, source_agent_id, target_agent_id, label, condition - para definir o caminho de delegacao)
+- **ia_agent_squad_executions**: Log de execucoes da squad (squad_id, triggered_by, status, input, final_output, started_at, completed_at)
+- **ia_agent_squad_execution_steps**: Passos individuais de cada execucao (execution_id, agent_id, input, output, status, order, started_at, completed_at)
 
-Uma pagina com todas as skills organizadas por categoria, com:
-- Busca e filtros por categoria
-- Contagem de agentes usando cada skill
-- Botao para criar nova skill
-- Acesso rapido para editar cada skill
+### 2. Pagina de listagem - `/ia/squads`
 
-### 2. Pagina de Edicao/Criacao de Skill (`/ia/skills/:skillId/edit` e `/ia/skills/new`)
+- Grid de cards com as squads existentes (similar a pagina de Agentes)
+- Filtros por cliente
+- Botao "Criar Nova Squad"
+- Cada card mostra: nome da squad, cliente vinculado, quantidade de agentes, status
 
-Formulario completo com abas:
+### 3. Editor Visual da Squad - `/ia/squads/:squadId/edit`
 
-**Aba "Geral":**
-- Nome, descricao, categoria (dropdown)
-- ID unico (slug, gerado automaticamente ou manual)
-- Requer cliente (toggle)
+Baseado no mesmo padrao do FunnelEditor (React Flow / @xyflow/react):
 
-**Aba "Execucao":**
-- Edge Function associada (dropdown ou texto)
-- Modelo de IA (dropdown: gemini-3-pro-image-preview, gemini-3-flash-preview, gemini-2.5-flash, gpt-5, etc.)
-- Temperatura, max tokens
-- System prompt customizado (textarea grande)
+- **Barra lateral esquerda**: Lista de agentes disponiveis para arrastar ao canvas (filtrados pelo cliente da squad)
+- **Canvas central**: Area de arraste com React Flow onde os agentes sao posicionados como nos
+- **Tipos de nos**:
+  - **AgentNode**: No customizado mostrando nome do agente, avatar, role (lider/gerente/executor), e skills habilitadas
+  - **GroupNode**: Reutilizar conceito de agrupamento para organizar etapas (ex: "Analise", "Criacao", "Revisao")
+- **Conexoes (Edges)**: Setas entre agentes representando o fluxo de delegacao, com labels editaveis (ex: "Enviar briefing", "Revisar copy")
+- **Painel de propriedades**: Ao clicar num agente-no, abre painel lateral para definir:
+  - Role na squad (Lider, Gerente, Executor)
+  - Instrucoes especificas para o contexto da squad
+  - Condicoes de ativacao (quando este agente deve ser acionado)
 
-**Aba "Parametros":**
-- Editor visual do JSON Schema de `tool_parameters` (adicionar/remover campos, tipo, descricao)
-- Preview do JSON gerado
+### 4. Edge Function para orquestracao - `squad-orchestrator`
 
-**Aba "Teste":**
-- Playground para testar a skill isoladamente com parametros manuais
+- Recebe o input do usuario e o squad_id
+- Identifica o agente lider
+- Executa o fluxo sequencialmente seguindo as conexoes definidas no editor visual:
+  1. Envia input ao lider
+  2. Lider processa e gera delegacoes (seguindo as edges do grafo)
+  3. Cada agente downstream recebe o output do anterior como contexto
+  4. Quando todos completam, o resultado final retorna ao usuario
+- Registra cada passo na tabela de execucoes
 
-### 3. Alteracoes no banco de dados
+### 5. Integracao com o menu lateral
 
-Adicionar colunas na tabela `ia_agent_skills`:
-- `model` (TEXT) - modelo de IA padrao (ex: "google/gemini-3-pro-image-preview")
-- `system_prompt` (TEXT) - prompt de sistema customizado
-- `temperature` (NUMERIC) - temperatura do modelo
-- `max_tokens` (INTEGER) - limite de tokens
-- `config` (JSONB) - configuracoes extras flexiveis
-- `is_active` (BOOLEAN DEFAULT true) - para desativar skills globalmente
-- `updated_at` (TIMESTAMPTZ)
-
-Adicionar RLS policies para INSERT e UPDATE (apenas usuarios autenticados com permissao).
-
-### 4. Integracao com a sidebar
-
-Adicionar item "Skills" no menu de Inteligencia Artificial da sidebar, ao lado de "Agentes de IA" e "IA".
-
-### 5. Edge functions leem configuracoes do banco
-
-As edge functions (como `generate-image-ai`) passarao a buscar o modelo e configuracoes da tabela `ia_agent_skills` em vez de usar valores hardcoded. Exemplo: o campo `model` da skill `generate_image_ai` define qual modelo usar.
+- Adicionar item "Squads de IA" no submenu de Inteligencia Artificial, abaixo de "Agentes de IA"
 
 ---
 
 ## Detalhes Tecnicos
 
-### Novas rotas no App.tsx
-```
-/ia/skills         -> SkillsPage (lista)
-/ia/skills/new     -> SkillEditPage (criacao)
-/ia/skills/:id/edit -> SkillEditPage (edicao)
-```
+### Arquitetura de arquivos
 
-### Novos arquivos
-- `src/pages/SkillsPage.tsx` - Listagem de skills
-- `src/pages/SkillEditPage.tsx` - Formulario de edicao/criacao
-- `src/hooks/useSkills.ts` - Hook para CRUD de skills
-- `src/components/skills/SkillForm.tsx` - Componente do formulario
-- `src/components/skills/SkillParametersEditor.tsx` - Editor visual de parametros JSON
-- `src/components/skills/SkillTestPlayground.tsx` - Playground de teste
+```text
+src/
+  pages/
+    AgentSquads.tsx          -- Listagem de squads
+    AgentSquadEditor.tsx     -- Editor visual (React Flow)
+  components/
+    agent-squads/
+      SquadAgentNode.tsx     -- No customizado para agente
+      SquadAgentLibrary.tsx  -- Sidebar com agentes arrastaveis
+      SquadNodeEditPanel.tsx -- Painel de config do no
+      SquadExecutionLog.tsx  -- Visualizacao de execucoes
+  hooks/
+    useAgentSquads.tsx       -- CRUD de squads
+    useSquadExecution.tsx    -- Acompanhar execucoes
 
-### Migracao SQL
-```sql
-ALTER TABLE public.ia_agent_skills
-  ADD COLUMN model TEXT,
-  ADD COLUMN system_prompt TEXT,
-  ADD COLUMN temperature NUMERIC DEFAULT 0.7,
-  ADD COLUMN max_tokens INTEGER DEFAULT 2048,
-  ADD COLUMN config JSONB DEFAULT '{}'::jsonb,
-  ADD COLUMN is_active BOOLEAN DEFAULT true,
-  ADD COLUMN updated_at TIMESTAMPTZ DEFAULT now();
-
--- Preencher modelo para skill de imagem
-UPDATE public.ia_agent_skills
-  SET model = 'google/gemini-3-pro-image-preview'
-  WHERE id = 'generate_image_ai';
-
--- Policies para INSERT/UPDATE
-CREATE POLICY "Authenticated users can create skills"
-  ON public.ia_agent_skills FOR INSERT
-  WITH CHECK (auth.role() = 'authenticated');
-
-CREATE POLICY "Authenticated users can update skills"
-  ON public.ia_agent_skills FOR UPDATE
-  USING (auth.role() = 'authenticated');
-
-CREATE POLICY "Authenticated users can delete skills"
-  ON public.ia_agent_skills FOR DELETE
-  USING (auth.role() = 'authenticated');
+supabase/functions/
+  squad-orchestrator/
+    index.ts                 -- Orquestracao da squad
 ```
 
-### Atualizacao das edge functions
-As edge functions que hoje tem modelo hardcoded (como `generate-image-ai`) passarao a receber o `skill_id` e buscar as configuracoes no banco, usando o valor do campo `model` da tabela. Fallback para o valor atual caso nao exista configuracao.
+### Fluxo de orquestracao (squad-orchestrator)
+
+```text
+Usuario envia mensagem
+        |
+        v
+  Identifica Lider
+        |
+        v
+  Lider processa input
+        |
+   (segue edges do grafo)
+        |
+   +---------+---------+
+   |                   |
+   v                   v
+Analista           Copywriter
+   |                   |
+   v                   v
+  (output)          (output)
+   |                   |
+   +---------+---------+
+             |
+             v
+      Designer (gera imagem)
+             |
+             v
+      Lider consolida
+             |
+             v
+      Retorna ao usuario
+```
+
+### Modelo de dados dos nos (React Flow)
+
+Cada agente no canvas sera armazenado com:
+- `agent_id` (referencia ao ia_agents)
+- `role` (leader | manager | executor)
+- `squad_instructions` (instrucoes adicionais para contexto da squad)
+- `position` (x, y no canvas)
+
+As conexoes (edges) definem a ordem de delegacao e sao persistidas na tabela `ia_agent_squad_flows`.
+
+### Logica de execucao
+
+A Edge Function `squad-orchestrator` carrega o grafo da squad, faz uma travessia topologica (respeitando dependencias), e executa cada agente na ordem correta, passando o output acumulado como contexto. Agentes em paralelo (sem dependencia entre si) podem ser executados simultaneamente.
 
