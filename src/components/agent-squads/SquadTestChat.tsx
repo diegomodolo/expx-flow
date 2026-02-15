@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { MessageCircle, X, Trash2 } from "lucide-react";
+import { MessageCircle, X, Trash2, StopCircle } from "lucide-react";
 import { ChatInput } from "@/components/ai-chat/ChatInput";
 import { SquadChatMessages } from "@/components/agent-squads/SquadChatMessages";
 import { useSquadChat } from "@/hooks/useSquadChat";
@@ -14,7 +14,7 @@ interface SquadTestChatProps {
 
 export function SquadTestChat({ squadId, squadName, agentId }: SquadTestChatProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const { messages, loading, sendMessage, clearMessages } = useSquadChat(squadId);
+  const { messages, loading, sendMessage, clearMessages, stopExecution } = useSquadChat(squadId);
 
   if (!isOpen) {
     return (
@@ -65,8 +65,21 @@ export function SquadTestChat({ squadId, squadName, agentId }: SquadTestChatProp
           <div className="flex-1 overflow-hidden">
             <SquadChatMessages messages={messages} loading={loading} />
           </div>
-          <div className="border-t p-3">
-            <ChatInput onSendMessage={sendMessage} disabled={loading} />
+          <div className="border-t p-3 flex gap-2">
+            <div className="flex-1">
+              <ChatInput onSendMessage={sendMessage} disabled={loading} />
+            </div>
+            {loading && (
+              <Button
+                variant="destructive"
+                size="icon"
+                className="h-10 w-10 shrink-0"
+                onClick={stopExecution}
+                title="Parar execução"
+              >
+                <StopCircle className="h-5 w-5" />
+              </Button>
+            )}
           </div>
         </>
       )}
