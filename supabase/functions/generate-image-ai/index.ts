@@ -132,12 +132,51 @@ INSTRUÇÕES CRÍTICAS DE ESTILO:
       });
     }
 
-    const imageUrl = images[0]?.image_url?.url || '';
-    console.log('Image generated successfully, base64 length:', imageUrl.length);
+    const base64ImageUrl = images[0]?.image_url?.url || '';
+    console.log('Image generated successfully, base64 length:', base64ImageUrl.length);
+
+    // Upload to Supabase Storage so we have a persistent URL
+    let persistentUrl = base64ImageUrl;
+    if (base64ImageUrl.startsWith('data:image/')) {
+      try {
+        const supabase = createClient(
+          Deno.env.get('SUPABASE_URL') ?? '',
+          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+        );
+
+        // Extract base64 data
+        const matches = base64ImageUrl.match(/^data:image\/(png|jpeg|jpg|webp);base64,(.+)$/);
+        if (matches) {
+          const ext = matches[1] === 'jpeg' ? 'jpg' : matches[1];
+          const base64Data = matches[2];
+          const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+
+          const fileName = `ai-generated/${clientId || 'general'}/${Date.now()}.${ext}`;
+          const { error: uploadError } = await supabase.storage
+            .from('ai-generated-images')
+            .upload(fileName, binaryData, {
+              contentType: `image/${matches[1]}`,
+              upsert: true,
+            });
+
+          if (!uploadError) {
+            const { data: publicUrlData } = supabase.storage
+              .from('ai-generated-images')
+              .getPublicUrl(fileName);
+            persistentUrl = publicUrlData.publicUrl;
+            console.log('Image uploaded to storage:', persistentUrl);
+          } else {
+            console.warn('Failed to upload image to storage:', uploadError.message);
+          }
+        }
+      } catch (uploadErr) {
+        console.warn('Error uploading generated image:', uploadErr);
+      }
+    }
 
     return new Response(JSON.stringify({
       success: true,
-      image_url: imageUrl,
+      image_url: persistentUrl,
       text: textContent,
       reference_images_used: referenceImageUrls.length,
     }), {
