@@ -323,6 +323,7 @@ async function chatWithToolCalling(
   let currentMessages = [...messages];
   // Mutable context so _lookup_client can set client_id dynamically
   const mutableContext = { ...agentContext };
+  let lastGeneratedImageUrl: string | null = null;
 
   for (let i = 0; i < maxIterations; i++) {
     const requestBody: Record<string, unknown> = {
@@ -387,7 +388,20 @@ async function chatWithToolCalling(
         if (fnArgs.client_id && !mutableContext.client_id) {
           mutableContext.client_id = fnArgs.client_id as string;
         }
+        // Auto-inject last generated image URL into schedule_post if not provided
+        if (fnName === 'schedule_post' && !fnArgs.image_url && !fnArgs.media_urls && lastGeneratedImageUrl) {
+          fnArgs.image_url = lastGeneratedImageUrl;
+          console.log(`[ia-agent-chat] Auto-injected image_url into schedule_post: ${lastGeneratedImageUrl}`);
+        }
         result = await executeSkill(fnName, skills, fnArgs, mutableContext);
+        // Track generated image URLs for later use
+        if (result.success && result.image_url && typeof result.image_url === 'string') {
+          const imgUrl = result.image_url as string;
+          if (imgUrl.startsWith('http')) {
+            lastGeneratedImageUrl = imgUrl;
+            console.log(`[ia-agent-chat] Saved lastGeneratedImageUrl: ${lastGeneratedImageUrl}`);
+          }
+        }
       }
 
       currentMessages.push({
