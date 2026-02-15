@@ -22,9 +22,11 @@ Deno.serve(async (req) => {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    // Fetch client data for context if available
+    // Fetch client data including reference images
     let clientContext = '';
-    if (clientId && companyId) {
+    const referenceImageUrls: string[] = [];
+
+    if (clientId) {
       const supabase = createClient(
         Deno.env.get('SUPABASE_URL') ?? '',
         Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -32,20 +34,49 @@ Deno.serve(async (req) => {
 
       const { data: client } = await supabase
         .from('clients')
-        .select('name, company, sector, ai_briefing, voice_tone')
+        .select('name, company, sector, ai_briefing, voice_tone, ai_reference_image_1, ai_reference_image_2, ai_reference_image_3, avatar')
         .eq('id', clientId)
         .single();
 
       if (client) {
-        clientContext = `Contexto da marca: ${client.company || client.name}, setor: ${client.sector || 'geral'}. ${client.ai_briefing ? `Identidade visual: ${client.ai_briefing.substring(0, 500)}` : ''}`;
+        clientContext = `Contexto da marca: ${client.company || client.name}, setor: ${client.sector || 'geral'}. ${client.ai_briefing ? `Identidade visual e briefing: ${client.ai_briefing.substring(0, 800)}` : ''}`;
+
+        // Collect reference images
+        for (const key of ['ai_reference_image_1', 'ai_reference_image_2', 'ai_reference_image_3'] as const) {
+          const url = client[key];
+          if (url && typeof url === 'string' && url.startsWith('http')) {
+            referenceImageUrls.push(url);
+          }
+        }
       }
     }
 
-    const imagePrompt = clientContext
-      ? `Create a ${style} image for: ${prompt}. ${clientContext}. High quality, professional, suitable for social media marketing.`
-      : `Create a ${style} image for: ${prompt}. High quality, professional, suitable for social media marketing.`;
+    // Build the message content - multimodal if we have reference images
+    const textInstruction = referenceImageUrls.length > 0
+      ? `Crie uma imagem no estilo "${style}" para: ${prompt}. ${clientContext}. 
 
-    console.log('Generating image with prompt:', imagePrompt.substring(0, 200));
+INSTRUÇÕES CRÍTICAS DE ESTILO: 
+- As imagens de referência anexadas mostram o estilo visual e identidade da marca. 
+- Você DEVE seguir o mesmo estilo, cores, tipografia e linguagem visual dessas referências.
+- A nova imagem deve parecer que foi feita pelo mesmo designer que criou as referências.
+- Mantenha a paleta de cores, estilo de ilustração/fotografia e elementos visuais consistentes.
+- Alta qualidade, profissional, adequada para marketing em redes sociais.`
+      : `Create a ${style} image for: ${prompt}. ${clientContext}. High quality, professional, suitable for social media marketing.`;
+
+    // Build message content array
+    const messageContent: Array<{ type: string; text?: string; image_url?: { url: string } }> = [
+      { type: 'text', text: textInstruction },
+    ];
+
+    // Add reference images as visual input
+    for (const imgUrl of referenceImageUrls) {
+      messageContent.push({
+        type: 'image_url',
+        image_url: { url: imgUrl },
+      });
+    }
+
+    console.log(`Generating image with ${referenceImageUrls.length} reference images. Prompt: ${textInstruction.substring(0, 200)}`);
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -58,7 +89,7 @@ Deno.serve(async (req) => {
         messages: [
           {
             role: 'user',
-            content: imagePrompt,
+            content: messageContent,
           },
         ],
         modalities: ['image', 'text'],
@@ -100,15 +131,14 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Return the base64 image data
     const imageUrl = images[0]?.image_url?.url || '';
-
     console.log('Image generated successfully, base64 length:', imageUrl.length);
 
     return new Response(JSON.stringify({
       success: true,
       image_url: imageUrl,
       text: textContent,
+      reference_images_used: referenceImageUrls.length,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
