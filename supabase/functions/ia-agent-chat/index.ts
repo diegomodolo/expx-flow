@@ -11,10 +11,29 @@ interface SkillRecord {
   description: string;
   edge_function: string;
   tool_parameters: Record<string, unknown>;
+  requires_client?: boolean;
 }
 
-function buildToolsFromSkills(skills: SkillRecord[]) {
-  return skills.map((skill) => ({
+const LOOKUP_CLIENT_TOOL = {
+  type: 'function' as const,
+  function: {
+    name: '_lookup_client',
+    description: 'Busca um cliente pelo nome na base de dados da empresa. Use quando precisar identificar qual cliente o usuário está se referindo. Retorna id, nome e empresa do cliente.',
+    parameters: {
+      type: 'object',
+      properties: {
+        search_query: {
+          type: 'string',
+          description: 'Nome ou parte do nome do cliente para buscar',
+        },
+      },
+      required: ['search_query'],
+    },
+  },
+};
+
+function buildToolsFromSkills(skills: SkillRecord[], hasFixedClient: boolean) {
+  const skillTools = skills.map((skill) => ({
     type: 'function' as const,
     function: {
       name: skill.id,
@@ -22,6 +41,13 @@ function buildToolsFromSkills(skills: SkillRecord[]) {
       parameters: skill.tool_parameters || { type: 'object', properties: {} },
     },
   }));
+
+  // Add lookup_client tool if agent has no fixed client and has skills that need one
+  if (!hasFixedClient && skills.some(s => s.requires_client !== false)) {
+    skillTools.push(LOOKUP_CLIENT_TOOL);
+  }
+
+  return skillTools;
 }
 
 async function executeSkill(
@@ -64,6 +90,30 @@ async function executeSkill(
   }
 }
 
+async function handleLookupClient(
+  args: Record<string, unknown>,
+  companyId: string
+): Promise<Record<string, unknown>> {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+  const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+  const query = (args.search_query as string || '').trim();
+  if (!query) return { error: 'Nenhum termo de busca informado' };
+
+  const { data, error } = await supabase
+    .from('clients')
+    .select('id, name, company, sector, status')
+    .eq('company_id', companyId)
+    .or(`name.ilike.%${query}%,company.ilike.%${query}%`)
+    .limit(5);
+
+  if (error) return { error: error.message };
+  if (!data || data.length === 0) return { clients: [], message: 'Nenhum cliente encontrado com esse nome. Peça ao usuário para informar o nome correto.' };
+
+  return { clients: data };
+}
+
 async function chatWithToolCalling(
   messages: Array<{ role: string; content: string }>,
   tools: ReturnType<typeof buildToolsFromSkills>,
@@ -75,6 +125,8 @@ async function chatWithToolCalling(
   const maxIterations = 5;
 
   let currentMessages = [...messages];
+  // Mutable context so _lookup_client can set client_id dynamically
+  const mutableContext = { ...agentContext };
 
   for (let i = 0; i < maxIterations; i++) {
     const requestBody: Record<string, unknown> = {
@@ -105,24 +157,38 @@ async function chatWithToolCalling(
     const aiData = await aiResponse.json();
     const choice = aiData.choices[0];
 
-    // If no tool calls, return the content
     if (!choice.message.tool_calls || choice.message.tool_calls.length === 0) {
       return choice.message.content || '';
     }
 
-    // Add assistant message with tool calls
     currentMessages.push(choice.message);
 
-    // Execute each tool call
     for (const toolCall of choice.message.tool_calls) {
       const fnName = toolCall.function.name;
-      let fnArgs = {};
+      let fnArgs: Record<string, unknown> = {};
       try {
         fnArgs = JSON.parse(toolCall.function.arguments || '{}');
       } catch { /* empty args */ }
 
-      console.log(`Executing skill: ${fnName}`, fnArgs);
-      const result = await executeSkill(fnName, skills, fnArgs, agentContext);
+      console.log(`Executing tool: ${fnName}`, fnArgs);
+
+      let result: Record<string, unknown>;
+
+      if (fnName === '_lookup_client') {
+        result = await handleLookupClient(fnArgs, mutableContext.company_id || '');
+        // If exactly one client found, auto-set context
+        const clients = result.clients as Array<{ id: string }> | undefined;
+        if (clients && clients.length === 1) {
+          mutableContext.client_id = clients[0].id;
+          console.log('Client auto-set from lookup:', mutableContext.client_id);
+        }
+      } else {
+        // If the AI passed a client_id arg (from lookup), use it
+        if (fnArgs.client_id && !mutableContext.client_id) {
+          mutableContext.client_id = fnArgs.client_id as string;
+        }
+        result = await executeSkill(fnName, skills, fnArgs, mutableContext);
+      }
 
       currentMessages.push({
         role: 'tool',
@@ -280,13 +346,18 @@ Leads Gerados: ${client.leads_generated || 0}
       .map((row: any) => row.ia_agent_skills)
       .filter(Boolean);
 
-    const tools = buildToolsFromSkills(enabledSkills);
+    const hasFixedClient = !!agent.client_id;
+    const tools = buildToolsFromSkills(enabledSkills, hasFixedClient);
 
     // Build skill instructions for the system prompt
+    const clientLookupInstruction = !hasFixedClient && enabledSkills.length > 0
+      ? `\n- IMPORTANTE: Quando uma skill precisar de um cliente e nenhum cliente foi definido, use a ferramenta _lookup_client para buscar o cliente pelo nome. Se o usuário não informou qual cliente, PERGUNTE antes de executar a skill. Após encontrar o cliente, passe o client_id dele nas chamadas subsequentes.`
+      : '';
+
     const skillInstructions = enabledSkills.length > 0
       ? `\n\n[SKILLS DISPONÍVEIS]
 Você tem acesso a ${enabledSkills.length} skills que pode executar quando o usuário pedir. Use-as chamando as funções disponíveis.
-As skills serão executadas automaticamente e você receberá o resultado para formular sua resposta.
+As skills serão executadas automaticamente e você receberá o resultado para formular sua resposta.${clientLookupInstruction}
 `
       : '';
 

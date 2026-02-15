@@ -124,7 +124,7 @@ export function AgentSkillsConfig({ agentId, hasClient }: AgentSkillsConfigProps
                               </TooltipTrigger>
                               <TooltipContent>
                                 <p className="text-xs">
-                                  Esta skill requer um cliente associado ao agente
+                                  Sem cliente fixo — o agente perguntará o nome do cliente antes de executar
                                 </p>
                               </TooltipContent>
                             </Tooltip>
@@ -137,7 +137,6 @@ export function AgentSkillsConfig({ agentId, hasClient }: AgentSkillsConfigProps
                       <Switch
                         checked={isEnabled}
                         onCheckedChange={(checked) => toggleSkill(skill.id, checked)}
-                        disabled={needsClient}
                       />
                     </div>
                   );
