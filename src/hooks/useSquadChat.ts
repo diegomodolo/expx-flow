@@ -4,13 +4,16 @@ import { useToast } from "@/hooks/use-toast";
 
 export interface SquadChatMessage {
   id: string;
-  role: "user" | "agent";
+  role: "user" | "agent" | "tool_call";
   agent_name?: string;
   agent_role?: string;
   content: string;
   step_order?: number;
   created_at: string;
   isThinking?: boolean;
+  skill_name?: string;
+  success?: boolean;
+  image_url?: string | null;
 }
 
 export function useSquadChat(squadId: string) {
@@ -82,9 +85,7 @@ export function useSquadChat(squadId: string) {
             const event = JSON.parse(jsonStr);
 
             if (event.type === "thinking") {
-              // Add a "thinking" placeholder message
               setMessages((prev) => {
-                // Remove any existing thinking message
                 const filtered = prev.filter((m) => !m.isThinking);
                 return [
                   ...filtered,
@@ -100,8 +101,24 @@ export function useSquadChat(squadId: string) {
                   },
                 ];
               });
+            } else if (event.type === "tool_call") {
+              // Add a tool_call message (don't remove thinking — agent is still working)
+              setMessages((prev) => [
+                ...prev,
+                {
+                  id: `tool-${event.step_order}-${Date.now()}`,
+                  role: "tool_call",
+                  agent_name: event.agent_name,
+                  agent_role: event.role,
+                  content: "",
+                  skill_name: event.skill_name,
+                  success: event.success,
+                  image_url: event.image_url,
+                  step_order: event.step_order,
+                  created_at: new Date().toISOString(),
+                },
+              ]);
             } else if (event.type === "step") {
-              // Replace thinking with actual message
               setMessages((prev) => {
                 const filtered = prev.filter((m) => !m.isThinking);
                 return [
@@ -134,7 +151,6 @@ export function useSquadChat(squadId: string) {
                 ];
               });
             }
-            // type === "done" → nothing extra needed
           } catch {
             // partial JSON, ignore
           }
@@ -142,7 +158,6 @@ export function useSquadChat(squadId: string) {
       }
     } catch (err: any) {
       if (err.name === 'AbortError') {
-        // User cancelled — remove thinking messages and add cancellation notice
         setMessages((prev) => {
           const filtered = prev.filter((m) => !m.isThinking);
           return [
