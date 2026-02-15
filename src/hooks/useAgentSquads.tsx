@@ -111,6 +111,20 @@ export function useAgentSquads() {
     }
   };
 
+  const updateSquad = async (id: string, data: { name?: string; description?: string; client_id?: string }) => {
+    try {
+      const { error } = await supabase
+        .from("ia_agent_squads" as any)
+        .update(data as any)
+        .eq("id", id);
+      if (error) throw error;
+      toast({ title: "Squad atualizada!" });
+      fetchSquads();
+    } catch (err: any) {
+      toast({ title: "Erro ao atualizar squad", description: err.message, variant: "destructive" });
+    }
+  };
+
   const deleteSquad = async (id: string) => {
     try {
       const { error } = await supabase.from("ia_agent_squads" as any).delete().eq("id", id);
@@ -227,6 +241,7 @@ export function useAgentSquads() {
     loading,
     fetchSquads,
     createSquad,
+    updateSquad,
     deleteSquad,
     fetchSquadById,
     fetchSquadMembers,
