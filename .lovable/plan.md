@@ -1,128 +1,100 @@
 
 
-# Squads de Agentes de IA - Editor Visual de Workflows Colaborativos
+# Roteiros - Sistema de Templates de Tarefas
 
 ## Resumo
 
-Criar um sistema de "Squads de Agentes" onde o usuario pode montar visualmente equipes de agentes de IA por cliente, definir hierarquias (lider, gerentes, executores), e configurar fluxos de delegacao automatica entre eles. O lider recebe a tarefa do usuario e orquestra os demais agentes ate gerar o produto final.
+Criar um sistema completo de **Roteiros** que funciona como biblioteca de templates reutilizaveis. Cada roteiro agrupa atividades (subtarefas) que podem ser importadas para dentro de tarefas do tipo "historia" em qualquer projeto/cliente.
 
-## Estrutura da Feature
+## O que sera construido
 
-### 1. Novas tabelas no banco de dados
+### 1. Banco de Dados (3 tabelas novas)
 
-- **ia_agent_squads**: Cadastro das squads (nome, descricao, client_id, company_id, user_id, status)
-- **ia_agent_squad_members**: Membros da squad (squad_id, agent_id, role [leader/manager/executor], position_x, position_y - para o canvas visual)
-- **ia_agent_squad_flows**: Conexoes/fluxos entre agentes (squad_id, source_agent_id, target_agent_id, label, condition - para definir o caminho de delegacao)
-- **ia_agent_squad_executions**: Log de execucoes da squad (squad_id, triggered_by, status, input, final_output, started_at, completed_at)
-- **ia_agent_squad_execution_steps**: Passos individuais de cada execucao (execution_id, agent_id, input, output, status, order, started_at, completed_at)
+**`roteiro_categorias`** - Categorias dos roteiros
+- id, company_id, nome, created_by, created_at, updated_at
 
-### 2. Pagina de listagem - `/ia/squads`
+**`roteiros`** - Os roteiros em si
+- id, company_id, categoria_id (FK), nome, icone (nome do icone Lucide), objetivo (texto longo), publico (boolean, default false), created_by, created_at, updated_at
 
-- Grid de cards com as squads existentes (similar a pagina de Agentes)
-- Filtros por cliente
-- Botao "Criar Nova Squad"
-- Cada card mostra: nome da squad, cliente vinculado, quantidade de agentes, status
+**`roteiro_atividades`** - Atividades dentro de cada roteiro
+- id, roteiro_id (FK), titulo, tipo (tipo da tarefa), inicio_apos_dias (int), duracao_dias (int), responsavel_id (FK employees), quadro_column_id (FK task_board_columns), etapa (text), fluxo (text), tags (jsonb), descricao (text), autorizador_id (FK employees), checklist (jsonb), ordem (int), created_at, updated_at
 
-### 3. Editor Visual da Squad - `/ia/squads/:squadId/edit`
+RLS habilitado em todas as tabelas, filtrando por company_id.
 
-Baseado no mesmo padrao do FunnelEditor (React Flow / @xyflow/react):
+### 2. Menu no Sidebar
 
-- **Barra lateral esquerda**: Lista de agentes disponiveis para arrastar ao canvas (filtrados pelo cliente da squad)
-- **Canvas central**: Area de arraste com React Flow onde os agentes sao posicionados como nos
-- **Tipos de nos**:
-  - **AgentNode**: No customizado mostrando nome do agente, avatar, role (lider/gerente/executor), e skills habilitadas
-  - **GroupNode**: Reutilizar conceito de agrupamento para organizar etapas (ex: "Analise", "Criacao", "Revisao")
-- **Conexoes (Edges)**: Setas entre agentes representando o fluxo de delegacao, com labels editaveis (ex: "Enviar briefing", "Revisar copy")
-- **Painel de propriedades**: Ao clicar num agente-no, abre painel lateral para definir:
-  - Role na squad (Lider, Gerente, Executor)
-  - Instrucoes especificas para o contexto da squad
-  - Condicoes de ativacao (quando este agente deve ser acionado)
+Adicionar "Roteiros" dentro da secao **Equipe**, com icone `BookOpen`, apontando para `/roteiros`.
 
-### 4. Edge Function para orquestracao - `squad-orchestrator`
+### 3. Pagina Principal `/roteiros`
 
-- Recebe o input do usuario e o squad_id
-- Identifica o agente lider
-- Executa o fluxo sequencialmente seguindo as conexoes definidas no editor visual:
-  1. Envia input ao lider
-  2. Lider processa e gera delegacoes (seguindo as edges do grafo)
-  3. Cada agente downstream recebe o output do anterior como contexto
-  4. Quando todos completam, o resultado final retorna ao usuario
-- Registra cada passo na tabela de execucoes
+- Barra de pesquisa no topo
+- Filtro por categorias em abas (Todos, Onboarding, Social Media, etc.)
+- Grid de cards com icone, nome do roteiro e categoria
+- Botao "Novo Roteiro" no canto superior direito
+- Ao clicar num card, abre a tela de detalhe/edicao do roteiro
 
-### 5. Integracao com o menu lateral
+### 4. Dialog/Modal de Criar/Editar Roteiro
 
-- Adicionar item "Squads de IA" no submenu de Inteligencia Artificial, abaixo de "Agentes de IA"
+Campos:
+- Nome (input texto)
+- Categoria (select com opcao de criar nova categoria inline via botao "+")
+- Icone (seletor de icones Lucide - grid visual)
+- Objetivo (textarea)
+- Publico (switch sim/nao)
+
+### 5. Tela de Detalhe do Roteiro
+
+- Cabecalho com nome, categoria e icone
+- Lista de atividades cadastradas (drag-and-drop para reordenar)
+- Botao "Adicionar Atividade"
+
+### 6. Dialog de Criar/Editar Atividade
+
+Formulario com:
+- Titulo
+- Tipo (select)
+- Inicio apos X dias (input numerico)
+- Duracao em dias (input numerico)
+- Responsavel (select dos colaboradores)
+- Quadro Kanban (select dos boards existentes)
+- Etapa Kanban (select das colunas do board selecionado)
+- Fluxo (select)
+- Tags (multi-select)
+- Descricao (editor rich text ou textarea)
+- Autorizador (select dos colaboradores)
+- Checklist (adicionar itens dinamicamente)
+
+### 7. Importar Roteiro para Tarefa (futuro proximo)
+
+Na tela de tarefas, ao criar uma tarefa do tipo "historia", exibir opcao "Importar Roteiro" que cria subtarefas automaticamente baseadas nas atividades do roteiro selecionado, calculando datas relativas a partir da data de inicio.
 
 ---
 
 ## Detalhes Tecnicos
 
-### Arquitetura de arquivos
+### Arquivos a criar:
+- `supabase/migrations/xxx_create_roteiros.sql` - Migration com as 3 tabelas + RLS
+- `src/pages/Roteiros.tsx` - Pagina principal com grid de roteiros
+- `src/pages/RoteiroDetalhe.tsx` - Pagina de detalhe de um roteiro
+- `src/components/roteiros/RoteiroCard.tsx` - Card visual do roteiro
+- `src/components/roteiros/RoteiroDialog.tsx` - Modal criar/editar roteiro
+- `src/components/roteiros/CategoriaDialog.tsx` - Modal criar categoria
+- `src/components/roteiros/AtividadeDialog.tsx` - Modal criar/editar atividade
+- `src/components/roteiros/AtividadeList.tsx` - Lista de atividades com reordenacao
+- `src/components/roteiros/IconPicker.tsx` - Seletor visual de icones Lucide
+- `src/hooks/useRoteiros.ts` - Hook com queries/mutations para roteiros
+- `src/hooks/useRoteiroCategorias.ts` - Hook para categorias
+- `src/hooks/useRoteiroAtividades.ts` - Hook para atividades
 
-```text
-src/
-  pages/
-    AgentSquads.tsx          -- Listagem de squads
-    AgentSquadEditor.tsx     -- Editor visual (React Flow)
-  components/
-    agent-squads/
-      SquadAgentNode.tsx     -- No customizado para agente
-      SquadAgentLibrary.tsx  -- Sidebar com agentes arrastaveis
-      SquadNodeEditPanel.tsx -- Painel de config do no
-      SquadExecutionLog.tsx  -- Visualizacao de execucoes
-  hooks/
-    useAgentSquads.tsx       -- CRUD de squads
-    useSquadExecution.tsx    -- Acompanhar execucoes
+### Arquivos a editar:
+- `src/components/dashboard/DashboardSidebar.tsx` - Adicionar item "Roteiros" na secao Equipe
+- `src/App.tsx` - Adicionar rotas `/roteiros` e `/roteiros/:id`
+- `src/integrations/supabase/types.ts` - Tipos gerados apos migration
 
-supabase/functions/
-  squad-orchestrator/
-    index.ts                 -- Orquestracao da squad
-```
-
-### Fluxo de orquestracao (squad-orchestrator)
-
-```text
-Usuario envia mensagem
-        |
-        v
-  Identifica Lider
-        |
-        v
-  Lider processa input
-        |
-   (segue edges do grafo)
-        |
-   +---------+---------+
-   |                   |
-   v                   v
-Analista           Copywriter
-   |                   |
-   v                   v
-  (output)          (output)
-   |                   |
-   +---------+---------+
-             |
-             v
-      Designer (gera imagem)
-             |
-             v
-      Lider consolida
-             |
-             v
-      Retorna ao usuario
-```
-
-### Modelo de dados dos nos (React Flow)
-
-Cada agente no canvas sera armazenado com:
-- `agent_id` (referencia ao ia_agents)
-- `role` (leader | manager | executor)
-- `squad_instructions` (instrucoes adicionais para contexto da squad)
-- `position` (x, y no canvas)
-
-As conexoes (edges) definem a ordem de delegacao e sao persistidas na tabela `ia_agent_squad_flows`.
-
-### Logica de execucao
-
-A Edge Function `squad-orchestrator` carrega o grafo da squad, faz uma travessia topologica (respeitando dependencias), e executa cada agente na ordem correta, passando o output acumulado como contexto. Agentes em paralelo (sem dependencia entre si) podem ser executados simultaneamente.
+### Padroes seguidos:
+- React Query (TanStack) para data fetching, igual ao resto do projeto
+- Componentes shadcn/ui existentes (Dialog, Select, Input, Card, Badge, etc.)
+- Supabase client existente em `@/integrations/supabase/client`
+- Hooks customizados no padrao `useXxx` com `useQuery`/`useMutation`
+- Sidebar com permissao `"roteiros"` como MenuItemType
 
