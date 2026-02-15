@@ -34,10 +34,16 @@ export function SquadChatMessages({ messages, loading }: SquadChatMessagesProps)
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
+  const imageUrlRegex = /(https?:\/\/[^\s<>"]+?\.(?:png|jpg|jpeg|gif|webp|svg)(?:\?[^\s<>"]*)?)/gi;
+
   const formatMessage = (content: string) => {
     let formatted = content.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
     formatted = formatted.replace(/^[•\-\*]\s+(.+)$/gm, "• $1");
     formatted = formatted.replace(/^\d+\.\s+(.+)$/gm, "• $1");
+    // Replace image URLs with img tags before converting newlines
+    formatted = formatted.replace(imageUrlRegex, (url) => {
+      return `<br/><img src="${url}" alt="Imagem gerada" class="rounded-lg max-w-full max-h-80 my-2 border border-border" /><br/>`;
+    });
     formatted = formatted.replace(/\n/g, "<br>");
     return formatted;
   };
@@ -83,9 +89,12 @@ export function SquadChatMessages({ messages, loading }: SquadChatMessagesProps)
                         </Badge>
                       </div>
                       {message.image_url && (
-                        <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <ImageIcon className="w-3 h-3" />
-                          <span>Imagem gerada com sucesso</span>
+                        <div className="mt-2">
+                          <img
+                            src={message.image_url}
+                            alt="Imagem gerada"
+                            className="rounded-lg max-w-full max-h-64 border border-border"
+                          />
                         </div>
                       )}
                       <div className="text-[10px] opacity-60 mt-1">
