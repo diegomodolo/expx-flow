@@ -510,3 +510,6 @@ verify_jwt = false
 
 [functions.deploy-skill-function]
 verify_jwt = false
+
+[functions.test-skill-execution]
+verify_jwt = false
