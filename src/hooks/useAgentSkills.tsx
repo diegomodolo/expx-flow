@@ -41,11 +41,27 @@ export function useAgentSkills(agentId: string) {
   const toggleSkill = async (skillId: string, enabled: boolean) => {
     try {
       if (enabled) {
+        // Auto-enable data_clients and data_client_details when enabling a requires_client skill
+        const skill = allSkills.find(s => s.id === skillId);
+        const autoEnableIds: string[] = [skillId];
+        
+        if (skill?.requires_client) {
+          for (const depId of ['data_clients', 'data_client_details']) {
+            if (!enabledSkillIds.has(depId) && !autoEnableIds.includes(depId)) {
+              autoEnableIds.push(depId);
+            }
+          }
+        }
+
         const { error } = await supabase
           .from("ia_agent_enabled_skills")
-          .insert({ agent_id: agentId, skill_id: skillId });
+          .insert(autoEnableIds.map(id => ({ agent_id: agentId, skill_id: id })));
         if (error) throw error;
-        setEnabledSkillIds((prev) => new Set([...prev, skillId]));
+        setEnabledSkillIds((prev) => new Set([...prev, ...autoEnableIds]));
+        
+        if (autoEnableIds.length > 1) {
+          toast.info("Skills de dados de cliente habilitadas automaticamente");
+        }
       } else {
         const { error } = await supabase
           .from("ia_agent_enabled_skills")
