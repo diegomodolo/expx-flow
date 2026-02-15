@@ -41,6 +41,7 @@ export function SkillAIGenerator({ onGenerate }: Props) {
         description: s.description || "",
         category: s.category || "action",
         edge_function: s.edge_function || "",
+        edge_function_code: s.edge_function_code || null,
         requires_client: s.requires_client ?? false,
         model: s.model || null,
         system_prompt: s.system_prompt || null,
@@ -81,7 +82,7 @@ export function SkillAIGenerator({ onGenerate }: Props) {
             />
           </div>
           <p className="text-xs text-muted-foreground">
-            A IA vai gerar o ID, nome, descrição, categoria, parâmetros e system prompt automaticamente.
+            A IA vai gerar o ID, nome, descrição, parâmetros, system prompt e o código da Edge Function automaticamente.
           </p>
         </div>
         <DialogFooter>
