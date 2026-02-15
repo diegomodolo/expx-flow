@@ -137,6 +137,7 @@ const menuCategories: MenuCategory[] = [
         { title: "Agentes de IA", url: "/ia/agents", icon: Bot, permission: "agentes-ia" as MenuItemType },
         { title: "IA", url: "/ia", icon: Brain, permission: "ia" as MenuItemType },
         { title: "Skills", url: "/ia/skills", icon: Puzzle, permission: "skills-ia" as MenuItemType },
+        { title: "Squads de IA", url: "/ia/squads", icon: UsersRound, permission: "agentes-ia" as MenuItemType },
       ].sort((a, b) => a.title.localeCompare(b.title, 'pt-BR')),
     },
     {

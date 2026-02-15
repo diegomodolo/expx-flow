@@ -18,6 +18,8 @@ import CampanhasUnificadas from "./pages/CampanhasUnificadas";
 import CampanhaDetalhes from "./pages/CampanhaDetalhes";
 import Colaboradores from "./pages/Colaboradores";
 import Squad from "./pages/Squad";
+import AgentSquads from "./pages/AgentSquads";
+import AgentSquadEditor from "./pages/AgentSquadEditor";
 import Tarefas from "./pages/Tarefas";
 import TarefasRecorrentes from "./pages/TarefasRecorrentes";
 import Relatorios from "./pages/Relatorios";
@@ -244,6 +246,16 @@ const App = () => {
                 <Route path="/ia/skills/:id/edit" element={
                   <PermissionProtectedRoute requiredPermission="skills-ia">
                     <SkillEditPage />
+                  </PermissionProtectedRoute>
+                } />
+                <Route path="/ia/squads" element={
+                  <PermissionProtectedRoute requiredPermission="agentes-ia">
+                    <AgentSquads />
+                  </PermissionProtectedRoute>
+                } />
+                <Route path="/ia/squads/:squadId/edit" element={
+                  <PermissionProtectedRoute requiredPermission="agentes-ia">
+                    <AgentSquadEditor />
                   </PermissionProtectedRoute>
                 } />
                 <Route path="/clientes" element={

@@ -7490,6 +7490,265 @@ export type Database = {
         }
         Relationships: []
       }
+      ia_agent_squad_execution_steps: {
+        Row: {
+          agent_id: string
+          completed_at: string | null
+          created_at: string
+          execution_id: string
+          id: string
+          input: string | null
+          member_id: string | null
+          output: string | null
+          started_at: string | null
+          status: string
+          step_order: number
+        }
+        Insert: {
+          agent_id: string
+          completed_at?: string | null
+          created_at?: string
+          execution_id: string
+          id?: string
+          input?: string | null
+          member_id?: string | null
+          output?: string | null
+          started_at?: string | null
+          status?: string
+          step_order?: number
+        }
+        Update: {
+          agent_id?: string
+          completed_at?: string | null
+          created_at?: string
+          execution_id?: string
+          id?: string
+          input?: string | null
+          member_id?: string | null
+          output?: string | null
+          started_at?: string | null
+          status?: string
+          step_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_agent_squad_execution_steps_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "ia_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_agent_squad_execution_steps_execution_id_fkey"
+            columns: ["execution_id"]
+            isOneToOne: false
+            referencedRelation: "ia_agent_squad_executions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_agent_squad_execution_steps_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "ia_agent_squad_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ia_agent_squad_executions: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          final_output: string | null
+          id: string
+          input: string | null
+          squad_id: string
+          started_at: string | null
+          status: string
+          triggered_by: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          final_output?: string | null
+          id?: string
+          input?: string | null
+          squad_id: string
+          started_at?: string | null
+          status?: string
+          triggered_by?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          final_output?: string | null
+          id?: string
+          input?: string | null
+          squad_id?: string
+          started_at?: string | null
+          status?: string
+          triggered_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_agent_squad_executions_squad_id_fkey"
+            columns: ["squad_id"]
+            isOneToOne: false
+            referencedRelation: "ia_agent_squads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ia_agent_squad_flows: {
+        Row: {
+          condition: string | null
+          created_at: string
+          id: string
+          label: string | null
+          source_member_id: string
+          squad_id: string
+          target_member_id: string
+        }
+        Insert: {
+          condition?: string | null
+          created_at?: string
+          id?: string
+          label?: string | null
+          source_member_id: string
+          squad_id: string
+          target_member_id: string
+        }
+        Update: {
+          condition?: string | null
+          created_at?: string
+          id?: string
+          label?: string | null
+          source_member_id?: string
+          squad_id?: string
+          target_member_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_agent_squad_flows_source_member_id_fkey"
+            columns: ["source_member_id"]
+            isOneToOne: false
+            referencedRelation: "ia_agent_squad_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_agent_squad_flows_squad_id_fkey"
+            columns: ["squad_id"]
+            isOneToOne: false
+            referencedRelation: "ia_agent_squads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_agent_squad_flows_target_member_id_fkey"
+            columns: ["target_member_id"]
+            isOneToOne: false
+            referencedRelation: "ia_agent_squad_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ia_agent_squad_members: {
+        Row: {
+          agent_id: string
+          created_at: string
+          id: string
+          position_x: number
+          position_y: number
+          role: string
+          squad_id: string
+          squad_instructions: string | null
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          id?: string
+          position_x?: number
+          position_y?: number
+          role?: string
+          squad_id: string
+          squad_instructions?: string | null
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          id?: string
+          position_x?: number
+          position_y?: number
+          role?: string
+          squad_id?: string
+          squad_instructions?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_agent_squad_members_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "ia_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_agent_squad_members_squad_id_fkey"
+            columns: ["squad_id"]
+            isOneToOne: false
+            referencedRelation: "ia_agent_squads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ia_agent_squads: {
+        Row: {
+          client_id: string
+          company_id: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          company_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_agent_squads_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_agent_squads_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ia_agent_telegram_conversations: {
         Row: {
           agent_id: string
