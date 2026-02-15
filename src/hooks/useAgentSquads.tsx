@@ -170,9 +170,18 @@ export function useAgentSquads() {
     flows: Array<{ source_member_id: string; target_member_id: string; label?: string; condition?: string }>
   ) => {
     try {
-      // Delete existing members & flows
-      await supabase.from("ia_agent_squad_flows" as any).delete().eq("squad_id", squadId);
-      await supabase.from("ia_agent_squad_members" as any).delete().eq("squad_id", squadId);
+      // Delete existing flows first (they reference members), then members
+      const { error: delFlowsErr } = await supabase.from("ia_agent_squad_flows" as any).delete().eq("squad_id", squadId);
+      if (delFlowsErr) {
+        console.error("Error deleting flows:", delFlowsErr);
+        throw delFlowsErr;
+      }
+      
+      const { error: delMembersErr } = await supabase.from("ia_agent_squad_members" as any).delete().eq("squad_id", squadId);
+      if (delMembersErr) {
+        console.error("Error deleting members:", delMembersErr);
+        throw delMembersErr;
+      }
 
       // Insert members
       if (members.length > 0) {
