@@ -139,6 +139,8 @@ import GroupOpsScoring from "./components/groupops/GroupOpsScoring";
 import GroupOpsEventsFeed from "./components/groupops/GroupOpsEventsFeed";
 import GroupOpsModeration from "./components/groupops/GroupOpsModeration";
 import Workspace from "./pages/Workspace";
+import Roteiros from "./pages/Roteiros";
+import RoteiroDetalhe from "./pages/RoteiroDetalhe";
 import { AuthProvider } from "@/hooks/useAuth";
 import { CompanyProvider } from "@/contexts/CompanyContext";
 import { CRMAuthProvider } from "@/contexts/CRMAuthContext";
@@ -619,10 +621,20 @@ const App = () => {
                    </ProtectedRoute>
                  } />
                  <Route path="/workspace" element={
-                   <ProtectedRoute>
-                     <Workspace />
-                   </ProtectedRoute>
-                 } />
+                    <ProtectedRoute>
+                      <Workspace />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/roteiros" element={
+                    <ProtectedRoute>
+                      <Roteiros />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/roteiros/:id" element={
+                    <ProtectedRoute>
+                      <RoteiroDetalhe />
+                    </ProtectedRoute>
+                  } />
                  <Route path="/keyword-planner" element={
                    <ProtectedRoute>
                      <KeywordPlannerPage />

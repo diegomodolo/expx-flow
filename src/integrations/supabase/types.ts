@@ -10995,6 +10995,177 @@ export type Database = {
           },
         ]
       }
+      roteiro_atividades: {
+        Row: {
+          autorizador_id: string | null
+          checklist: Json | null
+          created_at: string
+          descricao: string | null
+          duracao_dias: number | null
+          etapa: string | null
+          fluxo: string | null
+          id: string
+          inicio_apos_dias: number | null
+          ordem: number
+          quadro_column_id: string | null
+          responsavel_id: string | null
+          roteiro_id: string
+          tags: Json | null
+          tipo: string | null
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          autorizador_id?: string | null
+          checklist?: Json | null
+          created_at?: string
+          descricao?: string | null
+          duracao_dias?: number | null
+          etapa?: string | null
+          fluxo?: string | null
+          id?: string
+          inicio_apos_dias?: number | null
+          ordem?: number
+          quadro_column_id?: string | null
+          responsavel_id?: string | null
+          roteiro_id: string
+          tags?: Json | null
+          tipo?: string | null
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          autorizador_id?: string | null
+          checklist?: Json | null
+          created_at?: string
+          descricao?: string | null
+          duracao_dias?: number | null
+          etapa?: string | null
+          fluxo?: string | null
+          id?: string
+          inicio_apos_dias?: number | null
+          ordem?: number
+          quadro_column_id?: string | null
+          responsavel_id?: string | null
+          roteiro_id?: string
+          tags?: Json | null
+          tipo?: string | null
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roteiro_atividades_autorizador_id_fkey"
+            columns: ["autorizador_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "roteiro_atividades_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "roteiro_atividades_roteiro_id_fkey"
+            columns: ["roteiro_id"]
+            isOneToOne: false
+            referencedRelation: "roteiros"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      roteiro_categorias: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roteiro_categorias_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      roteiros: {
+        Row: {
+          categoria_id: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          icone: string | null
+          id: string
+          nome: string
+          objetivo: string | null
+          publico: boolean
+          updated_at: string
+        }
+        Insert: {
+          categoria_id?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          icone?: string | null
+          id?: string
+          nome: string
+          objetivo?: string | null
+          publico?: boolean
+          updated_at?: string
+        }
+        Update: {
+          categoria_id?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          icone?: string | null
+          id?: string
+          nome?: string
+          objetivo?: string | null
+          publico?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roteiros_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "roteiro_categorias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "roteiros_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       routine_executions: {
         Row: {
           client_id: string | null

@@ -47,7 +47,8 @@ export type MenuItemType =
   | 'radar-tv'
   | 'relatorios-marketing'
   | 'skills-ia'
-  | 'editar-skills';
+  | 'editar-skills'
+  | 'roteiros';
 
 export interface EmployeePermission {
   id: string;
@@ -166,7 +167,7 @@ export function useEmployeePermissions() {
           'cs-acoes', 'cs-clientes', 'cs-tv', 'agendamento', 'automatizadores', 'social-tv',
           'editor-imagens', 'planejador-conteudo', 'repositorio-criativos', 'alertas', 'tarefas-recorrentes',
           'workspace', 'automacoes', 'campanhas-unificadas', 'marketing-tv', 'keyword-planner', 'radar-tv',
-          'relatorios-marketing', 'skills-ia', 'editar-skills'
+          'relatorios-marketing', 'skills-ia', 'editar-skills', 'roteiros'
         ];
         setCurrentUserPermissions(allPermissions);
         setPermissionsLoading(false);
