@@ -509,13 +509,36 @@ Deno.serve(async (req) => {
       const member = typedMembers.find(m => m.id === currentId);
       if (member) executionOrder.push(member);
       const outgoing = typedFlows.filter(f => f.source_member_id === currentId);
-      for (const edge of outgoing) {
-        if (!visited.has(edge.target_member_id)) {
-          visited.add(edge.target_member_id);
-          queue.push(edge.target_member_id);
+
+      // Sort outgoing edges based on the current member's squad_instructions
+      // If the member defines an order like "use nessa ordem: A, B, C", respect it
+      let sortedTargetIds = outgoing.map(e => e.target_member_id);
+      if (member?.squad_instructions) {
+        const instructions = member.squad_instructions.toLowerCase();
+        sortedTargetIds.sort((a, b) => {
+          const memberA = typedMembers.find(m => m.id === a);
+          const memberB = typedMembers.find(m => m.id === b);
+          const nameA = memberA?.agent?.agent_name?.toLowerCase() || '';
+          const nameB = memberB?.agent?.agent_name?.toLowerCase() || '';
+          const posA = instructions.indexOf(nameA);
+          const posB = instructions.indexOf(nameB);
+          // If both found in instructions, sort by position
+          if (posA !== -1 && posB !== -1) return posA - posB;
+          // If only one found, prioritize the found one
+          if (posA !== -1) return -1;
+          if (posB !== -1) return 1;
+          return 0;
+        });
+      }
+
+      for (const targetId of sortedTargetIds) {
+        if (!visited.has(targetId)) {
+          visited.add(targetId);
+          queue.push(targetId);
         }
       }
     }
+    console.log(`[squad-orchestrator] Execution order: ${executionOrder.map(m => `${m.agent.agent_name} (${m.role})`).join(' → ')}`);
 
     // 6. SSE streaming
     const MAX_STEPS = executionOrder.length;
