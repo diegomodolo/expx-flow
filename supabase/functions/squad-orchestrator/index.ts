@@ -152,7 +152,7 @@ Deno.serve(async (req) => {
     if (execErr) throw execErr;
 
     // 4. Build execution order using BFS from the leader
-    const leader = typedMembers.find(m => m.role === 'lider');
+    const leader = typedMembers.find(m => m.role === 'leader' || m.role === 'lider');
     if (!leader) throw new Error('Squad sem líder definido');
 
     // BFS traversal following the flow edges
