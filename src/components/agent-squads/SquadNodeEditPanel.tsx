@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
-import { Crown, Shield, Wrench, Trash2 } from "lucide-react";
+import { Crown, Shield, Wrench, Trash2, ExternalLink } from "lucide-react";
 import type { Node } from "@xyflow/react";
 import type { SquadAgentNodeData } from "./SquadAgentNode";
 
@@ -41,8 +41,19 @@ export function SquadNodeEditPanel({ node, isOpen, onClose, onSave, onDelete }: 
 
         <div className="space-y-6 py-6">
           <div>
-            <Label className="text-muted-foreground text-xs">Agente</Label>
-            <p className="font-medium">{nodeData.label}</p>
+            <div className="flex items-center justify-between">
+              <Label className="text-muted-foreground text-xs">Agente</Label>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => window.open(`/ia/agents/${nodeData.agent_id}/edit`, "_blank")}
+              >
+                <ExternalLink className="h-3 w-3 mr-1" />
+                Editar Agente
+              </Button>
+            </div>
+            <p className="font-medium mt-1">{nodeData.label}</p>
             {nodeData.description && (
               <p className="text-sm text-muted-foreground">{nodeData.description}</p>
             )}
