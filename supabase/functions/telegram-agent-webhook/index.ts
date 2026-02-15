@@ -576,16 +576,38 @@ INSTRUÇÕES IMPORTANTES:
         updated_at: new Date().toISOString(),
       }, { onConflict: 'agent_id,telegram_chat_id' });
 
-    // Send to Telegram
-    await fetch(`https://api.telegram.org/bot${agent.telegram_bot_token}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text: assistantMessage,
-        parse_mode: 'Markdown',
-      }),
-    });
+    // Send to Telegram with Markdown, fallback to plain text if it fails
+    const sendMessage = async (text: string, parseMode?: string) => {
+      const body: Record<string, unknown> = { chat_id: chatId, text };
+      if (parseMode) body.parse_mode = parseMode;
+      
+      const resp = await fetch(`https://api.telegram.org/bot${agent.telegram_bot_token}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      return resp;
+    };
+
+    // Try with Markdown first
+    const tgResponse = await sendMessage(assistantMessage, 'Markdown');
+    if (!tgResponse.ok) {
+      const errBody = await tgResponse.text();
+      console.error('Telegram sendMessage failed with Markdown:', errBody);
+      // Retry without parse_mode (plain text)
+      const retryResponse = await sendMessage(assistantMessage);
+      if (!retryResponse.ok) {
+        // Last resort: try splitting long messages
+        const maxLen = 4096;
+        if (assistantMessage.length > maxLen) {
+          for (let i = 0; i < assistantMessage.length; i += maxLen) {
+            await sendMessage(assistantMessage.slice(i, i + maxLen));
+          }
+        } else {
+          console.error('Telegram sendMessage failed even without Markdown:', await retryResponse.text());
+        }
+      }
+    }
 
     return new Response('OK', { status: 200 });
 
