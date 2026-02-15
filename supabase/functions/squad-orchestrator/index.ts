@@ -5,6 +5,15 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+interface SkillRecord {
+  id: string;
+  name: string;
+  description: string;
+  edge_function: string;
+  tool_parameters: Record<string, unknown>;
+  requires_client?: boolean;
+}
+
 interface SquadMember {
   id: string;
   agent_id: string;
@@ -37,7 +46,185 @@ interface StepResult {
   should_delegate: boolean;
 }
 
-async function callAgent(
+// ---- Skill/Tool helpers (mirrored from ia-agent-chat) ----
+
+const LOOKUP_CLIENT_TOOL = {
+  type: 'function' as const,
+  function: {
+    name: '_lookup_client',
+    description: 'Busca um cliente pelo nome na base de dados da empresa. Use quando precisar identificar qual cliente o usuário está se referindo.',
+    parameters: {
+      type: 'object',
+      properties: {
+        search_query: { type: 'string', description: 'Nome ou parte do nome do cliente para buscar' },
+      },
+      required: ['search_query'],
+    },
+  },
+};
+
+function buildToolsFromSkills(skills: SkillRecord[], hasFixedClient: boolean) {
+  const skillTools = skills.map((skill) => {
+    const params = JSON.parse(JSON.stringify(skill.tool_parameters || { type: 'object', properties: {} }));
+    if (!hasFixedClient && skill.requires_client !== false) {
+      if (!params.properties) params.properties = {};
+      params.properties.client_id = {
+        type: 'string',
+        description: 'ID UUID do cliente. OBRIGATÓRIO. Use o client_id obtido via _lookup_client ou data_clients.',
+      };
+      if (!params.required) params.required = [];
+      if (!params.required.includes('client_id')) params.required.push('client_id');
+    }
+    return {
+      type: 'function' as const,
+      function: {
+        name: skill.id,
+        description: skill.description,
+        parameters: params,
+      },
+    };
+  });
+
+  if (!hasFixedClient && skills.some(s => s.requires_client !== false)) {
+    skillTools.push(LOOKUP_CLIENT_TOOL);
+  }
+  return skillTools;
+}
+
+async function executeSkill(
+  skillId: string,
+  skills: SkillRecord[],
+  args: Record<string, unknown>,
+  agentContext: { client_id?: string; company_id?: string; user_id?: string }
+) {
+  const skill = skills.find((s) => s.id === skillId);
+  if (!skill) return { error: `Skill "${skillId}" não encontrada` };
+
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+
+  try {
+    const response = await fetch(`${supabaseUrl}/functions/v1/execute-skill`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${serviceRoleKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        skill_id: skillId,
+        params: {
+          ...args,
+          client_id: agentContext.client_id,
+          company_id: agentContext.company_id,
+          user_id: agentContext.user_id,
+        },
+      }),
+    });
+
+    const text = await response.text();
+    try {
+      const parsed = JSON.parse(text);
+      return parsed.result || parsed;
+    } catch {
+      return { result: text };
+    }
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`Error executing skill ${skillId}:`, message);
+    return { error: `Erro ao executar skill: ${message}` };
+  }
+}
+
+async function handleLookupClient(args: Record<string, unknown>, companyId: string) {
+  const supabase = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '');
+  const query = (args.search_query as string || '').trim();
+  if (!query) return { error: 'Nenhum termo de busca informado' };
+  const { data, error } = await supabase
+    .from('clients')
+    .select('id, name, company, sector, status')
+    .eq('company_id', companyId)
+    .or(`name.ilike.%${query}%,company.ilike.%${query}%`)
+    .limit(5);
+  if (error) return { error: error.message };
+  if (!data || data.length === 0) return { clients: [], message: 'Nenhum cliente encontrado.' };
+  return { clients: data };
+}
+
+async function handleBuiltinQuery(
+  skillId: string,
+  args: Record<string, unknown>,
+  companyId: string,
+  clientId?: string
+): Promise<Record<string, unknown>> {
+  const supabase = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '');
+  const limit = Math.min(Number(args.limit) || 20, 50);
+  try {
+    switch (skillId) {
+      case 'data_clients': {
+        let q = supabase.from('clients').select('id, name, company, sector, status, monthly_budget, leads_generated, last_sync_at, created_at, ai_briefing').eq('company_id', companyId);
+        if (args.search) q = q.or(`name.ilike.%${args.search}%,company.ilike.%${args.search}%`);
+        if (args.status) q = q.eq('status', args.status);
+        const { data, error } = await q.order('name').limit(limit);
+        if (error) return { error: error.message };
+        return { clients: data, total: data?.length };
+      }
+      case 'data_client_details': {
+        const cid = clientId || args.client_id as string;
+        if (!cid) return { error: 'client_id necessário' };
+        const { data, error } = await supabase.from('clients').select('*').eq('id', cid).single();
+        if (error) return { error: error.message };
+        return { client: data };
+      }
+      case 'data_campaigns': {
+        if (!clientId) return { error: 'client_id necessário' };
+        const { data, error } = await supabase.from('campaigns').select('id, name, status, objective, spend, cpc, ctr, conversions, cpa').eq('client_id', clientId).order('spend', { ascending: false }).limit(limit);
+        if (error) return { error: error.message };
+        return { campaigns: data };
+      }
+      case 'data_ads': {
+        if (!clientId) return { error: 'client_id necessário' };
+        const { data, error } = await supabase.from('ads').select('id, name, status, spend, cpc, ctr, impressions, clicks, conversions, creative_title, image_url').eq('client_id', clientId).order('spend', { ascending: false }).limit(limit);
+        if (error) return { error: error.message };
+        return { ads: data };
+      }
+      case 'data_scheduled_posts': {
+        if (!clientId) return { error: 'client_id necessário' };
+        const { data, error } = await supabase.from('scheduled_posts').select('id, title, platform, status, scheduled_for, post_type, caption').eq('client_id', clientId).order('scheduled_for', { ascending: false }).limit(limit);
+        if (error) return { error: error.message };
+        return { posts: data };
+      }
+      default:
+        return { error: `Query builtin "${skillId}" não reconhecida` };
+    }
+  } catch (err: unknown) {
+    return { error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+// ---- Agent calling with tool support ----
+
+async function loadAgentSkills(agentId: string): Promise<SkillRecord[]> {
+  const supabase = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '');
+  const { data } = await supabase
+    .from('ia_agent_enabled_skills')
+    .select('skill_id, ia_agent_skills(*)')
+    .eq('agent_id', agentId);
+
+  if (!data) return [];
+  return data
+    .map((row: any) => row.ia_agent_skills)
+    .filter(Boolean)
+    .map((s: any) => ({
+      id: s.id,
+      name: s.name,
+      description: s.description || s.name,
+      edge_function: s.edge_function || '',
+      tool_parameters: s.tool_parameters || {},
+      requires_client: s.requires_client,
+    }));
+}
+
+async function callAgentWithTools(
   agent: SquadMember['agent'],
   squadInstructions: string | null,
   role: string,
@@ -45,6 +232,7 @@ async function callAgent(
   previousSteps: StepResult[],
   isLeader: boolean,
   nextAgents: SquadMember[],
+  skills: SkillRecord[],
 ): Promise<{ output: string; should_delegate: boolean }> {
   const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
@@ -54,13 +242,11 @@ async function callAgent(
       ).join('\n\n')}\n`
     : '';
 
-  // Only leader gets delegation instructions
   let delegationInstructions = '';
   if (isLeader) {
     const nextAgentsList = nextAgents.length > 0
       ? `Agentes disponíveis na squad: ${nextAgents.map(a => `${a.agent.agent_name} (${a.role})`).join(', ')}`
       : '';
-
     delegationInstructions = `
 INSTRUÇÕES CRÍTICAS DE DELEGAÇÃO (APENAS PARA VOCÊ, O LÍDER):
 - Analise a mensagem recebida e decida se você consegue responder sozinho ou se precisa acionar a squad.
@@ -73,6 +259,12 @@ ${nextAgentsList}
 `;
   }
 
+  // Build skill instructions
+  let skillInstructions = '';
+  if (skills.length > 0) {
+    skillInstructions = `\n\nVocê tem as seguintes FERRAMENTAS/SKILLS disponíveis para executar tarefas reais:\n${skills.map(s => `- ${s.name}: ${s.description}`).join('\n')}\nUse estas ferramentas quando precisar EXECUTAR ações (gerar imagem, agendar post, buscar dados, etc.). NÃO simule ou invente resultados — SEMPRE use a ferramenta correspondente.\n`;
+  }
+
   const systemPrompt = `${agent.prompt_base}
 
 ${agent.additional_instructions || ''}
@@ -82,47 +274,144 @@ Você é o "${role}" desta squad de agentes de IA.
 ${squadInstructions ? `Instruções específicas para você nesta squad: ${squadInstructions}` : ''}
 ${stepsContext}
 ${delegationInstructions}
+${skillInstructions}
 
 INSTRUÇÕES DE RESPOSTA:
 - A SOLICITAÇÃO ORIGINAL DO USUÁRIO está na mensagem do usuário abaixo. NUNCA ignore ou substitua o pedido original.
 - Considere o contexto dos agentes anteriores ao elaborar sua resposta, mas SEMPRE mantenha o foco na solicitação original.
 - Seja objetivo e agregue valor com sua especialidade.
 - Se você é o líder, coordene e sintetize. Se é gerente, organize. Se é executor, execute a tarefa.
+- Se você tem ferramentas disponíveis, USE-AS para executar tarefas reais. NUNCA invente URLs, dados ou resultados fictícios.
 `;
 
-  const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: agent.model || 'google/gemini-2.5-flash',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: message },
-      ],
-    }),
-  });
+  const hasFixedClient = !!agent.client_id;
+  const tools = buildToolsFromSkills(skills, hasFixedClient);
+  const agentContext = {
+    client_id: agent.client_id || undefined,
+    company_id: agent.company_id,
+    user_id: undefined as string | undefined,
+  };
+  const mutableContext = { ...agentContext };
+  let lastGeneratedImageUrl: string | null = null;
 
-  if (!aiResponse.ok) {
-    const err = await aiResponse.text();
-    console.error('AI error:', err);
-    throw new Error(`AI error: ${aiResponse.status}`);
+  const maxIterations = 5;
+  let currentMessages: any[] = [
+    { role: 'system', content: systemPrompt },
+    { role: 'user', content: message },
+  ];
+
+  for (let iter = 0; iter < maxIterations; iter++) {
+    const requestBody: Record<string, unknown> = {
+      model: agent.model || 'google/gemini-2.5-flash',
+      messages: currentMessages,
+    };
+
+    if (tools.length > 0) {
+      requestBody.tools = tools;
+      requestBody.tool_choice = 'auto';
+    }
+
+    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    if (!aiResponse.ok) {
+      const err = await aiResponse.text();
+      console.error('AI error:', err);
+      throw new Error(`AI error: ${aiResponse.status}`);
+    }
+
+    const data = await aiResponse.json();
+    const choice = data.choices[0];
+
+    // No tool calls — we have the final answer
+    if (!choice.message.tool_calls || choice.message.tool_calls.length === 0) {
+      const rawOutput = choice.message.content || '';
+      let should_delegate = true;
+      if (isLeader) {
+        should_delegate = rawOutput.includes('[DELEGAR]');
+      }
+      const output = rawOutput.replace(/\[DELEGAR\]/g, '').replace(/\[FINALIZAR\]/g, '').trim();
+      return { output, should_delegate };
+    }
+
+    // Process tool calls
+    currentMessages.push(choice.message);
+
+    for (const toolCall of choice.message.tool_calls) {
+      const fnName = toolCall.function.name;
+      let fnArgs: Record<string, unknown> = {};
+      try {
+        fnArgs = JSON.parse(toolCall.function.arguments || '{}');
+      } catch { /* empty */ }
+
+      console.log(`[squad-orchestrator] Tool call: ${fnName}`, fnArgs);
+
+      let result: Record<string, unknown>;
+
+      if (fnName === '_lookup_client') {
+        result = await handleLookupClient(fnArgs, mutableContext.company_id || '');
+        const clients = result.clients as Array<{ id: string }> | undefined;
+        if (clients && clients.length === 1) {
+          mutableContext.client_id = clients[0].id;
+        }
+      } else if (fnName.startsWith('data_')) {
+        if (fnArgs.client_id && !mutableContext.client_id) {
+          mutableContext.client_id = fnArgs.client_id as string;
+        }
+        result = await handleBuiltinQuery(fnName, fnArgs, mutableContext.company_id || '', mutableContext.client_id);
+      } else {
+        if (fnArgs.client_id && !mutableContext.client_id) {
+          mutableContext.client_id = fnArgs.client_id as string;
+        }
+        // Auto-inject last generated image
+        if (fnName === 'schedule_post' && !fnArgs.image_url && !fnArgs.media_urls && lastGeneratedImageUrl) {
+          fnArgs.image_url = lastGeneratedImageUrl;
+        }
+        result = await executeSkill(fnName, skills, fnArgs, mutableContext);
+        // Track generated image URLs
+        if (result.success && result.image_url && typeof result.image_url === 'string') {
+          const imgUrl = result.image_url as string;
+          if (imgUrl.startsWith('http')) {
+            lastGeneratedImageUrl = imgUrl;
+            console.log(`[squad-orchestrator] Saved lastGeneratedImageUrl: ${lastGeneratedImageUrl}`);
+          }
+        }
+      }
+
+      currentMessages.push({
+        role: 'tool',
+        tool_call_id: toolCall.id,
+        content: JSON.stringify(result),
+      });
+    }
   }
 
-  const data = await aiResponse.json();
-  const rawOutput = data.choices[0].message.content || '';
-
-  // Only leader can decide to stop the chain
-  let should_delegate = true; // default: continue the chain
+  // Exhausted iterations — final call without tools
+  const finalResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${Deno.env.get('LOVABLE_API_KEY')}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ model: agent.model || 'google/gemini-2.5-flash', messages: currentMessages }),
+  });
+  const finalData = await finalResponse.json();
+  const rawOutput = finalData.choices[0].message.content || '';
+  let should_delegate = true;
   if (isLeader) {
     should_delegate = rawOutput.includes('[DELEGAR]');
   }
-
   const output = rawOutput.replace(/\[DELEGAR\]/g, '').replace(/\[FINALIZAR\]/g, '').trim();
   return { output, should_delegate };
 }
+
+// ---- Main handler ----
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -166,7 +455,19 @@ Deno.serve(async (req) => {
 
     const typedFlows: SquadFlow[] = flows || [];
 
-    // 3. Create execution record
+    // 3. Pre-load skills for ALL agents in parallel
+    const skillsMap = new Map<string, SkillRecord[]>();
+    await Promise.all(
+      typedMembers.map(async (m) => {
+        const skills = await loadAgentSkills(m.agent_id);
+        skillsMap.set(m.agent_id, skills);
+        if (skills.length > 0) {
+          console.log(`[squad-orchestrator] Agent ${m.agent.agent_name} has ${skills.length} skills: ${skills.map(s => s.name).join(', ')}`);
+        }
+      })
+    );
+
+    // 4. Create execution record
     const { data: execution, error: execErr } = await serviceClient
       .from('ia_agent_squad_executions')
       .insert({
@@ -181,7 +482,7 @@ Deno.serve(async (req) => {
 
     if (execErr) throw execErr;
 
-    // 4. Build execution order using BFS from the leader
+    // 5. Build execution order using BFS from the leader
     const leader = typedMembers.find(m => m.role === 'leader' || m.role === 'lider');
     if (!leader) throw new Error('Squad sem líder definido');
 
@@ -204,10 +505,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Do NOT add unvisited members — only execute agents that are reachable from the leader
-
-    // 5. SSE streaming — execute agents and stream each step
-    const MAX_STEPS = executionOrder.length; // Never exceed the number of unique members
+    // 6. SSE streaming — execute agents and stream each step
+    const MAX_STEPS = executionOrder.length;
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       async start(controller) {
@@ -221,22 +520,17 @@ Deno.serve(async (req) => {
         for (let i = 0; i < executionOrder.length && steps.length < MAX_STEPS; i++) {
           const member = executionOrder[i];
 
-          // Safety: skip if this agent was already executed (prevent loops)
           if (executedAgents.has(member.id)) {
-            console.log(`[squad-orchestrator] Skipping already executed: ${member.agent.agent_name}`);
             continue;
           }
           executedAgents.add(member.id);
 
-          // ALWAYS pass original user message — previous steps are in system prompt context
           const stepInput = message;
-
-          // Determine next agents available for delegation
           const nextAgents = executionOrder.slice(i + 1);
+          const agentSkills = skillsMap.get(member.agent_id) || [];
 
-          console.log(`[squad-orchestrator] Step ${i + 1}: ${member.agent.agent_name} (${member.role})`);
+          console.log(`[squad-orchestrator] Step ${i + 1}: ${member.agent.agent_name} (${member.role}) with ${agentSkills.length} skills`);
 
-          // Send "thinking" event
           sendEvent({
             type: 'thinking',
             agent_name: member.agent.agent_name,
@@ -246,7 +540,7 @@ Deno.serve(async (req) => {
 
           try {
             const isLeader = member.id === leader.id;
-            const { output, should_delegate } = await callAgent(
+            const { output, should_delegate } = await callAgentWithTools(
               member.agent,
               member.squad_instructions,
               member.role,
@@ -254,6 +548,7 @@ Deno.serve(async (req) => {
               steps,
               isLeader,
               nextAgents,
+              agentSkills,
             );
 
             const step: StepResult = {
@@ -267,7 +562,6 @@ Deno.serve(async (req) => {
             };
             steps.push(step);
 
-            // Save step to DB
             await serviceClient.from('ia_agent_squad_execution_steps').insert({
               execution_id: execution.id,
               agent_id: member.agent_id,
@@ -280,7 +574,6 @@ Deno.serve(async (req) => {
               completed_at: new Date().toISOString(),
             });
 
-            // Send step result event
             sendEvent({
               type: 'step',
               agent_name: member.agent.agent_name,
@@ -290,9 +583,8 @@ Deno.serve(async (req) => {
               should_delegate,
             });
 
-            // If agent decided NOT to delegate, stop the chain
             if (!should_delegate) {
-              console.log(`[squad-orchestrator] ${member.agent.agent_name} decided to FINALIZE. Stopping chain.`);
+              console.log(`[squad-orchestrator] ${member.agent.agent_name} decided to FINALIZE.`);
               break;
             }
           } catch (err) {
@@ -330,7 +622,6 @@ Deno.serve(async (req) => {
           }
         }
 
-        // Mark execution as completed
         const finalOutput = steps[steps.length - 1]?.output || '';
         await serviceClient.from('ia_agent_squad_executions').update({
           status: 'completed',
