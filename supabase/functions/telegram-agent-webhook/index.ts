@@ -277,6 +277,7 @@ async function chatWithToolCalling(
   let currentMessages = [...messages];
   const mutableContext = { ...agentContext };
   const collectedImages: string[] = [];
+  let lastGeneratedImageUrl: string | null = null;
 
   for (let i = 0; i < maxIterations; i++) {
     const requestBody: Record<string, unknown> = {
@@ -345,10 +346,21 @@ async function chatWithToolCalling(
         if (mutableContext.client_id) {
           fnArgs.client_id = mutableContext.client_id;
         }
+        // Auto-inject last generated image URL into schedule_post if not provided
+        if (fnName === 'schedule_post' && !fnArgs.image_url && !fnArgs.media_urls && lastGeneratedImageUrl) {
+          fnArgs.image_url = lastGeneratedImageUrl;
+          console.log(`[telegram] Auto-injected image_url into schedule_post: ${lastGeneratedImageUrl}`);
+        }
         result = await executeSkill(fnName, skills, fnArgs, mutableContext);
-        // Collect generated images
+        // Collect generated images and track last URL
         if (result.success && result.image_url && typeof result.image_url === 'string') {
-          collectedImages.push(result.image_url as string);
+          const imgUrl = result.image_url as string;
+          collectedImages.push(imgUrl);
+          // Save persistent URL (not base64) for later use
+          if (imgUrl.startsWith('http')) {
+            lastGeneratedImageUrl = imgUrl;
+            console.log(`[telegram] Saved lastGeneratedImageUrl: ${lastGeneratedImageUrl}`);
+          }
         }
       }
 
@@ -602,6 +614,11 @@ INSTRUÇÕES IMPORTANTES:
 - Você está respondendo via Telegram, mantenha mensagens concisas e bem formatadas
 - NUNCA invente ou fabrique UUIDs/IDs de clientes. Se você já identificou o cliente anteriormente na conversa, reutilize o mesmo client_id. Se não sabe o ID, use _lookup_client para buscar.
 - Quando executar múltiplas ações em sequência para o mesmo cliente, use sempre o client_id que já foi resolvido.
+
+REGRA CRÍTICA DE AGENDAMENTO:
+- Quando gerar uma imagem (generate_image_ai) e depois agendar (schedule_post), você DEVE passar o campo image_url com a URL retornada pela skill de geração.
+- Nunca agende um post sem imagem se uma imagem foi gerada anteriormente na conversa.
+- Se o usuário pedir para gerar e agendar, faça em duas etapas: primeiro gere a imagem, depois agende passando a URL recebida.
 `;
 
     const aiMessages = [
