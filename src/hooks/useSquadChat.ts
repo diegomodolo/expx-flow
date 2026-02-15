@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -16,6 +16,7 @@ export interface SquadChatMessage {
 export function useSquadChat(squadId: string) {
   const [messages, setMessages] = useState<SquadChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const { toast } = useToast();
 
   const sendMessage = async (message: string) => {
@@ -32,6 +33,9 @@ export function useSquadChat(squadId: string) {
     setMessages((prev) => [...prev, userMsg]);
 
     try {
+      const abortController = new AbortController();
+      abortControllerRef.current = abortController;
+
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData?.session?.access_token;
 
@@ -45,6 +49,7 @@ export function useSquadChat(squadId: string) {
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
           body: JSON.stringify({ squadId, message }),
+          signal: abortController.signal,
         }
       );
 
@@ -136,18 +141,42 @@ export function useSquadChat(squadId: string) {
         }
       }
     } catch (err: any) {
-      console.error("Squad orchestrator error:", err);
-      toast({
-        title: "Erro na execução da squad",
-        description: err.message || "Não foi possível executar a squad.",
-        variant: "destructive",
-      });
+      if (err.name === 'AbortError') {
+        // User cancelled — remove thinking messages and add cancellation notice
+        setMessages((prev) => {
+          const filtered = prev.filter((m) => !m.isThinking);
+          return [
+            ...filtered,
+            {
+              id: `cancelled-${Date.now()}`,
+              role: "agent",
+              agent_name: "Sistema",
+              content: "⏹️ Processo interrompido pelo usuário.",
+              created_at: new Date().toISOString(),
+            },
+          ];
+        });
+      } else {
+        console.error("Squad orchestrator error:", err);
+        toast({
+          title: "Erro na execução da squad",
+          description: err.message || "Não foi possível executar a squad.",
+          variant: "destructive",
+        });
+      }
     } finally {
+      abortControllerRef.current = null;
       setLoading(false);
     }
   };
 
+  const stopExecution = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+  }, []);
+
   const clearMessages = () => setMessages([]);
 
-  return { messages, loading, sendMessage, clearMessages };
+  return { messages, loading, sendMessage, clearMessages, stopExecution };
 }
