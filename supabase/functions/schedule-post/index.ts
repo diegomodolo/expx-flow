@@ -33,7 +33,7 @@ serve(async (req) => {
     // Also accept client_name for lookup
     const { client_name } = body;
 
-    console.log(`[schedule-post] Scheduling post for client_id=${client_id}, client_name=${client_name}, company_id=${company_id}`);
+    console.log(`[schedule-post] Scheduling post for client_id=${client_id}, client_name=${client_name}, company_id=${company_id}, image_url=${image_url}, media_urls=${JSON.stringify(media_urls)}`);
 
     if (!company_id) {
       throw new Error("company_id é obrigatório");
@@ -138,34 +138,26 @@ serve(async (req) => {
       platformsArray = ['instagram', 'facebook'];
     }
 
-    // Get facebook page and instagram account for this client/company (optional)
+    // Get facebook page and instagram account linked to this specific client
     let facebookPageId: string | null = null;
     let instagramAccountId: string | null = null;
 
-    try {
-      const { data: pages } = await supabase
-        .from('facebook_pages')
-        .select('id')
-        .eq('company_id', company_id)
-        .eq('is_active', true)
-        .limit(1);
+    if (resolvedClientId) {
+      try {
+        const { data: clientData } = await supabase
+          .from('clients')
+          .select('facebook_page_id, instagram_account_id')
+          .eq('id', resolvedClientId)
+          .single();
 
-      if (pages && pages.length > 0) {
-        facebookPageId = pages[0].id;
-
-        // Look up instagram_accounts by facebook_page_id
-        const { data: igAccounts } = await supabase
-          .from('instagram_accounts')
-          .select('id')
-          .eq('facebook_page_id', facebookPageId)
-          .limit(1);
-
-        if (igAccounts && igAccounts.length > 0) {
-          instagramAccountId = igAccounts[0].id;
+        if (clientData) {
+          facebookPageId = clientData.facebook_page_id || null;
+          instagramAccountId = clientData.instagram_account_id || null;
+          console.log(`[schedule-post] Client social accounts: fb_page=${facebookPageId}, ig=${instagramAccountId}`);
         }
+      } catch (e) {
+        console.warn('[schedule-post] Could not fetch client social accounts:', e.message);
       }
-    } catch (e) {
-      console.warn('[schedule-post] Could not fetch social accounts:', e.message);
     }
 
     // Build the caption
