@@ -60,8 +60,9 @@ INSTRUÇÕES CRÍTICAS DE ESTILO:
 - Você DEVE seguir o mesmo estilo, cores, tipografia e linguagem visual dessas referências.
 - A nova imagem deve parecer que foi feita pelo mesmo designer que criou as referências.
 - Mantenha a paleta de cores, estilo de ilustração/fotografia e elementos visuais consistentes.
-- Alta qualidade, profissional, adequada para marketing em redes sociais.`
-      : `Create a ${style} image for: ${prompt}. ${clientContext}. High quality, professional, suitable for social media marketing.`;
+- Alta qualidade, profissional, adequada para marketing em redes sociais.
+- IMPORTANTE: Todo texto na imagem DEVE estar em português brasileiro correto, sem erros de ortografia ou gramática. Revise cada palavra antes de renderizar.`
+      : `Create a ${style} image for: ${prompt}. ${clientContext}. High quality, professional, suitable for social media marketing. IMPORTANT: All text in the image MUST be in correct Brazilian Portuguese with no spelling or grammar errors.`;
 
     // Build message content array
     const messageContent: Array<{ type: string; text?: string; image_url?: { url: string } }> = [
@@ -85,7 +86,7 @@ INSTRUÇÕES CRÍTICAS DE ESTILO:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash-image',
+        model: 'google/gemini-3-pro-image-preview',
         messages: [
           {
             role: 'user',
