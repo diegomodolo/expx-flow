@@ -62,6 +62,7 @@ async function executeSkill(
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
   try {
+    console.log(`executeSkill ${skillId} with client_id=${agentContext.client_id}, company_id=${agentContext.company_id}`);
     const response = await fetch(`${supabaseUrl}/functions/v1/${skill.edge_function}`, {
       method: 'POST',
       headers: {

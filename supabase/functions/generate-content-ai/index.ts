@@ -17,7 +17,12 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { contentType, clientId, theme, companyId } = await req.json();
+    const body = await req.json();
+    // Support both camelCase (frontend) and snake_case (agent skills)
+    const contentType = body.contentType || body.content_type;
+    const clientId = body.clientId || body.client_id;
+    const theme = body.theme || body.topic;
+    const companyId = body.companyId || body.company_id;
 
     if (!openAIApiKey) {
       throw new Error('OpenAI API key not configured');
