@@ -22,6 +22,7 @@ import {
 import "@xyflow/react/dist/style.css";
 import { SquadAgentNode, SquadAgentNodeData } from "@/components/agent-squads/SquadAgentNode";
 import { SquadAgentLibrary } from "@/components/agent-squads/SquadAgentLibrary";
+import { SquadTestChat } from "@/components/agent-squads/SquadTestChat";
 import { SquadNodeEditPanel } from "@/components/agent-squads/SquadNodeEditPanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -288,6 +289,10 @@ function SquadEditorContent() {
 
   const selectedEditClientName = sortedClients.find(c => c.id === editForm.client_id)?.name;
 
+  // Find leader agent for test chat
+  const leaderNode = nodes.find((n) => (n.data as SquadAgentNodeData).role === "leader");
+  const leaderAgentId = leaderNode ? (leaderNode.data as SquadAgentNodeData).agent_id : undefined;
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -325,7 +330,7 @@ function SquadEditorContent() {
       <div className="flex-1 flex overflow-hidden">
         <SquadAgentLibrary clientId={squadClientId} onDragStart={onDragStart} />
 
-        <div className="flex-1 bg-muted/20">
+        <div className="flex-1 bg-muted/20 relative">
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -354,6 +359,12 @@ function SquadEditorContent() {
             </Panel>
           </ReactFlow>
         </div>
+
+        <SquadTestChat
+          squadId={squadId || ""}
+          squadName={squadName}
+          agentId={leaderAgentId}
+        />
       </div>
 
       <SquadNodeEditPanel
