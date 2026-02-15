@@ -36,6 +36,7 @@ import {
   Briefcase,
   NotebookText,
   ImagePlus,
+  Puzzle,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useEmployeePermissions, MenuItemType } from "@/hooks/useEmployeePermissions";
@@ -135,6 +136,7 @@ const menuCategories: MenuCategory[] = [
       items: [
         { title: "Agentes de IA", url: "/ia/agents", icon: Bot, permission: "agentes-ia" as MenuItemType },
         { title: "IA", url: "/ia", icon: Brain, permission: "ia" as MenuItemType },
+        { title: "Skills", url: "/ia/skills", icon: Puzzle, permission: "agentes-ia" as MenuItemType },
       ].sort((a, b) => a.title.localeCompare(b.title, 'pt-BR')),
     },
     {
