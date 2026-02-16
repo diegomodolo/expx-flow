@@ -1200,6 +1200,7 @@ export default function Tarefas() {
                 onUpdateTaskStatus={handleUpdateTaskStatus}
                 onDeleteTask={handleDeleteTask}
                 isCompactMode={isCompactMode}
+                selectedBoardUserId={selectedBoardUserId}
               />
             )}
             
