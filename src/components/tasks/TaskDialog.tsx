@@ -1007,7 +1007,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                   </div>
                 )}
 
-                {activeTab === 'autorizador' && isRoteiro && (
+                {activeTab === 'autorizador' && (
                   <div className="space-y-5">
                     <div>
                       <h3 className="text-base font-semibold text-foreground mb-1">Autorizador</h3>
