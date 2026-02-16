@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Upload, X, GripVertical, Play, Image as ImageIcon, ChevronLeft, ChevronRight, Volume2, VolumeX } from "lucide-react";
+import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Upload, X, GripVertical, Play, Image as ImageIcon, ChevronLeft, ChevronRight, Volume2, VolumeX, SpellCheck, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -41,6 +41,7 @@ export function CreativeTaskPanel({ data, onChange, companyId, taskId, clientNam
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isMuted, setIsMuted] = useState(true);
+  const [isCheckingGrammar, setIsCheckingGrammar] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const isVideoType = data.post_type === 'stories' || data.post_type === 'reels';
@@ -416,9 +417,48 @@ export function CreativeTaskPanel({ data, onChange, companyId, taskId, clientNam
             placeholder="Escreva a legenda do post..."
             className="mt-1.5 min-h-[120px] resize-none"
           />
-          <p className="text-xs text-muted-foreground mt-1 text-right">
-            {data.caption.length} caracteres
-          </p>
+          <div className="flex items-center justify-between mt-1.5">
+            <p className="text-xs text-muted-foreground">
+              {data.caption.length} caracteres
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!data.caption.trim() || isCheckingGrammar}
+              onClick={async () => {
+                if (!data.caption.trim()) return;
+                setIsCheckingGrammar(true);
+                try {
+                  const { data: fnData, error } = await supabase.functions.invoke('validate-text-grammar', {
+                    body: { text: data.caption },
+                  });
+                  if (error) throw error;
+                  if (fnData?.correctedText && !fnData.correctedText.startsWith('TEXTO_REJEITADO')) {
+                    onChange({ ...data, caption: fnData.correctedText });
+                    toast({
+                      title: fnData.hasChanges ? 'Texto corrigido' : 'Nenhum erro encontrado',
+                      description: fnData.hasChanges ? 'A legenda foi corrigida automaticamente.' : 'O texto já está correto.',
+                    });
+                  } else {
+                    toast({ title: 'Erro', description: fnData?.correctedText || 'Não foi possível validar.', variant: 'destructive' });
+                  }
+                } catch (err: any) {
+                  console.error('Grammar check error:', err);
+                  toast({ title: 'Erro', description: 'Falha ao verificar ortografia.', variant: 'destructive' });
+                } finally {
+                  setIsCheckingGrammar(false);
+                }
+              }}
+              className="gap-1.5 text-xs"
+            >
+              {isCheckingGrammar ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <SpellCheck className="w-3.5 h-3.5" />
+              )}
+              Correção Gramatical
+            </Button>
+          </div>
         </div>
       </div>
     </div>
