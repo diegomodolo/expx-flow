@@ -23,17 +23,20 @@ export const useDiscordConfig = () => {
   });
 
   const saveConfig = useMutation({
-    mutationFn: async ({ guild_id, guild_name, is_connected, enabled }: { guild_id: string; guild_name?: string; is_connected?: boolean; enabled?: boolean }) => {
+    mutationFn: async ({ guild_id, guild_name, is_connected, enabled, bot_token }: { guild_id: string; guild_name?: string; is_connected?: boolean; enabled?: boolean; bot_token?: string }) => {
+      const payload: any = { guild_id, guild_name, is_connected, enabled };
+      if (bot_token !== undefined) payload.bot_token = bot_token;
+
       if (config?.id) {
         const { error } = await (supabase as any)
           .from("discord_config")
-          .update({ guild_id, guild_name, is_connected, enabled })
+          .update(payload)
           .eq("id", config.id);
         if (error) throw error;
       } else {
         const { error } = await (supabase as any)
           .from("discord_config")
-          .insert({ company_id: companyId, guild_id, guild_name, is_connected, enabled });
+          .insert({ company_id: companyId, ...payload });
         if (error) throw error;
       }
     },
@@ -46,7 +49,7 @@ export const useDiscordConfig = () => {
 
   const testConnection = async (guild_id: string) => {
     const res = await supabase.functions.invoke("discord-bot", {
-      body: { action: "test-connection", guild_id },
+      body: { action: "test-connection", guild_id, company_id: companyId },
     });
     if (res.error) throw new Error(res.error.message);
     return res.data;
@@ -54,7 +57,7 @@ export const useDiscordConfig = () => {
 
   const listChannels = async (guild_id: string) => {
     const res = await supabase.functions.invoke("discord-bot", {
-      body: { action: "list-channels", guild_id },
+      body: { action: "list-channels", guild_id, company_id: companyId },
     });
     if (res.error) throw new Error(res.error.message);
     return res.data?.channels || [];
@@ -62,7 +65,7 @@ export const useDiscordConfig = () => {
 
   const listGuildMembers = async (guild_id: string) => {
     const res = await supabase.functions.invoke("discord-bot", {
-      body: { action: "list-guild-members", guild_id },
+      body: { action: "list-guild-members", guild_id, company_id: companyId },
     });
     if (res.error) throw new Error(res.error.message);
     return res.data?.members || [];
@@ -70,7 +73,7 @@ export const useDiscordConfig = () => {
 
   const sendMessage = async (channel_id: string, content: string) => {
     const res = await supabase.functions.invoke("discord-bot", {
-      body: { action: "send-message", channel_id, content },
+      body: { action: "send-message", channel_id, content, company_id: companyId },
     });
     if (res.error) throw new Error(res.error.message);
     return res.data;
