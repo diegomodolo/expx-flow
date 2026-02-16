@@ -542,7 +542,11 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
       autorizador_id: formData.autorizador_id || null,
       categoria_id: formData.categoria_id || null,
       classificacao_id: formData.classificacao_id || null,
-      task_type: formData.tipo || 'Tarefa',
+      task_type: (() => {
+        const valid = ['Backlog', 'Criativo', 'História', 'Negócio', 'Reunião', 'Tarefa', 'Ticket'];
+        const match = valid.find(v => v.toLowerCase() === (formData.tipo || '').toLowerCase());
+        return match || 'Tarefa';
+      })(),
       creative_data: formData.tipo === 'Criativo' ? {
         post_type: creativeData.post_type,
         caption: creativeData.caption,
