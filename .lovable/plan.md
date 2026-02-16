@@ -1,166 +1,127 @@
 
-# Command Center Expx -- Centro de Comando de Squad
 
-Tela de gestao em tempo real para lideres de squad, com integracao Discord, timeline visual por colaborador e automacoes de atribuicao de tarefas.
+# Correção Sistêmica: Contas Instagram via Business Manager
 
----
+## Diagnóstico do Problema
 
-## Visao Geral
+A causa raiz do erro `(#10) Application does not have permission` em todas as contas Instagram vinculadas via Business Manager (SacFiscal, exsistecnologia_, uncempresarial, izac.imendes, etc.) e a seguinte:
 
-Uma nova pagina acessivel via sidebar (Equipe > Command Center) que funciona como um painel de controle operacional para lideres de squad. A interface combina visualizacao de carga de trabalho, drag-and-drop de tarefas e notificacoes automaticas via Discord.
+A API do Instagram Graph **exige obrigatoriamente** um `page_access_token` de uma Pagina do Facebook que tenha aquela conta Instagram conectada como seu `instagram_business_account`. O token de usuario (user-level token) nao funciona para acessar midias ou publicar no Instagram -- mesmo que o Business Manager tenha acesso a conta.
 
----
+Atualmente, o sistema:
+1. Sincroniza as paginas do Facebook via `/me/accounts` (paginas que o usuario gerencia diretamente)
+2. Sincroniza as contas Instagram do Business Manager via `/{bm-id}/owned_instagram_accounts`
+3. Salva as contas BM com `facebook_page_id = null` (sem vinculo a nenhuma pagina)
+4. Na hora de buscar/postar, tenta usar o token de usuario -- que nao tem permissao
 
-## Fase 1 -- Infraestrutura e Rota (Base)
+O problema: o sistema NAO busca as **paginas que pertencem ao Business Manager** (`/{bm-id}/owned_pages`). Essas paginas sao diferentes das paginas em `/me/accounts` e podem ter o vinculo correto com as contas Instagram do BM.
 
-**Objetivo**: Criar a pagina, rota e entrada no sidebar.
+## Solucao Proposta
 
-- Criar `src/pages/SquadCommandCenter.tsx` com layout base usando `DashboardLayout`
-- Adicionar rota `/squad-command-center` no `App.tsx` (protegida)
-- Adicionar item "Command Center" no sidebar em "Equipe" (`DashboardSidebar.tsx`) com icone `Radar` ou `Activity`
-- Adicionar permission type `command-center` no sistema de permissoes
+### Passo 1: Buscar paginas do Business Manager durante a sincronizacao
 
----
+Atualizar a funcao `fetch-facebook-pages` para tambem buscar:
+- `/{bm-id}/owned_pages?fields=id,name,access_token,instagram_business_account`
+- `/{bm-id}/client_pages?fields=id,name,access_token,instagram_business_account`
 
-## Fase 2 -- Header Dinamico (Saude da Operacao)
+Essas paginas serao salvas na tabela `facebook_pages` da mesma forma que as paginas de `/me/accounts`.
 
-**Objetivo**: Exibir metricas em tempo real no topo da pagina.
+### Passo 2: Vincular contas Instagram do BM as suas paginas
 
-Componente: `src/components/command-center/CommandCenterHeader.tsx`
+Apos processar todas as paginas (incluindo as do BM), fazer um cruzamento:
+- Para cada conta Instagram com `source = 'business_manager'` e `facebook_page_id = null`
+- Verificar se alguma pagina tem `instagram_business_account_id` igual ao `instagram_id` dessa conta
+- Se encontrar, atualizar o `facebook_page_id` da conta Instagram
 
-- **Grafico Donut** de disponibilidade: % de colaboradores da squad com tarefas ativas agora vs total (usando `recharts` PieChart)
-- **Clock-In Sync com Discord**: Consultar presenca dos membros via nova action `get-member-presence` na edge function `discord-bot` (endpoint `GET /guilds/{id}/members/{id}` retorna status). Avatares ficam opacos quando o membro esta offline/idle no Discord
-- **Metrica de Vazao**: Contador "Concluidas / Total" do dia, calculado a partir da tabela `tasks` filtrada por `completed_at` no dia atual
+### Passo 3: Atualizar o Token Resolver
 
-### Mudancas na Edge Function `discord-bot`:
-- Adicionar action `get-member-presence` que faz `GET /guilds/{guild_id}/presences` (nota: o Discord REST API nao expoe presenca diretamente -- sera necessario usar o status "Online/Offline" baseado na ultima atividade, ou marcar manualmente via slash command `/online`)
-- Alternativa viavel: usar `GET /guilds/{guild_id}/members` que ja existe, e adicionar campo de status manual na tabela `employees` (ex: `discord_status`) atualizado via webhook ou comando
+Modificar o `_shared/instagram-token-resolver.ts`:
+- Contas BM **com** pagina vinculada: usar o `page_access_token` dessa pagina (mesmo comportamento de contas `source: page`)
+- Contas BM **sem** pagina vinculada: retornar erro claro explicando que o Instagram precisa ser vinculado a uma Pagina no Business Manager
 
----
+### Passo 4: Diagnostico visual no modal "Testar Conexao"
 
-## Fase 3 -- Seletor de Squad e Colaboradores
+Melhorar o `InstagramConnectionTestModal` para mostrar informacoes de diagnostico:
+- Se a conta e do tipo BM e nao tem pagina vinculada, mostrar mensagem orientando o usuario a vincular a conta a uma pagina no Business Manager do Facebook
+- Mostrar o tipo de token sendo utilizado (pagina vs BM vs fallback)
 
-Componente: `src/components/command-center/SquadSelector.tsx`
+## Detalhes Tecnicos
 
-- Dropdown para selecionar a squad ativa (usa `useTeams`)
-- Ao selecionar, carrega membros da squad e suas tarefas do dia
-- Se o usuario logado e lider de apenas uma squad, pre-seleciona automaticamente
+### Alteracoes em `supabase/functions/fetch-facebook-pages/index.ts`
 
----
+Adicionar busca de paginas do BM apos a linha 171 (dentro do loop de Business Managers):
 
-## Fase 4 -- Coluna de Backlog (The Inbox)
+```typescript
+// Fetch pages owned by the BM
+const bmPagesUrl = `https://graph.facebook.com/v20.0/${business.id}/owned_pages?fields=id,name,access_token,category,instagram_business_account&limit=100&access_token=${accessToken}`;
+const bmPagesResponse = await fetch(bmPagesUrl);
+if (bmPagesResponse.ok) {
+  const bmPagesData = await bmPagesResponse.json();
+  // Upsert each BM page into facebook_pages table
+  // Then check instagram_business_account linkage
+}
+```
 
-Componente: `src/components/command-center/BacklogColumn.tsx`
+Apos processar tudo, cruzar dados:
 
-- Lista de tarefas com status `todo` da squad selecionada, sem `start_date` definido
-- **Borda colorida por area**: Baseada na cor da squad/categoria da tarefa
-- **Indicador de Aging**: Calcula horas desde `created_at`. Se > 4h, aplica borda amarela/laranja com `animate-pulse`
-- **Quick Preview**: Tooltip com `HoverCard` do Radix exibindo descricao resumida, prioridade, e prazo
-- Cards arrastáveis usando `react-beautiful-dnd` (ja instalado)
+```typescript
+// Cross-reference: link BM IG accounts to their pages
+for (const igAccount of bmInstagramAccounts) {
+  const linkedPage = allPages.find(p => 
+    p.instagram_business_account_id === igAccount.instagram_id
+  );
+  if (linkedPage) {
+    await supabase
+      .from('instagram_accounts')
+      .update({ facebook_page_id: linkedPage.id })
+      .eq('id', igAccount.id);
+  }
+}
+```
 
----
+### Alteracoes em `supabase/functions/_shared/instagram-token-resolver.ts`
 
-## Fase 5 -- Timeline de Workload (Regua de 6 Horas)
+```typescript
+if (igAccount.source === 'business_manager') {
+  // First check if we have a linked page (preferred)
+  if (igAccount.facebook_page_id) {
+    const { data: fbPage } = await supabase
+      .from('facebook_pages')
+      .select('page_access_token, instagram_business_account_id')
+      .eq('id', igAccount.facebook_page_id)
+      .single();
 
-Componente: `src/components/command-center/WorkloadTimeline.tsx`
+    if (fbPage?.page_access_token) {
+      return {
+        accessToken: fbPage.page_access_token,
+        instagramUserId,
+        source: 'business_manager',
+      };
+    }
+  }
+  // No page linked - try to find one dynamically
+  // If not found, throw descriptive error
+  throw new Error(
+    'Conta Instagram via Business Manager sem pagina vinculada. ' +
+    'Acesse o Business Manager do Facebook e vincule esta conta a uma Pagina.'
+  );
+}
+```
 
-A parte central e mais complexa da tela.
+### Arquivos Modificados
 
-- Para cada colaborador da squad, renderiza uma **linha do tempo horizontal** representando 6 horas de trabalho
-- A regua e dividida em **blocos de 18 minutos** (20 blocos por colaborador)
-- Tarefas ja atribuidas (com `start_date` no dia e `ai_estimated_minutes`) ocupam slots proporcionalmente
-- Horario de inicio configuravel (ex: 08:00) usando campo existente ou default
+| Arquivo | Alteracao |
+|---------|-----------|
+| `supabase/functions/fetch-facebook-pages/index.ts` | Buscar `owned_pages` e `client_pages` do BM; cruzar IG accounts com paginas |
+| `supabase/functions/_shared/instagram-token-resolver.ts` | BM accounts usam page token quando vinculadas; erro claro quando nao |
+| `supabase/functions/fetch-instagram-media/index.ts` | Alinhar logica com o token resolver atualizado |
+| `src/components/clients/InstagramConnectionTestModal.tsx` | Mostrar diagnostico para contas BM sem pagina |
 
-### Subcomponentes:
-- `TimelineRow.tsx` -- Linha de um colaborador com avatar, nome, e regua
-- `TimelineSlot.tsx` -- Bloco individual de 18min (livre ou ocupado)
-- `TimelineTaskCard.tsx` -- Card de tarefa posicionado na regua
+### Fluxo Pos-Implementacao
 
-### Drag & Drop (Ghost Drag):
-- Ao arrastar card do backlog sobre a timeline, exibir preview visual ("sombra")
-- Se o horario esta livre: sombra verde (`bg-green-500/30`)
-- Se ja ocupado: sombra vermelha (`bg-red-500/30`)
-- Ao soltar: verificar se cabe nas 6h restantes. Se nao couber, exibir `AlertDialog` de confirmacao
+1. Ir em **Configuracoes > Facebook Ads** e clicar em **"Atualizar Paginas"**
+2. O sistema agora buscara tambem as paginas do Business Manager
+3. Se a pagina do "Saque Fiscal" estiver vinculada ao Instagram "sacfiscal" no BM, o vinculo sera feito automaticamente
+4. Testar a conexao novamente
+5. Se o erro persistir, significa que no Business Manager do Facebook a conta Instagram nao esta atribuida a nenhuma Pagina -- nesse caso, e necessario fazer essa atribuicao diretamente no Business Manager do Facebook
 
-### Smart Allocation (ao soltar):
-- Calcular proximo slot livre na timeline do colaborador
-- Atualizar `start_date` da tarefa no banco com o horario calculado
-- Se `ai_estimated_minutes` nao estiver definido, usar 18min como default
-- Enviar notificacao via Discord (Fase 7)
-
----
-
-## Fase 6 -- Time-Collapse (Ajuste em Tempo Real)
-
-Componente: Logica integrada ao `WorkloadTimeline.tsx`
-
-- Quando uma tarefa e marcada como `done` (via UI ou via Discord `/entregar`), recalcular a timeline
-- Se a tarefa foi concluida mais rapido que o estimado, puxar tarefas subsequentes para frente
-- Usar `supabase.channel()` para realtime updates na tabela `tasks` (listen to UPDATE events)
-- Animacao suave com `transition-all duration-500`
-
----
-
-## Fase 7 -- Integracoes Discord (Automacoes)
-
-### 7a. Notificacao de Atribuicao
-- Ao atribuir tarefa (drop na timeline), enviar embed via `send-dm` ao colaborador
-- Embed contendo: titulo, deadline, tempo estimado, link para a tarefa
-- Usar `discord_user_id` do colaborador (ja mapeado na tabela `employees`)
-
-### 7b. Nova action na Edge Function: `send-task-embed`
-- Action dedicada que constroi um embed rico com campos formatados
-- Botoes de acao no embed (nota: botoes interativos requerem Discord Interactions endpoint -- simplificar para links inicialmente)
-
-### 7c. Alerta de Overtime
-- Criar logica no frontend: se `start_date + ai_estimated_minutes + 7min` < agora e status != `done`, exibir card pulsando em laranja
-- Opcionalmente, enviar mensagem automatica no canal da squad via `send-message`
-
----
-
-## Fase 8 -- Visao de "Carga de Amanha"
-
-- Botao expansivel no final de cada linha de colaborador
-- Ao clicar, mostra tarefas com `start_date` ou `deadline` no proximo dia util
-- Usa `date-fns` para calcular proximo dia util (pula sabado/domingo)
-
----
-
-## Fase 9 -- Estilo Visual (Glassmorphism Dark)
-
-- Fundo com gradiente azul-escuro (`from-slate-950 via-blue-950 to-slate-900`)
-- Cards com `backdrop-blur-xl bg-white/5 border border-white/10`
-- Acentos neon em ciano (`text-cyan-400`), roxo (`text-purple-400`), verde (`text-emerald-400`)
-- Sombras com glow: `shadow-[0_0_15px_rgba(6,182,212,0.15)]`
-- Avatares offline em P&B com `grayscale filter`
-
----
-
-## Resumo Tecnico de Arquivos
-
-| Arquivo | Acao |
-|---|---|
-| `src/pages/SquadCommandCenter.tsx` | Criar -- pagina principal |
-| `src/components/command-center/CommandCenterHeader.tsx` | Criar -- header com metricas |
-| `src/components/command-center/SquadSelector.tsx` | Criar -- seletor de squad |
-| `src/components/command-center/BacklogColumn.tsx` | Criar -- coluna de backlog |
-| `src/components/command-center/WorkloadTimeline.tsx` | Criar -- timeline principal |
-| `src/components/command-center/TimelineRow.tsx` | Criar -- linha por colaborador |
-| `src/components/command-center/TimelineSlot.tsx` | Criar -- slot de 18min |
-| `src/components/command-center/TimelineTaskCard.tsx` | Criar -- card na timeline |
-| `src/hooks/useCommandCenter.ts` | Criar -- hook de dados do command center |
-| `src/App.tsx` | Editar -- adicionar rota |
-| `src/components/dashboard/DashboardSidebar.tsx` | Editar -- adicionar item no menu |
-| `supabase/functions/discord-bot/index.ts` | Editar -- adicionar action `send-task-embed` |
-
----
-
-## Limitacoes e Decisoes
-
-1. **Discord Rich Presence**: A API REST do Discord nao expoe presenca de membros. A presenca so esta disponivel via Gateway (WebSocket). Para a v1, usaremos um campo `discord_status` manual ou simplesmente nao implementaremos o Clock-In Sync automatico, deixando o avatar com indicador baseado em "ultima atividade" ou tarefas em andamento.
-
-2. **Slash Commands (/entregar, /travei)**: Requerem um bot com Gateway connection (servidor persistente), o que nao e possivel com Edge Functions serverless. Para a v1, essas acoes serao feitas pela UI do sistema (botoes na tarefa). Futuramente, um bot dedicado pode ser adicionado.
-
-3. **Sons e Haptic Feedback**: Sons podem ser implementados com `Audio API` do browser. Haptic feedback so funciona em dispositivos com suporte (mobile/tablet) via `navigator.vibrate()`.
-
-4. **Implementacao em etapas**: Dada a complexidade, sugiro implementar as Fases 1-5 primeiro (estrutura + timeline + drag-and-drop) e as Fases 6-9 como segunda iteracao.
