@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { sendWhatsAppAlerts, buildAlertMessage } from '../_shared/whatsapp-alerts.ts';
+import { resolveInstagramCredentials } from '../_shared/instagram-token-resolver.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -221,25 +222,24 @@ Deno.serve(async (req) => {
       throw new Error(errorMsg);
     }
 
-    // Get Facebook access token
-    const { data: integration, error: integrationError } = await supabase
-      .from('facebook_integrations')
-      .select('access_token')
-      .eq('company_id', post.company_id)
-      .eq('is_active', true)
-      .single();
-
-    if (integrationError || !integration?.access_token) {
-      console.error('Error fetching Facebook integration:', integrationError);
-      const errorMsg = 'Facebook integration not found or inactive';
-      await createAlertAndNotify(post, instagramAccount, clientName, errorMsg);
-      throw new Error(errorMsg);
+    // Resolve the correct token and IG user ID based on account source (page vs BM)
+    let accessToken: string;
+    let igUserId: string;
+    
+    try {
+      const credentials = await resolveInstagramCredentials(
+        supabase,
+        config.instagram_account_id,
+        post.company_id
+      );
+      accessToken = credentials.accessToken;
+      igUserId = credentials.instagramUserId;
+      console.log(`Publishing to Instagram account: ${igUserId} (source: ${credentials.source})`);
+    } catch (credError: any) {
+      console.error('Error resolving Instagram credentials:', credError.message);
+      await createAlertAndNotify(post, instagramAccount, clientName, credError.message);
+      throw credError;
     }
-
-    const accessToken = integration.access_token;
-    const igUserId = instagramAccount.instagram_id;
-
-    console.log('Publishing to Instagram account:', igUserId);
 
     const isCarousel = post.post_type === 'carousel' && post.image_urls && post.image_urls.length > 1;
     let mediaId: string;

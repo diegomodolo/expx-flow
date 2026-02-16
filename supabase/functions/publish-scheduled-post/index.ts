@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { resolveInstagramCredentials } from '../_shared/instagram-token-resolver.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -371,14 +372,25 @@ serve(async (req) => {
     // Publish to Instagram if selected
     if (post.platforms.includes('instagram')) {
       if (post.instagram_account) {
-        const fbPage = post.instagram_account.facebook_page;
         console.log(`Publishing to Instagram: @${post.instagram_account.username}`);
-        results.instagram = await publishToInstagram(
-          fbPage.page_access_token,
-          post.instagram_account.instagram_id,
-          post,
-          supabase
-        );
+        
+        // Resolve correct token based on account source (page vs BM)
+        try {
+          const credentials = await resolveInstagramCredentials(
+            supabase,
+            post.instagram_account.id,
+            post.company_id
+          );
+          results.instagram = await publishToInstagram(
+            credentials.accessToken,
+            credentials.instagramUserId,
+            post,
+            supabase
+          );
+        } catch (credError: any) {
+          console.error('Error resolving Instagram credentials:', credError.message);
+          results.instagram = { success: false, error: credError.message };
+        }
       } else {
         results.instagram = { success: false, error: 'Conta do Instagram não vinculada ao post' };
         console.error('Instagram selected but no instagram_account linked');
