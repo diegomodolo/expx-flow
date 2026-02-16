@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -62,6 +63,17 @@ export function CompletedTasksModal({ open, onOpenChange, tasks, onEditTask, all
   const [search, setSearch] = useState('');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [responsibleFilter, setResponsibleFilter] = useState<string>('all');
+  const [sortField, setSortField] = useState<string>('completed_at');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+
+  const toggleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDir(field === 'completed_at' ? 'desc' : 'asc');
+    }
+  };
 
   const responsibles = useMemo(() => {
     const names = new Set(tasks.map(t => t.responsible_name).filter(Boolean));
@@ -69,7 +81,7 @@ export function CompletedTasksModal({ open, onOpenChange, tasks, onEditTask, all
   }, [tasks]);
 
   const filtered = useMemo(() => {
-    return tasks.filter(t => {
+    const list = tasks.filter(t => {
       if (search && !t.title.toLowerCase().includes(search.toLowerCase()) &&
           !t.description?.toLowerCase().includes(search.toLowerCase()) &&
           !t.client?.name?.toLowerCase().includes(search.toLowerCase())) return false;
@@ -77,7 +89,40 @@ export function CompletedTasksModal({ open, onOpenChange, tasks, onEditTask, all
       if (responsibleFilter !== 'all' && t.responsible_name !== responsibleFilter) return false;
       return true;
     });
-  }, [tasks, search, priorityFilter, responsibleFilter]);
+
+    const priorityOrder: Record<string, number> = { high: 3, medium: 2, low: 1 };
+    const dir = sortDir === 'asc' ? 1 : -1;
+
+    list.sort((a, b) => {
+      let cmp = 0;
+      switch (sortField) {
+        case 'title':
+          cmp = (a.title || '').localeCompare(b.title || '');
+          break;
+        case 'responsible':
+          cmp = (a.responsible_name || '').localeCompare(b.responsible_name || '');
+          break;
+        case 'completed_at':
+          cmp = new Date(a.completed_at || 0).getTime() - new Date(b.completed_at || 0).getTime();
+          break;
+        case 'deadline': {
+          const da = a.due_date || a.deadline || '';
+          const db = b.due_date || b.deadline || '';
+          cmp = new Date(da || 0).getTime() - new Date(db || 0).getTime();
+          break;
+        }
+        case 'time':
+          cmp = (allTimeTracking[a.id] || 0) - (allTimeTracking[b.id] || 0);
+          break;
+        case 'priority':
+          cmp = (priorityOrder[a.priority] || 0) - (priorityOrder[b.priority] || 0);
+          break;
+      }
+      return cmp * dir;
+    });
+
+    return list;
+  }, [tasks, search, priorityFilter, responsibleFilter, sortField, sortDir, allTimeTracking]);
 
   // Stats
   const totalTime = useMemo(() => tasks.reduce((acc, t) => acc + (allTimeTracking[t.id] || 0), 0), [tasks, allTimeTracking]);
@@ -160,14 +205,35 @@ export function CompletedTasksModal({ open, onOpenChange, tasks, onEditTask, all
         {/* Table List */}
         <div className="flex-1 min-h-0 overflow-hidden">
           {/* Table header */}
-          <div className="grid grid-cols-[1fr_140px_140px_100px_120px_100px] gap-2 px-6 py-2 text-xs font-medium text-muted-foreground border-b border-border bg-muted/30">
-            <span>Tarefa</span>
-            <span>Responsável</span>
-            <span>Concluída em</span>
-            <span>Prazo</span>
-            <span>Tempo gasto</span>
-            <span>Prioridade</span>
-          </div>
+          {(() => {
+            const SortIcon = ({ field }: { field: string }) => {
+              if (sortField !== field) return <ArrowUpDown className="w-3 h-3 opacity-40" />;
+              return sortDir === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />;
+            };
+            const cols = [
+              { field: 'title', label: 'Tarefa' },
+              { field: 'responsible', label: 'Responsável' },
+              { field: 'completed_at', label: 'Concluída em' },
+              { field: 'deadline', label: 'Prazo' },
+              { field: 'time', label: 'Tempo gasto' },
+              { field: 'priority', label: 'Prioridade' },
+            ];
+            return (
+              <div className="grid grid-cols-[1fr_140px_140px_100px_120px_100px] gap-2 px-6 py-2 text-xs font-medium text-muted-foreground border-b border-border bg-muted/30">
+                {cols.map(c => (
+                  <button
+                    key={c.field}
+                    type="button"
+                    className="flex items-center gap-1 hover:text-foreground transition-colors text-left"
+                    onClick={() => toggleSort(c.field)}
+                  >
+                    {c.label}
+                    <SortIcon field={c.field} />
+                  </button>
+                ))}
+              </div>
+            );
+          })()}
 
           <ScrollArea className="h-[calc(90vh-300px)]">
             <div className="divide-y divide-border">
