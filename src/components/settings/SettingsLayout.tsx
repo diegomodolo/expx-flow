@@ -19,6 +19,7 @@ interface NavItem {
 
 interface NavGroup {
   title: string;
+  description: string;
   icon: any;
   items: NavItem[];
 }
@@ -71,6 +72,7 @@ const settingsNavItems: NavItem[] = [
 const settingsNavGroups: NavGroup[] = [
   {
     title: "Integrações",
+    description: "Conecte plataformas e serviços externos",
     icon: Plug,
     items: [
       {
@@ -175,7 +177,10 @@ export const SettingsLayout = ({ children }: SettingsLayoutProps) => {
                 <Collapsible key={group.title} defaultOpen={isGroupActive}>
                   <CollapsibleTrigger className="flex items-center gap-3 p-3 rounded-lg transition-colors hover:bg-muted text-muted-foreground hover:text-foreground w-full group">
                     <GroupIcon className="h-4 w-4 shrink-0" />
-                    <span className="text-sm font-medium flex-1 text-left">{group.title}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-left">{group.title}</div>
+                      <div className="text-xs truncate text-muted-foreground">{group.description}</div>
+                    </div>
                     <ChevronDown className="h-4 w-4 shrink-0 transition-transform group-data-[state=open]:rotate-180" />
                   </CollapsibleTrigger>
                   <CollapsibleContent>
