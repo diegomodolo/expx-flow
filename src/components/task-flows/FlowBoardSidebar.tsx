@@ -15,7 +15,7 @@ export function FlowBoardSidebar({ boards, isLoading }: FlowBoardSidebarProps) {
   const [search, setSearch] = useState("");
   const [expandedBoards, setExpandedBoards] = useState<Record<string, boolean>>({});
 
-  const filteredBoards = boards
+  const filteredBoards = (boards || [])
     .map((board) => ({
       ...board,
       columns: board.columns.filter(
