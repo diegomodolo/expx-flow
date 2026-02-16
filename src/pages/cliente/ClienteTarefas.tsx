@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
+import { useCompany } from "@/contexts/CompanyContext";
+import { handleAutoTimeTracking } from "@/utils/autoTimeTracking";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TaskKanban } from "@/components/tasks/TaskKanban";
 import { RecurringTasksManager } from "@/components/tasks/RecurringTasksManager";
@@ -16,6 +19,8 @@ interface ClienteTarefasProps {
 
 export function ClienteTarefas({ clientId, clientName }: ClienteTarefasProps) {
   const { tasks, updateTask, deleteTask, createTask } = useTasks();
+  const { user } = useAuth();
+  const { activeCompany } = useCompany();
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [recurringDialogOpen, setRecurringDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<any>(null);
@@ -29,6 +34,10 @@ export function ClienteTarefas({ clientId, clientName }: ClienteTarefasProps) {
   };
 
   const handleUpdateTaskStatus = async (taskId: string, status: string) => {
+    const existingTask = tasks.find(t => t.id === taskId);
+    if (existingTask && existingTask.status !== status) {
+      await handleAutoTimeTracking(taskId, existingTask.status, status, user?.id, activeCompany?.company_id);
+    }
     await updateTask(taskId, { status: status as any });
   };
 

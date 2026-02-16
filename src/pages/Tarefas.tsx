@@ -59,6 +59,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { logTaskHistoryEntry, STATUS_LABELS } from "@/utils/taskHistoryLogger";
+import { handleAutoTimeTracking } from "@/utils/autoTimeTracking";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 
 export default function Tarefas() {
@@ -252,6 +253,9 @@ export default function Tarefas() {
           oldValue: oldStatus,
           newValue: status,
         });
+
+        // Auto time tracking
+        await handleAutoTimeTracking(taskId, oldStatus, status, currentUserId || undefined, activeCompany.company_id);
       }
       if (columnName && existingTask.etapa !== columnName) {
         logTaskHistoryEntry({
