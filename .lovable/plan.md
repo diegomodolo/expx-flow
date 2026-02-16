@@ -1,100 +1,86 @@
 
 
-# Roteiros - Sistema de Templates de Tarefas
+# Plano de Integraciao com Discord
 
-## Resumo
+## Visao Geral
 
-Criar um sistema completo de **Roteiros** que funciona como biblioteca de templates reutilizaveis. Cada roteiro agrupa atividades (subtarefas) que podem ser importadas para dentro de tarefas do tipo "historia" em qualquer projeto/cliente.
+Criar uma integracao completa com o Discord dentro do sistema, permitindo associar colaboradores e squads a canais/servidores do Discord, e enviar notificacoes automaticas do sistema para la.
 
-## O que sera construido
+## Etapas
 
-### 1. Banco de Dados (3 tabelas novas)
+### 1. Banco de Dados - Nova tabela e colunas
 
-**`roteiro_categorias`** - Categorias dos roteiros
-- id, company_id, nome, created_by, created_at, updated_at
+**Tabela `discord_config`** (configuracao geral por empresa):
+- `id`, `company_id`, `bot_token` (criptografado), `guild_id` (ID do servidor), `enabled`, `created_at`, `updated_at`
 
-**`roteiros`** - Os roteiros em si
-- id, company_id, categoria_id (FK), nome, icone (nome do icone Lucide), objetivo (texto longo), publico (boolean, default false), created_by, created_at, updated_at
+**Coluna nova em `employees`:**
+- `discord_user_id` (TEXT) - ID do usuario no Discord para mencoes e DMs
 
-**`roteiro_atividades`** - Atividades dentro de cada roteiro
-- id, roteiro_id (FK), titulo, tipo (tipo da tarefa), inicio_apos_dias (int), duracao_dias (int), responsavel_id (FK employees), quadro_column_id (FK task_board_columns), etapa (text), fluxo (text), tags (jsonb), descricao (text), autorizador_id (FK employees), checklist (jsonb), ordem (int), created_at, updated_at
+**Coluna nova em `teams`:**
+- `discord_channel_id` (TEXT) - ID do canal do Discord associado a squad
 
-RLS habilitado em todas as tabelas, filtrando por company_id.
+### 2. Edge Function `discord-bot`
 
-### 2. Menu no Sidebar
+Uma edge function que faz chamadas a API do Discord (envio de mensagens, validacao de conexao):
+- `POST /discord-bot` com actions: `test-connection`, `send-message`, `send-notification`
+- Usa o Bot Token armazenado como secret do Supabase para autenticar na API do Discord
+- Suporta envio para canais de squads e DMs para colaboradores
 
-Adicionar "Roteiros" dentro da secao **Equipe**, com icone `BookOpen`, apontando para `/roteiros`.
+### 3. Hook `useDiscordConfig`
 
-### 3. Pagina Principal `/roteiros`
+Hook para gerenciar a configuracao do Discord:
+- Carregar/salvar configuracoes (guild_id, bot_token)
+- Testar conexao com o servidor
+- Listar canais do servidor para associacao com squads
 
-- Barra de pesquisa no topo
-- Filtro por categorias em abas (Todos, Onboarding, Social Media, etc.)
-- Grid de cards com icone, nome do roteiro e categoria
-- Botao "Novo Roteiro" no canto superior direito
-- Ao clicar num card, abre a tela de detalhe/edicao do roteiro
+### 4. Pagina de Configuracoes - Aba Discord
 
-### 4. Dialog/Modal de Criar/Editar Roteiro
+Nova aba em **Configuracoes > Discord** com:
 
-Campos:
-- Nome (input texto)
-- Categoria (select com opcao de criar nova categoria inline via botao "+")
-- Icone (seletor de icones Lucide - grid visual)
-- Objetivo (textarea)
-- Publico (switch sim/nao)
+**Secao 1 - Configuracao do Bot:**
+- Campo para o Bot Token
+- Campo para o Guild ID (ID do servidor)
+- Botao "Testar Conexao"
+- Status da conexao (conectado/desconectado)
 
-### 5. Tela de Detalhe do Roteiro
+**Secao 2 - Associacao de Squads:**
+- Lista de squads com seletor de canal do Discord para cada uma
+- Ao selecionar, salva o `discord_channel_id` na tabela `teams`
 
-- Cabecalho com nome, categoria e icone
-- Lista de atividades cadastradas (drag-and-drop para reordenar)
-- Botao "Adicionar Atividade"
+**Secao 3 - Associacao de Colaboradores:**
+- Lista de colaboradores com campo para Discord User ID
+- Botao para salvar as associacoes
 
-### 6. Dialog de Criar/Editar Atividade
+### 5. Integracao com Notificacoes
 
-Formulario com:
-- Titulo
-- Tipo (select)
-- Inicio apos X dias (input numerico)
-- Duracao em dias (input numerico)
-- Responsavel (select dos colaboradores)
-- Quadro Kanban (select dos boards existentes)
-- Etapa Kanban (select das colunas do board selecionado)
-- Fluxo (select)
-- Tags (multi-select)
-- Descricao (editor rich text ou textarea)
-- Autorizador (select dos colaboradores)
-- Checklist (adicionar itens dinamicamente)
-
-### 7. Importar Roteiro para Tarefa (futuro proximo)
-
-Na tela de tarefas, ao criar uma tarefa do tipo "historia", exibir opcao "Importar Roteiro" que cria subtarefas automaticamente baseadas nas atividades do roteiro selecionado, calculando datas relativas a partir da data de inicio.
+Estender o sistema de notificacoes existente para incluir Discord como canal de envio:
+- Quando uma tarefa e atribuida, notificar no canal da squad
+- Quando uma tarefa precisa de aprovacao, notificar o autorizador via DM ou canal
 
 ---
 
 ## Detalhes Tecnicos
 
 ### Arquivos a criar:
-- `supabase/migrations/xxx_create_roteiros.sql` - Migration com as 3 tabelas + RLS
-- `src/pages/Roteiros.tsx` - Pagina principal com grid de roteiros
-- `src/pages/RoteiroDetalhe.tsx` - Pagina de detalhe de um roteiro
-- `src/components/roteiros/RoteiroCard.tsx` - Card visual do roteiro
-- `src/components/roteiros/RoteiroDialog.tsx` - Modal criar/editar roteiro
-- `src/components/roteiros/CategoriaDialog.tsx` - Modal criar categoria
-- `src/components/roteiros/AtividadeDialog.tsx` - Modal criar/editar atividade
-- `src/components/roteiros/AtividadeList.tsx` - Lista de atividades com reordenacao
-- `src/components/roteiros/IconPicker.tsx` - Seletor visual de icones Lucide
-- `src/hooks/useRoteiros.ts` - Hook com queries/mutations para roteiros
-- `src/hooks/useRoteiroCategorias.ts` - Hook para categorias
-- `src/hooks/useRoteiroAtividades.ts` - Hook para atividades
+- `supabase/migrations/xxx_add_discord_integration.sql` - Migration com tabela e colunas
+- `supabase/functions/discord-bot/index.ts` - Edge function para API do Discord
+- `src/hooks/useDiscordConfig.ts` - Hook de gerenciamento
+- `src/components/discord/DiscordSettings.tsx` - Pagina principal de configuracao
+- `src/components/discord/DiscordBotConfig.tsx` - Formulario do bot
+- `src/components/discord/DiscordSquadChannels.tsx` - Associacao squad/canal
+- `src/components/discord/DiscordEmployeeMapping.tsx` - Associacao colaborador/Discord
 
 ### Arquivos a editar:
-- `src/components/dashboard/DashboardSidebar.tsx` - Adicionar item "Roteiros" na secao Equipe
-- `src/App.tsx` - Adicionar rotas `/roteiros` e `/roteiros/:id`
-- `src/integrations/supabase/types.ts` - Tipos gerados apos migration
+- `src/components/settings/SettingsLayout.tsx` - Adicionar item "Discord" no menu lateral
+- `src/pages/Configuracoes.tsx` - Adicionar rota `/configuracoes/discord`
 
-### Padroes seguidos:
-- React Query (TanStack) para data fetching, igual ao resto do projeto
-- Componentes shadcn/ui existentes (Dialog, Select, Input, Card, Badge, etc.)
-- Supabase client existente em `@/integrations/supabase/client`
-- Hooks customizados no padrao `useXxx` com `useQuery`/`useMutation`
-- Sidebar com permissao `"roteiros"` como MenuItemType
+### Fluxo da Edge Function:
+1. Recebe action + payload
+2. Busca `bot_token` dos secrets do Supabase
+3. Chama a API do Discord (`https://discord.com/api/v10/...`)
+4. Retorna resultado
+
+### Seguranca:
+- O Bot Token sera armazenado como secret do Supabase (nao no banco de dados diretamente)
+- RLS habilitado na tabela `discord_config` filtrando por `company_id`
 
