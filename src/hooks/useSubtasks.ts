@@ -113,9 +113,13 @@ export function useSubtasks(parentTaskId: string | null) {
         throw new Error('Roteiro sem atividades');
       }
 
-      const rows: any[] = atividades.map(a => ({
+      const validTaskTypes = ['Backlog', 'Criativo', 'História', 'Negócio', 'Reunião', 'Tarefa', 'Ticket'];
+      const rows: any[] = atividades.map(a => {
+        const rawType = a.tipo || 'Tarefa';
+        const normalizedType = validTaskTypes.find(t => t.toLowerCase() === rawType.toLowerCase()) || 'Tarefa';
+        return {
         title: a.titulo,
-        task_type: a.tipo || 'Tarefa',
+        task_type: normalizedType,
         priority: parentTask.priority || 'medium',
         status: 'todo',
         progress: 0,
@@ -134,7 +138,8 @@ export function useSubtasks(parentTaskId: string | null) {
         etapa: parentTask.etapa || null,
         related_campaign_id: parentTask.related_campaign_id || null,
         related_client_id: parentTask.related_client_id || null,
-      }));
+        };
+      });
 
       const { error: insertError } = await supabase.from('tasks').insert(rows);
       if (insertError) throw insertError;
