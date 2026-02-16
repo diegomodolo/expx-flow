@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SearchableClientSelect } from "@/components/ui/searchable-client-select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -113,19 +114,13 @@ export function CreateAgentModal({ open, onOpenChange, defaultClientId, onAgentC
 
           <div>
             <Label htmlFor="modal_client_id">Cliente Associado (Opcional)</Label>
-            <Select value={formData.client_id} onValueChange={(value) => setFormData({ ...formData, client_id: value })}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione um cliente" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Nenhum cliente específico</SelectItem>
-                {sortedClients.map((client) => (
-                  <SelectItem key={client.id} value={client.id}>
-                    {client.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SearchableClientSelect
+              clients={sortedClients.map(c => ({ id: c.id, name: c.name }))}
+              value={formData.client_id}
+              onValueChange={(value) => setFormData({ ...formData, client_id: value })}
+              noneLabel="Nenhum cliente específico"
+              placeholder="Selecione um cliente"
+            />
           </div>
 
           <div>

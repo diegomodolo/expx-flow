@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { SearchableClientSelect } from "@/components/ui/searchable-client-select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
@@ -182,23 +183,14 @@ export default function DashboardFabrica() {
             <div className="flex flex-wrap gap-4 items-end">
               <div className="min-w-[200px]">
                 <label className="text-sm font-medium mb-2 block">Cliente</label>
-                <Select
+                <SearchableClientSelect
+                  clients={clients?.map(c => ({ id: c.id, name: c.name })) || []}
                   value={selectedClientId || 'all'}
                   onValueChange={(val) => setSelectedClientId(val === 'all' ? null : val)}
+                  allLabel="Todos os clientes"
+                  placeholder="Todos os clientes"
                   disabled={clientsLoading}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Todos os clientes" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos os clientes</SelectItem>
-                    {clients?.map((client) => (
-                      <SelectItem key={client.id} value={client.id}>
-                        {client.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                />
               </div>
             </div>
           </CardContent>

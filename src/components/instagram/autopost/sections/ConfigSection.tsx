@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { SearchableClientSelect } from "@/components/ui/searchable-client-select";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -157,26 +158,12 @@ export function ConfigSection({
                 <Users className="w-4 h-4 text-primary" />
                 Cliente Vinculado
               </Label>
-              <Select value={editClientId || ''} onValueChange={(value) => setEditClientId(value || null)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione um cliente" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableClients?.map((client) => (
-                    <SelectItem key={client.id} value={client.id}>
-                      <div className="flex items-center gap-2">
-                        <Avatar className="w-5 h-5">
-                          <AvatarImage src={client.avatar || ''} />
-                          <AvatarFallback className="text-xs">
-                            {client.name?.charAt(0).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        {client.name}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableClientSelect
+                clients={availableClients?.map(c => ({ id: c.id, name: c.name || '' })) || []}
+                value={editClientId || ''}
+                onValueChange={(value) => setEditClientId(value || null)}
+                placeholder="Selecione um cliente"
+              />
               <p className="text-xs text-muted-foreground">
                 Vincule um cliente para usar os temas de conteúdo dele na geração de posts
               </p>

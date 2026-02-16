@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { SearchableClientSelect } from "@/components/ui/searchable-client-select";
 import { useClients } from "@/hooks/useClients";
 import { useAdGenerationQueue } from "@/hooks/useAdGenerationQueue";
 import { AdReviewGrid } from "@/components/ad-factory/AdReviewGrid";
@@ -135,18 +136,13 @@ export default function RevisaoDiaria() {
           </div>
 
           <div className="flex items-center gap-3">
-            <Select value={selectedClientId || ""} onValueChange={setSelectedClientId}>
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Selecione um cliente" />
-              </SelectTrigger>
-              <SelectContent>
-                {clients.map((client) => (
-                  <SelectItem key={client.id} value={client.id}>
-                    {client.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SearchableClientSelect
+              clients={clients.map(c => ({ id: c.id, name: c.name }))}
+              value={selectedClientId || ''}
+              onValueChange={setSelectedClientId}
+              placeholder="Selecione um cliente"
+              triggerClassName="w-[200px]"
+            />
             <Button
               variant="outline"
               onClick={() => refetch()}

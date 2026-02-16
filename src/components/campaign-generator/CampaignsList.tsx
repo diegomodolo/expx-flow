@@ -1,3 +1,4 @@
+import { SearchableClientSelect } from "@/components/ui/searchable-client-select";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -268,22 +269,14 @@ export function CampaignsList({ onNewCampaign, onViewCampaign }: CampaignsListPr
               
               <div className="space-y-2">
                 <Label className="text-xs text-muted-foreground">Cliente</Label>
-                <Select 
-                  value={filters.client} 
+                <SearchableClientSelect
+                  clients={uniqueClients.filter(Boolean).map(c => ({ id: c!, name: c! }))}
+                  value={filters.client}
                   onValueChange={(value) => setFilters({ ...filters, client: value })}
-                >
-                  <SelectTrigger className="h-10 rounded-lg">
-                    <SelectValue placeholder="Todos" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos</SelectItem>
-                    {uniqueClients.map((client) => (
-                      <SelectItem key={client} value={client!}>
-                        {client}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  allLabel="Todos"
+                  placeholder="Todos"
+                  triggerClassName="h-10 rounded-lg"
+                />
               </div>
             </div>
             

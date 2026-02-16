@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { SearchableClientSelect } from "@/components/ui/searchable-client-select";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -354,22 +355,13 @@ export default function AdminLeadReports() {
               {/* Cliente */}
               <div className="space-y-2">
                 <Label>Cliente</Label>
-                <Select
+                <SearchableClientSelect
+                  clients={clients.map(c => ({ id: c.id, name: c.name }))}
                   value={filters.clientId}
                   onValueChange={(value) => handleFilterChange('clientId', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Todos os clientes" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos os clientes</SelectItem>
-                    {clients.map(client => (
-                      <SelectItem key={client.id} value={client.id}>
-                        {client.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  allLabel="Todos os clientes"
+                  placeholder="Todos os clientes"
+                />
               </div>
 
               {/* Motivo */}

@@ -1,7 +1,7 @@
 import { useClients } from "@/hooks/useClients";
 import { useCampaigns } from "@/hooks/useCampaigns";
 import { Card } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableClientSelect } from "@/components/ui/searchable-client-select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Building2, Target, Calendar, TrendingUp } from "lucide-react";
@@ -44,33 +44,15 @@ export function ClientSelector({ campaignData, updateCampaignData }: ClientSelec
         </p>
       </div>
 
-      <Select 
-        value={campaignData.client?.id || ""} 
+      <SearchableClientSelect
+        clients={clients.map(c => ({ id: c.id, name: c.name, extra: c.company }))}
+        value={campaignData.client?.id || ""}
         onValueChange={(value) => {
           const selectedClient = clients.find(client => client.id === value);
           updateCampaignData("client", selectedClient || null);
         }}
-      >
-        <SelectTrigger>
-          <SelectValue placeholder="Selecione um cliente..." />
-        </SelectTrigger>
-        <SelectContent>
-          {clients.map((client) => (
-            <SelectItem key={client.id} value={client.id}>
-              <div className="flex items-center gap-3">
-                <Avatar className="w-6 h-6">
-                  <AvatarImage src={client.avatar} />
-                  <AvatarFallback>{client.name.substring(0, 2).toUpperCase()}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <div className="font-medium">{client.name}</div>
-                  <div className="text-xs text-muted-foreground">{client.company}</div>
-                </div>
-              </div>
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+        placeholder="Selecione um cliente..."
+      />
 
       {campaignData.client && (
         <Card className="p-6">

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SearchableClientSelect } from "@/components/ui/searchable-client-select";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -182,19 +183,13 @@ export default function KeywordPlannerPage() {
             {/* Client selector (optional) */}
             <div className="space-y-2">
               <label className="text-sm font-medium">Cliente (opcional)</label>
-              <Select value={selectedClientId} onValueChange={setSelectedClientId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione um cliente" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Nenhum cliente</SelectItem>
-                  {clients.map((client) => (
-                    <SelectItem key={client.id} value={client.id}>
-                      {client.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableClientSelect
+                clients={clients.map(c => ({ id: c.id, name: c.name }))}
+                value={selectedClientId}
+                onValueChange={setSelectedClientId}
+                noneLabel="Nenhum cliente"
+                placeholder="Selecione um cliente"
+              />
             </div>
 
             <Tabs value={inputMode} onValueChange={(v) => setInputMode(v as "keywords" | "url")}>
