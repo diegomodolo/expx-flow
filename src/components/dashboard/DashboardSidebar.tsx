@@ -123,12 +123,18 @@ const menuCategories: MenuCategory[] = [
       items: [
         { title: "Colaboradores", url: "/colaboradores", icon: UserCheck, permission: "colaboradores" as MenuItemType },
         { title: "Command Center", url: "/squad-command-center", icon: Radar, permission: "command-center" as MenuItemType },
-        { title: "Relatórios", url: "/relatorios", icon: BarChart3, permission: "relatorios" as MenuItemType },
-        { title: "Checklists", url: "/checklist-templates", icon: ListChecks, permission: "tarefas" as MenuItemType },
         { title: "Planner", url: "/planner-config", icon: CalendarClock, permission: "tarefas" as MenuItemType },
-        { title: "Roteiros", url: "/roteiros", icon: BookOpen, permission: "roteiros" as MenuItemType },
+        { title: "Relatórios", url: "/relatorios", icon: BarChart3, permission: "relatorios" as MenuItemType },
         { title: "Squad", url: "/squad", icon: UsersRound, permission: "squad" as MenuItemType },
-        { title: "Tarefas", url: "/tarefas", icon: CheckSquare, permission: "tarefas" as MenuItemType },
+      ].sort((a, b) => a.title.localeCompare(b.title, 'pt-BR')),
+    },
+    {
+      title: "Rotina",
+      icon: RotateCcw,
+      items: [
+        { title: "Tarefas Diárias", url: "/tarefas", icon: CheckSquare, permission: "tarefas" as MenuItemType },
+        { title: "Checklists", url: "/checklist-templates", icon: ListChecks, permission: "tarefas" as MenuItemType },
+        { title: "Roteiros", url: "/roteiros", icon: BookOpen, permission: "roteiros" as MenuItemType },
         { title: "Tarefas Recorrentes", url: "/tarefas-recorrentes", icon: RotateCcw, permission: "tarefas-recorrentes" as MenuItemType },
         { title: "Workspace", url: "/workspace", icon: NotebookText, permission: "workspace" as MenuItemType },
       ].sort((a, b) => a.title.localeCompare(b.title, 'pt-BR')),
