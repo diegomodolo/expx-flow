@@ -204,9 +204,28 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
   });
 
   // Employees with boards for Quadro selector
-  const employeesWithBoards = employees?.filter(emp =>
-    emp.user_id && allColumns.some(col => col.user_id === emp.user_id)
-  ) || [];
+  // In roteiro mode, filter by selected responsible's user_id
+  // In kanban mode, filter by selected responsible's user_id
+  const selectedResponsibleUserId = (() => {
+    if (isRoteiro && formData.responsible_employee_id) {
+      const emp = employees?.find(e => e.id === formData.responsible_employee_id);
+      return emp?.user_id || null;
+    }
+    if (!isRoteiro && formData.responsible_user_id) {
+      return formData.responsible_user_id || null;
+    }
+    return null;
+  })();
+
+  const employeesWithBoards = (() => {
+    const all = employees?.filter(emp =>
+      emp.user_id && allColumns.some(col => col.user_id === emp.user_id)
+    ) || [];
+    if (selectedResponsibleUserId) {
+      return all.filter(emp => emp.user_id === selectedResponsibleUserId);
+    }
+    return all;
+  })();
 
   const filteredColumns = formData.quadro_user_id
     ? allColumns.filter(col => col.user_id === formData.quadro_user_id)
@@ -1038,7 +1057,17 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                           <Label className="text-sm font-semibold">Responsável</Label>
                           <Select
                             value={formData.responsible_employee_id}
-                            onValueChange={(v) => setFormData(prev => ({ ...prev, responsible_employee_id: v }))}
+                            onValueChange={(v) => {
+                              const emp = employees?.find(e => e.id === v);
+                              const empUserId = emp?.user_id || '';
+                              const hasBoard = empUserId && allColumns.some(col => col.user_id === empUserId);
+                              setFormData(prev => ({
+                                ...prev,
+                                responsible_employee_id: v,
+                                quadro_user_id: hasBoard ? empUserId : '',
+                                quadro_column_id: '',
+                              }));
+                            }}
                           >
                             <SelectTrigger className="mt-1.5"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                             <SelectContent>
@@ -1111,11 +1140,15 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                               value={formData.responsible_name}
                               onValueChange={(value) => {
                                 const employee = employees?.find(e => e.name === value);
+                                const empUserId = employee?.user_id || '';
+                                const hasBoard = empUserId && allColumns.some(col => col.user_id === empUserId);
                                 setFormData(prev => ({
                                   ...prev,
                                   responsible_name: value,
                                   responsible_avatar: employee?.avatar || employee?.profile_avatar_url || '',
-                                  responsible_user_id: employee?.user_id || ''
+                                  responsible_user_id: empUserId,
+                                  quadro_user_id: hasBoard ? empUserId : '',
+                                  quadro_column_id: '',
                                 }));
                               }}
                             >
