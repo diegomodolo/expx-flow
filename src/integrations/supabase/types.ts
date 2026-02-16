@@ -9862,6 +9862,50 @@ export type Database = {
           },
         ]
       }
+      mind_maps: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string
+          description: string | null
+          edges: Json
+          id: string
+          nodes: Json
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          edges?: Json
+          id?: string
+          nodes?: Json
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          edges?: Json
+          id?: string
+          nodes?: Json
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mind_maps_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       offline_conversion_webhook_tokens: {
         Row: {
           client_id: string
