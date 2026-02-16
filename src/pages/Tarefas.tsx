@@ -26,6 +26,7 @@ import { useTaskAutomation } from "@/hooks/useTaskAutomation";
 import { useTaskBoardColumns } from "@/hooks/useTaskBoardColumns";
 import { useDashboardAlerts } from "@/hooks/useDashboardAlerts";
 import { useClients } from "@/hooks/useClients";
+import { useCompany } from "@/contexts/CompanyContext";
 import { useEmployeeBoard } from "@/hooks/useEmployeeBoard";
 import { KanbanTemplate } from "@/data/kanbanTemplates";
 import { 
@@ -57,6 +58,7 @@ import {
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { logTaskHistoryEntry, STATUS_LABELS } from "@/utils/taskHistoryLogger";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 
 export default function Tarefas() {
@@ -106,6 +108,7 @@ export default function Tarefas() {
   ].filter(Boolean).length;
 
   const { tasks, loading, createTask, updateTask, deleteTask } = useTasks();
+  const { activeCompany } = useCompany();
   const { data: taskStats } = useTaskStats();
   const { convertAlertToTask } = useTaskAutomation();
   const { 
@@ -235,6 +238,33 @@ export default function Tarefas() {
     const updates: any = { status: status as any };
     if (columnId !== undefined) updates.quadro_column_id = columnId || null;
     if (columnName !== undefined) updates.etapa = columnName || null;
+
+    // Find the task to get old status for history logging
+    const existingTask = tasks.find(t => t.id === taskId);
+    if (existingTask && activeCompany?.company_id) {
+      const oldStatus = existingTask.status;
+      if (oldStatus !== status) {
+        logTaskHistoryEntry({
+          taskId,
+          companyId: activeCompany.company_id,
+          description: `Alterou o status de ${STATUS_LABELS[oldStatus] || oldStatus} para ${STATUS_LABELS[status] || status}`,
+          fieldChanged: 'status',
+          oldValue: oldStatus,
+          newValue: status,
+        });
+      }
+      if (columnName && existingTask.etapa !== columnName) {
+        logTaskHistoryEntry({
+          taskId,
+          companyId: activeCompany.company_id,
+          description: `Moveu para a etapa "${columnName}"`,
+          fieldChanged: 'etapa',
+          oldValue: existingTask.etapa || 'Sem etapa',
+          newValue: columnName,
+        });
+      }
+    }
+
     await updateTask(taskId, updates);
   };
 

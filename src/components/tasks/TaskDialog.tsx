@@ -367,7 +367,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
     // Log automatic history for edits on existing tasks
     if (task?.id && !isRoteiro) {
       const statusLabels: Record<string, string> = {
-        todo: 'A Fazer', progress: 'Em Progresso', review: 'Em Revisão',
+        todo: 'Pendente', progress: 'Em Andamento', review: 'Em Revisão',
         done: 'Concluído', waiting_approval: 'Aguardando Aprovação',
         blocked: 'Bloqueado', paused: 'Pausado', cancelled: 'Cancelado',
       };
@@ -375,17 +375,75 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
         low: 'Baixa', medium: 'Média', high: 'Alta',
       };
 
+      // Status
       if (task.status && formData.status !== task.status) {
-        await logAutomatic(task.id, `Alterou o status da tarefa de ${statusLabels[task.status] || task.status} para ${statusLabels[formData.status] || formData.status}`, 'status', task.status, formData.status);
+        await logAutomatic(task.id, `Alterou o status de ${statusLabels[task.status] || task.status} para ${statusLabels[formData.status] || formData.status}`, 'status', task.status, formData.status);
       }
+      // Prioridade
       if (task.priority && formData.priority !== task.priority) {
         await logAutomatic(task.id, `Alterou a prioridade de ${priorityLabels[task.priority] || task.priority} para ${priorityLabels[formData.priority] || formData.priority}`, 'priority', task.priority, formData.priority);
       }
+      // Título
       if (task.title && formData.title !== task.title) {
         await logAutomatic(task.id, `Alterou o título da tarefa`, 'title', task.title, formData.title);
       }
-      if (task.responsible_name && formData.responsible_name !== task.responsible_name) {
-        await logAutomatic(task.id, `Alterou o responsável de ${task.responsible_name} para ${formData.responsible_name}`, 'responsible_name', task.responsible_name, formData.responsible_name);
+      // Responsável
+      if (formData.responsible_name !== (task.responsible_name || '')) {
+        const oldName = task.responsible_name || 'Nenhum';
+        const newName = formData.responsible_name || 'Nenhum';
+        await logAutomatic(task.id, `Alterou o responsável de ${oldName} para ${newName}`, 'responsible_name', oldName, newName);
+      }
+      // Descrição
+      if ((formData.description || '') !== (task.description || '')) {
+        await logAutomatic(task.id, `Alterou a descrição da tarefa`, 'description', task.description || '', formData.description || '');
+      }
+      // Equipe
+      if (formData.team_id !== (task.team_id || '')) {
+        const oldTeam = teams?.find(t => t.id === task.team_id)?.name || 'Nenhuma';
+        const newTeam = teams?.find(t => t.id === formData.team_id)?.name || 'Nenhuma';
+        await logAutomatic(task.id, `Alterou a equipe de ${oldTeam} para ${newTeam}`, 'team_id', oldTeam, newTeam);
+      }
+      // Tipo
+      if (formData.tipo !== (task.task_type || 'Tarefa')) {
+        await logAutomatic(task.id, `Alterou o tipo de ${task.task_type || 'Tarefa'} para ${formData.tipo}`, 'task_type', task.task_type || 'Tarefa', formData.tipo);
+      }
+      // Quadro
+      if (formData.quadro_user_id !== (task.quadro_user_id || '')) {
+        const oldBoard = employeesWithBoards.find(e => e.user_id === task.quadro_user_id)?.name || 'Nenhum';
+        const newBoard = employeesWithBoards.find(e => e.user_id === formData.quadro_user_id)?.name || 'Nenhum';
+        if (oldBoard !== newBoard) {
+          await logAutomatic(task.id, `Alterou o quadro de ${oldBoard} para ${newBoard}`, 'quadro', oldBoard, newBoard);
+        }
+      }
+      // Etapa (coluna do quadro)
+      if (formData.quadro_column_id !== (task.quadro_column_id || '')) {
+        const oldCol = allColumns.find(c => c.id === task.quadro_column_id)?.name || 'Nenhuma';
+        const newCol = allColumns.find(c => c.id === formData.quadro_column_id)?.name || 'Nenhuma';
+        if (oldCol !== newCol) {
+          await logAutomatic(task.id, `Alterou a etapa de ${oldCol} para ${newCol}`, 'etapa', oldCol, newCol);
+        }
+      }
+      // Progresso
+      if (formData.progress !== (task.progress || 0)) {
+        await logAutomatic(task.id, `Alterou o progresso de ${task.progress || 0}% para ${formData.progress}%`, 'progress', String(task.progress || 0), String(formData.progress));
+      }
+      // Cliente
+      if (formData.related_client_id !== (task.related_client_id || '')) {
+        const oldClient = clients?.find(c => c.id === task.related_client_id)?.name || 'Nenhum';
+        const newClient = clients?.find(c => c.id === formData.related_client_id)?.name || 'Nenhum';
+        await logAutomatic(task.id, `Alterou o cliente de ${oldClient} para ${newClient}`, 'related_client_id', oldClient, newClient);
+      }
+      // Categoria
+      if (formData.categoria_id !== (task.categoria_id || '')) {
+        const oldCat = categorias.find(c => c.id === task.categoria_id)?.nome || 'Nenhuma';
+        const newCat = categorias.find(c => c.id === formData.categoria_id)?.nome || 'Nenhuma';
+        await logAutomatic(task.id, `Alterou a categoria de ${oldCat} para ${newCat}`, 'categoria_id', oldCat, newCat);
+      }
+      // Classificação
+      if (formData.classificacao_id !== (task.classificacao_id || '')) {
+        const oldClass = classificacoes.find(c => c.id === task.classificacao_id)?.nome || 'Nenhuma';
+        const newClass = classificacoes.find(c => c.id === formData.classificacao_id)?.nome || 'Nenhuma';
+        await logAutomatic(task.id, `Alterou a classificação de ${oldClass} para ${newClass}`, 'classificacao_id', oldClass, newClass);
       }
     }
 
