@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, X, Plus, Home, CheckSquare, Trash2, Save, ZoomIn, ZoomOut, ShieldCheck, Search, Users, UsersRound, History, ListTree, ArrowUpRight, CircleDot, ChevronDown } from "lucide-react";
+import { CalendarIcon, X, Plus, Home, CheckSquare, Trash2, Save, ZoomIn, ZoomOut, ShieldCheck, Search, Users, UsersRound, History, ListTree, ArrowUpRight, CircleDot, ChevronDown, Timer } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useTeams } from "@/hooks/useTeams";
@@ -34,6 +34,7 @@ import { TaskTeamTab } from "./TaskTeamTab";
 import { TaskHistoryTab } from "./TaskHistoryTab";
 import { TaskSubtasksTab } from "./TaskSubtasksTab";
 import { useTaskHistory } from "@/hooks/useTaskHistory";
+import { TaskTimeTrackingTab } from "./TaskTimeTrackingTab";
 
 export type TaskDialogMode = 'kanban' | 'roteiro';
 
@@ -49,7 +50,7 @@ interface TaskDialogProps {
   onDelete?: () => void;
 }
 
-type SidebarTab = 'principal' | 'clientes' | 'equipe' | 'checklist' | 'subtarefas' | 'historico';
+type SidebarTab = 'principal' | 'clientes' | 'equipe' | 'checklist' | 'subtarefas' | 'historico' | 'timetracking';
 
 const ZOOM_STORAGE_KEY = 'task-dialog-zoom';
 const ZOOM_LEVELS = [640, 768, 896, 1024, 1152, 1280];
@@ -679,6 +680,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
     { id: 'equipe', label: 'Equipe', icon: UsersRound },
     { id: 'checklist', label: 'Checklist', icon: CheckSquare },
     ...(task ? [{ id: 'subtarefas' as SidebarTab, label: 'Sub-Tarefas', icon: ListTree }] : []),
+    ...(task ? [{ id: 'timetracking' as SidebarTab, label: 'Time Track', icon: Timer }] : []),
     ...(task ? [{ id: 'historico' as SidebarTab, label: 'Histórico', icon: History }] : []),
   ];
 
@@ -1519,6 +1521,10 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                   <div>
                     <TaskSubtasksTab taskId={task?.id || null} />
                   </div>
+                )}
+
+                {activeTab === 'timetracking' && (
+                  <TaskTimeTrackingTab taskId={task?.id || null} taskStatus={formData.status} />
                 )}
 
                 {activeTab === 'historico' && (
