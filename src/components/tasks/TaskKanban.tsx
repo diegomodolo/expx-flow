@@ -553,13 +553,17 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
             const isDoneColumn = column.status === 'done';
             const isColumnDragTarget = dragOverColumnId === column.id && draggedColumn?.id !== column.id;
             const isBeingDragged = draggedColumn?.id === column.id;
+            const isEmpty = columnTasks.length === 0;
+            const isExpandedEmpty = isEmpty && isDropTarget && canDrop;
             
             return (
               <div 
                 key={column.id} 
                 className={cn(
-                  "flex flex-col flex-1 transition-all",
-                  isCompactMode ? "min-w-[200px]" : "min-w-[280px]",
+                  "flex flex-col transition-all duration-200",
+                  isEmpty && !isExpandedEmpty
+                    ? "w-16 min-w-[64px] flex-none"
+                    : isCompactMode ? "min-w-[200px] flex-1" : "min-w-[280px] flex-1",
                   isBeingDragged && 'opacity-50 scale-95',
                   isColumnDragTarget && 'ring-2 ring-primary ring-offset-2 rounded-lg'
                 )}
@@ -572,38 +576,50 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
               >
                 <div 
                   className={cn(
-                    "rounded-t-lg border-b border-border flex items-center justify-between",
+                    "rounded-t-lg border-b border-border",
+                    isEmpty && !isExpandedEmpty ? "flex flex-col items-center py-3 px-1" : "flex items-center justify-between",
                     !isUsingDefaults && 'cursor-grab active:cursor-grabbing',
-                    isCompactMode ? "p-2" : "p-4"
+                    isCompactMode ? "p-2" : isEmpty && !isExpandedEmpty ? "" : "p-4"
                   )}
                   style={{ backgroundColor: `${column.color}20` }}
                   draggable={!isUsingDefaults}
                   onDragStart={(e) => handleColumnDragStart(e, column)}
                   onDragEnd={handleColumnDragEnd}
                 >
-                  <h3 className={cn(
-                    "font-semibold flex items-center gap-2",
-                    isCompactMode && "text-sm"
-                  )} style={{ color: column.color }}>
-                    {!isUsingDefaults && <span className="opacity-40 mr-1">⋮⋮</span>}
-                    {column.name}
-                    <Badge variant="secondary" className={cn("bg-background/80", isCompactMode && "text-xs px-1.5 py-0")}>{columnTasks.length}</Badge>
-                  </h3>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className={cn("opacity-60 hover:opacity-100", isCompactMode ? "h-5 w-5" : "h-6 w-6")}
-                    onClick={() => handleOpenColumnDialog(column)}
-                    title="Configurações da coluna"
-                  >
-                    <MoreHorizontal className={cn(isCompactMode ? "h-3 w-3" : "h-3.5 w-3.5")} />
-                  </Button>
+                  {isEmpty && !isExpandedEmpty ? (
+                    <span
+                      className="font-semibold text-xs whitespace-nowrap"
+                      style={{ color: column.color, writingMode: 'vertical-lr', transform: 'rotate(180deg)' }}
+                    >
+                      {column.name}
+                    </span>
+                  ) : (
+                    <>
+                      <h3 className={cn(
+                        "font-semibold flex items-center gap-2",
+                        isCompactMode && "text-sm"
+                      )} style={{ color: column.color }}>
+                        {!isUsingDefaults && <span className="opacity-40 mr-1">⋮⋮</span>}
+                        {column.name}
+                        <Badge variant="secondary" className={cn("bg-background/80", isCompactMode && "text-xs px-1.5 py-0")}>{columnTasks.length}</Badge>
+                      </h3>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={cn("opacity-60 hover:opacity-100", isCompactMode ? "h-5 w-5" : "h-6 w-6")}
+                        onClick={() => handleOpenColumnDialog(column)}
+                        title="Configurações da coluna"
+                      >
+                        <MoreHorizontal className={cn(isCompactMode ? "h-3 w-3" : "h-3.5 w-3.5")} />
+                      </Button>
+                    </>
+                  )}
                 </div>
                 
                 <div 
                   className={cn(
                     "flex-1 bg-muted/30 rounded-b-lg border border-t-0 border-border transition-colors overflow-y-auto",
-                    isCompactMode ? "p-2 space-y-2" : "p-3 space-y-2.5",
+                    isEmpty && !isExpandedEmpty ? "p-0" : isCompactMode ? "p-2 space-y-2" : "p-3 space-y-2.5",
                     isDropTarget && canDrop && 'bg-primary/10 border-2 border-primary border-dashed'
                   )}
                   onDragOver={handleDragOver}
