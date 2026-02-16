@@ -131,6 +131,7 @@ function MindMapEditorInner() {
       ];
     });
     setSaveStatus('unsaved');
+    setTimeout(() => autoLayoutRef.current(), 50);
   }, []);
 
   const handleLabelChange = useCallback((nodeId: string, label: string) => {
@@ -153,6 +154,7 @@ function MindMapEditorInner() {
     setEdges(eds => eds.filter(e => e.source !== selectedNodeId && e.target !== selectedNodeId));
     setSelectedNodeId(null);
     setSaveStatus('unsaved');
+    setTimeout(() => autoLayoutRef.current(), 50);
   }, [selectedNodeId]);
 
   const handleEditLabel = useCallback(() => {
@@ -160,6 +162,7 @@ function MindMapEditorInner() {
   }, []);
 
   // Auto-layout: tree algorithm
+  const autoLayoutRef = useRef<() => void>(() => {});
   const handleAutoLayout = useCallback(() => {
     // Read current state via functional updaters, but compute layout synchronously
     // We use refs approach: get latest nodes/edges from the state updater
@@ -224,6 +227,9 @@ function MindMapEditorInner() {
       }));
     });
   }, [fitView]);
+
+  // Keep ref updated
+  autoLayoutRef.current = handleAutoLayout;
 
   const onConnect = useCallback((connection: Connection) => {
     setEdges(eds => addEdge({
