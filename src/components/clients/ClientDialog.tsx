@@ -31,6 +31,7 @@ import { useCompany } from "@/contexts/CompanyContext";
 import { useClientBenchmarks, BenchmarkFormData, emptyBenchmarkFormData } from "@/hooks/useClientBenchmarks";
 import { ClientMetricBenchmarksSection } from "./ClientMetricBenchmarksSection";
 import { ClientUrlsTab } from "./ClientUrlsTab";
+import { InstagramConnectionTestModal } from "./InstagramConnectionTestModal";
 
 interface ClientDialogProps {
   open: boolean;
@@ -183,6 +184,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
   const [googleAccountOpen, setGoogleAccountOpen] = useState(false);
   const [facebookPageOpen, setFacebookPageOpen] = useState(false);
   const [instagramAccountOpen, setInstagramAccountOpen] = useState(false);
+  const [showInstagramTest, setShowInstagramTest] = useState(false);
   const [showNewSectorInput, setShowNewSectorInput] = useState(false);
   const [newSectorName, setNewSectorName] = useState("");
   const [localClient, setLocalClient] = useState<Client | undefined>(client);
@@ -1463,6 +1465,26 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
                   </Command>
                 </PopoverContent>
               </Popover>
+              {formData.instagram_account_id && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowInstagramTest(true)}
+                  className="mt-1"
+                >
+                  <Instagram className="h-4 w-4 mr-1 text-pink-600" />
+                  Testar Conexão
+                </Button>
+              )}
+              {formData.instagram_account_id && (
+                <InstagramConnectionTestModal
+                  open={showInstagramTest}
+                  onOpenChange={setShowInstagramTest}
+                  clientId={client?.id || ""}
+                  instagramId={instagramAccounts.find(a => a.id === formData.instagram_account_id)?.instagram_id || ""}
+                  instagramUsername={instagramAccounts.find(a => a.id === formData.instagram_account_id)?.username || ""}
+                />
+              )}
             </div>
 
             {/* YouTube Channel */}
