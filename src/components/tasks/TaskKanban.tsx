@@ -657,14 +657,8 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
                           </CardContent>
                         </Card>
                       ) : (
-                        <div className={`text-center text-muted-foreground py-8 rounded-lg border-2 border-dashed transition-colors ${
-                          isDropTarget && canDrop ? 'border-primary bg-primary/10 text-primary' : 'border-border'
-                        }`}>
-                          {isDropTarget && canDrop ? (
-                            <><div className="text-4xl mb-2">📥</div><p className="text-sm font-medium">Solte aqui para mover</p></>
-                          ) : (
-                            <><CheckCircle2 className="w-12 h-12 mx-auto mb-2 text-muted-foreground/30" /><p className="text-sm">Nenhuma tarefa concluída</p></>
-                          )}
+                        <div className="flex items-center justify-center py-6">
+                          <CheckCircle2 className="w-8 h-8 text-muted-foreground/20" />
                         </div>
                       )}
                       {columnTasks.length > 0 && isDropTarget && canDrop && (
@@ -677,14 +671,8 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
                     <>
                       {columnTasks.map((task) => renderTaskCard(task, column.color))}
                       {columnTasks.length === 0 && (
-                        <div className={`text-center text-muted-foreground py-8 rounded-lg border-2 border-dashed transition-colors ${
-                          isDropTarget && canDrop ? 'border-primary bg-primary/10 text-primary' : 'border-border'
-                        }`}>
-                          {isDropTarget && canDrop ? (
-                            <><div className="text-4xl mb-2">📥</div><p className="text-sm font-medium">Solte aqui para mover</p></>
-                          ) : (
-                            <><div className="text-4xl mb-2">📝</div><p className="text-sm">Nenhuma tarefa</p></>
-                          )}
+                        <div className="flex items-center justify-center py-6">
+                          <ClipboardList className="w-8 h-8 text-muted-foreground/20" />
                         </div>
                       )}
                       {columnTasks.length > 0 && isDropTarget && canDrop && (
