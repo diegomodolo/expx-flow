@@ -22,6 +22,11 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+
+// Lazy import to avoid circular dependency
+const TaskDialogLazy = React.lazy(() => import("./TaskDialog").then(m => ({ default: m.TaskDialog })));
 
 interface TaskSubtasksTabProps {
   taskId: string | null;
@@ -65,11 +70,41 @@ export function TaskSubtasksTab({ taskId }: TaskSubtasksTabProps) {
 
   const [newTitle, setNewTitle] = useState("");
   const [showRoteiroDialog, setShowRoteiroDialog] = useState(false);
+  const [editingSubtaskId, setEditingSubtaskId] = useState<string | null>(null);
+  const [editingSubtaskData, setEditingSubtaskData] = useState<any>(null);
+  const queryClient = useQueryClient();
 
-  const handleAddSubtask = () => {
+  const handleAddSubtask = async () => {
     if (!newTitle.trim()) return;
-    createSubtask.mutate({ title: newTitle.trim() });
-    setNewTitle("");
+    try {
+      const created = await createSubtask.mutateAsync({ title: newTitle.trim() });
+      setNewTitle("");
+      // Fetch full task data for the dialog
+      const { data } = await supabase.from('tasks').select('*').eq('id', created.id).single();
+      if (data) {
+        setEditingSubtaskData(data);
+        setEditingSubtaskId(created.id);
+      }
+    } catch {
+      // error handled by mutation
+    }
+  };
+
+  const handleOpenSubtask = async (subtaskId: string) => {
+    const { data } = await supabase.from('tasks').select('*').eq('id', subtaskId).single();
+    if (data) {
+      setEditingSubtaskData(data);
+      setEditingSubtaskId(subtaskId);
+    }
+  };
+
+  const handleSaveSubtask = async (taskData: any) => {
+    if (!editingSubtaskId) return;
+    const { id, ...updates } = taskData;
+    await supabase.from('tasks').update(updates).eq('id', editingSubtaskId);
+    queryClient.invalidateQueries({ queryKey: ['subtasks', taskId] });
+    setEditingSubtaskId(null);
+    setEditingSubtaskData(null);
   };
 
   if (!taskId) {
@@ -171,8 +206,9 @@ export function TaskSubtasksTab({ taskId }: TaskSubtasksTabProps) {
               return (
                 <div
                   key={subtask.id}
+                  onClick={() => handleOpenSubtask(subtask.id)}
                   className={cn(
-                    "grid grid-cols-[auto_1fr_70px_70px_100px_100px_auto_auto] gap-2 px-3 py-2.5 items-center border-b border-border/50 transition-colors hover:bg-muted/30",
+                    "grid grid-cols-[auto_1fr_70px_70px_100px_100px_auto_auto] gap-2 px-3 py-2.5 items-center border-b border-border/50 transition-colors hover:bg-muted/30 cursor-pointer",
                     isDone && "opacity-60"
                   )}
                 >
@@ -221,7 +257,7 @@ export function TaskSubtasksTab({ taskId }: TaskSubtasksTabProps) {
 
                   {/* Toggle done */}
                   <button
-                    onClick={() => toggleSubtaskDone.mutate(subtask)}
+                    onClick={(e) => { e.stopPropagation(); toggleSubtaskDone.mutate(subtask); }}
                     className="text-muted-foreground hover:text-primary transition-colors"
                   >
                     {isDone ? (
@@ -233,7 +269,7 @@ export function TaskSubtasksTab({ taskId }: TaskSubtasksTabProps) {
 
                   {/* Delete */}
                   <button
-                    onClick={() => deleteSubtask.mutate(subtask.id)}
+                    onClick={(e) => { e.stopPropagation(); deleteSubtask.mutate(subtask.id); }}
                     className="text-muted-foreground hover:text-destructive transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -255,6 +291,24 @@ export function TaskSubtasksTab({ taskId }: TaskSubtasksTabProps) {
         }}
         isImporting={importRoteiro.isPending}
       />
+
+      {/* Stacked TaskDialog for editing subtask */}
+      {editingSubtaskId && editingSubtaskData && (
+        <React.Suspense fallback={null}>
+          <TaskDialogLazy
+            open={!!editingSubtaskId}
+            onOpenChange={(open) => {
+              if (!open) {
+                setEditingSubtaskId(null);
+                setEditingSubtaskData(null);
+                queryClient.invalidateQueries({ queryKey: ['subtasks', taskId] });
+              }
+            }}
+            task={editingSubtaskData}
+            onSave={handleSaveSubtask}
+          />
+        </React.Suspense>
+      )}
     </div>
   );
 }
