@@ -197,7 +197,7 @@ function MindMapNodeComponent({ id, data, selected }: NodeProps) {
             style={{
               background: borderColor,
               color: 'white',
-              right: childCount > 0 && hasRightChildren ? '-34px' : '-14px',
+              right: childCount > 0 && hasRightChildren ? '-44px' : '-14px',
             }}
             onClick={e => {
               e.stopPropagation();
@@ -214,7 +214,7 @@ function MindMapNodeComponent({ id, data, selected }: NodeProps) {
             style={{
               background: borderColor,
               color: 'white',
-              left: childCount > 0 && hasLeftChildren ? '-34px' : '-14px',
+              left: childCount > 0 && hasLeftChildren ? '-44px' : '-14px',
               }}
               onClick={e => {
                 e.stopPropagation();
