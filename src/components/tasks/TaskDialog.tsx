@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, X, Plus, Home, CheckSquare, Trash2, Save, ZoomIn, ZoomOut, ShieldCheck, Search, Users, UsersRound, History, ListTree, ArrowUpRight, CircleDot, ChevronDown, Timer } from "lucide-react";
+import { CalendarIcon, X, Plus, Home, CheckSquare, Trash2, Save, ZoomIn, ZoomOut, ShieldCheck, Search, Users, UsersRound, History, ListTree, ArrowUpRight, CircleDot, ChevronDown, Timer, FileDown } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useTeams } from "@/hooks/useTeams";
@@ -36,6 +36,7 @@ import { TaskSubtasksTab } from "./TaskSubtasksTab";
 import { useTaskHistory } from "@/hooks/useTaskHistory";
 import { TaskTimeTrackingTab } from "./TaskTimeTrackingTab";
 import { handleAutoTimeTracking } from "@/utils/autoTimeTracking";
+import { ImportChecklistTemplateModal } from "@/components/checklist-templates/ImportChecklistTemplateModal";
 
 export type TaskDialogMode = 'kanban' | 'roteiro';
 
@@ -125,6 +126,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
   });
   const [newChecklistItem, setNewChecklistItem] = useState('');
   const [previewSlot, setPreviewSlot] = useState('');
+  const [importChecklistOpen, setImportChecklistOpen] = useState(false);
   const [clientSearch, setClientSearch] = useState('');
   const [categoriaSearch, setCategoriaSearch] = useState('');
   const [classificacaoSearch, setClassificacaoSearch] = useState('');
@@ -1481,11 +1483,17 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
 
                 {activeTab === 'checklist' && (
                   <div className="space-y-4">
-                    <div>
-                      <h3 className="text-base font-semibold text-foreground mb-1">Checklist</h3>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Adicione itens de checklist para esta {isRoteiro ? 'atividade' : 'tarefa'}.
-                      </p>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-base font-semibold text-foreground mb-1">Checklist</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Adicione itens de checklist para esta {isRoteiro ? 'atividade' : 'tarefa'}.
+                        </p>
+                      </div>
+                      <Button variant="outline" size="sm" onClick={() => setImportChecklistOpen(true)} className="gap-1.5">
+                        <FileDown className="w-4 h-4" />
+                        Importar Template
+                      </Button>
                     </div>
                     <div className="space-y-2">
                       {formData.checklist.map((item) => (
@@ -1571,6 +1579,17 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
         }}
       />
     )}
+
+    <ImportChecklistTemplateModal
+      open={importChecklistOpen}
+      onOpenChange={setImportChecklistOpen}
+      onImport={(items) => {
+        setFormData(prev => ({
+          ...prev,
+          checklist: [...prev.checklist, ...items],
+        }));
+      }}
+    />
     </>
   );
 }

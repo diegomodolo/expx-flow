@@ -142,6 +142,7 @@ import GroupOpsModeration from "./components/groupops/GroupOpsModeration";
 import Workspace from "./pages/Workspace";
 import Roteiros from "./pages/Roteiros";
 import RoteiroDetalhe from "./pages/RoteiroDetalhe";
+import ChecklistTemplates from "./pages/ChecklistTemplates";
 import { AuthProvider } from "@/hooks/useAuth";
 import { CompanyProvider } from "@/contexts/CompanyContext";
 import { CRMAuthProvider } from "@/contexts/CRMAuthContext";
@@ -639,6 +640,11 @@ const App = () => {
                   <Route path="/roteiros/:id" element={
                     <ProtectedRoute>
                       <RoteiroDetalhe />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/checklist-templates" element={
+                    <ProtectedRoute>
+                      <ChecklistTemplates />
                     </ProtectedRoute>
                   } />
                  <Route path="/keyword-planner" element={
