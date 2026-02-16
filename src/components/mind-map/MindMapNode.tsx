@@ -35,6 +35,8 @@ function MindMapNodeComponent({ id, data, selected }: NodeProps) {
   const [text, setText] = useState(nodeData.label);
   const [hovered, setHovered] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [editSize, setEditSize] = useState<{ width: number; height: number } | null>(null);
   const level = nodeData.level || 0;
   const borderColor = LEVEL_COLORS[level % LEVEL_COLORS.length];
   const bgColor = LEVEL_BG[level % LEVEL_BG.length];
@@ -43,17 +45,25 @@ function MindMapNodeComponent({ id, data, selected }: NodeProps) {
     setText(nodeData.label);
   }, [nodeData.label]);
 
+  const startEditing = useCallback(() => {
+    // Capture current size before switching to edit mode
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      setEditSize({ width: rect.width, height: rect.height });
+    }
+    setEditing(true);
+  }, []);
+
   useEffect(() => {
     if (editing && textareaRef.current) {
       textareaRef.current.focus();
       textareaRef.current.select();
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
     }
   }, [editing]);
 
   const finishEditing = useCallback(() => {
     setEditing(false);
+    setEditSize(null);
     if (text.trim() && text !== nodeData.label) {
       nodeData.onLabelChange?.(id, text.trim());
     } else {
@@ -65,6 +75,7 @@ function MindMapNodeComponent({ id, data, selected }: NodeProps) {
 
   return (
     <div
+      ref={containerRef}
       className={cn(
         'relative group transition-all duration-150',
         selected && 'ring-2 ring-primary/50 ring-offset-2 ring-offset-background'
@@ -74,41 +85,42 @@ function MindMapNodeComponent({ id, data, selected }: NodeProps) {
         border: `2px solid ${borderColor}`,
         background: bgColor,
         padding: isRoot ? '14px 28px' : '8px 18px',
-        minWidth: isRoot ? 160 : 100,
-      maxWidth: 300,
-    }}
-    onMouseEnter={() => setHovered(true)}
-    onMouseLeave={() => setHovered(false)}
-    onDoubleClick={() => setEditing(true)}
-  >
-    <Handle type="target" position={Position.Left} className="!w-2 !h-2 !bg-muted-foreground/40 !border-none" />
-    <Handle type="source" position={Position.Right} className="!w-2 !h-2 !bg-muted-foreground/40 !border-none" />
-    <Handle type="target" position={Position.Top} className="!w-2 !h-2 !bg-muted-foreground/40 !border-none" />
-    <Handle type="source" position={Position.Bottom} className="!w-2 !h-2 !bg-muted-foreground/40 !border-none" />
+        minWidth: editing ? (editSize?.width || (isRoot ? 160 : 100)) : (isRoot ? 160 : 100),
+        minHeight: editing ? (editSize?.height || undefined) : undefined,
+        maxWidth: editing ? undefined : 300,
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onDoubleClick={() => !editing && startEditing()}
+    >
+      <Handle type="target" position={Position.Left} className="!w-2 !h-2 !bg-muted-foreground/40 !border-none" />
+      <Handle type="source" position={Position.Right} className="!w-2 !h-2 !bg-muted-foreground/40 !border-none" />
+      <Handle type="target" position={Position.Top} className="!w-2 !h-2 !bg-muted-foreground/40 !border-none" />
+      <Handle type="source" position={Position.Bottom} className="!w-2 !h-2 !bg-muted-foreground/40 !border-none" />
 
-    {editing ? (
-      <textarea
-        ref={textareaRef}
-        value={text}
-        onChange={e => {
-          setText(e.target.value);
-          e.target.style.height = 'auto';
-          e.target.style.height = e.target.scrollHeight + 'px';
-        }}
-        onBlur={finishEditing}
-        onKeyDown={e => {
-          if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); finishEditing(); }
-          if (e.key === 'Escape') { setText(nodeData.label); setEditing(false); }
-        }}
-        className="bg-transparent border-none outline-none text-center w-full text-foreground resize-none overflow-hidden"
-        style={{ fontSize: isRoot ? 16 : 13, fontWeight: isRoot ? 600 : 500, minHeight: 20 }}
-        rows={1}
-      />
-    ) : (
-      <span
-        className="text-foreground select-none block text-center whitespace-pre-wrap"
-        style={{ fontSize: isRoot ? 16 : 13, fontWeight: isRoot ? 600 : 500 }}
-      >
+      {editing ? (
+        <textarea
+          ref={textareaRef}
+          value={text}
+          onChange={e => setText(e.target.value)}
+          onBlur={finishEditing}
+          onKeyDown={e => {
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); finishEditing(); }
+            if (e.key === 'Escape') { setText(nodeData.label); setEditing(false); setEditSize(null); }
+          }}
+          className="bg-transparent border-none outline-none text-center w-full text-foreground resize overflow-auto"
+          style={{
+            fontSize: isRoot ? 16 : 13,
+            fontWeight: isRoot ? 600 : 500,
+            minHeight: editSize ? editSize.height - (isRoot ? 28 : 16) : 20,
+            minWidth: editSize ? editSize.width - (isRoot ? 56 : 36) : 80,
+          }}
+        />
+      ) : (
+        <span
+          className="text-foreground select-none block text-center whitespace-pre-wrap"
+          style={{ fontSize: isRoot ? 16 : 13, fontWeight: isRoot ? 600 : 500 }}
+        >
           {nodeData.label}
         </span>
       )}
