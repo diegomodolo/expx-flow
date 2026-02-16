@@ -55,11 +55,12 @@ export function useSubtasks(parentTaskId: string | null) {
         parent_task_id: parentTaskId,
         company_id: companyId,
         user_id: user.id,
-        team_id: '',
+        team_id: null,
         description: '',
-        responsible_name: '',
-        responsible_avatar: '',
-        deadline: '',
+        responsible_name: null,
+        responsible_avatar: null,
+        deadline: null,
+        start_date: null,
         origin: 'manual',
       };
       const { data, error } = await supabase
@@ -100,11 +101,12 @@ export function useSubtasks(parentTaskId: string | null) {
         parent_task_id: parentTaskId,
         company_id: companyId,
         user_id: user.id,
-        team_id: '',
+        team_id: null,
         description: a.descricao || '',
-        responsible_name: '',
-        responsible_avatar: '',
-        deadline: '',
+        responsible_name: null,
+        responsible_avatar: null,
+        deadline: null,
+        start_date: null,
         origin: 'manual',
       }));
 
