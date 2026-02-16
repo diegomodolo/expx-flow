@@ -560,10 +560,10 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
               <div 
                 key={column.id} 
                 className={cn(
-                  "flex flex-col transition-all duration-200",
+                  "flex flex-col transition-all duration-200 flex-none",
                   isEmpty && !isExpandedEmpty
-                    ? "w-16 min-w-[64px] flex-none"
-                    : isCompactMode ? "min-w-[200px] flex-1" : "min-w-[280px] flex-1",
+                    ? "w-16"
+                    : isCompactMode ? "w-[240px]" : "w-[300px]",
                   isBeingDragged && 'opacity-50 scale-95',
                   isColumnDragTarget && 'ring-2 ring-primary ring-offset-2 rounded-lg'
                 )}
