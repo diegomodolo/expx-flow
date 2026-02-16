@@ -1242,6 +1242,7 @@ export default function Tarefas() {
           onOpenChange={setTaskDialogOpen}
           task={selectedTask}
           onSave={selectedTask ? handleUpdateTask : handleCreateTask}
+          defaultBoardUserId={selectedBoardUserId && selectedBoardUserId !== 'all' ? selectedBoardUserId : undefined}
         />
 
         {/* Dialog de Tarefas Recorrentes */}
