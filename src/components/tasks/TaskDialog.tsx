@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, X, Plus, Home, CheckSquare, Trash2, Save, ZoomIn, ZoomOut, ShieldCheck, Search, Users } from "lucide-react";
+import { CalendarIcon, X, Plus, Home, CheckSquare, Trash2, Save, ZoomIn, ZoomOut, ShieldCheck, Search, Users, UsersRound } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useTeams } from "@/hooks/useTeams";
@@ -30,6 +30,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useTaskCategorias } from "@/hooks/useTaskCategorias";
 import { CreativeTaskPanel, CreativeData } from "./CreativeTaskPanel";
 import { TaskClientsTab } from "./TaskClientsTab";
+import { TaskTeamTab } from "./TaskTeamTab";
 
 export type TaskDialogMode = 'kanban' | 'roteiro';
 
@@ -45,7 +46,7 @@ interface TaskDialogProps {
   onDelete?: () => void;
 }
 
-type SidebarTab = 'principal' | 'clientes' | 'autorizador' | 'checklist';
+type SidebarTab = 'principal' | 'clientes' | 'equipe' | 'autorizador' | 'checklist';
 
 const ZOOM_STORAGE_KEY = 'task-dialog-zoom';
 const ZOOM_LEVELS = [640, 768, 896, 1024, 1152, 1280];
@@ -529,6 +530,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
   const sidebarItems: { id: SidebarTab; label: string; icon: any }[] = [
     { id: 'principal', label: 'Principal', icon: Home },
     { id: 'clientes', label: 'Clientes', icon: Users },
+    { id: 'equipe', label: 'Equipe', icon: UsersRound },
     { id: 'autorizador', label: 'Autorizador', icon: ShieldCheck },
     { id: 'checklist', label: 'Checklist', icon: CheckSquare },
   ];
@@ -1233,6 +1235,13 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                     companyId={companyId}
                     currentClientId={formData.related_client_id}
                     currentClientName={clients?.find(c => c.id === formData.related_client_id)?.name}
+                  />
+                )}
+
+                {activeTab === 'equipe' && (
+                  <TaskTeamTab
+                    taskId={task?.id}
+                    companyId={companyId}
                   />
                 )}
 
