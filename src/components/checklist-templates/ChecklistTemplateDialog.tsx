@@ -48,12 +48,12 @@ export function ChecklistTemplateDialog({ open, onOpenChange, onSave, initialDat
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[750px]">
+      <DialogContent className="sm:max-w-[900px]">
         <DialogHeader>
           <DialogTitle>{initialData ? 'Editar Template' : 'Novo Template de Checklist'}</DialogTitle>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-[1fr_2fr] gap-6">
           {/* Coluna esquerda - Configuração */}
           <div className="space-y-4">
             <div>
@@ -91,7 +91,7 @@ export function ChecklistTemplateDialog({ open, onOpenChange, onSave, initialDat
                 <Plus className="w-4 h-4" />
               </Button>
             </div>
-            <ScrollArea className="h-[240px] rounded-lg border border-border p-2">
+            <ScrollArea className="h-[320px] rounded-lg border border-border p-2">
               {items.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-8">Nenhum item adicionado</p>
               ) : (

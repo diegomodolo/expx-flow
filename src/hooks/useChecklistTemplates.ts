@@ -25,7 +25,7 @@ export interface ChecklistTemplate {
 export function useChecklistTemplates() {
   const { activeCompany } = useCompany();
   const queryClient = useQueryClient();
-  const companyId = activeCompany?.id;
+  const companyId = activeCompany?.company_id;
 
   const { data: templates = [], isLoading } = useQuery({
     queryKey: ['checklist-templates', companyId],
