@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useCallback } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -181,6 +181,45 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
   const [draggedColumn, setDraggedColumn] = useState<TaskBoardColumn | null>(null);
   const [dragOverColumnId, setDragOverColumnId] = useState<string | null>(null);
   const { activeCompany } = useCompany();
+
+  // Long-press drag state
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isDraggingRef = useRef(false);
+  const dragCardRef = useRef<HTMLDivElement | null>(null);
+
+  const handleCardMouseDown = useCallback((e: React.MouseEvent, task: Task) => {
+    // Ignore right-click or if clicking on interactive elements
+    if (e.button !== 0) return;
+    const target = e.target as HTMLElement;
+    if (target.closest('button, [role="menuitem"], a')) return;
+
+    isDraggingRef.current = false;
+    longPressTimer.current = setTimeout(() => {
+      isDraggingRef.current = true;
+      setDraggedTask(task);
+      if (dragCardRef.current) {
+        dragCardRef.current.draggable = true;
+      }
+    }, 200);
+  }, []);
+
+  const handleCardMouseUp = useCallback((task: Task, inModal: boolean) => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    if (!isDraggingRef.current) {
+      onEditTask(task);
+    }
+    isDraggingRef.current = false;
+  }, [onEditTask]);
+
+  const handleCardMouseLeave = useCallback(() => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }, []);
 
   const { 
     columns: userColumns, 
@@ -374,16 +413,20 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
     return (
       <Card
         key={task.id}
+        ref={!inModal ? (el: HTMLDivElement | null) => { if (draggedTask?.id === task.id) dragCardRef.current = el; } : undefined}
         className={cn(
-          "shadow-sm hover:shadow-md transition-all border-l-4 bg-card group",
-          inModal ? 'cursor-pointer' : 'cursor-move',
+          "shadow-sm hover:shadow-md transition-all border-l-4 bg-card group select-none",
+          "cursor-pointer",
           !inModal && draggedTask?.id === task.id && 'opacity-50 rotate-2 scale-105',
           isCompactMode ? "p-2" : "p-3"
         )}
         style={{ borderLeftColor: priorityConf.color }}
-        draggable={!inModal}
+        draggable={false}
+        onMouseDown={!inModal ? (e) => handleCardMouseDown(e, task) : undefined}
+        onMouseUp={!inModal ? () => handleCardMouseUp(task, inModal) : undefined}
+        onMouseLeave={!inModal ? handleCardMouseLeave : undefined}
         onDragStart={!inModal ? (e) => handleDragStart(e, task) : undefined}
-        onDragEnd={!inModal ? handleDragEnd : undefined}
+        onDragEnd={!inModal ? () => { handleDragEnd(); if (dragCardRef.current) dragCardRef.current.draggable = false; } : undefined}
         onClick={inModal ? () => onEditTask(task) : undefined}
       >
         <CardContent className="p-0 space-y-2.5">
