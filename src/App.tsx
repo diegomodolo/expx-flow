@@ -145,6 +145,8 @@ import Workspace from "./pages/Workspace";
 import Roteiros from "./pages/Roteiros";
 import RoteiroDetalhe from "./pages/RoteiroDetalhe";
 import ChecklistTemplates from "./pages/ChecklistTemplates";
+import TaskFlows from "./pages/TaskFlows";
+import TaskFlowEditorPage from "./pages/TaskFlowEditorPage";
 import { AuthProvider } from "@/hooks/useAuth";
 import { CompanyProvider } from "@/contexts/CompanyContext";
 import { CRMAuthProvider } from "@/contexts/CRMAuthContext";
@@ -313,7 +315,17 @@ const App = () => {
                   <ProtectedRoute>
                     <TarefasRecorrentes />
                   </ProtectedRoute>
-                } />
+                 } />
+                 <Route path="/fluxos" element={
+                   <ProtectedRoute>
+                     <TaskFlows />
+                   </ProtectedRoute>
+                 } />
+                 <Route path="/fluxos/:flowId" element={
+                   <ProtectedRoute>
+                     <TaskFlowEditorPage />
+                   </ProtectedRoute>
+                 } />
                  <Route path="/relatorios" element={
                   <PermissionProtectedRoute requiredPermission="relatorios">
                     <Relatorios />
