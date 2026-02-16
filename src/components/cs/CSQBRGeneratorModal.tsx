@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SearchableClientSelect } from "@/components/ui/searchable-client-select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -114,18 +115,12 @@ export function CSQBRGeneratorModal({ open, onOpenChange, clientId }: CSQBRGener
           {!clientId && (
             <div className="space-y-2">
               <Label>Cliente</Label>
-              <Select value={selectedClient} onValueChange={setSelectedClient}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o cliente" />
-                </SelectTrigger>
-                <SelectContent>
-                  {healthData.map((client) => (
-                    <SelectItem key={client.clientId} value={client.clientId}>
-                      {client.clientName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableClientSelect
+                clients={healthData.map(c => ({ id: c.clientId, name: c.clientName }))}
+                value={selectedClient}
+                onValueChange={setSelectedClient}
+                placeholder="Selecione o cliente"
+              />
             </div>
           )}
 

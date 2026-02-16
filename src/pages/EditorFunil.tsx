@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { SearchableClientSelect } from "@/components/ui/searchable-client-select";
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -113,19 +114,13 @@ export default function EditorFunil() {
                 />
               </div>
               <div className="w-full md:w-[250px]">
-                <Select value={filterClientId} onValueChange={setFilterClientId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Todos os clientes" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos os clientes</SelectItem>
-                    {clients?.map((client) => (
-                      <SelectItem key={client.id} value={client.id}>
-                        {client.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <SearchableClientSelect
+                  clients={clients?.map(c => ({ id: c.id, name: c.name })) || []}
+                  value={filterClientId}
+                  onValueChange={setFilterClientId}
+                  allLabel="Todos os clientes"
+                  placeholder="Todos os clientes"
+                />
               </div>
               {(searchTerm || filterClientId !== "all") && (
                 <Button variant="outline" onClick={clearFilters}>
@@ -230,24 +225,18 @@ export default function EditorFunil() {
           <div className="space-y-4">
             <div>
               <Label htmlFor="funnel-client">Cliente *</Label>
-              <Select value={newFunnelClientId} onValueChange={setNewFunnelClientId}>
-                <SelectTrigger id="funnel-client">
-                  <SelectValue placeholder="Selecione o cliente" />
-                </SelectTrigger>
-                <SelectContent>
-                  {loadingClients ? (
-                    <div className="p-4 text-center">
-                      <Loader2 className="h-5 w-5 animate-spin mx-auto" />
-                    </div>
-                  ) : (
-                    clients?.map((client) => (
-                      <SelectItem key={client.id} value={client.id}>
-                        {client.name}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
+              {loadingClients ? (
+                <div className="p-4 text-center">
+                  <Loader2 className="h-5 w-5 animate-spin mx-auto" />
+                </div>
+              ) : (
+                <SearchableClientSelect
+                  clients={clients?.map(c => ({ id: c.id, name: c.name })) || []}
+                  value={newFunnelClientId}
+                  onValueChange={setNewFunnelClientId}
+                  placeholder="Selecione o cliente"
+                />
+              )}
             </div>
 
             <div>

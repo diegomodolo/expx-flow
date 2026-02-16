@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SearchableClientSelect } from "@/components/ui/searchable-client-select";
 import { ReportLayout } from "@/components/reports/ReportLayout";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -219,19 +220,13 @@ export default function RelatorioSnapshotsPerformance() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="text-sm font-medium mb-2 block">Cliente</label>
-                <Select value={selectedClient} onValueChange={setSelectedClient}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos os Clientes</SelectItem>
-                    {clients?.map((client) => (
-                      <SelectItem key={client.id} value={client.id}>
-                        {client.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <SearchableClientSelect
+                  clients={clients?.map(c => ({ id: c.id, name: c.name })) || []}
+                  value={selectedClient}
+                  onValueChange={setSelectedClient}
+                  allLabel="Todos os Clientes"
+                  placeholder="Todos os Clientes"
+                />
               </div>
 
               <div>

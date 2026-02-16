@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { SearchableClientSelect } from "@/components/ui/searchable-client-select";
 import { useContentPlans, ContentPlan } from "@/hooks/useContentPlans";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -184,19 +185,14 @@ export function ContentPlanList({ onSelectPlan, onCreateNew }: ContentPlanListPr
           </SelectContent>
         </Select>
 
-        <Select value={clientFilter} onValueChange={setClientFilter}>
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="Cliente" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os clientes</SelectItem>
-            {clientsWithPlans.map((client) => (
-              <SelectItem key={client.id} value={client.id}>
-                {client.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <SearchableClientSelect
+          clients={clientsWithPlans.map(c => ({ id: c.id, name: c.name }))}
+          value={clientFilter}
+          onValueChange={setClientFilter}
+          allLabel="Todos os clientes"
+          placeholder="Cliente"
+          triggerClassName="w-[200px]"
+        />
       </div>
 
       {/* Table */}

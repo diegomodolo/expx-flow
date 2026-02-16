@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { SearchableClientSelect } from "@/components/ui/searchable-client-select";
 import { Settings, Brain, FileText, Bot, Puzzle, MessageCircle, Save } from "lucide-react";
 import { useRef } from "react";
 import { Button } from "@/components/ui/button";
@@ -257,22 +258,13 @@ export function AgentEditContent({
                   </div>
                   <div>
                     <Label htmlFor="client_id">Cliente Associado (Opcional)</Label>
-                    <Select
+                    <SearchableClientSelect
+                      clients={clients.map(c => ({ id: c.id, name: c.name }))}
                       value={formData.client_id}
                       onValueChange={(value) => setFormData({ ...formData, client_id: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione um cliente" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Nenhum cliente específico</SelectItem>
-                        {clients.map((client) => (
-                          <SelectItem key={client.id} value={client.id}>
-                            {client.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      noneLabel="Nenhum cliente específico"
+                      placeholder="Selecione um cliente"
+                    />
                     <p className="text-sm text-muted-foreground mt-1">
                       Quando associado, o agente terá acesso automático ao briefing, campanhas e métricas deste cliente.
                     </p>

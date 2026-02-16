@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { SearchableClientSelect } from "@/components/ui/searchable-client-select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -242,17 +243,14 @@ export function RecurringTasksManager({ clientId }: RecurringTasksManagerProps) 
               </Select>
             )}
             {uniqueClients.length > 0 && (
-              <Select value={filterClient} onValueChange={setFilterClient}>
-                <SelectTrigger className="h-9 w-full lg:w-[160px]">
-                  <SelectValue placeholder="Cliente" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos clientes</SelectItem>
-                  {uniqueClients.map(c => (
-                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableClientSelect
+                clients={uniqueClients}
+                value={filterClient}
+                onValueChange={setFilterClient}
+                allLabel="Todos clientes"
+                placeholder="Cliente"
+                triggerClassName="h-9 w-full lg:w-[160px]"
+              />
             )}
             <Select value={filterActive} onValueChange={setFilterActive}>
               <SelectTrigger className="h-9 w-full lg:w-[130px]">

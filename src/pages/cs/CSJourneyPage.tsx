@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { SearchableClientSelect } from "@/components/ui/searchable-client-select";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Trophy } from 'lucide-react';
@@ -44,18 +45,13 @@ export default function CSJourneyPage() {
               <Trophy className="h-5 w-5 text-primary" />
               Selecione um Cliente
             </span>
-            <Select value={selectedClientId} onValueChange={setSelectedClientId}>
-              <SelectTrigger className="w-[280px]">
-                <SelectValue placeholder="Selecione um cliente" />
-              </SelectTrigger>
-              <SelectContent>
-                {filteredHealthData.map((client) => (
-                  <SelectItem key={client.clientId} value={client.clientId}>
-                    {client.clientName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SearchableClientSelect
+              clients={filteredHealthData.map(c => ({ id: c.clientId, name: c.clientName }))}
+              value={selectedClientId}
+              onValueChange={setSelectedClientId}
+              placeholder="Selecione um cliente"
+              triggerClassName="w-[280px]"
+            />
           </CardTitle>
         </CardHeader>
         <CardContent>

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { SearchableClientSelect } from "@/components/ui/searchable-client-select";
 import { useContentGenerations } from "@/hooks/useContentGenerations";
 import { ContentHistoryCard } from "./ContentHistoryCard";
 import { ContentPreviewModal } from "./ContentPreviewModal";
@@ -75,22 +76,14 @@ export function SavedContentsList() {
           </div>
           
           <div className="flex gap-2">
-            <Select
+            <SearchableClientSelect
+              clients={clients.map(c => ({ id: c.id, name: c.name }))}
               value={filters.client}
               onValueChange={(value) => setFilters(prev => ({ ...prev, client: value }))}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Cliente" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os clientes</SelectItem>
-                {clients.map(client => (
-                  <SelectItem key={client.id} value={client.id}>
-                    {client.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              allLabel="Todos os clientes"
+              placeholder="Cliente"
+              triggerClassName="w-[180px]"
+            />
 
             <Select
               value={filters.contentType}

@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { SearchableClientSelect } from "@/components/ui/searchable-client-select";
 import { useNavigate } from "react-router-dom";
 import { ContentPresentation, usePresentations } from "@/hooks/usePresentations";
 import { Button } from "@/components/ui/button";
@@ -227,19 +228,14 @@ export function PresentationList({ presentations, isLoading, onEdit }: Presentat
           </SelectContent>
         </Select>
 
-        <Select value={clientFilter} onValueChange={setClientFilter}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Cliente" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os clientes</SelectItem>
-            {clientsWithPresentations.map((client) => (
-              <SelectItem key={client.id} value={client.id}>
-                {client.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <SearchableClientSelect
+          clients={clientsWithPresentations.map(c => ({ id: c.id, name: c.name }))}
+          value={clientFilter}
+          onValueChange={setClientFilter}
+          allLabel="Todos os clientes"
+          placeholder="Cliente"
+          triggerClassName="w-[180px]"
+        />
 
         <Select value={dateFilter} onValueChange={setDateFilter}>
           <SelectTrigger className="w-[180px]">
