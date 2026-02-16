@@ -46,6 +46,7 @@ interface TaskDialogProps {
   task?: any;
   onSave: (taskData: any) => void;
   defaultClientId?: string;
+  defaultBoardUserId?: string | null;
   mode?: TaskDialogMode;
   // Roteiro-specific
   loading?: boolean;
@@ -81,7 +82,7 @@ function saveZoom(userId: string, zoom: number) {
   } catch {}
 }
 
-export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, mode = 'kanban', loading, onDelete }: TaskDialogProps) {
+export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, defaultBoardUserId, mode = 'kanban', loading, onDelete }: TaskDialogProps) {
   const isRoteiro = mode === 'roteiro';
   const [activeTab, setActiveTab] = useState<SidebarTab>('principal');
   const [zoomWidth, setZoomWidth] = useState(1024);
@@ -388,6 +389,12 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
         });
       }
     } else {
+      // Determine default board for new tasks
+      const defaultQuadroUserId = defaultBoardUserId || currentEmployee?.user_id || '';
+      const defaultQuadroColumnId = defaultQuadroUserId
+        ? (allColumns.find(c => c.user_id === defaultQuadroUserId)?.id || '')
+        : '';
+
       setFormData({
         title: '',
         description: '',
@@ -414,13 +421,13 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
         autorizador_id: '',
         categoria_id: '',
         classificacao_id: '',
-        quadro_user_id: '',
-        quadro_column_id: '',
+        quadro_user_id: defaultQuadroUserId,
+        quadro_column_id: defaultQuadroColumnId,
       });
     }
     setCreativeData({ post_type: 'feed', caption: '', files: [] });
     setActiveTab('principal');
-  }, [task, defaultClientId, currentEmployee, isRoteiro, allColumns]);
+  }, [task, defaultClientId, defaultBoardUserId, currentEmployee, isRoteiro, allColumns]);
 
   const handleSave = async () => {
     if (!formData.title.trim()) return;
