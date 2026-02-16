@@ -193,12 +193,11 @@ function MindMapNodeComponent({ id, data, selected }: NodeProps) {
       {hovered && !editing && !isCollapsed && (
         <>
           <button
-            className="absolute -translate-y-1/2 w-6 h-6 rounded-full flex items-center justify-center shadow-md transition-transform hover:scale-110 z-20"
+            className="absolute top-1/2 -translate-y-1/2 w-6 h-6 rounded-full flex items-center justify-center shadow-md transition-transform hover:scale-110 z-20"
             style={{
               background: borderColor,
               color: 'white',
-              top: childCount > 0 && hasRightChildren ? 'calc(50% - 20px)' : '50%',
-              right: '-14px',
+              right: childCount > 0 && hasRightChildren ? '-34px' : '-14px',
             }}
             onClick={e => {
               e.stopPropagation();
@@ -211,12 +210,11 @@ function MindMapNodeComponent({ id, data, selected }: NodeProps) {
 
           {showAddLeft && (
             <button
-            className="absolute -translate-y-1/2 w-6 h-6 rounded-full flex items-center justify-center shadow-md transition-transform hover:scale-110 z-20"
+            className="absolute top-1/2 -translate-y-1/2 w-6 h-6 rounded-full flex items-center justify-center shadow-md transition-transform hover:scale-110 z-20"
             style={{
               background: borderColor,
               color: 'white',
-              top: childCount > 0 && hasLeftChildren ? 'calc(50% - 20px)' : '50%',
-              left: '-14px',
+              left: childCount > 0 && hasLeftChildren ? '-34px' : '-14px',
               }}
               onClick={e => {
                 e.stopPropagation();
