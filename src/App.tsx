@@ -18,6 +18,7 @@ import CampanhasUnificadas from "./pages/CampanhasUnificadas";
 import CampanhaDetalhes from "./pages/CampanhaDetalhes";
 import Colaboradores from "./pages/Colaboradores";
 import Squad from "./pages/Squad";
+import SquadCommandCenter from "./pages/SquadCommandCenter";
 import AgentSquads from "./pages/AgentSquads";
 import AgentSquadEditor from "./pages/AgentSquadEditor";
 import Tarefas from "./pages/Tarefas";
@@ -293,6 +294,11 @@ const App = () => {
                <Route path="/squad" element={
                  <PermissionProtectedRoute requiredPermission="squad">
                    <Squad />
+                 </PermissionProtectedRoute>
+               } />
+               <Route path="/squad-command-center" element={
+                 <PermissionProtectedRoute requiredPermission="command-center">
+                   <SquadCommandCenter />
                  </PermissionProtectedRoute>
                } />
                  <Route path="/tarefas" element={
