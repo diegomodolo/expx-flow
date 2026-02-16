@@ -11892,6 +11892,48 @@ export type Database = {
           },
         ]
       }
+      task_members: {
+        Row: {
+          company_id: string
+          created_at: string
+          employee_id: string
+          id: string
+          role: Database["public"]["Enums"]["task_member_role"]
+          task_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          employee_id: string
+          id?: string
+          role?: Database["public"]["Enums"]["task_member_role"]
+          task_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          employee_id?: string
+          id?: string
+          role?: Database["public"]["Enums"]["task_member_role"]
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_members_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_members_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           ai_estimated_minutes: number | null
@@ -14922,6 +14964,7 @@ export type Database = {
         | "completed_late"
         | "skipped"
       routine_frequency: "daily" | "weekly" | "monthly"
+      task_member_role: "responsible" | "contributor" | "observer"
       task_origin: "dashboard" | "manual" | "automation"
       task_priority: "high" | "medium" | "low"
       task_status:
@@ -15126,6 +15169,7 @@ export const Constants = {
         "skipped",
       ],
       routine_frequency: ["daily", "weekly", "monthly"],
+      task_member_role: ["responsible", "contributor", "observer"],
       task_origin: ["dashboard", "manual", "automation"],
       task_priority: ["high", "medium", "low"],
       task_status: [
