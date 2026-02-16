@@ -371,7 +371,7 @@ export default function Tarefas() {
     <DashboardLayout>
       <div className={cn(
         "transition-all",
-        isCompactMode ? "space-y-2 p-3" : "space-y-6 p-6"
+        isCompactMode ? "space-y-2 p-3" : "space-y-4 p-4"
       )}>
         {/* Header */}
         <div className={cn(
@@ -384,7 +384,7 @@ export default function Tarefas() {
               isCompactMode ? "text-lg font-semibold" : "text-headline-lg"
             )}>Suas Tarefas</h1>
             {!isCompactMode && (
-              <p className="text-muted-foreground mt-2">
+              <p className="text-muted-foreground text-sm mt-1">
                 Gerencie e acompanhe suas tarefas
               </p>
             )}
@@ -850,10 +850,8 @@ export default function Tarefas() {
 
 
         {/* Filtros e Visualizações */}
-        <div className={cn(
-          "flex flex-col lg:flex-row lg:items-center lg:justify-between",
-          isCompactMode ? "gap-2" : "gap-4"
-        )}>
+        <Card>
+          <CardContent className={cn("flex flex-col lg:flex-row lg:items-center lg:justify-between", isCompactMode ? "p-2 gap-2" : "p-3 gap-3")}>
           {/* Filtros - Modo compacto: botão que abre Sheet */}
           {isCompactMode ? (
             <div className="flex items-center gap-2">
@@ -1128,7 +1126,8 @@ export default function Tarefas() {
               <Repeat className="w-4 h-4" />
             </Button>
           </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Conteúdo das Tarefas */}
         {activeLoading ? (
