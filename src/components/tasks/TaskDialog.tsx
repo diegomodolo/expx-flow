@@ -182,22 +182,17 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
 
   const canViewOthersBoards = isOwner || isManager || hasPermission('ver-quadros-outros');
 
-  // Fetch board columns
+  // Fetch board columns - always fetch all for the company so we can assign tasks to any employee's board
   const { data: allColumns = [] } = useQuery({
-    queryKey: ['all-board-columns', companyId, canViewOthersBoards, user?.id],
+    queryKey: ['all-board-columns', companyId],
     queryFn: async () => {
       if (!companyId) return [];
-      let query = supabase
+      const { data } = await (supabase
         .from('task_board_columns' as any)
         .select('*')
         .eq('company_id', companyId)
-        .order('order_index', { ascending: true });
+        .order('order_index', { ascending: true }) as any);
 
-      if (!canViewOthersBoards && user?.id) {
-        query = query.eq('user_id', user.id);
-      }
-
-      const { data } = await (query as any);
       return (data || []) as Array<{ id: string; user_id: string; name: string; color: string; order_index: number }>;
     },
     enabled: !!companyId,
