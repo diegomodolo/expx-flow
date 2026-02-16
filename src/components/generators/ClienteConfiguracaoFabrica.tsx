@@ -521,7 +521,7 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
                   <Slider
                     id="ads_per_day"
                     min={1}
-                    max={50}
+                    max={5}
                     step={1}
                     value={[config.ads_per_day]}
                     onValueChange={([value]) => setConfig({ ...config, ads_per_day: value })}

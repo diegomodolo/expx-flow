@@ -447,7 +447,7 @@ export function ClienteConfiguracaoFabricaCarrosseis({ clientId, onSave, onDelet
                   <Label>Carrosseis por dia: {config.carousels_per_day}</Label>
                   <Slider
                     min={1}
-                    max={10}
+                    max={5}
                     step={1}
                     value={[config.carousels_per_day]}
                     onValueChange={([value]) => setConfig({ ...config, carousels_per_day: value })}

@@ -262,7 +262,7 @@ export default function ConfiguracaoFabrica() {
                     <Input
                       type="number"
                       min={1}
-                      max={50}
+                      max={5}
                       value={schedule.ads_per_day}
                       onChange={(e) => updateScheduleField(schedule.id, 'ads_per_day', parseInt(e.target.value) || 1)}
                       className="w-20 mx-auto text-center"
