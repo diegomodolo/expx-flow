@@ -23,12 +23,30 @@ export function useTaskMembers(taskId: string | undefined, companyId: string | u
     queryKey: ['task-members', taskId],
     queryFn: async () => {
       if (!taskId || !companyId) return [];
+      
+      // First get task_members
       const { data, error } = await supabase
         .from('task_members' as any)
-        .select('*, employees:employee_id(name, avatar)')
+        .select('*, employees:employee_id(name, avatar, user_id)')
         .eq('task_id', taskId)
         .eq('company_id', companyId);
       if (error) throw error;
+      
+      // Get profile avatars for all members
+      const userIds = (data || []).map((m: any) => m.employees?.user_id).filter(Boolean);
+      let profileAvatars: Record<string, string> = {};
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('user_id, avatar_url')
+          .in('user_id', userIds);
+        if (profiles) {
+          profiles.forEach((p: any) => {
+            if (p.avatar_url) profileAvatars[p.user_id] = p.avatar_url;
+          });
+        }
+      }
+      
       return (data || []).map((m: any) => ({
         id: m.id,
         task_id: m.task_id,
@@ -37,7 +55,7 @@ export function useTaskMembers(taskId: string | undefined, companyId: string | u
         company_id: m.company_id,
         created_at: m.created_at,
         employee_name: m.employees?.name || '',
-        employee_avatar: m.employees?.avatar || null,
+        employee_avatar: m.employees?.avatar || profileAvatars[m.employees?.user_id] || null,
       })) as TaskMember[];
     },
     enabled: !!taskId && !!companyId,
