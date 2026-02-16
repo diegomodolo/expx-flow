@@ -519,3 +519,6 @@ verify_jwt = false
 
 [functions.schedule-post]
 verify_jwt = false
+
+[functions.discord-bot]
+verify_jwt = true

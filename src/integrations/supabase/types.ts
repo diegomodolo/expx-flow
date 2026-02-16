@@ -5371,6 +5371,47 @@ export type Database = {
           },
         ]
       }
+      discord_config: {
+        Row: {
+          company_id: string
+          created_at: string
+          enabled: boolean
+          guild_id: string | null
+          guild_name: string | null
+          id: string
+          is_connected: boolean
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          enabled?: boolean
+          guild_id?: string | null
+          guild_name?: string | null
+          id?: string
+          is_connected?: boolean
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          enabled?: boolean
+          guild_id?: string | null
+          guild_name?: string | null
+          id?: string
+          is_connected?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discord_config_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       editor_element_library: {
         Row: {
           category: string | null
@@ -5503,6 +5544,8 @@ export type Database = {
           avatar: string | null
           company_id: string
           created_at: string
+          discord_user_id: string | null
+          discord_username: string | null
           email: string
           id: string
           name: string
@@ -5519,6 +5562,8 @@ export type Database = {
           avatar?: string | null
           company_id: string
           created_at?: string
+          discord_user_id?: string | null
+          discord_username?: string | null
           email: string
           id?: string
           name: string
@@ -5535,6 +5580,8 @@ export type Database = {
           avatar?: string | null
           company_id?: string
           created_at?: string
+          discord_user_id?: string | null
+          discord_username?: string | null
           email?: string
           id?: string
           name?: string
@@ -12156,6 +12203,8 @@ export type Database = {
           company_id: string | null
           created_at: string
           description: string
+          discord_channel_id: string | null
+          discord_channel_name: string | null
           icon: string
           icon_bg: string
           icon_color: string
@@ -12174,6 +12223,8 @@ export type Database = {
           company_id?: string | null
           created_at?: string
           description: string
+          discord_channel_id?: string | null
+          discord_channel_name?: string | null
           icon: string
           icon_bg: string
           icon_color: string
@@ -12192,6 +12243,8 @@ export type Database = {
           company_id?: string | null
           created_at?: string
           description?: string
+          discord_channel_id?: string | null
+          discord_channel_name?: string | null
           icon?: string
           icon_bg?: string
           icon_color?: string
