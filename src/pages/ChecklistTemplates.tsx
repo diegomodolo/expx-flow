@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, Search, ListChecks, Pencil, Trash2, MoreVertical } from 'lucide-react';
@@ -91,7 +92,7 @@ export default function ChecklistTemplates() {
   };
 
   return (
-    <>
+    <DashboardLayout>
       <div className="p-6 space-y-6">
         {/* Breadcrumb */}
         <Breadcrumb>
@@ -229,6 +230,6 @@ export default function ChecklistTemplates() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </DashboardLayout>
   );
 }
