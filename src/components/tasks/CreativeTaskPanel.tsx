@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Upload, X, GripVertical, Play, Image as ImageIcon, ChevronLeft, ChevronRight } from "lucide-react";
+import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Upload, X, GripVertical, Play, Image as ImageIcon, ChevronLeft, ChevronRight, Volume2, VolumeX } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -40,6 +40,8 @@ export function CreativeTaskPanel({ data, onChange, companyId, taskId, clientNam
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [isMuted, setIsMuted] = useState(true);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   const isVideoType = data.post_type === 'stories' || data.post_type === 'reels';
   const acceptTypes = isVideoType ? 'video/*' : 'image/*';
@@ -202,10 +204,11 @@ export function CreativeTaskPanel({ data, onChange, companyId, taskId, clientNam
             {previewSrc ? (
               previewFile?.type === 'video' ? (
                 <video
+                  ref={videoRef}
                   src={previewSrc}
                   className="w-full h-full object-cover"
                   controls={false}
-                  muted
+                  muted={isMuted}
                   loop
                   autoPlay
                   playsInline
@@ -264,13 +267,23 @@ export function CreativeTaskPanel({ data, onChange, companyId, taskId, clientNam
               </div>
             )}
 
-            {/* Video play overlay */}
+            {/* Video sound toggle */}
             {previewFile?.type === 'video' && (
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="w-12 h-12 rounded-full bg-black/40 flex items-center justify-center">
-                  <Play className="w-6 h-6 text-white fill-white ml-0.5" />
-                </div>
-              </div>
+              <button
+                onClick={() => {
+                  setIsMuted(prev => !prev);
+                  if (videoRef.current) {
+                    videoRef.current.muted = !videoRef.current.muted;
+                  }
+                }}
+                className="absolute bottom-3 right-3 w-9 h-9 rounded-full bg-background/70 backdrop-blur-sm border border-border flex items-center justify-center shadow-md hover:bg-background transition-colors z-10"
+              >
+                {isMuted ? (
+                  <VolumeX className="w-4 h-4 text-foreground" />
+                ) : (
+                  <Volume2 className="w-4 h-4 text-foreground" />
+                )}
+              </button>
             )}
           </div>
 
