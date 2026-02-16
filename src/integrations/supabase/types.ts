@@ -2113,6 +2113,76 @@ export type Database = {
           },
         ]
       }
+      checklist_template_items: {
+        Row: {
+          created_at: string
+          id: string
+          ordem: number
+          template_id: string
+          text: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ordem?: number
+          template_id: string
+          text: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ordem?: number
+          template_id?: string
+          text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_template_items_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      checklist_templates: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_templates_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_health_config: {
         Row: {
           churn_risk_level: string | null
