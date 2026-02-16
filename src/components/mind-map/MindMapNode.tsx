@@ -139,14 +139,14 @@ function MindMapNodeComponent({ id, data, selected }: NodeProps) {
         </span>
       )}
 
-      {/* Collapse/Expand badge - shown when node has children */}
+      {/* Collapse/Expand badge - always visible when node has children */}
       {childCount > 0 && !editing && (
         <>
-          {/* Right collapse indicator */}
           {hasRightChildren && (
             <button
-              className="absolute -right-4 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full flex items-center justify-center shadow-sm border transition-all hover:scale-110 z-10"
+              className="absolute top-1/2 -translate-y-1/2 w-5 h-5 rounded-full flex items-center justify-center shadow-sm border transition-all hover:scale-125 z-30"
               style={{
+                right: '-14px',
                 background: isCollapsed ? borderColor : 'hsl(var(--card))',
                 borderColor: borderColor,
                 color: isCollapsed ? 'white' : borderColor,
@@ -164,11 +164,11 @@ function MindMapNodeComponent({ id, data, selected }: NodeProps) {
               )}
             </button>
           )}
-          {/* Left collapse indicator */}
           {hasLeftChildren && !hasRightChildren && (
             <button
-              className="absolute -left-4 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full flex items-center justify-center shadow-sm border transition-all hover:scale-110 z-10"
+              className="absolute top-1/2 -translate-y-1/2 w-5 h-5 rounded-full flex items-center justify-center shadow-sm border transition-all hover:scale-125 z-30"
               style={{
+                left: '-14px',
                 background: isCollapsed ? borderColor : 'hsl(var(--card))',
                 borderColor: borderColor,
                 color: isCollapsed ? 'white' : borderColor,
@@ -189,16 +189,16 @@ function MindMapNodeComponent({ id, data, selected }: NodeProps) {
         </>
       )}
 
-      {/* Add child buttons - shown on hover */}
+      {/* Add child buttons - shown on hover, positioned OUTSIDE the collapse button */}
       {hovered && !editing && !isCollapsed && (
         <>
-          {/* Right add button */}
           <button
-            className="absolute top-1/2 -translate-y-1/2 w-6 h-6 rounded-full flex items-center justify-center shadow-md transition-transform hover:scale-110 z-20"
+            className="absolute -translate-y-1/2 w-6 h-6 rounded-full flex items-center justify-center shadow-md transition-transform hover:scale-110 z-20"
             style={{
               background: borderColor,
               color: 'white',
-              right: childCount > 0 && hasRightChildren ? '-24px' : '-12px',
+              top: childCount > 0 && hasRightChildren ? 'calc(50% - 14px)' : '50%',
+              right: '-14px',
             }}
             onClick={e => {
               e.stopPropagation();
@@ -209,14 +209,14 @@ function MindMapNodeComponent({ id, data, selected }: NodeProps) {
             <Plus className="w-3.5 h-3.5" />
           </button>
 
-          {/* Left add button - only for root node */}
           {showAddLeft && (
             <button
-              className="absolute top-1/2 -translate-y-1/2 w-6 h-6 rounded-full flex items-center justify-center shadow-md transition-transform hover:scale-110 z-20"
+              className="absolute -translate-y-1/2 w-6 h-6 rounded-full flex items-center justify-center shadow-md transition-transform hover:scale-110 z-20"
               style={{
                 background: borderColor,
                 color: 'white',
-                left: childCount > 0 && hasLeftChildren ? '-24px' : '-12px',
+                top: childCount > 0 && hasLeftChildren ? 'calc(50% - 14px)' : '50%',
+                left: '-14px',
               }}
               onClick={e => {
                 e.stopPropagation();
