@@ -3,7 +3,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Building, Bell, CreditCard, Facebook, Calendar, Shield, Gauge, RefreshCw, MessageCircle, Database } from "lucide-react";
+import { Building, Bell, CreditCard, Facebook, Calendar, Shield, Gauge, RefreshCw, MessageCircle, Database, SlidersHorizontal } from "lucide-react";
 import { SiGoogle, SiDiscord } from "react-icons/si";
 
 interface SettingsLayoutProps {
@@ -88,6 +88,12 @@ const settingsNavItems = [
     href: "/configuracoes/discord",
     icon: SiDiscord as any,
     description: "Integração com Discord para notificações",
+  },
+  {
+    title: "Padrões de Uso",
+    href: "/configuracoes/padroes-de-uso",
+    icon: SlidersHorizontal,
+    description: "Regras globais de comportamento do sistema",
   },
 ];
 

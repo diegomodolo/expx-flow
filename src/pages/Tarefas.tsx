@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
 import { TaskDialog } from "@/components/tasks/TaskDialog";
+import { TaskCompletionBlockModal } from "@/components/tasks/TaskCompletionBlockModal";
 import { TaskKanban } from "@/components/tasks/TaskKanban";
 import { TaskList } from "@/components/tasks/TaskList";
 import { PlannerTimeline } from "@/components/planner/PlannerTimeline";
@@ -61,6 +62,8 @@ import { cn } from "@/lib/utils";
 import { logTaskHistoryEntry, STATUS_LABELS } from "@/utils/taskHistoryLogger";
 import { handleAutoTimeTracking } from "@/utils/autoTimeTracking";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { useCompanyUsageDefaults, USAGE_KEYS } from "@/hooks/useCompanyUsageDefaults";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Tarefas() {
   const [view, setView] = useState<'list' | 'kanban' | 'calendar' | 'planner' | 'recurring'>('kanban');
@@ -93,6 +96,8 @@ export default function Tarefas() {
   });
   // Estado para modal de filtros (modo compacto)
   const [filtersModalOpen, setFiltersModalOpen] = useState(false);
+  const [completionBlockOpen, setCompletionBlockOpen] = useState(false);
+  const [completionBlockItems, setCompletionBlockItems] = useState<{ type: 'subtasks' | 'checklist'; count: number }[]>([]);
 
   const toggleCompactMode = () => {
     const newValue = !isCompactMode;
@@ -119,6 +124,7 @@ export default function Tarefas() {
   } = useTaskBoardColumns();
   const { alerts, generateAlerts, loading: alertsLoading } = useDashboardAlerts();
   const { clients } = useClients();
+  const { getSetting } = useCompanyUsageDefaults();
   
   // Hook para quadro do colaborador
   const { 
@@ -236,6 +242,44 @@ export default function Tarefas() {
   };
 
   const handleUpdateTaskStatus = async (taskId: string, status: string, columnId?: string, columnName?: string) => {
+    // Block completion if settings require it
+    if (status === 'done') {
+      const blockSubtasks = getSetting(USAGE_KEYS.BLOCK_FINISH_WITH_PENDING_SUBTASKS);
+      const blockChecklist = getSetting(USAGE_KEYS.BLOCK_FINISH_WITH_PENDING_CHECKLIST);
+
+      if (blockSubtasks || blockChecklist) {
+        const existingTask = tasks.find(t => t.id === taskId);
+        const pendingItems: { type: 'subtasks' | 'checklist'; count: number }[] = [];
+
+        if (blockSubtasks) {
+          // Check for pending subtasks
+          const { data: subtasks } = await supabase
+            .from('tasks')
+            .select('id, status')
+            .eq('parent_task_id', taskId);
+          const pendingSubtasks = (subtasks || []).filter((s: any) => s.status !== 'done');
+          if (pendingSubtasks.length > 0) {
+            pendingItems.push({ type: 'subtasks', count: pendingSubtasks.length });
+          }
+        }
+
+        if (blockChecklist && existingTask) {
+          // Check for pending checklist items
+          const checklist = (existingTask as any).checklist || [];
+          const pendingChecklist = checklist.filter((item: any) => !item.done && !item.completed);
+          if (pendingChecklist.length > 0) {
+            pendingItems.push({ type: 'checklist', count: pendingChecklist.length });
+          }
+        }
+
+        if (pendingItems.length > 0) {
+          setCompletionBlockItems(pendingItems);
+          setCompletionBlockOpen(true);
+          return;
+        }
+      }
+    }
+
     const updates: any = { status: status as any };
     if (columnId !== undefined) updates.quadro_column_id = columnId || null;
     if (columnName !== undefined) updates.etapa = columnName || null;
@@ -1303,6 +1347,12 @@ export default function Tarefas() {
           hasExistingColumns={userColumns.length > 0}
         />
       </div>
+
+      <TaskCompletionBlockModal
+        open={completionBlockOpen}
+        onOpenChange={setCompletionBlockOpen}
+        pendingItems={completionBlockItems}
+      />
     </DashboardLayout>
   );
 }
