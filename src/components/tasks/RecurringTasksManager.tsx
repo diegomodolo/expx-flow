@@ -3,7 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   Repeat, 
   Plus, 
@@ -31,6 +30,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -38,27 +45,31 @@ interface RecurringTasksManagerProps {
   clientId?: string;
 }
 
-// Format active days of week for display
 const DAY_ABBREVIATIONS: Record<number, string> = {
-  0: 'Dom',
-  1: 'Seg',
-  2: 'Ter',
-  3: 'Qua',
-  4: 'Qui',
-  5: 'Sex',
-  6: 'Sáb',
+  0: 'Dom', 1: 'Seg', 2: 'Ter', 3: 'Qua', 4: 'Qui', 5: 'Sex', 6: 'Sáb',
 };
 
 function formatActiveDays(days: number[]): string {
-  // Sort days starting from Monday (1) to Sunday (0)
   const sortedDays = [...days].sort((a, b) => {
-    // Move Sunday (0) to the end
     if (a === 0) return 1;
     if (b === 0) return -1;
     return a - b;
   });
   return sortedDays.map(d => DAY_ABBREVIATIONS[d]).join(', ');
 }
+
+const recurrenceLabels: Record<string, string> = {
+  daily: 'Diária',
+  weekly: 'Semanal',
+  monthly: 'Mensal',
+  yearly: 'Anual',
+};
+
+const priorityConfig: Record<string, { label: string; className: string }> = {
+  low: { label: 'Baixa', className: 'bg-green-500/10 text-green-600 border-green-500/30' },
+  medium: { label: 'Média', className: 'bg-primary/10 text-primary border-primary/30' },
+  high: { label: 'Alta', className: 'bg-destructive/10 text-destructive border-destructive/30' },
+};
 
 export function RecurringTasksManager({ clientId }: RecurringTasksManagerProps) {
   const { templates, loading, deleteTemplate, toggleTemplateActive, fetchTemplates } = useRecurringTasks(clientId);
@@ -93,14 +104,10 @@ export function RecurringTasksManager({ clientId }: RecurringTasksManagerProps) 
       
       if (error) {
         console.error('Error generating tasks:', error);
-        toast.error('Erro ao gerar tarefas', {
-          description: error.message
-        });
+        toast.error('Erro ao gerar tarefas', { description: error.message });
         return;
       }
 
-      console.log('Generation result:', data);
-      
       if (data?.results?.created > 0) {
         toast.success(`${data.results.created} tarefa(s) gerada(s)`, {
           description: 'As tarefas foram criadas com sucesso'
@@ -119,28 +126,13 @@ export function RecurringTasksManager({ clientId }: RecurringTasksManagerProps) 
         });
       }
 
-      // Refresh templates to show updated next_generation_date
       await fetchTemplates();
-      
     } catch (err) {
       console.error('Exception generating tasks:', err);
       toast.error('Erro ao gerar tarefas');
     } finally {
       setIsGenerating(false);
     }
-  };
-
-  const recurrenceLabels = {
-    daily: 'Diária',
-    weekly: 'Semanal',
-    monthly: 'Mensal',
-    yearly: 'Anual',
-  };
-
-  const priorityConfig = {
-    low: { label: 'Baixa', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
-    medium: { label: 'Média', color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' },
-    high: { label: 'Alta', color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
   };
 
   return (
@@ -171,13 +163,11 @@ export function RecurringTasksManager({ clientId }: RecurringTasksManagerProps) 
             </Button>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {loading ? (
-            <div className="text-center py-8 text-muted-foreground">
-              Carregando...
-            </div>
+            <div className="text-center py-8 text-muted-foreground">Carregando...</div>
           ) : templates.length === 0 ? (
-            <div className="text-center py-8">
+            <div className="text-center py-8 px-4">
               <Repeat className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
               <p className="text-muted-foreground">Nenhuma tarefa recorrente configurada</p>
               <p className="text-sm text-muted-foreground mt-1">
@@ -185,99 +175,130 @@ export function RecurringTasksManager({ clientId }: RecurringTasksManagerProps) 
               </p>
             </div>
           ) : (
-            <ScrollArea className="h-[400px]">
-              <div className="space-y-3">
-                {templates.map((template) => (
-                  <div
-                    key={template.id}
-                    className={`p-4 rounded-lg border transition-all ${
-                      template.is_active 
-                        ? 'bg-card border-border hover:border-primary/30' 
-                        : 'bg-muted/30 border-border/50 opacity-60'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-2">
-                          <h4 className="font-medium text-foreground truncate">
-                            {template.title}
-                          </h4>
-                          <Badge variant="outline" className={priorityConfig[template.priority].color}>
-                            {priorityConfig[template.priority].label}
-                          </Badge>
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead>Tarefa</TableHead>
+                  <TableHead className="w-[12%]">Recorrência</TableHead>
+                  <TableHead className="w-[12%]">Prioridade</TableHead>
+                  <TableHead className="w-[14%]">Responsável</TableHead>
+                  <TableHead className="w-[12%]">Cliente</TableHead>
+                  <TableHead className="w-[12%]">Próxima</TableHead>
+                  <TableHead className="w-[8%]">Prazo</TableHead>
+                  <TableHead className="w-[6%] text-center">Ativo</TableHead>
+                  <TableHead className="w-[8%] text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {templates.map((template) => {
+                  const prio = priorityConfig[template.priority] || priorityConfig.medium;
+                  return (
+                    <TableRow key={template.id} className={!template.is_active ? 'opacity-50' : ''}>
+                      {/* Title */}
+                      <TableCell>
+                        <div>
+                          <span className="font-medium text-foreground">{template.title}</span>
+                          {template.description && (
+                            <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{template.description}</p>
+                          )}
                         </div>
+                      </TableCell>
 
-                        {template.description && (
-                          <p className="text-sm text-muted-foreground line-clamp-1 mb-2">
-                            {template.description}
-                          </p>
-                        )}
-
-                        <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <Repeat className="h-3 w-3" />
+                      {/* Recurrence */}
+                      <TableCell>
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Repeat className="h-3 w-3 shrink-0" />
+                          <span>
                             {recurrenceLabels[template.recurrence_type]}
-                            {template.recurrence_interval > 1 && ` (a cada ${template.recurrence_interval})`}
-                            {template.recurrence_type === 'daily' && template.active_days_of_week && template.active_days_of_week.length < 7 && (
-                              <span className="ml-1 text-primary">
-                                ({formatActiveDays(template.active_days_of_week)})
-                              </span>
-                            )}
-                          </span>
-
-                          {template.assigned_employee && (
-                            <span className="flex items-center gap-1">
-                              <User className="h-3 w-3" />
-                              {template.assigned_employee.name}
-                            </span>
-                          )}
-
-                          {template.client && (
-                            <span className="flex items-center gap-1">
-                              <Building2 className="h-3 w-3" />
-                              {template.client.name}
-                            </span>
-                          )}
-
-                          <span className="flex items-center gap-1">
-                            <Calendar className="h-3 w-3" />
-                            Próxima: {format(new Date(template.next_generation_date), "dd/MM/yyyy", { locale: ptBR })}
-                          </span>
-
-                          <span className="flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            Prazo: {template.days_to_complete} dia(s)
+                            {template.recurrence_interval > 1 && ` (${template.recurrence_interval}x)`}
                           </span>
                         </div>
-                      </div>
+                        {template.recurrence_type === 'daily' && template.active_days_of_week && template.active_days_of_week.length < 7 && (
+                          <span className="text-[10px] text-primary">{formatActiveDays(template.active_days_of_week)}</span>
+                        )}
+                      </TableCell>
 
-                      <div className="flex items-center gap-2">
+                      {/* Priority */}
+                      <TableCell>
+                        <Badge variant="outline" className={`text-xs ${prio.className}`}>
+                          {prio.label}
+                        </Badge>
+                      </TableCell>
+
+                      {/* Responsible */}
+                      <TableCell>
+                        {template.assigned_employee ? (
+                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                            <User className="h-3 w-3 shrink-0" />
+                            <span className="truncate">{template.assigned_employee.name}</span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground/50">—</span>
+                        )}
+                      </TableCell>
+
+                      {/* Client */}
+                      <TableCell>
+                        {template.client ? (
+                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                            <Building2 className="h-3 w-3 shrink-0" />
+                            <span className="truncate">{template.client.name}</span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground/50">—</span>
+                        )}
+                      </TableCell>
+
+                      {/* Next generation */}
+                      <TableCell>
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Calendar className="h-3 w-3 shrink-0" />
+                          {format(new Date(template.next_generation_date), "dd/MM/yy", { locale: ptBR })}
+                        </div>
+                      </TableCell>
+
+                      {/* Days to complete */}
+                      <TableCell>
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Clock className="h-3 w-3 shrink-0" />
+                          {template.days_to_complete}d
+                        </div>
+                      </TableCell>
+
+                      {/* Active toggle */}
+                      <TableCell className="text-center">
                         <Switch
                           checked={template.is_active}
                           onCheckedChange={(checked) => toggleTemplateActive(template.id, checked)}
                         />
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => handleEdit(template)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={() => handleDelete(template.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
+                      </TableCell>
+
+                      {/* Actions */}
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => handleEdit(template)}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-destructive hover:text-destructive"
+                            onClick={() => handleDelete(template.id)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
           )}
         </CardContent>
       </Card>
