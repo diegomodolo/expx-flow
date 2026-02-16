@@ -11701,6 +11701,7 @@ export type Database = {
           ai_organization_date: string | null
           alert_id: string | null
           assigned_user_id: string | null
+          autorizador_id: string | null
           checklist: Json | null
           company_id: string | null
           completed_at: string | null
@@ -11731,6 +11732,7 @@ export type Database = {
           ai_organization_date?: string | null
           alert_id?: string | null
           assigned_user_id?: string | null
+          autorizador_id?: string | null
           checklist?: Json | null
           company_id?: string | null
           completed_at?: string | null
@@ -11761,6 +11763,7 @@ export type Database = {
           ai_organization_date?: string | null
           alert_id?: string | null
           assigned_user_id?: string | null
+          autorizador_id?: string | null
           checklist?: Json | null
           company_id?: string | null
           completed_at?: string | null
