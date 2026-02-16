@@ -15298,7 +15298,7 @@ export type Database = {
         | "contributor"
         | "observer"
         | "authorizer"
-      task_origin: "dashboard" | "manual" | "automation"
+      task_origin: "dashboard" | "manual" | "automation" | "flow" | "ghost"
       task_priority: "high" | "medium" | "low"
       task_status:
         | "todo"
@@ -15508,7 +15508,7 @@ export const Constants = {
         "observer",
         "authorizer",
       ],
-      task_origin: ["dashboard", "manual", "automation"],
+      task_origin: ["dashboard", "manual", "automation", "flow", "ghost"],
       task_priority: ["high", "medium", "low"],
       task_status: [
         "todo",
