@@ -42,9 +42,9 @@ serve(async (req) => {
       );
     }
 
-    // Try to get the page access token from the instagram account's linked facebook page
+    // Determine the correct token and instagram ID based on account source
     let accessToken: string | null = null;
-    let resolvedInstagramId = instagramId; // May be overridden for BM accounts
+    let resolvedInstagramId = instagramId;
 
     if (client.instagram_account_id) {
       const { data: igAccount } = await supabase
@@ -53,7 +53,26 @@ serve(async (req) => {
         .eq("id", client.instagram_account_id)
         .single();
 
-      if (igAccount?.facebook_page_id) {
+      if (igAccount?.source === 'business_manager') {
+        // Business Manager accounts: the IG account may NOT be linked to the Facebook page.
+        // The page's instagram_business_account_id could be a DIFFERENT account (e.g., personal).
+        // Use the user-level token (which has BM permissions) with the original BM instagram_id.
+        console.log(`BM account detected (source: business_manager). Using user-level token with IG ID: ${instagramId}`);
+        
+        const { data: integration } = await supabase
+          .from("facebook_integrations")
+          .select("access_token")
+          .eq("company_id", client.company_id)
+          .eq("is_active", true)
+          .single();
+
+        accessToken = integration?.access_token || null;
+        if (accessToken) {
+          console.log("Using user-level token for BM account");
+        }
+        // Keep resolvedInstagramId = instagramId (the BM-sourced ID)
+      } else if (igAccount?.facebook_page_id) {
+        // Page-linked accounts: use the page access token + page's IG business account ID
         const { data: fbPage } = await supabase
           .from("facebook_pages")
           .select("page_access_token, instagram_business_account_id")
@@ -63,21 +82,11 @@ serve(async (req) => {
         if (fbPage?.page_access_token) {
           accessToken = fbPage.page_access_token;
           console.log("Using page access token from linked Facebook page");
-
-          // For Business Manager accounts, the instagram_id in the account table
-          // may differ from the instagram_business_account_id on the page.
-          // The page token only has permission to access the page's IG business account ID.
-          if (igAccount.source === 'business_manager' && fbPage.instagram_business_account_id) {
-            if (fbPage.instagram_business_account_id !== instagramId) {
-              console.log(`BM account: overriding instagramId from ${instagramId} to ${fbPage.instagram_business_account_id}`);
-              resolvedInstagramId = fbPage.instagram_business_account_id;
-            }
-          }
         }
       }
     }
 
-    // Fallback to user-level token from facebook_integrations
+    // Fallback to user-level token if no token found yet
     if (!accessToken) {
       const { data: integration } = await supabase
         .from("facebook_integrations")
