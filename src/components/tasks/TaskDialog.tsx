@@ -35,6 +35,7 @@ import { TaskHistoryTab } from "./TaskHistoryTab";
 import { TaskSubtasksTab } from "./TaskSubtasksTab";
 import { useTaskHistory } from "@/hooks/useTaskHistory";
 import { TaskTimeTrackingTab } from "./TaskTimeTrackingTab";
+import { handleAutoTimeTracking } from "@/utils/autoTimeTracking";
 
 export type TaskDialogMode = 'kanban' | 'roteiro';
 
@@ -505,38 +506,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
       }
       // Auto time tracking: start when moving TO progress, stop when moving FROM progress
       if (task.status !== formData.status) {
-        const movingToProgress = formData.status === 'progress' && task.status !== 'progress';
-        const movingFromProgress = task.status === 'progress' && formData.status !== 'progress';
-
-        if (movingToProgress) {
-          // Start a new time tracking session
-          try {
-            await supabase.from('task_time_tracking').insert({
-              task_id: task.id,
-              user_id: authUserId || user?.id,
-              company_id: companyId,
-            });
-          } catch (e) {
-            console.error('Auto-start time tracking failed:', e);
-          }
-        } else if (movingFromProgress) {
-          // Stop any active session for this task
-          try {
-            const { data: activeSessions } = await supabase
-              .from('task_time_tracking')
-              .select('id')
-              .eq('task_id', task.id)
-              .is('ended_at', null);
-            if (activeSessions && activeSessions.length > 0) {
-              await supabase
-                .from('task_time_tracking')
-                .update({ ended_at: new Date().toISOString() })
-                .in('id', activeSessions.map(s => s.id));
-            }
-          } catch (e) {
-            console.error('Auto-stop time tracking failed:', e);
-          }
-        }
+        await handleAutoTimeTracking(task.id, task.status, formData.status, authUserId || user?.id, companyId);
       }
     }
 
