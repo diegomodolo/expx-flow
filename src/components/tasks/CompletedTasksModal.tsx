@@ -156,7 +156,7 @@ export function CompletedTasksModal({ open, onOpenChange, tasks, onEditTask, all
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[90vw] w-[90vw] max-h-[90vh] h-[90vh] flex flex-col p-0 bg-muted/50">
+      <DialogContent className="max-w-[90vw] w-[90vw] max-h-[90vh] h-[90vh] flex flex-col p-0 bg-background">
         {/* Header */}
         <DialogHeader className="px-6 pt-6 pb-4 shrink-0">
           <DialogTitle className="flex items-center gap-2 text-lg">
@@ -169,27 +169,26 @@ export function CompletedTasksModal({ open, onOpenChange, tasks, onEditTask, all
         <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-6 space-y-4">
           {/* Stats row */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="rounded-xl border border-border bg-card p-4 text-center shadow-sm">
+            <div className="rounded-lg border border-border bg-muted/40 p-4 text-center">
               <p className="text-2xl font-bold text-foreground">{filtered.length}</p>
               <p className="text-xs text-muted-foreground mt-1">Total concluídas</p>
             </div>
-            <div className="rounded-xl border border-border bg-card p-4 text-center shadow-sm">
+            <div className="rounded-lg border border-border bg-muted/40 p-4 text-center">
               <p className="text-2xl font-bold text-green-500">{onTimeCount}</p>
               <p className="text-xs text-muted-foreground mt-1">No prazo</p>
             </div>
-            <div className="rounded-xl border border-border bg-card p-4 text-center shadow-sm">
+            <div className="rounded-lg border border-border bg-muted/40 p-4 text-center">
               <p className="text-2xl font-bold text-destructive">{lateCount}</p>
               <p className="text-xs text-muted-foreground mt-1">Fora do prazo</p>
             </div>
-            <div className="rounded-xl border border-border bg-card p-4 text-center shadow-sm">
+            <div className="rounded-lg border border-border bg-muted/40 p-4 text-center">
               <p className="text-2xl font-bold text-primary">{formatDuration(totalTime)}</p>
               <p className="text-xs text-muted-foreground mt-1">Tempo total</p>
             </div>
           </div>
 
-          {/* Filters card */}
-          <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Filtros</p>
+          {/* Filters */}
+          <div>
             <div className="flex flex-wrap gap-3">
               <div className="relative flex-1 min-w-[200px]">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -273,8 +272,8 @@ export function CompletedTasksModal({ open, onOpenChange, tasks, onEditTask, all
             </div>
           </div>
 
-          {/* Table card */}
-          <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+          {/* Table */}
+          <div className="rounded-lg border border-border overflow-hidden">
           {/* Table header */}
           {(() => {
             const SortIcon = ({ field }: { field: string }) => {
