@@ -11,11 +11,14 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import {
-  CheckCircle2, Search, Clock, CalendarCheck, AlertTriangle,
-  ListChecks, Users as UsersIcon, Briefcase
+  CheckCircle2, Search, Clock, AlertTriangle, CalendarIcon
 } from "lucide-react";
-import { format, differenceInDays } from "date-fns";
+import { format, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 
@@ -66,6 +69,11 @@ export function CompletedTasksModal({ open, onOpenChange, tasks, onEditTask, all
   const [sortField, setSortField] = useState<string>('completed_at');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
+  // Date range filter - default to current month
+  const now = new Date();
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(startOfMonth(now));
+  const [dateTo, setDateTo] = useState<Date | undefined>(endOfMonth(now));
+
   const toggleSort = (field: string) => {
     if (sortField === field) {
       setSortDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -87,6 +95,18 @@ export function CompletedTasksModal({ open, onOpenChange, tasks, onEditTask, all
           !t.client?.name?.toLowerCase().includes(search.toLowerCase())) return false;
       if (priorityFilter !== 'all' && t.priority !== priorityFilter) return false;
       if (responsibleFilter !== 'all' && t.responsible_name !== responsibleFilter) return false;
+
+      // Date range filter
+      if (t.completed_at && (dateFrom || dateTo)) {
+        const completed = new Date(t.completed_at);
+        if (dateFrom && completed < dateFrom) return false;
+        if (dateTo) {
+          const endOfDay = new Date(dateTo);
+          endOfDay.setHours(23, 59, 59, 999);
+          if (completed > endOfDay) return false;
+        }
+      }
+
       return true;
     });
 
@@ -99,8 +119,8 @@ export function CompletedTasksModal({ open, onOpenChange, tasks, onEditTask, all
         case 'title':
           cmp = (a.title || '').localeCompare(b.title || '');
           break;
-        case 'responsible':
-          cmp = (a.responsible_name || '').localeCompare(b.responsible_name || '');
+        case 'client':
+          cmp = (a.client?.name || '').localeCompare(b.client?.name || '');
           break;
         case 'completed_at':
           cmp = new Date(a.completed_at || 0).getTime() - new Date(b.completed_at || 0).getTime();
@@ -122,17 +142,17 @@ export function CompletedTasksModal({ open, onOpenChange, tasks, onEditTask, all
     });
 
     return list;
-  }, [tasks, search, priorityFilter, responsibleFilter, sortField, sortDir, allTimeTracking]);
+  }, [tasks, search, priorityFilter, responsibleFilter, sortField, sortDir, allTimeTracking, dateFrom, dateTo]);
 
-  // Stats
-  const totalTime = useMemo(() => tasks.reduce((acc, t) => acc + (allTimeTracking[t.id] || 0), 0), [tasks, allTimeTracking]);
-  const onTimeCount = tasks.filter(t => {
+  // Stats based on filtered
+  const totalTime = useMemo(() => filtered.reduce((acc, t) => acc + (allTimeTracking[t.id] || 0), 0), [filtered, allTimeTracking]);
+  const onTimeCount = filtered.filter(t => {
     if (!t.completed_at || (!t.due_date && !t.deadline)) return true;
     const completed = new Date(t.completed_at);
     const due = new Date((t.due_date || t.deadline)!);
     return completed <= due;
   }).length;
-  const lateCount = tasks.length - onTimeCount;
+  const lateCount = filtered.length - onTimeCount;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -149,7 +169,7 @@ export function CompletedTasksModal({ open, onOpenChange, tasks, onEditTask, all
         <div className="px-6 py-4 border-b border-border shrink-0">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="rounded-lg border border-border bg-card p-3 text-center">
-              <p className="text-2xl font-bold text-foreground">{tasks.length}</p>
+              <p className="text-2xl font-bold text-foreground">{filtered.length}</p>
               <p className="text-xs text-muted-foreground">Total concluídas</p>
             </div>
             <div className="rounded-lg border border-border bg-card p-3 text-center">
@@ -199,6 +219,54 @@ export function CompletedTasksModal({ open, onOpenChange, tasks, onEditTask, all
                 ))}
               </SelectContent>
             </Select>
+
+            {/* Date From */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="h-9 gap-2 text-xs font-normal">
+                  <CalendarIcon className="h-3.5 w-3.5" />
+                  {dateFrom ? format(dateFrom, "dd/MM/yy") : "Início"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={dateFrom}
+                  onSelect={setDateFrom}
+                  locale={ptBR}
+                  initialFocus
+                />
+                {dateFrom && (
+                  <div className="p-2 border-t border-border">
+                    <Button variant="ghost" size="sm" className="w-full text-xs" onClick={() => setDateFrom(undefined)}>Limpar</Button>
+                  </div>
+                )}
+              </PopoverContent>
+            </Popover>
+
+            {/* Date To */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="h-9 gap-2 text-xs font-normal">
+                  <CalendarIcon className="h-3.5 w-3.5" />
+                  {dateTo ? format(dateTo, "dd/MM/yy") : "Fim"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={dateTo}
+                  onSelect={setDateTo}
+                  locale={ptBR}
+                  initialFocus
+                />
+                {dateTo && (
+                  <div className="p-2 border-t border-border">
+                    <Button variant="ghost" size="sm" className="w-full text-xs" onClick={() => setDateTo(undefined)}>Limpar</Button>
+                  </div>
+                )}
+              </PopoverContent>
+            </Popover>
           </div>
         </div>
 
@@ -212,14 +280,14 @@ export function CompletedTasksModal({ open, onOpenChange, tasks, onEditTask, all
             };
             const cols = [
               { field: 'title', label: 'Tarefa' },
-              { field: 'responsible', label: 'Responsável' },
+              { field: 'client', label: 'Cliente' },
               { field: 'completed_at', label: 'Concluída em' },
               { field: 'deadline', label: 'Prazo' },
               { field: 'time', label: 'Tempo gasto' },
               { field: 'priority', label: 'Prioridade' },
             ];
             return (
-              <div className="grid grid-cols-[1fr_140px_140px_100px_120px_100px] gap-2 px-6 py-2 text-xs font-medium text-muted-foreground border-b border-border bg-muted/30">
+              <div className="grid grid-cols-[1fr_160px_140px_100px_120px_100px] gap-2 px-6 py-2 text-xs font-medium text-muted-foreground border-b border-border bg-muted/30">
                 {cols.map(c => (
                   <button
                     key={c.field}
@@ -235,7 +303,7 @@ export function CompletedTasksModal({ open, onOpenChange, tasks, onEditTask, all
             );
           })()}
 
-          <ScrollArea className="h-[calc(90vh-300px)]">
+          <ScrollArea className="h-[calc(90vh-340px)]">
             <div className="divide-y divide-border">
               {filtered.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
@@ -254,26 +322,41 @@ export function CompletedTasksModal({ open, onOpenChange, tasks, onEditTask, all
                   return (
                     <div
                       key={task.id}
-                      className="grid grid-cols-[1fr_140px_140px_100px_120px_100px] gap-2 px-6 py-3 items-center hover:bg-muted/40 cursor-pointer transition-colors"
+                      className="grid grid-cols-[1fr_160px_140px_100px_120px_100px] gap-2 px-6 py-3 items-center hover:bg-muted/40 cursor-pointer transition-colors"
                       onClick={() => onEditTask(task)}
                     >
-                      {/* Task title + client */}
-                      <div className="min-w-0">
+                      {/* Responsible avatar + Task title */}
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Avatar className="h-7 w-7 shrink-0">
+                              <AvatarImage src={avatar || undefined} />
+                              <AvatarFallback className="text-[10px] bg-muted">
+                                {(task.responsible_name || '?').slice(0, 2).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="text-xs">{task.responsible_name || 'Sem responsável'}</TooltipContent>
+                        </Tooltip>
                         <p className="text-sm font-medium text-foreground truncate">{task.title}</p>
-                        {task.client?.name && (
-                          <p className="text-xs text-muted-foreground truncate">{task.client.name}</p>
-                        )}
                       </div>
 
-                      {/* Responsible */}
+                      {/* Client with logo */}
                       <div className="flex items-center gap-2 min-w-0">
-                        <Avatar className="h-6 w-6 shrink-0">
-                          <AvatarImage src={avatar || undefined} />
-                          <AvatarFallback className="text-[10px]">
-                            {(task.responsible_name || '?').slice(0, 2).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="text-xs text-foreground truncate">{task.responsible_name || '—'}</span>
+                        {task.client?.logo_url ? (
+                          <img
+                            src={task.client.logo_url}
+                            alt={task.client.name}
+                            className="h-6 w-6 rounded object-cover shrink-0"
+                          />
+                        ) : task.client?.name ? (
+                          <div className="h-6 w-6 rounded bg-muted flex items-center justify-center shrink-0">
+                            <span className="text-[10px] font-medium text-muted-foreground">
+                              {task.client.name.slice(0, 2).toUpperCase()}
+                            </span>
+                          </div>
+                        ) : null}
+                        <span className="text-xs text-foreground truncate">{task.client?.name || '—'}</span>
                       </div>
 
                       {/* Completed date */}
