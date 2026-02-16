@@ -149,7 +149,7 @@ const menuCategories: MenuCategory[] = [
       items: [
         { title: "Automações", url: "/automacoes", icon: Zap, permission: "automacoes" as MenuItemType },
         { title: "Campanhas", url: "/campanhas", icon: Megaphone, permission: "campanhas" as MenuItemType },
-        { title: "Campanhas Unificadas", url: "/campanhas-unificadas", icon: Activity, permission: "campanhas-unificadas" as MenuItemType },
+        
         { title: "Funis", url: "/editor-funil", icon: GitBranch, permission: "editor-funil" as MenuItemType },
         { title: "Keyword Planner", url: "/keyword-planner", icon: Sparkles, permission: "keyword-planner" as MenuItemType },
         { title: "Lead Intelligence", url: "/lead-intelligence", icon: Database, permission: "lead-intelligence" as MenuItemType },
