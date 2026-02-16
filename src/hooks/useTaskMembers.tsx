@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-export type TaskMemberRole = 'responsible' | 'contributor' | 'observer';
+export type TaskMemberRole = 'responsible' | 'contributor' | 'observer' | 'authorizer';
 
 export interface TaskMember {
   id: string;
@@ -143,12 +143,14 @@ export function useTaskMembers(taskId: string | undefined, companyId: string | u
   });
 
   const responsible = members.find(m => m.role === 'responsible');
+  const authorizers = members.filter(m => m.role === 'authorizer');
   const contributors = members.filter(m => m.role === 'contributor');
   const observers = members.filter(m => m.role === 'observer');
 
   return {
     members,
     responsible,
+    authorizers,
     contributors,
     observers,
     isLoading,

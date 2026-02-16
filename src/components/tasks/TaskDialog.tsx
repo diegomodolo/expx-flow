@@ -46,7 +46,7 @@ interface TaskDialogProps {
   onDelete?: () => void;
 }
 
-type SidebarTab = 'principal' | 'clientes' | 'equipe' | 'autorizador' | 'checklist';
+type SidebarTab = 'principal' | 'clientes' | 'equipe' | 'checklist';
 
 const ZOOM_STORAGE_KEY = 'task-dialog-zoom';
 const ZOOM_LEVELS = [640, 768, 896, 1024, 1152, 1280];
@@ -531,7 +531,6 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
     { id: 'principal', label: 'Principal', icon: Home },
     { id: 'clientes', label: 'Clientes', icon: Users },
     { id: 'equipe', label: 'Equipe', icon: UsersRound },
-    { id: 'autorizador', label: 'Autorizador', icon: ShieldCheck },
     { id: 'checklist', label: 'Checklist', icon: CheckSquare },
   ];
 
@@ -1251,25 +1250,6 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                   />
                 )}
 
-                {activeTab === 'autorizador' && (
-                  <div className="space-y-5">
-                    <div>
-                      <h3 className="text-base font-semibold text-foreground mb-1">Autorizador</h3>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Selecione quem deve autorizar esta atividade antes de ser executada.
-                      </p>
-                      <Select
-                        value={formData.autorizador_id}
-                        onValueChange={(v) => setFormData(prev => ({ ...prev, autorizador_id: v }))}
-                      >
-                        <SelectTrigger><SelectValue placeholder="Selecione o autorizador..." /></SelectTrigger>
-                        <SelectContent>
-                          {employees?.map(e => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                )}
 
                 {activeTab === 'checklist' && (
                   <div className="space-y-4">
