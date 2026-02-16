@@ -19,7 +19,7 @@ export interface Task {
   due_date?: string;
   start_date?: string;
   progress: number;
-  origin: 'manual' | 'automation' | 'dashboard';
+  origin: 'manual' | 'automation' | 'dashboard' | 'flow' | 'ghost';
   related_campaign_id?: string;
   related_client_id?: string;
   created_at?: string;

@@ -52,7 +52,7 @@ interface Task {
   deadline?: string;
   completed_at?: string;
   progress: number;
-  origin: 'manual' | 'automation' | 'dashboard';
+  origin: 'manual' | 'automation' | 'dashboard' | 'flow' | 'ghost';
   related_campaign_id?: string;
   related_client_id?: string;
   quadro_column_id?: string | null;
