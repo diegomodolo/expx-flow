@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Building, Bell, CreditCard, Facebook, Calendar, Shield, Gauge, RefreshCw, MessageCircle, Database } from "lucide-react";
-import { SiGoogle } from "react-icons/si";
+import { SiGoogle, SiDiscord } from "react-icons/si";
 
 interface SettingsLayoutProps {
   children: React.ReactNode;
@@ -82,6 +82,12 @@ const settingsNavItems = [
     href: "/configuracoes/listacnae",
     icon: Database,
     description: "Importar empresas da base CNPJ",
+  },
+  {
+    title: "Discord",
+    href: "/configuracoes/discord",
+    icon: SiDiscord as any,
+    description: "Integração com Discord para notificações",
   },
 ];
 

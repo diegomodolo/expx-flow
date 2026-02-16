@@ -13,6 +13,7 @@ import { PermissionsProtectedRoute } from "@/components/settings/PermissionsProt
 import ParametrosPerformance from "./ParametrosPerformance";
 import { WhatsAppSettings } from "@/components/whatsapp/WhatsAppSettings";
 import { ListaCnaeSettings } from "@/components/settings/ListaCnaeSettings";
+import { DiscordSettings } from "@/components/discord/DiscordSettings";
 
 
 const Configuracoes = () => {
@@ -41,7 +42,7 @@ const Configuracoes = () => {
             <Route path="permissoes" element={<PermissionsProtectedRoute />} />
             <Route path="whatsapp" element={<WhatsAppSettings />} />
             <Route path="listacnae" element={<ListaCnaeSettings />} />
-            
+            <Route path="discord" element={<DiscordSettings />} />
           </Routes>
         </SettingsLayout>
       </div>
