@@ -14,6 +14,7 @@ import ParametrosPerformance from "./ParametrosPerformance";
 import { WhatsAppSettings } from "@/components/whatsapp/WhatsAppSettings";
 import { ListaCnaeSettings } from "@/components/settings/ListaCnaeSettings";
 import { DiscordSettings } from "@/components/discord/DiscordSettings";
+import { UsageDefaultsSettings } from "@/components/settings/UsageDefaultsSettings";
 
 
 const Configuracoes = () => {
@@ -43,6 +44,7 @@ const Configuracoes = () => {
             <Route path="whatsapp" element={<WhatsAppSettings />} />
             <Route path="listacnae" element={<ListaCnaeSettings />} />
             <Route path="discord" element={<DiscordSettings />} />
+            <Route path="padroes-de-uso" element={<UsageDefaultsSettings />} />
           </Routes>
         </SettingsLayout>
       </div>
