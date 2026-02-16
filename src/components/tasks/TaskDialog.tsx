@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, X, Plus, Home, CheckSquare, Trash2, Save, ZoomIn, ZoomOut, ShieldCheck, Search, Users, UsersRound, History } from "lucide-react";
+import { CalendarIcon, X, Plus, Home, CheckSquare, Trash2, Save, ZoomIn, ZoomOut, ShieldCheck, Search, Users, UsersRound, History, ListTree } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useTeams } from "@/hooks/useTeams";
@@ -32,6 +32,7 @@ import { CreativeTaskPanel, CreativeData } from "./CreativeTaskPanel";
 import { TaskClientsTab } from "./TaskClientsTab";
 import { TaskTeamTab } from "./TaskTeamTab";
 import { TaskHistoryTab } from "./TaskHistoryTab";
+import { TaskSubtasksTab } from "./TaskSubtasksTab";
 import { useTaskHistory } from "@/hooks/useTaskHistory";
 
 export type TaskDialogMode = 'kanban' | 'roteiro';
@@ -48,7 +49,7 @@ interface TaskDialogProps {
   onDelete?: () => void;
 }
 
-type SidebarTab = 'principal' | 'clientes' | 'equipe' | 'checklist' | 'historico';
+type SidebarTab = 'principal' | 'clientes' | 'equipe' | 'checklist' | 'subtarefas' | 'historico';
 
 const ZOOM_STORAGE_KEY = 'task-dialog-zoom';
 const ZOOM_LEVELS = [640, 768, 896, 1024, 1152, 1280];
@@ -619,6 +620,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
     { id: 'clientes', label: 'Clientes', icon: Users },
     { id: 'equipe', label: 'Equipe', icon: UsersRound },
     { id: 'checklist', label: 'Checklist', icon: CheckSquare },
+    ...(task ? [{ id: 'subtarefas' as SidebarTab, label: 'Sub-Tarefas', icon: ListTree }] : []),
     ...(task ? [{ id: 'historico' as SidebarTab, label: 'Histórico', icon: History }] : []),
   ];
 
@@ -1387,6 +1389,16 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                         <Plus className="w-4 h-4" />
                       </Button>
                     </div>
+                  </div>
+                )}
+
+                {activeTab === 'subtarefas' && (
+                  <div>
+                    <h3 className="text-base font-semibold text-foreground mb-1">Sub-Tarefas</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Gerencie as subtarefas desta {isRoteiro ? 'atividade' : 'tarefa'} ou importe de um roteiro.
+                    </p>
+                    <TaskSubtasksTab taskId={task?.id || null} />
                   </div>
                 )}
 
