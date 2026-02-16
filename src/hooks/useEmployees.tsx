@@ -298,7 +298,7 @@ export const useEmployees = () => {
         .insert([employeeInsertData])
         .select(`
           *,
-          team:teams (
+          team:teams!employees_team_id_fkey (
             id,
             name,
             color
@@ -359,7 +359,7 @@ export const useEmployees = () => {
         .eq("company_id", activeCompany.company_id) // Garantir que só atualize na empresa atual
         .select(`
           *,
-          team:teams (
+          team:teams!employees_team_id_fkey (
             id,
             name,
             color
