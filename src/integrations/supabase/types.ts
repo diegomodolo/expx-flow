@@ -11787,6 +11787,7 @@ export type Database = {
           responsible_name: string
           start_date: string | null
           status: Database["public"]["Enums"]["task_status"]
+          task_type: string
           team_id: string
           title: string
           updated_at: string
@@ -11820,6 +11821,7 @@ export type Database = {
           responsible_name: string
           start_date?: string | null
           status?: Database["public"]["Enums"]["task_status"]
+          task_type?: string
           team_id: string
           title: string
           updated_at?: string
@@ -11853,6 +11855,7 @@ export type Database = {
           responsible_name?: string
           start_date?: string | null
           status?: Database["public"]["Enums"]["task_status"]
+          task_type?: string
           team_id?: string
           title?: string
           updated_at?: string
