@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { resolveInstagramCredentials } from '../_shared/instagram-token-resolver.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,7 +8,6 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -23,94 +23,54 @@ serve(async (req) => {
 
     let accessToken: string | null = null;
     let mediaIdToDelete = instagramMediaId;
+    let resolvedAccountId = instagramAccountId;
+    let companyId: string | null = null;
 
     // If we have a postId, get the post from database first
     if (postId) {
-      // Get the post to find the config_id
       const { data: post, error: postError } = await supabase
         .from('instagram_auto_posts')
-        .select('id, config_id, instagram_media_id')
+        .select('id, config_id, instagram_media_id, company_id')
         .eq('id', postId)
         .single();
-
-      console.log('Post query result:', { post, postError });
 
       if (postError || !post) {
         throw new Error(`Post not found: ${postError?.message || 'No data returned'}`);
       }
 
       mediaIdToDelete = post.instagram_media_id;
+      companyId = post.company_id;
 
-      // Get the config to find instagram_account_id
       const { data: config, error: configError } = await supabase
         .from('instagram_auto_post_configs')
         .select('instagram_account_id')
         .eq('id', post.config_id)
         .single();
 
-      console.log('Config query result:', { config, configError });
-
       if (configError || !config) {
         throw new Error(`Config not found: ${configError?.message || 'No data returned'}`);
       }
 
-      // Get the Instagram account to find the linked Facebook Page
-      const { data: igAccount, error: igError } = await supabase
-        .from('instagram_accounts')
-        .select('facebook_page_id')
-        .eq('id', config.instagram_account_id)
-        .single();
-
-      console.log('Instagram account query result:', { igAccount, igError });
-
-      if (igError || !igAccount?.facebook_page_id) {
-        throw new Error(`Instagram account not found or missing facebook_page_id: ${igError?.message || 'No facebook_page_id'}`);
-      }
-
-      // Use the Facebook Page access token to call Instagram Graph API
-      const { data: fbPage, error: fbError } = await supabase
-        .from('facebook_pages')
-        .select('page_access_token')
-        .eq('id', igAccount.facebook_page_id)
-        .single();
-
-      console.log('Facebook page query result:', { fbPage: fbPage ? 'found' : 'not found', fbError });
-
-      if (fbError || !fbPage?.page_access_token) {
-        throw new Error(`Facebook page access token missing: ${fbError?.message || 'No page_access_token'}`);
-      }
-
-      accessToken = fbPage.page_access_token;
-    } else if (instagramAccountId) {
-      // Direct deletion from feed - resolve Facebook Page token via instagram_accounts.facebook_page_id
-      const { data: igAccount, error: igError } = await supabase
-        .from('instagram_accounts')
-        .select('facebook_page_id')
-        .eq('id', instagramAccountId)
-        .single();
-
-      console.log('Instagram account query result (direct):', { igAccount, igError });
-
-      if (igError || !igAccount?.facebook_page_id) {
-        throw new Error(`Instagram account not found or missing facebook_page_id: ${igError?.message || 'No facebook_page_id'}`);
-      }
-
-      const { data: fbPage, error: fbError } = await supabase
-        .from('facebook_pages')
-        .select('page_access_token')
-        .eq('id', igAccount.facebook_page_id)
-        .single();
-
-      console.log('Facebook page query result (direct):', { fbPage: fbPage ? 'found' : 'not found', fbError });
-
-      if (fbError || !fbPage?.page_access_token) {
-        throw new Error(`Facebook page access token missing: ${fbError?.message || 'No page_access_token'}`);
-      }
-
-      accessToken = fbPage.page_access_token;
-    } else {
-      throw new Error('Either postId or instagramAccountId must be provided');
+      resolvedAccountId = config.instagram_account_id;
     }
+
+    // Get company_id if not yet resolved
+    if (!companyId && resolvedAccountId) {
+      const { data: igAccount } = await supabase
+        .from('instagram_accounts')
+        .select('company_id')
+        .eq('id', resolvedAccountId)
+        .single();
+      companyId = igAccount?.company_id;
+    }
+
+    if (!resolvedAccountId || !companyId) {
+      throw new Error('Could not resolve Instagram account or company');
+    }
+
+    // Use shared resolver for correct token
+    const credentials = await resolveInstagramCredentials(supabase, resolvedAccountId, companyId);
+    accessToken = credentials.accessToken;
 
     if (!mediaIdToDelete) {
       throw new Error('No Instagram media ID to delete');
@@ -118,7 +78,6 @@ serve(async (req) => {
 
     console.log('Attempting to delete from Instagram, media ID:', mediaIdToDelete);
 
-    // Delete from Instagram Graph API
     const deleteResponse = await fetch(
       `https://graph.facebook.com/v19.0/${mediaIdToDelete}?access_token=${accessToken}`,
       { method: 'DELETE' }
@@ -131,7 +90,6 @@ serve(async (req) => {
       throw new Error(`Instagram API error: ${deleteResult.error?.message || 'Unknown error'}`);
     }
 
-    // If we had a postId, delete from database too
     if (postId) {
       const { error: dbError } = await supabase
         .from('instagram_auto_posts')
@@ -140,11 +98,11 @@ serve(async (req) => {
 
       if (dbError) {
         console.error('Error deleting from database:', dbError);
-        // Don't throw - post was deleted from Instagram
       } else {
         console.log('Successfully deleted from database');
       }
     }
+
     return new Response(
       JSON.stringify({ success: true }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
