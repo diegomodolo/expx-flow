@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -164,6 +164,21 @@ function getDeadlineInfo(task: Task) {
   };
 }
 
+// Live timer component for Kanban cards
+function KanbanLiveTimer({ startedAt }: { startedAt: string }) {
+  const [elapsed, setElapsed] = useState(0);
+
+  useEffect(() => {
+    const start = new Date(startedAt).getTime();
+    const update = () => setElapsed((Date.now() - start) / 60000);
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [startedAt]);
+
+  return <span className="font-mono font-bold text-primary">{formatDuration(elapsed)}</span>;
+}
+
 // Default columns as fallback
 const DEFAULT_COLUMNS: TaskBoardColumn[] = [
   { id: 'default-todo', name: 'Pendente', status: 'todo', color: '#6B7280', order_index: 0, user_id: '', company_id: '', created_at: '', updated_at: '' },
@@ -263,6 +278,28 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
     },
     enabled: taskIds.length > 0,
     staleTime: 30000,
+  });
+
+  // Bulk fetch active time tracking sessions (running timers)
+  const { data: activeTimeSessions = {} } = useQuery({
+    queryKey: ['kanban-active-sessions', taskIds.join(',')],
+    queryFn: async () => {
+      if (taskIds.length === 0) return {};
+      const { data } = await supabase
+        .from('task_time_tracking')
+        .select('task_id, started_at')
+        .in('task_id', taskIds)
+        .is('ended_at', null);
+
+      const map: Record<string, string> = {};
+      for (const s of (data || [])) {
+        map[s.task_id] = s.started_at;
+      }
+      return map;
+    },
+    enabled: taskIds.length > 0,
+    staleTime: 5000,
+    refetchInterval: 10000,
   });
 
   // Bulk fetch subtask counts
@@ -473,13 +510,21 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
             {task.title}
           </h4>
 
-          {/* Row 4: Time tracked */}
-          {timeMinutes > 0 && (
+          {/* Row 4: Time tracked / Live timer */}
+          {activeTimeSessions[task.id] ? (
+            <div className="flex items-center gap-1.5 text-xs">
+              <div className="relative flex items-center">
+                <Timer className="w-3 h-3 text-primary" />
+                <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-primary rounded-full animate-pulse" />
+              </div>
+              <KanbanLiveTimer startedAt={activeTimeSessions[task.id]} />
+            </div>
+          ) : timeMinutes > 0 ? (
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Timer className="w-3 h-3" />
               <span>{formatDuration(timeMinutes)} trabalhado</span>
             </div>
-          )}
+          ) : null}
 
           {/* Row 5: Deadline + Subtasks/Checklist */}
           <div className="flex items-center justify-between gap-2 flex-wrap">
