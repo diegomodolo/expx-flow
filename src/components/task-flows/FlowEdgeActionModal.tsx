@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ArrowRight, Copy, Ghost } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export type FlowActionType = "move" | "copy" | "ghost";
 
@@ -19,6 +19,7 @@ interface FlowEdgeActionModalProps {
   onConfirm: (actionType: FlowActionType) => void;
   sourceName?: string;
   targetName?: string;
+  defaultActionType?: FlowActionType;
 }
 
 const actionOptions: { value: FlowActionType; label: string; description: string; icon: typeof ArrowRight }[] = [
@@ -42,8 +43,12 @@ const actionOptions: { value: FlowActionType; label: string; description: string
   },
 ];
 
-export function FlowEdgeActionModal({ isOpen, onClose, onConfirm, sourceName, targetName }: FlowEdgeActionModalProps) {
-  const [selected, setSelected] = useState<FlowActionType>("move");
+export function FlowEdgeActionModal({ isOpen, onClose, onConfirm, sourceName, targetName, defaultActionType }: FlowEdgeActionModalProps) {
+  const [selected, setSelected] = useState<FlowActionType>(defaultActionType || "move");
+
+  useEffect(() => {
+    if (isOpen) setSelected(defaultActionType || "move");
+  }, [isOpen, defaultActionType]);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>

@@ -23,7 +23,7 @@ export function FlowActionEdge({
   targetPosition,
   data,
   markerEnd,
-}: EdgeProps) {
+}: EdgeProps & { data?: { actionType?: FlowActionType; onEditEdge?: (edgeId: string) => void } }) {
   const actionType = (data?.actionType as FlowActionType) || "move";
   const config = actionConfig[actionType];
   const Icon = config.icon;
@@ -54,8 +54,12 @@ export function FlowActionEdge({
           className="nodrag nopan"
         >
           <div
-            className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium text-white shadow-md"
+            className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium text-white shadow-md cursor-pointer hover:scale-110 transition-transform"
             style={{ backgroundColor: config.color }}
+            onClick={(e) => {
+              e.stopPropagation();
+              data?.onEditEdge?.(id);
+            }}
           >
             <Icon className="h-3 w-3" />
             {config.label}

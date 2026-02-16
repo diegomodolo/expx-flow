@@ -57,6 +57,7 @@ function TaskFlowEditorContent({ flowId }: TaskFlowEditorProps) {
   const [tempName, setTempName] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [pendingConnection, setPendingConnection] = useState<Connection | null>(null);
+  const [editingEdgeId, setEditingEdgeId] = useState<string | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout>();
   const nameInputRef = useRef<HTMLInputElement>(null);
   const loadedRef = useRef(false);
@@ -94,8 +95,28 @@ function TaskFlowEditorContent({ flowId }: TaskFlowEditorProps) {
     setPendingConnection(params);
   }, []);
 
+  const handleEditEdge = useCallback((edgeId: string) => {
+    setEditingEdgeId(edgeId);
+  }, []);
+
+  // Inject onEditEdge into all edges' data
+  const edgesWithCallback = edges.map((e) => ({
+    ...e,
+    data: { ...e.data, onEditEdge: handleEditEdge },
+  }));
+
   const handleConfirmAction = useCallback(
     (actionType: FlowActionType) => {
+      if (editingEdgeId) {
+        // Editing existing edge
+        setEdges((eds) =>
+          eds.map((e) =>
+            e.id === editingEdgeId ? { ...e, data: { ...e.data, actionType } } : e
+          )
+        );
+        setEditingEdgeId(null);
+        return;
+      }
       if (!pendingConnection) return;
       const newEdge: Edge = {
         id: `e-${pendingConnection.source}-${pendingConnection.target}-${Date.now()}`,
@@ -110,7 +131,7 @@ function TaskFlowEditorContent({ flowId }: TaskFlowEditorProps) {
       setEdges((eds) => [...eds, newEdge]);
       setPendingConnection(null);
     },
-    [pendingConnection, setEdges]
+    [pendingConnection, editingEdgeId, setEdges]
   );
 
   const getNodeLabel = (nodeId: string | null) => {
@@ -245,7 +266,7 @@ function TaskFlowEditorContent({ flowId }: TaskFlowEditorProps) {
           <div className="flex-1 bg-muted/20">
             <ReactFlow
               nodes={nodes}
-              edges={edges}
+              edges={edgesWithCallback}
               onNodesChange={onNodesChange}
               onEdgesChange={onEdgesChange}
               onConnect={onConnect}
@@ -273,11 +294,18 @@ function TaskFlowEditorContent({ flowId }: TaskFlowEditorProps) {
         </div>
 
         <FlowEdgeActionModal
-          isOpen={!!pendingConnection}
-          onClose={() => setPendingConnection(null)}
+          isOpen={!!pendingConnection || !!editingEdgeId}
+          onClose={() => { setPendingConnection(null); setEditingEdgeId(null); }}
           onConfirm={handleConfirmAction}
-          sourceName={getNodeLabel(pendingConnection?.source ?? null)}
-          targetName={getNodeLabel(pendingConnection?.target ?? null)}
+          sourceName={editingEdgeId
+            ? getNodeLabel(edges.find(e => e.id === editingEdgeId)?.source ?? null)
+            : getNodeLabel(pendingConnection?.source ?? null)}
+          targetName={editingEdgeId
+            ? getNodeLabel(edges.find(e => e.id === editingEdgeId)?.target ?? null)
+            : getNodeLabel(pendingConnection?.target ?? null)}
+          defaultActionType={editingEdgeId
+            ? (edges.find(e => e.id === editingEdgeId)?.data?.actionType as FlowActionType) || 'move'
+            : undefined}
         />
       </div>
     </DashboardLayout>
