@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, X, Plus, Home, CheckSquare, Trash2, Save, ZoomIn, ZoomOut, ShieldCheck, Search, Users, UsersRound } from "lucide-react";
+import { CalendarIcon, X, Plus, Home, CheckSquare, Trash2, Save, ZoomIn, ZoomOut, ShieldCheck, Search, Users, UsersRound, History } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useTeams } from "@/hooks/useTeams";
@@ -31,6 +31,8 @@ import { useTaskCategorias } from "@/hooks/useTaskCategorias";
 import { CreativeTaskPanel, CreativeData } from "./CreativeTaskPanel";
 import { TaskClientsTab } from "./TaskClientsTab";
 import { TaskTeamTab } from "./TaskTeamTab";
+import { TaskHistoryTab } from "./TaskHistoryTab";
+import { useTaskHistory } from "@/hooks/useTaskHistory";
 
 export type TaskDialogMode = 'kanban' | 'roteiro';
 
@@ -46,7 +48,7 @@ interface TaskDialogProps {
   onDelete?: () => void;
 }
 
-type SidebarTab = 'principal' | 'clientes' | 'equipe' | 'checklist';
+type SidebarTab = 'principal' | 'clientes' | 'equipe' | 'checklist' | 'historico';
 
 const ZOOM_STORAGE_KEY = 'task-dialog-zoom';
 const ZOOM_LEVELS = [640, 768, 896, 1024, 1152, 1280];
@@ -359,8 +361,33 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
     setActiveTab('principal');
   }, [task, defaultClientId, currentEmployee, isRoteiro, allColumns]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.title.trim()) return;
+
+    // Log automatic history for edits on existing tasks
+    if (task?.id && !isRoteiro) {
+      const statusLabels: Record<string, string> = {
+        todo: 'A Fazer', progress: 'Em Progresso', review: 'Em Revisão',
+        done: 'Concluído', waiting_approval: 'Aguardando Aprovação',
+        blocked: 'Bloqueado', paused: 'Pausado', cancelled: 'Cancelado',
+      };
+      const priorityLabels: Record<string, string> = {
+        low: 'Baixa', medium: 'Média', high: 'Alta',
+      };
+
+      if (task.status && formData.status !== task.status) {
+        await logAutomatic(task.id, `Alterou o status da tarefa de ${statusLabels[task.status] || task.status} para ${statusLabels[formData.status] || formData.status}`, 'status', task.status, formData.status);
+      }
+      if (task.priority && formData.priority !== task.priority) {
+        await logAutomatic(task.id, `Alterou a prioridade de ${priorityLabels[task.priority] || task.priority} para ${priorityLabels[formData.priority] || formData.priority}`, 'priority', task.priority, formData.priority);
+      }
+      if (task.title && formData.title !== task.title) {
+        await logAutomatic(task.id, `Alterou o título da tarefa`, 'title', task.title, formData.title);
+      }
+      if (task.responsible_name && formData.responsible_name !== task.responsible_name) {
+        await logAutomatic(task.id, `Alterou o responsável de ${task.responsible_name} para ${formData.responsible_name}`, 'responsible_name', task.responsible_name, formData.responsible_name);
+      }
+    }
 
     if (isRoteiro) {
       const selectedCol = allColumns.find(c => c.id === formData.quadro_column_id);
@@ -527,11 +554,14 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
     cancelled: 'bg-slate-100 text-slate-800',
   };
 
+  const { logAutomatic } = useTaskHistory(task?.id || null);
+
   const sidebarItems: { id: SidebarTab; label: string; icon: any }[] = [
     { id: 'principal', label: 'Principal', icon: Home },
     { id: 'clientes', label: 'Clientes', icon: Users },
     { id: 'equipe', label: 'Equipe', icon: UsersRound },
     { id: 'checklist', label: 'Checklist', icon: CheckSquare },
+    ...(task ? [{ id: 'historico' as SidebarTab, label: 'Histórico', icon: History }] : []),
   ];
 
   const responsavelName = isRoteiro
@@ -1299,6 +1329,16 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                         <Plus className="w-4 h-4" />
                       </Button>
                     </div>
+                  </div>
+                )}
+
+                {activeTab === 'historico' && (
+                  <div>
+                    <h3 className="text-base font-semibold text-foreground mb-1">Histórico</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Registro de alterações e anotações desta {isRoteiro ? 'atividade' : 'tarefa'}.
+                    </p>
+                    <TaskHistoryTab taskId={task?.id || null} />
                   </div>
                 )}
               </div>
