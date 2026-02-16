@@ -66,6 +66,34 @@ export function TaskTimeTrackingTab({ taskId, taskStatus }: TaskTimeTrackingTabP
         </p>
       </div>
 
+      {/* Active Session Card - shown when task is in progress */}
+      {activeSession && taskStatus === 'progress' && (
+        <div className="rounded-xl border-2 border-primary bg-primary/5 p-4 animate-pulse-subtle">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />
+              <p className="text-sm font-semibold text-foreground">Cronômetro Ativo</p>
+            </div>
+            <Button
+              variant="destructive"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => stopTracking.mutate(activeSession.id)}
+              disabled={stopTracking.isPending}
+            >
+              <Square className="w-3 h-3" />
+              Parar
+            </Button>
+          </div>
+          <div className="mt-3 text-center">
+            <p className="text-3xl font-mono font-bold text-primary">
+              <LiveTimer startedAt={activeSession.started_at} />
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">Tempo desde o último início</p>
+          </div>
+        </div>
+      )}
+
       {/* Summary Cards */}
       <div className="grid grid-cols-2 gap-3">
         <div className="rounded-xl border border-border bg-muted/30 p-4 text-center">
