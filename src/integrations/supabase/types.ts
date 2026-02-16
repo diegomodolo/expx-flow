@@ -11942,6 +11942,54 @@ export type Database = {
           },
         ]
       }
+      task_history: {
+        Row: {
+          company_id: string
+          created_at: string
+          description: string
+          field_changed: string | null
+          history_type: string
+          id: string
+          new_value: string | null
+          old_value: string | null
+          task_id: string
+          updated_at: string
+          user_avatar: string | null
+          user_id: string | null
+          user_name: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          description: string
+          field_changed?: string | null
+          history_type: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          task_id: string
+          updated_at?: string
+          user_avatar?: string | null
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          description?: string
+          field_changed?: string | null
+          history_type?: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          task_id?: string
+          updated_at?: string
+          user_avatar?: string | null
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Relationships: []
+      }
       task_members: {
         Row: {
           company_id: string
