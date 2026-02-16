@@ -26,6 +26,7 @@ import {
   Users,
   Crown,
   MessageSquare,
+  ShieldCheck,
   Loader2,
   UserPlus,
   UserMinus,
@@ -64,6 +65,7 @@ export function SquadMembersDialog({
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [leaderId, setLeaderId] = useState<string | null>(null);
   const [whatsappResponsibleId, setWhatsappResponsibleId] = useState<string | null>(null);
+  const [authorizerId, setAuthorizerId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   // Fetch all employees in the company
@@ -91,7 +93,7 @@ export function SquadMembersDialog({
     queryFn: async () => {
       const { data, error } = await supabase
         .from("teams")
-        .select("leader_id, whatsapp_responsible_id")
+        .select("leader_id, whatsapp_responsible_id, authorizer_id")
         .eq("id", squad.id)
         .single();
 
@@ -116,6 +118,7 @@ export function SquadMembersDialog({
     if (squadData) {
       setLeaderId(squadData.leader_id || null);
       setWhatsappResponsibleId(squadData.whatsapp_responsible_id || null);
+      setAuthorizerId(squadData.authorizer_id || null);
     }
   }, [squadData]);
 
@@ -166,6 +169,7 @@ export function SquadMembersDialog({
         .update({
           leader_id: leaderId,
           whatsapp_responsible_id: whatsappResponsibleId,
+          authorizer_id: authorizerId,
         })
         .eq("id", squad.id);
 
@@ -282,6 +286,45 @@ export function SquadMembersDialog({
               </div>
             </div>
 
+            {/* Authorizer */}
+            <div className="grid grid-cols-1 gap-4">
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1.5">
+                  <ShieldCheck className="h-4 w-4 text-emerald-500" />
+                  Autorizador
+                </Label>
+                <Select
+                  value={authorizerId || "none"}
+                  onValueChange={(v) =>
+                    setAuthorizerId(v === "none" ? null : v)
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o autorizador" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhum</SelectItem>
+                    {selectedEmployees.map((emp) => (
+                      <SelectItem key={emp.id} value={emp.id}>
+                        <div className="flex items-center gap-2">
+                          <Avatar className="h-5 w-5">
+                            <AvatarImage src={emp.avatar || undefined} />
+                            <AvatarFallback className="text-[10px]">
+                              {emp.name.charAt(0)}
+                            </AvatarFallback>
+                          </Avatar>
+                          {emp.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Membro responsável por aprovar tarefas
+                </p>
+              </div>
+            </div>
+
             <Separator />
 
             {/* Members selection */}
@@ -333,6 +376,9 @@ export function SquadMembersDialog({
                             )}
                             {employee.id === whatsappResponsibleId && (
                               <MessageSquare className="h-3.5 w-3.5 text-green-500 shrink-0" />
+                            )}
+                            {employee.id === authorizerId && (
+                              <ShieldCheck className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
                             )}
                           </div>
                           <span className="text-xs text-muted-foreground truncate block">
