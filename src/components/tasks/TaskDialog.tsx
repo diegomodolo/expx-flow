@@ -160,8 +160,8 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
     enabled: !!user && !!companyId,
   });
 
-  // Fetch parent task info if this is a subtask
-  const parentTaskId = task?.parent_task_id || null;
+  // Fetch parent task info if this is a subtask (ghosts are NOT subtasks)
+  const parentTaskId = (task?.origin === 'ghost') ? null : (task?.parent_task_id || null);
   const { data: parentTaskInfo } = useQuery({
     queryKey: ['parentTaskInfo', parentTaskId],
     queryFn: async () => {
