@@ -25,7 +25,7 @@ export function useTaskMembers(taskId: string | undefined, companyId: string | u
       if (!taskId || !companyId) return [];
       const { data, error } = await supabase
         .from('task_members' as any)
-        .select('*, employees:employee_id(name, avatar, profile_avatar_url)')
+        .select('*, employees:employee_id(name, avatar)')
         .eq('task_id', taskId)
         .eq('company_id', companyId);
       if (error) throw error;
@@ -37,7 +37,7 @@ export function useTaskMembers(taskId: string | undefined, companyId: string | u
         company_id: m.company_id,
         created_at: m.created_at,
         employee_name: m.employees?.name || '',
-        employee_avatar: m.employees?.avatar || m.employees?.profile_avatar_url || null,
+        employee_avatar: m.employees?.avatar || null,
       })) as TaskMember[];
     },
     enabled: !!taskId && !!companyId,
@@ -49,16 +49,37 @@ export function useTaskMembers(taskId: string | undefined, companyId: string | u
       const { data, error } = await supabase
         .from('task_members' as any)
         .insert({ task_id: taskId, employee_id: employeeId, role, company_id: companyId })
-        .select()
+        .select('*, employees:employee_id(name, avatar)')
         .single();
       if (error) throw error;
       return data;
+    },
+    onMutate: async ({ employeeId, role }) => {
+      await queryClient.cancelQueries({ queryKey: ['task-members', taskId] });
+      const previous = queryClient.getQueryData(['task-members', taskId]);
+      queryClient.setQueryData(['task-members', taskId], (old: TaskMember[] | undefined) => [
+        ...(old || []),
+        {
+          id: `temp-${Date.now()}`,
+          task_id: taskId!,
+          employee_id: employeeId,
+          role,
+          company_id: companyId!,
+          created_at: new Date().toISOString(),
+          employee_name: 'Carregando...',
+          employee_avatar: null,
+        } as TaskMember,
+      ]);
+      return { previous };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['task-members', taskId] });
       toast({ title: 'Membro adicionado!' });
     },
-    onError: (err: Error) => {
+    onError: (err: Error, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['task-members', taskId], context.previous);
+      }
       if (err.message?.includes('idx_task_members_responsible')) {
         toast({ title: 'Erro', description: 'Já existe um responsável para esta tarefa.', variant: 'destructive' });
       } else if (err.message?.includes('idx_task_members_unique')) {

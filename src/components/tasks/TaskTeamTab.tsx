@@ -155,7 +155,7 @@ function EmployeeChip({
               className="flex flex-col items-center gap-0.5 cursor-grab active:cursor-grabbing group"
             >
               <div className="relative">
-                <Avatar className="h-9 w-9 border-2 border-transparent group-hover:border-primary/40 transition-colors">
+                <Avatar className="h-11 w-11 border-2 border-transparent group-hover:border-primary/40 transition-colors">
                   {avatarSrc && <AvatarImage src={avatarSrc} />}
                   <AvatarFallback className="bg-muted text-muted-foreground text-[11px]">
                     {employee.name.charAt(0).toUpperCase()}
