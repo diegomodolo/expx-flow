@@ -11759,6 +11759,54 @@ export type Database = {
           },
         ]
       }
+      task_creative_files: {
+        Row: {
+          company_id: string
+          created_at: string
+          file_name: string | null
+          file_type: string
+          file_url: string
+          id: string
+          order_index: number
+          task_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          file_name?: string | null
+          file_type?: string
+          file_url: string
+          id?: string
+          order_index?: number
+          task_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          file_name?: string | null
+          file_type?: string
+          file_url?: string
+          id?: string
+          order_index?: number
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_creative_files_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_creative_files_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           ai_estimated_minutes: number | null
@@ -11772,6 +11820,7 @@ export type Database = {
           company_id: string | null
           completed_at: string | null
           created_at: string
+          creative_data: Json | null
           deadline: string
           description: string | null
           due_date: string | null
@@ -11806,6 +11855,7 @@ export type Database = {
           company_id?: string | null
           completed_at?: string | null
           created_at?: string
+          creative_data?: Json | null
           deadline: string
           description?: string | null
           due_date?: string | null
@@ -11840,6 +11890,7 @@ export type Database = {
           company_id?: string | null
           completed_at?: string | null
           created_at?: string
+          creative_data?: Json | null
           deadline?: string
           description?: string | null
           due_date?: string | null

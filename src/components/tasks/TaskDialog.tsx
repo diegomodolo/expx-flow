@@ -28,6 +28,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useTaskCategorias } from "@/hooks/useTaskCategorias";
+import { CreativeTaskPanel, CreativeData } from "./CreativeTaskPanel";
 
 export type TaskDialogMode = 'kanban' | 'roteiro';
 
@@ -110,6 +111,11 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
     quadro_column_id: '',
   });
 
+  const [creativeData, setCreativeData] = useState<CreativeData>({
+    post_type: 'feed',
+    caption: '',
+    files: [],
+  });
   const [newChecklistItem, setNewChecklistItem] = useState('');
   const [previewSlot, setPreviewSlot] = useState('');
   const [clientSearch, setClientSearch] = useState('');
@@ -308,6 +314,13 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
           quadro_user_id: quadroUId,
           quadro_column_id: quadroColId,
         });
+        // Load creative data
+        const cd = task.creative_data as any;
+        setCreativeData({
+          post_type: cd?.post_type || 'feed',
+          caption: cd?.caption || '',
+          files: cd?.files || [],
+        });
       }
     } else {
       setFormData({
@@ -340,6 +353,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
         quadro_column_id: '',
       });
     }
+    setCreativeData({ post_type: 'feed', caption: '', files: [] });
     setActiveTab('principal');
   }, [task, defaultClientId, currentEmployee, isRoteiro, allColumns]);
 
@@ -416,6 +430,11 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
       categoria_id: formData.categoria_id || null,
       classificacao_id: formData.classificacao_id || null,
       task_type: formData.tipo || 'Tarefa',
+      creative_data: formData.tipo === 'Criativo' ? {
+        post_type: creativeData.post_type,
+        caption: creativeData.caption,
+        files: creativeData.files.map(f => ({ id: f.id, url: f.url, name: f.name, type: f.type })),
+      } : null,
     };
 
     if (startDateTime) {
@@ -866,6 +885,17 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                           </div>
                         </div>
                       </>
+                    )}
+
+                    {/* Creative Panel - shown when tipo is Criativo */}
+                    {!isRoteiro && formData.tipo === 'Criativo' && (
+                      <CreativeTaskPanel
+                        data={creativeData}
+                        onChange={setCreativeData}
+                        companyId={companyId}
+                        taskId={task?.id}
+                        clientName={clients?.find(c => c.id === formData.related_client_id)?.name}
+                      />
                     )}
 
                     {/* Responsável row */}
