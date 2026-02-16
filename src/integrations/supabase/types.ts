@@ -12049,11 +12049,13 @@ export type Database = {
           deadline: string
           description: string | null
           due_date: string | null
+          etapa: string | null
           id: string
           organized_by_ai: boolean | null
           origin: Database["public"]["Enums"]["task_origin"] | null
           priority: Database["public"]["Enums"]["task_priority"]
           progress: number
+          quadro_column_id: string | null
           recurring_template_id: string | null
           related_campaign_id: string | null
           related_client_id: string | null
@@ -12084,11 +12086,13 @@ export type Database = {
           deadline: string
           description?: string | null
           due_date?: string | null
+          etapa?: string | null
           id?: string
           organized_by_ai?: boolean | null
           origin?: Database["public"]["Enums"]["task_origin"] | null
           priority?: Database["public"]["Enums"]["task_priority"]
           progress?: number
+          quadro_column_id?: string | null
           recurring_template_id?: string | null
           related_campaign_id?: string | null
           related_client_id?: string | null
@@ -12119,11 +12123,13 @@ export type Database = {
           deadline?: string
           description?: string | null
           due_date?: string | null
+          etapa?: string | null
           id?: string
           organized_by_ai?: boolean | null
           origin?: Database["public"]["Enums"]["task_origin"] | null
           priority?: Database["public"]["Enums"]["task_priority"]
           progress?: number
+          quadro_column_id?: string | null
           recurring_template_id?: string | null
           related_campaign_id?: string | null
           related_client_id?: string | null
@@ -12158,6 +12164,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_quadro_column_id_fkey"
+            columns: ["quadro_column_id"]
+            isOneToOne: false
+            referencedRelation: "task_board_columns"
             referencedColumns: ["id"]
           },
           {

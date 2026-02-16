@@ -36,6 +36,8 @@ interface Task {
   origin: 'manual' | 'automation' | 'dashboard';
   related_campaign_id?: string;
   related_client_id?: string;
+  quadro_column_id?: string | null;
+  etapa?: string | null;
   team?: { name: string; color: string };
   user_profile?: {
     avatar_url: string | null;
@@ -48,7 +50,7 @@ interface Task {
 interface TaskKanbanProps {
   tasks: Task[];
   onEditTask: (task: Task) => void;
-  onUpdateTaskStatus: (taskId: string, status: string) => void;
+  onUpdateTaskStatus: (taskId: string, status: string, columnId?: string, columnName?: string) => void;
   onDeleteTask: (taskId: string) => void;
   isCompactMode?: boolean;
 }
@@ -146,11 +148,11 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
     setDragOverColumn(null);
   };
 
-  const handleDrop = (e: React.DragEvent, targetStatus: string) => {
+  const handleDrop = (e: React.DragEvent, targetStatus: string, columnId?: string, columnName?: string) => {
     e.preventDefault();
     
-    if (draggedTask && draggedTask.status !== targetStatus) {
-      onUpdateTaskStatus(draggedTask.id, targetStatus);
+    if (draggedTask && (draggedTask.status !== targetStatus || draggedTask.quadro_column_id !== columnId)) {
+      onUpdateTaskStatus(draggedTask.id, targetStatus, columnId, columnName);
     }
     
     setDraggedTask(null);
@@ -455,7 +457,7 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
                 onDragOver={handleDragOver}
                 onDragEnter={() => handleDragEnter(column.id)}
                 onDragLeave={handleDragLeave}
-                onDrop={(e) => handleDrop(e, column.status)}
+                onDrop={(e) => handleDrop(e, column.status, column.id.startsWith('default-') ? undefined : column.id, column.name)}
               >
                 {isDoneColumn ? (
                   <>

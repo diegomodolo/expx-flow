@@ -231,8 +231,11 @@ export default function Tarefas() {
     setTaskDialogOpen(true);
   };
 
-  const handleUpdateTaskStatus = async (taskId: string, status: string) => {
-    await updateTask(taskId, { status: status as any });
+  const handleUpdateTaskStatus = async (taskId: string, status: string, columnId?: string, columnName?: string) => {
+    const updates: any = { status: status as any };
+    if (columnId !== undefined) updates.quadro_column_id = columnId || null;
+    if (columnName !== undefined) updates.etapa = columnName || null;
+    await updateTask(taskId, updates);
   };
 
   const handleDeleteTask = async (taskId: string) => {
