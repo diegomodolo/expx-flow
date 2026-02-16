@@ -1,0 +1,1 @@
+ALTER TABLE public.tasks ADD COLUMN autorizador_id TEXT DEFAULT NULL;
