@@ -1242,6 +1242,11 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                   <TaskTeamTab
                     taskId={task?.id}
                     companyId={companyId}
+                    fallbackResponsible={{
+                      name: formData.responsible_name || employees?.find(e => e.id === formData.responsible_employee_id)?.name || '',
+                      avatar: formData.responsible_avatar || employees?.find(e => e.id === formData.responsible_employee_id)?.avatar || '',
+                      employeeId: formData.responsible_employee_id || employees?.find(e => e.user_id === formData.responsible_user_id)?.id || '',
+                    }}
                   />
                 )}
 

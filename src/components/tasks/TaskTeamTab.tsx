@@ -14,6 +14,11 @@ import { useEmployees } from "@/hooks/useEmployees";
 interface TaskTeamTabProps {
   taskId: string | undefined;
   companyId: string | undefined;
+  fallbackResponsible?: {
+    name: string;
+    avatar: string;
+    employeeId: string;
+  };
 }
 
 const ROLE_CONFIG: Record<TaskMemberRole, { label: string; icon: React.ElementType; color: string; badgeVariant: string; description: string }> = {
@@ -92,7 +97,7 @@ function MemberCard({ member, onRemove, onChangeRole }: {
   );
 }
 
-export function TaskTeamTab({ taskId, companyId }: TaskTeamTabProps) {
+export function TaskTeamTab({ taskId, companyId, fallbackResponsible }: TaskTeamTabProps) {
   const { members, responsible, contributors, observers, isLoading, addMember, isAdding, updateRole, removeMember } = useTaskMembers(taskId, companyId);
   const { employees } = useEmployees();
   const [search, setSearch] = useState('');
@@ -130,34 +135,52 @@ export function TaskTeamTab({ taskId, companyId }: TaskTeamTabProps) {
         </p>
       </div>
 
+      {/* Responsible - always show immediately using fallback */}
+      <div>
+        <div className="flex items-center gap-2 mb-2">
+          <Crown className="w-4 h-4 text-amber-500" />
+          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+            Responsável
+          </Label>
+        </div>
+        {responsible ? (
+          <MemberCard
+            member={responsible}
+            onRemove={removeMember}
+            onChangeRole={(id, role) => updateRole({ id, role })}
+          />
+        ) : fallbackResponsible?.name ? (
+          <div className="flex items-center gap-3 p-3 rounded-lg border border-primary/30 bg-primary/5">
+            <Avatar className="h-9 w-9">
+              {fallbackResponsible.avatar && <AvatarImage src={fallbackResponsible.avatar} />}
+              <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                {fallbackResponsible.name.charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-foreground truncate">{fallbackResponsible.name}</p>
+              <div className="flex items-center gap-1 text-xs">
+                <Crown className="w-3 h-3 text-amber-500" />
+                <span className="text-amber-500">Responsável</span>
+                <span className="text-muted-foreground ml-1">(definido na aba Principal)</span>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="p-3 rounded-lg border border-dashed border-border text-sm text-muted-foreground text-center">
+            Nenhum responsável definido
+          </div>
+        )}
+      </div>
+
+      <Separator />
+
       {isLoading ? (
         <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
           <Loader2 className="w-4 h-4 animate-spin" /> Carregando equipe...
         </div>
       ) : (
         <>
-          {/* Responsible */}
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Crown className="w-4 h-4 text-amber-500" />
-              <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                Responsável
-              </Label>
-            </div>
-            {responsible ? (
-              <MemberCard
-                member={responsible}
-                onRemove={removeMember}
-                onChangeRole={(id, role) => updateRole({ id, role })}
-              />
-            ) : (
-              <div className="p-3 rounded-lg border border-dashed border-border text-sm text-muted-foreground text-center">
-                Nenhum responsável definido
-              </div>
-            )}
-          </div>
-
-          <Separator />
 
           {/* Contributors */}
           <div>
