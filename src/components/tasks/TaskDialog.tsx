@@ -718,41 +718,46 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
 
             {/* Status Dropdown in Sidebar */}
             <Separator className="my-2 w-12" />
-            <Popover>
-              <PopoverTrigger asChild>
-                <button className="flex flex-col items-center gap-1 px-2 py-3 rounded-lg w-16 transition-colors text-xs text-muted-foreground hover:bg-muted hover:text-foreground">
-                  <CircleDot className="w-5 h-5" />
-                  <span className="leading-tight text-center">Status</span>
-                  <ChevronDown className="w-3 h-3 opacity-50" />
-                </button>
-              </PopoverTrigger>
-              <PopoverContent side="right" align="start" className="w-52 p-1">
-                <div className="text-xs font-semibold text-muted-foreground px-2 py-1.5">Alterar Status</div>
-                {[
-                  { value: 'todo', label: 'Pendente', color: 'bg-gray-400' },
-                  { value: 'progress', label: 'Em Andamento', color: 'bg-blue-500' },
-                  { value: 'review', label: 'Em Revisão', color: 'bg-purple-500' },
-                  { value: 'waiting_approval', label: 'Aguardando Aprovação', color: 'bg-amber-500' },
-                  { value: 'blocked', label: 'Bloqueada', color: 'bg-red-500' },
-                  { value: 'paused', label: 'Pausada', color: 'bg-orange-500' },
-                  { value: 'done', label: 'Concluída', color: 'bg-green-500' },
-                  { value: 'cancelled', label: 'Cancelada', color: 'bg-slate-500' },
-                ].map((s) => (
-                  <button
-                    key={s.value}
-                    onClick={() => setFormData(prev => ({ ...prev, status: s.value }))}
-                    className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors ${
-                      formData.status === s.value
-                        ? 'bg-accent text-accent-foreground font-medium'
-                        : 'hover:bg-muted text-foreground'
-                    }`}
-                  >
-                    <span className={`w-2.5 h-2.5 rounded-full ${s.color} shrink-0`} />
-                    {s.label}
-                  </button>
-                ))}
-              </PopoverContent>
-            </Popover>
+            {(() => {
+              const statusOptions = [
+                { value: 'todo', label: 'Pendente', color: 'bg-gray-400' },
+                { value: 'progress', label: 'Em Andamento', color: 'bg-blue-500' },
+                { value: 'review', label: 'Em Revisão', color: 'bg-purple-500' },
+                { value: 'waiting_approval', label: 'Aguardando', color: 'bg-amber-500' },
+                { value: 'blocked', label: 'Bloqueada', color: 'bg-red-500' },
+                { value: 'paused', label: 'Pausada', color: 'bg-orange-500' },
+                { value: 'done', label: 'Concluída', color: 'bg-green-500' },
+                { value: 'cancelled', label: 'Cancelada', color: 'bg-slate-500' },
+              ];
+              const current = statusOptions.find(s => s.value === formData.status) || statusOptions[0];
+              return (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button className="flex flex-col items-center gap-1 px-2 py-3 rounded-lg w-16 transition-colors text-xs text-muted-foreground hover:bg-muted hover:text-foreground">
+                      <span className={`w-5 h-5 rounded-full ${current.color} shrink-0`} />
+                      <span className="leading-tight text-center text-[10px]">{current.label}</span>
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent side="right" align="start" className="w-52 p-1">
+                    <div className="text-xs font-semibold text-muted-foreground px-2 py-1.5">Alterar Status</div>
+                    {statusOptions.map((s) => (
+                      <button
+                        key={s.value}
+                        onClick={() => setFormData(prev => ({ ...prev, status: s.value }))}
+                        className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors ${
+                          formData.status === s.value
+                            ? 'bg-accent text-accent-foreground font-medium'
+                            : 'hover:bg-muted text-foreground'
+                        }`}
+                      >
+                        <span className={`w-2.5 h-2.5 rounded-full ${s.color} shrink-0`} />
+                        {s.label}
+                      </button>
+                    ))}
+                  </PopoverContent>
+                </Popover>
+              );
+            })()}
 
             <div className="flex-1" />
 
