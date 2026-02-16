@@ -219,14 +219,13 @@ function MindMapEditorInner() {
       });
 
       setSaveStatus('unsaved');
-      setTimeout(() => fitView({ padding: 0.3, duration: 300 }), 50);
 
       return currentNodes.map(n => ({
         ...n,
         position: positions[n.id] || n.position,
       }));
     });
-  }, [fitView]);
+  }, []);
 
   // Keep ref updated
   autoLayoutRef.current = handleAutoLayout;
