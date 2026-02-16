@@ -1247,6 +1247,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                       avatar: formData.responsible_avatar || employees?.find(e => e.id === formData.responsible_employee_id)?.avatar || '',
                       employeeId: formData.responsible_employee_id || employees?.find(e => e.user_id === formData.responsible_user_id)?.id || '',
                     }}
+                    defaultTeamId={formData.team_id}
                   />
                 )}
 
