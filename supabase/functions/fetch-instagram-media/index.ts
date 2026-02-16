@@ -44,24 +44,35 @@ serve(async (req) => {
 
     // Try to get the page access token from the instagram account's linked facebook page
     let accessToken: string | null = null;
+    let resolvedInstagramId = instagramId; // May be overridden for BM accounts
 
     if (client.instagram_account_id) {
       const { data: igAccount } = await supabase
         .from("instagram_accounts")
-        .select("facebook_page_id")
+        .select("facebook_page_id, source, instagram_id")
         .eq("id", client.instagram_account_id)
         .single();
 
       if (igAccount?.facebook_page_id) {
         const { data: fbPage } = await supabase
           .from("facebook_pages")
-          .select("page_access_token")
+          .select("page_access_token, instagram_business_account_id")
           .eq("id", igAccount.facebook_page_id)
           .single();
 
         if (fbPage?.page_access_token) {
           accessToken = fbPage.page_access_token;
           console.log("Using page access token from linked Facebook page");
+
+          // For Business Manager accounts, the instagram_id in the account table
+          // may differ from the instagram_business_account_id on the page.
+          // The page token only has permission to access the page's IG business account ID.
+          if (igAccount.source === 'business_manager' && fbPage.instagram_business_account_id) {
+            if (fbPage.instagram_business_account_id !== instagramId) {
+              console.log(`BM account: overriding instagramId from ${instagramId} to ${fbPage.instagram_business_account_id}`);
+              resolvedInstagramId = fbPage.instagram_business_account_id;
+            }
+          }
         }
       }
     }
@@ -92,7 +103,7 @@ serve(async (req) => {
     const fields = "id,media_type,media_url,thumbnail_url,caption,timestamp,permalink";
     
     // Fetch media from Instagram Graph API with pagination support
-    let apiUrl = `https://graph.facebook.com/v21.0/${instagramId}/media?fields=${fields}&limit=${limit}&access_token=${accessToken}`;
+    let apiUrl = `https://graph.facebook.com/v21.0/${resolvedInstagramId}/media?fields=${fields}&limit=${limit}&access_token=${accessToken}`;
     
     // Add cursor for pagination if provided
     if (after) {
