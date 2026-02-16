@@ -563,7 +563,9 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
                   "flex flex-col transition-all duration-200 flex-none",
                   isEmpty && !isExpandedEmpty
                     ? "w-16"
-                    : isCompactMode ? "w-[240px]" : "w-[300px]",
+                    : isDoneColumn
+                      ? (isCompactMode ? "w-[180px]" : "w-[200px]")
+                      : (isCompactMode ? "w-[240px]" : "w-[300px]"),
                   isBeingDragged && 'opacity-50 scale-95',
                   isColumnDragTarget && 'ring-2 ring-primary ring-offset-2 rounded-lg'
                 )}
