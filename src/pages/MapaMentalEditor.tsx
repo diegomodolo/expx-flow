@@ -41,30 +41,77 @@ function MindMapEditorInner() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const initialized = useRef(false);
 
+  // Helper: compute node metadata (childCount, hasLeft/RightChildren, collapsed visibility)
+  const updateNodeMetadata = useCallback((currentNodes: Node[], currentEdges: Edge[]) => {
+    // Build parent->children map with direction info
+    const childrenMap: Record<string, string[]> = {};
+    const edgeDirectionMap: Record<string, 'left' | 'right'> = {}; // edge.id -> direction
+
+    currentEdges.forEach(e => {
+      if (!childrenMap[e.source]) childrenMap[e.source] = [];
+      childrenMap[e.source].push(e.target);
+      edgeDirectionMap[e.id] = (e.data as any)?.direction || 'right';
+    });
+
+    // For each edge, determine direction from edge data
+    const nodeChildDirections: Record<string, Set<string>> = {};
+    currentEdges.forEach(e => {
+      if (!nodeChildDirections[e.source]) nodeChildDirections[e.source] = new Set();
+      const dir = (e.data as any)?.direction || 'right';
+      nodeChildDirections[e.source].add(dir);
+    });
+
+    return currentNodes.map(n => {
+      const children = childrenMap[n.id] || [];
+      const directions = nodeChildDirections[n.id] || new Set();
+      return {
+        ...n,
+        data: {
+          ...n.data,
+          childCount: children.length,
+          hasLeftChildren: directions.has('left'),
+          hasRightChildren: directions.has('right') || (children.length > 0 && !directions.has('left')),
+        },
+      };
+    });
+  }, []);
+
   // Load data once
   useEffect(() => {
     if (mindMap && !initialized.current) {
       setTitle(mindMap.title);
+      const loadedEdges = mindMap.edges || [];
       const loadedNodes = (mindMap.nodes || []).map((n: Node) => ({
         ...n,
         data: {
           ...n.data,
-          onAddChild: handleAddChild,
-          onLabelChange: handleLabelChange,
+          onAddChild: handleAddChildRef.current,
+          onLabelChange: handleLabelChangeRef.current,
+          onToggleCollapse: handleToggleCollapseRef.current,
         },
       }));
-      setNodes(loadedNodes);
-      setEdges(mindMap.edges || []);
+      setEdges(loadedEdges);
+      setNodes(updateNodeMetadata(loadedNodes, loadedEdges));
       initialized.current = true;
       setTimeout(() => fitView({ padding: 0.3 }), 100);
     }
   }, [mindMap]);
 
-  // Update node callbacks when handlers change
+  // Refs for stable callbacks passed to node data
+  const handleAddChildRef = useRef<(parentId: string, direction?: 'left' | 'right') => void>(() => {});
+  const handleLabelChangeRef = useRef<(nodeId: string, label: string) => void>(() => {});
+  const handleToggleCollapseRef = useRef<(nodeId: string) => void>(() => {});
+
+  // Sync callbacks into nodes
   useEffect(() => {
     setNodes(nds => nds.map(n => ({
       ...n,
-      data: { ...n.data, onAddChild: handleAddChild, onLabelChange: handleLabelChange },
+      data: {
+        ...n.data,
+        onAddChild: handleAddChildRef.current,
+        onLabelChange: handleLabelChangeRef.current,
+        onToggleCollapse: handleToggleCollapseRef.current,
+      },
     })));
   }, []);
 
@@ -82,7 +129,20 @@ function MindMapEditorInner() {
     );
   }, [debouncedNodes, debouncedEdges, debouncedTitle]);
 
-  const handleAddChild = useCallback((parentId: string) => {
+  // Toggle collapse
+  const handleToggleCollapse = useCallback((nodeId: string) => {
+    setNodes(nds => nds.map(n =>
+      n.id === nodeId
+        ? { ...n, data: { ...n.data, collapsed: !(n.data as any).collapsed } }
+        : n
+    ));
+    setSaveStatus('unsaved');
+    setTimeout(() => autoLayoutRef.current(), 50);
+  }, []);
+  handleToggleCollapseRef.current = handleToggleCollapse;
+
+  // Add child with direction support
+  const handleAddChild = useCallback((parentId: string, direction: 'left' | 'right' = 'right') => {
     const newId = `node-${Date.now()}`;
     setEdges(currentEdges => {
       setNodes(nds => {
@@ -90,30 +150,22 @@ function MindMapEditorInner() {
         if (!parent) return nds;
         const parentLevel = (parent.data as any).level || 0;
 
-        // Count existing children of this parent using edges
-        const existingChildIds = currentEdges
-          .filter(e => e.source === parentId)
-          .map(e => e.target);
-        const existingChildren = nds.filter(n => existingChildIds.includes(n.id));
-        const childCount = existingChildren.length;
-
-        // Position right next to parent, stacked vertically among siblings
-        const spacing = 70;
-        const totalHeight = childCount * spacing;
-        const startY = parent.position.y - totalHeight / 2;
+        const xOffset = direction === 'left' ? -250 : 250;
 
         const newNode: Node = {
           id: newId,
           type: 'mindMapNode',
           position: {
-            x: parent.position.x + 250,
-            y: startY + childCount * spacing,
+            x: parent.position.x + xOffset,
+            y: parent.position.y,
           },
           data: {
             label: 'Nova ideia',
             level: parentLevel + 1,
-            onAddChild: handleAddChild,
-            onLabelChange: handleLabelChange,
+            direction,
+            onAddChild: handleAddChildRef.current,
+            onLabelChange: handleLabelChangeRef.current,
+            onToggleCollapse: handleToggleCollapseRef.current,
           },
         };
         return [...nds, newNode];
@@ -126,139 +178,206 @@ function MindMapEditorInner() {
           source: parentId,
           target: newId,
           type: 'smoothstep',
+          sourceHandle: direction === 'left' ? 'left-source' : undefined,
+          targetHandle: direction === 'left' ? 'right-target' : undefined,
           style: { stroke: 'hsl(var(--muted-foreground))', strokeWidth: 2 },
+          data: { direction },
         },
       ];
     });
     setSaveStatus('unsaved');
     setTimeout(() => autoLayoutRef.current(), 50);
   }, []);
+  handleAddChildRef.current = handleAddChild;
 
   const handleLabelChange = useCallback((nodeId: string, label: string) => {
     setNodes(nds => nds.map(n => n.id === nodeId ? { ...n, data: { ...n.data, label } } : n));
     setSaveStatus('unsaved');
   }, []);
+  handleLabelChangeRef.current = handleLabelChange;
 
   const handleAddSibling = useCallback(() => {
     if (!selectedNodeId) return;
-    // Find parent of selected node
     const parentEdge = edges.find(e => e.target === selectedNodeId);
     if (parentEdge) {
-      handleAddChild(parentEdge.source);
+      const dir = (parentEdge.data as any)?.direction || 'right';
+      handleAddChild(parentEdge.source, dir);
     }
   }, [selectedNodeId, edges, handleAddChild]);
 
   const handleDelete = useCallback(() => {
     if (!selectedNodeId || selectedNodeId === 'root') return;
-    setNodes(nds => nds.filter(n => n.id !== selectedNodeId));
-    setEdges(eds => eds.filter(e => e.source !== selectedNodeId && e.target !== selectedNodeId));
+    // Recursively find all descendants
+    const toDelete = new Set<string>();
+    const findDescendants = (nodeId: string) => {
+      toDelete.add(nodeId);
+      edges.filter(e => e.source === nodeId).forEach(e => findDescendants(e.target));
+    };
+    findDescendants(selectedNodeId);
+
+    setNodes(nds => nds.filter(n => !toDelete.has(n.id)));
+    setEdges(eds => eds.filter(e => !toDelete.has(e.source) && !toDelete.has(e.target)));
     setSelectedNodeId(null);
     setSaveStatus('unsaved');
     setTimeout(() => autoLayoutRef.current(), 50);
-  }, [selectedNodeId]);
+  }, [selectedNodeId, edges]);
 
-  const handleEditLabel = useCallback(() => {
-    // Trigger double-click edit on selected node - handled by node component
-  }, []);
+  const handleEditLabel = useCallback(() => {}, []);
 
-  // Auto-layout: tree algorithm
+  // Auto-layout: bidirectional tree algorithm
   const autoLayoutRef = useRef<() => void>(() => {});
   const handleAutoLayout = useCallback(() => {
-    // Read current state via functional updaters, but compute layout synchronously
-    // We use refs approach: get latest nodes/edges from the state updater
     setNodes(currentNodes => {
-      // We need edges too - get them via a ref trick
       let currentEdges: Edge[] = [];
-      setEdges(eds => { currentEdges = eds; return eds; }); // read-only peek
+      setEdges(eds => { currentEdges = eds; return eds; });
 
-      // Build adjacency: parent -> children
-      const childrenMap: Record<string, string[]> = {};
+      // Build adjacency with direction
+      const rightChildrenMap: Record<string, string[]> = {};
+      const leftChildrenMap: Record<string, string[]> = {};
       currentEdges.forEach(e => {
-        if (!childrenMap[e.source]) childrenMap[e.source] = [];
-        childrenMap[e.source].push(e.target);
+        const dir = (e.data as any)?.direction || 'right';
+        if (dir === 'left') {
+          if (!leftChildrenMap[e.source]) leftChildrenMap[e.source] = [];
+          leftChildrenMap[e.source].push(e.target);
+        } else {
+          if (!rightChildrenMap[e.source]) rightChildrenMap[e.source] = [];
+          rightChildrenMap[e.source].push(e.target);
+        }
       });
 
-      // Find root(s): nodes that are never a target
+      // Find root(s)
       const targetIds = new Set(currentEdges.map(e => e.target));
       const roots = currentNodes.filter(n => !targetIds.has(n.id));
       if (roots.length === 0) return currentNodes;
 
-      const H_SPACING = 260;
-      const V_GAP = 20; // gap between sibling nodes
-      const positions: Record<string, { x: number; y: number }> = {};
+      // Check collapsed state
+      const collapsedSet = new Set(
+        currentNodes.filter(n => (n.data as any).collapsed).map(n => n.id)
+      );
 
-      // Get measured height of a node, fallback to 50
+      const H_SPACING = 260;
+      const V_GAP = 20;
+      const positions: Record<string, { x: number; y: number }> = {};
       const nodeMap = new Map(currentNodes.map(n => [n.id, n]));
       const getNodeHeight = (nodeId: string): number => {
         const n = nodeMap.get(nodeId);
         return n?.measured?.height ?? n?.height ?? 50;
       };
 
-      // Calculate total subtree height (sum of children subtrees + gaps, or own height if leaf)
       const subtreeHeights: Record<string, number> = {};
-      const calcSubtreeHeight = (nodeId: string): number => {
-        if (subtreeHeights[nodeId] !== undefined) return subtreeHeights[nodeId];
+      const calcSubtreeHeight = (nodeId: string, childrenMap: Record<string, string[]>): number => {
+        const key = `${nodeId}-${childrenMap === rightChildrenMap ? 'r' : 'l'}`;
+        if (subtreeHeights[key] !== undefined) return subtreeHeights[key];
+
+        // If collapsed, treat as leaf
+        if (collapsedSet.has(nodeId)) {
+          subtreeHeights[key] = getNodeHeight(nodeId);
+          return subtreeHeights[key];
+        }
+
         const children = childrenMap[nodeId];
         if (!children || children.length === 0) {
-          subtreeHeights[nodeId] = getNodeHeight(nodeId);
-          return subtreeHeights[nodeId];
+          subtreeHeights[key] = getNodeHeight(nodeId);
+          return subtreeHeights[key];
         }
         const childrenTotal = children.reduce((sum, cId, i) => {
-          return sum + calcSubtreeHeight(cId) + (i > 0 ? V_GAP : 0);
+          return sum + calcSubtreeHeight(cId, childrenMap) + (i > 0 ? V_GAP : 0);
         }, 0);
-        subtreeHeights[nodeId] = Math.max(getNodeHeight(nodeId), childrenTotal);
-        return subtreeHeights[nodeId];
+        subtreeHeights[key] = Math.max(getNodeHeight(nodeId), childrenTotal);
+        return subtreeHeights[key];
       };
 
-      // Layout: position nodes using absolute Y pixels
-      const layoutNode = (nodeId: string, depth: number, yStart: number) => {
-        const children = childrenMap[nodeId];
+      const layoutBranch = (nodeId: string, depth: number, yStart: number, childrenMap: Record<string, string[]>, directionMultiplier: number) => {
+        const children = collapsedSet.has(nodeId) ? undefined : childrenMap[nodeId];
         const myHeight = getNodeHeight(nodeId);
 
         if (!children || children.length === 0) {
-          positions[nodeId] = { x: depth * H_SPACING, y: yStart };
+          // Only set position if not already set (root gets set separately)
+          if (!positions[nodeId]) {
+            positions[nodeId] = { x: depth * H_SPACING * directionMultiplier, y: yStart };
+          }
           return;
         }
 
         const totalChildrenHeight = children.reduce((sum, cId, i) => {
-          return sum + calcSubtreeHeight(cId) + (i > 0 ? V_GAP : 0);
+          return sum + calcSubtreeHeight(cId, childrenMap) + (i > 0 ? V_GAP : 0);
         }, 0);
 
-        // Center children block relative to this subtree area
-        let childY = yStart + (calcSubtreeHeight(nodeId) - totalChildrenHeight) / 2;
+        const stKey = `${nodeId}-${directionMultiplier > 0 ? 'r' : 'l'}`;
+        let childY = yStart + (calcSubtreeHeight(nodeId, childrenMap) - totalChildrenHeight) / 2;
 
         children.forEach(childId => {
-          layoutNode(childId, depth + 1, childY);
-          childY += calcSubtreeHeight(childId) + V_GAP;
+          const childStKey = `${childId}-${directionMultiplier > 0 ? 'r' : 'l'}`;
+          positions[childId] = { x: (depth + 1) * H_SPACING * directionMultiplier, y: childY };
+          layoutBranch(childId, depth + 1, childY, childrenMap, directionMultiplier);
+          childY += calcSubtreeHeight(childId, childrenMap) + V_GAP;
         });
 
-        // Center parent among its children
-        const firstChild = positions[children[0]];
-        const lastChild = positions[children[children.length - 1]];
-        const lastChildHeight = getNodeHeight(children[children.length - 1]);
-        positions[nodeId] = {
-          x: depth * H_SPACING,
-          y: (firstChild.y + lastChild.y + lastChildHeight - myHeight) / 2,
-        };
+        // Center parent among children if not already positioned
+        if (!positions[nodeId]) {
+          const firstChild = positions[children[0]];
+          const lastChild = positions[children[children.length - 1]];
+          const lastChildHeight = getNodeHeight(children[children.length - 1]);
+          positions[nodeId] = {
+            x: depth * H_SPACING * directionMultiplier,
+            y: (firstChild.y + lastChild.y + lastChildHeight - myHeight) / 2,
+          };
+        }
       };
 
       let globalY = 0;
       roots.forEach(root => {
-        calcSubtreeHeight(root.id);
-        layoutNode(root.id, 0, globalY);
-        globalY += subtreeHeights[root.id] + V_GAP * 2;
+        const hasRight = !collapsedSet.has(root.id) && (rightChildrenMap[root.id]?.length || 0) > 0;
+        const hasLeft = !collapsedSet.has(root.id) && (leftChildrenMap[root.id]?.length || 0) > 0;
+
+        // Calculate subtree heights for both sides
+        const rightHeight = hasRight ? calcSubtreeHeight(root.id, rightChildrenMap) : getNodeHeight(root.id);
+        const leftHeight = hasLeft ? calcSubtreeHeight(root.id, leftChildrenMap) : getNodeHeight(root.id);
+        const maxHeight = Math.max(rightHeight, leftHeight);
+
+        // Position root at center
+        positions[root.id] = { x: 0, y: globalY + maxHeight / 2 - getNodeHeight(root.id) / 2 };
+
+        // Layout right branch
+        if (hasRight) {
+          const rightStart = globalY + (maxHeight - rightHeight) / 2;
+          layoutBranch(root.id, 0, rightStart, rightChildrenMap, 1);
+        }
+
+        // Layout left branch
+        if (hasLeft) {
+          const leftStart = globalY + (maxHeight - leftHeight) / 2;
+          layoutBranch(root.id, 0, leftStart, leftChildrenMap, -1);
+        }
+
+        globalY += maxHeight + V_GAP * 2;
       });
 
       setSaveStatus('unsaved');
 
-      return currentNodes.map(n => ({
+      // Update metadata and positions
+      const updatedNodes = currentNodes.map(n => ({
         ...n,
         position: positions[n.id] || n.position,
+        // Hide collapsed children
+        hidden: isHiddenByCollapse(n.id, currentEdges, collapsedSet),
+      }));
+
+      return updateNodeMetadata(updatedNodes, currentEdges);
+    });
+
+    // Also hide collapsed edges
+    setEdges(eds => {
+      let currentNodes: Node[] = [];
+      setNodes(nds => { currentNodes = nds; return nds; });
+      const hiddenNodeIds = new Set(currentNodes.filter(n => n.hidden).map(n => n.id));
+      return eds.map(e => ({
+        ...e,
+        hidden: hiddenNodeIds.has(e.target),
       }));
     });
-  }, []);
+  }, [updateNodeMetadata]);
 
-  // Keep ref updated
   autoLayoutRef.current = handleAutoLayout;
 
   const onConnect = useCallback((connection: Connection) => {
@@ -281,7 +400,7 @@ function MindMapEditorInner() {
       
       if (e.key === 'Tab' && selectedNodeId) {
         e.preventDefault();
-        handleAddChild(selectedNodeId);
+        handleAddChild(selectedNodeId, 'right');
       }
       if (e.key === 'Enter' && selectedNodeId) {
         e.preventDefault();
@@ -374,7 +493,7 @@ function MindMapEditorInner() {
 
         <MindMapToolbar
           hasSelection={!!selectedNodeId}
-          onAddChild={() => selectedNodeId && handleAddChild(selectedNodeId)}
+          onAddChild={() => selectedNodeId && handleAddChild(selectedNodeId, 'right')}
           onAddSibling={handleAddSibling}
           onEditLabel={handleEditLabel}
           onDelete={handleDelete}
@@ -382,6 +501,15 @@ function MindMapEditorInner() {
       </div>
     </div>
   );
+}
+
+// Helper: check if a node should be hidden because an ancestor is collapsed
+function isHiddenByCollapse(nodeId: string, edges: Edge[], collapsedSet: Set<string>): boolean {
+  // Find parent
+  const parentEdge = edges.find(e => e.target === nodeId);
+  if (!parentEdge) return false; // root is never hidden
+  if (collapsedSet.has(parentEdge.source)) return true;
+  return isHiddenByCollapse(parentEdge.source, edges, collapsedSet);
 }
 
 export default function MapaMentalEditor() {

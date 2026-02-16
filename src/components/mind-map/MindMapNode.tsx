@@ -1,6 +1,6 @@
 import React, { memo, useState, useRef, useEffect, useCallback } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { Plus } from 'lucide-react';
+import { Plus, ChevronRight, ChevronLeft, ChevronsLeftRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const LEVEL_COLORS = [
@@ -24,8 +24,13 @@ const LEVEL_BG = [
 interface MindMapNodeData {
   label: string;
   level: number;
-  onAddChild?: (nodeId: string) => void;
+  collapsed?: boolean;
+  childCount?: number;
+  hasLeftChildren?: boolean;
+  hasRightChildren?: boolean;
+  onAddChild?: (nodeId: string, direction?: 'left' | 'right') => void;
   onLabelChange?: (nodeId: string, label: string) => void;
+  onToggleCollapse?: (nodeId: string) => void;
   [key: string]: unknown;
 }
 
@@ -40,13 +45,16 @@ function MindMapNodeComponent({ id, data, selected }: NodeProps) {
   const level = nodeData.level || 0;
   const borderColor = LEVEL_COLORS[level % LEVEL_COLORS.length];
   const bgColor = LEVEL_BG[level % LEVEL_BG.length];
+  const isCollapsed = nodeData.collapsed || false;
+  const childCount = nodeData.childCount || 0;
+  const hasLeftChildren = nodeData.hasLeftChildren || false;
+  const hasRightChildren = nodeData.hasRightChildren || false;
 
   useEffect(() => {
     setText(nodeData.label);
   }, [nodeData.label]);
 
   const startEditing = useCallback(() => {
-    // Capture current size before switching to edit mode
     if (containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
       setEditSize({ width: rect.width, height: rect.height });
@@ -73,6 +81,12 @@ function MindMapNodeComponent({ id, data, selected }: NodeProps) {
 
   const isRoot = level === 0;
 
+  // Determine which add buttons to show
+  // Root: show both sides always
+  // Non-root: show on the side that doesn't have children, or both if no children
+  const showAddRight = isRoot || !hasRightChildren || !hasLeftChildren;
+  const showAddLeft = isRoot;
+
   return (
     <div
       ref={containerRef}
@@ -95,8 +109,8 @@ function MindMapNodeComponent({ id, data, selected }: NodeProps) {
     >
       <Handle type="target" position={Position.Left} className="!w-2 !h-2 !bg-muted-foreground/40 !border-none" />
       <Handle type="source" position={Position.Right} className="!w-2 !h-2 !bg-muted-foreground/40 !border-none" />
-      <Handle type="target" position={Position.Top} className="!w-2 !h-2 !bg-muted-foreground/40 !border-none" />
-      <Handle type="source" position={Position.Bottom} className="!w-2 !h-2 !bg-muted-foreground/40 !border-none" />
+      <Handle type="source" position={Position.Left} id="left-source" className="!w-2 !h-2 !bg-muted-foreground/40 !border-none" />
+      <Handle type="target" position={Position.Right} id="right-target" className="!w-2 !h-2 !bg-muted-foreground/40 !border-none" />
 
       {editing ? (
         <textarea
@@ -125,18 +139,95 @@ function MindMapNodeComponent({ id, data, selected }: NodeProps) {
         </span>
       )}
 
-      {/* Add child button */}
-      {hovered && !editing && (
-        <button
-          className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full flex items-center justify-center shadow-md transition-transform hover:scale-110"
-          style={{ background: borderColor, color: 'white' }}
-          onClick={e => {
-            e.stopPropagation();
-            nodeData.onAddChild?.(id);
-          }}
-        >
-          <Plus className="w-3.5 h-3.5" />
-        </button>
+      {/* Collapse/Expand badge - shown when node has children */}
+      {childCount > 0 && !editing && (
+        <>
+          {/* Right collapse indicator */}
+          {hasRightChildren && (
+            <button
+              className="absolute -right-4 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full flex items-center justify-center shadow-sm border transition-all hover:scale-110 z-10"
+              style={{
+                background: isCollapsed ? borderColor : 'hsl(var(--card))',
+                borderColor: borderColor,
+                color: isCollapsed ? 'white' : borderColor,
+              }}
+              onClick={e => {
+                e.stopPropagation();
+                nodeData.onToggleCollapse?.(id);
+              }}
+              title={isCollapsed ? `Expandir (${childCount})` : 'Colapsar'}
+            >
+              {isCollapsed ? (
+                <span className="text-[9px] font-bold">{childCount}</span>
+              ) : (
+                <ChevronRight className="w-3 h-3" />
+              )}
+            </button>
+          )}
+          {/* Left collapse indicator */}
+          {hasLeftChildren && !hasRightChildren && (
+            <button
+              className="absolute -left-4 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full flex items-center justify-center shadow-sm border transition-all hover:scale-110 z-10"
+              style={{
+                background: isCollapsed ? borderColor : 'hsl(var(--card))',
+                borderColor: borderColor,
+                color: isCollapsed ? 'white' : borderColor,
+              }}
+              onClick={e => {
+                e.stopPropagation();
+                nodeData.onToggleCollapse?.(id);
+              }}
+              title={isCollapsed ? `Expandir (${childCount})` : 'Colapsar'}
+            >
+              {isCollapsed ? (
+                <span className="text-[9px] font-bold">{childCount}</span>
+              ) : (
+                <ChevronLeft className="w-3 h-3" />
+              )}
+            </button>
+          )}
+        </>
+      )}
+
+      {/* Add child buttons - shown on hover */}
+      {hovered && !editing && !isCollapsed && (
+        <>
+          {/* Right add button */}
+          <button
+            className="absolute top-1/2 -translate-y-1/2 w-6 h-6 rounded-full flex items-center justify-center shadow-md transition-transform hover:scale-110 z-20"
+            style={{
+              background: borderColor,
+              color: 'white',
+              right: childCount > 0 && hasRightChildren ? '-24px' : '-12px',
+            }}
+            onClick={e => {
+              e.stopPropagation();
+              nodeData.onAddChild?.(id, 'right');
+            }}
+            title="Adicionar à direita"
+          >
+            <Plus className="w-3.5 h-3.5" />
+          </button>
+
+          {/* Left add button - only for root node */}
+          {showAddLeft && (
+            <button
+              className="absolute top-1/2 -translate-y-1/2 w-6 h-6 rounded-full flex items-center justify-center shadow-md transition-transform hover:scale-110 z-20"
+              style={{
+                background: borderColor,
+                color: 'white',
+                left: childCount > 0 && hasLeftChildren ? '-24px' : '-12px',
+              }}
+              onClick={e => {
+                e.stopPropagation();
+                nodeData.onAddChild?.(id, 'left');
+              }}
+              title="Adicionar à esquerda"
+            >
+              <Plus className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </>
       )}
     </div>
   );
