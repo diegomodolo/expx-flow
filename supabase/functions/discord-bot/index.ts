@@ -9,6 +9,19 @@ const corsHeaders = {
 
 const DISCORD_API = "https://discord.com/api/v10";
 
+async function getBotToken(supabase: any, companyId?: string): Promise<string | null> {
+  if (companyId) {
+    const { data } = await supabase
+      .from("discord_config")
+      .select("bot_token")
+      .eq("company_id", companyId)
+      .maybeSingle();
+    if (data?.bot_token) return data.bot_token;
+  }
+  // Fallback to env secret
+  return Deno.env.get("DISCORD_BOT_TOKEN") || null;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -37,11 +50,13 @@ serve(async (req) => {
     }
 
     const { action, ...payload } = await req.json();
-    const botToken = Deno.env.get("DISCORD_BOT_TOKEN");
+    
+    // For actions that need bot token, resolve it from DB (per-company) or env
+    const botToken = await getBotToken(supabase, payload.company_id);
 
-    if (!botToken && action !== "save-config") {
+    if (!botToken) {
       return new Response(
-        JSON.stringify({ error: "Discord Bot Token não configurado. Adicione o secret DISCORD_BOT_TOKEN." }),
+        JSON.stringify({ error: "Bot Token não configurado. Insira o token na tela de configuração do Discord." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -78,7 +93,6 @@ serve(async (req) => {
           );
         }
         const channels = await res.json();
-        // Filter text channels only (type 0)
         const textChannels = channels
           .filter((c: any) => c.type === 0)
           .map((c: any) => ({ id: c.id, name: c.name, position: c.position }))
@@ -119,7 +133,6 @@ serve(async (req) => {
 
       case "send-dm": {
         const { user_id: discordUserId, content, embed } = payload;
-        // Create DM channel
         const dmRes = await fetch(`${DISCORD_API}/users/@me/channels`, {
           method: "POST",
           headers: {

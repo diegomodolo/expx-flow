@@ -5373,6 +5373,7 @@ export type Database = {
       }
       discord_config: {
         Row: {
+          bot_token: string | null
           company_id: string
           created_at: string
           enabled: boolean
@@ -5383,6 +5384,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          bot_token?: string | null
           company_id: string
           created_at?: string
           enabled?: boolean
@@ -5393,6 +5395,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          bot_token?: string | null
           company_id?: string
           created_at?: string
           enabled?: boolean
