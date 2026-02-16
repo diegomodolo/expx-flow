@@ -255,13 +255,41 @@ function MindMapEditorInner() {
         currentNodes.filter(n => (n.data as any).collapsed).map(n => n.id)
       );
 
-      const H_SPACING = 260;
-      const V_GAP = 20;
+      const H_GAP = 40; // horizontal gap between parent and children
+      const V_GAP = 30; // vertical gap between sibling subtrees
       const positions: Record<string, { x: number; y: number }> = {};
       const nodeMap = new Map(currentNodes.map(n => [n.id, n]));
       const getNodeHeight = (nodeId: string): number => {
         const n = nodeMap.get(nodeId);
         return n?.measured?.height ?? n?.height ?? 50;
+      };
+      const getNodeWidth = (nodeId: string): number => {
+        const n = nodeMap.get(nodeId);
+        return n?.measured?.width ?? n?.width ?? 150;
+      };
+
+      // Calculate max width at each depth level for consistent column alignment
+      const depthWidths: Record<string, Record<number, number>> = { r: {}, l: {} };
+      const calcDepthWidths = (nodeId: string, depth: number, childrenMap: Record<string, string[]>, side: string) => {
+        if (collapsedSet.has(nodeId) && depth > 0) return;
+        const w = getNodeWidth(nodeId);
+        depthWidths[side][depth] = Math.max(depthWidths[side][depth] || 0, w);
+        const children = childrenMap[nodeId];
+        if (children) children.forEach(cId => calcDepthWidths(cId, depth + 1, childrenMap, side));
+      };
+
+      roots.forEach(root => {
+        calcDepthWidths(root.id, 0, rightChildrenMap, 'r');
+        calcDepthWidths(root.id, 0, leftChildrenMap, 'l');
+      });
+
+      // Compute X offset for each depth: accumulate (maxWidth + gap)
+      const getDepthX = (depth: number, side: string, dirMul: number): number => {
+        let x = 0;
+        for (let d = 0; d < depth; d++) {
+          x += (depthWidths[side][d] || 150) + H_GAP;
+        }
+        return x * dirMul;
       };
 
       const subtreeHeights: Record<string, number> = {};
@@ -269,7 +297,6 @@ function MindMapEditorInner() {
         const key = `${nodeId}-${childrenMap === rightChildrenMap ? 'r' : 'l'}`;
         if (subtreeHeights[key] !== undefined) return subtreeHeights[key];
 
-        // If collapsed, treat as leaf
         if (collapsedSet.has(nodeId)) {
           subtreeHeights[key] = getNodeHeight(nodeId);
           return subtreeHeights[key];
@@ -288,13 +315,13 @@ function MindMapEditorInner() {
       };
 
       const layoutBranch = (nodeId: string, depth: number, yStart: number, childrenMap: Record<string, string[]>, directionMultiplier: number) => {
+        const side = directionMultiplier > 0 ? 'r' : 'l';
         const children = collapsedSet.has(nodeId) ? undefined : childrenMap[nodeId];
         const myHeight = getNodeHeight(nodeId);
 
         if (!children || children.length === 0) {
-          // Only set position if not already set (root gets set separately)
           if (!positions[nodeId]) {
-            positions[nodeId] = { x: depth * H_SPACING * directionMultiplier, y: yStart };
+            positions[nodeId] = { x: getDepthX(depth, side, directionMultiplier), y: yStart };
           }
           return;
         }
@@ -303,23 +330,20 @@ function MindMapEditorInner() {
           return sum + calcSubtreeHeight(cId, childrenMap) + (i > 0 ? V_GAP : 0);
         }, 0);
 
-        const stKey = `${nodeId}-${directionMultiplier > 0 ? 'r' : 'l'}`;
         let childY = yStart + (calcSubtreeHeight(nodeId, childrenMap) - totalChildrenHeight) / 2;
 
         children.forEach(childId => {
-          const childStKey = `${childId}-${directionMultiplier > 0 ? 'r' : 'l'}`;
-          positions[childId] = { x: (depth + 1) * H_SPACING * directionMultiplier, y: childY };
+          positions[childId] = { x: getDepthX(depth + 1, side, directionMultiplier), y: childY };
           layoutBranch(childId, depth + 1, childY, childrenMap, directionMultiplier);
           childY += calcSubtreeHeight(childId, childrenMap) + V_GAP;
         });
 
-        // Center parent among children if not already positioned
         if (!positions[nodeId]) {
           const firstChild = positions[children[0]];
           const lastChild = positions[children[children.length - 1]];
           const lastChildHeight = getNodeHeight(children[children.length - 1]);
           positions[nodeId] = {
-            x: depth * H_SPACING * directionMultiplier,
+            x: getDepthX(depth, side, directionMultiplier),
             y: (firstChild.y + lastChild.y + lastChildHeight - myHeight) / 2,
           };
         }
@@ -330,21 +354,17 @@ function MindMapEditorInner() {
         const hasRight = !collapsedSet.has(root.id) && (rightChildrenMap[root.id]?.length || 0) > 0;
         const hasLeft = !collapsedSet.has(root.id) && (leftChildrenMap[root.id]?.length || 0) > 0;
 
-        // Calculate subtree heights for both sides
         const rightHeight = hasRight ? calcSubtreeHeight(root.id, rightChildrenMap) : getNodeHeight(root.id);
         const leftHeight = hasLeft ? calcSubtreeHeight(root.id, leftChildrenMap) : getNodeHeight(root.id);
         const maxHeight = Math.max(rightHeight, leftHeight);
 
-        // Position root at center
         positions[root.id] = { x: 0, y: globalY + maxHeight / 2 - getNodeHeight(root.id) / 2 };
 
-        // Layout right branch
         if (hasRight) {
           const rightStart = globalY + (maxHeight - rightHeight) / 2;
           layoutBranch(root.id, 0, rightStart, rightChildrenMap, 1);
         }
 
-        // Layout left branch
         if (hasLeft) {
           const leftStart = globalY + (maxHeight - leftHeight) / 2;
           layoutBranch(root.id, 0, leftStart, leftChildrenMap, -1);
