@@ -12053,6 +12053,7 @@ export type Database = {
           id: string
           organized_by_ai: boolean | null
           origin: Database["public"]["Enums"]["task_origin"] | null
+          parent_task_id: string | null
           priority: Database["public"]["Enums"]["task_priority"]
           progress: number
           quadro_column_id: string | null
@@ -12090,6 +12091,7 @@ export type Database = {
           id?: string
           organized_by_ai?: boolean | null
           origin?: Database["public"]["Enums"]["task_origin"] | null
+          parent_task_id?: string | null
           priority?: Database["public"]["Enums"]["task_priority"]
           progress?: number
           quadro_column_id?: string | null
@@ -12127,6 +12129,7 @@ export type Database = {
           id?: string
           organized_by_ai?: boolean | null
           origin?: Database["public"]["Enums"]["task_origin"] | null
+          parent_task_id?: string | null
           priority?: Database["public"]["Enums"]["task_priority"]
           progress?: number
           quadro_column_id?: string | null
@@ -12164,6 +12167,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_parent_task_id_fkey"
+            columns: ["parent_task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
             referencedColumns: ["id"]
           },
           {
