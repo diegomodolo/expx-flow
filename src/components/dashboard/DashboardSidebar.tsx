@@ -135,6 +135,7 @@ const menuCategories: MenuCategory[] = [
         { title: "Tarefas Diárias", url: "/tarefas", icon: CheckSquare, permission: "tarefas" as MenuItemType },
         { title: "Checklists", url: "/checklist-templates", icon: ListChecks, permission: "tarefas" as MenuItemType },
         { title: "Fluxos", url: "/fluxos", icon: GitBranch, permission: "tarefas" as MenuItemType },
+        { title: "Mapas Mentais", url: "/mapas-mentais", icon: Brain, permission: "tarefas" as MenuItemType },
         { title: "Roteiros", url: "/roteiros", icon: BookOpen, permission: "roteiros" as MenuItemType },
         { title: "Tarefas Recorrentes", url: "/tarefas-recorrentes", icon: RotateCcw, permission: "tarefas-recorrentes" as MenuItemType },
         { title: "Workspace", url: "/workspace", icon: NotebookText, permission: "workspace" as MenuItemType },

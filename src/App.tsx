@@ -147,6 +147,8 @@ import RoteiroDetalhe from "./pages/RoteiroDetalhe";
 import ChecklistTemplates from "./pages/ChecklistTemplates";
 import TaskFlows from "./pages/TaskFlows";
 import TaskFlowEditorPage from "./pages/TaskFlowEditorPage";
+import MapasMentais from "./pages/MapasMentais";
+import MapaMentalEditor from "./pages/MapaMentalEditor";
 import { AuthProvider } from "@/hooks/useAuth";
 import { CompanyProvider } from "@/contexts/CompanyContext";
 import { CRMAuthProvider } from "@/contexts/CRMAuthContext";
@@ -322,10 +324,20 @@ const App = () => {
                    </ProtectedRoute>
                  } />
                  <Route path="/fluxos/:flowId" element={
-                   <ProtectedRoute>
-                     <TaskFlowEditorPage />
-                   </ProtectedRoute>
-                 } />
+                    <ProtectedRoute>
+                      <TaskFlowEditorPage />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/mapas-mentais" element={
+                    <ProtectedRoute>
+                      <MapasMentais />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/mapas-mentais/:id" element={
+                    <ProtectedRoute>
+                      <MapaMentalEditor />
+                    </ProtectedRoute>
+                  } />
                  <Route path="/relatorios" element={
                   <PermissionProtectedRoute requiredPermission="relatorios">
                     <Relatorios />
