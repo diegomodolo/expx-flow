@@ -49,10 +49,13 @@ const ZOOM_STORAGE_KEY = 'task-dialog-zoom';
 const ZOOM_LEVELS = [640, 768, 896, 1024, 1152, 1280];
 
 const TASK_TYPES = [
-  { value: 'tarefa', label: 'Tarefa' },
-  { value: 'historia', label: 'História' },
-  { value: 'bug', label: 'Bug' },
-  { value: 'melhoria', label: 'Melhoria' },
+  { value: 'Backlog', label: 'Backlog' },
+  { value: 'Criativo', label: 'Criativo' },
+  { value: 'História', label: 'História' },
+  { value: 'Negócio', label: 'Negócio' },
+  { value: 'Reunião', label: 'Reunião' },
+  { value: 'Tarefa', label: 'Tarefa' },
+  { value: 'Ticket', label: 'Ticket' },
 ];
 
 function getStoredZoom(userId: string): number {
@@ -95,7 +98,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
     progress: 0,
     checklist: [] as { id: string; text: string; completed: boolean }[],
     // Roteiro-specific
-    tipo: 'tarefa',
+    tipo: 'Tarefa',
     inicio_apos_dias: 0,
     duracao_dias: 1,
     fluxo: '',
@@ -247,7 +250,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                 completed: typeof c === 'object' ? !!c.checked : false,
               }))
             : [],
-          tipo: task.tipo || 'tarefa',
+          tipo: task.tipo || 'Tarefa',
           inicio_apos_dias: task.inicio_apos_dias || 0,
           duracao_dias: task.duracao_dias || 1,
           fluxo: task.fluxo || '',
@@ -295,7 +298,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
               return [];
             }
           })(),
-          tipo: 'tarefa',
+          tipo: task.task_type || 'Tarefa',
           inicio_apos_dias: 0,
           duracao_dias: 1,
           fluxo: '',
@@ -326,7 +329,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
         hasSpecificTime: false,
         progress: 0,
         checklist: [],
-        tipo: 'tarefa',
+        tipo: 'Tarefa',
         inicio_apos_dias: 0,
         duracao_dias: 1,
         fluxo: '',
@@ -412,6 +415,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
       autorizador_id: formData.autorizador_id || null,
       categoria_id: formData.categoria_id || null,
       classificacao_id: formData.classificacao_id || null,
+      task_type: formData.tipo || 'Tarefa',
     };
 
     if (startDateTime) {
@@ -657,7 +661,16 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                      {/* Kanban: Status / Progresso */}
                     {!isRoteiro && (
                       <>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-3 gap-4">
+                          <div>
+                            <Label className="text-sm font-semibold">Tipo</Label>
+                            <Select value={formData.tipo} onValueChange={(v) => setFormData(prev => ({ ...prev, tipo: v }))}>
+                              <SelectTrigger className="mt-1.5"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                              <SelectContent>
+                                {TASK_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                          </div>
                           <div>
                             <Label className="text-sm font-semibold">Status</Label>
                             <Select value={formData.status} onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}>
