@@ -28,22 +28,23 @@ interface UpdateColumnData {
   order_index?: number;
 }
 
-export function useTaskBoardColumns() {
+export function useTaskBoardColumns(targetUserId?: string | null) {
   const { activeCompany } = useCompany();
   const queryClient = useQueryClient();
   const companyId = activeCompany?.company_id;
 
   const { data: columns = [], isLoading } = useQuery({
-    queryKey: ['task-board-columns', companyId],
+    queryKey: ['task-board-columns', companyId, targetUserId],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user || !companyId) return [];
 
-      // Using type assertion since the table was just created and types haven't been regenerated yet
+      const userId = targetUserId || user.id;
+
       const { data, error } = await (supabase
         .from('task_board_columns' as any)
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .eq('company_id', companyId)
         .order('order_index', { ascending: true }) as any);
 

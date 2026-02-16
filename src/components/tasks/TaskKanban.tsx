@@ -53,6 +53,7 @@ interface TaskKanbanProps {
   onUpdateTaskStatus: (taskId: string, status: string, columnId?: string, columnName?: string) => void;
   onDeleteTask: (taskId: string) => void;
   isCompactMode?: boolean;
+  selectedBoardUserId?: string | null;
 }
 
 // Default columns as fallback
@@ -63,7 +64,7 @@ const DEFAULT_COLUMNS: TaskBoardColumn[] = [
   { id: 'default-done', name: 'Concluída', status: 'done', color: '#22C55E', order_index: 3, user_id: '', company_id: '', created_at: '', updated_at: '' },
 ];
 
-export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask, isCompactMode = false }: TaskKanbanProps) {
+export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask, isCompactMode = false, selectedBoardUserId }: TaskKanbanProps) {
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
   const [completedTasksModalOpen, setCompletedTasksModalOpen] = useState(false);
@@ -84,7 +85,7 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
     reorderColumns,
     applyTemplate,
     isApplyingTemplate,
-  } = useTaskBoardColumns();
+  } = useTaskBoardColumns(selectedBoardUserId);
 
   // Use user columns if available, otherwise fall back to defaults
   const columns = userColumns.length > 0 ? userColumns : DEFAULT_COLUMNS;
