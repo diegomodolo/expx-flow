@@ -59,6 +59,7 @@ interface MenuItem {
   badge?: number;
   isExternal?: boolean;
   externalUrl?: string;
+  children?: MenuItem[];
 }
 
 interface MenuCategory {
@@ -149,14 +150,22 @@ const menuCategories: MenuCategory[] = [
         { title: "Automações", url: "/automacoes", icon: Zap, permission: "automacoes" as MenuItemType },
         { title: "Campanhas", url: "/campanhas", icon: Megaphone, permission: "campanhas" as MenuItemType },
         { title: "Campanhas Unificadas", url: "/campanhas-unificadas", icon: Activity, permission: "campanhas-unificadas" as MenuItemType },
-        { title: "Dashboard TV", url: "#tv-dashboard", icon: Tv, permission: "marketing-tv" as MenuItemType, isExternal: true },
         { title: "Funis", url: "/editor-funil", icon: GitBranch, permission: "editor-funil" as MenuItemType },
         { title: "Keyword Planner", url: "/keyword-planner", icon: Sparkles, permission: "keyword-planner" as MenuItemType },
         { title: "Lead Intelligence", url: "/lead-intelligence", icon: Database, permission: "lead-intelligence" as MenuItemType },
-        { title: "Parâmetros de Performance", url: "/parametros-performance", icon: Activity, permission: "configuracoes" as MenuItemType },
-        { title: "Radar TV", url: "#radar-tv-dashboard", icon: Activity, permission: "radar-tv" as MenuItemType, isExternal: true },
-        { title: "Relatórios Marketing", url: "/marketing/relatorios", icon: BarChart3, permission: "relatorios-marketing" as MenuItemType },
         { title: "Notificações", url: "/notificacoes/whatsapp", icon: Bell, permission: "whatsapp" as MenuItemType },
+        { title: "Parâmetros de Performance", url: "/parametros-performance", icon: Activity, permission: "configuracoes" as MenuItemType },
+        { 
+          title: "Relatórios", 
+          url: "/marketing/relatorios", 
+          icon: BarChart3, 
+          permission: "relatorios-marketing" as MenuItemType,
+          children: [
+            { title: "Dashboard TV", url: "#tv-dashboard", icon: Tv, permission: "marketing-tv" as MenuItemType, isExternal: true },
+            { title: "Radar TV", url: "#radar-tv-dashboard", icon: Activity, permission: "radar-tv" as MenuItemType, isExternal: true },
+            { title: "Relatórios Marketing", url: "/marketing/relatorios", icon: BarChart3, permission: "relatorios-marketing" as MenuItemType },
+          ],
+        },
       ].sort((a, b) => a.title.localeCompare(b.title, 'pt-BR')),
     },
   ].sort((a, b) => a.title.localeCompare(b.title, 'pt-BR')),
@@ -472,6 +481,106 @@ export function DashboardSidebar() {
                               </>
                             )}
                           </button>
+                        );
+                      }
+                      // Handle items with children (sub-menu)
+                      if (item.children && item.children.length > 0) {
+                        const subMenuKey = `${category.title}-${item.title}`;
+                        const isSubMenuActive = item.children.some(child => 
+                          !child.isExternal && isActive(child.url)
+                        );
+                        return (
+                          <Collapsible 
+                            key={item.url + '-submenu'} 
+                            open={open ? (expandedCategories[subMenuKey] ?? isSubMenuActive) : false}
+                            onOpenChange={() => open && toggleCategory(subMenuKey)}
+                          >
+                            <CollapsibleTrigger asChild>
+                              <button
+                                className={cn(
+                                  "w-full flex items-center py-2 rounded-full transition-all duration-150",
+                                  open ? "gap-3 px-4" : "justify-center px-0",
+                                  isSubMenuActive
+                                    ? "bg-primary/10 text-primary"
+                                    : "text-muted-foreground hover:bg-muted/50"
+                                )}
+                                title={!open ? item.title : undefined}
+                              >
+                                <item.icon
+                                  className={cn(
+                                    "w-4 h-4 flex-shrink-0",
+                                    isSubMenuActive ? "text-primary" : "text-muted-foreground"
+                                  )}
+                                  strokeWidth={isSubMenuActive ? 2 : 1.5}
+                                />
+                                {open && (
+                                  <>
+                                    <span className={cn(
+                                      "text-sm tracking-wide whitespace-nowrap flex-1 text-left",
+                                      isSubMenuActive ? "text-primary font-medium" : "text-foreground"
+                                    )}>
+                                      {item.title}
+                                    </span>
+                                    <ChevronDown
+                                      className={cn(
+                                        "w-3 h-3 transition-transform duration-200 text-muted-foreground",
+                                        (expandedCategories[subMenuKey] ?? isSubMenuActive) && "rotate-180"
+                                      )}
+                                    />
+                                  </>
+                                )}
+                              </button>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent className="overflow-hidden">
+                              <div className={cn("space-y-0.5", open ? "ml-4 mt-0.5 border-l border-border pl-2" : "mt-0.5")}>
+                                {item.children.map((child) => {
+                                  // Re-use the same external link handlers for children
+                                  if (child.isExternal && child.url === '#tv-dashboard') {
+                                    const handleClick = async (e: React.MouseEvent) => {
+                                      e.preventDefault();
+                                      if (tvToken) { window.open(`/tv/${tvToken}`, '_blank'); }
+                                      else { const t = await generateToken(); if (t) window.open(`/tv/${t}`, '_blank'); }
+                                    };
+                                    return (
+                                      <button key={child.url} onClick={handleClick} disabled={generatingToken}
+                                        className={cn("flex items-center py-2 rounded-full transition-all duration-150 w-full", open ? "gap-3 px-4" : "justify-center px-0", "text-muted-foreground hover:bg-muted/50")}
+                                        title={!open ? child.title : undefined}>
+                                        <child.icon className="w-4 h-4 flex-shrink-0 text-muted-foreground" strokeWidth={1.5} />
+                                        {open && (<><span className="text-sm tracking-wide whitespace-nowrap text-foreground">{generatingToken ? 'Gerando...' : child.title}</span><ExternalLink className="w-3 h-3 ml-auto text-muted-foreground" /></>)}
+                                      </button>
+                                    );
+                                  }
+                                  if (child.isExternal && child.url === '#radar-tv-dashboard') {
+                                    const handleClick = async (e: React.MouseEvent) => {
+                                      e.preventDefault();
+                                      if (radarTvToken) { window.open(`/radar-tv/${radarTvToken}`, '_blank'); }
+                                      else { const t = await generateRadarTvToken(); if (t) window.open(`/radar-tv/${t}`, '_blank'); }
+                                    };
+                                    return (
+                                      <button key={child.url} onClick={handleClick} disabled={generatingRadarTvToken}
+                                        className={cn("flex items-center py-2 rounded-full transition-all duration-150 w-full", open ? "gap-3 px-4" : "justify-center px-0", "text-muted-foreground hover:bg-muted/50")}
+                                        title={!open ? child.title : undefined}>
+                                        <child.icon className="w-4 h-4 flex-shrink-0 text-muted-foreground" strokeWidth={1.5} />
+                                        {open && (<><span className="text-sm tracking-wide whitespace-nowrap text-foreground">{generatingRadarTvToken ? 'Gerando...' : child.title}</span><ExternalLink className="w-3 h-3 ml-auto text-muted-foreground" /></>)}
+                                      </button>
+                                    );
+                                  }
+                                  return (
+                                    <NavLink key={child.url} to={child.url} end
+                                      className={({ isActive: active }) => cn(
+                                        "flex items-center py-2 rounded-full transition-all duration-150",
+                                        open ? "gap-3 px-4" : "justify-center px-0",
+                                        active ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted/50"
+                                      )}
+                                      title={!open ? child.title : undefined}>
+                                      <child.icon className={cn("w-4 h-4 flex-shrink-0", isActive(child.url) ? "text-primary" : "text-muted-foreground")} strokeWidth={isActive(child.url) ? 2 : 1.5} />
+                                      {open && (<span className={cn("text-sm tracking-wide whitespace-nowrap", isActive(child.url) ? "text-primary font-medium" : "text-foreground")}>{child.title}</span>)}
+                                    </NavLink>
+                                  );
+                                })}
+                              </div>
+                            </CollapsibleContent>
+                          </Collapsible>
                         );
                       }
 
