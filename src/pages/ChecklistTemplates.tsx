@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from 'react';
-import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, Search, ListChecks, Pencil, Trash2, MoreVertical } from 'lucide-react';
@@ -21,6 +20,22 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -78,10 +93,29 @@ export default function ChecklistTemplates() {
   return (
     <>
       <div className="p-6 space-y-6">
+        {/* Breadcrumb */}
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink href="/">Início</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Templates de Checklist</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+
+        {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <ListChecks className="w-6 h-6 text-primary" />
-            <h1 className="text-2xl font-semibold">Templates de Checklist</h1>
+            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <ListChecks className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-semibold text-foreground">Templates de Checklist</h1>
+              <p className="text-sm text-muted-foreground">Gerencie seus templates reutilizáveis de checklist</p>
+            </div>
           </div>
           <Button onClick={() => { setEditingTemplate(null); setDialogOpen(true); }}>
             <Plus className="w-4 h-4 mr-2" />
@@ -89,6 +123,7 @@ export default function ChecklistTemplates() {
           </Button>
         </div>
 
+        {/* Search */}
         <div className="flex items-center gap-3">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -101,6 +136,7 @@ export default function ChecklistTemplates() {
           </div>
         </div>
 
+        {/* Content */}
         {isLoading ? (
           <div className="text-center py-12 text-muted-foreground">Carregando...</div>
         ) : filtered.length === 0 ? (
@@ -113,48 +149,57 @@ export default function ChecklistTemplates() {
             </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filtered.map(template => (
-              <div
-                key={template.id}
-                className="rounded-xl border border-border bg-card p-5 hover:shadow-md transition-shadow"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                      <ListChecks className="w-5 h-5 text-primary" />
-                    </div>
-                    <div className="min-w-0">
-                      <h3 className="font-semibold text-foreground truncate">{template.name}</h3>
-                      <p className="text-xs text-muted-foreground">
-                        {format(new Date(template.created_at), "dd 'de' MMM, yyyy", { locale: ptBR })}
-                      </p>
-                    </div>
-                  </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <MoreVertical className="w-4 h-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleEdit(template)}>
-                        <Pencil className="w-4 h-4 mr-2" /> Editar
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        className="text-destructive"
-                        onClick={() => { setDeletingTemplate(template); setDeleteDialogOpen(true); }}
-                      >
-                        <Trash2 className="w-4 h-4 mr-2" /> Excluir
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-                {template.description && (
-                  <p className="text-sm text-muted-foreground mt-3 line-clamp-2">{template.description}</p>
-                )}
-              </div>
-            ))}
+          <div className="rounded-lg border border-border overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[300px]">Nome</TableHead>
+                  <TableHead>Descrição</TableHead>
+                  <TableHead className="w-[160px]">Criado em</TableHead>
+                  <TableHead className="w-[60px]" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.map(template => (
+                  <TableRow key={template.id} className="hover:bg-muted/30">
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                          <ListChecks className="w-4 h-4 text-primary" />
+                        </div>
+                        <span className="font-medium text-foreground">{template.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-sm max-w-[400px] truncate">
+                      {template.description || '—'}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-sm">
+                      {format(new Date(template.created_at), "dd 'de' MMM, yyyy", { locale: ptBR })}
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreVertical className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleEdit(template)}>
+                            <Pencil className="w-4 h-4 mr-2" /> Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => { setDeletingTemplate(template); setDeleteDialogOpen(true); }}
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" /> Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
         )}
       </div>
