@@ -16,7 +16,8 @@ import {
   ReactFlowProvider,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { ArrowLeft, Save, Check, Loader2 } from 'lucide-react';
+import { ArrowLeft, Save, Check, Loader2, LayoutGrid } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useMindMaps } from '@/hooks/useMindMaps';
@@ -158,6 +159,72 @@ function MindMapEditorInner() {
     // Trigger double-click edit on selected node - handled by node component
   }, []);
 
+  // Auto-layout: tree algorithm
+  const handleAutoLayout = useCallback(() => {
+    // Read current state via functional updaters, but compute layout synchronously
+    // We use refs approach: get latest nodes/edges from the state updater
+    setNodes(currentNodes => {
+      // We need edges too - get them via a ref trick
+      let currentEdges: Edge[] = [];
+      setEdges(eds => { currentEdges = eds; return eds; }); // read-only peek
+
+      // Build adjacency: parent -> children
+      const childrenMap: Record<string, string[]> = {};
+      currentEdges.forEach(e => {
+        if (!childrenMap[e.source]) childrenMap[e.source] = [];
+        childrenMap[e.source].push(e.target);
+      });
+
+      // Find root(s): nodes that are never a target
+      const targetIds = new Set(currentEdges.map(e => e.target));
+      const roots = currentNodes.filter(n => !targetIds.has(n.id));
+      if (roots.length === 0) return currentNodes;
+
+      const H_SPACING = 260;
+      const V_SPACING = 70;
+      const positions: Record<string, { x: number; y: number }> = {};
+
+      // Lay out recursively
+      const layoutNode = (nodeId: string, depth: number, yOffset: number): number => {
+        const children = childrenMap[nodeId];
+        if (!children || children.length === 0) {
+          positions[nodeId] = { x: depth * H_SPACING, y: yOffset * V_SPACING };
+          return 1;
+        }
+
+        let currentY = yOffset;
+        children.forEach(childId => {
+          const size = layoutNode(childId, depth + 1, currentY);
+          currentY += size;
+        });
+
+        // Center parent among its children
+        const firstChild = positions[children[0]];
+        const lastChild = positions[children[children.length - 1]];
+        positions[nodeId] = {
+          x: depth * H_SPACING,
+          y: (firstChild.y + lastChild.y) / 2,
+        };
+
+        return currentY - yOffset;
+      };
+
+      let globalY = 0;
+      roots.forEach(root => {
+        const size = layoutNode(root.id, 0, globalY);
+        globalY += size + 1;
+      });
+
+      setSaveStatus('unsaved');
+      setTimeout(() => fitView({ padding: 0.3, duration: 300 }), 50);
+
+      return currentNodes.map(n => ({
+        ...n,
+        position: positions[n.id] || n.position,
+      }));
+    });
+  }, [fitView]);
+
   const onConnect = useCallback((connection: Connection) => {
     setEdges(eds => addEdge({
       ...connection,
@@ -223,10 +290,23 @@ function MindMapEditorInner() {
             className="border-none bg-transparent text-lg font-semibold h-9 w-64 focus-visible:ring-0 px-1"
           />
         </div>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          {saveStatus === 'saving' && <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Salvando...</>}
-          {saveStatus === 'saved' && <><Check className="w-3.5 h-3.5 text-green-500" /> Salvo</>}
-          {saveStatus === 'unsaved' && <><Save className="w-3.5 h-3.5" /> Não salvo</>}
+        <div className="flex items-center gap-3">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="sm" onClick={handleAutoLayout} className="gap-1.5">
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                  Reorganizar
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Organizar nós automaticamente em árvore</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            {saveStatus === 'saving' && <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Salvando...</>}
+            {saveStatus === 'saved' && <><Check className="w-3.5 h-3.5 text-green-500" /> Salvo</>}
+            {saveStatus === 'unsaved' && <><Save className="w-3.5 h-3.5" /> Não salvo</>}
+          </div>
         </div>
       </div>
 
