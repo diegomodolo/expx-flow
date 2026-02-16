@@ -43,18 +43,6 @@ const settingsNavItems: NavItem[] = [
     description: "Assinatura e faturamento",
   },
   {
-    title: "Facebook Ads",
-    href: "/configuracoes/facebook",
-    icon: Facebook,
-    description: "Integração com Facebook Ads",
-  },
-  {
-    title: "Google Ads",
-    href: "/configuracoes/integracao-google",
-    icon: SiGoogle as any,
-    description: "Integração com Google Ads",
-  },
-  {
     title: "Planner",
     href: "/configuracoes/planner",
     icon: Calendar,
@@ -73,12 +61,6 @@ const settingsNavItems: NavItem[] = [
     description: "Gerenciar permissões de acesso dos colaboradores",
   },
   {
-    title: "ListaCNAE",
-    href: "/configuracoes/listacnae",
-    icon: Database,
-    description: "Importar empresas da base CNPJ",
-  },
-  {
     title: "Padrões de Uso",
     href: "/configuracoes/padroes-de-uso",
     icon: SlidersHorizontal,
@@ -92,10 +74,22 @@ const settingsNavGroups: NavGroup[] = [
     icon: Plug,
     items: [
       {
+        title: "Facebook Ads",
+        href: "/configuracoes/facebook",
+        icon: Facebook,
+        description: "Integração com Facebook Ads",
+      },
+      {
         title: "Sincronização Facebook",
         href: "/configuracoes/sincronizacao-facebook",
         icon: RefreshCw,
         description: "Agendamento automático de sincronização",
+      },
+      {
+        title: "Google Ads",
+        href: "/configuracoes/integracao-google",
+        icon: SiGoogle as any,
+        description: "Integração com Google Ads",
       },
       {
         title: "Sincronização Google",
@@ -114,6 +108,12 @@ const settingsNavGroups: NavGroup[] = [
         href: "/configuracoes/discord",
         icon: SiDiscord as any,
         description: "Integração com Discord para notificações",
+      },
+      {
+        title: "ListaCNAE",
+        href: "/configuracoes/listacnae",
+        icon: Database,
+        description: "Importar empresas da base CNPJ",
       },
     ],
   },
