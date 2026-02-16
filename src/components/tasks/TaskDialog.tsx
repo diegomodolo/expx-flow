@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, X, Plus, Home, CheckSquare, Trash2, Save, ZoomIn, ZoomOut } from "lucide-react";
+import { CalendarIcon, X, Plus, Home, CheckSquare, Trash2, Save, ZoomIn, ZoomOut, ShieldCheck } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useTeams } from "@/hooks/useTeams";
@@ -18,12 +18,17 @@ import { usePlannerSlots } from "@/hooks/usePlannerSlots";
 import { useClients } from "@/hooks/useClients";
 import { useCampaigns } from "@/hooks/useCampaigns";
 import { useAuth } from "@/hooks/useAuth";
+import { useCompany } from "@/contexts/CompanyContext";
+import { useEmployeePermissions } from "@/hooks/useEmployeePermissions";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
+
+export type TaskDialogMode = 'kanban' | 'roteiro';
 
 interface TaskDialogProps {
   open: boolean;
@@ -31,19 +36,30 @@ interface TaskDialogProps {
   task?: any;
   onSave: (taskData: any) => void;
   defaultClientId?: string;
+  mode?: TaskDialogMode;
+  // Roteiro-specific
+  loading?: boolean;
+  onDelete?: () => void;
 }
 
-type SidebarTab = 'principal' | 'checklist';
+type SidebarTab = 'principal' | 'autorizador' | 'checklist';
 
 const ZOOM_STORAGE_KEY = 'task-dialog-zoom';
 const ZOOM_LEVELS = [640, 768, 896, 1024, 1152, 1280];
+
+const TASK_TYPES = [
+  { value: 'tarefa', label: 'Tarefa' },
+  { value: 'historia', label: 'História' },
+  { value: 'bug', label: 'Bug' },
+  { value: 'melhoria', label: 'Melhoria' },
+];
 
 function getStoredZoom(userId: string): number {
   try {
     const stored = localStorage.getItem(`${ZOOM_STORAGE_KEY}-${userId}`);
     if (stored) return parseInt(stored, 10);
   } catch {}
-  return 1024; // default
+  return 1024;
 }
 
 function saveZoom(userId: string, zoom: number) {
@@ -52,10 +68,12 @@ function saveZoom(userId: string, zoom: number) {
   } catch {}
 }
 
-export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId }: TaskDialogProps) {
+export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, mode = 'kanban', loading, onDelete }: TaskDialogProps) {
+  const isRoteiro = mode === 'roteiro';
   const [activeTab, setActiveTab] = useState<SidebarTab>('principal');
   const [zoomWidth, setZoomWidth] = useState(1024);
-  const [userId, setUserId] = useState<string | null>(null);
+  const [authUserId, setAuthUserId] = useState<string | null>(null);
+
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -65,6 +83,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId }
     responsible_name: '',
     responsible_avatar: '',
     responsible_user_id: '',
+    responsible_employee_id: '',
     related_client_id: defaultClientId || '',
     related_campaign_id: '',
     start_date: null as Date | null,
@@ -74,10 +93,19 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId }
     hasSpecificTime: false,
     progress: 0,
     checklist: [] as { id: string; text: string; completed: boolean }[],
+    // Roteiro-specific
+    tipo: 'tarefa',
+    inicio_apos_dias: 0,
+    duracao_dias: 1,
+    fluxo: '',
+    autorizador_id: '',
+    // Board fields (both modes)
+    quadro_user_id: '',
+    quadro_column_id: '',
   });
 
   const [newChecklistItem, setNewChecklistItem] = useState('');
-  const [previewSlot, setPreviewSlot] = useState<string>('');
+  const [previewSlot, setPreviewSlot] = useState('');
   const [clientSearch, setClientSearch] = useState('');
   const { teams } = useTeams();
   const { employees } = useEmployees();
@@ -85,13 +113,64 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId }
   const { clients } = useClients();
   const { campaigns } = useCampaigns();
   const { user } = useAuth();
+  const { activeCompany } = useCompany();
+  const companyId = activeCompany?.company_id;
+  const { hasPermission, isOwner } = useEmployeePermissions();
+
+  // Manager check for board access
+  const { data: isManager } = useQuery({
+    queryKey: ['is-manager', user?.id, companyId],
+    queryFn: async () => {
+      if (!user || !companyId) return false;
+      const { data } = await supabase
+        .from('company_members')
+        .select('role')
+        .eq('user_id', user.id)
+        .eq('company_id', companyId)
+        .single();
+      return ['owner', 'admin'].includes(data?.role || '');
+    },
+    enabled: !!user && !!companyId,
+  });
+
+  const canViewOthersBoards = isOwner || isManager || hasPermission('ver-quadros-outros');
+
+  // Fetch board columns
+  const { data: allColumns = [] } = useQuery({
+    queryKey: ['all-board-columns', companyId, canViewOthersBoards, user?.id],
+    queryFn: async () => {
+      if (!companyId) return [];
+      let query = supabase
+        .from('task_board_columns' as any)
+        .select('*')
+        .eq('company_id', companyId)
+        .order('order_index', { ascending: true });
+
+      if (!canViewOthersBoards && user?.id) {
+        query = query.eq('user_id', user.id);
+      }
+
+      const { data } = await (query as any);
+      return (data || []) as Array<{ id: string; user_id: string; name: string; color: string; order_index: number }>;
+    },
+    enabled: !!companyId,
+  });
+
+  // Employees with boards for Quadro selector
+  const employeesWithBoards = employees?.filter(emp =>
+    emp.user_id && allColumns.some(col => col.user_id === emp.user_id)
+  ) || [];
+
+  const filteredColumns = formData.quadro_user_id
+    ? allColumns.filter(col => col.user_id === formData.quadro_user_id)
+    : [];
 
   // Load user zoom preference
   useEffect(() => {
     const loadUser = async () => {
       const { data: { user: u } } = await supabase.auth.getUser();
       if (u) {
-        setUserId(u.id);
+        setAuthUserId(u.id);
         setZoomWidth(getStoredZoom(u.id));
       }
     };
@@ -103,7 +182,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId }
     if (idx < ZOOM_LEVELS.length - 1) {
       const newZoom = ZOOM_LEVELS[idx + 1];
       setZoomWidth(newZoom);
-      if (userId) saveZoom(userId, newZoom);
+      if (authUserId) saveZoom(authUserId, newZoom);
     }
   };
 
@@ -112,7 +191,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId }
     if (idx > 0) {
       const newZoom = ZOOM_LEVELS[idx - 1];
       setZoomWidth(newZoom);
-      if (userId) saveZoom(userId, newZoom);
+      if (authUserId) saveZoom(authUserId, newZoom);
     }
   };
 
@@ -127,37 +206,94 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId }
 
   useEffect(() => {
     if (task) {
-      const startDate = task.start_date ? new Date(task.start_date) : null;
-      const dueDate = task.due_date ? new Date(task.due_date) : null;
+      if (isRoteiro) {
+        // Roteiro mode: task is a RoteiroAtividade
+        const quadroColId = task.quadro_column_id || '';
+        let quadroUId = '';
+        if (quadroColId) {
+          const col = allColumns.find(c => c.id === quadroColId);
+          if (col) quadroUId = col.user_id;
+        }
+        setFormData({
+          title: task.titulo || '',
+          description: task.descricao || '',
+          status: 'todo',
+          priority: 'medium',
+          team_id: '',
+          responsible_name: '',
+          responsible_avatar: '',
+          responsible_user_id: '',
+          responsible_employee_id: task.responsavel_id || '',
+          related_client_id: '',
+          related_campaign_id: '',
+          start_date: null,
+          start_time: '',
+          due_date: null,
+          due_time: '',
+          hasSpecificTime: false,
+          progress: 0,
+          checklist: Array.isArray(task.checklist)
+            ? task.checklist.map((c: any, i: number) => ({
+                id: String(i),
+                text: typeof c === 'string' ? c : c.text || '',
+                completed: typeof c === 'object' ? !!c.checked : false,
+              }))
+            : [],
+          tipo: task.tipo || 'tarefa',
+          inicio_apos_dias: task.inicio_apos_dias || 0,
+          duracao_dias: task.duracao_dias || 1,
+          fluxo: task.fluxo || '',
+          autorizador_id: task.autorizador_id || '',
+          quadro_user_id: quadroUId,
+          quadro_column_id: quadroColId,
+        });
+      } else {
+        // Kanban mode
+        const startDate = task.start_date ? new Date(task.start_date) : null;
+        const dueDate = task.due_date ? new Date(task.due_date) : null;
+        const quadroColId = task.quadro_column_id || '';
+        let quadroUId = '';
+        if (quadroColId) {
+          const col = allColumns.find(c => c.id === quadroColId);
+          if (col) quadroUId = col.user_id;
+        }
 
-      setFormData({
-        title: task.title || '',
-        description: task.description || '',
-        status: task.status || 'todo',
-        priority: task.priority || 'medium',
-        team_id: task.team_id || '',
-        responsible_name: task.responsible_name || '',
-        responsible_avatar: task.responsible_avatar || '',
-        responsible_user_id: task.user_id || '',
-        related_client_id: task.related_client_id || '',
-        related_campaign_id: task.related_campaign_id || '',
-        start_date: startDate,
-        start_time: startDate ? format(startDate, 'HH:mm') : '',
-        due_date: dueDate,
-        due_time: dueDate ? format(dueDate, 'HH:mm') : '',
-        hasSpecificTime: !!task.start_date,
-        progress: task.progress || 0,
-        checklist: (() => {
-          try {
-            return task.checklist && typeof task.checklist === 'string' && task.checklist.trim() !== ''
-              ? JSON.parse(task.checklist)
-              : [];
-          } catch (error) {
-            console.warn('Failed to parse checklist JSON:', error);
-            return [];
-          }
-        })(),
-      });
+        setFormData({
+          title: task.title || '',
+          description: task.description || '',
+          status: task.status || 'todo',
+          priority: task.priority || 'medium',
+          team_id: task.team_id || '',
+          responsible_name: task.responsible_name || '',
+          responsible_avatar: task.responsible_avatar || '',
+          responsible_user_id: task.user_id || '',
+          responsible_employee_id: '',
+          related_client_id: task.related_client_id || '',
+          related_campaign_id: task.related_campaign_id || '',
+          start_date: startDate,
+          start_time: startDate ? format(startDate, 'HH:mm') : '',
+          due_date: dueDate,
+          due_time: dueDate ? format(dueDate, 'HH:mm') : '',
+          hasSpecificTime: !!task.start_date,
+          progress: task.progress || 0,
+          checklist: (() => {
+            try {
+              return task.checklist && typeof task.checklist === 'string' && task.checklist.trim() !== ''
+                ? JSON.parse(task.checklist)
+                : [];
+            } catch {
+              return [];
+            }
+          })(),
+          tipo: 'tarefa',
+          inicio_apos_dias: 0,
+          duracao_dias: 1,
+          fluxo: '',
+          autorizador_id: '',
+          quadro_user_id: quadroUId,
+          quadro_column_id: quadroColId,
+        });
+      }
     } else {
       setFormData({
         title: '',
@@ -165,9 +301,10 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId }
         status: 'todo',
         priority: 'medium',
         team_id: currentEmployee?.team_id || '',
-        responsible_name: currentEmployee?.name || '',
-        responsible_avatar: currentEmployee?.avatar || currentEmployee?.profile_avatar_url || '',
-        responsible_user_id: currentEmployee?.user_id || '',
+        responsible_name: isRoteiro ? '' : (currentEmployee?.name || ''),
+        responsible_avatar: isRoteiro ? '' : (currentEmployee?.avatar || currentEmployee?.profile_avatar_url || ''),
+        responsible_user_id: isRoteiro ? '' : (currentEmployee?.user_id || ''),
+        responsible_employee_id: '',
         related_client_id: defaultClientId || '',
         related_campaign_id: '',
         start_date: null,
@@ -177,12 +314,40 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId }
         hasSpecificTime: false,
         progress: 0,
         checklist: [],
+        tipo: 'tarefa',
+        inicio_apos_dias: 0,
+        duracao_dias: 1,
+        fluxo: '',
+        autorizador_id: '',
+        quadro_user_id: '',
+        quadro_column_id: '',
       });
     }
     setActiveTab('principal');
-  }, [task, defaultClientId, currentEmployee]);
+  }, [task, defaultClientId, currentEmployee, isRoteiro, allColumns]);
 
   const handleSave = () => {
+    if (!formData.title.trim()) return;
+
+    if (isRoteiro) {
+      const selectedCol = allColumns.find(c => c.id === formData.quadro_column_id);
+      onSave({
+        titulo: formData.title.trim(),
+        tipo: formData.tipo,
+        inicio_apos_dias: formData.inicio_apos_dias,
+        duracao_dias: formData.duracao_dias,
+        responsavel_id: formData.responsible_employee_id || null,
+        quadro_column_id: formData.quadro_column_id || null,
+        etapa: selectedCol?.name || null,
+        fluxo: formData.fluxo || null,
+        descricao: formData.description || null,
+        autorizador_id: formData.autorizador_id || null,
+        checklist: formData.checklist.filter(i => i.text).map(i => ({ text: i.text, checked: i.completed })),
+      });
+      return;
+    }
+
+    // Kanban mode save
     let startDateTime: Date | null = null;
     let dueDateTime: Date | null = null;
 
@@ -212,6 +377,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId }
       return;
     }
 
+    const selectedCol = allColumns.find(c => c.id === formData.quadro_column_id);
     const taskData: any = {
       title: formData.title,
       description: formData.description,
@@ -225,6 +391,8 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId }
       related_campaign_id: formData.related_campaign_id || null,
       progress: formData.progress,
       checklist: JSON.stringify(formData.checklist),
+      quadro_column_id: formData.quadro_column_id || null,
+      etapa: selectedCol?.name || null,
     };
 
     if (startDateTime) {
@@ -315,10 +483,15 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId }
     cancelled: 'bg-slate-100 text-slate-800',
   };
 
-  const sidebarItems = [
-    { id: 'principal' as SidebarTab, label: 'Principal', icon: Home },
-    { id: 'checklist' as SidebarTab, label: 'Checklist', icon: CheckSquare },
+  const sidebarItems: { id: SidebarTab; label: string; icon: any }[] = [
+    { id: 'principal', label: 'Principal', icon: Home },
+    ...(isRoteiro ? [{ id: 'autorizador' as SidebarTab, label: 'Autorizador', icon: ShieldCheck }] : []),
+    { id: 'checklist', label: 'Checklist', icon: CheckSquare },
   ];
+
+  const responsavelName = isRoteiro
+    ? employees?.find(e => e.id === formData.responsible_employee_id)?.name
+    : formData.responsible_name;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -348,6 +521,23 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId }
                 <TooltipContent side="right">{item.label}</TooltipContent>
               </Tooltip>
             ))}
+
+            <div className="flex-1" />
+
+            {isRoteiro && onDelete && task && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={onDelete}
+                    className="flex flex-col items-center gap-1 px-2 py-3 rounded-lg w-16 text-destructive hover:bg-destructive/10 transition-colors text-xs"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                    <span className="leading-tight">Excluir</span>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right">Excluir atividade</TooltipContent>
+              </Tooltip>
+            )}
           </div>
 
           {/* Main Content */}
@@ -367,20 +557,14 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId }
                   {formData.title || 'Sem Título'}
                 </h2>
                 <p className="text-sm text-muted-foreground">
-                  {task ? 'Editando tarefa' : 'Nova tarefa'}
-                  {formData.responsible_name && ` · ${formData.responsible_name}`}
+                  {task ? (isRoteiro ? 'Editando atividade' : 'Editando tarefa') : (isRoteiro ? 'Nova atividade' : 'Nova tarefa')}
+                  {responsavelName && ` · ${responsavelName}`}
                 </p>
               </div>
               <div className="flex items-center gap-1">
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={handleZoomOut}
-                      disabled={ZOOM_LEVELS.indexOf(zoomWidth) <= 0}
-                    >
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleZoomOut} disabled={ZOOM_LEVELS.indexOf(zoomWidth) <= 0}>
                       <ZoomOut className="w-4 h-4" />
                     </Button>
                   </TooltipTrigger>
@@ -388,13 +572,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId }
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={handleZoomIn}
-                      disabled={ZOOM_LEVELS.indexOf(zoomWidth) >= ZOOM_LEVELS.length - 1}
-                    >
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleZoomIn} disabled={ZOOM_LEVELS.indexOf(zoomWidth) >= ZOOM_LEVELS.length - 1}>
                       <ZoomIn className="w-4 h-4" />
                     </Button>
                   </TooltipTrigger>
@@ -417,267 +595,402 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId }
                       <Input
                         value={formData.title}
                         onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                        placeholder="Título da tarefa"
+                        placeholder={isRoteiro ? "Título da atividade" : "Título da tarefa"}
                         className="mt-1.5"
                       />
                     </div>
 
-                    {/* Status / Prioridade / Progresso */}
-                    <div className="grid grid-cols-3 gap-4">
-                      <div>
-                        <Label className="text-sm font-semibold">Status</Label>
-                        <Select
-                          value={formData.status}
-                          onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}
-                        >
-                          <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="todo"><Badge className={statusColors.todo}>Pendente</Badge></SelectItem>
-                            <SelectItem value="progress"><Badge className={statusColors.progress}>Em Andamento</Badge></SelectItem>
-                            <SelectItem value="review"><Badge className={statusColors.review}>Em Revisão</Badge></SelectItem>
-                            <SelectItem value="waiting_approval"><Badge className={statusColors.waiting_approval}>Aguardando Aprovação</Badge></SelectItem>
-                            <SelectItem value="blocked"><Badge className={statusColors.blocked}>Bloqueada</Badge></SelectItem>
-                            <SelectItem value="paused"><Badge className={statusColors.paused}>Pausada</Badge></SelectItem>
-                            <SelectItem value="done"><Badge className={statusColors.done}>Concluída</Badge></SelectItem>
-                            <SelectItem value="cancelled"><Badge className={statusColors.cancelled}>Cancelada</Badge></SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label className="text-sm font-semibold">Prioridade</Label>
-                        <Select
-                          value={formData.priority}
-                          onValueChange={(value) => setFormData(prev => ({ ...prev, priority: value }))}
-                        >
-                          <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="low"><Badge className={priorityColors.low}>Baixa</Badge></SelectItem>
-                            <SelectItem value="medium"><Badge className={priorityColors.medium}>Média</Badge></SelectItem>
-                            <SelectItem value="high"><Badge className={priorityColors.high}>Alta</Badge></SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label className="text-sm font-semibold">Progresso (%)</Label>
-                        <Input
-                          type="number"
-                          min="0"
-                          max="100"
-                          value={formData.progress}
-                          onChange={(e) => setFormData(prev => ({ ...prev, progress: parseInt(e.target.value) || 0 }))}
-                          className="mt-1.5"
-                        />
-                      </div>
-                    </div>
-
-                    {formData.progress > 0 && (
-                      <Progress value={formData.progress} className="h-2" />
-                    )}
-
-                    {/* Equipe / Responsável */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label className="text-sm font-semibold">Equipe</Label>
-                        <Select
-                          value={formData.team_id}
-                          onValueChange={(value) => setFormData(prev => ({ ...prev, team_id: value }))}
-                        >
-                          <SelectTrigger className="mt-1.5"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                          <SelectContent>
-                            {teams?.map((team) => (
-                              <SelectItem key={team.id} value={team.id}>{team.name}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label className="text-sm font-semibold">Responsável</Label>
-                        <Select
-                          value={formData.responsible_name}
-                          onValueChange={(value) => {
-                            const employee = employees?.find(e => e.name === value);
-                            setFormData(prev => ({
-                              ...prev,
-                              responsible_name: value,
-                              responsible_avatar: employee?.avatar || employee?.profile_avatar_url || '',
-                              responsible_user_id: employee?.user_id || ''
-                            }));
-                          }}
-                        >
-                          <SelectTrigger className="mt-1.5"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                          <SelectContent>
-                            {employees?.map((employee) => (
-                              <SelectItem key={employee.id} value={employee.name}>{employee.name}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    {/* Cliente / Campanha */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label className="text-sm font-semibold">Cliente (opcional)</Label>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button variant="outline" role="combobox" className="w-full justify-between font-normal mt-1.5">
-                              {formData.related_client_id
-                                ? clients?.find(c => c.id === formData.related_client_id)?.name || "Selecione..."
-                                : "Nenhum cliente"}
-                              <CalendarIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-[300px] p-0" align="start">
-                            <div className="p-2 border-b">
-                              <Input
-                                placeholder="Buscar cliente..."
-                                value={clientSearch}
-                                onChange={(e) => setClientSearch(e.target.value)}
-                                className="h-8"
-                              />
-                            </div>
-                            <div className="max-h-[200px] overflow-y-auto">
-                              <div
-                                className="px-2 py-1.5 text-sm cursor-pointer hover:bg-muted"
-                                onClick={() => {
-                                  setFormData(prev => ({ ...prev, related_client_id: '', related_campaign_id: '' }));
-                                  setClientSearch('');
-                                }}
-                              >
-                                Nenhum cliente
-                              </div>
-                              {sortedFilteredClients.map((client) => (
-                                <div
-                                  key={client.id}
-                                  className={`px-2 py-1.5 text-sm cursor-pointer hover:bg-muted ${formData.related_client_id === client.id ? 'bg-primary/10 text-primary' : ''}`}
-                                  onClick={() => {
-                                    setFormData(prev => ({ ...prev, related_client_id: client.id, related_campaign_id: '' }));
-                                    setClientSearch('');
-                                  }}
-                                >
-                                  {client.name}
-                                </div>
-                              ))}
-                              {sortedFilteredClients.length === 0 && clientSearch && (
-                                <div className="px-2 py-4 text-sm text-muted-foreground text-center">Nenhum cliente encontrado</div>
-                              )}
-                            </div>
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                      <div>
-                        <Label className="text-sm font-semibold">Campanha (opcional)</Label>
-                        <Select
-                          value={formData.related_campaign_id === '' ? "none" : formData.related_campaign_id || "none"}
-                          onValueChange={(value) => setFormData(prev => ({ ...prev, related_campaign_id: value === "none" ? '' : value }))}
-                          disabled={!formData.related_client_id}
-                        >
-                          <SelectTrigger className="mt-1.5">
-                            <SelectValue placeholder={formData.related_client_id ? "Selecione..." : "Selecione um cliente primeiro"} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">Nenhuma campanha</SelectItem>
-                            {campaigns
-                              ?.filter(campaign => campaign.client_id === formData.related_client_id)
-                              ?.map((campaign) => (
-                                <SelectItem key={campaign.id} value={campaign.id}>{campaign.name}</SelectItem>
-                              ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    <Separator />
-
-                    {/* Datas e Horários - merged into principal */}
-                    <div className="space-y-4">
-                      <h3 className="text-sm font-semibold text-foreground">Datas e Horários</h3>
-
-                      {/* Horário específico */}
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="hasSpecificTime"
-                          checked={formData.hasSpecificTime}
-                          onCheckedChange={(checked) => setFormData(prev => ({ ...prev, hasSpecificTime: !!checked }))}
-                        />
-                        <Label htmlFor="hasSpecificTime">Esta tarefa tem horário específico</Label>
-                      </div>
-
-                      {/* Data/Hora de Início */}
-                      {formData.hasSpecificTime && (
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <Label className="text-sm font-semibold">Data de Início</Label>
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <Button variant="outline" className="w-full justify-start text-left mt-1.5">
-                                  <CalendarIcon className="mr-2 h-4 w-4" />
-                                  {formData.start_date ? format(formData.start_date, "PPP", { locale: ptBR }) : "Selecione a data"}
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0">
-                                <Calendar
-                                  mode="single"
-                                  selected={formData.start_date}
-                                  onSelect={(date) => setFormData(prev => ({ ...prev, start_date: date }))}
-                                  initialFocus
-                                  className="pointer-events-auto"
-                                />
-                              </PopoverContent>
-                            </Popover>
-                          </div>
-                          <div>
-                            <Label className="text-sm font-semibold">Hora de Início</Label>
-                            <Input
-                              type="time"
-                              value={formData.start_time}
-                              onChange={(e) => setFormData(prev => ({ ...prev, start_time: e.target.value }))}
-                              className="mt-1.5"
-                            />
-                            {previewSlot && (
-                              <div className="text-sm text-muted-foreground mt-1">
-                                Slot: <strong>{previewSlot}</strong>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Prazo */}
-                      <div className="grid grid-cols-2 gap-4">
+                    {/* Roteiro: Tipo / Início / Duração */}
+                    {isRoteiro && (
+                      <div className="grid grid-cols-3 gap-4">
                         <div>
-                          <Label className="text-sm font-semibold">Data do Prazo</Label>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button variant="outline" className="w-full justify-start text-left mt-1.5">
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {formData.due_date ? format(formData.due_date, "PPP", { locale: ptBR }) : "Selecione o prazo"}
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0">
-                              <Calendar
-                                mode="single"
-                                selected={formData.due_date}
-                                onSelect={(date) => setFormData(prev => ({ ...prev, due_date: date }))}
-                                initialFocus
-                                className="pointer-events-auto"
-                              />
-                            </PopoverContent>
-                          </Popover>
+                          <Label className="text-sm font-semibold">Tipo</Label>
+                          <Select value={formData.tipo} onValueChange={(v) => setFormData(prev => ({ ...prev, tipo: v }))}>
+                            <SelectTrigger className="mt-1.5"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                            <SelectContent>
+                              {TASK_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
                         </div>
                         <div>
-                          <Label className="text-sm font-semibold">Hora do Prazo {!formData.hasSpecificTime && "(opcional)"}</Label>
+                          <Label className="text-sm font-semibold">Início após (dias)</Label>
                           <Input
-                            type="time"
-                            value={formData.due_time}
-                            onChange={(e) => setFormData(prev => ({ ...prev, due_time: e.target.value }))}
+                            type="number"
+                            min={0}
+                            value={formData.inicio_apos_dias}
+                            onChange={(e) => setFormData(prev => ({ ...prev, inicio_apos_dias: Number(e.target.value) }))}
+                            className="mt-1.5"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-sm font-semibold">Duração</Label>
+                          <Input
+                            type="number"
+                            min={1}
+                            value={formData.duracao_dias}
+                            onChange={(e) => setFormData(prev => ({ ...prev, duracao_dias: Number(e.target.value) }))}
                             className="mt-1.5"
                           />
                         </div>
                       </div>
-                    </div>
+                    )}
+
+                    {/* Kanban: Status / Prioridade / Progresso */}
+                    {!isRoteiro && (
+                      <>
+                        <div className="grid grid-cols-3 gap-4">
+                          <div>
+                            <Label className="text-sm font-semibold">Status</Label>
+                            <Select value={formData.status} onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}>
+                              <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="todo"><Badge className={statusColors.todo}>Pendente</Badge></SelectItem>
+                                <SelectItem value="progress"><Badge className={statusColors.progress}>Em Andamento</Badge></SelectItem>
+                                <SelectItem value="review"><Badge className={statusColors.review}>Em Revisão</Badge></SelectItem>
+                                <SelectItem value="waiting_approval"><Badge className={statusColors.waiting_approval}>Aguardando Aprovação</Badge></SelectItem>
+                                <SelectItem value="blocked"><Badge className={statusColors.blocked}>Bloqueada</Badge></SelectItem>
+                                <SelectItem value="paused"><Badge className={statusColors.paused}>Pausada</Badge></SelectItem>
+                                <SelectItem value="done"><Badge className={statusColors.done}>Concluída</Badge></SelectItem>
+                                <SelectItem value="cancelled"><Badge className={statusColors.cancelled}>Cancelada</Badge></SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label className="text-sm font-semibold">Prioridade</Label>
+                            <Select value={formData.priority} onValueChange={(value) => setFormData(prev => ({ ...prev, priority: value }))}>
+                              <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="low"><Badge className={priorityColors.low}>Baixa</Badge></SelectItem>
+                                <SelectItem value="medium"><Badge className={priorityColors.medium}>Média</Badge></SelectItem>
+                                <SelectItem value="high"><Badge className={priorityColors.high}>Alta</Badge></SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label className="text-sm font-semibold">Progresso (%)</Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              max="100"
+                              value={formData.progress}
+                              onChange={(e) => setFormData(prev => ({ ...prev, progress: parseInt(e.target.value) || 0 }))}
+                              className="mt-1.5"
+                            />
+                          </div>
+                        </div>
+                        {formData.progress > 0 && <Progress value={formData.progress} className="h-2" />}
+                      </>
+                    )}
+
+                    {/* Responsável row */}
+                    {isRoteiro ? (
+                      <div className="grid grid-cols-3 gap-4">
+                        <div>
+                          <Label className="text-sm font-semibold">Responsável</Label>
+                          <Select
+                            value={formData.responsible_employee_id}
+                            onValueChange={(v) => setFormData(prev => ({ ...prev, responsible_employee_id: v }))}
+                          >
+                            <SelectTrigger className="mt-1.5"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                            <SelectContent>
+                              {employees?.map(e => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="text-sm font-semibold">Quadro</Label>
+                          <Select
+                            value={formData.quadro_user_id}
+                            onValueChange={(v) => {
+                              setFormData(prev => ({ ...prev, quadro_user_id: v, quadro_column_id: '' }));
+                            }}
+                          >
+                            <SelectTrigger className="mt-1.5"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                            <SelectContent>
+                              {employeesWithBoards.map(e => (
+                                <SelectItem key={e.user_id} value={e.user_id!}>{e.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="text-sm font-semibold">Etapa</Label>
+                          <Select
+                            value={formData.quadro_column_id}
+                            onValueChange={(v) => setFormData(prev => ({ ...prev, quadro_column_id: v }))}
+                            disabled={!formData.quadro_user_id}
+                          >
+                            <SelectTrigger className="mt-1.5"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                            <SelectContent>
+                              {filteredColumns.map(col => (
+                                <SelectItem key={col.id} value={col.id}>
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: col.color }} />
+                                    {col.name}
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        {/* Kanban: Equipe / Responsável */}
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label className="text-sm font-semibold">Equipe</Label>
+                            <Select value={formData.team_id} onValueChange={(value) => setFormData(prev => ({ ...prev, team_id: value }))}>
+                              <SelectTrigger className="mt-1.5"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                              <SelectContent>
+                                {teams?.map((team) => (
+                                  <SelectItem key={team.id} value={team.id}>{team.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label className="text-sm font-semibold">Responsável</Label>
+                            <Select
+                              value={formData.responsible_name}
+                              onValueChange={(value) => {
+                                const employee = employees?.find(e => e.name === value);
+                                setFormData(prev => ({
+                                  ...prev,
+                                  responsible_name: value,
+                                  responsible_avatar: employee?.avatar || employee?.profile_avatar_url || '',
+                                  responsible_user_id: employee?.user_id || ''
+                                }));
+                              }}
+                            >
+                              <SelectTrigger className="mt-1.5"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                              <SelectContent>
+                                {employees?.map((employee) => (
+                                  <SelectItem key={employee.id} value={employee.name}>{employee.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+
+                        {/* Kanban: Quadro / Etapa */}
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label className="text-sm font-semibold">Quadro</Label>
+                            <Select
+                              value={formData.quadro_user_id}
+                              onValueChange={(v) => {
+                                setFormData(prev => ({ ...prev, quadro_user_id: v, quadro_column_id: '' }));
+                              }}
+                            >
+                              <SelectTrigger className="mt-1.5"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                              <SelectContent>
+                                {employeesWithBoards.map(e => (
+                                  <SelectItem key={e.user_id} value={e.user_id!}>{e.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label className="text-sm font-semibold">Etapa</Label>
+                            <Select
+                              value={formData.quadro_column_id}
+                              onValueChange={(v) => setFormData(prev => ({ ...prev, quadro_column_id: v }))}
+                              disabled={!formData.quadro_user_id}
+                            >
+                              <SelectTrigger className="mt-1.5"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                              <SelectContent>
+                                {filteredColumns.map(col => (
+                                  <SelectItem key={col.id} value={col.id}>
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: col.color }} />
+                                      {col.name}
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+
+                        {/* Kanban: Cliente / Campanha */}
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label className="text-sm font-semibold">Cliente (opcional)</Label>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button variant="outline" role="combobox" className="w-full justify-between font-normal mt-1.5">
+                                  {formData.related_client_id
+                                    ? clients?.find(c => c.id === formData.related_client_id)?.name || "Selecione..."
+                                    : "Nenhum cliente"}
+                                  <CalendarIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-[300px] p-0" align="start">
+                                <div className="p-2 border-b">
+                                  <Input
+                                    placeholder="Buscar cliente..."
+                                    value={clientSearch}
+                                    onChange={(e) => setClientSearch(e.target.value)}
+                                    className="h-8"
+                                  />
+                                </div>
+                                <div className="max-h-[200px] overflow-y-auto">
+                                  <div
+                                    className="px-2 py-1.5 text-sm cursor-pointer hover:bg-muted"
+                                    onClick={() => {
+                                      setFormData(prev => ({ ...prev, related_client_id: '', related_campaign_id: '' }));
+                                      setClientSearch('');
+                                    }}
+                                  >
+                                    Nenhum cliente
+                                  </div>
+                                  {sortedFilteredClients.map((client) => (
+                                    <div
+                                      key={client.id}
+                                      className={`px-2 py-1.5 text-sm cursor-pointer hover:bg-muted ${formData.related_client_id === client.id ? 'bg-primary/10 text-primary' : ''}`}
+                                      onClick={() => {
+                                        setFormData(prev => ({ ...prev, related_client_id: client.id, related_campaign_id: '' }));
+                                        setClientSearch('');
+                                      }}
+                                    >
+                                      {client.name}
+                                    </div>
+                                  ))}
+                                  {sortedFilteredClients.length === 0 && clientSearch && (
+                                    <div className="px-2 py-4 text-sm text-muted-foreground text-center">Nenhum cliente encontrado</div>
+                                  )}
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                          </div>
+                          <div>
+                            <Label className="text-sm font-semibold">Campanha (opcional)</Label>
+                            <Select
+                              value={formData.related_campaign_id === '' ? "none" : formData.related_campaign_id || "none"}
+                              onValueChange={(value) => setFormData(prev => ({ ...prev, related_campaign_id: value === "none" ? '' : value }))}
+                              disabled={!formData.related_client_id}
+                            >
+                              <SelectTrigger className="mt-1.5">
+                                <SelectValue placeholder={formData.related_client_id ? "Selecione..." : "Selecione um cliente primeiro"} />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">Nenhuma campanha</SelectItem>
+                                {campaigns
+                                  ?.filter(campaign => campaign.client_id === formData.related_client_id)
+                                  ?.map((campaign) => (
+                                    <SelectItem key={campaign.id} value={campaign.id}>{campaign.name}</SelectItem>
+                                  ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    {/* Roteiro: Fluxo */}
+                    {isRoteiro && (
+                      <div>
+                        <Label className="text-sm font-semibold">Fluxo</Label>
+                        <Input
+                          value={formData.fluxo}
+                          onChange={(e) => setFormData(prev => ({ ...prev, fluxo: e.target.value }))}
+                          placeholder="Nome do fluxo"
+                          className="mt-1.5"
+                        />
+                      </div>
+                    )}
 
                     <Separator />
+
+                    {/* Kanban: Datas e Horários */}
+                    {!isRoteiro && (
+                      <>
+                        <div className="space-y-4">
+                          <h3 className="text-sm font-semibold text-foreground">Datas e Horários</h3>
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id="hasSpecificTime"
+                              checked={formData.hasSpecificTime}
+                              onCheckedChange={(checked) => setFormData(prev => ({ ...prev, hasSpecificTime: !!checked }))}
+                            />
+                            <Label htmlFor="hasSpecificTime">Esta tarefa tem horário específico</Label>
+                          </div>
+
+                          {formData.hasSpecificTime && (
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <Label className="text-sm font-semibold">Data de Início</Label>
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <Button variant="outline" className="w-full justify-start text-left mt-1.5">
+                                      <CalendarIcon className="mr-2 h-4 w-4" />
+                                      {formData.start_date ? format(formData.start_date, "PPP", { locale: ptBR }) : "Selecione a data"}
+                                    </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-auto p-0">
+                                    <Calendar
+                                      mode="single"
+                                      selected={formData.start_date}
+                                      onSelect={(date) => setFormData(prev => ({ ...prev, start_date: date }))}
+                                      initialFocus
+                                      className="pointer-events-auto"
+                                    />
+                                  </PopoverContent>
+                                </Popover>
+                              </div>
+                              <div>
+                                <Label className="text-sm font-semibold">Hora de Início</Label>
+                                <Input
+                                  type="time"
+                                  value={formData.start_time}
+                                  onChange={(e) => setFormData(prev => ({ ...prev, start_time: e.target.value }))}
+                                  className="mt-1.5"
+                                />
+                                {previewSlot && (
+                                  <div className="text-sm text-muted-foreground mt-1">
+                                    Slot: <strong>{previewSlot}</strong>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <Label className="text-sm font-semibold">Data do Prazo</Label>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <Button variant="outline" className="w-full justify-start text-left mt-1.5">
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {formData.due_date ? format(formData.due_date, "PPP", { locale: ptBR }) : "Selecione o prazo"}
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0">
+                                  <Calendar
+                                    mode="single"
+                                    selected={formData.due_date}
+                                    onSelect={(date) => setFormData(prev => ({ ...prev, due_date: date }))}
+                                    initialFocus
+                                    className="pointer-events-auto"
+                                  />
+                                </PopoverContent>
+                              </Popover>
+                            </div>
+                            <div>
+                              <Label className="text-sm font-semibold">Hora do Prazo {!formData.hasSpecificTime && "(opcional)"}</Label>
+                              <Input
+                                type="time"
+                                value={formData.due_time}
+                                onChange={(e) => setFormData(prev => ({ ...prev, due_time: e.target.value }))}
+                                className="mt-1.5"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                        <Separator />
+                      </>
+                    )}
 
                     {/* Descrição */}
                     <div>
@@ -685,10 +998,30 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId }
                       <Textarea
                         value={formData.description}
                         onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                        placeholder="Descreva a tarefa..."
+                        placeholder={isRoteiro ? "Descrição detalhada da atividade..." : "Descreva a tarefa..."}
                         rows={5}
                         className="mt-1.5"
                       />
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'autorizador' && isRoteiro && (
+                  <div className="space-y-5">
+                    <div>
+                      <h3 className="text-base font-semibold text-foreground mb-1">Autorizador</h3>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Selecione quem deve autorizar esta atividade antes de ser executada.
+                      </p>
+                      <Select
+                        value={formData.autorizador_id}
+                        onValueChange={(v) => setFormData(prev => ({ ...prev, autorizador_id: v }))}
+                      >
+                        <SelectTrigger><SelectValue placeholder="Selecione o autorizador..." /></SelectTrigger>
+                        <SelectContent>
+                          {employees?.map(e => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                 )}
@@ -698,7 +1031,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId }
                     <div>
                       <h3 className="text-base font-semibold text-foreground mb-1">Checklist</h3>
                       <p className="text-sm text-muted-foreground mb-4">
-                        Adicione itens de checklist para esta tarefa.
+                        Adicione itens de checklist para esta {isRoteiro ? 'atividade' : 'tarefa'}.
                       </p>
                     </div>
                     <div className="space-y-2">
@@ -740,9 +1073,9 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId }
 
             {/* Footer */}
             <div className="px-6 py-4 border-t border-border flex justify-end">
-              <Button onClick={handleSave} disabled={!formData.title.trim()} className="gap-2">
+              <Button onClick={handleSave} disabled={!formData.title.trim() || !!loading} className="gap-2">
                 <Save className="w-4 h-4" />
-                {task ? 'Atualizar' : 'Criar'} Tarefa
+                {loading ? 'Salvando...' : (task ? 'Atualizar' : 'Criar')} {isRoteiro ? 'Atividade' : 'Tarefa'}
               </Button>
             </div>
           </div>
