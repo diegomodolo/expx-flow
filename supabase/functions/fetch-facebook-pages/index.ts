@@ -171,6 +171,198 @@ serve(async (req) => {
         for (const business of businesses) {
           console.log(`Processing Business Manager: ${business.name} (${business.id})`);
 
+          // ========================================
+          // Fetch pages owned by the Business Manager
+          // ========================================
+          try {
+            let bmPagesUrl: string | null = `https://graph.facebook.com/v20.0/${business.id}/owned_pages?fields=id,name,access_token,category,instagram_business_account&limit=100&access_token=${accessToken}`;
+            
+            while (bmPagesUrl) {
+              const bmPagesResponse = await fetch(bmPagesUrl);
+              
+              if (bmPagesResponse.ok) {
+                const bmPagesData = await bmPagesResponse.json();
+                const bmPages = bmPagesData.data || [];
+                console.log(`Found ${bmPages.length} owned page(s) in BM ${business.name}`);
+
+                for (const page of bmPages) {
+                  const { data: fbPage, error: pageError } = await supabase
+                    .from('facebook_pages')
+                    .upsert({
+                      integration_id: integrationId,
+                      company_id: companyId,
+                      page_id: page.id,
+                      page_name: page.name,
+                      page_access_token: page.access_token,
+                      page_category: page.category,
+                      instagram_business_account_id: page.instagram_business_account?.id || null,
+                      is_active: true,
+                      updated_at: new Date().toISOString(),
+                    }, {
+                      onConflict: 'integration_id,page_id'
+                    })
+                    .select()
+                    .single();
+
+                  if (pageError) {
+                    console.error('Error saving BM page:', pageError);
+                    continue;
+                  }
+
+                  pages.push(fbPage);
+                  console.log(`Saved BM page: ${page.name} (${page.id}), IG: ${page.instagram_business_account?.id || 'none'}`);
+
+                  // If BM page has Instagram business account, fetch and link it
+                  if (page.instagram_business_account?.id && !processedInstagramIds.has(page.instagram_business_account.id)) {
+                    try {
+                      const igResponse = await fetch(
+                        `https://graph.facebook.com/v20.0/${page.instagram_business_account.id}?fields=id,username,profile_picture_url,followers_count&access_token=${page.access_token}`
+                      );
+                      if (igResponse.ok) {
+                        const igData = await igResponse.json();
+                        console.log(`Found IG via BM page: @${igData.username}`);
+                        const { data: igAccount, error: igError } = await supabase
+                          .from('instagram_accounts')
+                          .upsert({
+                            facebook_page_id: fbPage.id,
+                            company_id: companyId,
+                            instagram_id: igData.id,
+                            username: igData.username,
+                            profile_picture_url: igData.profile_picture_url,
+                            followers_count: igData.followers_count || 0,
+                            source: 'page',
+                            business_id: business.id,
+                            is_active: true,
+                            updated_at: new Date().toISOString(),
+                          }, { onConflict: 'company_id,instagram_id' })
+                          .select().single();
+                        if (!igError && igAccount) {
+                          instagramAccounts.push(igAccount);
+                          processedInstagramIds.add(igData.id);
+                        }
+                      }
+                    } catch (igErr) {
+                      console.error('Error fetching IG from BM page:', igErr);
+                    }
+                  }
+                }
+                bmPagesUrl = bmPagesData.paging?.next || null;
+              } else {
+                const errorData = await bmPagesResponse.json();
+                console.log(`Could not fetch owned_pages for BM ${business.id}:`, errorData.error?.message);
+                break;
+              }
+            }
+          } catch (bmPagesError) {
+            console.error(`Error fetching BM owned pages for ${business.id}:`, bmPagesError);
+          }
+
+          // Fetch client_pages (pages shared with the BM)
+          try {
+            let clientPagesUrl: string | null = `https://graph.facebook.com/v20.0/${business.id}/client_pages?fields=id,name,access_token,category,instagram_business_account&limit=100&access_token=${accessToken}`;
+            
+            while (clientPagesUrl) {
+              const clientPagesResponse = await fetch(clientPagesUrl);
+              
+              if (clientPagesResponse.ok) {
+                const clientPagesData = await clientPagesResponse.json();
+                const clientPagesList = clientPagesData.data || [];
+                console.log(`Found ${clientPagesList.length} client page(s) in BM ${business.name}`);
+
+                for (const page of clientPagesList) {
+                  const { data: fbPage, error: pageError } = await supabase
+                    .from('facebook_pages')
+                    .upsert({
+                      integration_id: integrationId,
+                      company_id: companyId,
+                      page_id: page.id,
+                      page_name: page.name,
+                      page_access_token: page.access_token,
+                      page_category: page.category,
+                      instagram_business_account_id: page.instagram_business_account?.id || null,
+                      is_active: true,
+                      updated_at: new Date().toISOString(),
+                    }, { onConflict: 'integration_id,page_id' })
+                    .select().single();
+
+                  if (pageError) { console.error('Error saving client page:', pageError); continue; }
+                  pages.push(fbPage);
+
+                  if (page.instagram_business_account?.id && !processedInstagramIds.has(page.instagram_business_account.id)) {
+                    try {
+                      const igResponse = await fetch(
+                        `https://graph.facebook.com/v20.0/${page.instagram_business_account.id}?fields=id,username,profile_picture_url,followers_count&access_token=${page.access_token}`
+                      );
+                      if (igResponse.ok) {
+                        const igData = await igResponse.json();
+                        const { data: igAccount, error: igError } = await supabase
+                          .from('instagram_accounts')
+                          .upsert({
+                            facebook_page_id: fbPage.id,
+                            company_id: companyId,
+                            instagram_id: igData.id,
+                            username: igData.username,
+                            profile_picture_url: igData.profile_picture_url,
+                            followers_count: igData.followers_count || 0,
+                            source: 'page',
+                            business_id: business.id,
+                            is_active: true,
+                            updated_at: new Date().toISOString(),
+                          }, { onConflict: 'company_id,instagram_id' })
+                          .select().single();
+                        if (!igError && igAccount) {
+                          instagramAccounts.push(igAccount);
+                          processedInstagramIds.add(igData.id);
+                        }
+                      }
+                    } catch (igErr) { console.error('Error fetching IG from client page:', igErr); }
+                  }
+                }
+                clientPagesUrl = clientPagesData.paging?.next || null;
+              } else {
+                const errorData = await clientPagesResponse.json();
+                console.log(`Could not fetch client_pages for BM ${business.id}:`, errorData.error?.message);
+                break;
+              }
+            }
+          } catch (clientPagesError) {
+            console.error(`Error fetching BM client pages for ${business.id}:`, clientPagesError);
+          }
+
+          // ========================================
+          // Cross-reference: link BM IG accounts to their pages
+          // ========================================
+          {
+            const { data: unlinkedIgAccounts } = await supabase
+              .from('instagram_accounts')
+              .select('id, instagram_id, username')
+              .eq('company_id', companyId)
+              .eq('source', 'business_manager')
+              .is('facebook_page_id', null);
+
+            if (unlinkedIgAccounts && unlinkedIgAccounts.length > 0) {
+              console.log(`Found ${unlinkedIgAccounts.length} unlinked BM Instagram account(s). Cross-referencing with pages...`);
+              
+              for (const igAcc of unlinkedIgAccounts) {
+                const { data: matchingPage } = await supabase
+                  .from('facebook_pages')
+                  .select('id, page_name')
+                  .eq('company_id', companyId)
+                  .eq('instagram_business_account_id', igAcc.instagram_id)
+                  .eq('is_active', true)
+                  .single();
+
+                if (matchingPage) {
+                  console.log(`Linking @${igAcc.username} to page "${matchingPage.page_name}"`);
+                  await supabase
+                    .from('instagram_accounts')
+                    .update({ facebook_page_id: matchingPage.id })
+                    .eq('id', igAcc.id);
+                }
+              }
+            }
+          }
+
           // Fetch owned_instagram_accounts (accounts the BM owns)
           try {
             let ownedIgUrl: string | null = `https://graph.facebook.com/v20.0/${business.id}/owned_instagram_accounts?fields=id,username,profile_picture_url,followers_count&limit=100&access_token=${accessToken}`;

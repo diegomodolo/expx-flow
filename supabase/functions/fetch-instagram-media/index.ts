@@ -45,6 +45,7 @@ serve(async (req) => {
     // Determine the correct token and instagram ID based on account source
     let accessToken: string | null = null;
     let resolvedInstagramId = instagramId;
+    let tokenSource = 'unknown';
 
     if (client.instagram_account_id) {
       const { data: igAccount } = await supabase
@@ -54,25 +55,63 @@ serve(async (req) => {
         .single();
 
       if (igAccount?.source === 'business_manager') {
-        // Business Manager accounts: the IG account may NOT be linked to the Facebook page.
-        // The page's instagram_business_account_id could be a DIFFERENT account (e.g., personal).
-        // Use the user-level token (which has BM permissions) with the original BM instagram_id.
-        console.log(`BM account detected (source: business_manager). Using user-level token with IG ID: ${instagramId}`);
+        console.log(`BM account detected. Checking for linked page...`);
         
-        const { data: integration } = await supabase
-          .from("facebook_integrations")
-          .select("access_token")
-          .eq("company_id", client.company_id)
-          .eq("is_active", true)
-          .single();
+        // Option 1: BM account has a linked page - use page token
+        if (igAccount.facebook_page_id) {
+          const { data: fbPage } = await supabase
+            .from("facebook_pages")
+            .select("page_access_token, instagram_business_account_id")
+            .eq("id", igAccount.facebook_page_id)
+            .single();
 
-        accessToken = integration?.access_token || null;
-        if (accessToken) {
-          console.log("Using user-level token for BM account");
+          if (fbPage?.page_access_token) {
+            accessToken = fbPage.page_access_token;
+            tokenSource = 'bm_linked_page';
+            console.log("Using page_access_token from BM-linked page");
+          }
         }
-        // Keep resolvedInstagramId = instagramId (the BM-sourced ID)
+
+        // Option 2: Try dynamic lookup - find a page whose instagram_business_account_id matches
+        if (!accessToken) {
+          const { data: matchingPage } = await supabase
+            .from("facebook_pages")
+            .select("id, page_access_token, page_name")
+            .eq("company_id", client.company_id)
+            .eq("instagram_business_account_id", instagramId)
+            .eq("is_active", true)
+            .single();
+
+          if (matchingPage?.page_access_token) {
+            accessToken = matchingPage.page_access_token;
+            tokenSource = 'bm_dynamic_page_match';
+            console.log(`Found matching page dynamically: ${matchingPage.page_name}`);
+
+            // Auto-link for future use
+            await supabase
+              .from("instagram_accounts")
+              .update({ facebook_page_id: matchingPage.id })
+              .eq("id", client.instagram_account_id);
+          }
+        }
+
+        // Option 3: No page found - return descriptive error
+        if (!accessToken) {
+          return new Response(
+            JSON.stringify({ 
+              success: false, 
+              error: "Conta Instagram via Business Manager sem página vinculada. Sincronize as páginas (Configurações > Facebook Ads > Atualizar Páginas) ou vincule esta conta a uma Página no Business Manager.",
+              diagnostics: {
+                source: 'business_manager',
+                hasLinkedPage: false,
+                suggestion: 'sync_pages'
+              }
+            }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+          );
+        }
       } else if (igAccount?.facebook_page_id) {
-        // Page-linked accounts: use the page access token + page's IG business account ID
+        // Page-linked accounts: use the page access token
         const { data: fbPage } = await supabase
           .from("facebook_pages")
           .select("page_access_token, instagram_business_account_id")
@@ -81,6 +120,7 @@ serve(async (req) => {
 
         if (fbPage?.page_access_token) {
           accessToken = fbPage.page_access_token;
+          tokenSource = 'page';
           console.log("Using page access token from linked Facebook page");
         }
       }
@@ -97,6 +137,7 @@ serve(async (req) => {
 
       accessToken = integration?.access_token || null;
       if (accessToken) {
+        tokenSource = 'fallback_user_token';
         console.log("Using user-level access token as fallback");
       }
     }
@@ -107,6 +148,8 @@ serve(async (req) => {
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 404 }
       );
     }
+
+    console.log(`Token source: ${tokenSource}`);
 
     // Build fields for the API request
     const fields = "id,media_type,media_url,thumbnail_url,caption,timestamp,permalink";
@@ -127,7 +170,15 @@ serve(async (req) => {
     if (data.error) {
       console.error("Instagram API error:", data.error);
       return new Response(
-        JSON.stringify({ success: false, error: data.error.message }),
+        JSON.stringify({ 
+          success: false, 
+          error: data.error.message,
+          diagnostics: {
+            tokenSource,
+            errorCode: data.error.code,
+            errorType: data.error.type,
+          }
+        }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
       );
     }
@@ -143,7 +194,6 @@ serve(async (req) => {
     if (mediaType === 'VIDEO') {
       mediaItems = mediaItems.filter((item: any) => item.media_type === 'VIDEO');
     } else if (mediaType === 'IMAGE') {
-      // Include both IMAGE and CAROUSEL_ALBUM (first image of carousel)
       mediaItems = mediaItems.filter((item: any) => 
         item.media_type === 'IMAGE' || item.media_type === 'CAROUSEL_ALBUM'
       );
@@ -154,7 +204,6 @@ serve(async (req) => {
     // For carousel albums, we need to fetch the first image
     const processedMedia = await Promise.all(
       mediaItems.map(async (item: any) => {
-        // For carousel albums, get the children to find the first image
         if (item.media_type === 'CAROUSEL_ALBUM' && mediaType === 'IMAGE') {
           try {
             const childrenUrl = `https://graph.facebook.com/v21.0/${item.id}/children?fields=id,media_type,media_url&access_token=${accessToken}`;
@@ -162,7 +211,6 @@ serve(async (req) => {
             const childrenData = await childrenResponse.json();
             
             if (childrenData.data && childrenData.data.length > 0) {
-              // Get the first image from the carousel
               const firstImage = childrenData.data.find((c: any) => c.media_type === 'IMAGE');
               if (firstImage) {
                 return {
@@ -186,6 +234,7 @@ serve(async (req) => {
         count: processedMedia.length,
         nextCursor,
         hasMore,
+        tokenSource,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
