@@ -11759,6 +11759,91 @@ export type Database = {
           },
         ]
       }
+      task_client_contact_persons: {
+        Row: {
+          company_id: string
+          contact_id: string
+          created_at: string
+          id: string
+          task_client_id: string
+        }
+        Insert: {
+          company_id: string
+          contact_id: string
+          created_at?: string
+          id?: string
+          task_client_id: string
+        }
+        Update: {
+          company_id?: string
+          contact_id?: string
+          created_at?: string
+          id?: string
+          task_client_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_client_contact_persons_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_client_contact_persons_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_client_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_client_contact_persons_task_client_id_fkey"
+            columns: ["task_client_id"]
+            isOneToOne: false
+            referencedRelation: "task_clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_clients: {
+        Row: {
+          client_id: string
+          company_id: string
+          created_at: string
+          id: string
+          task_id: string
+        }
+        Insert: {
+          client_id: string
+          company_id: string
+          created_at?: string
+          id?: string
+          task_id: string
+        }
+        Update: {
+          client_id?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_clients_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_clients_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_creative_files: {
         Row: {
           company_id: string
