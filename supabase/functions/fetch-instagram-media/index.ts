@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { resolveInstagramCredentials } from '../_shared/instagram-token-resolver.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -42,114 +43,41 @@ serve(async (req) => {
       );
     }
 
-    // Determine the correct token and instagram ID based on account source
-    let accessToken: string | null = null;
-    let resolvedInstagramId = instagramId;
-    let tokenSource = 'unknown';
-
-    if (client.instagram_account_id) {
-      const { data: igAccount } = await supabase
-        .from("instagram_accounts")
-        .select("facebook_page_id, source, instagram_id")
-        .eq("id", client.instagram_account_id)
-        .single();
-
-      if (igAccount?.source === 'business_manager') {
-        console.log(`BM account detected. Checking for linked page...`);
-        
-        // Option 1: BM account has a linked page - use page token
-        if (igAccount.facebook_page_id) {
-          const { data: fbPage } = await supabase
-            .from("facebook_pages")
-            .select("page_access_token, instagram_business_account_id")
-            .eq("id", igAccount.facebook_page_id)
-            .single();
-
-          if (fbPage?.page_access_token) {
-            accessToken = fbPage.page_access_token;
-            tokenSource = 'bm_linked_page';
-            console.log("Using page_access_token from BM-linked page");
-          }
-        }
-
-        // Option 2: Try dynamic lookup - find a page whose instagram_business_account_id matches
-        if (!accessToken) {
-          const { data: matchingPage } = await supabase
-            .from("facebook_pages")
-            .select("id, page_access_token, page_name")
-            .eq("company_id", client.company_id)
-            .eq("instagram_business_account_id", instagramId)
-            .eq("is_active", true)
-            .single();
-
-          if (matchingPage?.page_access_token) {
-            accessToken = matchingPage.page_access_token;
-            tokenSource = 'bm_dynamic_page_match';
-            console.log(`Found matching page dynamically: ${matchingPage.page_name}`);
-
-            // Auto-link for future use
-            await supabase
-              .from("instagram_accounts")
-              .update({ facebook_page_id: matchingPage.id })
-              .eq("id", client.instagram_account_id);
-          }
-        }
-
-        // Option 3: No page found - return descriptive error
-        if (!accessToken) {
-          return new Response(
-            JSON.stringify({ 
-              success: false, 
-              error: "Conta Instagram via Business Manager sem página vinculada. Sincronize as páginas (Configurações > Facebook Ads > Atualizar Páginas) ou vincule esta conta a uma Página no Business Manager.",
-              diagnostics: {
-                source: 'business_manager',
-                hasLinkedPage: false,
-                suggestion: 'sync_pages'
-              }
-            }),
-            { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
-          );
-        }
-      } else if (igAccount?.facebook_page_id) {
-        // Page-linked accounts: use the page access token
-        const { data: fbPage } = await supabase
-          .from("facebook_pages")
-          .select("page_access_token, instagram_business_account_id")
-          .eq("id", igAccount.facebook_page_id)
-          .single();
-
-        if (fbPage?.page_access_token) {
-          accessToken = fbPage.page_access_token;
-          tokenSource = 'page';
-          console.log("Using page access token from linked Facebook page");
-        }
-      }
-    }
-
-    // Fallback to user-level token if no token found yet
-    if (!accessToken) {
-      const { data: integration } = await supabase
-        .from("facebook_integrations")
-        .select("access_token")
-        .eq("company_id", client.company_id)
-        .eq("is_active", true)
-        .single();
-
-      accessToken = integration?.access_token || null;
-      if (accessToken) {
-        tokenSource = 'fallback_user_token';
-        console.log("Using user-level access token as fallback");
-      }
-    }
-
-    if (!accessToken) {
+    if (!client.instagram_account_id) {
       return new Response(
-        JSON.stringify({ success: false, error: "Nenhum token de acesso encontrado. Reconecte o Facebook nas configurações." }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 404 }
+        JSON.stringify({ success: false, error: "Client has no Instagram account linked" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
       );
     }
 
-    console.log(`Token source: ${tokenSource}`);
+    // Use the shared token resolver (same as fetch-instagram-profile-picture)
+    let credentials;
+    try {
+      credentials = await resolveInstagramCredentials(supabase, client.instagram_account_id, client.company_id);
+    } catch (resolverError: any) {
+      console.error("Token resolver error:", resolverError.message);
+      
+      // Check if it's a BM-no-page error for diagnostics
+      const isBmError = resolverError.message.includes('Business Manager');
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: resolverError.message,
+          diagnostics: isBmError ? {
+            source: 'business_manager',
+            hasLinkedPage: false,
+            suggestion: 'sync_pages'
+          } : undefined
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
+    }
+
+    const accessToken = credentials.accessToken;
+    const resolvedInstagramId = credentials.instagramUserId;
+    const tokenSource = credentials.source;
+
+    console.log(`Token resolved: source=${tokenSource}, igUserId=${resolvedInstagramId}`);
 
     // Build fields for the API request
     const fields = "id,media_type,media_url,thumbnail_url,caption,timestamp,permalink";
