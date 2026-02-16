@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Team } from "@/hooks/useTeams";
 import { useEmployees } from "@/hooks/useEmployees";
@@ -68,6 +70,22 @@ export function SquadDialog({ open, onOpenChange, onSubmit, squad, title, readOn
   });
   const [loading, setLoading] = useState(false);
 
+  // Fetch fresh squad data from DB when editing
+  const { data: freshSquadData } = useQuery({
+    queryKey: ["squad-edit-details", squad?.id],
+    queryFn: async () => {
+      if (!squad?.id) return null;
+      const { data, error } = await supabase
+        .from("teams")
+        .select("leader_id, whatsapp_responsible_id, authorizer_id")
+        .eq("id", squad.id)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!squad?.id && open,
+  });
+
   // Get members of this squad for role selectors
   const squadMembers = (employees || []).filter(e => {
     if (squad) return e.team_id === squad.id;
@@ -83,9 +101,9 @@ export function SquadDialog({ open, onOpenChange, onSubmit, squad, title, readOn
         icon: squad.icon || "Megaphone",
         icon_color: squad.icon_color || "text-blue-600",
         icon_bg: squad.icon_bg || "bg-blue-100",
-        leader_id: squad.leader_id || "",
-        whatsapp_responsible_id: squad.whatsapp_responsible_id || "",
-        authorizer_id: squad.authorizer_id || "",
+        leader_id: freshSquadData?.leader_id || squad.leader_id || "",
+        whatsapp_responsible_id: freshSquadData?.whatsapp_responsible_id || squad.whatsapp_responsible_id || "",
+        authorizer_id: freshSquadData?.authorizer_id || squad.authorizer_id || "",
       });
     } else {
       setFormData({
@@ -100,7 +118,7 @@ export function SquadDialog({ open, onOpenChange, onSubmit, squad, title, readOn
         authorizer_id: "",
       });
     }
-  }, [squad, open]);
+  }, [squad, open, freshSquadData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
