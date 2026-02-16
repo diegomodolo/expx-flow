@@ -25,6 +25,8 @@ export interface Task {
   created_at?: string;
   assigned_user_id?: string;
   visibility_date?: string;
+  quadro_column_id?: string | null;
+  etapa?: string | null;
   team?: {
     name: string;
     color: string;
