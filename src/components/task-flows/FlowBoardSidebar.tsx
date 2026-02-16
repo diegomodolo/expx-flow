@@ -18,10 +18,10 @@ export function FlowBoardSidebar({ boards, isLoading }: FlowBoardSidebarProps) {
   const filteredBoards = (boards || [])
     .map((board) => ({
       ...board,
-      columns: board.columns.filter(
+      columns: (board.columns || []).filter(
         (col) =>
-          col.name.toLowerCase().includes(search.toLowerCase()) ||
-          board.owner_name.toLowerCase().includes(search.toLowerCase())
+          col.name?.toLowerCase().includes(search.toLowerCase()) ||
+          board.owner_name?.toLowerCase().includes(search.toLowerCase())
       ),
     }))
     .filter((board) => board.columns.length > 0);
