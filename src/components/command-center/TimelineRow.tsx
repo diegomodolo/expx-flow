@@ -3,7 +3,6 @@ import { Droppable } from "react-beautiful-dnd";
 import { SquadMember, CommandCenterTask } from "@/hooks/useCommandCenter";
 import { TimelineSlot } from "./TimelineSlot";
 import { TimelineTaskCard } from "./TimelineTaskCard";
-import { cn } from "@/lib/utils";
 import { User } from "lucide-react";
 
 interface Props {
@@ -17,7 +16,6 @@ interface Props {
 export function TimelineRow({ member, tasks, startHour, slotWidth, totalSlots }: Props) {
   const memberTasks = tasks.filter(t => t.assigned_user_id === member.id);
 
-  // Calculate which slots are occupied
   const occupiedSlots = new Set<number>();
   memberTasks.forEach(task => {
     if (!task.start_date) return;
@@ -33,30 +31,20 @@ export function TimelineRow({ member, tasks, startHour, slotWidth, totalSlots }:
     }
   });
 
-  // Time labels for ruler
-  const timeLabels: string[] = [];
-  for (let i = 0; i < totalSlots; i++) {
-    const totalMinutes = startHour * 60 + i * 18;
-    const h = Math.floor(totalMinutes / 60);
-    const m = totalMinutes % 60;
-    if (i % 3 === 0) timeLabels.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
-    else timeLabels.push("");
-  }
-
   return (
-    <div className="flex items-stretch border-b border-white/5 group">
+    <div className="flex items-stretch border-b border-border/50 group">
       {/* Member info */}
-      <div className="w-48 flex-shrink-0 flex items-center gap-3 px-4 py-3 bg-white/[0.02]">
-        <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center overflow-hidden flex-shrink-0">
+      <div className="w-48 flex-shrink-0 flex items-center gap-3 px-4 py-3 bg-muted/30">
+        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
           {member.avatar ? (
             <img src={member.avatar} alt={member.name} className="w-full h-full object-cover" />
           ) : (
-            <User className="w-4 h-4 text-white/40" />
+            <User className="w-4 h-4 text-muted-foreground" />
           )}
         </div>
         <div className="min-w-0">
-          <p className="text-xs text-white font-medium truncate">{member.name}</p>
-          <p className="text-[10px] text-white/30 truncate">{member.role}</p>
+          <p className="text-xs text-foreground font-medium truncate">{member.name}</p>
+          <p className="text-[10px] text-muted-foreground truncate">{member.role}</p>
         </div>
       </div>
 
@@ -69,7 +57,6 @@ export function TimelineRow({ member, tasks, startHour, slotWidth, totalSlots }:
             className="flex-1 flex relative overflow-x-auto"
             style={{ minHeight: "48px" }}
           >
-            {/* Slot grid */}
             <div className="flex h-full">
               {Array.from({ length: totalSlots }).map((_, i) => (
                 <TimelineSlot
@@ -82,7 +69,6 @@ export function TimelineRow({ member, tasks, startHour, slotWidth, totalSlots }:
               ))}
             </div>
 
-            {/* Task cards positioned absolutely */}
             {memberTasks.map(task => (
               <TimelineTaskCard
                 key={task.id}

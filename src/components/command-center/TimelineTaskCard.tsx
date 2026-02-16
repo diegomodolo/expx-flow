@@ -15,7 +15,6 @@ export function TimelineTaskCard({ task, slotWidth, startHour }: Props) {
   const slotsOccupied = Math.max(1, Math.ceil(estimatedMin / 18));
   const width = slotsOccupied * slotWidth;
 
-  // Calculate position from start_date
   const taskStart = task.start_date ? new Date(task.start_date) : null;
   let leftOffset = 0;
   if (taskStart) {
@@ -33,10 +32,10 @@ export function TimelineTaskCard({ task, slotWidth, startHour }: Props) {
       className={cn(
         "absolute top-1 h-[calc(100%-8px)] rounded-lg px-2 py-1 flex items-center gap-1 text-xs font-medium transition-all duration-500 overflow-hidden",
         isDone
-          ? "bg-emerald-500/30 border border-emerald-500/50 text-emerald-300"
+          ? "bg-emerald-500/20 border border-emerald-500/40 text-emerald-600 dark:text-emerald-400"
           : isOvertime
-          ? "bg-orange-500/30 border border-orange-500/50 text-orange-300 animate-pulse"
-          : "bg-cyan-500/20 border border-cyan-500/30 text-cyan-200"
+          ? "bg-orange-500/20 border border-orange-500/40 text-orange-600 dark:text-orange-400 animate-pulse"
+          : "bg-primary/10 border border-primary/30 text-primary"
       )}
       style={{ left: `${Math.max(0, leftOffset)}px`, width: `${width}px` }}
       title={`${task.title} (${estimatedMin}min)`}
