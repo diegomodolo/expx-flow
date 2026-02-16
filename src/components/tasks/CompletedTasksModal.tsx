@@ -156,122 +156,125 @@ export function CompletedTasksModal({ open, onOpenChange, tasks, onEditTask, all
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[90vw] w-[90vw] max-h-[90vh] h-[90vh] flex flex-col p-0">
+      <DialogContent className="max-w-[90vw] w-[90vw] max-h-[90vh] h-[90vh] flex flex-col p-0 bg-muted/50">
         {/* Header */}
-        <DialogHeader className="px-6 pt-6 pb-4 border-b border-border shrink-0">
+        <DialogHeader className="px-6 pt-6 pb-4 shrink-0">
           <DialogTitle className="flex items-center gap-2 text-lg">
             <CheckCircle2 className="w-5 h-5 text-green-500" />
             Concluídas
           </DialogTitle>
         </DialogHeader>
 
-        {/* Stats */}
-        <div className="px-6 py-4 border-b border-border shrink-0">
+        {/* Scrollable body with cards */}
+        <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-6 space-y-4">
+          {/* Stats row */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="rounded-lg border border-border bg-card p-3 text-center">
+            <div className="rounded-xl border border-border bg-card p-4 text-center shadow-sm">
               <p className="text-2xl font-bold text-foreground">{filtered.length}</p>
-              <p className="text-xs text-muted-foreground">Total concluídas</p>
+              <p className="text-xs text-muted-foreground mt-1">Total concluídas</p>
             </div>
-            <div className="rounded-lg border border-border bg-card p-3 text-center">
+            <div className="rounded-xl border border-border bg-card p-4 text-center shadow-sm">
               <p className="text-2xl font-bold text-green-500">{onTimeCount}</p>
-              <p className="text-xs text-muted-foreground">No prazo</p>
+              <p className="text-xs text-muted-foreground mt-1">No prazo</p>
             </div>
-            <div className="rounded-lg border border-border bg-card p-3 text-center">
+            <div className="rounded-xl border border-border bg-card p-4 text-center shadow-sm">
               <p className="text-2xl font-bold text-destructive">{lateCount}</p>
-              <p className="text-xs text-muted-foreground">Fora do prazo</p>
+              <p className="text-xs text-muted-foreground mt-1">Fora do prazo</p>
             </div>
-            <div className="rounded-lg border border-border bg-card p-3 text-center">
+            <div className="rounded-xl border border-border bg-card p-4 text-center shadow-sm">
               <p className="text-2xl font-bold text-primary">{formatDuration(totalTime)}</p>
-              <p className="text-xs text-muted-foreground">Tempo total</p>
+              <p className="text-xs text-muted-foreground mt-1">Tempo total</p>
             </div>
           </div>
 
-          {/* Filters */}
-          <div className="flex flex-wrap gap-3 mt-4">
-            <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar tarefa, cliente..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="pl-9 h-9"
-              />
+          {/* Filters card */}
+          <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Filtros</p>
+            <div className="flex flex-wrap gap-3">
+              <div className="relative flex-1 min-w-[200px]">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar tarefa, cliente..."
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  className="pl-9 h-9"
+                />
+              </div>
+              <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                <SelectTrigger className="w-[140px] h-9">
+                  <SelectValue placeholder="Prioridade" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas</SelectItem>
+                  <SelectItem value="high">Alta</SelectItem>
+                  <SelectItem value="medium">Normal</SelectItem>
+                  <SelectItem value="low">Baixa</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={responsibleFilter} onValueChange={setResponsibleFilter}>
+                <SelectTrigger className="w-[180px] h-9">
+                  <SelectValue placeholder="Responsável" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  {responsibles.map(name => (
+                    <SelectItem key={name} value={name}>{name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Date From */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="h-9 gap-2 text-xs font-normal">
+                    <CalendarIcon className="h-3.5 w-3.5" />
+                    {dateFrom ? format(dateFrom, "dd/MM/yy") : "Início"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={dateFrom}
+                    onSelect={setDateFrom}
+                    locale={ptBR}
+                    initialFocus
+                  />
+                  {dateFrom && (
+                    <div className="p-2 border-t border-border">
+                      <Button variant="ghost" size="sm" className="w-full text-xs" onClick={() => setDateFrom(undefined)}>Limpar</Button>
+                    </div>
+                  )}
+                </PopoverContent>
+              </Popover>
+
+              {/* Date To */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="h-9 gap-2 text-xs font-normal">
+                    <CalendarIcon className="h-3.5 w-3.5" />
+                    {dateTo ? format(dateTo, "dd/MM/yy") : "Fim"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={dateTo}
+                    onSelect={setDateTo}
+                    locale={ptBR}
+                    initialFocus
+                  />
+                  {dateTo && (
+                    <div className="p-2 border-t border-border">
+                      <Button variant="ghost" size="sm" className="w-full text-xs" onClick={() => setDateTo(undefined)}>Limpar</Button>
+                    </div>
+                  )}
+                </PopoverContent>
+              </Popover>
             </div>
-            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-              <SelectTrigger className="w-[140px] h-9">
-                <SelectValue placeholder="Prioridade" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas</SelectItem>
-                <SelectItem value="high">Alta</SelectItem>
-                <SelectItem value="medium">Normal</SelectItem>
-                <SelectItem value="low">Baixa</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={responsibleFilter} onValueChange={setResponsibleFilter}>
-              <SelectTrigger className="w-[180px] h-9">
-                <SelectValue placeholder="Responsável" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                {responsibles.map(name => (
-                  <SelectItem key={name} value={name}>{name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {/* Date From */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="h-9 gap-2 text-xs font-normal">
-                  <CalendarIcon className="h-3.5 w-3.5" />
-                  {dateFrom ? format(dateFrom, "dd/MM/yy") : "Início"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={dateFrom}
-                  onSelect={setDateFrom}
-                  locale={ptBR}
-                  initialFocus
-                />
-                {dateFrom && (
-                  <div className="p-2 border-t border-border">
-                    <Button variant="ghost" size="sm" className="w-full text-xs" onClick={() => setDateFrom(undefined)}>Limpar</Button>
-                  </div>
-                )}
-              </PopoverContent>
-            </Popover>
-
-            {/* Date To */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="h-9 gap-2 text-xs font-normal">
-                  <CalendarIcon className="h-3.5 w-3.5" />
-                  {dateTo ? format(dateTo, "dd/MM/yy") : "Fim"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={dateTo}
-                  onSelect={setDateTo}
-                  locale={ptBR}
-                  initialFocus
-                />
-                {dateTo && (
-                  <div className="p-2 border-t border-border">
-                    <Button variant="ghost" size="sm" className="w-full text-xs" onClick={() => setDateTo(undefined)}>Limpar</Button>
-                  </div>
-                )}
-              </PopoverContent>
-            </Popover>
           </div>
-        </div>
 
-        {/* Table List */}
-        <div className="flex-1 min-h-0 overflow-hidden">
+          {/* Table card */}
+          <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
           {/* Table header */}
           {(() => {
             const SortIcon = ({ field }: { field: string }) => {
@@ -303,7 +306,7 @@ export function CompletedTasksModal({ open, onOpenChange, tasks, onEditTask, all
             );
           })()}
 
-          <ScrollArea className="h-[calc(90vh-340px)]">
+          <ScrollArea className="max-h-[calc(90vh-420px)]">
             <div className="divide-y divide-border">
               {filtered.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
@@ -392,7 +395,8 @@ export function CompletedTasksModal({ open, onOpenChange, tasks, onEditTask, all
               )}
             </div>
           </ScrollArea>
-        </div>
+          </div> {/* end table card */}
+        </div> {/* end scrollable body */}
       </DialogContent>
     </Dialog>
   );
