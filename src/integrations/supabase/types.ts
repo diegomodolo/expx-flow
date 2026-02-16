@@ -11695,6 +11695,70 @@ export type Database = {
           },
         ]
       }
+      task_categorias: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          nome: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nome: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nome?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_categorias_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_classificacoes: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          nome: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nome: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nome?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_classificacoes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           ai_estimated_minutes: number | null
@@ -11702,7 +11766,9 @@ export type Database = {
           alert_id: string | null
           assigned_user_id: string | null
           autorizador_id: string | null
+          categoria_id: string | null
           checklist: Json | null
+          classificacao_id: string | null
           company_id: string | null
           completed_at: string | null
           created_at: string
@@ -11733,7 +11799,9 @@ export type Database = {
           alert_id?: string | null
           assigned_user_id?: string | null
           autorizador_id?: string | null
+          categoria_id?: string | null
           checklist?: Json | null
+          classificacao_id?: string | null
           company_id?: string | null
           completed_at?: string | null
           created_at?: string
@@ -11764,7 +11832,9 @@ export type Database = {
           alert_id?: string | null
           assigned_user_id?: string | null
           autorizador_id?: string | null
+          categoria_id?: string | null
           checklist?: Json | null
+          classificacao_id?: string | null
           company_id?: string | null
           completed_at?: string | null
           created_at?: string
@@ -11790,6 +11860,20 @@ export type Database = {
           visibility_date?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "tasks_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "task_categorias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_classificacao_id_fkey"
+            columns: ["classificacao_id"]
+            isOneToOne: false
+            referencedRelation: "task_classificacoes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "tasks_company_id_fkey"
             columns: ["company_id"]
