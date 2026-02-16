@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, X, Plus, Home, CheckSquare, Clock, Trash2, Save, ShieldCheck } from "lucide-react";
+import { CalendarIcon, X, Plus, Home, CheckSquare, Trash2, Save, ZoomIn, ZoomOut } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useTeams } from "@/hooks/useTeams";
@@ -23,6 +23,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { supabase } from "@/integrations/supabase/client";
 
 interface TaskDialogProps {
   open: boolean;
@@ -32,10 +33,29 @@ interface TaskDialogProps {
   defaultClientId?: string;
 }
 
-type SidebarTab = 'principal' | 'datas' | 'checklist';
+type SidebarTab = 'principal' | 'checklist';
+
+const ZOOM_STORAGE_KEY = 'task-dialog-zoom';
+const ZOOM_LEVELS = [640, 768, 896, 1024, 1152, 1280];
+
+function getStoredZoom(userId: string): number {
+  try {
+    const stored = localStorage.getItem(`${ZOOM_STORAGE_KEY}-${userId}`);
+    if (stored) return parseInt(stored, 10);
+  } catch {}
+  return 1024; // default
+}
+
+function saveZoom(userId: string, zoom: number) {
+  try {
+    localStorage.setItem(`${ZOOM_STORAGE_KEY}-${userId}`, String(zoom));
+  } catch {}
+}
 
 export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId }: TaskDialogProps) {
   const [activeTab, setActiveTab] = useState<SidebarTab>('principal');
+  const [zoomWidth, setZoomWidth] = useState(1024);
+  const [userId, setUserId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -65,6 +85,36 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId }
   const { clients } = useClients();
   const { campaigns } = useCampaigns();
   const { user } = useAuth();
+
+  // Load user zoom preference
+  useEffect(() => {
+    const loadUser = async () => {
+      const { data: { user: u } } = await supabase.auth.getUser();
+      if (u) {
+        setUserId(u.id);
+        setZoomWidth(getStoredZoom(u.id));
+      }
+    };
+    loadUser();
+  }, []);
+
+  const handleZoomIn = () => {
+    const idx = ZOOM_LEVELS.indexOf(zoomWidth);
+    if (idx < ZOOM_LEVELS.length - 1) {
+      const newZoom = ZOOM_LEVELS[idx + 1];
+      setZoomWidth(newZoom);
+      if (userId) saveZoom(userId, newZoom);
+    }
+  };
+
+  const handleZoomOut = () => {
+    const idx = ZOOM_LEVELS.indexOf(zoomWidth);
+    if (idx > 0) {
+      const newZoom = ZOOM_LEVELS[idx - 1];
+      setZoomWidth(newZoom);
+      if (userId) saveZoom(userId, newZoom);
+    }
+  };
 
   const sortedFilteredClients = clients
     ?.slice()
@@ -267,14 +317,17 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId }
 
   const sidebarItems = [
     { id: 'principal' as SidebarTab, label: 'Principal', icon: Home },
-    { id: 'datas' as SidebarTab, label: 'Datas', icon: Clock },
     { id: 'checklist' as SidebarTab, label: 'Checklist', icon: CheckSquare },
   ];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-4xl max-h-[90vh] p-0 gap-0 overflow-hidden">
-        <div className="flex h-[80vh]">
+      <DialogContent
+        hideCloseButton
+        className="p-0 gap-0 overflow-hidden"
+        style={{ maxWidth: `${zoomWidth}px` }}
+      >
+        <div className="flex max-h-[90vh]">
           {/* Left Sidebar */}
           <div className="w-20 border-r border-border bg-muted/30 flex flex-col items-center py-4 gap-1 shrink-0">
             {sidebarItems.map((item) => (
@@ -318,9 +371,39 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId }
                   {formData.responsible_name && ` · ${formData.responsible_name}`}
                 </p>
               </div>
-              <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)}>
-                <X className="w-5 h-5" />
-              </Button>
+              <div className="flex items-center gap-1">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={handleZoomOut}
+                      disabled={ZOOM_LEVELS.indexOf(zoomWidth) <= 0}
+                    >
+                      <ZoomOut className="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Diminuir</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={handleZoomIn}
+                      disabled={ZOOM_LEVELS.indexOf(zoomWidth) >= ZOOM_LEVELS.length - 1}
+                    >
+                      <ZoomIn className="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Aumentar</TooltipContent>
+                </Tooltip>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onOpenChange(false)}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
 
             {/* Scrollable Content */}
@@ -506,6 +589,96 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId }
 
                     <Separator />
 
+                    {/* Datas e Horários - merged into principal */}
+                    <div className="space-y-4">
+                      <h3 className="text-sm font-semibold text-foreground">Datas e Horários</h3>
+
+                      {/* Horário específico */}
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="hasSpecificTime"
+                          checked={formData.hasSpecificTime}
+                          onCheckedChange={(checked) => setFormData(prev => ({ ...prev, hasSpecificTime: !!checked }))}
+                        />
+                        <Label htmlFor="hasSpecificTime">Esta tarefa tem horário específico</Label>
+                      </div>
+
+                      {/* Data/Hora de Início */}
+                      {formData.hasSpecificTime && (
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label className="text-sm font-semibold">Data de Início</Label>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button variant="outline" className="w-full justify-start text-left mt-1.5">
+                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                  {formData.start_date ? format(formData.start_date, "PPP", { locale: ptBR }) : "Selecione a data"}
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0">
+                                <Calendar
+                                  mode="single"
+                                  selected={formData.start_date}
+                                  onSelect={(date) => setFormData(prev => ({ ...prev, start_date: date }))}
+                                  initialFocus
+                                  className="pointer-events-auto"
+                                />
+                              </PopoverContent>
+                            </Popover>
+                          </div>
+                          <div>
+                            <Label className="text-sm font-semibold">Hora de Início</Label>
+                            <Input
+                              type="time"
+                              value={formData.start_time}
+                              onChange={(e) => setFormData(prev => ({ ...prev, start_time: e.target.value }))}
+                              className="mt-1.5"
+                            />
+                            {previewSlot && (
+                              <div className="text-sm text-muted-foreground mt-1">
+                                Slot: <strong>{previewSlot}</strong>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Prazo */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label className="text-sm font-semibold">Data do Prazo</Label>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button variant="outline" className="w-full justify-start text-left mt-1.5">
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {formData.due_date ? format(formData.due_date, "PPP", { locale: ptBR }) : "Selecione o prazo"}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0">
+                              <Calendar
+                                mode="single"
+                                selected={formData.due_date}
+                                onSelect={(date) => setFormData(prev => ({ ...prev, due_date: date }))}
+                                initialFocus
+                                className="pointer-events-auto"
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                        <div>
+                          <Label className="text-sm font-semibold">Hora do Prazo {!formData.hasSpecificTime && "(opcional)"}</Label>
+                          <Input
+                            type="time"
+                            value={formData.due_time}
+                            onChange={(e) => setFormData(prev => ({ ...prev, due_time: e.target.value }))}
+                            className="mt-1.5"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <Separator />
+
                     {/* Descrição */}
                     <div>
                       <Label className="text-sm font-semibold">Descrição</Label>
@@ -516,100 +689,6 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId }
                         rows={5}
                         className="mt-1.5"
                       />
-                    </div>
-                  </div>
-                )}
-
-                {activeTab === 'datas' && (
-                  <div className="space-y-5">
-                    <div>
-                      <h3 className="text-base font-semibold text-foreground mb-1">Datas e Horários</h3>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Configure as datas de início e prazo da tarefa.
-                      </p>
-                    </div>
-
-                    {/* Horário específico */}
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="hasSpecificTime"
-                        checked={formData.hasSpecificTime}
-                        onCheckedChange={(checked) => setFormData(prev => ({ ...prev, hasSpecificTime: !!checked }))}
-                      />
-                      <Label htmlFor="hasSpecificTime">Esta tarefa tem horário específico</Label>
-                    </div>
-
-                    {/* Data/Hora de Início */}
-                    {formData.hasSpecificTime && (
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label className="text-sm font-semibold">Data de Início</Label>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button variant="outline" className="w-full justify-start text-left mt-1.5">
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {formData.start_date ? format(formData.start_date, "PPP", { locale: ptBR }) : "Selecione a data"}
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0">
-                              <Calendar
-                                mode="single"
-                                selected={formData.start_date}
-                                onSelect={(date) => setFormData(prev => ({ ...prev, start_date: date }))}
-                                initialFocus
-                                className="pointer-events-auto"
-                              />
-                            </PopoverContent>
-                          </Popover>
-                        </div>
-                        <div>
-                          <Label className="text-sm font-semibold">Hora de Início</Label>
-                          <Input
-                            type="time"
-                            value={formData.start_time}
-                            onChange={(e) => setFormData(prev => ({ ...prev, start_time: e.target.value }))}
-                            className="mt-1.5"
-                          />
-                          {previewSlot && (
-                            <div className="text-sm text-muted-foreground mt-1">
-                              Slot: <strong>{previewSlot}</strong>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Prazo */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label className="text-sm font-semibold">Data do Prazo</Label>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button variant="outline" className="w-full justify-start text-left mt-1.5">
-                              <CalendarIcon className="mr-2 h-4 w-4" />
-                              {formData.due_date ? format(formData.due_date, "PPP", { locale: ptBR }) : "Selecione o prazo"}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0">
-                            <Calendar
-                              mode="single"
-                              selected={formData.due_date}
-                              onSelect={(date) => setFormData(prev => ({ ...prev, due_date: date }))}
-                              initialFocus
-                              className="pointer-events-auto"
-                            />
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                      <div>
-                        <Label className="text-sm font-semibold">Hora do Prazo {!formData.hasSpecificTime && "(opcional)"}</Label>
-                        <Input
-                          type="time"
-                          value={formData.due_time}
-                          onChange={(e) => setFormData(prev => ({ ...prev, due_time: e.target.value }))}
-                          className="mt-1.5"
-                        />
-                      </div>
                     </div>
                   </div>
                 )}
