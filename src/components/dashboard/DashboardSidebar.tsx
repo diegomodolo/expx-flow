@@ -83,12 +83,10 @@ const menuCategories: MenuCategory[] = [
   // Demais categorias em ordem alfabética
   ...[
     {
-      title: "Clientes & Leads",
+      title: "Clientes",
       icon: Users,
       items: [
         { title: "Clientes", url: "/clientes", icon: Users, permission: "clientes" as MenuItemType },
-        { title: "Funis", url: "/editor-funil", icon: GitBranch, permission: "editor-funil" as MenuItemType },
-        { title: "Lead Intelligence", url: "/lead-intelligence", icon: Database, permission: "lead-intelligence" as MenuItemType },
       ].sort((a, b) => a.title.localeCompare(b.title, 'pt-BR')),
     },
     {
@@ -152,7 +150,9 @@ const menuCategories: MenuCategory[] = [
         { title: "Campanhas", url: "/campanhas", icon: Megaphone, permission: "campanhas" as MenuItemType },
         { title: "Campanhas Unificadas", url: "/campanhas-unificadas", icon: Activity, permission: "campanhas-unificadas" as MenuItemType },
         { title: "Dashboard TV", url: "#tv-dashboard", icon: Tv, permission: "marketing-tv" as MenuItemType, isExternal: true },
+        { title: "Funis", url: "/editor-funil", icon: GitBranch, permission: "editor-funil" as MenuItemType },
         { title: "Keyword Planner", url: "/keyword-planner", icon: Sparkles, permission: "keyword-planner" as MenuItemType },
+        { title: "Lead Intelligence", url: "/lead-intelligence", icon: Database, permission: "lead-intelligence" as MenuItemType },
         { title: "Parâmetros de Performance", url: "/parametros-performance", icon: Activity, permission: "configuracoes" as MenuItemType },
         { title: "Radar TV", url: "#radar-tv-dashboard", icon: Activity, permission: "radar-tv" as MenuItemType, isExternal: true },
         { title: "Relatórios Marketing", url: "/marketing/relatorios", icon: BarChart3, permission: "relatorios-marketing" as MenuItemType },
