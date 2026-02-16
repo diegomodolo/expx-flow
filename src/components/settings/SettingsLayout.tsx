@@ -3,7 +3,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Building, Bell, CreditCard, Facebook, Calendar, Shield, Gauge, RefreshCw, MessageCircle, Database, SlidersHorizontal, ChevronDown, Plug } from "lucide-react";
+import { Building, Bell, CreditCard, Facebook, Shield, RefreshCw, MessageCircle, Database, SlidersHorizontal, ChevronDown, Plug } from "lucide-react";
 import { SiGoogle, SiDiscord } from "react-icons/si";
 
 interface SettingsLayoutProps {
@@ -42,18 +42,6 @@ const settingsNavItems: NavItem[] = [
     href: "/configuracoes/planos",
     icon: CreditCard,
     description: "Assinatura e faturamento",
-  },
-  {
-    title: "Planner",
-    href: "/configuracoes/planner",
-    icon: Calendar,
-    description: "Configurar slots de tempo para o planner diário",
-  },
-  {
-    title: "Parâmetros de Performance",
-    href: "/configuracoes/parametros-performance",
-    icon: Gauge,
-    description: "Critérios de status dos clientes",
   },
   {
     title: "Permissões",
