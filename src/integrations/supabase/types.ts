@@ -12151,6 +12151,7 @@ export type Database = {
       teams: {
         Row: {
           active_tasks: number
+          authorizer_id: string | null
           color: string
           company_id: string | null
           created_at: string
@@ -12168,6 +12169,7 @@ export type Database = {
         }
         Insert: {
           active_tasks?: number
+          authorizer_id?: string | null
           color: string
           company_id?: string | null
           created_at?: string
@@ -12185,6 +12187,7 @@ export type Database = {
         }
         Update: {
           active_tasks?: number
+          authorizer_id?: string | null
           color?: string
           company_id?: string | null
           created_at?: string
@@ -12201,6 +12204,13 @@ export type Database = {
           whatsapp_responsible_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "teams_authorizer_id_fkey"
+            columns: ["authorizer_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "teams_company_id_fkey"
             columns: ["company_id"]

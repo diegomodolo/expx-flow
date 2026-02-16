@@ -5,7 +5,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Team } from "@/hooks/useTeams";
+import { useEmployees } from "@/hooks/useEmployees";
 import { 
   Megaphone, 
   Palette, 
@@ -14,7 +16,10 @@ import {
   Users, 
   Target,
   Briefcase,
-  Lightbulb
+  Lightbulb,
+  Crown,
+  MessageSquare,
+  ShieldCheck
 } from "lucide-react";
 
 interface SquadDialogProps {
@@ -49,15 +54,25 @@ const colorOptions = [
 ];
 
 export function SquadDialog({ open, onOpenChange, onSubmit, squad, title, readOnly = false }: SquadDialogProps) {
+  const { employees } = useEmployees();
   const [formData, setFormData] = useState({
     name: "",
     description: "",
     color: "bg-blue-100 text-blue-800",
     icon: "Megaphone",
     icon_color: "text-blue-600",
-    icon_bg: "bg-blue-100"
+    icon_bg: "bg-blue-100",
+    leader_id: "" as string | null,
+    whatsapp_responsible_id: "" as string | null,
+    authorizer_id: "" as string | null,
   });
   const [loading, setLoading] = useState(false);
+
+  // Get members of this squad for role selectors
+  const squadMembers = (employees || []).filter(e => {
+    if (squad) return e.team_id === squad.id;
+    return true; // For new squads, show all employees
+  });
 
   useEffect(() => {
     if (squad) {
@@ -67,7 +82,10 @@ export function SquadDialog({ open, onOpenChange, onSubmit, squad, title, readOn
         color: squad.color || "bg-blue-100 text-blue-800",
         icon: squad.icon || "Megaphone",
         icon_color: squad.icon_color || "text-blue-600",
-        icon_bg: squad.icon_bg || "bg-blue-100"
+        icon_bg: squad.icon_bg || "bg-blue-100",
+        leader_id: squad.leader_id || "",
+        whatsapp_responsible_id: squad.whatsapp_responsible_id || "",
+        authorizer_id: squad.authorizer_id || "",
       });
     } else {
       setFormData({
@@ -76,7 +94,10 @@ export function SquadDialog({ open, onOpenChange, onSubmit, squad, title, readOn
         color: "bg-blue-100 text-blue-800",
         icon: "Megaphone",
         icon_color: "text-blue-600",
-        icon_bg: "bg-blue-100"
+        icon_bg: "bg-blue-100",
+        leader_id: "",
+        whatsapp_responsible_id: "",
+        authorizer_id: "",
       });
     }
   }, [squad, open]);
@@ -85,7 +106,12 @@ export function SquadDialog({ open, onOpenChange, onSubmit, squad, title, readOn
     e.preventDefault();
     try {
       setLoading(true);
-      await onSubmit(formData);
+      await onSubmit({
+        ...formData,
+        leader_id: formData.leader_id || null,
+        whatsapp_responsible_id: formData.whatsapp_responsible_id || null,
+        authorizer_id: formData.authorizer_id || null,
+      });
       onOpenChange(false);
     } catch (error) {
       console.error("Error submitting squad:", error);
@@ -93,6 +119,45 @@ export function SquadDialog({ open, onOpenChange, onSubmit, squad, title, readOn
       setLoading(false);
     }
   };
+
+  const renderMemberSelect = (
+    label: string,
+    icon: React.ReactNode,
+    value: string | null,
+    onChange: (v: string) => void,
+  ) => (
+    <div className="space-y-2">
+      <Label className="flex items-center gap-1.5 text-sm">
+        {icon}
+        {label}
+      </Label>
+      <Select
+        value={value || "none"}
+        onValueChange={(v) => onChange(v === "none" ? "" : v)}
+        disabled={readOnly}
+      >
+        <SelectTrigger>
+          <SelectValue placeholder="Selecione..." />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="none">Não definido</SelectItem>
+          {squadMembers.map((emp) => (
+            <SelectItem key={emp.id} value={emp.id}>
+              <div className="flex items-center gap-2">
+                <Avatar className="h-5 w-5">
+                  <AvatarImage src={emp.avatar || emp.profile_avatar_url || undefined} />
+                  <AvatarFallback className="text-[9px] bg-primary/10 text-primary">
+                    {emp.name.charAt(0)}
+                  </AvatarFallback>
+                </Avatar>
+                {emp.name}
+              </div>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -195,6 +260,28 @@ export function SquadDialog({ open, onOpenChange, onSubmit, squad, title, readOn
                 required
                 disabled={readOnly}
               />
+            </div>
+
+            {/* Row 4: Roles - 3 columns */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {renderMemberSelect(
+                "Líder",
+                <Crown className="h-3.5 w-3.5 text-yellow-500" />,
+                formData.leader_id,
+                (v) => setFormData({ ...formData, leader_id: v }),
+              )}
+              {renderMemberSelect(
+                "Resp. WhatsApp",
+                <MessageSquare className="h-3.5 w-3.5 text-green-500" />,
+                formData.whatsapp_responsible_id,
+                (v) => setFormData({ ...formData, whatsapp_responsible_id: v }),
+              )}
+              {renderMemberSelect(
+                "Autorizador",
+                <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />,
+                formData.authorizer_id,
+                (v) => setFormData({ ...formData, authorizer_id: v }),
+              )}
             </div>
 
             {/* Preview */}
