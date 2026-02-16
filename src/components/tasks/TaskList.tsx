@@ -29,7 +29,7 @@ interface Task {
   responsible_avatar?: string;
   due_date?: string;
   progress: number;
-  origin: 'manual' | 'automation' | 'dashboard';
+  origin: 'manual' | 'automation' | 'dashboard' | 'flow' | 'ghost';
   related_campaign_id?: string;
   related_client_id?: string;
   team?: { name: string; color: string };
