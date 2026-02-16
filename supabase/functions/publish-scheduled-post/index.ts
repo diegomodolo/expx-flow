@@ -296,13 +296,13 @@ serve(async (req) => {
 
     console.log(`Publishing scheduled post ${postId}`);
 
-    // ATOMIC LOCK: Try to update status to 'publishing' only if it's still 'scheduled'
-    // This prevents duplicate publishing if called simultaneously
+    // ATOMIC LOCK: Try to update status to 'publishing' only if eligible
+    // Allow 'failed' posts to be retried
     const { data: lockResult, error: lockError } = await supabase
       .from('scheduled_posts')
-      .update({ status: 'publishing' })
+      .update({ status: 'publishing', error_message: null })
       .eq('id', postId)
-      .in('status', ['scheduled', 'pending']) // Only lock if not already being processed
+      .in('status', ['scheduled', 'pending', 'failed']) // Allow retry of failed posts
       .select('id')
       .maybeSingle();
 
@@ -353,38 +353,51 @@ serve(async (req) => {
     };
 
     // Publish to Facebook if selected
-    if (post.platforms.includes('facebook') && post.facebook_page) {
-      console.log(`Publishing to Facebook page: ${post.facebook_page.page_name}`);
-      results.facebook = await publishToFacebook(
-        post.facebook_page.page_access_token,
-        post.facebook_page.page_id,
-        post,
-        supabase
-      );
+    if (post.platforms.includes('facebook')) {
+      if (post.facebook_page) {
+        console.log(`Publishing to Facebook page: ${post.facebook_page.page_name}`);
+        results.facebook = await publishToFacebook(
+          post.facebook_page.page_access_token,
+          post.facebook_page.page_id,
+          post,
+          supabase
+        );
+      } else {
+        results.facebook = { success: false, error: 'Página do Facebook não vinculada ao post' };
+        console.error('Facebook selected but no facebook_page linked');
+      }
     }
 
     // Publish to Instagram if selected
-    if (post.platforms.includes('instagram') && post.instagram_account) {
-      const fbPage = post.instagram_account.facebook_page;
-      console.log(`Publishing to Instagram: @${post.instagram_account.username}`);
-      results.instagram = await publishToInstagram(
-        fbPage.page_access_token,
-        post.instagram_account.instagram_id,
-        post,
-        supabase
-      );
+    if (post.platforms.includes('instagram')) {
+      if (post.instagram_account) {
+        const fbPage = post.instagram_account.facebook_page;
+        console.log(`Publishing to Instagram: @${post.instagram_account.username}`);
+        results.instagram = await publishToInstagram(
+          fbPage.page_access_token,
+          post.instagram_account.instagram_id,
+          post,
+          supabase
+        );
+      } else {
+        results.instagram = { success: false, error: 'Conta do Instagram não vinculada ao post' };
+        console.error('Instagram selected but no instagram_account linked');
+      }
     }
 
     // Determine overall status
     const anySuccess = results.facebook?.success || results.instagram?.success;
-    const allFailed = 
+    const noPlatformProcessed = !results.facebook && !results.instagram;
+    const allFailed = noPlatformProcessed || (
       (post.platforms.includes('facebook') && !results.facebook?.success) &&
-      (post.platforms.includes('instagram') && !results.instagram?.success);
+      (post.platforms.includes('instagram') && !results.instagram?.success)
+    );
 
     const finalStatus = allFailed ? 'failed' : 'published';
-    const errorMessages = [];
+    const errorMessages: string[] = [];
     if (results.facebook?.error) errorMessages.push(`Facebook: ${results.facebook.error}`);
     if (results.instagram?.error) errorMessages.push(`Instagram: ${results.instagram.error}`);
+    if (noPlatformProcessed) errorMessages.push('Nenhuma plataforma configurada para publicação');
 
     // Update post with results
     await supabase
@@ -487,6 +500,25 @@ ${post.caption ? `📝 ${post.caption.substring(0, 80)}...` : ''}`;
 
   } catch (error) {
     console.error('Error in publish-scheduled-post:', error);
+    
+    // Reset post status to 'failed' so it can be retried
+    try {
+      const { postId } = await req.clone().json().catch(() => ({ postId: null }));
+      if (postId) {
+        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+        const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+        const supabase = createClient(supabaseUrl, supabaseServiceKey);
+        await supabase
+          .from('scheduled_posts')
+          .update({ 
+            status: 'failed', 
+            error_message: `Erro interno: ${error.message}` 
+          })
+          .eq('id', postId)
+          .eq('status', 'publishing');
+      }
+    } catch (_) { /* best effort */ }
+    
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
