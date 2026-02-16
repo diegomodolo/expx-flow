@@ -10,6 +10,8 @@ import AuthPage from "./pages/AuthPage";
 import DashboardPage from "./pages/DashboardPage";
 import IAChat from "./pages/IAChat";
 import Configuracoes from "./pages/Configuracoes";
+import ParametrosPerformancePage from "./pages/ParametrosPerformancePage";
+import PlannerConfigPage from "./pages/PlannerConfigPage";
 import Perfil from "./pages/Perfil";
 import Clientes from "./pages/Clientes";
 import ClienteDetalhes from "./pages/ClienteDetalhes";
@@ -662,6 +664,16 @@ const App = () => {
                      <RelatorioSaldoPrePagos />
                    </ProtectedRoute>
                  } />
+                 <Route path="/parametros-performance" element={
+                    <ProtectedRoute>
+                      <ParametrosPerformancePage />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/planner-config" element={
+                    <ProtectedRoute>
+                      <PlannerConfigPage />
+                    </ProtectedRoute>
+                  } />
                 <Route path="/configuracoes/*" element={
                    <PermissionProtectedRoute requiredPermission="configuracoes">
                      <Configuracoes />

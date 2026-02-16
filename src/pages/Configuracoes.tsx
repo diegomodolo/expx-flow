@@ -8,9 +8,7 @@ import { FacebookIntegrationSettings } from "@/components/facebook/FacebookInteg
 import { FacebookSyncSettings } from "@/components/facebook/FacebookSyncSettings";
 import { GoogleAdsIntegrationCard } from "@/components/google/GoogleAdsIntegrationCard";
 import { GoogleAdsSyncSettings } from "@/components/google/GoogleAdsSyncSettings";
-import { PlannerSettings } from "@/components/planner/PlannerSettings";
 import { PermissionsProtectedRoute } from "@/components/settings/PermissionsProtectedRoute";
-import ParametrosPerformance from "./ParametrosPerformance";
 import { WhatsAppSettings } from "@/components/whatsapp/WhatsAppSettings";
 import { ListaCnaeSettings } from "@/components/settings/ListaCnaeSettings";
 import { DiscordSettings } from "@/components/discord/DiscordSettings";
@@ -38,8 +36,6 @@ const Configuracoes = () => {
             <Route path="sincronizacao-facebook" element={<FacebookSyncSettings />} />
             <Route path="integracao-google" element={<GoogleAdsIntegrationCard />} />
             <Route path="sincronizacao-google" element={<GoogleAdsSyncSettings />} />
-            <Route path="planner" element={<PlannerSettings />} />
-            <Route path="parametros-performance" element={<ParametrosPerformance />} />
             <Route path="permissoes" element={<PermissionsProtectedRoute />} />
             <Route path="whatsapp" element={<WhatsAppSettings />} />
             <Route path="listacnae" element={<ListaCnaeSettings />} />
