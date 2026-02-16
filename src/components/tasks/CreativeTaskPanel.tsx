@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Upload, X, GripVertical, Play, Image as ImageIcon } from "lucide-react";
+import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Upload, X, GripVertical, Play, Image as ImageIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -159,8 +159,18 @@ export function CreativeTaskPanel({ data, onChange, companyId, taskId, clientNam
       case 'reels':
         return 'aspect-[9/16]';
       default:
-        return 'aspect-square';
+        return 'aspect-[4/5]';
     }
+  };
+
+  const isCarousel = data.post_type === 'feed' && data.files.length > 1;
+
+  const goToPrevSlide = () => {
+    setCurrentSlide(prev => Math.max(0, prev - 1));
+  };
+
+  const goToNextSlide = () => {
+    setCurrentSlide(prev => Math.min(data.files.length - 1, prev + 1));
   };
 
   return (
@@ -210,8 +220,30 @@ export function CreativeTaskPanel({ data, onChange, companyId, taskId, clientNam
               </div>
             )}
 
+            {/* Carousel navigation arrows */}
+            {isCarousel && (
+              <>
+                {currentSlide > 0 && (
+                  <button
+                    onClick={goToPrevSlide}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-background/80 backdrop-blur-sm border border-border flex items-center justify-center shadow-md hover:bg-background transition-colors z-10"
+                  >
+                    <ChevronLeft className="w-4 h-4 text-foreground" />
+                  </button>
+                )}
+                {currentSlide < data.files.length - 1 && (
+                  <button
+                    onClick={goToNextSlide}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-background/80 backdrop-blur-sm border border-border flex items-center justify-center shadow-md hover:bg-background transition-colors z-10"
+                  >
+                    <ChevronRight className="w-4 h-4 text-foreground" />
+                  </button>
+                )}
+              </>
+            )}
+
             {/* Carousel dots */}
-            {data.files.length > 1 && data.post_type === 'feed' && (
+            {isCarousel && (
               <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
                 {data.files.map((_, i) => (
                   <button
@@ -222,6 +254,13 @@ export function CreativeTaskPanel({ data, onChange, companyId, taskId, clientNam
                     }`}
                   />
                 ))}
+              </div>
+            )}
+
+            {/* Carousel counter */}
+            {isCarousel && (
+              <div className="absolute top-3 right-3 bg-background/70 backdrop-blur-sm text-foreground text-xs font-medium px-2 py-1 rounded-full">
+                {currentSlide + 1}/{data.files.length}
               </div>
             )}
 
