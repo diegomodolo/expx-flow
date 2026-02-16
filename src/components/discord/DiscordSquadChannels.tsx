@@ -24,7 +24,6 @@ export const DiscordSquadChannels = () => {
         .from("teams")
         .select("id, name, color, discord_channel_id, discord_channel_name")
         .eq("company_id", companyId!)
-        .eq("is_active", true)
         .order("name");
       if (error) throw error;
       return data;
