@@ -382,10 +382,10 @@ export default function Tarefas() {
             <h1 className={cn(
               "text-foreground",
               isCompactMode ? "text-lg font-semibold" : "text-headline-lg"
-            )}>Tarefas Inteligentes</h1>
+            )}>Suas Tarefas</h1>
             {!isCompactMode && (
               <p className="text-muted-foreground mt-2">
-                Gerencie tarefas automáticas e manuais do seu sistema de tráfego
+                Gerencie e acompanhe suas tarefas
               </p>
             )}
           </div>
@@ -847,96 +847,6 @@ export default function Tarefas() {
           </div>
         </div>
 
-        {/* Estatísticas - Ocultar no modo compacto */}
-        {taskStats && !isCompactMode && (
-          <div className="grid grid-cols-6 gap-4">
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Total</p>
-                    <p className="text-2xl font-bold text-foreground">{taskStats.total_tasks}</p>
-                  </div>
-                  <div className="w-10 h-10 bg-google-blue-100 dark:bg-google-blue-700/20 rounded-lg flex items-center justify-center">
-                    <Target className="w-5 h-5 text-google-blue-600 dark:text-google-blue-400" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Pendente</p>
-                    <p className="text-2xl font-bold text-foreground">{taskStats.pending_tasks}</p>
-                  </div>
-                  <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
-                    <Clock className="w-5 h-5 text-muted-foreground" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Em Andamento</p>
-                    <p className="text-2xl font-bold text-foreground">{taskStats.in_progress_tasks}</p>
-                  </div>
-                  <div className="w-10 h-10 bg-google-blue-100 dark:bg-google-blue-700/20 rounded-lg flex items-center justify-center">
-                    <TrendingUp className="w-5 h-5 text-google-blue-600 dark:text-google-blue-400" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Concluídas</p>
-                    <p className="text-2xl font-bold text-foreground">{taskStats.completed_tasks}</p>
-                  </div>
-                  <div className="w-10 h-10 bg-google-green-100 dark:bg-google-green-600/20 rounded-lg flex items-center justify-center">
-                    <CheckCircle className="w-5 h-5 text-google-green-600 dark:text-google-green-400" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Atrasadas</p>
-                    <p className="text-2xl font-bold text-foreground">{taskStats.overdue_tasks}</p>
-                  </div>
-                  <div className="w-10 h-10 bg-google-red-100 dark:bg-google-red-600/20 rounded-lg flex items-center justify-center">
-                    <AlertTriangle className="w-5 h-5 text-google-red-600 dark:text-google-red-500" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Tempo Médio</p>
-                    <p className="text-2xl font-bold text-foreground">
-                      {taskStats.avg_completion_days ? `${Math.round(taskStats.avg_completion_days)}d` : '-'}
-                    </p>
-                  </div>
-                  <div className="w-10 h-10 bg-purple-100 dark:bg-purple-600/20 rounded-lg flex items-center justify-center">
-                    <BarChart3 className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
 
 
         {/* Filtros e Visualizações */}
