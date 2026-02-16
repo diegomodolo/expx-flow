@@ -1429,10 +1429,6 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
 
                 {activeTab === 'subtarefas' && (
                   <div>
-                    <h3 className="text-base font-semibold text-foreground mb-1">Sub-Tarefas</h3>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Gerencie as subtarefas desta {isRoteiro ? 'atividade' : 'tarefa'} ou importe de um roteiro.
-                    </p>
                     <TaskSubtasksTab taskId={task?.id || null} />
                   </div>
                 )}
