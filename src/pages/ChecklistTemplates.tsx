@@ -124,33 +124,35 @@ export default function ChecklistTemplates() {
           </Button>
         </div>
 
-        {/* Search */}
-        <div className="flex items-center gap-3">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Pesquisar templates..."
-              className="pl-9"
-            />
+        {/* Card container */}
+        <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+          {/* Search */}
+          <div className="flex items-center gap-3">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Pesquisar templates..."
+                className="pl-9"
+              />
+            </div>
           </div>
-        </div>
 
-        {/* Content */}
-        {isLoading ? (
-          <div className="text-center py-12 text-muted-foreground">Carregando...</div>
-        ) : filtered.length === 0 ? (
-          <div className="text-center py-16">
-            <ListChecks className="w-12 h-12 mx-auto mb-3 text-muted-foreground/30" />
-            <h3 className="text-lg font-medium text-foreground">Nenhum template encontrado</h3>
-            <p className="text-sm text-muted-foreground mt-1">Crie seu primeiro template de checklist para reutilizar em tarefas.</p>
-            <Button className="mt-4" onClick={() => { setEditingTemplate(null); setDialogOpen(true); }}>
-              <Plus className="w-4 h-4 mr-2" /> Criar Template
-            </Button>
-          </div>
-        ) : (
-          <div className="rounded-lg border border-border overflow-hidden">
+          {/* Content */}
+          {isLoading ? (
+            <div className="text-center py-12 text-muted-foreground">Carregando...</div>
+          ) : filtered.length === 0 ? (
+            <div className="text-center py-16">
+              <ListChecks className="w-12 h-12 mx-auto mb-3 text-muted-foreground/30" />
+              <h3 className="text-lg font-medium text-foreground">Nenhum template encontrado</h3>
+              <p className="text-sm text-muted-foreground mt-1">Crie seu primeiro template de checklist para reutilizar em tarefas.</p>
+              <Button className="mt-4" onClick={() => { setEditingTemplate(null); setDialogOpen(true); }}>
+                <Plus className="w-4 h-4 mr-2" /> Criar Template
+              </Button>
+            </div>
+          ) : (
+            <div className="rounded-lg border border-border overflow-hidden">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -203,6 +205,7 @@ export default function ChecklistTemplates() {
             </Table>
           </div>
         )}
+        </div>
       </div>
 
       <ChecklistTemplateDialog
