@@ -24,6 +24,22 @@ export function useSubtasks(parentTaskId: string | null) {
   const queryClient = useQueryClient();
   const companyId = activeCompany?.company_id;
 
+  // Fetch parent task to inherit properties
+  const { data: parentTask } = useQuery({
+    queryKey: ['parentTask', parentTaskId],
+    queryFn: async () => {
+      if (!parentTaskId) return null;
+      const { data, error } = await supabase
+        .from('tasks')
+        .select('team_id, description, responsible_name, responsible_avatar, deadline, start_date, origin, priority, quadro_column_id, etapa, assigned_user_id, related_campaign_id, related_client_id')
+        .eq('id', parentTaskId)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!parentTaskId,
+  });
+
   const { data: subtasks = [], isLoading } = useQuery({
     queryKey: ['subtasks', parentTaskId],
     queryFn: async () => {
@@ -45,23 +61,28 @@ export function useSubtasks(parentTaskId: string | null) {
 
   const createSubtask = useMutation({
     mutationFn: async (input: { title: string; task_type?: string; priority?: string }) => {
-      if (!parentTaskId || !companyId || !user) throw new Error('Missing context');
+      if (!parentTaskId || !companyId || !user || !parentTask) throw new Error('Missing context');
       const row: any = {
         title: input.title,
         task_type: input.task_type || 'Tarefa',
-        priority: input.priority || 'medium',
+        priority: input.priority || parentTask.priority || 'medium',
         status: 'todo',
         progress: 0,
         parent_task_id: parentTaskId,
         company_id: companyId,
         user_id: user.id,
-        team_id: '',
+        team_id: parentTask.team_id,
         description: '',
-        responsible_name: null,
-        responsible_avatar: null,
-        deadline: null,
-        start_date: null,
-        origin: 'manual',
+        responsible_name: parentTask.responsible_name || '',
+        responsible_avatar: parentTask.responsible_avatar || '',
+        deadline: parentTask.deadline || null,
+        start_date: parentTask.start_date || null,
+        origin: parentTask.origin || 'manual',
+        assigned_user_id: parentTask.assigned_user_id || null,
+        quadro_column_id: parentTask.quadro_column_id || null,
+        etapa: parentTask.etapa || null,
+        related_campaign_id: parentTask.related_campaign_id || null,
+        related_client_id: parentTask.related_client_id || null,
       };
       const { data, error } = await supabase
         .from('tasks')
@@ -80,7 +101,7 @@ export function useSubtasks(parentTaskId: string | null) {
 
   const importRoteiro = useMutation({
     mutationFn: async (roteiroId: string) => {
-      if (!parentTaskId || !companyId || !user) throw new Error('Missing context');
+      if (!parentTaskId || !companyId || !user || !parentTask) throw new Error('Missing context');
       
       const { data: atividades, error } = await supabase
         .from('roteiro_atividades')
@@ -95,19 +116,24 @@ export function useSubtasks(parentTaskId: string | null) {
       const rows: any[] = atividades.map(a => ({
         title: a.titulo,
         task_type: a.tipo || 'Tarefa',
-        priority: 'medium',
+        priority: parentTask.priority || 'medium',
         status: 'todo',
         progress: 0,
         parent_task_id: parentTaskId,
         company_id: companyId,
         user_id: user.id,
-        team_id: '',
+        team_id: parentTask.team_id,
         description: a.descricao || '',
-        responsible_name: null,
-        responsible_avatar: null,
-        deadline: null,
-        start_date: null,
-        origin: 'manual',
+        responsible_name: parentTask.responsible_name || '',
+        responsible_avatar: parentTask.responsible_avatar || '',
+        deadline: parentTask.deadline || null,
+        start_date: parentTask.start_date || null,
+        origin: parentTask.origin || 'manual',
+        assigned_user_id: parentTask.assigned_user_id || null,
+        quadro_column_id: parentTask.quadro_column_id || null,
+        etapa: parentTask.etapa || null,
+        related_campaign_id: parentTask.related_campaign_id || null,
+        related_client_id: parentTask.related_client_id || null,
       }));
 
       const { error: insertError } = await supabase.from('tasks').insert(rows);
