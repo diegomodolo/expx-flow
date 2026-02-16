@@ -53,7 +53,8 @@ export function ClienteTarefas({ clientId, clientName }: ClienteTarefasProps) {
           const { data: subtasks } = await supabase
             .from('tasks')
             .select('id, status')
-            .eq('parent_task_id', taskId);
+            .eq('parent_task_id', taskId)
+            .neq('origin', 'ghost');
           const pendingSubtasks = (subtasks || []).filter((s: any) => s.status !== 'done');
           if (pendingSubtasks.length > 0) {
             pendingItems.push({ type: 'subtasks', count: pendingSubtasks.length });

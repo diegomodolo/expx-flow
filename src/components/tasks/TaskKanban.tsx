@@ -309,8 +309,9 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
       if (taskIds.length === 0) return {};
       const { data } = await supabase
         .from('tasks')
-        .select('parent_task_id, status')
-        .in('parent_task_id', taskIds);
+        .select('parent_task_id, status, origin')
+        .in('parent_task_id', taskIds)
+        .neq('origin', 'ghost');
 
       const map: Record<string, { total: number; done: number }> = {};
       for (const s of (data || [])) {

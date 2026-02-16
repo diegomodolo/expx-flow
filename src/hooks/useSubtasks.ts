@@ -48,6 +48,7 @@ export function useSubtasks(parentTaskId: string | null) {
         .from('tasks')
         .select('id, title, status, priority, task_type, start_date, deadline, responsible_name, responsible_avatar, progress, parent_task_id')
         .eq('parent_task_id', parentTaskId)
+        .neq('origin', 'ghost')
         .order('created_at', { ascending: true });
       if (error) throw error;
       return data as Subtask[];
