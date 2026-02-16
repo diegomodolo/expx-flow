@@ -72,40 +72,38 @@ export function SquadDialog({ open, onOpenChange, onSubmit, squad, title, readOn
 
   // Fetch fresh squad data from DB when editing
   const { data: freshSquadData } = useQuery({
-    queryKey: ["squad-edit-details", squad?.id],
+    queryKey: ["squad-edit-details", squad?.id, open],
     queryFn: async () => {
       if (!squad?.id) return null;
       const { data, error } = await supabase
         .from("teams")
-        .select("leader_id, whatsapp_responsible_id, authorizer_id")
+        .select("name, description, color, icon, icon_color, icon_bg, leader_id, whatsapp_responsible_id, authorizer_id")
         .eq("id", squad.id)
         .single();
       if (error) throw error;
       return data;
     },
     enabled: !!squad?.id && open,
+    staleTime: 0,
   });
 
   // Get members of this squad for role selectors
-  const squadMembers = (employees || []).filter(e => {
-    if (squad) return e.team_id === squad.id;
-    return true; // For new squads, show all employees
-  });
+  const squadMembers = employees || [];
 
   useEffect(() => {
-    if (squad) {
+    if (squad && open) {
       setFormData({
-        name: squad.name || "",
-        description: squad.description || "",
-        color: squad.color || "bg-blue-100 text-blue-800",
-        icon: squad.icon || "Megaphone",
-        icon_color: squad.icon_color || "text-blue-600",
-        icon_bg: squad.icon_bg || "bg-blue-100",
+        name: freshSquadData?.name || squad.name || "",
+        description: freshSquadData?.description || squad.description || "",
+        color: freshSquadData?.color || squad.color || "bg-blue-100 text-blue-800",
+        icon: freshSquadData?.icon || squad.icon || "Megaphone",
+        icon_color: freshSquadData?.icon_color || squad.icon_color || "text-blue-600",
+        icon_bg: freshSquadData?.icon_bg || squad.icon_bg || "bg-blue-100",
         leader_id: freshSquadData?.leader_id || squad.leader_id || "",
         whatsapp_responsible_id: freshSquadData?.whatsapp_responsible_id || squad.whatsapp_responsible_id || "",
         authorizer_id: freshSquadData?.authorizer_id || squad.authorizer_id || "",
       });
-    } else {
+    } else if (!squad) {
       setFormData({
         name: "",
         description: "",
