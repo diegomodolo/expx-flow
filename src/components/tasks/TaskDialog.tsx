@@ -393,6 +393,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
       checklist: JSON.stringify(formData.checklist),
       quadro_column_id: formData.quadro_column_id || null,
       etapa: selectedCol?.name || null,
+      autorizador_id: formData.autorizador_id || null,
     };
 
     if (startDateTime) {
@@ -485,7 +486,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
 
   const sidebarItems: { id: SidebarTab; label: string; icon: any }[] = [
     { id: 'principal', label: 'Principal', icon: Home },
-    ...(isRoteiro ? [{ id: 'autorizador' as SidebarTab, label: 'Autorizador', icon: ShieldCheck }] : []),
+    { id: 'autorizador', label: 'Autorizador', icon: ShieldCheck },
     { id: 'checklist', label: 'Checklist', icon: CheckSquare },
   ];
 
