@@ -12,10 +12,10 @@ export function TimelineSlot({ index, isOccupied, isDragOver, slotWidth }: Props
   return (
     <div
       className={cn(
-        "h-full border-r border-white/5 transition-colors duration-150 flex-shrink-0",
+        "h-full border-r border-border/30 transition-colors duration-150 flex-shrink-0",
         isDragOver && !isOccupied && "bg-emerald-500/20",
         isDragOver && isOccupied && "bg-red-500/20",
-        !isDragOver && index % 2 === 0 && "bg-white/[0.02]"
+        !isDragOver && index % 2 === 0 && "bg-muted/20"
       )}
       style={{ width: `${slotWidth}px` }}
     />

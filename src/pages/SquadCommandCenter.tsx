@@ -127,12 +127,12 @@ export default function SquadCommandCenter() {
 
   return (
     <DashboardLayout>
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 -m-6 p-6">
+      <div className="space-y-6">
         {/* Top bar */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Radar className="w-6 h-6 text-cyan-400" />
-            <h1 className="text-xl font-bold text-white tracking-tight">Command Center</h1>
+            <Radar className="w-6 h-6 text-primary" />
+            <h1 className="text-xl font-bold text-foreground tracking-tight">Command Center</h1>
           </div>
           <SquadSelector
             teams={teams}
@@ -156,7 +156,7 @@ export default function SquadCommandCenter() {
             {/* Main layout: Backlog + Timeline */}
             <div className="flex gap-4">
               {/* Backlog column */}
-              <div className="w-72 flex-shrink-0 rounded-2xl backdrop-blur-xl bg-white/5 border border-white/10 overflow-hidden shadow-[0_0_15px_rgba(6,182,212,0.05)]">
+              <div className="w-72 flex-shrink-0 rounded-2xl bg-card border border-border overflow-hidden">
                 <BacklogColumn
                   tasks={backlogTasks}
                   getAgingHours={getAgingHours}
@@ -178,21 +178,18 @@ export default function SquadCommandCenter() {
 
         {/* Overflow dialog */}
         <AlertDialog open={!!overflowDialog} onOpenChange={() => setOverflowDialog(null)}>
-          <AlertDialogContent className="bg-slate-900 border-white/10 text-white">
+          <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle className="text-white">Cuidado: Overflow de horário</AlertDialogTitle>
-              <AlertDialogDescription className="text-white/60">
+              <AlertDialogTitle>Cuidado: Overflow de horário</AlertDialogTitle>
+              <AlertDialogDescription>
                 Esta tarefa empurrará o cronograma para além das 6h do dia de {overflowDialog?.memberName}. Deseja confirmar?
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel className="bg-white/5 border-white/10 text-white hover:bg-white/10">
+              <AlertDialogCancel>
                 Cancelar
               </AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleOverflowConfirm}
-                className="bg-cyan-600 hover:bg-cyan-700 text-white"
-              >
+              <AlertDialogAction onClick={handleOverflowConfirm}>
                 Confirmar
               </AlertDialogAction>
             </AlertDialogFooter>
