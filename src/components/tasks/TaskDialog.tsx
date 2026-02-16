@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, X, Plus, Home, CheckSquare, Trash2, Save, ZoomIn, ZoomOut, ShieldCheck, Search, Users, UsersRound, History, ListTree } from "lucide-react";
+import { CalendarIcon, X, Plus, Home, CheckSquare, Trash2, Save, ZoomIn, ZoomOut, ShieldCheck, Search, Users, UsersRound, History, ListTree, ArrowUpRight } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useTeams } from "@/hooks/useTeams";
@@ -154,6 +154,31 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
     },
     enabled: !!user && !!companyId,
   });
+
+  // Fetch parent task info if this is a subtask
+  const parentTaskId = task?.parent_task_id || null;
+  const { data: parentTaskInfo } = useQuery({
+    queryKey: ['parentTaskInfo', parentTaskId],
+    queryFn: async () => {
+      if (!parentTaskId) return null;
+      const { data, error } = await supabase
+        .from('tasks')
+        .select('id, title')
+        .eq('id', parentTaskId)
+        .single();
+      if (error) return null;
+      return data;
+    },
+    enabled: !!parentTaskId,
+  });
+
+  const [viewingParentTask, setViewingParentTask] = useState<any>(null);
+
+  const handleOpenParentTask = async () => {
+    if (!parentTaskInfo) return;
+    const { data } = await supabase.from('tasks').select('*').eq('id', parentTaskInfo.id).single();
+    if (data) setViewingParentTask(data);
+  };
 
   const canViewOthersBoards = isOwner || isManager || hasPermission('ver-quadros-outros');
 
@@ -629,6 +654,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
     : formData.responsible_name;
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         hideCloseButton
@@ -688,6 +714,15 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
+                {parentTaskInfo && (
+                  <button
+                    onClick={handleOpenParentTask}
+                    className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors mb-0.5 group"
+                  >
+                    <ArrowUpRight className="w-3 h-3" />
+                    <span className="truncate max-w-[300px]">Subtarefa de: <span className="font-medium underline underline-offset-2 group-hover:no-underline">{parentTaskInfo.title}</span></span>
+                  </button>
+                )}
                 <h2 className="text-lg font-semibold text-foreground truncate">
                   {formData.title || 'Sem Título'}
                 </h2>
@@ -1425,5 +1460,22 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
         </div>
       </DialogContent>
     </Dialog>
+
+    {/* Stacked dialog for viewing parent task */}
+    {viewingParentTask && (
+      <TaskDialog
+        open={!!viewingParentTask}
+        onOpenChange={(open) => {
+          if (!open) setViewingParentTask(null);
+        }}
+        task={viewingParentTask}
+        onSave={async (taskData) => {
+          const { id, ...updates } = taskData;
+          await supabase.from('tasks').update(updates).eq('id', viewingParentTask.id);
+          setViewingParentTask(null);
+        }}
+      />
+    )}
+    </>
   );
 }
