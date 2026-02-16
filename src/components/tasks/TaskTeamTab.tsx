@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, X, Crown, Users, Eye, Loader2, Plus, Filter } from "lucide-react";
+import { Search, X, Crown, Users, Eye, Loader2, Plus, Filter, ShieldCheck } from "lucide-react";
 import { useTaskMembers, TaskMemberRole } from "@/hooks/useTaskMembers";
 import { useEmployees } from "@/hooks/useEmployees";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
@@ -27,6 +27,12 @@ const ROLE_CONFIG: Record<TaskMemberRole, { label: string; icon: React.ElementTy
     icon: Crown,
     color: 'text-amber-500',
     description: 'Responsável principal pela execução',
+  },
+  authorizer: {
+    label: 'Autorizador',
+    icon: ShieldCheck,
+    color: 'text-emerald-500',
+    description: 'Deve autorizar antes da execução',
   },
   contributor: {
     label: 'Contribuinte',
@@ -201,7 +207,7 @@ function EmployeeChip({
 }
 
 export function TaskTeamTab({ taskId, companyId, fallbackResponsible, defaultTeamId }: TaskTeamTabProps) {
-  const { members, responsible, contributors, observers, isLoading, addMember, isAdding, updateRole, removeMember } = useTaskMembers(taskId, companyId);
+  const { members, responsible, authorizers, contributors, observers, isLoading, addMember, isAdding, updateRole, removeMember } = useTaskMembers(taskId, companyId);
   const { employees } = useEmployees();
   const [search, setSearch] = useState('');
   const [selectedTeamId, setSelectedTeamId] = useState<string>(defaultTeamId || 'all');
@@ -302,6 +308,7 @@ export function TaskTeamTab({ taskId, companyId, fallbackResponsible, defaultTea
           </div>
         ) : (
           <>
+            <RoleDropZone role="authorizer" members={authorizers} onRemove={removeMember} onDrop={handleAddToRole} />
             <RoleDropZone role="contributor" members={contributors} onRemove={removeMember} onDrop={handleAddToRole} />
             <RoleDropZone role="observer" members={observers} onRemove={removeMember} onDrop={handleAddToRole} />
           </>

@@ -14964,7 +14964,11 @@ export type Database = {
         | "completed_late"
         | "skipped"
       routine_frequency: "daily" | "weekly" | "monthly"
-      task_member_role: "responsible" | "contributor" | "observer"
+      task_member_role:
+        | "responsible"
+        | "contributor"
+        | "observer"
+        | "authorizer"
       task_origin: "dashboard" | "manual" | "automation"
       task_priority: "high" | "medium" | "low"
       task_status:
@@ -15169,7 +15173,12 @@ export const Constants = {
         "skipped",
       ],
       routine_frequency: ["daily", "weekly", "monthly"],
-      task_member_role: ["responsible", "contributor", "observer"],
+      task_member_role: [
+        "responsible",
+        "contributor",
+        "observer",
+        "authorizer",
+      ],
       task_origin: ["dashboard", "manual", "automation"],
       task_priority: ["high", "medium", "low"],
       task_status: [
