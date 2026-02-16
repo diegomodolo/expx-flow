@@ -28,7 +28,8 @@ import {
   Lightbulb,
   HeadphonesIcon,
   Crown,
-  MessageSquare
+  MessageSquare,
+  ShieldCheck
 } from "lucide-react";
 
 type StatusType = "all" | "high" | "medium" | "low";
@@ -329,6 +330,27 @@ const Squad = () => {
                               </Avatar>
                               <span className="font-medium text-foreground text-xs truncate max-w-[100px]">
                                 {team.whatsapp_responsible.name}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">Não definido</span>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground flex items-center gap-1">
+                            <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
+                            Autorizador:
+                          </span>
+                          {team.authorizer ? (
+                            <div className="flex items-center gap-1.5">
+                              <Avatar className="h-5 w-5">
+                                <AvatarImage src={team.authorizer.avatar || undefined} />
+                                <AvatarFallback className="text-[9px] bg-primary/10 text-primary">
+                                  {team.authorizer.name.charAt(0)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="font-medium text-foreground text-xs truncate max-w-[100px]">
+                                {team.authorizer.name}
                               </span>
                             </div>
                           ) : (

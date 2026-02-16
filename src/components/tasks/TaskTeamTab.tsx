@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,6 +19,7 @@ interface TaskTeamTabProps {
     avatar: string;
     employeeId: string;
   };
+  autoAssignAuthorizerId?: string | null;
 }
 
 const ROLE_CONFIG: Record<TaskMemberRole, { label: string; icon: React.ElementType; color: string; description: string }> = {
@@ -206,11 +207,28 @@ function EmployeeChip({
   );
 }
 
-export function TaskTeamTab({ taskId, companyId, fallbackResponsible, defaultTeamId }: TaskTeamTabProps) {
+export function TaskTeamTab({ taskId, companyId, fallbackResponsible, defaultTeamId, autoAssignAuthorizerId }: TaskTeamTabProps) {
   const { members, responsible, authorizers, contributors, observers, isLoading, addMember, isAdding, updateRole, removeMember } = useTaskMembers(taskId, companyId);
   const { employees } = useEmployees();
   const [search, setSearch] = useState('');
   const [selectedTeamId, setSelectedTeamId] = useState<string>(defaultTeamId || 'all');
+  const lastAutoAssignedRef = useRef<string | null>(null);
+
+  // Auto-assign authorizer when squad changes
+  useEffect(() => {
+    if (
+      autoAssignAuthorizerId &&
+      taskId &&
+      !isLoading &&
+      lastAutoAssignedRef.current !== autoAssignAuthorizerId
+    ) {
+      const alreadyAuthorizer = authorizers.some(a => a.employee_id === autoAssignAuthorizerId);
+      if (!alreadyAuthorizer) {
+        addMember({ employeeId: autoAssignAuthorizerId, role: 'authorizer' });
+        lastAutoAssignedRef.current = autoAssignAuthorizerId;
+      }
+    }
+  }, [autoAssignAuthorizerId, taskId, isLoading, authorizers]);
 
   const assignedEmployeeIds = new Set(members.map(m => m.employee_id));
 

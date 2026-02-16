@@ -962,7 +962,14 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                         <div className="grid grid-cols-2 gap-4">
                           <div>
                             <Label className="text-sm font-semibold">Equipe</Label>
-                            <Select value={formData.team_id} onValueChange={(value) => setFormData(prev => ({ ...prev, team_id: value }))}>
+                            <Select value={formData.team_id} onValueChange={(value) => {
+                              setFormData(prev => ({ ...prev, team_id: value }));
+                              // Auto-assign authorizer from the selected squad
+                              const selectedTeam = teams?.find(t => t.id === value);
+                              if (selectedTeam?.authorizer_id && task?.id) {
+                                // Will be handled via useEffect below
+                              }
+                            }}>
                               <SelectTrigger className="mt-1.5"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                               <SelectContent>
                                 {teams?.map((team) => (
@@ -1247,6 +1254,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                       employeeId: formData.responsible_employee_id || employees?.find(e => e.user_id === formData.responsible_user_id)?.id || '',
                     }}
                     defaultTeamId={formData.team_id}
+                    autoAssignAuthorizerId={teams?.find(t => t.id === formData.team_id)?.authorizer_id}
                   />
                 )}
 

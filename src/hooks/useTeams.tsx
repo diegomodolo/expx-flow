@@ -24,9 +24,11 @@ export interface Team {
   active_tasks: number;
   leader_id?: string | null;
   whatsapp_responsible_id?: string | null;
+  authorizer_id?: string | null;
   members?: TeamMember[];
   leader?: TeamMember | null;
   whatsapp_responsible?: TeamMember | null;
+  authorizer?: TeamMember | null;
 }
 
 export function useTeams() {
@@ -79,12 +81,14 @@ export function useTeams() {
 
         const leader = teamMembers.find((m) => m.id === team.leader_id) || null;
         const whatsappResponsible = teamMembers.find((m) => m.id === team.whatsapp_responsible_id) || null;
+        const authorizer = teamMembers.find((m) => m.id === team.authorizer_id) || null;
 
         return {
           ...team,
           members: teamMembers,
           leader,
           whatsapp_responsible: whatsappResponsible,
+          authorizer,
         };
       });
 
