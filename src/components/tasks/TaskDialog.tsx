@@ -486,8 +486,6 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
         fluxo: formData.fluxo || null,
         descricao: formData.description || null,
         autorizador_id: formData.autorizador_id || null,
-        categoria_id: formData.categoria_id || null,
-        classificacao_id: formData.classificacao_id || null,
         checklist: formData.checklist.filter(i => i.text).map(i => ({ text: i.text, checked: i.completed })),
       });
       return;
