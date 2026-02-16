@@ -213,13 +213,30 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
   })();
 
   const employeesWithBoards = (() => {
+    // If a responsible is selected, always show them as a board option
+    if (selectedResponsibleUserId) {
+      const responsibleEmp = employees?.filter(emp => emp.user_id === selectedResponsibleUserId) || [];
+      if (responsibleEmp.length > 0) {
+        // Deduplicate by user_id
+        const seen = new Set<string>();
+        return responsibleEmp.filter(emp => {
+          if (seen.has(emp.user_id)) return false;
+          seen.add(emp.user_id);
+          return true;
+        });
+      }
+    }
+    // Fallback: show all employees that have board columns
     const all = employees?.filter(emp =>
       emp.user_id && allColumns.some(col => col.user_id === emp.user_id)
     ) || [];
-    if (selectedResponsibleUserId) {
-      return all.filter(emp => emp.user_id === selectedResponsibleUserId);
-    }
-    return all;
+    // Deduplicate by user_id
+    const seen = new Set<string>();
+    return all.filter(emp => {
+      if (seen.has(emp.user_id)) return false;
+      seen.add(emp.user_id);
+      return true;
+    });
   })();
 
   const filteredColumns = formData.quadro_user_id
@@ -1055,11 +1072,10 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                             onValueChange={(v) => {
                               const emp = employees?.find(e => e.id === v);
                               const empUserId = emp?.user_id || '';
-                              const hasBoard = empUserId && allColumns.some(col => col.user_id === empUserId);
                               setFormData(prev => ({
                                 ...prev,
                                 responsible_employee_id: v,
-                                quadro_user_id: hasBoard ? empUserId : '',
+                                quadro_user_id: empUserId,
                                 quadro_column_id: '',
                               }));
                             }}
@@ -1136,13 +1152,12 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                               onValueChange={(value) => {
                                 const employee = employees?.find(e => e.name === value);
                                 const empUserId = employee?.user_id || '';
-                                const hasBoard = empUserId && allColumns.some(col => col.user_id === empUserId);
                                 setFormData(prev => ({
                                   ...prev,
                                   responsible_name: value,
                                   responsible_avatar: employee?.avatar || employee?.profile_avatar_url || '',
                                   responsible_user_id: empUserId,
-                                  quadro_user_id: hasBoard ? empUserId : '',
+                                  quadro_user_id: empUserId,
                                   quadro_column_id: '',
                                 }));
                               }}
