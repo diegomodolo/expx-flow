@@ -24,7 +24,8 @@ import { FlowBoardSidebar } from "./FlowBoardSidebar";
 import { FlowEdgeActionModal, FlowActionType } from "./FlowEdgeActionModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Save, Loader2, Check, X } from "lucide-react";
+import { ArrowLeft, Save, Loader2, Check, X, GitBranch } from "lucide-react";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { useNavigate } from "react-router-dom";
 import { useTaskFlows } from "@/hooks/useTaskFlows";
 import { useAllBoardColumns } from "@/hooks/useAllBoardColumns";
@@ -191,90 +192,95 @@ function TaskFlowEditorContent({ flowId }: TaskFlowEditorProps) {
   );
 
   return (
-    <div className="h-screen flex flex-col bg-background" onKeyDown={onKeyDown} tabIndex={0}>
-      {/* Header */}
-      <div className="border-b bg-card px-4 py-3 flex items-center justify-between flex-shrink-0">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/fluxos")}>
-            <ArrowLeft className="h-5 w-5" />
+    <DashboardLayout>
+      <div className="flex flex-col h-[calc(100vh-130px)] -m-8" onKeyDown={onKeyDown} tabIndex={0}>
+        {/* Page Header */}
+        <div className="border-b bg-card px-6 py-3 flex items-center justify-between flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => navigate("/fluxos")}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <GitBranch className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              {isEditingName ? (
+                <div className="flex items-center gap-2">
+                  <Input
+                    ref={nameInputRef}
+                    value={tempName}
+                    onChange={(e) => setTempName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleSaveName();
+                      if (e.key === "Escape") setIsEditingName(false);
+                    }}
+                    className="h-8 text-lg font-semibold"
+                  />
+                  <Button size="icon" variant="ghost" onClick={handleSaveName}><Check className="h-4 w-4" /></Button>
+                  <Button size="icon" variant="ghost" onClick={() => setIsEditingName(false)}><X className="h-4 w-4" /></Button>
+                </div>
+              ) : (
+                <h1
+                  className="text-lg font-semibold cursor-pointer hover:text-primary transition-colors"
+                  onClick={() => { setTempName(flowName); setIsEditingName(true); }}
+                >
+                  {flowName}
+                </h1>
+              )}
+              <p className="text-xs text-muted-foreground">
+                {isSaving ? "Salvando..." : "Salvo automaticamente"}
+              </p>
+            </div>
+          </div>
+          <Button variant="outline" size="sm" onClick={handleSave} disabled={isSaving}>
+            {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+            Salvar
           </Button>
-          <div>
-            {isEditingName ? (
-              <div className="flex items-center gap-2">
-                <Input
-                  ref={nameInputRef}
-                  value={tempName}
-                  onChange={(e) => setTempName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleSaveName();
-                    if (e.key === "Escape") setIsEditingName(false);
-                  }}
-                  className="h-8 text-lg font-semibold"
-                />
-                <Button size="icon" variant="ghost" onClick={handleSaveName}><Check className="h-4 w-4" /></Button>
-                <Button size="icon" variant="ghost" onClick={() => setIsEditingName(false)}><X className="h-4 w-4" /></Button>
-              </div>
-            ) : (
-              <h1
-                className="text-lg font-semibold cursor-pointer hover:text-primary transition-colors"
-                onClick={() => { setTempName(flowName); setIsEditingName(true); }}
-              >
-                {flowName}
-              </h1>
-            )}
-            <p className="text-sm text-muted-foreground">
-              {isSaving ? "Salvando..." : "Salvo automaticamente"}
-            </p>
+        </div>
+
+        {/* Main */}
+        <div className="flex-1 flex overflow-hidden">
+          <FlowBoardSidebar boards={boards} isLoading={loadingBoards} />
+
+          <div className="flex-1 bg-muted/20">
+            <ReactFlow
+              nodes={nodes}
+              edges={edges}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              onConnect={onConnect}
+              onDrop={onDrop}
+              onDragOver={onDragOver}
+              nodeTypes={nodeTypes}
+              edgeTypes={edgeTypes}
+              fitView
+              minZoom={0.2}
+              maxZoom={2}
+              deleteKeyCode={["Backspace", "Delete"]}
+            >
+              <Background />
+              <Controls />
+              <MiniMap
+                nodeColor={(node) => (node.data as any).color || "#3B82F6"}
+                pannable
+                zoomable
+              />
+              <Panel position="top-center" className="bg-card/80 backdrop-blur-sm px-3 py-1 rounded-md text-sm text-muted-foreground">
+                Arraste colunas da barra lateral para criar seu fluxo
+              </Panel>
+            </ReactFlow>
           </div>
         </div>
-        <Button variant="outline" size="sm" onClick={handleSave} disabled={isSaving}>
-          {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-          Salvar
-        </Button>
+
+        <FlowEdgeActionModal
+          isOpen={!!pendingConnection}
+          onClose={() => setPendingConnection(null)}
+          onConfirm={handleConfirmAction}
+          sourceName={getNodeLabel(pendingConnection?.source ?? null)}
+          targetName={getNodeLabel(pendingConnection?.target ?? null)}
+        />
       </div>
-
-      {/* Main */}
-      <div className="flex-1 flex overflow-hidden">
-        <FlowBoardSidebar boards={boards} isLoading={loadingBoards} />
-
-        <div className="flex-1 bg-muted/20">
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            onDrop={onDrop}
-            onDragOver={onDragOver}
-            nodeTypes={nodeTypes}
-            edgeTypes={edgeTypes}
-            fitView
-            minZoom={0.2}
-            maxZoom={2}
-            deleteKeyCode={["Backspace", "Delete"]}
-          >
-            <Background />
-            <Controls />
-            <MiniMap
-              nodeColor={(node) => (node.data as any).color || "#3B82F6"}
-              pannable
-              zoomable
-            />
-            <Panel position="top-center" className="bg-card/80 backdrop-blur-sm px-3 py-1 rounded-md text-sm text-muted-foreground">
-              Arraste colunas da barra lateral para criar seu fluxo
-            </Panel>
-          </ReactFlow>
-        </div>
-      </div>
-
-      <FlowEdgeActionModal
-        isOpen={!!pendingConnection}
-        onClose={() => setPendingConnection(null)}
-        onConfirm={handleConfirmAction}
-        sourceName={getNodeLabel(pendingConnection?.source ?? null)}
-        targetName={getNodeLabel(pendingConnection?.target ?? null)}
-      />
-    </div>
+    </DashboardLayout>
   );
 }
 
