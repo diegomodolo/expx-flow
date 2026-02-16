@@ -92,7 +92,7 @@ export function TaskHistoryTab({ taskId }: Props) {
           <p className="text-sm">Nenhum registro no histórico</p>
         </div>
       ) : (
-        <ScrollArea className="max-h-[400px]">
+        <ScrollArea className="h-[400px]">
           <div className="space-y-3 pr-2">
             {entries.map((entry) => {
               const isOwner = user?.id === entry.user_id;
