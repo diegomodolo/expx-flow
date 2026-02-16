@@ -109,6 +109,13 @@ export function InstagramConnectionTestModal({
               <div>
                 <h3 className="font-medium text-destructive">Falha na Conexão</h3>
                 <p className="text-sm text-muted-foreground mt-1">{error}</p>
+                {error.includes("permission") && (
+                  <p className="text-sm text-warning mt-2 bg-warning/10 p-3 rounded-lg">
+                    ⚠️ O token do Facebook não possui permissão para acessar o Instagram. 
+                    Vá em <strong>Configurações → Facebook Ads</strong>, desconecte e reconecte 
+                    garantindo que as permissões do Instagram sejam concedidas.
+                  </p>
+                )}
               </div>
               <Button variant="outline" onClick={testConnection} disabled={loading}>
                 {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
