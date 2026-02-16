@@ -26,6 +26,7 @@ import { useTaskBoardColumns, TaskBoardColumn } from "@/hooks/useTaskBoardColumn
 import { ColumnSettingsDialog } from "./ColumnSettingsDialog";
 import { TemplateSelector } from "./TemplateSelector";
 import { KanbanTemplate } from "@/data/kanbanTemplates";
+import { CompletedTasksModal } from "./CompletedTasksModal";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/CompanyContext";
@@ -701,28 +702,13 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
       </div>
 
       {/* Modal de tarefas concluídas */}
-      <Dialog open={completedTasksModalOpen} onOpenChange={setCompletedTasksModalOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5" style={{ color: '#22C55E' }} />
-              Tarefas Concluídas ({completedTasks.length})
-            </DialogTitle>
-          </DialogHeader>
-          <ScrollArea className="max-h-[60vh] pr-4">
-            <div className="space-y-3">
-              {completedTasks.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <CheckCircle2 className="w-12 h-12 mx-auto mb-2 text-muted-foreground/30" />
-                  <p>Nenhuma tarefa concluída ainda</p>
-                </div>
-              ) : (
-                completedTasks.map((task) => renderTaskCard(task, '#22C55E', true))
-              )}
-            </div>
-          </ScrollArea>
-        </DialogContent>
-      </Dialog>
+      <CompletedTasksModal
+        open={completedTasksModalOpen}
+        onOpenChange={setCompletedTasksModalOpen}
+        tasks={completedTasks}
+        onEditTask={onEditTask}
+        allTimeTracking={allTimeTracking}
+      />
 
       <ColumnSettingsDialog
         open={columnDialogOpen}
