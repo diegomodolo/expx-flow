@@ -113,7 +113,7 @@ const menuCategories: MenuCategory[] = [
         { title: "Geradores", url: "/geradores", icon: Wand2, permission: "geradores" as MenuItemType },
         { title: "Planejador de Conteúdo", url: "/geradores/planejamento-conteudo", icon: FileText, permission: "planejador-conteudo" as MenuItemType },
         { title: "Repositório de Criativos", url: "/repositorio-criativos", icon: Images, permission: "repositorio-criativos" as MenuItemType },
-        { title: "WhatsApp", url: "/notificacoes/whatsapp", icon: MessageCircle, permission: "whatsapp" as MenuItemType },
+        
       ].sort((a, b) => a.title.localeCompare(b.title, 'pt-BR')),
     },
     {
@@ -156,6 +156,7 @@ const menuCategories: MenuCategory[] = [
         { title: "Parâmetros de Performance", url: "/parametros-performance", icon: Activity, permission: "configuracoes" as MenuItemType },
         { title: "Radar TV", url: "#radar-tv-dashboard", icon: Activity, permission: "radar-tv" as MenuItemType, isExternal: true },
         { title: "Relatórios Marketing", url: "/marketing/relatorios", icon: BarChart3, permission: "relatorios-marketing" as MenuItemType },
+        { title: "Notificações", url: "/notificacoes/whatsapp", icon: Bell, permission: "whatsapp" as MenuItemType },
       ].sort((a, b) => a.title.localeCompare(b.title, 'pt-BR')),
     },
   ].sort((a, b) => a.title.localeCompare(b.title, 'pt-BR')),
