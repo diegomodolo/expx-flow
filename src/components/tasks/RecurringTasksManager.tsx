@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Repeat, 
   Plus, 
@@ -14,7 +16,9 @@ import {
   Clock,
   AlertCircle,
   Play,
-  Loader2
+  Loader2,
+  Search,
+  X
 } from "lucide-react";
 import { useRecurringTasks, RecurringTaskTemplate } from "@/hooks/useRecurringTasks";
 import { RecurringTaskDialog } from "./RecurringTaskDialog";
@@ -40,6 +44,7 @@ import {
 } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useDebounce } from "@/hooks/useDebounce";
 
 interface RecurringTasksManagerProps {
   clientId?: string;
@@ -78,6 +83,56 @@ export function RecurringTasksManager({ clientId }: RecurringTasksManagerProps) 
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [templateToDelete, setTemplateToDelete] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+
+  // Filter states
+  const [searchName, setSearchName] = useState('');
+  const [filterRecurrence, setFilterRecurrence] = useState('all');
+  const [filterPriority, setFilterPriority] = useState('all');
+  const [filterResponsible, setFilterResponsible] = useState('all');
+  const [filterClient, setFilterClient] = useState('all');
+  const [filterActive, setFilterActive] = useState('all');
+
+  const debouncedSearch = useDebounce(searchName, 300);
+
+  const uniqueResponsibles = useMemo(() => {
+    const map = new Map<string, string>();
+    templates.forEach(t => {
+      if (t.assigned_employee) map.set(t.assigned_to, t.assigned_employee.name);
+    });
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
+  }, [templates]);
+
+  const uniqueClients = useMemo(() => {
+    const map = new Map<string, string>();
+    templates.forEach(t => {
+      if (t.client_id && t.client) map.set(t.client_id, t.client.name);
+    });
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
+  }, [templates]);
+
+  const filteredTemplates = useMemo(() => {
+    return templates.filter(t => {
+      if (debouncedSearch && !t.title.toLowerCase().includes(debouncedSearch.toLowerCase())) return false;
+      if (filterRecurrence !== 'all' && t.recurrence_type !== filterRecurrence) return false;
+      if (filterPriority !== 'all' && t.priority !== filterPriority) return false;
+      if (filterResponsible !== 'all' && t.assigned_to !== filterResponsible) return false;
+      if (filterClient !== 'all' && t.client_id !== filterClient) return false;
+      if (filterActive === 'active' && !t.is_active) return false;
+      if (filterActive === 'inactive' && t.is_active) return false;
+      return true;
+    });
+  }, [templates, debouncedSearch, filterRecurrence, filterPriority, filterResponsible, filterClient, filterActive]);
+
+  const hasActiveFilters = debouncedSearch || filterRecurrence !== 'all' || filterPriority !== 'all' || filterResponsible !== 'all' || filterClient !== 'all' || filterActive !== 'all';
+
+  const clearFilters = () => {
+    setSearchName('');
+    setFilterRecurrence('all');
+    setFilterPriority('all');
+    setFilterResponsible('all');
+    setFilterClient('all');
+    setFilterActive('all');
+  };
 
   const handleEdit = (template: RecurringTaskTemplate) => {
     setEditTemplate(template);
@@ -137,6 +192,88 @@ export function RecurringTasksManager({ clientId }: RecurringTasksManagerProps) 
 
   return (
     <>
+      {/* Filters Card */}
+      <Card className="mb-4">
+        <CardContent className="p-3">
+          <div className="flex flex-col lg:flex-row lg:items-center gap-2">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por nome..."
+                value={searchName}
+                onChange={(e) => setSearchName(e.target.value)}
+                className="pl-8 h-9"
+              />
+            </div>
+            <Select value={filterRecurrence} onValueChange={setFilterRecurrence}>
+              <SelectTrigger className="h-9 w-full lg:w-[150px]">
+                <SelectValue placeholder="Recorrência" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas recorrências</SelectItem>
+                <SelectItem value="daily">Diária</SelectItem>
+                <SelectItem value="weekly">Semanal</SelectItem>
+                <SelectItem value="monthly">Mensal</SelectItem>
+                <SelectItem value="yearly">Anual</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={filterPriority} onValueChange={setFilterPriority}>
+              <SelectTrigger className="h-9 w-full lg:w-[140px]">
+                <SelectValue placeholder="Prioridade" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas prioridades</SelectItem>
+                <SelectItem value="low">Baixa</SelectItem>
+                <SelectItem value="medium">Média</SelectItem>
+                <SelectItem value="high">Alta</SelectItem>
+              </SelectContent>
+            </Select>
+            {uniqueResponsibles.length > 0 && (
+              <Select value={filterResponsible} onValueChange={setFilterResponsible}>
+                <SelectTrigger className="h-9 w-full lg:w-[160px]">
+                  <SelectValue placeholder="Responsável" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos responsáveis</SelectItem>
+                  {uniqueResponsibles.map(r => (
+                    <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            {uniqueClients.length > 0 && (
+              <Select value={filterClient} onValueChange={setFilterClient}>
+                <SelectTrigger className="h-9 w-full lg:w-[160px]">
+                  <SelectValue placeholder="Cliente" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos clientes</SelectItem>
+                  {uniqueClients.map(c => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            <Select value={filterActive} onValueChange={setFilterActive}>
+              <SelectTrigger className="h-9 w-full lg:w-[130px]">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="active">Ativos</SelectItem>
+                <SelectItem value="inactive">Inativos</SelectItem>
+              </SelectContent>
+            </Select>
+            {hasActiveFilters && (
+              <Button variant="ghost" size="sm" onClick={clearFilters} className="h-9 gap-1 text-muted-foreground shrink-0">
+                <X className="h-3.5 w-3.5" />
+                Limpar
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-3">
           <CardTitle className="flex items-center gap-2 text-lg">
@@ -166,12 +303,14 @@ export function RecurringTasksManager({ clientId }: RecurringTasksManagerProps) 
         <CardContent className="p-0">
           {loading ? (
             <div className="text-center py-8 text-muted-foreground">Carregando...</div>
-          ) : templates.length === 0 ? (
+          ) : filteredTemplates.length === 0 ? (
             <div className="text-center py-8 px-4">
               <Repeat className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
-              <p className="text-muted-foreground">Nenhuma tarefa recorrente configurada</p>
+              <p className="text-muted-foreground">
+                {hasActiveFilters ? 'Nenhuma tarefa encontrada com os filtros selecionados' : 'Nenhuma tarefa recorrente configurada'}
+              </p>
               <p className="text-sm text-muted-foreground mt-1">
-                Crie tarefas que se repetem automaticamente
+                {hasActiveFilters ? 'Tente alterar os filtros' : 'Crie tarefas que se repetem automaticamente'}
               </p>
             </div>
           ) : (
@@ -190,7 +329,7 @@ export function RecurringTasksManager({ clientId }: RecurringTasksManagerProps) 
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {templates.map((template) => {
+                {filteredTemplates.map((template) => {
                   const prio = priorityConfig[template.priority] || priorityConfig.medium;
                   return (
                     <TableRow key={template.id} className={!template.is_active ? 'opacity-50' : ''}>
