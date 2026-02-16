@@ -121,6 +121,46 @@ export function useTaskTimeTracking(taskId: string | null) {
     },
   });
 
+  const createManualSession = useMutation({
+    mutationFn: async (data: { user_id: string; started_at: string; ended_at: string }) => {
+      if (!taskId || !activeCompany?.company_id) throw new Error('Missing data');
+      const { error } = await supabase.from('task_time_tracking').insert({
+        task_id: taskId,
+        user_id: data.user_id,
+        company_id: activeCompany.company_id,
+        started_at: data.started_at,
+        ended_at: data.ended_at,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey });
+      toast({ title: 'Sessão adicionada' });
+    },
+    onError: () => {
+      toast({ title: 'Erro ao adicionar sessão', variant: 'destructive' });
+    },
+  });
+
+  const updateSession = useMutation({
+    mutationFn: async (data: { sessionId: string; started_at: string; ended_at: string; user_id?: string }) => {
+      const updates: any = { started_at: data.started_at, ended_at: data.ended_at };
+      if (data.user_id) updates.user_id = data.user_id;
+      const { error } = await supabase
+        .from('task_time_tracking')
+        .update(updates)
+        .eq('id', data.sessionId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey });
+      toast({ title: 'Sessão atualizada' });
+    },
+    onError: () => {
+      toast({ title: 'Erro ao atualizar sessão', variant: 'destructive' });
+    },
+  });
+
   return {
     sessions,
     isLoading,
@@ -130,5 +170,7 @@ export function useTaskTimeTracking(taskId: string | null) {
     startTracking,
     stopTracking,
     deleteSession,
+    createManualSession,
+    updateSession,
   };
 }

@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useTaskTimeTracking, TimeTrackingSession } from '@/hooks/useTaskTimeTracking';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Play, Square, Trash2, Clock } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Play, Square, Trash2, Clock, Plus, Pencil } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useAuth } from '@/hooks/useAuth';
+import { useEmployees } from '@/hooks/useEmployees';
 
 function formatDuration(minutes: number): string {
   if (minutes < 1) return '< 1min';
@@ -29,6 +34,18 @@ function LiveTimer({ startedAt }: { startedAt: string }) {
   return <span className="text-primary font-mono font-bold">{formatDuration(elapsed)}</span>;
 }
 
+function toLocalDatetimeValue(iso: string): string {
+  const d = new Date(iso);
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+interface SessionFormData {
+  user_id: string;
+  started_at: string;
+  ended_at: string;
+}
+
 interface TaskTimeTrackingTabProps {
   taskId: string | null;
   taskStatus?: string;
@@ -36,6 +53,7 @@ interface TaskTimeTrackingTabProps {
 
 export function TaskTimeTrackingTab({ taskId, taskStatus }: TaskTimeTrackingTabProps) {
   const { user } = useAuth();
+  const { employees } = useEmployees();
   const {
     sessions,
     isLoading,
@@ -44,10 +62,58 @@ export function TaskTimeTrackingTab({ taskId, taskStatus }: TaskTimeTrackingTabP
     startTracking,
     stopTracking,
     deleteSession,
+    createManualSession,
+    updateSession,
   } = useTaskTimeTracking(taskId);
 
-  // Calculate lead time from task creation (approximated by first session or passed)
-  const leadTimeMinutes = totalMinutes;
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingSession, setEditingSession] = useState<TimeTrackingSession | null>(null);
+  const [formData, setFormData] = useState<SessionFormData>({
+    user_id: '',
+    started_at: '',
+    ended_at: '',
+  });
+
+  const openCreateForm = () => {
+    const now = new Date();
+    setEditingSession(null);
+    setFormData({
+      user_id: user?.id || '',
+      started_at: toLocalDatetimeValue(now.toISOString()),
+      ended_at: toLocalDatetimeValue(now.toISOString()),
+    });
+    setFormOpen(true);
+  };
+
+  const openEditForm = (session: TimeTrackingSession) => {
+    setEditingSession(session);
+    setFormData({
+      user_id: session.user_id,
+      started_at: toLocalDatetimeValue(session.started_at),
+      ended_at: session.ended_at ? toLocalDatetimeValue(session.ended_at) : toLocalDatetimeValue(new Date().toISOString()),
+    });
+    setFormOpen(true);
+  };
+
+  const handleSubmit = () => {
+    if (!formData.user_id || !formData.started_at || !formData.ended_at) return;
+    const startedIso = new Date(formData.started_at).toISOString();
+    const endedIso = new Date(formData.ended_at).toISOString();
+
+    if (new Date(endedIso) <= new Date(startedIso)) return;
+
+    if (editingSession) {
+      updateSession.mutate(
+        { sessionId: editingSession.id, started_at: startedIso, ended_at: endedIso, user_id: formData.user_id },
+        { onSuccess: () => setFormOpen(false) },
+      );
+    } else {
+      createManualSession.mutate(
+        { user_id: formData.user_id, started_at: startedIso, ended_at: endedIso },
+        { onSuccess: () => setFormOpen(false) },
+      );
+    }
+  };
 
   if (!taskId) {
     return (
@@ -66,9 +132,9 @@ export function TaskTimeTrackingTab({ taskId, taskStatus }: TaskTimeTrackingTabP
         </p>
       </div>
 
-      {/* Active Session Card - shown when task is in progress */}
+      {/* Active Session Card */}
       {activeSession && taskStatus === 'progress' && (
-        <div className="rounded-xl border-2 border-primary bg-primary/5 p-4 animate-pulse-subtle">
+        <div className="rounded-xl border-2 border-primary bg-primary/5 p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />
@@ -106,13 +172,13 @@ export function TaskTimeTrackingTab({ taskId, taskStatus }: TaskTimeTrackingTabP
         </div>
       </div>
 
-      {/* Start/Stop Button */}
-      <div className="flex justify-center">
+      {/* Start/Stop + Add Manual */}
+      <div className="flex gap-2">
         {activeSession ? (
           <Button
             variant="destructive"
             size="lg"
-            className="gap-2 w-full"
+            className="gap-2 flex-1"
             onClick={() => stopTracking.mutate(activeSession.id)}
             disabled={stopTracking.isPending}
           >
@@ -122,7 +188,7 @@ export function TaskTimeTrackingTab({ taskId, taskStatus }: TaskTimeTrackingTabP
         ) : (
           <Button
             size="lg"
-            className="gap-2 w-full"
+            className="gap-2 flex-1"
             onClick={() => startTracking.mutate()}
             disabled={startTracking.isPending}
           >
@@ -130,6 +196,15 @@ export function TaskTimeTrackingTab({ taskId, taskStatus }: TaskTimeTrackingTabP
             Iniciar Timer
           </Button>
         )}
+        <Button
+          variant="outline"
+          size="lg"
+          className="gap-2"
+          onClick={openCreateForm}
+        >
+          <Plus className="w-4 h-4" />
+          Manual
+        </Button>
       </div>
 
       {/* Sessions List */}
@@ -145,9 +220,79 @@ export function TaskTimeTrackingTab({ taskId, taskStatus }: TaskTimeTrackingTabP
             session={session}
             isOwner={session.user_id === user?.id}
             onDelete={() => deleteSession.mutate(session.id)}
+            onEdit={() => openEditForm(session)}
           />
         ))}
       </div>
+
+      {/* Create/Edit Dialog */}
+      <Dialog open={formOpen} onOpenChange={setFormOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editingSession ? 'Editar Sessão' : 'Adicionar Sessão Manual'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div>
+              <Label className="text-sm font-medium">Responsável</Label>
+              <Select value={formData.user_id} onValueChange={(v) => setFormData(p => ({ ...p, user_id: v }))}>
+                <SelectTrigger className="mt-1.5">
+                  <SelectValue placeholder="Selecione o responsável" />
+                </SelectTrigger>
+                <SelectContent>
+                  {employees.filter(e => e.status === 'active').map((emp) => (
+                    <SelectItem key={emp.user_id} value={emp.user_id}>
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-5 w-5">
+                          <AvatarImage src={emp.profile_avatar_url || emp.avatar || ''} />
+                          <AvatarFallback className="text-[8px] bg-muted">{emp.name.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        {emp.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-sm font-medium">Início</Label>
+              <Input
+                type="datetime-local"
+                className="mt-1.5"
+                value={formData.started_at}
+                onChange={(e) => setFormData(p => ({ ...p, started_at: e.target.value }))}
+              />
+            </div>
+            <div>
+              <Label className="text-sm font-medium">Término</Label>
+              <Input
+                type="datetime-local"
+                className="mt-1.5"
+                value={formData.ended_at}
+                onChange={(e) => setFormData(p => ({ ...p, ended_at: e.target.value }))}
+              />
+            </div>
+            {formData.started_at && formData.ended_at && new Date(formData.ended_at) > new Date(formData.started_at) && (
+              <div className="rounded-lg bg-muted/50 p-3 text-center">
+                <p className="text-xs text-muted-foreground">Duração</p>
+                <p className="text-lg font-bold text-foreground">
+                  {formatDuration((new Date(formData.ended_at).getTime() - new Date(formData.started_at).getTime()) / 60000)}
+                </p>
+              </div>
+            )}
+            <Button
+              className="w-full"
+              onClick={handleSubmit}
+              disabled={
+                !formData.user_id || !formData.started_at || !formData.ended_at ||
+                new Date(formData.ended_at) <= new Date(formData.started_at) ||
+                createManualSession.isPending || updateSession.isPending
+              }
+            >
+              {editingSession ? 'Salvar Alterações' : 'Adicionar Sessão'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -156,10 +301,12 @@ function SessionRow({
   session,
   isOwner,
   onDelete,
+  onEdit,
 }: {
   session: TimeTrackingSession;
   isOwner: boolean;
   onDelete: () => void;
+  onEdit: () => void;
 }) {
   const isActive = !session.ended_at;
 
@@ -189,8 +336,8 @@ function SessionRow({
         </div>
       </div>
 
-      <div className="flex items-center gap-2 shrink-0">
-        <div className="flex items-center gap-1 text-sm font-medium">
+      <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center gap-1 text-sm font-medium mr-1">
           <Clock className="w-3.5 h-3.5 text-muted-foreground" />
           {isActive ? (
             <LiveTimer startedAt={session.started_at} />
@@ -198,6 +345,16 @@ function SessionRow({
             <span>{formatDuration(Number(session.duration_minutes || 0))}</span>
           )}
         </div>
+        {!isActive && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-muted-foreground hover:text-foreground"
+            onClick={onEdit}
+          >
+            <Pencil className="w-3.5 h-3.5" />
+          </Button>
+        )}
         {isOwner && !isActive && (
           <Button
             variant="ghost"
