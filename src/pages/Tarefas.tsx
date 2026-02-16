@@ -242,78 +242,81 @@ export default function Tarefas() {
   };
 
   const handleUpdateTaskStatus = async (taskId: string, status: string, columnId?: string, columnName?: string) => {
-    // Block completion if settings require it
-    if (status === 'done') {
-      const blockSubtasks = getSetting(USAGE_KEYS.BLOCK_FINISH_WITH_PENDING_SUBTASKS);
-      const blockChecklist = getSetting(USAGE_KEYS.BLOCK_FINISH_WITH_PENDING_CHECKLIST);
+    try {
+      // Block completion if settings require it
+      if (status === 'done') {
+        const blockSubtasks = getSetting(USAGE_KEYS.BLOCK_FINISH_WITH_PENDING_SUBTASKS);
+        const blockChecklist = getSetting(USAGE_KEYS.BLOCK_FINISH_WITH_PENDING_CHECKLIST);
 
-      if (blockSubtasks || blockChecklist) {
-        const existingTask = tasks.find(t => t.id === taskId);
-        const pendingItems: { type: 'subtasks' | 'checklist'; count: number }[] = [];
+        if (blockSubtasks || blockChecklist) {
+          const existingTask = tasks.find(t => t.id === taskId);
+          const pendingItems: { type: 'subtasks' | 'checklist'; count: number }[] = [];
 
-        if (blockSubtasks) {
-          // Check for pending subtasks
-          const { data: subtasks } = await supabase
-            .from('tasks')
-            .select('id, status')
-            .eq('parent_task_id', taskId);
-          const pendingSubtasks = (subtasks || []).filter((s: any) => s.status !== 'done');
-          if (pendingSubtasks.length > 0) {
-            pendingItems.push({ type: 'subtasks', count: pendingSubtasks.length });
+          if (blockSubtasks) {
+            const { data: subtasks } = await supabase
+              .from('tasks')
+              .select('id, status')
+              .eq('parent_task_id', taskId);
+            const pendingSubtasks = (subtasks || []).filter((s: any) => s.status !== 'done');
+            if (pendingSubtasks.length > 0) {
+              pendingItems.push({ type: 'subtasks', count: pendingSubtasks.length });
+            }
+          }
+
+          if (blockChecklist && existingTask) {
+            let checklist = (existingTask as any).checklist || [];
+            if (typeof checklist === 'string') {
+              try { checklist = JSON.parse(checklist); } catch { checklist = []; }
+            }
+            if (!Array.isArray(checklist)) checklist = [];
+            const pendingChecklist = checklist.filter((item: any) => !item.done && !item.completed);
+            if (pendingChecklist.length > 0) {
+              pendingItems.push({ type: 'checklist', count: pendingChecklist.length });
+            }
+          }
+
+          if (pendingItems.length > 0) {
+            setCompletionBlockItems(pendingItems);
+            setCompletionBlockOpen(true);
+            return;
           }
         }
+      }
 
-        if (blockChecklist && existingTask) {
-          // Check for pending checklist items
-          const checklist = (existingTask as any).checklist || [];
-          const pendingChecklist = checklist.filter((item: any) => !item.done && !item.completed);
-          if (pendingChecklist.length > 0) {
-            pendingItems.push({ type: 'checklist', count: pendingChecklist.length });
-          }
+      const updates: any = { status: status as any };
+      if (columnId !== undefined) updates.quadro_column_id = columnId || null;
+      if (columnName !== undefined) updates.etapa = columnName || null;
+
+      const existingTask = tasks.find(t => t.id === taskId);
+      if (existingTask && activeCompany?.company_id) {
+        const oldStatus = existingTask.status;
+        if (oldStatus !== status) {
+          logTaskHistoryEntry({
+            taskId,
+            companyId: activeCompany.company_id,
+            description: `Alterou o status de ${STATUS_LABELS[oldStatus] || oldStatus} para ${STATUS_LABELS[status] || status}`,
+            fieldChanged: 'status',
+            oldValue: oldStatus,
+            newValue: status,
+          });
+          await handleAutoTimeTracking(taskId, oldStatus, status, currentUserId || undefined, activeCompany.company_id);
         }
-
-        if (pendingItems.length > 0) {
-          setCompletionBlockItems(pendingItems);
-          setCompletionBlockOpen(true);
-          return;
+        if (columnName && existingTask.etapa !== columnName) {
+          logTaskHistoryEntry({
+            taskId,
+            companyId: activeCompany.company_id,
+            description: `Moveu para a etapa "${columnName}"`,
+            fieldChanged: 'etapa',
+            oldValue: existingTask.etapa || 'Sem etapa',
+            newValue: columnName,
+          });
         }
       }
+
+      await updateTask(taskId, updates);
+    } catch (error) {
+      console.error('Erro ao atualizar status da tarefa:', error);
     }
-
-    const updates: any = { status: status as any };
-    if (columnId !== undefined) updates.quadro_column_id = columnId || null;
-    if (columnName !== undefined) updates.etapa = columnName || null;
-
-    // Find the task to get old status for history logging
-    const existingTask = tasks.find(t => t.id === taskId);
-    if (existingTask && activeCompany?.company_id) {
-      const oldStatus = existingTask.status;
-      if (oldStatus !== status) {
-        logTaskHistoryEntry({
-          taskId,
-          companyId: activeCompany.company_id,
-          description: `Alterou o status de ${STATUS_LABELS[oldStatus] || oldStatus} para ${STATUS_LABELS[status] || status}`,
-          fieldChanged: 'status',
-          oldValue: oldStatus,
-          newValue: status,
-        });
-
-        // Auto time tracking
-        await handleAutoTimeTracking(taskId, oldStatus, status, currentUserId || undefined, activeCompany.company_id);
-      }
-      if (columnName && existingTask.etapa !== columnName) {
-        logTaskHistoryEntry({
-          taskId,
-          companyId: activeCompany.company_id,
-          description: `Moveu para a etapa "${columnName}"`,
-          fieldChanged: 'etapa',
-          oldValue: existingTask.etapa || 'Sem etapa',
-          newValue: columnName,
-        });
-      }
-    }
-
-    await updateTask(taskId, updates);
   };
 
   const handleDeleteTask = async (taskId: string) => {

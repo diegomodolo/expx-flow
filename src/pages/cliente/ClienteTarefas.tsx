@@ -61,7 +61,11 @@ export function ClienteTarefas({ clientId, clientName }: ClienteTarefasProps) {
         }
 
         if (blockChecklist && existingTask) {
-          const checklist = (existingTask as any).checklist || [];
+          let checklist = (existingTask as any).checklist || [];
+          if (typeof checklist === 'string') {
+            try { checklist = JSON.parse(checklist); } catch { checklist = []; }
+          }
+          if (!Array.isArray(checklist)) checklist = [];
           const pendingChecklist = checklist.filter((item: any) => !item.done && !item.completed);
           if (pendingChecklist.length > 0) {
             pendingItems.push({ type: 'checklist', count: pendingChecklist.length });
