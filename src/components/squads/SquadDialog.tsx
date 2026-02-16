@@ -57,17 +57,17 @@ const colorOptions = [
 
 export function SquadDialog({ open, onOpenChange, onSubmit, squad, title, readOnly = false }: SquadDialogProps) {
   const { employees } = useEmployees();
-  const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-    color: "bg-blue-100 text-blue-800",
-    icon: "Megaphone",
-    icon_color: "text-blue-600",
-    icon_bg: "bg-blue-100",
-    leader_id: "" as string | null,
-    whatsapp_responsible_id: "" as string | null,
-    authorizer_id: "" as string | null,
-  });
+  const [formData, setFormData] = useState(() => ({
+    name: squad?.name || "",
+    description: squad?.description || "",
+    color: squad?.color || "bg-blue-100 text-blue-800",
+    icon: squad?.icon || "Megaphone",
+    icon_color: squad?.icon_color || "text-blue-600",
+    icon_bg: squad?.icon_bg || "bg-blue-100",
+    leader_id: (squad?.leader_id || "") as string | null,
+    whatsapp_responsible_id: (squad?.whatsapp_responsible_id || "") as string | null,
+    authorizer_id: (squad?.authorizer_id || "") as string | null,
+  }));
   const [loading, setLoading] = useState(false);
 
   // Fetch fresh squad data from DB when editing
@@ -90,33 +90,22 @@ export function SquadDialog({ open, onOpenChange, onSubmit, squad, title, readOn
   // Get members of this squad for role selectors
   const squadMembers = employees || [];
 
+  // Update form when fresh data arrives from DB
   useEffect(() => {
-    if (squad && open) {
+    if (freshSquadData && open) {
       setFormData({
-        name: freshSquadData?.name || squad.name || "",
-        description: freshSquadData?.description || squad.description || "",
-        color: freshSquadData?.color || squad.color || "bg-blue-100 text-blue-800",
-        icon: freshSquadData?.icon || squad.icon || "Megaphone",
-        icon_color: freshSquadData?.icon_color || squad.icon_color || "text-blue-600",
-        icon_bg: freshSquadData?.icon_bg || squad.icon_bg || "bg-blue-100",
-        leader_id: freshSquadData?.leader_id || squad.leader_id || "",
-        whatsapp_responsible_id: freshSquadData?.whatsapp_responsible_id || squad.whatsapp_responsible_id || "",
-        authorizer_id: freshSquadData?.authorizer_id || squad.authorizer_id || "",
-      });
-    } else if (!squad) {
-      setFormData({
-        name: "",
-        description: "",
-        color: "bg-blue-100 text-blue-800",
-        icon: "Megaphone",
-        icon_color: "text-blue-600",
-        icon_bg: "bg-blue-100",
-        leader_id: "",
-        whatsapp_responsible_id: "",
-        authorizer_id: "",
+        name: freshSquadData.name || "",
+        description: freshSquadData.description || "",
+        color: freshSquadData.color || "bg-blue-100 text-blue-800",
+        icon: freshSquadData.icon || "Megaphone",
+        icon_color: freshSquadData.icon_color || "text-blue-600",
+        icon_bg: freshSquadData.icon_bg || "bg-blue-100",
+        leader_id: freshSquadData.leader_id || "",
+        whatsapp_responsible_id: freshSquadData.whatsapp_responsible_id || "",
+        authorizer_id: freshSquadData.authorizer_id || "",
       });
     }
-  }, [squad, open, freshSquadData]);
+  }, [freshSquadData, open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
