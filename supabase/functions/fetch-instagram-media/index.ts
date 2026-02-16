@@ -27,10 +27,10 @@ serve(async (req) => {
       );
     }
 
-    // Get client's company to find the Facebook token
+    // Get client's instagram account to find the linked Facebook page
     const { data: client, error: clientError } = await supabase
       .from("clients")
-      .select("company_id")
+      .select("company_id, instagram_account_id")
       .eq("id", clientId)
       .single();
 
@@ -42,23 +42,51 @@ serve(async (req) => {
       );
     }
 
-    // Get the Facebook integration token
-    const { data: integration, error: integrationError } = await supabase
-      .from("facebook_integrations")
-      .select("access_token")
-      .eq("company_id", client.company_id)
-      .eq("is_active", true)
-      .single();
+    // Try to get the page access token from the instagram account's linked facebook page
+    let accessToken: string | null = null;
 
-    if (integrationError || !integration?.access_token) {
-      console.error("Integration error:", integrationError);
+    if (client.instagram_account_id) {
+      const { data: igAccount } = await supabase
+        .from("instagram_accounts")
+        .select("facebook_page_id")
+        .eq("id", client.instagram_account_id)
+        .single();
+
+      if (igAccount?.facebook_page_id) {
+        const { data: fbPage } = await supabase
+          .from("facebook_pages")
+          .select("page_access_token")
+          .eq("id", igAccount.facebook_page_id)
+          .single();
+
+        if (fbPage?.page_access_token) {
+          accessToken = fbPage.page_access_token;
+          console.log("Using page access token from linked Facebook page");
+        }
+      }
+    }
+
+    // Fallback to user-level token from facebook_integrations
+    if (!accessToken) {
+      const { data: integration } = await supabase
+        .from("facebook_integrations")
+        .select("access_token")
+        .eq("company_id", client.company_id)
+        .eq("is_active", true)
+        .single();
+
+      accessToken = integration?.access_token || null;
+      if (accessToken) {
+        console.log("Using user-level access token as fallback");
+      }
+    }
+
+    if (!accessToken) {
       return new Response(
-        JSON.stringify({ success: false, error: "Facebook integration not found" }),
+        JSON.stringify({ success: false, error: "Nenhum token de acesso encontrado. Reconecte o Facebook nas configurações." }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 404 }
       );
     }
-
-    const accessToken = integration.access_token;
 
     // Build fields for the API request
     const fields = "id,media_type,media_url,thumbnail_url,caption,timestamp,permalink";
