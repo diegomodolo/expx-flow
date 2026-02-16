@@ -9,7 +9,10 @@ import { TaskKanban } from "@/components/tasks/TaskKanban";
 import { RecurringTasksManager } from "@/components/tasks/RecurringTasksManager";
 import { TaskDialog } from "@/components/tasks/TaskDialog";
 import { RecurringTaskDialog } from "@/components/tasks/RecurringTaskDialog";
+import { TaskCompletionBlockModal } from "@/components/tasks/TaskCompletionBlockModal";
 import { useTasks } from "@/hooks/useTasks";
+import { useCompanyUsageDefaults, USAGE_KEYS } from "@/hooks/useCompanyUsageDefaults";
+import { supabase } from "@/integrations/supabase/client";
 import { Plus, Kanban, Repeat, ListTodo } from "lucide-react";
 
 interface ClienteTarefasProps {
@@ -24,6 +27,9 @@ export function ClienteTarefas({ clientId, clientName }: ClienteTarefasProps) {
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [recurringDialogOpen, setRecurringDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<any>(null);
+  const [completionBlockOpen, setCompletionBlockOpen] = useState(false);
+  const [completionBlockItems, setCompletionBlockItems] = useState<{ type: 'subtasks' | 'checklist'; count: number }[]>([]);
+  const { getSetting } = useCompanyUsageDefaults();
 
   // Filtrar tarefas do cliente
   const clientTasks = tasks.filter(task => task.related_client_id === clientId);
@@ -33,7 +39,43 @@ export function ClienteTarefas({ clientId, clientName }: ClienteTarefasProps) {
     setTaskDialogOpen(true);
   };
 
-  const handleUpdateTaskStatus = async (taskId: string, status: string) => {
+  const handleUpdateTaskStatus = async (taskId: string, status: string, columnId?: string, columnName?: string) => {
+    // Block completion if settings require it
+    if (status === 'done') {
+      const blockSubtasks = getSetting(USAGE_KEYS.BLOCK_FINISH_WITH_PENDING_SUBTASKS);
+      const blockChecklist = getSetting(USAGE_KEYS.BLOCK_FINISH_WITH_PENDING_CHECKLIST);
+
+      if (blockSubtasks || blockChecklist) {
+        const existingTask = tasks.find(t => t.id === taskId);
+        const pendingItems: { type: 'subtasks' | 'checklist'; count: number }[] = [];
+
+        if (blockSubtasks) {
+          const { data: subtasks } = await supabase
+            .from('tasks')
+            .select('id, status')
+            .eq('parent_task_id', taskId);
+          const pendingSubtasks = (subtasks || []).filter((s: any) => s.status !== 'done');
+          if (pendingSubtasks.length > 0) {
+            pendingItems.push({ type: 'subtasks', count: pendingSubtasks.length });
+          }
+        }
+
+        if (blockChecklist && existingTask) {
+          const checklist = (existingTask as any).checklist || [];
+          const pendingChecklist = checklist.filter((item: any) => !item.done && !item.completed);
+          if (pendingChecklist.length > 0) {
+            pendingItems.push({ type: 'checklist', count: pendingChecklist.length });
+          }
+        }
+
+        if (pendingItems.length > 0) {
+          setCompletionBlockItems(pendingItems);
+          setCompletionBlockOpen(true);
+          return;
+        }
+      }
+    }
+
     const existingTask = tasks.find(t => t.id === taskId);
     if (existingTask && existingTask.status !== status) {
       await handleAutoTimeTracking(taskId, existingTask.status, status, user?.id, activeCompany?.company_id);
@@ -152,6 +194,12 @@ export function ClienteTarefas({ clientId, clientName }: ClienteTarefasProps) {
         open={recurringDialogOpen}
         onOpenChange={setRecurringDialogOpen}
         clientId={clientId}
+      />
+
+      <TaskCompletionBlockModal
+        open={completionBlockOpen}
+        onOpenChange={setCompletionBlockOpen}
+        pendingItems={completionBlockItems}
       />
     </div>
   );
