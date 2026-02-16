@@ -83,41 +83,52 @@ function MindMapEditorInner() {
 
   const handleAddChild = useCallback((parentId: string) => {
     const newId = `node-${Date.now()}`;
-    setNodes(nds => {
-      const parent = nds.find(n => n.id === parentId);
-      if (!parent) return nds;
-      const parentLevel = (parent.data as any).level || 0;
-      const childrenCount = nds.filter(n => {
-        // count existing children by checking edges
-        return true; // simplified - position offset handles overlap
-      }).length;
-      
-      const newNode: Node = {
-        id: newId,
-        type: 'mindMapNode',
-        position: {
-          x: parent.position.x + 250,
-          y: parent.position.y + (childrenCount * 80) - 40,
+    setEdges(currentEdges => {
+      setNodes(nds => {
+        const parent = nds.find(n => n.id === parentId);
+        if (!parent) return nds;
+        const parentLevel = (parent.data as any).level || 0;
+
+        // Count existing children of this parent using edges
+        const existingChildIds = currentEdges
+          .filter(e => e.source === parentId)
+          .map(e => e.target);
+        const existingChildren = nds.filter(n => existingChildIds.includes(n.id));
+        const childCount = existingChildren.length;
+
+        // Position right next to parent, stacked vertically among siblings
+        const spacing = 70;
+        const totalHeight = childCount * spacing;
+        const startY = parent.position.y - totalHeight / 2;
+
+        const newNode: Node = {
+          id: newId,
+          type: 'mindMapNode',
+          position: {
+            x: parent.position.x + 250,
+            y: startY + childCount * spacing,
+          },
+          data: {
+            label: 'Nova ideia',
+            level: parentLevel + 1,
+            onAddChild: handleAddChild,
+            onLabelChange: handleLabelChange,
+          },
+        };
+        return [...nds, newNode];
+      });
+
+      return [
+        ...currentEdges,
+        {
+          id: `edge-${parentId}-${newId}`,
+          source: parentId,
+          target: newId,
+          type: 'smoothstep',
+          style: { stroke: 'hsl(var(--muted-foreground))', strokeWidth: 2 },
         },
-        data: {
-          label: 'Nova ideia',
-          level: parentLevel + 1,
-          onAddChild: handleAddChild,
-          onLabelChange: handleLabelChange,
-        },
-      };
-      return [...nds, newNode];
+      ];
     });
-    setEdges(eds => [
-      ...eds,
-      {
-        id: `edge-${parentId}-${newId}`,
-        source: parentId,
-        target: newId,
-        type: 'smoothstep',
-        style: { stroke: 'hsl(var(--muted-foreground))', strokeWidth: 2 },
-      },
-    ]);
     setSaveStatus('unsaved');
   }, []);
 
