@@ -184,38 +184,69 @@ function MindMapEditorInner() {
       if (roots.length === 0) return currentNodes;
 
       const H_SPACING = 260;
-      const V_SPACING = 70;
+      const V_GAP = 20; // gap between sibling nodes
       const positions: Record<string, { x: number; y: number }> = {};
 
-      // Lay out recursively
-      const layoutNode = (nodeId: string, depth: number, yOffset: number): number => {
+      // Get measured height of a node, fallback to 50
+      const nodeMap = new Map(currentNodes.map(n => [n.id, n]));
+      const getNodeHeight = (nodeId: string): number => {
+        const n = nodeMap.get(nodeId);
+        return n?.measured?.height ?? n?.height ?? 50;
+      };
+
+      // Calculate total subtree height (sum of children subtrees + gaps, or own height if leaf)
+      const subtreeHeights: Record<string, number> = {};
+      const calcSubtreeHeight = (nodeId: string): number => {
+        if (subtreeHeights[nodeId] !== undefined) return subtreeHeights[nodeId];
         const children = childrenMap[nodeId];
         if (!children || children.length === 0) {
-          positions[nodeId] = { x: depth * H_SPACING, y: yOffset * V_SPACING };
-          return 1;
+          subtreeHeights[nodeId] = getNodeHeight(nodeId);
+          return subtreeHeights[nodeId];
+        }
+        const childrenTotal = children.reduce((sum, cId, i) => {
+          return sum + calcSubtreeHeight(cId) + (i > 0 ? V_GAP : 0);
+        }, 0);
+        subtreeHeights[nodeId] = Math.max(getNodeHeight(nodeId), childrenTotal);
+        return subtreeHeights[nodeId];
+      };
+
+      // Layout: position nodes using absolute Y pixels
+      const layoutNode = (nodeId: string, depth: number, yStart: number) => {
+        const children = childrenMap[nodeId];
+        const myHeight = getNodeHeight(nodeId);
+
+        if (!children || children.length === 0) {
+          positions[nodeId] = { x: depth * H_SPACING, y: yStart };
+          return;
         }
 
-        let currentY = yOffset;
+        const totalChildrenHeight = children.reduce((sum, cId, i) => {
+          return sum + calcSubtreeHeight(cId) + (i > 0 ? V_GAP : 0);
+        }, 0);
+
+        // Center children block relative to this subtree area
+        let childY = yStart + (calcSubtreeHeight(nodeId) - totalChildrenHeight) / 2;
+
         children.forEach(childId => {
-          const size = layoutNode(childId, depth + 1, currentY);
-          currentY += size;
+          layoutNode(childId, depth + 1, childY);
+          childY += calcSubtreeHeight(childId) + V_GAP;
         });
 
         // Center parent among its children
         const firstChild = positions[children[0]];
         const lastChild = positions[children[children.length - 1]];
+        const lastChildHeight = getNodeHeight(children[children.length - 1]);
         positions[nodeId] = {
           x: depth * H_SPACING,
-          y: (firstChild.y + lastChild.y) / 2,
+          y: (firstChild.y + lastChild.y + lastChildHeight - myHeight) / 2,
         };
-
-        return currentY - yOffset;
       };
 
       let globalY = 0;
       roots.forEach(root => {
-        const size = layoutNode(root.id, 0, globalY);
-        globalY += size + 1;
+        calcSubtreeHeight(root.id);
+        layoutNode(root.id, 0, globalY);
+        globalY += subtreeHeights[root.id] + V_GAP * 2;
       });
 
       setSaveStatus('unsaved');
