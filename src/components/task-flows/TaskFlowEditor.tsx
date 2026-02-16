@@ -21,7 +21,7 @@ import "@xyflow/react/dist/style.css";
 import { FlowColumnNode, FlowColumnNodeData } from "./FlowColumnNode";
 import { FlowActionEdge } from "./FlowActionEdge";
 import { FlowBoardSidebar } from "./FlowBoardSidebar";
-import { FlowEdgeActionModal, FlowActionType } from "./FlowEdgeActionModal";
+import { FlowEdgeActionModal, FlowActionType, FlowEdgePropertyChanges } from "./FlowEdgeActionModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Save, Loader2, Check, X, GitBranch } from "lucide-react";
@@ -29,6 +29,9 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { useNavigate } from "react-router-dom";
 import { useTaskFlows } from "@/hooks/useTaskFlows";
 import { useAllBoardColumns } from "@/hooks/useAllBoardColumns";
+import { useCompany } from "@/contexts/CompanyContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { BoardColumnWithOwner } from "@/hooks/useAllBoardColumns";
 
@@ -48,7 +51,9 @@ function TaskFlowEditorContent({ flowId }: TaskFlowEditorProps) {
   const navigate = useNavigate();
   const { flows, updateFlowAsync } = useTaskFlows();
   const { boards, isLoading: loadingBoards } = useAllBoardColumns();
+  const { activeCompany } = useCompany();
   const { screenToFlowPosition } = useReactFlow();
+  const companyId = activeCompany?.company_id;
 
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -61,6 +66,37 @@ function TaskFlowEditorContent({ flowId }: TaskFlowEditorProps) {
   const saveTimeoutRef = useRef<NodeJS.Timeout>();
   const nameInputRef = useRef<HTMLInputElement>(null);
   const loadedRef = useRef(false);
+
+  // Fetch employees for responsible selector
+  const { data: employees = [] } = useQuery({
+    queryKey: ['flow-employees', companyId],
+    queryFn: async () => {
+      if (!companyId) return [];
+      const { data } = await supabase
+        .from('employees')
+        .select('user_id, name')
+        .eq('company_id', companyId)
+        .eq('status', 'active')
+        .order('name');
+      return data || [];
+    },
+    enabled: !!companyId,
+  });
+
+  // Fetch classificações
+  const { data: classificacoes = [] } = useQuery({
+    queryKey: ['flow-classificacoes', companyId],
+    queryFn: async () => {
+      if (!companyId) return [];
+      const { data } = await (supabase
+        .from('task_classificacoes' as any)
+        .select('id, nome')
+        .eq('company_id', companyId)
+        .order('nome') as any);
+      return (data || []) as { id: string; nome: string }[];
+    },
+    enabled: !!companyId,
+  });
 
   // Load flow data
   useEffect(() => {
@@ -91,7 +127,6 @@ function TaskFlowEditorContent({ flowId }: TaskFlowEditorProps) {
   }, [isEditingName]);
 
   const onConnect = useCallback((params: Connection) => {
-    // Open modal to choose action type
     setPendingConnection(params);
   }, []);
 
@@ -106,12 +141,11 @@ function TaskFlowEditorContent({ flowId }: TaskFlowEditorProps) {
   }));
 
   const handleConfirmAction = useCallback(
-    (actionType: FlowActionType) => {
+    (actionType: FlowActionType, propertyChanges?: FlowEdgePropertyChanges) => {
       if (editingEdgeId) {
-        // Editing existing edge
         setEdges((eds) =>
           eds.map((e) =>
-            e.id === editingEdgeId ? { ...e, data: { ...e.data, actionType } } : e
+            e.id === editingEdgeId ? { ...e, data: { ...e.data, actionType, propertyChanges } } : e
           )
         );
         setEditingEdgeId(null);
@@ -125,7 +159,7 @@ function TaskFlowEditorContent({ flowId }: TaskFlowEditorProps) {
         sourceHandle: pendingConnection.sourceHandle,
         targetHandle: pendingConnection.targetHandle,
         type: "actionEdge",
-        data: { actionType },
+        data: { actionType, propertyChanges },
         markerEnd: { type: MarkerType.ArrowClosed },
       };
       setEdges((eds) => [...eds, newEdge]);
@@ -211,6 +245,8 @@ function TaskFlowEditorContent({ flowId }: TaskFlowEditorProps) {
     },
     [setNodes, setEdges]
   );
+
+  const editingEdge = editingEdgeId ? edges.find(e => e.id === editingEdgeId) : null;
 
   return (
     <DashboardLayout>
@@ -298,14 +334,19 @@ function TaskFlowEditorContent({ flowId }: TaskFlowEditorProps) {
           onClose={() => { setPendingConnection(null); setEditingEdgeId(null); }}
           onConfirm={handleConfirmAction}
           sourceName={editingEdgeId
-            ? getNodeLabel(edges.find(e => e.id === editingEdgeId)?.source ?? null)
+            ? getNodeLabel(editingEdge?.source ?? null)
             : getNodeLabel(pendingConnection?.source ?? null)}
           targetName={editingEdgeId
-            ? getNodeLabel(edges.find(e => e.id === editingEdgeId)?.target ?? null)
+            ? getNodeLabel(editingEdge?.target ?? null)
             : getNodeLabel(pendingConnection?.target ?? null)}
           defaultActionType={editingEdgeId
-            ? (edges.find(e => e.id === editingEdgeId)?.data?.actionType as FlowActionType) || 'move'
+            ? (editingEdge?.data?.actionType as FlowActionType) || 'move'
             : undefined}
+          defaultPropertyChanges={editingEdgeId
+            ? (editingEdge?.data?.propertyChanges as FlowEdgePropertyChanges) || undefined
+            : undefined}
+          employees={employees}
+          classificacoes={classificacoes}
         />
       </div>
     </DashboardLayout>
