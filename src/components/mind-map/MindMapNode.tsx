@@ -34,7 +34,7 @@ function MindMapNodeComponent({ id, data, selected }: NodeProps) {
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(nodeData.label);
   const [hovered, setHovered] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const level = nodeData.level || 0;
   const borderColor = LEVEL_COLORS[level % LEVEL_COLORS.length];
   const bgColor = LEVEL_BG[level % LEVEL_BG.length];
@@ -44,9 +44,11 @@ function MindMapNodeComponent({ id, data, selected }: NodeProps) {
   }, [nodeData.label]);
 
   useEffect(() => {
-    if (editing && inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.select();
+    if (editing && textareaRef.current) {
+      textareaRef.current.focus();
+      textareaRef.current.select();
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
     }
   }, [editing]);
 
@@ -73,35 +75,40 @@ function MindMapNodeComponent({ id, data, selected }: NodeProps) {
         background: bgColor,
         padding: isRoot ? '14px 28px' : '8px 18px',
         minWidth: isRoot ? 160 : 100,
-        maxWidth: 260,
-      }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      onDoubleClick={() => setEditing(true)}
-    >
-      <Handle type="target" position={Position.Left} className="!w-2 !h-2 !bg-muted-foreground/40 !border-none" />
-      <Handle type="source" position={Position.Right} className="!w-2 !h-2 !bg-muted-foreground/40 !border-none" />
-      <Handle type="target" position={Position.Top} className="!w-2 !h-2 !bg-muted-foreground/40 !border-none" />
-      <Handle type="source" position={Position.Bottom} className="!w-2 !h-2 !bg-muted-foreground/40 !border-none" />
+      maxWidth: 300,
+    }}
+    onMouseEnter={() => setHovered(true)}
+    onMouseLeave={() => setHovered(false)}
+    onDoubleClick={() => setEditing(true)}
+  >
+    <Handle type="target" position={Position.Left} className="!w-2 !h-2 !bg-muted-foreground/40 !border-none" />
+    <Handle type="source" position={Position.Right} className="!w-2 !h-2 !bg-muted-foreground/40 !border-none" />
+    <Handle type="target" position={Position.Top} className="!w-2 !h-2 !bg-muted-foreground/40 !border-none" />
+    <Handle type="source" position={Position.Bottom} className="!w-2 !h-2 !bg-muted-foreground/40 !border-none" />
 
-      {editing ? (
-        <input
-          ref={inputRef}
-          value={text}
-          onChange={e => setText(e.target.value)}
-          onBlur={finishEditing}
-          onKeyDown={e => {
-            if (e.key === 'Enter') finishEditing();
-            if (e.key === 'Escape') { setText(nodeData.label); setEditing(false); }
-          }}
-          className="bg-transparent border-none outline-none text-center w-full text-foreground"
-          style={{ fontSize: isRoot ? 16 : 13, fontWeight: isRoot ? 600 : 500 }}
-        />
-      ) : (
-        <span
-          className="text-foreground select-none block text-center"
-          style={{ fontSize: isRoot ? 16 : 13, fontWeight: isRoot ? 600 : 500 }}
-        >
+    {editing ? (
+      <textarea
+        ref={textareaRef}
+        value={text}
+        onChange={e => {
+          setText(e.target.value);
+          e.target.style.height = 'auto';
+          e.target.style.height = e.target.scrollHeight + 'px';
+        }}
+        onBlur={finishEditing}
+        onKeyDown={e => {
+          if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); finishEditing(); }
+          if (e.key === 'Escape') { setText(nodeData.label); setEditing(false); }
+        }}
+        className="bg-transparent border-none outline-none text-center w-full text-foreground resize-none overflow-hidden"
+        style={{ fontSize: isRoot ? 16 : 13, fontWeight: isRoot ? 600 : 500, minHeight: 20 }}
+        rows={1}
+      />
+    ) : (
+      <span
+        className="text-foreground select-none block text-center whitespace-pre-wrap"
+        style={{ fontSize: isRoot ? 16 : 13, fontWeight: isRoot ? 600 : 500 }}
+      >
           {nodeData.label}
         </span>
       )}
