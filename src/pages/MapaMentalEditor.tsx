@@ -177,7 +177,7 @@ function MindMapEditorInner() {
           id: `edge-${parentId}-${newId}`,
           source: parentId,
           target: newId,
-          type: 'smoothstep',
+          type: 'default',
           sourceHandle: direction === 'left' ? 'left-source' : undefined,
           targetHandle: direction === 'left' ? 'right-target' : undefined,
           style: { stroke: 'hsl(var(--muted-foreground))', strokeWidth: 2 },
@@ -403,7 +403,7 @@ function MindMapEditorInner() {
   const onConnect = useCallback((connection: Connection) => {
     setEdges(eds => addEdge({
       ...connection,
-      type: 'smoothstep',
+      type: 'default',
       style: { stroke: 'hsl(var(--muted-foreground))', strokeWidth: 2 },
     }, eds));
     setSaveStatus('unsaved');
@@ -497,7 +497,7 @@ function MindMapEditorInner() {
           nodeTypes={nodeTypes}
           fitView
           defaultEdgeOptions={{
-            type: 'smoothstep',
+            type: 'default',
             style: { stroke: 'hsl(var(--muted-foreground))', strokeWidth: 2 },
           }}
           proOptions={{ hideAttribution: true }}
