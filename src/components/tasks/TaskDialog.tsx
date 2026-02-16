@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, X, Plus, Home, CheckSquare, Trash2, Save, ZoomIn, ZoomOut, ShieldCheck } from "lucide-react";
+import { CalendarIcon, X, Plus, Home, CheckSquare, Trash2, Save, ZoomIn, ZoomOut, ShieldCheck, Search } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useTeams } from "@/hooks/useTeams";
@@ -27,6 +27,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { useTaskCategorias } from "@/hooks/useTaskCategorias";
 
 export type TaskDialogMode = 'kanban' | 'roteiro';
 
@@ -99,6 +100,8 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
     duracao_dias: 1,
     fluxo: '',
     autorizador_id: '',
+    categoria_id: '',
+    classificacao_id: '',
     // Board fields (both modes)
     quadro_user_id: '',
     quadro_column_id: '',
@@ -107,6 +110,10 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
   const [newChecklistItem, setNewChecklistItem] = useState('');
   const [previewSlot, setPreviewSlot] = useState('');
   const [clientSearch, setClientSearch] = useState('');
+  const [categoriaSearch, setCategoriaSearch] = useState('');
+  const [classificacaoSearch, setClassificacaoSearch] = useState('');
+  const [newCategoriaName, setNewCategoriaName] = useState('');
+  const [newClassificacaoName, setNewClassificacaoName] = useState('');
   const { teams } = useTeams();
   const { employees } = useEmployees();
   const { timeSlots } = usePlannerSlots();
@@ -116,6 +123,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
   const { activeCompany } = useCompany();
   const companyId = activeCompany?.company_id;
   const { hasPermission, isOwner } = useEmployeePermissions();
+  const { categorias, createCategoria, classificacoes, createClassificacao } = useTaskCategorias();
 
   // Manager check for board access
   const { data: isManager } = useQuery({
@@ -244,6 +252,8 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
           duracao_dias: task.duracao_dias || 1,
           fluxo: task.fluxo || '',
           autorizador_id: task.autorizador_id || '',
+          categoria_id: task.categoria_id || '',
+          classificacao_id: task.classificacao_id || '',
           quadro_user_id: quadroUId,
           quadro_column_id: quadroColId,
         });
@@ -290,6 +300,8 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
           duracao_dias: 1,
           fluxo: '',
           autorizador_id: '',
+          categoria_id: task.categoria_id || '',
+          classificacao_id: task.classificacao_id || '',
           quadro_user_id: quadroUId,
           quadro_column_id: quadroColId,
         });
@@ -319,6 +331,8 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
         duracao_dias: 1,
         fluxo: '',
         autorizador_id: '',
+        categoria_id: '',
+        classificacao_id: '',
         quadro_user_id: '',
         quadro_column_id: '',
       });
@@ -342,6 +356,8 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
         fluxo: formData.fluxo || null,
         descricao: formData.description || null,
         autorizador_id: formData.autorizador_id || null,
+        categoria_id: formData.categoria_id || null,
+        classificacao_id: formData.classificacao_id || null,
         checklist: formData.checklist.filter(i => i.text).map(i => ({ text: i.text, checked: i.completed })),
       });
       return;
@@ -394,6 +410,8 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
       quadro_column_id: formData.quadro_column_id || null,
       etapa: selectedCol?.name || null,
       autorizador_id: formData.autorizador_id || null,
+      categoria_id: formData.categoria_id || null,
+      classificacao_id: formData.classificacao_id || null,
     };
 
     if (startDateTime) {
@@ -636,10 +654,10 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                       </div>
                     )}
 
-                    {/* Kanban: Status / Prioridade / Progresso */}
+                     {/* Kanban: Status / Progresso */}
                     {!isRoteiro && (
                       <>
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-2 gap-4">
                           <div>
                             <Label className="text-sm font-semibold">Status</Label>
                             <Select value={formData.status} onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}>
@@ -657,17 +675,6 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                             </Select>
                           </div>
                           <div>
-                            <Label className="text-sm font-semibold">Prioridade</Label>
-                            <Select value={formData.priority} onValueChange={(value) => setFormData(prev => ({ ...prev, priority: value }))}>
-                              <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="low"><Badge className={priorityColors.low}>Baixa</Badge></SelectItem>
-                                <SelectItem value="medium"><Badge className={priorityColors.medium}>Média</Badge></SelectItem>
-                                <SelectItem value="high"><Badge className={priorityColors.high}>Alta</Badge></SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div>
                             <Label className="text-sm font-semibold">Progresso (%)</Label>
                             <Input
                               type="number"
@@ -680,6 +687,171 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                           </div>
                         </div>
                         {formData.progress > 0 && <Progress value={formData.progress} className="h-2" />}
+
+                        {/* Prioridade / Categoria / Classificação */}
+                        <div className="grid grid-cols-3 gap-4">
+                          <div>
+                            <Label className="text-sm font-semibold">Prioridade</Label>
+                            <Select value={formData.priority} onValueChange={(value) => setFormData(prev => ({ ...prev, priority: value }))}>
+                              <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="low"><Badge className={priorityColors.low}>Baixa</Badge></SelectItem>
+                                <SelectItem value="medium"><Badge className={priorityColors.medium}>Média</Badge></SelectItem>
+                                <SelectItem value="high"><Badge className={priorityColors.high}>Alta</Badge></SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label className="text-sm font-semibold">Categoria</Label>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button variant="outline" role="combobox" className="w-full justify-between font-normal mt-1.5">
+                                  {formData.categoria_id
+                                    ? categorias.find(c => c.id === formData.categoria_id)?.nome || "Selecione..."
+                                    : "Selecione..."}
+                                  <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-[260px] p-0" align="start">
+                                <div className="p-2 border-b">
+                                  <Input
+                                    placeholder="Buscar categoria..."
+                                    value={categoriaSearch}
+                                    onChange={(e) => setCategoriaSearch(e.target.value)}
+                                    className="h-8"
+                                  />
+                                </div>
+                                <div className="max-h-[200px] overflow-y-auto">
+                                  <div
+                                    className="px-2 py-1.5 text-sm cursor-pointer hover:bg-muted text-muted-foreground"
+                                    onClick={() => { setFormData(prev => ({ ...prev, categoria_id: '' })); setCategoriaSearch(''); }}
+                                  >
+                                    Nenhuma
+                                  </div>
+                                  {categorias
+                                    .filter(c => c.nome.toLowerCase().includes(categoriaSearch.toLowerCase()))
+                                    .map(c => (
+                                      <div
+                                        key={c.id}
+                                        className={`px-2 py-1.5 text-sm cursor-pointer hover:bg-muted ${formData.categoria_id === c.id ? 'bg-primary/10 text-primary' : ''}`}
+                                        onClick={() => { setFormData(prev => ({ ...prev, categoria_id: c.id })); setCategoriaSearch(''); }}
+                                      >
+                                        {c.nome}
+                                      </div>
+                                    ))}
+                                </div>
+                                <div className="p-2 border-t">
+                                  <div className="flex gap-1">
+                                    <Input
+                                      placeholder="Nova categoria..."
+                                      value={newCategoriaName}
+                                      onChange={(e) => setNewCategoriaName(e.target.value)}
+                                      className="h-8 text-sm"
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && newCategoriaName.trim()) {
+                                          e.preventDefault();
+                                          createCategoria.mutateAsync(newCategoriaName.trim()).then((created) => {
+                                            if (created) setFormData(prev => ({ ...prev, categoria_id: created.id }));
+                                            setNewCategoriaName('');
+                                          });
+                                        }
+                                      }}
+                                    />
+                                    <Button
+                                      variant="outline"
+                                      size="icon"
+                                      className="h-8 w-8 shrink-0"
+                                      disabled={!newCategoriaName.trim()}
+                                      onClick={() => {
+                                        createCategoria.mutateAsync(newCategoriaName.trim()).then((created) => {
+                                          if (created) setFormData(prev => ({ ...prev, categoria_id: created.id }));
+                                          setNewCategoriaName('');
+                                        });
+                                      }}
+                                    >
+                                      <Plus className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                          </div>
+                          <div>
+                            <Label className="text-sm font-semibold">Classificação</Label>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button variant="outline" role="combobox" className="w-full justify-between font-normal mt-1.5">
+                                  {formData.classificacao_id
+                                    ? classificacoes.find(c => c.id === formData.classificacao_id)?.nome || "Selecione..."
+                                    : "Selecione..."}
+                                  <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-[260px] p-0" align="start">
+                                <div className="p-2 border-b">
+                                  <Input
+                                    placeholder="Buscar classificação..."
+                                    value={classificacaoSearch}
+                                    onChange={(e) => setClassificacaoSearch(e.target.value)}
+                                    className="h-8"
+                                  />
+                                </div>
+                                <div className="max-h-[200px] overflow-y-auto">
+                                  <div
+                                    className="px-2 py-1.5 text-sm cursor-pointer hover:bg-muted text-muted-foreground"
+                                    onClick={() => { setFormData(prev => ({ ...prev, classificacao_id: '' })); setClassificacaoSearch(''); }}
+                                  >
+                                    Nenhuma
+                                  </div>
+                                  {classificacoes
+                                    .filter(c => c.nome.toLowerCase().includes(classificacaoSearch.toLowerCase()))
+                                    .map(c => (
+                                      <div
+                                        key={c.id}
+                                        className={`px-2 py-1.5 text-sm cursor-pointer hover:bg-muted ${formData.classificacao_id === c.id ? 'bg-primary/10 text-primary' : ''}`}
+                                        onClick={() => { setFormData(prev => ({ ...prev, classificacao_id: c.id })); setClassificacaoSearch(''); }}
+                                      >
+                                        {c.nome}
+                                      </div>
+                                    ))}
+                                </div>
+                                <div className="p-2 border-t">
+                                  <div className="flex gap-1">
+                                    <Input
+                                      placeholder="Nova classificação..."
+                                      value={newClassificacaoName}
+                                      onChange={(e) => setNewClassificacaoName(e.target.value)}
+                                      className="h-8 text-sm"
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && newClassificacaoName.trim()) {
+                                          e.preventDefault();
+                                          createClassificacao.mutateAsync(newClassificacaoName.trim()).then((created) => {
+                                            if (created) setFormData(prev => ({ ...prev, classificacao_id: created.id }));
+                                            setNewClassificacaoName('');
+                                          });
+                                        }
+                                      }}
+                                    />
+                                    <Button
+                                      variant="outline"
+                                      size="icon"
+                                      className="h-8 w-8 shrink-0"
+                                      disabled={!newClassificacaoName.trim()}
+                                      onClick={() => {
+                                        createClassificacao.mutateAsync(newClassificacaoName.trim()).then((created) => {
+                                          if (created) setFormData(prev => ({ ...prev, classificacao_id: created.id }));
+                                          setNewClassificacaoName('');
+                                        });
+                                      }}
+                                    >
+                                      <Plus className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                          </div>
+                        </div>
                       </>
                     )}
 
