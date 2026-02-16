@@ -193,7 +193,7 @@ export default function ConfiguracaoAgenda() {
                   <Slider
                     id="ads_per_day"
                     min={1}
-                    max={20}
+                    max={5}
                     step={1}
                     value={[formData.ads_per_day]}
                     onValueChange={(value) => setFormData(prev => ({ ...prev, ads_per_day: value[0] }))}
