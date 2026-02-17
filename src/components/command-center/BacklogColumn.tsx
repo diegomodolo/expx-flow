@@ -2,8 +2,9 @@ import React from "react";
 import { Draggable, Droppable } from "react-beautiful-dnd";
 import { CommandCenterTask } from "@/hooks/useCommandCenter";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
-import { Clock, AlertTriangle, GripVertical } from "lucide-react";
+import { Clock, AlertTriangle, GripVertical, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface Props {
   tasks: CommandCenterTask[];
@@ -68,6 +69,24 @@ export function BacklogColumn({ tasks, getAgingHours, teamColor }: Props) {
                             <GripVertical className="w-3 h-3 text-muted-foreground/50 mt-1 flex-shrink-0" />
                             <div className="flex-1 min-w-0">
                               <p className="text-sm text-foreground font-medium truncate">{task.title}</p>
+                              {task.clients && task.clients.length > 0 && (
+                                <div className="flex items-center gap-1.5 mt-1">
+                                  {task.clients.slice(0, 2).map((client) => (
+                                    <div key={client.client_id} className="flex items-center gap-1 max-w-[120px]">
+                                      <Avatar className="w-4 h-4 flex-shrink-0">
+                                        <AvatarImage src={client.client_avatar || undefined} alt={client.client_name} />
+                                        <AvatarFallback className="text-[8px] bg-muted">
+                                          {client.client_name.substring(0, 2).toUpperCase()}
+                                        </AvatarFallback>
+                                      </Avatar>
+                                      <span className="text-[10px] text-muted-foreground truncate">{client.client_name}</span>
+                                    </div>
+                                  ))}
+                                  {task.clients.length > 2 && (
+                                    <span className="text-[10px] text-muted-foreground">+{task.clients.length - 2}</span>
+                                  )}
+                                </div>
+                              )}
                               <div className="flex items-center gap-2 mt-1.5">
                                 <span className={cn(
                                   "text-[10px] px-1.5 py-0.5 rounded-full",
