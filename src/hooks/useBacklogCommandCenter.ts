@@ -25,6 +25,7 @@ export interface BacklogTask {
   recurring_template_id: string | null;
   checklist: any;
   related_client_id: string | null;
+  parent_task_id: string | null;
 }
 
 export interface BacklogClient {
@@ -231,9 +232,9 @@ export function useBacklogCommandCenter() {
     return result.sort((a, b) => b.totalMinutes - a.totalMinutes);
   }, [backlogTasks, filteredClients, taskToClients, recentActivity]);
 
-  // Filter tasks by selected client
+  // Filter tasks by selected client — exclude subtasks from top level
   const filteredTasks = useMemo(() => {
-    let tasks = backlogTasks;
+    let tasks = backlogTasks.filter((t) => !t.parent_task_id);
 
     // Filter by squad
     if (selectedSquadId) {
@@ -265,6 +266,19 @@ export function useBacklogCommandCenter() {
 
     return tasks;
   }, [backlogTasks, selectedClientId, selectedSquadId, taskToClients]);
+
+  // Build a map of parent_task_id -> subtasks from backlogTasks
+  const subtasksByParent = useMemo(() => {
+    const map = new Map<string, BacklogTask[]>();
+    backlogTasks.forEach((t) => {
+      if (t.parent_task_id) {
+        const existing = map.get(t.parent_task_id) || [];
+        existing.push(t);
+        map.set(t.parent_task_id, existing);
+      }
+    });
+    return map;
+  }, [backlogTasks]);
 
   // Selection helpers
   const toggleTaskSelection = (taskId: string) => {
@@ -380,5 +394,6 @@ export function useBacklogCommandCenter() {
     squads,
     selectedSquadId,
     setSelectedSquadId,
+    subtasksByParent,
   };
 }

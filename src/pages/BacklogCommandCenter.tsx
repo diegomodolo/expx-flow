@@ -29,6 +29,7 @@ export default function BacklogCommandCenterPage() {
     squads,
     selectedSquadId,
     setSelectedSquadId,
+    subtasksByParent,
   } = useBacklogCommandCenter();
 
   const [releasing, setReleasing] = useState(false);
@@ -75,6 +76,7 @@ export default function BacklogCommandCenterPage() {
             clients={clients}
             taskToClients={taskToClients}
             companyId={activeCompany?.company_id}
+            subtasksByParent={subtasksByParent}
             selectionBar={
               <BacklogFooterBar
                 selectionStats={selectionStats}
