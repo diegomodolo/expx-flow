@@ -20,11 +20,12 @@ interface Props {
   onResizeTask?: (taskId: string, newStartDate: Date, newEstimatedMinutes: number) => void;
   onClickTask?: (task: CommandCenterTask) => void;
   onSendToBacklog?: (taskId: string) => void;
+  onSendToNextDay?: (taskId: string) => void;
   onReassignTask?: (taskId: string, newUserId: string, newMemberName: string, newStartDate: Date) => void;
   ghostPreview?: { startSlot: number; slotsNeeded: number; title: string } | null;
 }
 
-export function TimelineRow({ member, tasks, startHour, slotWidth, totalSlots, slotDuration = 20, rowHeight = 52, selectedDate, workSchedule, onRepositionTask, onResizeTask, onClickTask, onSendToBacklog, onReassignTask, ghostPreview }: Props) {
+export function TimelineRow({ member, tasks, startHour, slotWidth, totalSlots, slotDuration = 20, rowHeight = 52, selectedDate, workSchedule, onRepositionTask, onResizeTask, onClickTask, onSendToBacklog, onSendToNextDay, onReassignTask, ghostPreview }: Props) {
   const memberTasks = tasks.filter(t => t.assigned_user_id === member.user_id);
 
   const occupiedSlots = new Set<number>();
@@ -130,6 +131,7 @@ export function TimelineRow({ member, tasks, startHour, slotWidth, totalSlots, s
                 onResize={onResizeTask}
                 onClickTask={onClickTask}
                 onSendToBacklog={onSendToBacklog}
+                onSendToNextDay={onSendToNextDay}
                 onReassign={onReassignTask}
               />
             ))}
