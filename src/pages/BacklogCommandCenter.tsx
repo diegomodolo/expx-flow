@@ -54,6 +54,15 @@ export default function BacklogCommandCenterPage() {
           onSquadChange={setSelectedSquadId}
         />
 
+        {/* Selection bar - above task list */}
+        <BacklogFooterBar
+          selectionStats={selectionStats}
+          onRelease={handleRelease}
+          onClear={clearSelection}
+          onSelectAll={selectAll}
+          releasing={releasing}
+        />
+
         {/* Main content: Sidebar + Bucket */}
         <div className="flex flex-1 min-h-0">
           {/* Zone A: Client Sidebar */}
@@ -77,15 +86,6 @@ export default function BacklogCommandCenterPage() {
             companyId={activeCompany?.company_id}
           />
         </div>
-
-        {/* Zone C: Footer */}
-        <BacklogFooterBar
-          selectionStats={selectionStats}
-          onRelease={handleRelease}
-          onClear={clearSelection}
-          onSelectAll={selectAll}
-          releasing={releasing}
-        />
       </div>
     </DashboardLayout>
   );
