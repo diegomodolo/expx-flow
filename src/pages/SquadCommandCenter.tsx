@@ -43,6 +43,7 @@ export default function SquadCommandCenter() {
     selectedTeam,
     backlogTasks,
     timelineTasks,
+    setTimelineTasks,
     loading,
     assignTask,
     unassignTask,
@@ -185,10 +186,16 @@ export default function SquadCommandCenter() {
 
   const handleRepositionTask = useCallback(async (taskId: string, newStartDate: Date) => {
     try {
-      // Find the task to calculate deadline based on estimated duration
       const task = timelineTasks.find(t => t.id === taskId);
       const estimatedMinutes = task?.ai_estimated_minutes || 20;
       const newDeadline = new Date(newStartDate.getTime() + estimatedMinutes * 60000);
+
+      // Optimistic update
+      setTimelineTasks(prev => prev.map(t => t.id === taskId ? {
+        ...t,
+        start_date: newStartDate.toISOString(),
+        deadline: newDeadline.toISOString().split('T')[0],
+      } : t));
 
       const { error } = await supabase
         .from("tasks")
@@ -198,16 +205,30 @@ export default function SquadCommandCenter() {
           due_date: newDeadline.toISOString(),
         })
         .eq("id", taskId);
-      if (error) throw error;
+      if (error) {
+        // Rollback
+        if (task) setTimelineTasks(prev => prev.map(t => t.id === taskId ? task : t));
+        throw error;
+      }
       toast({ title: "Horário e prazo atualizados" });
     } catch {
       toast({ title: "Erro ao mover tarefa", variant: "destructive" });
     }
-  }, [toast, timelineTasks]);
+  }, [toast, timelineTasks, setTimelineTasks]);
 
   const handleResizeTask = useCallback(async (taskId: string, newStartDate: Date, newEstimatedMinutes: number) => {
     try {
+      const task = timelineTasks.find(t => t.id === taskId);
       const newDeadline = new Date(newStartDate.getTime() + newEstimatedMinutes * 60000);
+
+      // Optimistic update
+      setTimelineTasks(prev => prev.map(t => t.id === taskId ? {
+        ...t,
+        start_date: newStartDate.toISOString(),
+        deadline: newDeadline.toISOString().split('T')[0],
+        ai_estimated_minutes: newEstimatedMinutes,
+      } : t));
+
       const { error } = await supabase
         .from("tasks")
         .update({
@@ -217,12 +238,15 @@ export default function SquadCommandCenter() {
           ai_estimated_minutes: newEstimatedMinutes,
         })
         .eq("id", taskId);
-      if (error) throw error;
+      if (error) {
+        if (task) setTimelineTasks(prev => prev.map(t => t.id === taskId ? task : t));
+        throw error;
+      }
       toast({ title: `Tarefa ajustada para ${newEstimatedMinutes}min` });
     } catch {
       toast({ title: "Erro ao redimensionar", variant: "destructive" });
     }
-  }, [toast]);
+  }, [toast, timelineTasks, setTimelineTasks]);
 
   const handleSendToBacklog = useCallback(async (taskId: string) => {
     const task = timelineTasks.find(t => t.id === taskId);
@@ -239,6 +263,16 @@ export default function SquadCommandCenter() {
     try {
       const estimatedMinutes = task?.ai_estimated_minutes || 20;
       const deadlineDate = new Date(newStartDate.getTime() + estimatedMinutes * 60000);
+
+      // Optimistic update
+      setTimelineTasks(prev => prev.map(t => t.id === taskId ? {
+        ...t,
+        assigned_user_id: newUserId,
+        responsible_name: newMemberName,
+        start_date: newStartDate.toISOString(),
+        deadline: deadlineDate.toISOString().split('T')[0],
+      } : t));
+
       const { error } = await supabase
         .from("tasks")
         .update({
@@ -249,12 +283,15 @@ export default function SquadCommandCenter() {
           due_date: deadlineDate.toISOString(),
         })
         .eq("id", taskId);
-      if (error) throw error;
+      if (error) {
+        if (task) setTimelineTasks(prev => prev.map(t => t.id === taskId ? task : t));
+        throw error;
+      }
       toast({ title: "Tarefa reatribuída", description: `"${task?.title}" → ${newMemberName}` });
     } catch {
       toast({ title: "Erro ao reatribuir tarefa", variant: "destructive" });
     }
-  }, [fetchTasks, toast, timelineTasks]);
+  }, [toast, timelineTasks, setTimelineTasks]);
 
   const metrics = getTodayMetrics();
 
