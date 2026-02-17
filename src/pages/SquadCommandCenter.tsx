@@ -141,7 +141,8 @@ export default function SquadCommandCenter() {
         .from("tasks")
         .update({
           start_date: newStartDate.toISOString(),
-          deadline: newDeadline.toISOString(),
+          deadline: newDeadline.toISOString().split('T')[0],
+          due_date: newDeadline.toISOString(),
         })
         .eq("id", taskId);
       if (error) throw error;
@@ -159,7 +160,8 @@ export default function SquadCommandCenter() {
         .from("tasks")
         .update({
           start_date: newStartDate.toISOString(),
-          deadline: newDeadline.toISOString(),
+          deadline: newDeadline.toISOString().split('T')[0],
+          due_date: newDeadline.toISOString(),
           ai_estimated_minutes: newEstimatedMinutes,
         })
         .eq("id", taskId);
