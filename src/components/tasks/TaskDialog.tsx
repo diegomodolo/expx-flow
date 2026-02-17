@@ -289,14 +289,23 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
 
   const currentEmployee = employees?.find(e => e.user_id === user?.id);
 
+  // Stable references for useEffect dependencies
+  const currentEmployeeId = currentEmployee?.id;
+  const currentEmployeeUserId = currentEmployee?.user_id;
+  const currentEmployeeTeamId = currentEmployee?.team_id;
+  const currentEmployeeName = currentEmployee?.name;
+  const currentEmployeeAvatar = currentEmployee?.avatar || currentEmployee?.profile_avatar_url;
+  const allColumnsJson = JSON.stringify(allColumns.map(c => ({ id: c.id, user_id: c.user_id })));
+
   useEffect(() => {
+    const parsedColumns = JSON.parse(allColumnsJson) as Array<{ id: string; user_id: string }>;
     if (task) {
       if (isRoteiro) {
         // Roteiro mode: task is a RoteiroAtividade
         const quadroColId = task.quadro_column_id || '';
         let quadroUId = '';
         if (quadroColId) {
-          const col = allColumns.find(c => c.id === quadroColId);
+          const col = parsedColumns.find(c => c.id === quadroColId);
           if (col) quadroUId = col.user_id;
         }
         setFormData({
@@ -341,7 +350,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
         const quadroColId = task.quadro_column_id || '';
         let quadroUId = '';
         if (quadroColId) {
-          const col = allColumns.find(c => c.id === quadroColId);
+          const col = parsedColumns.find(c => c.id === quadroColId);
           if (col) quadroUId = col.user_id;
         }
         if (!quadroUId) {
@@ -395,9 +404,9 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
       }
     } else {
       // Determine default board for new tasks
-      const defaultQuadroUserId = defaultBoardUserId || currentEmployee?.user_id || '';
+      const defaultQuadroUserId = defaultBoardUserId || currentEmployeeUserId || '';
       const defaultQuadroColumnId = defaultQuadroUserId
-        ? (allColumns.find(c => c.user_id === defaultQuadroUserId)?.id || '')
+        ? (parsedColumns.find(c => c.user_id === defaultQuadroUserId)?.id || '')
         : '';
 
       setFormData({
@@ -405,10 +414,10 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
         description: '',
         status: 'todo',
         priority: 'medium',
-        team_id: currentEmployee?.team_id || '',
-        responsible_name: isRoteiro ? '' : (currentEmployee?.name || ''),
-        responsible_avatar: isRoteiro ? '' : (currentEmployee?.avatar || currentEmployee?.profile_avatar_url || ''),
-        responsible_user_id: isRoteiro ? '' : (currentEmployee?.user_id || ''),
+        team_id: currentEmployeeTeamId || '',
+        responsible_name: isRoteiro ? '' : (currentEmployeeName || ''),
+        responsible_avatar: isRoteiro ? '' : (currentEmployeeAvatar || ''),
+        responsible_user_id: isRoteiro ? '' : (currentEmployeeUserId || ''),
         responsible_employee_id: '',
         related_client_id: defaultClientId || '',
         related_campaign_id: '',
@@ -432,7 +441,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
     }
     setCreativeData({ post_type: 'feed', caption: '', files: [] });
     setActiveTab('principal');
-  }, [task, defaultClientId, defaultBoardUserId, currentEmployee, isRoteiro, allColumns]);
+  }, [task, defaultClientId, defaultBoardUserId, currentEmployeeId, currentEmployeeUserId, currentEmployeeTeamId, currentEmployeeName, currentEmployeeAvatar, isRoteiro, allColumnsJson]);
 
   const handleSave = async () => {
     if (!formData.title.trim()) return;
