@@ -34,7 +34,7 @@ export function BacklogClientSidebar({ clients, selectedClientId, onSelectClient
   );
 
   return (
-    <div className="w-72 border-r bg-card flex flex-col h-full shrink-0">
+    <div className="border-r bg-card flex flex-col h-full shrink-0">
       {/* Header */}
       <div className="p-4 border-b space-y-2">
         <h2 className="font-semibold text-sm flex items-center gap-2">
