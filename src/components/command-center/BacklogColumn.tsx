@@ -28,7 +28,7 @@ const typeColors: Record<string, string> = {
 
 export function BacklogColumn({ tasks, getAgingHours, teamColor }: Props) {
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full" data-backlog-column="true">
       <div className="flex items-center justify-between px-4 py-3">
         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-primary" />
