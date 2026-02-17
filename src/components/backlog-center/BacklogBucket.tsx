@@ -224,7 +224,7 @@ export function BacklogBucket({
   };
 
   return (
-    <div className="flex-1 flex flex-col min-w-0 pb-4 gap-4">
+    <div className="flex-1 flex flex-col min-w-0 pb-4 gap-0">
       {selectionBar}
       <div className="flex-1 min-h-0 border bg-card shadow-sm overflow-hidden">
         <ScrollArea className="h-full">
