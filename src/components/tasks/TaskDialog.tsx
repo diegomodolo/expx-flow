@@ -1428,7 +1428,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
 
                 {activeTab === 'subtarefas' && (
                   <div>
-                    <TaskSubtasksTab taskId={task?.id || null} />
+                    <TaskSubtasksTab taskId={task?.id || null} onParentTypeChange={(type) => setFormData(prev => ({ ...prev, tipo: type }))} />
                   </div>
                 )}
 
