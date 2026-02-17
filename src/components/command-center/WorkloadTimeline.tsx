@@ -109,7 +109,7 @@ export function WorkloadTimeline({ members, tasks, startHour: _startHourProp = 0
   const isFuture = !isToday(selectedDate);
 
   return (
-    <div className="rounded-2xl bg-card border border-border overflow-hidden flex flex-col flex-1 min-h-0">
+    <div className="bg-card border border-border overflow-hidden flex flex-col flex-1 min-h-0">
       {/* Header with controls */}
       <div className="flex items-center gap-2 px-4 py-3 border-b border-border flex-wrap gap-y-2">
         <Clock className="w-4 h-4 text-primary" />
