@@ -35,7 +35,7 @@ export function HistoriaTable({ historias, onEdit }: HistoriaTableProps) {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[80px]">ID</TableHead>
+            <TableHead className="w-[50px]"></TableHead>
             <TableHead>Cliente</TableHead>
             <TableHead className="min-w-[200px]">Título / Descrição</TableHead>
             <TableHead>Abertura</TableHead>
@@ -62,8 +62,18 @@ export function HistoriaTable({ historias, onEdit }: HistoriaTableProps) {
                 className="cursor-pointer hover:bg-muted/50"
                 onClick={() => onEdit(h)}
               >
-                <TableCell className="font-mono text-xs text-muted-foreground">
-                  #{h.id.slice(-6).toUpperCase()}
+                <TableCell>
+                  {h.client_logo ? (
+                    <img
+                      src={h.client_logo}
+                      alt={h.client_name || "Cliente"}
+                      className="h-8 w-8 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-xs font-medium text-muted-foreground">
+                      {h.client_name?.charAt(0)?.toUpperCase() || "?"}
+                    </div>
+                  )}
                 </TableCell>
                 <TableCell className="text-sm">
                   {h.client_name || <span className="text-muted-foreground">—</span>}
