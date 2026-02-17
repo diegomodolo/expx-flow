@@ -55,6 +55,7 @@ export function TimelineTaskCard({ task, slotWidth, slotDuration = 20, startHour
 
   // --- MOVE ---
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (e.button !== 0) return; // Only left click
     if (!onReposition && !onClickTask) return;
     e.preventDefault();
     e.stopPropagation();
