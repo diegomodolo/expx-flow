@@ -27,7 +27,7 @@ export default function CommunicationDashboard() {
 
   return (
     <DashboardLayout>
-      <div className="flex flex-col h-[calc(100vh-8rem)] -m-8 rounded-none overflow-hidden">
+      <div className="flex flex-col h-[calc(100vh-4rem)] -m-8 rounded-none overflow-hidden">
         {/* Top Command Bar */}
         <div className="flex items-center justify-center gap-3 px-4 py-2 border-b border-border bg-card/80 backdrop-blur-sm shrink-0">
           <CommandBar
