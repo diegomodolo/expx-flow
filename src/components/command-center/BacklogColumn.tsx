@@ -1,10 +1,14 @@
-import React from "react";
+import React, { useState, useMemo } from "react";
 import { Draggable, Droppable } from "react-beautiful-dnd";
 import { CommandCenterTask } from "@/hooks/useCommandCenter";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
-import { Clock, AlertTriangle, GripVertical, Building2 } from "lucide-react";
+import { Clock, AlertTriangle, GripVertical, Filter, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface Props {
   tasks: CommandCenterTask[];
@@ -20,6 +24,22 @@ const priorityColors: Record<string, string> = {
   low: "border-emerald-500",
 };
 
+const priorityLabels: Record<string, string> = {
+  urgent: "Urgente",
+  high: "Alta",
+  medium: "Média",
+  low: "Baixa",
+};
+
+const typeLabels: Record<string, string> = {
+  Tarefa: "Tarefa",
+  Criativo: "Criativo",
+  História: "História",
+  Negócio: "Negócio",
+  Reunião: "Reunião",
+  Ticket: "Ticket",
+};
+
 const typeColors: Record<string, string> = {
   copy: "border-l-primary",
   design: "border-l-purple-400",
@@ -28,6 +48,64 @@ const typeColors: Record<string, string> = {
 };
 
 export function BacklogColumn({ tasks, getAgingHours, teamColor, onClickTask }: Props) {
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [filterType, setFilterType] = useState<string>("all");
+  const [filterPriority, setFilterPriority] = useState<string>("all");
+  const [filterClient, setFilterClient] = useState<string>("all");
+  const [filterResponsible, setFilterResponsible] = useState<string>("all");
+
+  // Extract unique values for filter options
+  const uniqueClients = useMemo(() => {
+    const clients: { id: string; name: string }[] = [];
+    const seen = new Set<string>();
+    tasks.forEach(t => {
+      t.clients?.forEach(c => {
+        if (!seen.has(c.client_id)) {
+          seen.add(c.client_id);
+          clients.push({ id: c.client_id, name: c.client_name });
+        }
+      });
+    });
+    return clients.sort((a, b) => a.name.localeCompare(b.name));
+  }, [tasks]);
+
+  const uniqueResponsibles = useMemo(() => {
+    const names = new Set<string>();
+    tasks.forEach(t => { if (t.responsible_name) names.add(t.responsible_name); });
+    return Array.from(names).sort();
+  }, [tasks]);
+
+  const uniqueTypes = useMemo(() => {
+    const types = new Set<string>();
+    tasks.forEach(t => { if (t.task_type) types.add(t.task_type); });
+    return Array.from(types).sort();
+  }, [tasks]);
+
+  const uniquePriorities = useMemo(() => {
+    const prios = new Set<string>();
+    tasks.forEach(t => { if (t.priority) prios.add(t.priority); });
+    return Array.from(prios);
+  }, [tasks]);
+
+  const activeFilterCount = [filterType, filterPriority, filterClient, filterResponsible].filter(f => f !== "all").length;
+
+  const filteredTasks = useMemo(() => {
+    return tasks.filter(t => {
+      if (filterType !== "all" && t.task_type !== filterType) return false;
+      if (filterPriority !== "all" && t.priority !== filterPriority) return false;
+      if (filterClient !== "all" && !t.clients?.some(c => c.client_id === filterClient)) return false;
+      if (filterResponsible !== "all" && t.responsible_name !== filterResponsible) return false;
+      return true;
+    });
+  }, [tasks, filterType, filterPriority, filterClient, filterResponsible]);
+
+  const clearFilters = () => {
+    setFilterType("all");
+    setFilterPriority("all");
+    setFilterClient("all");
+    setFilterResponsible("all");
+  };
+
   return (
     <div className="flex flex-col h-full" data-backlog-column="true">
       <div className="flex items-center justify-between px-4 py-3">
@@ -35,8 +113,88 @@ export function BacklogColumn({ tasks, getAgingHours, teamColor, onClickTask }: 
           <span className="w-2 h-2 rounded-full bg-primary" />
           Backlog
         </h3>
-        <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{tasks.length}</span>
+        <div className="flex items-center gap-1.5">
+          <Button
+            variant={filtersOpen || activeFilterCount > 0 ? "default" : "ghost"}
+            size="icon"
+            className="h-6 w-6 relative"
+            onClick={() => setFiltersOpen(!filtersOpen)}
+          >
+            <Filter className="w-3 h-3" />
+            {activeFilterCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-destructive text-destructive-foreground text-[8px] flex items-center justify-center font-bold">
+                {activeFilterCount}
+              </span>
+            )}
+          </Button>
+          <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+            {filteredTasks.length}{activeFilterCount > 0 ? `/${tasks.length}` : ''}
+          </span>
+        </div>
       </div>
+
+      <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
+        <CollapsibleContent>
+          <div className="px-3 pb-3 space-y-2">
+            <div className="grid grid-cols-2 gap-1.5">
+              <Select value={filterType} onValueChange={setFilterType}>
+                <SelectTrigger className="h-7 text-[10px]">
+                  <SelectValue placeholder="Tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os tipos</SelectItem>
+                  {uniqueTypes.map(t => (
+                    <SelectItem key={t} value={t}>{typeLabels[t] || t}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={filterPriority} onValueChange={setFilterPriority}>
+                <SelectTrigger className="h-7 text-[10px]">
+                  <SelectValue placeholder="Prioridade" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas prioridades</SelectItem>
+                  {uniquePriorities.map(p => (
+                    <SelectItem key={p} value={p}>{priorityLabels[p] || p}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={filterClient} onValueChange={setFilterClient}>
+                <SelectTrigger className="h-7 text-[10px]">
+                  <SelectValue placeholder="Cliente" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos clientes</SelectItem>
+                  {uniqueClients.map(c => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={filterResponsible} onValueChange={setFilterResponsible}>
+                <SelectTrigger className="h-7 text-[10px]">
+                  <SelectValue placeholder="Responsável" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos responsáveis</SelectItem>
+                  {uniqueResponsibles.map(r => (
+                    <SelectItem key={r} value={r}>{r}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {activeFilterCount > 0 && (
+              <Button variant="ghost" size="sm" className="h-6 text-[10px] w-full text-muted-foreground" onClick={clearFilters}>
+                <X className="w-3 h-3 mr-1" />
+                Limpar filtros
+              </Button>
+            )}
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
 
       <Droppable droppableId="backlog">
         {(provided) => (
@@ -45,7 +203,7 @@ export function BacklogColumn({ tasks, getAgingHours, teamColor, onClickTask }: 
             {...provided.droppableProps}
             className="flex-1 overflow-y-auto space-y-2 px-3 pb-3 min-h-[200px]"
           >
-            {tasks.map((task, index) => {
+            {filteredTasks.map((task, index) => {
               const aging = getAgingHours(task.created_at);
               const isAging = aging > 4;
               const borderColor = typeColors[task.task_type] || typeColors.default;
@@ -116,7 +274,7 @@ export function BacklogColumn({ tasks, getAgingHours, teamColor, onClickTask }: 
                             <p className="text-xs text-muted-foreground line-clamp-3">{task.description}</p>
                           )}
                           <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                            <span>Prioridade: {task.priority}</span>
+                            <span>Prioridade: {priorityLabels[task.priority] || task.priority}</span>
                             <span>Tempo: {task.ai_estimated_minutes || 20}min</span>
                           </div>
                           <p className="text-xs text-muted-foreground/70">Prazo: {new Date(task.deadline).toLocaleDateString("pt-BR")}</p>
@@ -128,10 +286,10 @@ export function BacklogColumn({ tasks, getAgingHours, teamColor, onClickTask }: 
               );
             })}
             {provided.placeholder}
-            {tasks.length === 0 && (
+            {filteredTasks.length === 0 && (
               <div className="flex flex-col items-center justify-center py-12 text-muted-foreground/50">
                 <Clock className="w-8 h-8 mb-2" />
-                <p className="text-xs">Backlog vazio</p>
+                <p className="text-xs">{activeFilterCount > 0 ? "Nenhuma tarefa encontrada" : "Backlog vazio"}</p>
               </div>
             )}
           </div>
