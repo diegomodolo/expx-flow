@@ -61,6 +61,7 @@ export default function SquadCommandCenter() {
     memberName: string;
     startDate: Date;
   } | null>(null);
+  const [draggingTask, setDraggingTask] = useState<CommandCenterTask | null>(null);
 
   // Backlog center hooks
   const { activeCompany } = useCompany();
@@ -115,7 +116,13 @@ export default function SquadCommandCenter() {
     return new Date(latestEnd);
   }, [timelineTasks]);
 
+  const handleDragStart = useCallback((start: any) => {
+    const task = backlogTasks.find(t => t.id === start.draggableId);
+    setDraggingTask(task || null);
+  }, [backlogTasks]);
+
   const handleDragEnd = useCallback(async (result: DropResult) => {
+    setDraggingTask(null);
     const { source, destination, draggableId } = result;
     if (!destination) return;
     if (source.droppableId === destination.droppableId) return;
@@ -333,7 +340,7 @@ export default function SquadCommandCenter() {
             </ResizablePanelGroup>
           </>
         ) : (
-          <DragDropContext onDragEnd={handleDragEnd}>
+          <DragDropContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
             {/* Header metrics */}
             <div className="my-4 flex-shrink-0">
               <CommandCenterHeader metrics={metrics} teamName={selectedTeam?.name || "—"} timeAvailability={timeAvailability} />
@@ -361,6 +368,7 @@ export default function SquadCommandCenter() {
                     onRepositionTask={handleRepositionTask}
                     onResizeTask={handleResizeTask}
                     onClickTask={(task) => { setEditingTask(task); setTaskDialogOpen(true); }}
+                    draggingTask={draggingTask}
                   />
                 </div>
               </ResizablePanel>
