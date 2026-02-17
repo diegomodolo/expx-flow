@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import { DragDropContext, DropResult } from "react-beautiful-dnd";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -6,7 +6,8 @@ import { CommandCenterHeader } from "@/components/command-center/CommandCenterHe
 import { SquadSelector } from "@/components/command-center/SquadSelector";
 import { BacklogColumn } from "@/components/command-center/BacklogColumn";
 import { WorkloadTimeline } from "@/components/command-center/WorkloadTimeline";
-import { useCommandCenter, SquadMember } from "@/hooks/useCommandCenter";
+import { TaskDialog } from "@/components/tasks/TaskDialog";
+import { useCommandCenter, SquadMember, CommandCenterTask } from "@/hooks/useCommandCenter";
 import { Radar, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -40,6 +41,8 @@ export default function SquadCommandCenter() {
   } = useCommandCenter();
 
   const { toast } = useToast();
+  const [editingTask, setEditingTask] = useState<CommandCenterTask | null>(null);
+  const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [overflowDialog, setOverflowDialog] = React.useState<{
     taskId: string;
     memberId: string;
@@ -187,6 +190,7 @@ export default function SquadCommandCenter() {
                   tasks={timelineTasks}
                   startHour={START_HOUR}
                   onRepositionTask={handleRepositionTask}
+                  onClickTask={(task) => { setEditingTask(task); setTaskDialogOpen(true); }}
                 />
               </div>
             </div>
@@ -213,6 +217,27 @@ export default function SquadCommandCenter() {
           </AlertDialogContent>
         </AlertDialog>
       </div>
+
+      <TaskDialog
+        open={taskDialogOpen}
+        onOpenChange={(open) => {
+          setTaskDialogOpen(open);
+          if (!open) setEditingTask(null);
+        }}
+        task={editingTask}
+        onSave={async (taskData) => {
+          if (!editingTask) return;
+          try {
+            await supabase.from("tasks").update(taskData).eq("id", editingTask.id);
+            fetchTasks();
+            toast({ title: "Tarefa atualizada" });
+          } catch {
+            toast({ title: "Erro ao atualizar", variant: "destructive" });
+          }
+          setTaskDialogOpen(false);
+          setEditingTask(null);
+        }}
+      />
     </DashboardLayout>
   );
 }

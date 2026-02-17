@@ -9,9 +9,11 @@ interface Props {
   slotWidth: number;
   startHour: number;
   onReposition?: (taskId: string, newStartDate: Date) => void;
+  onClickTask?: (task: CommandCenterTask) => void;
 }
 
-export function TimelineTaskCard({ task, slotWidth, startHour, onReposition }: Props) {
+export function TimelineTaskCard({ task, slotWidth, startHour, onReposition, onClickTask }: Props) {
+  const dragMoved = useRef(false);
   const estimatedMin = task.ai_estimated_minutes || 18;
   const slotsOccupied = Math.max(1, Math.ceil(estimatedMin / 18));
   const width = slotsOccupied * slotWidth;
@@ -33,9 +35,10 @@ export function TimelineTaskCard({ task, slotWidth, startHour, onReposition }: P
   const dragRef = useRef<{ startX: number; startLeft: number; containerLeft: number } | null>(null);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (isDone || !onReposition) return;
+    if (!onReposition && !onClickTask) return;
     e.preventDefault();
     e.stopPropagation();
+    dragMoved.current = false;
 
     const container = (e.currentTarget as HTMLElement).parentElement;
     if (!container) return;
@@ -52,15 +55,19 @@ export function TimelineTaskCard({ task, slotWidth, startHour, onReposition }: P
     const onMouseMove = (ev: MouseEvent) => {
       if (!dragRef.current) return;
       const dx = ev.clientX - dragRef.current.startX;
+      if (Math.abs(dx) > 4) dragMoved.current = true;
+      if (!dragMoved.current || isDone) return;
       const newLeft = dragRef.current.startLeft + dx;
-      // Snap to slot
       const snappedSlot = Math.round(newLeft / slotWidth);
       const snappedLeft = Math.max(0, snappedSlot * slotWidth);
       setDragLeft(snappedLeft);
     };
 
     const onMouseUp = (ev: MouseEvent) => {
-      if (dragRef.current) {
+      if (!dragMoved.current) {
+        // It was a click, not a drag
+        onClickTask?.(task);
+      } else if (dragRef.current && onReposition && !isDone) {
         const dx = ev.clientX - dragRef.current.startX;
         const newLeft = dragRef.current.startLeft + dx;
         const snappedSlot = Math.max(0, Math.round(newLeft / slotWidth));
@@ -82,7 +89,7 @@ export function TimelineTaskCard({ task, slotWidth, startHour, onReposition }: P
 
     window.addEventListener("mousemove", onMouseMove);
     window.addEventListener("mouseup", onMouseUp);
-  }, [isDone, onReposition, leftOffset, slotWidth, startHour, taskStart, task.id]);
+  }, [isDone, onReposition, onClickTask, leftOffset, slotWidth, startHour, taskStart, task]);
 
   const displayLeft = dragLeft !== null ? dragLeft : leftOffset;
 
