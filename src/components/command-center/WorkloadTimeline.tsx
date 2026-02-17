@@ -36,16 +36,31 @@ function formatDateLabel(date: Date): string {
   return format(date, "EEE, d 'de' MMM", { locale: ptBR });
 }
 
+const STORAGE_KEY = "cc-timeline-settings";
+
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return null;
+}
+
+function saveSettings(s: { slotDuration: number; startHour: number; endHour: number }) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch {}
+}
+
 export function WorkloadTimeline({ members, tasks, startHour: _startHourProp = 0, workSchedules = [], onRepositionTask, onClickTask }: Props) {
+  const saved = React.useMemo(() => loadSettings(), []);
   const [slotWidth, setSlotWidth] = useState(56);
   const [rowHeight, setRowHeight] = useState(68);
-  const [slotDuration, setSlotDuration] = useState(DEFAULT_SLOT_DURATION);
+  const [slotDuration, setSlotDuration] = useState(saved?.slotDuration ?? DEFAULT_SLOT_DURATION);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [tempSlotDuration, setTempSlotDuration] = useState(DEFAULT_SLOT_DURATION);
-  const [timelineStartHour, setTimelineStartHour] = useState(0);
-  const [timelineEndHour, setTimelineEndHour] = useState(23);
-  const [tempStartHour, setTempStartHour] = useState(0);
-  const [tempEndHour, setTempEndHour] = useState(23);
+  const [tempSlotDuration, setTempSlotDuration] = useState(slotDuration);
+  const [timelineStartHour, setTimelineStartHour] = useState(saved?.startHour ?? 0);
+  const [timelineEndHour, setTimelineEndHour] = useState(saved?.endHour ?? 23);
+  const [tempStartHour, setTempStartHour] = useState(timelineStartHour);
+  const [tempEndHour, setTempEndHour] = useState(timelineEndHour);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [calendarOpen, setCalendarOpen] = useState(false);
   const resizeRef = useRef<{ startY: number; startHeight: number } | null>(null);
@@ -326,7 +341,7 @@ export function WorkloadTimeline({ members, tasks, startHour: _startHourProp = 0
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setSettingsOpen(false)}>Cancelar</Button>
-            <Button onClick={() => { setSlotDuration(tempSlotDuration); setTimelineStartHour(tempStartHour); setTimelineEndHour(tempEndHour); setSettingsOpen(false); }}>Aplicar</Button>
+            <Button onClick={() => { setSlotDuration(tempSlotDuration); setTimelineStartHour(tempStartHour); setTimelineEndHour(tempEndHour); saveSettings({ slotDuration: tempSlotDuration, startHour: tempStartHour, endHour: tempEndHour }); setSettingsOpen(false); }}>Aplicar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
