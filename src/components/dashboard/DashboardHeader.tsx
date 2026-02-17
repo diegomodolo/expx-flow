@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useToast } from "@/hooks/use-toast";
 import { CompanySelector } from "@/components/company/CompanySelector";
+import { UniversalCommandBar } from "./UniversalCommandBar";
 import { Link, useNavigate } from "react-router-dom";
 import { useLeadDisqualificationNotifications } from "@/hooks/useLeadDisqualificationNotifications";
 import { Badge } from "@/components/ui/badge";
@@ -109,9 +110,9 @@ export function DashboardHeader() {
   return (
     <header className="h-16 bg-card shadow-google-sm z-20 shrink-0">
       <div className="flex items-center justify-between h-full px-6">
-        {/* Left side - empty for alignment */}
+        {/* Left side - Universal Search */}
         <div className="flex items-center">
-          {/* Space for potential breadcrumbs or page title */}
+          <UniversalCommandBar />
         </div>
         
         {/* Right side - Actions */}
