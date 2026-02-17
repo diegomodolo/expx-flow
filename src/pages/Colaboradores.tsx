@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,7 +31,8 @@ import {
   Mail,
   Phone,
   KeyRound,
-  Send
+  Send,
+  Clock
 } from "lucide-react";
 import { ResetPasswordDialog } from "@/components/employees/ResetPasswordDialog";
 import { ResendInviteDialog } from "@/components/employees/ResendInviteDialog";
@@ -51,6 +53,7 @@ const Colaboradores = () => {
   const { employees, loading, error, createEmployee, updateEmployee, deleteEmployee, fetchEmployees } = useEmployees();
   const { teams } = useTeams();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   // Cálculos para métricas
   const totalEmployees = employees.length;
@@ -143,17 +146,27 @@ const Colaboradores = () => {
                   <p className="text-gray-600">Gerencie a equipe e acompanhe o desempenho dos colaboradores</p>
                 </div>
               </div>
-              <Button 
-                className="flex items-center space-x-2"
-                onClick={() => {
-                  setDialogMode('create');
-                  setSelectedEmployee(null);
-                  setDialogOpen(true);
-                }}
-              >
-                <Plus className="w-4 h-4" />
-                <span>Novo Colaborador</span>
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  className="flex items-center gap-2"
+                  onClick={() => navigate("/colaboradores/cargas-horarias")}
+                >
+                  <Clock className="w-4 h-4" />
+                  <span>Cargas Horárias</span>
+                </Button>
+                <Button 
+                  className="flex items-center space-x-2"
+                  onClick={() => {
+                    setDialogMode('create');
+                    setSelectedEmployee(null);
+                    setDialogOpen(true);
+                  }}
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Novo Colaborador</span>
+                </Button>
+              </div>
             </div>
 
             {/* Metrics Overview */}

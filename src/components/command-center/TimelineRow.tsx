@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Droppable } from "react-beautiful-dnd";
 import { SquadMember, CommandCenterTask } from "@/hooks/useCommandCenter";
+import { WorkSchedule } from "@/hooks/useWorkSchedules";
 import { TimelineSlot } from "./TimelineSlot";
 import { TimelineTaskCard } from "./TimelineTaskCard";
 import { User } from "lucide-react";
@@ -13,11 +14,12 @@ interface Props {
   totalSlots: number;
   rowHeight?: number;
   selectedDate?: Date;
+  workSchedule?: WorkSchedule | null;
   onRepositionTask?: (taskId: string, newStartDate: Date) => void;
   onClickTask?: (task: CommandCenterTask) => void;
 }
 
-export function TimelineRow({ member, tasks, startHour, slotWidth, totalSlots, rowHeight = 52, selectedDate, onRepositionTask, onClickTask }: Props) {
+export function TimelineRow({ member, tasks, startHour, slotWidth, totalSlots, rowHeight = 52, selectedDate, workSchedule, onRepositionTask, onClickTask }: Props) {
   const memberTasks = tasks.filter(t => t.assigned_user_id === member.user_id);
 
   const occupiedSlots = new Set<number>();
@@ -34,6 +36,39 @@ export function TimelineRow({ member, tasks, startHour, slotWidth, totalSlots, r
       if (i >= 0) occupiedSlots.add(i);
     }
   });
+
+  // Calculate unavailable slots based on work schedule
+  const unavailableSlots = useMemo(() => {
+    const slots = new Set<number>();
+    if (!workSchedule) return slots;
+
+    const toMin = (t: string) => {
+      const [h, m] = (t || "00:00").substring(0, 5).split(":").map(Number);
+      return h * 60 + m;
+    };
+
+    const wsStart = toMin(workSchedule.work_start);
+    const lunchStart = toMin(workSchedule.lunch_start);
+    const lunchEnd = toMin(workSchedule.lunch_end);
+    const wsEnd = toMin(workSchedule.work_end);
+    const timelineStart = startHour * 60;
+
+    for (let i = 0; i < totalSlots; i++) {
+      const slotStartMin = timelineStart + i * 18;
+      const slotEndMin = slotStartMin + 18;
+
+      // Before work starts
+      if (slotEndMin <= wsStart || slotStartMin >= wsEnd) {
+        slots.add(i);
+        continue;
+      }
+      // During lunch
+      if (slotStartMin >= lunchStart && slotEndMin <= lunchEnd) {
+        slots.add(i);
+      }
+    }
+    return slots;
+  }, [workSchedule, startHour, totalSlots]);
 
   return (
     <div className="flex items-stretch border-b border-border/50 group" style={{ minHeight: `${rowHeight}px` }}>
@@ -67,6 +102,7 @@ export function TimelineRow({ member, tasks, startHour, slotWidth, totalSlots, r
                   key={i}
                   index={i}
                   isOccupied={occupiedSlots.has(i)}
+                  isUnavailable={unavailableSlots.has(i)}
                   isDragOver={snapshot.isDraggingOver}
                   slotWidth={slotWidth}
                 />
