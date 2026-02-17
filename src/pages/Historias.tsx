@@ -1,0 +1,87 @@
+import { useState } from "react";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { HistoriaFilters } from "@/components/historias/HistoriaFilters";
+import { HistoriaCard } from "@/components/historias/HistoriaCard";
+import { useHistorias } from "@/hooks/useHistorias";
+import { TaskDialog } from "@/components/tasks/TaskDialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { BookOpen, Loader2 } from "lucide-react";
+
+export default function Historias() {
+  const { historias, loading, teams, filters, setFilters, refetch } = useHistorias();
+  const [selectedTask, setSelectedTask] = useState<any>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  const handleEdit = (historia: any) => {
+    setSelectedTask(historia);
+    setDialogOpen(true);
+  };
+
+  const handleSave = async () => {
+    setDialogOpen(false);
+    setSelectedTask(null);
+    refetch();
+  };
+
+  return (
+    <DashboardLayout>
+      <div className="h-[calc(100vh-130px)] flex flex-col gap-4">
+        {/* Header */}
+        <div className="flex items-center justify-between flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <BookOpen className="h-5 w-5 text-primary" />
+            <h1 className="text-lg font-semibold text-foreground">Histórias</h1>
+            <span className="text-sm text-muted-foreground">({historias.length})</span>
+          </div>
+        </div>
+
+        {/* Filters */}
+        <div className="flex-shrink-0">
+          <HistoriaFilters
+            teams={teams}
+            filters={filters}
+            onFilterChange={setFilters}
+          />
+        </div>
+
+        {/* Content */}
+        <ScrollArea className="flex-1">
+          {loading ? (
+            <div className="flex items-center justify-center py-20">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : historias.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+              <BookOpen className="h-10 w-10 mb-3 opacity-30" />
+              <p className="text-sm">Nenhuma história encontrada</p>
+              <p className="text-xs mt-1">Ajuste os filtros ou crie novas histórias no Backlog Center</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 pr-3">
+              {historias.map((historia) => (
+                <HistoriaCard
+                  key={historia.id}
+                  historia={historia}
+                  onEdit={handleEdit}
+                />
+              ))}
+            </div>
+          )}
+        </ScrollArea>
+      </div>
+
+      <TaskDialog
+        open={dialogOpen}
+        onOpenChange={(open) => {
+          setDialogOpen(open);
+          if (!open) {
+            setSelectedTask(null);
+            refetch();
+          }
+        }}
+        task={selectedTask}
+        onSave={handleSave}
+      />
+    </DashboardLayout>
+  );
+}
