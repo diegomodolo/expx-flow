@@ -39,6 +39,7 @@ import {
   Puzzle,
   BookOpen,
   Radar,
+  Inbox,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useEmployeePermissions, MenuItemType } from "@/hooks/useEmployeePermissions";
@@ -122,6 +123,7 @@ const menuCategories: MenuCategory[] = [
       icon: Building2,
       items: [
         { title: "Colaboradores", url: "/colaboradores", icon: UserCheck, permission: "colaboradores" as MenuItemType },
+        { title: "Backlog Center", url: "/backlog-command-center", icon: Inbox, permission: "command-center" as MenuItemType },
         { title: "Command Center", url: "/squad-command-center", icon: Radar, permission: "command-center" as MenuItemType },
         { title: "Planner", url: "/planner-config", icon: CalendarClock, permission: "tarefas" as MenuItemType },
         { title: "Relatórios", url: "/relatorios", icon: BarChart3, permission: "relatorios" as MenuItemType },

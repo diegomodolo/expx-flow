@@ -21,6 +21,7 @@ import CampanhaDetalhes from "./pages/CampanhaDetalhes";
 import Colaboradores from "./pages/Colaboradores";
 import Squad from "./pages/Squad";
 import SquadCommandCenter from "./pages/SquadCommandCenter";
+import BacklogCommandCenter from "./pages/BacklogCommandCenter";
 import AgentSquads from "./pages/AgentSquads";
 import AgentSquadEditor from "./pages/AgentSquadEditor";
 import Tarefas from "./pages/Tarefas";
@@ -306,6 +307,11 @@ const App = () => {
                <Route path="/squad-command-center" element={
                  <PermissionProtectedRoute requiredPermission="command-center">
                    <SquadCommandCenter />
+                 </PermissionProtectedRoute>
+               } />
+               <Route path="/backlog-command-center" element={
+                 <PermissionProtectedRoute requiredPermission="command-center">
+                   <BacklogCommandCenter />
                  </PermissionProtectedRoute>
                } />
                  <Route path="/tarefas" element={
