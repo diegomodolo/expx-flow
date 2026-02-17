@@ -969,7 +969,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                                   <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                 </Button>
                               </PopoverTrigger>
-                              <PopoverContent className="w-[260px] p-0" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
+                              <PopoverContent className="w-[260px] p-0" align="start" onInteractOutside={(e) => { e.preventDefault(); setCategoriaPopoverOpen(false); }}>
                                 <div className="p-2 border-b">
                                   <Input
                                     placeholder="Buscar categoria..."
@@ -1035,7 +1035,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                                   <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                 </Button>
                               </PopoverTrigger>
-                              <PopoverContent className="w-[260px] p-0" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
+                              <PopoverContent className="w-[260px] p-0" align="start" onInteractOutside={(e) => { e.preventDefault(); setClassificacaoPopoverOpen(false); }}>
                                 <div className="p-2 border-b">
                                   <Input
                                     placeholder="Buscar classificação..."
