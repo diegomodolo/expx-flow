@@ -8573,6 +8573,82 @@ export type Database = {
           },
         ]
       }
+      internal_channels: {
+        Row: {
+          channel_type: string
+          company_id: string
+          created_at: string
+          icon: string | null
+          id: string
+          name: string
+          reference_id: string | null
+        }
+        Insert: {
+          channel_type?: string
+          company_id: string
+          created_at?: string
+          icon?: string | null
+          id?: string
+          name: string
+          reference_id?: string | null
+        }
+        Update: {
+          channel_type?: string
+          company_id?: string
+          created_at?: string
+          icon?: string | null
+          id?: string
+          name?: string
+          reference_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "internal_channels_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      internal_messages: {
+        Row: {
+          channel_id: string
+          content: string
+          created_at: string
+          id: string
+          is_pinned: boolean
+          task_reference_id: string | null
+          user_id: string
+        }
+        Insert: {
+          channel_id: string
+          content: string
+          created_at?: string
+          id?: string
+          is_pinned?: boolean
+          task_reference_id?: string | null
+          user_id: string
+        }
+        Update: {
+          channel_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          is_pinned?: boolean
+          task_reference_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "internal_messages_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "internal_channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_api_request_log: {
         Row: {
           api_key_id: string | null
@@ -15299,6 +15375,10 @@ export type Database = {
         }[]
       }
       is_company_admin_or_owner: {
+        Args: { _company_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_company_member: {
         Args: { _company_id: string; _user_id: string }
         Returns: boolean
       }
