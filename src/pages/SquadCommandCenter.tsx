@@ -258,6 +258,41 @@ export default function SquadCommandCenter() {
     }
   }, [unassignTask, toast, timelineTasks]);
 
+  const handleSendToNextDay = useCallback(async (taskId: string) => {
+    const task = timelineTasks.find(t => t.id === taskId);
+    if (!task || !task.start_date) return;
+    try {
+      const currentStart = new Date(task.start_date);
+      const nextDay = new Date(currentStart);
+      nextDay.setDate(nextDay.getDate() + 1);
+      // Skip weekends
+      while (nextDay.getDay() === 0 || nextDay.getDay() === 6) {
+        nextDay.setDate(nextDay.getDate() + 1);
+      }
+      // Keep same time of day
+      const estimatedMinutes = task.ai_estimated_minutes || 20;
+      const newDeadline = new Date(nextDay.getTime() + estimatedMinutes * 60000);
+
+      // Optimistic update - remove from current view
+      setTimelineTasks(prev => prev.filter(t => t.id !== taskId));
+
+      const { error } = await supabase
+        .from("tasks")
+        .update({
+          start_date: nextDay.toISOString(),
+          deadline: newDeadline.toISOString().split('T')[0],
+          due_date: newDeadline.toISOString(),
+        })
+        .eq("id", taskId);
+      if (error) {
+        if (task) setTimelineTasks(prev => [...prev, task]);
+        throw error;
+      }
+    } catch {
+      toast({ title: "Erro ao mover tarefa", variant: "destructive" });
+    }
+  }, [timelineTasks, setTimelineTasks, toast]);
+
   const handleReassignTask = useCallback(async (taskId: string, newUserId: string, newMemberName: string, newStartDate: Date) => {
     const task = timelineTasks.find(t => t.id === taskId);
     try {
@@ -443,6 +478,7 @@ export default function SquadCommandCenter() {
                     onResizeTask={handleResizeTask}
                     onClickTask={(task) => { setEditingTask(task); setTaskDialogOpen(true); }}
                     onSendToBacklog={handleSendToBacklog}
+                    onSendToNextDay={handleSendToNextDay}
                     onReassignTask={handleReassignTask}
                     draggingTask={draggingTask}
                     dropSlotRef={dropSlotRef}

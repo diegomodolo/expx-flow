@@ -1,8 +1,9 @@
 import React, { useRef, useState, useCallback } from "react";
 import { CommandCenterTask } from "@/hooks/useCommandCenter";
 import { cn } from "@/lib/utils";
-import { Clock, CheckCircle2, AlertTriangle, GripVertical, Undo2 } from "lucide-react";
+import { Clock, CheckCircle2, AlertTriangle, GripVertical, Undo2, CalendarArrowDown, ArrowLeftToLine } from "lucide-react";
 import { differenceInMinutes } from "date-fns";
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu";
 
 interface Props {
   task: CommandCenterTask;
@@ -15,9 +16,10 @@ interface Props {
   onClickTask?: (task: CommandCenterTask) => void;
   onSendToBacklog?: (taskId: string) => void;
   onReassign?: (taskId: string, newUserId: string, newMemberName: string, newStartDate: Date) => void;
+  onSendToNextDay?: (taskId: string) => void;
 }
 
-export function TimelineTaskCard({ task, slotWidth, slotDuration = 20, startHour, selectedDate, onReposition, onResize, onClickTask, onSendToBacklog, onReassign }: Props) {
+export function TimelineTaskCard({ task, slotWidth, slotDuration = 20, startHour, selectedDate, onReposition, onResize, onClickTask, onSendToBacklog, onReassign, onSendToNextDay }: Props) {
   const cardRef = useRef<HTMLDivElement>(null);
   const dragMoved = useRef(false);
   const estimatedMin = task.ai_estimated_minutes || slotDuration;
@@ -230,77 +232,95 @@ export function TimelineTaskCard({ task, slotWidth, slotDuration = 20, startHour
   const displayWidth = resizeWidth ?? baseWidth;
 
   return (
-    <div
-      ref={cardRef}
-      onMouseDown={handleMouseDown}
-      className={cn(
-        "absolute top-1 h-[calc(100%-8px)] rounded-lg px-2 py-1 flex items-center gap-1 text-xs font-medium overflow-hidden group/card",
-        returningToBacklog
-          ? "bg-destructive/20 border-2 border-dashed border-destructive/50 text-destructive"
-          : targetMemberName
-          ? "bg-accent/30 border-2 border-dashed border-accent-foreground/50 text-accent-foreground"
-          : isDone
-          ? "bg-emerald-500/20 border border-emerald-500/40 text-emerald-600 dark:text-emerald-400"
-          : isOvertime
-          ? "bg-orange-500/20 border border-orange-500/40 text-orange-600 dark:text-orange-400 animate-pulse"
-          : "bg-primary/10 border border-primary/30 text-primary",
-        (dragging || resizing) ? "opacity-80 shadow-lg z-50" : "",
-        dragging ? "cursor-grabbing" : "cursor-grab",
-        !(dragging || resizing) && "transition-all duration-300"
-      )}
-      style={{
-        left: `${Math.max(returningToBacklog ? -150 : 0, displayLeft)}px`,
-        width: `${displayWidth}px`,
-        transform: dragTop !== null ? `translateY(${dragTop}px)` : undefined,
-        zIndex: dragTop !== null ? 100 : undefined,
-      }}
-      title={`${task.title} (${estimatedMin}min) — arraste para mover, arraste verticalmente para reatribuir`}
-    >
-      {/* Left resize handle */}
-      {!isDone && onResize && (
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
         <div
-          onMouseDown={(e) => handleResizeMouseDown("left", e)}
-          className="absolute left-0 top-0 bottom-0 w-2 cursor-col-resize z-10 flex items-center justify-center opacity-0 group-hover/card:opacity-100 transition-opacity"
-        >
-          <div className="w-0.5 h-3/5 rounded-full bg-current opacity-40" />
-        </div>
-      )}
-
-      {returningToBacklog ? (
-        <>
-          <Undo2 className="w-3 h-3 flex-shrink-0 animate-pulse" />
-          <span className="truncate font-semibold">Soltar → Backlog</span>
-        </>
-      ) : targetMemberName ? (
-        <>
-          <GripVertical className="w-3 h-3 flex-shrink-0" />
-          <span className="truncate font-semibold">→ {targetMemberName}</span>
-        </>
-      ) : (
-        <>
-          {!isDone && onReposition && (
-            <GripVertical className="w-3 h-3 flex-shrink-0 opacity-40" />
+          ref={cardRef}
+          onMouseDown={handleMouseDown}
+          className={cn(
+            "absolute top-1 h-[calc(100%-8px)] rounded-lg px-2 py-1 flex items-center gap-1 text-xs font-medium overflow-hidden group/card",
+            returningToBacklog
+              ? "bg-destructive/20 border-2 border-dashed border-destructive/50 text-destructive"
+              : targetMemberName
+              ? "bg-accent/30 border-2 border-dashed border-accent-foreground/50 text-accent-foreground"
+              : isDone
+              ? "bg-emerald-500/20 border border-emerald-500/40 text-emerald-600 dark:text-emerald-400"
+              : isOvertime
+              ? "bg-orange-500/20 border border-orange-500/40 text-orange-600 dark:text-orange-400 animate-pulse"
+              : "bg-primary/10 border border-primary/30 text-primary",
+            (dragging || resizing) ? "opacity-80 shadow-lg z-50" : "",
+            dragging ? "cursor-grabbing" : "cursor-grab",
+            !(dragging || resizing) && "transition-all duration-300"
           )}
-          {isDone ? (
-            <CheckCircle2 className="w-3 h-3 flex-shrink-0" />
-          ) : isOvertime ? (
-            <AlertTriangle className="w-3 h-3 flex-shrink-0" />
+          style={{
+            left: `${Math.max(returningToBacklog ? -150 : 0, displayLeft)}px`,
+            width: `${displayWidth}px`,
+            transform: dragTop !== null ? `translateY(${dragTop}px)` : undefined,
+            zIndex: dragTop !== null ? 100 : undefined,
+          }}
+          title={`${task.title} (${estimatedMin}min)`}
+        >
+          {/* Left resize handle */}
+          {!isDone && onResize && (
+            <div
+              onMouseDown={(e) => handleResizeMouseDown("left", e)}
+              className="absolute left-0 top-0 bottom-0 w-2 cursor-col-resize z-10 flex items-center justify-center opacity-0 group-hover/card:opacity-100 transition-opacity"
+            >
+              <div className="w-0.5 h-3/5 rounded-full bg-current opacity-40" />
+            </div>
+          )}
+
+          {returningToBacklog ? (
+            <>
+              <Undo2 className="w-3 h-3 flex-shrink-0 animate-pulse" />
+              <span className="truncate font-semibold">Soltar → Backlog</span>
+            </>
+          ) : targetMemberName ? (
+            <>
+              <GripVertical className="w-3 h-3 flex-shrink-0" />
+              <span className="truncate font-semibold">→ {targetMemberName}</span>
+            </>
           ) : (
-            <Clock className="w-3 h-3 flex-shrink-0" />
+            <>
+              {!isDone && onReposition && (
+                <GripVertical className="w-3 h-3 flex-shrink-0 opacity-40" />
+              )}
+              {isDone ? (
+                <CheckCircle2 className="w-3 h-3 flex-shrink-0" />
+              ) : isOvertime ? (
+                <AlertTriangle className="w-3 h-3 flex-shrink-0" />
+              ) : (
+                <Clock className="w-3 h-3 flex-shrink-0" />
+              )}
+              <span className="truncate">{task.title}</span>
+            </>
           )}
-          <span className="truncate">{task.title}</span>
-        </>
-      )}
 
-      {/* Right resize handle */}
-      {!isDone && onResize && (
-        <div
-          onMouseDown={(e) => handleResizeMouseDown("right", e)}
-          className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize z-10 flex items-center justify-center opacity-0 group-hover/card:opacity-100 transition-opacity"
-        >
-          <div className="w-0.5 h-3/5 rounded-full bg-current opacity-40" />
+          {/* Right resize handle */}
+          {!isDone && onResize && (
+            <div
+              onMouseDown={(e) => handleResizeMouseDown("right", e)}
+              className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize z-10 flex items-center justify-center opacity-0 group-hover/card:opacity-100 transition-opacity"
+            >
+              <div className="w-0.5 h-3/5 rounded-full bg-current opacity-40" />
+            </div>
+          )}
         </div>
-      )}
-    </div>
+      </ContextMenuTrigger>
+      <ContextMenuContent>
+        {onSendToNextDay && (
+          <ContextMenuItem onClick={() => onSendToNextDay(task.id)}>
+            <CalendarArrowDown className="w-4 h-4 mr-2" />
+            Enviar para amanhã
+          </ContextMenuItem>
+        )}
+        {onSendToBacklog && (
+          <ContextMenuItem onClick={() => onSendToBacklog(task.id)}>
+            <ArrowLeftToLine className="w-4 h-4 mr-2" />
+            Devolver ao backlog
+          </ContextMenuItem>
+        )}
+      </ContextMenuContent>
+    </ContextMenu>
   );
 }
