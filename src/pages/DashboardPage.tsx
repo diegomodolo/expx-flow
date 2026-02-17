@@ -1,7 +1,7 @@
-import NewDashboard from "./NewDashboard";
+import CommunicationDashboard from "./CommunicationDashboard";
 
 const DashboardPage = () => {
-  return <NewDashboard />;
+  return <CommunicationDashboard />;
 };
 
 export default DashboardPage;
