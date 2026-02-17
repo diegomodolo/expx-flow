@@ -43,6 +43,7 @@ export function TimelineTaskCard({ task, slotWidth, slotDuration = 20, startHour
   const [resizeLeft, setResizeLeft] = useState<number | null>(null);
   const [resizeWidth, setResizeWidth] = useState<number | null>(null);
   const resizeRef = useRef<{ startX: number; origLeft: number; origWidth: number; edge: "left" | "right" } | null>(null);
+  const resizeValuesRef = useRef<{ left: number; width: number }>({ left: 0, width: 0 });
 
   // --- MOVE ---
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
@@ -101,6 +102,7 @@ export function TimelineTaskCard({ task, slotWidth, slotDuration = 20, startHour
     setResizing(edge);
     setResizeLeft(leftOffset);
     setResizeWidth(baseWidth);
+    resizeValuesRef.current = { left: leftOffset, width: baseWidth };
 
     const onMouseMove = (ev: MouseEvent) => {
       if (!resizeRef.current) return;
@@ -109,7 +111,9 @@ export function TimelineTaskCard({ task, slotWidth, slotDuration = 20, startHour
       if (edge === "right") {
         const newWidth = resizeRef.current.origWidth + dx;
         const snappedSlots = Math.max(1, Math.round(newWidth / slotWidth));
-        setResizeWidth(snappedSlots * slotWidth);
+        const w = snappedSlots * slotWidth;
+        setResizeWidth(w);
+        resizeValuesRef.current.width = w;
       } else {
         const newLeft = resizeRef.current.origLeft + dx;
         const snappedSlot = Math.max(0, Math.round(newLeft / slotWidth));
@@ -119,14 +123,15 @@ export function TimelineTaskCard({ task, slotWidth, slotDuration = 20, startHour
         if (newWidth >= slotWidth) {
           setResizeLeft(snappedLeft);
           setResizeWidth(newWidth);
+          resizeValuesRef.current = { left: snappedLeft, width: newWidth };
         }
       }
     };
 
     const onMouseUp = () => {
       if (resizeRef.current && onResize) {
-        const finalLeft = resizeLeft ?? leftOffset;
-        const finalWidth = resizeWidth ?? baseWidth;
+        const finalLeft = resizeValuesRef.current.left;
+        const finalWidth = resizeValuesRef.current.width;
         const snappedStartSlot = Math.max(0, Math.round(finalLeft / slotWidth));
         const snappedSlots = Math.max(1, Math.round(finalWidth / slotWidth));
         const newMinutesFromDayStart = snappedStartSlot * slotDuration;
