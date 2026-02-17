@@ -1,166 +1,56 @@
 
+# Tela de Gestao de Historias
 
-# Backlog Command Center - Central de Processamento de Demandas
+Nova pagina dedicada para visualizar, filtrar e gerenciar todas as Historias (tarefas-pai com subtarefas) do sistema.
 
-## Resumo
+## Funcionalidades
 
-Construir uma nova tela dedicada de administracao de Backlog, separada do Command Center existente, com foco em triagem rapida, organizacao por peso/cliente e prontidao para distribuicao aos lideres de Squad.
+**Filtros e Busca**
+- Filtro por Squad (time/equipe)
+- Busca por cliente vinculado
+- Filtro por status: Abertas / Concluidas / Todas
+- Busca por titulo da historia
 
----
+**Visualizacao**
+- Cards de historia mostrando: titulo, cliente(s), squad, progresso (subtarefas concluidas/total), prioridade, prazo
+- Indicador visual de progresso (barra ou percentual)
+- Badge do squad com cor
+- Avatares dos clientes vinculados
+- Expansao inline para ver subtarefas de cada historia
 
-## Estrutura das 3 Zonas
+**Gestao**
+- Clicar na historia abre o TaskDialog existente para edicao completa
+- Visualizacao rapida do status de cada subtarefa
 
-```text
-+------------------+---------------------------------------------+
-|                  |                                             |
-|  ZONA A          |          ZONA B                             |
-|  Sidebar de      |          "Bucket" Central                   |
-|  Clientes +      |          Cards de Tarefas com               |
-|  Filtros         |          densidade proporcional             |
-|                  |                                             |
-|  - Logo cliente  |          - Selecao multipla                 |
-|  - Badge minutos |          - Indicador de Prontidao           |
-|  - Temperatura   |          - Tags inteligentes                |
-|                  |                                             |
-+------------------+---------------------------------------------+
-|                                                                |
-|  ZONA C - Footer Dinamico ("Painel de Pesagem")               |
-|  "12 tarefas selecionadas (216 min) = 60% de 1 colaborador"   |
-|                                                                |
-+----------------------------------------------------------------+
-```
+## Estrutura de Arquivos
 
----
+1. **`src/pages/Historias.tsx`** - Pagina principal com layout, filtros e listagem
+2. **`src/hooks/useHistorias.ts`** - Hook dedicado para buscar tarefas do tipo "Historia" com joins de clientes, times e contagem de subtarefas
+3. **`src/components/historias/HistoriaCard.tsx`** - Componente de card individual da historia
+4. **`src/components/historias/HistoriaFilters.tsx`** - Barra de filtros (squad, cliente, status, busca)
 
-## Fase 1 - Estrutura Base e Rota
+## Detalhes Tecnicos
 
-**O que sera feito:**
-- Nova pagina `BacklogCommandCenter.tsx` em `/backlog-command-center`
-- Hook dedicado `useBacklogCommandCenter.ts` para buscar tarefas com status `todo` sem `start_date`, agrupadas por cliente
-- Layout de 3 zonas usando flexbox: sidebar lateral (clientes), area central (cards), footer fixo
+**Hook `useHistorias`:**
+- Query no Supabase filtrando `task_type = 'Historia'`
+- Join com `teams` para nome/cor do squad
+- Join com `clients` via `related_client_id` para nome/avatar do cliente
+- Subquery para contar subtarefas totais e concluidas (`parent_task_id = historia.id`)
+- Filtros por `team_id`, status (`done` vs aberto), e texto
 
-**Detalhes tecnicos:**
-- Rota registrada no router existente com permissao `command-center`
-- Query Supabase com JOIN em `task_clients` e `clients` para obter dados de cliente por tarefa
-- Estado local para selecao multipla de tarefas (`selectedTaskIds: Set<string>`)
+**Pagina:**
+- Usa `DashboardLayout` como todas as outras paginas
+- Layout `h-[calc(100vh-130px)]` seguindo o padrao existente
+- Grid responsivo de cards
+- Scroll area para a listagem
 
----
+**Rota e Menu:**
+- Rota: `/historias`
+- Adicionar no sidebar em "Squad" section, entre "Backlog Center" e "Command Center"
+- Permissao: `command-center` (mesma dos centros de comando)
+- Icone: `BookOpen` do lucide-react (ja usado para historias no BacklogColumn)
 
-## Fase 2 - Zona A: Sidebar de Clientes e Filtros
-
-**Funcionalidades:**
-- Lista vertical de clientes com avatar/logo e nome
-- Badge ao lado mostrando total de minutos acumulados no backlog (soma de `ai_estimated_minutes`)
-- Barra de "Temperatura" por cliente:
-  - Azul: fluxo normal
-  - Laranja: backlog crescendo (mais tarefas criadas que concluidas nos ultimos 3 dias)
-  - Vermelho: sem tarefas distribuidas ha mais de 48h
-- Filtro por clique no cliente (filtra a Zona B)
-- Toggles de visualizacao: por Urgencia, por Tipo (`task_type`), por Projeto
-
-**Detalhes tecnicos:**
-- Componente `BacklogClientSidebar.tsx`
-- Calculo de temperatura baseado em comparacao de `created_at` vs `completed_at` dos ultimos 3 dias
-- Deteccao de 48h sem distribuicao: verificar ultima tarefa com `start_date` preenchido para aquele cliente
-
----
-
-## Fase 3 - Zona B: Bucket Central de Tarefas
-
-**Funcionalidades:**
-- Cards com altura sutilmente proporcional ao `ai_estimated_minutes` (minimo 60px, maximo 120px)
-- Indicador de Prontidao ("raio"): card fica opaco se faltam informacoes (sem `description`, sem checklist, etc.)
-- Tags inteligentes:
-  - `[URGENTE]`: card com borda pulsante vermelha (reutiliza logica de aging existente)
-  - `[RECORRENTE]`: icone de loop se `recurring_template_id` esta preenchido
-- Selecao multipla com checkbox em cada card
-- Ordenacao inteligente (Smart Sorting): por custo-beneficio (tarefas rapidas com prioridade alta primeiro)
-
-**Detalhes tecnicos:**
-- Componente `BacklogBucket.tsx` e `BacklogTaskCard.tsx`
-- Calculo de readiness: `description` preenchido + `ai_estimated_minutes` > 0 + tem cliente vinculado
-- Altura do card: `Math.min(120, Math.max(60, (minutes / 60) * 120))px`
-
----
-
-## Fase 4 - Zona C: Footer Dinamico (Painel de Pesagem)
-
-**Funcionalidades:**
-- Barra fixa no rodape que aparece quando ha tarefas selecionadas
-- Exibe: quantidade selecionada, total de minutos, equivalente em % de capacidade diaria (360 min = 100%)
-- Botoes de Bulk-Action:
-  - "Atribuir em Massa": abre modal para escolher Squad/membro
-  - "Liberar para Lideres": altera status das tarefas para `in_progress` com `start_date` definido
-- Animacao de entrada slide-up quando selecao ativa
-
-**Detalhes tecnicos:**
-- Componente `BacklogFooterBar.tsx`
-- Capacidade diaria = 360 minutos (6h uteis, alinhado com o Command Center existente)
-- Bulk update via Supabase batch: `supabase.from('tasks').update({...}).in('id', selectedIds)`
-
----
-
-## Fase 5 - Quick Entry (Lancamento Relampago)
-
-**Funcionalidades:**
-- Campo de texto inteligente no topo da Zona B
-- Parser de sintaxe: `"Post Black Friday @ClienteX #Design /18min"`
-  - `@` = cliente (busca por nome)
-  - `#` = categoria/tipo
-  - `/` = tempo estimado em minutos
-- Criacao instantanea do card sem formulario
-
-**Detalhes tecnicos:**
-- Componente `BacklogQuickEntry.tsx`
-- Regex parser para extrair tokens: `/@(\w+)/`, `/#(\w+)/`, `/\/(\d+)min/`
-- Busca fuzzy no nome do cliente para o `@`
-- Fallback: se parser nao encontrar cliente, abre popover de selecao
-
----
-
-## Fase 6 - Simulador de Impacto e Filtro de Ociosidade
-
-**Funcionalidades:**
-- Botao "Simular Distribuicao": mostra preview visual da timeline da Squad com as tarefas selecionadas encaixadas
-- Reutiliza componente `WorkloadTimeline` existente em modo read-only
-- Filtro de Ociosidade: botao que destaca tarefas que cabem nos slots livres dos membros da Squad
-
-**Detalhes tecnicos:**
-- Componente `BacklogImpactSimulator.tsx` usando Dialog/Sheet
-- Calculo de slots livres reutilizando logica de `findNextFreeSlot` do `useCommandCenter`
-- Tarefas compativeis recebem classe CSS de destaque (`ring-2 ring-primary`)
-
----
-
-## Arquivos a Criar
-
-| Arquivo | Descricao |
-|---|---|
-| `src/pages/BacklogCommandCenter.tsx` | Pagina principal |
-| `src/hooks/useBacklogCommandCenter.ts` | Hook de dados e logica |
-| `src/components/backlog-center/BacklogClientSidebar.tsx` | Sidebar de clientes |
-| `src/components/backlog-center/BacklogBucket.tsx` | Area central de cards |
-| `src/components/backlog-center/BacklogTaskCard.tsx` | Card individual |
-| `src/components/backlog-center/BacklogFooterBar.tsx` | Footer dinamico |
-| `src/components/backlog-center/BacklogQuickEntry.tsx` | Campo de entrada rapida |
-| `src/components/backlog-center/BacklogImpactSimulator.tsx` | Modal de simulacao |
-| `src/components/backlog-center/BacklogHeader.tsx` | Header com metricas |
-
-## Arquivos a Modificar
-
-| Arquivo | Motivo |
-|---|---|
-| `src/App.tsx` | Adicionar rota `/backlog-command-center` |
-| Sidebar/navegacao | Adicionar link no menu |
-
----
-
-## Ordem de Implementacao
-
-1. Hook de dados + Pagina base com layout de 3 zonas
-2. Sidebar de clientes com badges e temperatura
-3. Bucket central com cards proporcionais e indicador de prontidao
-4. Footer dinamico com bulk-actions
-5. Quick Entry com parser inteligente
-6. Simulador de impacto e filtro de ociosidade
-
+**Integracao:**
+- Reutiliza o `TaskDialog` existente para edicao
+- Nenhuma mudanca no banco de dados necessaria - usa dados ja existentes
+- Nao altera nenhuma tela existente (Backlog Center e Command Center permanecem intactos)
