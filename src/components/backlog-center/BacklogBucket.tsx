@@ -258,8 +258,10 @@ export function BacklogBucket({
         </ScrollArea>
       </div>
 
-      {/* Quick Entry - bottom, ChatGPT style */}
-      <BacklogQuickEntry clients={clients} companyId={companyId} />
+      {/* Quick Entry - anchored bottom */}
+      <div className="flex-shrink-0 px-4 pt-3 pb-4">
+        <BacklogQuickEntry clients={clients} companyId={companyId} />
+      </div>
       {/* Edit Task Dialog */}
       <TaskDialog
         open={!!editingTask}
