@@ -240,7 +240,7 @@ export function BacklogQuickEntry({ clients, companyId }: Props) {
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (isOpen) {
       if (e.key === "ArrowDown") {
         e.preventDefault();
@@ -264,7 +264,8 @@ export function BacklogQuickEntry({ clients, companyId }: Props) {
       }
     }
 
-    if (e.key === "Enter" && !isOpen && !submitting) {
+    if (e.key === "Enter" && !e.shiftKey && !isOpen && !submitting) {
+      e.preventDefault();
       handleSubmit();
     }
   };
@@ -314,26 +315,26 @@ export function BacklogQuickEntry({ clients, companyId }: Props) {
         </div>
       )}
 
-      <div className="relative flex items-center bg-muted/50 border rounded-2xl px-4 py-2 focus-within:ring-2 focus-within:ring-ring focus-within:border-transparent transition-all">
-        <Zap className="w-4 h-4 text-muted-foreground mr-3 flex-shrink-0" />
-        <Input
-          ref={inputRef}
+      <div className="relative flex items-start bg-muted/50 border rounded-2xl px-4 py-2 focus-within:ring-2 focus-within:ring-ring focus-within:border-transparent transition-all">
+        <Zap className="w-4 h-4 text-muted-foreground mr-3 flex-shrink-0 mt-1.5" />
+        <textarea
+          ref={inputRef as any}
           value={value}
           onChange={(e) => {
             const newVal = e.target.value;
             const pos = e.target.selectionStart ?? newVal.length;
             setValue(newVal);
             requestAnimationFrame(() => {
-              const el = inputRef.current;
+              const el = inputRef.current as any;
               if (el) setCursorPos(el.selectionStart ?? pos);
             });
           }}
           onKeyUp={(e) => {
-            const el = e.target as HTMLInputElement;
+            const el = e.target as HTMLTextAreaElement;
             setCursorPos(el.selectionStart ?? 0);
           }}
           onClick={(e) => {
-            setCursorPos((e.target as HTMLInputElement).selectionStart ?? 0);
+            setCursorPos((e.target as HTMLTextAreaElement).selectionStart ?? 0);
           }}
           onFocus={() => setIsFocused(true)}
           onBlur={() => {
@@ -341,11 +342,12 @@ export function BacklogQuickEntry({ clients, companyId }: Props) {
           }}
           onKeyDown={handleKeyDown}
           placeholder="Nova tarefa... use @cliente #categoria /18min !alta"
-          className="border-0 bg-transparent shadow-none focus-visible:ring-0 h-8 text-sm px-0 placeholder:text-muted-foreground/60"
+          className="flex-1 border-0 bg-transparent shadow-none focus:outline-none focus-visible:ring-0 text-sm px-0 placeholder:text-muted-foreground/60 resize-none"
+          rows={3}
           disabled={submitting}
           autoComplete="off"
         />
-        <div className="flex items-center gap-2 ml-2 flex-shrink-0">
+        <div className="flex items-center gap-2 ml-2 flex-shrink-0 mt-1.5">
           <kbd className="hidden sm:inline-flex text-[10px] text-muted-foreground bg-background border rounded px-1.5 py-0.5">Enter</kbd>
         </div>
       </div>
