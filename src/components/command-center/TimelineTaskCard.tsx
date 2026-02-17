@@ -11,14 +11,15 @@ interface Props {
   startHour: number;
   selectedDate?: Date;
   onReposition?: (taskId: string, newStartDate: Date) => void;
+  onResize?: (taskId: string, newStartDate: Date, newEstimatedMinutes: number) => void;
   onClickTask?: (task: CommandCenterTask) => void;
 }
 
-export function TimelineTaskCard({ task, slotWidth, slotDuration = 20, startHour, selectedDate, onReposition, onClickTask }: Props) {
+export function TimelineTaskCard({ task, slotWidth, slotDuration = 20, startHour, selectedDate, onReposition, onResize, onClickTask }: Props) {
   const dragMoved = useRef(false);
   const estimatedMin = task.ai_estimated_minutes || slotDuration;
   const slotsOccupied = Math.max(1, Math.ceil(estimatedMin / slotDuration));
-  const width = slotsOccupied * slotWidth;
+  const baseWidth = slotsOccupied * slotWidth;
 
   const taskStart = task.start_date ? new Date(task.start_date) : null;
   let leftOffset = 0;
@@ -32,25 +33,25 @@ export function TimelineTaskCard({ task, slotWidth, slotDuration = 20, startHour
   const isDone = task.status === "done";
   const isOvertime = taskStart && !isDone && differenceInMinutes(new Date(), taskStart) > estimatedMin + 7;
 
+  // Drag-to-move state
   const [dragging, setDragging] = useState(false);
   const [dragLeft, setDragLeft] = useState<number | null>(null);
-  const dragRef = useRef<{ startX: number; startLeft: number; containerLeft: number } | null>(null);
+  const dragRef = useRef<{ startX: number; startLeft: number } | null>(null);
 
+  // Resize state
+  const [resizing, setResizing] = useState<"left" | "right" | null>(null);
+  const [resizeLeft, setResizeLeft] = useState<number | null>(null);
+  const [resizeWidth, setResizeWidth] = useState<number | null>(null);
+  const resizeRef = useRef<{ startX: number; origLeft: number; origWidth: number; edge: "left" | "right" } | null>(null);
+
+  // --- MOVE ---
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (!onReposition && !onClickTask) return;
     e.preventDefault();
     e.stopPropagation();
     dragMoved.current = false;
 
-    const container = (e.currentTarget as HTMLElement).parentElement;
-    if (!container) return;
-    const containerRect = container.getBoundingClientRect();
-
-    dragRef.current = {
-      startX: e.clientX,
-      startLeft: leftOffset,
-      containerLeft: containerRect.left,
-    };
+    dragRef.current = { startX: e.clientX, startLeft: leftOffset };
     setDragging(true);
     setDragLeft(leftOffset);
 
@@ -67,15 +68,12 @@ export function TimelineTaskCard({ task, slotWidth, slotDuration = 20, startHour
 
     const onMouseUp = (ev: MouseEvent) => {
       if (!dragMoved.current) {
-        // It was a click, not a drag
         onClickTask?.(task);
       } else if (dragRef.current && onReposition && !isDone) {
         const dx = ev.clientX - dragRef.current.startX;
         const newLeft = dragRef.current.startLeft + dx;
         const snappedSlot = Math.max(0, Math.round(newLeft / slotWidth));
         const newMinutesFromDayStart = snappedSlot * slotDuration;
-
-        // Use selectedDate as base date if provided, otherwise fall back to taskStart date
         const baseDate = selectedDate ? new Date(selectedDate) : (taskStart ? new Date(taskStart) : new Date());
         const newDate = new Date(baseDate);
         newDate.setHours(startHour, 0, 0, 0);
@@ -93,24 +91,96 @@ export function TimelineTaskCard({ task, slotWidth, slotDuration = 20, startHour
     window.addEventListener("mouseup", onMouseUp);
   }, [isDone, onReposition, onClickTask, leftOffset, slotWidth, slotDuration, startHour, taskStart, selectedDate, task]);
 
-  const displayLeft = dragLeft !== null ? dragLeft : leftOffset;
+  // --- RESIZE ---
+  const handleResizeMouseDown = useCallback((edge: "left" | "right", e: React.MouseEvent) => {
+    if (isDone || !onResize) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    resizeRef.current = { startX: e.clientX, origLeft: leftOffset, origWidth: baseWidth, edge };
+    setResizing(edge);
+    setResizeLeft(leftOffset);
+    setResizeWidth(baseWidth);
+
+    const onMouseMove = (ev: MouseEvent) => {
+      if (!resizeRef.current) return;
+      const dx = ev.clientX - resizeRef.current.startX;
+
+      if (edge === "right") {
+        const newWidth = resizeRef.current.origWidth + dx;
+        const snappedSlots = Math.max(1, Math.round(newWidth / slotWidth));
+        setResizeWidth(snappedSlots * slotWidth);
+      } else {
+        const newLeft = resizeRef.current.origLeft + dx;
+        const snappedSlot = Math.max(0, Math.round(newLeft / slotWidth));
+        const snappedLeft = snappedSlot * slotWidth;
+        const rightEdge = resizeRef.current.origLeft + resizeRef.current.origWidth;
+        const newWidth = rightEdge - snappedLeft;
+        if (newWidth >= slotWidth) {
+          setResizeLeft(snappedLeft);
+          setResizeWidth(newWidth);
+        }
+      }
+    };
+
+    const onMouseUp = () => {
+      if (resizeRef.current && onResize) {
+        const finalLeft = resizeLeft ?? leftOffset;
+        const finalWidth = resizeWidth ?? baseWidth;
+        const snappedStartSlot = Math.max(0, Math.round(finalLeft / slotWidth));
+        const snappedSlots = Math.max(1, Math.round(finalWidth / slotWidth));
+        const newMinutesFromDayStart = snappedStartSlot * slotDuration;
+        const newEstimated = snappedSlots * slotDuration;
+
+        const baseDate = selectedDate ? new Date(selectedDate) : (taskStart ? new Date(taskStart) : new Date());
+        const newDate = new Date(baseDate);
+        newDate.setHours(startHour, 0, 0, 0);
+        newDate.setMinutes(newMinutesFromDayStart);
+
+        onResize(task.id, newDate, newEstimated);
+      }
+      resizeRef.current = null;
+      setResizing(null);
+      setResizeLeft(null);
+      setResizeWidth(null);
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+    };
+
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+  }, [isDone, onResize, leftOffset, baseWidth, slotWidth, slotDuration, startHour, taskStart, selectedDate, task, resizeLeft, resizeWidth]);
+
+  const displayLeft = resizeLeft ?? dragLeft ?? leftOffset;
+  const displayWidth = resizeWidth ?? baseWidth;
 
   return (
     <div
       onMouseDown={handleMouseDown}
       className={cn(
-        "absolute top-1 h-[calc(100%-8px)] rounded-lg px-2 py-1 flex items-center gap-1 text-xs font-medium overflow-hidden",
+        "absolute top-1 h-[calc(100%-8px)] rounded-lg px-2 py-1 flex items-center gap-1 text-xs font-medium overflow-hidden group/card",
         isDone
           ? "bg-emerald-500/20 border border-emerald-500/40 text-emerald-600 dark:text-emerald-400"
           : isOvertime
           ? "bg-orange-500/20 border border-orange-500/40 text-orange-600 dark:text-orange-400 animate-pulse"
           : "bg-primary/10 border border-primary/30 text-primary",
-        dragging ? "opacity-80 shadow-lg z-50 cursor-grabbing" : "cursor-grab",
-        !dragging && "transition-all duration-300"
+        (dragging || resizing) ? "opacity-80 shadow-lg z-50" : "",
+        dragging ? "cursor-grabbing" : "cursor-grab",
+        !(dragging || resizing) && "transition-all duration-300"
       )}
-      style={{ left: `${Math.max(0, displayLeft)}px`, width: `${width}px` }}
-      title={`${task.title} (${estimatedMin}min) — arraste para mover`}
+      style={{ left: `${Math.max(0, displayLeft)}px`, width: `${displayWidth}px` }}
+      title={`${task.title} (${estimatedMin}min) — arraste para mover, bordas para redimensionar`}
     >
+      {/* Left resize handle */}
+      {!isDone && onResize && (
+        <div
+          onMouseDown={(e) => handleResizeMouseDown("left", e)}
+          className="absolute left-0 top-0 bottom-0 w-2 cursor-col-resize z-10 flex items-center justify-center opacity-0 group-hover/card:opacity-100 transition-opacity"
+        >
+          <div className="w-0.5 h-3/5 rounded-full bg-current opacity-40" />
+        </div>
+      )}
+
       {!isDone && onReposition && (
         <GripVertical className="w-3 h-3 flex-shrink-0 opacity-40" />
       )}
@@ -122,6 +192,16 @@ export function TimelineTaskCard({ task, slotWidth, slotDuration = 20, startHour
         <Clock className="w-3 h-3 flex-shrink-0" />
       )}
       <span className="truncate">{task.title}</span>
+
+      {/* Right resize handle */}
+      {!isDone && onResize && (
+        <div
+          onMouseDown={(e) => handleResizeMouseDown("right", e)}
+          className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize z-10 flex items-center justify-center opacity-0 group-hover/card:opacity-100 transition-opacity"
+        >
+          <div className="w-0.5 h-3/5 rounded-full bg-current opacity-40" />
+        </div>
+      )}
     </div>
   );
 }

@@ -17,10 +17,11 @@ interface Props {
   selectedDate?: Date;
   workSchedule?: WorkSchedule | null;
   onRepositionTask?: (taskId: string, newStartDate: Date) => void;
+  onResizeTask?: (taskId: string, newStartDate: Date, newEstimatedMinutes: number) => void;
   onClickTask?: (task: CommandCenterTask) => void;
 }
 
-export function TimelineRow({ member, tasks, startHour, slotWidth, totalSlots, slotDuration = 20, rowHeight = 52, selectedDate, workSchedule, onRepositionTask, onClickTask }: Props) {
+export function TimelineRow({ member, tasks, startHour, slotWidth, totalSlots, slotDuration = 20, rowHeight = 52, selectedDate, workSchedule, onRepositionTask, onResizeTask, onClickTask }: Props) {
   const memberTasks = tasks.filter(t => t.assigned_user_id === member.user_id);
 
   const occupiedSlots = new Set<number>();
@@ -123,6 +124,7 @@ export function TimelineRow({ member, tasks, startHour, slotWidth, totalSlots, s
                 startHour={startHour}
                 selectedDate={selectedDate}
                 onReposition={onRepositionTask}
+                onResize={onResizeTask}
                 onClickTask={onClickTask}
               />
             ))}

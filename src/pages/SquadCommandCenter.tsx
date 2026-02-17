@@ -152,6 +152,25 @@ export default function SquadCommandCenter() {
     }
   }, [fetchTasks, toast, timelineTasks]);
 
+  const handleResizeTask = useCallback(async (taskId: string, newStartDate: Date, newEstimatedMinutes: number) => {
+    try {
+      const newDeadline = new Date(newStartDate.getTime() + newEstimatedMinutes * 60000);
+      const { error } = await supabase
+        .from("tasks")
+        .update({
+          start_date: newStartDate.toISOString(),
+          deadline: newDeadline.toISOString(),
+          ai_estimated_minutes: newEstimatedMinutes,
+        })
+        .eq("id", taskId);
+      if (error) throw error;
+      toast({ title: `Tarefa ajustada para ${newEstimatedMinutes}min` });
+      fetchTasks();
+    } catch {
+      toast({ title: "Erro ao redimensionar", variant: "destructive" });
+    }
+  }, [fetchTasks, toast]);
+
   const metrics = getTodayMetrics();
 
   return (
@@ -201,6 +220,7 @@ export default function SquadCommandCenter() {
                   startHour={START_HOUR}
                   workSchedules={workSchedules}
                   onRepositionTask={handleRepositionTask}
+                  onResizeTask={handleResizeTask}
                   onClickTask={(task) => { setEditingTask(task); setTaskDialogOpen(true); }}
                 />
               </div>
