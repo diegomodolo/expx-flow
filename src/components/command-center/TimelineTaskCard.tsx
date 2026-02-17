@@ -14,9 +14,10 @@ interface Props {
   onResize?: (taskId: string, newStartDate: Date, newEstimatedMinutes: number) => void;
   onClickTask?: (task: CommandCenterTask) => void;
   onSendToBacklog?: (taskId: string) => void;
+  onReassign?: (taskId: string, newUserId: string, newMemberName: string, newStartDate: Date) => void;
 }
 
-export function TimelineTaskCard({ task, slotWidth, slotDuration = 20, startHour, selectedDate, onReposition, onResize, onClickTask, onSendToBacklog }: Props) {
+export function TimelineTaskCard({ task, slotWidth, slotDuration = 20, startHour, selectedDate, onReposition, onResize, onClickTask, onSendToBacklog, onReassign }: Props) {
   const dragMoved = useRef(false);
   const estimatedMin = task.ai_estimated_minutes || slotDuration;
   const slotsOccupied = Math.max(1, Math.ceil(estimatedMin / slotDuration));
@@ -37,8 +38,10 @@ export function TimelineTaskCard({ task, slotWidth, slotDuration = 20, startHour
   // Drag-to-move state
   const [dragging, setDragging] = useState(false);
   const [dragLeft, setDragLeft] = useState<number | null>(null);
+  const [dragTop, setDragTop] = useState<number | null>(null);
   const [returningToBacklog, setReturningToBacklog] = useState(false);
-  const dragRef = useRef<{ startX: number; startLeft: number } | null>(null);
+  const [targetMemberName, setTargetMemberName] = useState<string | null>(null);
+  const dragRef = useRef<{ startX: number; startLeft: number; startY: number; origParent: HTMLElement | null } | null>(null);
 
   // Resize state
   const [resizing, setResizing] = useState<"left" | "right" | null>(null);
@@ -54,25 +57,49 @@ export function TimelineTaskCard({ task, slotWidth, slotDuration = 20, startHour
     e.stopPropagation();
     dragMoved.current = false;
 
-    dragRef.current = { startX: e.clientX, startLeft: leftOffset };
+    // Find the parent row element for cross-row detection
+    const cardEl = e.currentTarget as HTMLElement;
+    const rowEl = cardEl.closest('[data-member-user-id]') as HTMLElement | null;
+
+    dragRef.current = { startX: e.clientX, startLeft: leftOffset, startY: e.clientY, origParent: rowEl };
     setDragging(true);
     setDragLeft(leftOffset);
+    setDragTop(null);
+    setTargetMemberName(null);
 
     const onMouseMove = (ev: MouseEvent) => {
       if (!dragRef.current) return;
       const dx = ev.clientX - dragRef.current.startX;
-      if (Math.abs(dx) > 4) dragMoved.current = true;
+      const dy = ev.clientY - dragRef.current.startY;
+      if (Math.abs(dx) > 4 || Math.abs(dy) > 4) dragMoved.current = true;
       if (!dragMoved.current || isDone) return;
       const newLeft = dragRef.current.startLeft + dx;
       // Detect drag far left → return to backlog
       if (newLeft < -100 && onSendToBacklog) {
         setReturningToBacklog(true);
+        setTargetMemberName(null);
       } else {
         setReturningToBacklog(false);
       }
       const snappedSlot = Math.round(newLeft / slotWidth);
       const snappedLeft = Math.max(-150, snappedSlot * slotWidth);
       setDragLeft(snappedLeft);
+
+      // Detect cross-row via Y offset
+      if (Math.abs(dy) > 10) {
+        setDragTop(dy);
+        // Find target row under cursor
+        const elementsUnder = document.elementsFromPoint(ev.clientX, ev.clientY);
+        const targetRow = elementsUnder.find(el => el.closest('[data-member-user-id]'))?.closest('[data-member-user-id]') as HTMLElement | null;
+        if (targetRow && targetRow !== dragRef.current.origParent) {
+          setTargetMemberName(targetRow.getAttribute('data-member-name'));
+        } else {
+          setTargetMemberName(null);
+        }
+      } else {
+        setDragTop(null);
+        setTargetMemberName(null);
+      }
     };
 
     const onMouseUp = (ev: MouseEvent) => {
@@ -84,27 +111,41 @@ export function TimelineTaskCard({ task, slotWidth, slotDuration = 20, startHour
         // If dragged far left, send to backlog
         if (newLeft < -100 && onSendToBacklog) {
           onSendToBacklog(task.id);
-        } else if (onReposition) {
+        } else {
+          // Check if dropped on a different member row
+          const elementsUnder = document.elementsFromPoint(ev.clientX, ev.clientY);
+          const targetRow = elementsUnder.find(el => el.closest('[data-member-user-id]'))?.closest('[data-member-user-id]') as HTMLElement | null;
+          const targetUserId = targetRow?.getAttribute('data-member-user-id');
+          const targetName = targetRow?.getAttribute('data-member-name');
+          const isNewMember = targetUserId && targetUserId !== task.assigned_user_id;
+
           const snappedSlot = Math.max(0, Math.round(newLeft / slotWidth));
           const newMinutesFromDayStart = snappedSlot * slotDuration;
           const baseDate = selectedDate ? new Date(selectedDate) : (taskStart ? new Date(taskStart) : new Date());
           const newDate = new Date(baseDate);
           newDate.setHours(startHour, 0, 0, 0);
           newDate.setMinutes(newMinutesFromDayStart);
-          onReposition(task.id, newDate);
+
+          if (isNewMember && onReassign && targetName) {
+            onReassign(task.id, targetUserId, targetName, newDate);
+          } else if (onReposition) {
+            onReposition(task.id, newDate);
+          }
         }
       }
       dragRef.current = null;
       setDragging(false);
       setDragLeft(null);
+      setDragTop(null);
       setReturningToBacklog(false);
+      setTargetMemberName(null);
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("mouseup", onMouseUp);
     };
 
     window.addEventListener("mousemove", onMouseMove);
     window.addEventListener("mouseup", onMouseUp);
-  }, [isDone, onReposition, onClickTask, onSendToBacklog, leftOffset, slotWidth, slotDuration, startHour, taskStart, selectedDate, task]);
+  }, [isDone, onReposition, onReassign, onClickTask, onSendToBacklog, leftOffset, slotWidth, slotDuration, startHour, taskStart, selectedDate, task]);
 
   // --- RESIZE ---
   const handleResizeMouseDown = useCallback((edge: "left" | "right", e: React.MouseEvent) => {
@@ -180,6 +221,8 @@ export function TimelineTaskCard({ task, slotWidth, slotDuration = 20, startHour
         "absolute top-1 h-[calc(100%-8px)] rounded-lg px-2 py-1 flex items-center gap-1 text-xs font-medium overflow-hidden group/card",
         returningToBacklog
           ? "bg-destructive/20 border-2 border-dashed border-destructive/50 text-destructive"
+          : targetMemberName
+          ? "bg-accent/30 border-2 border-dashed border-accent-foreground/50 text-accent-foreground"
           : isDone
           ? "bg-emerald-500/20 border border-emerald-500/40 text-emerald-600 dark:text-emerald-400"
           : isOvertime
@@ -189,8 +232,13 @@ export function TimelineTaskCard({ task, slotWidth, slotDuration = 20, startHour
         dragging ? "cursor-grabbing" : "cursor-grab",
         !(dragging || resizing) && "transition-all duration-300"
       )}
-      style={{ left: `${Math.max(returningToBacklog ? -150 : 0, displayLeft)}px`, width: `${displayWidth}px` }}
-      title={`${task.title} (${estimatedMin}min) — arraste para mover, arraste para a esquerda para devolver ao backlog`}
+      style={{
+        left: `${Math.max(returningToBacklog ? -150 : 0, displayLeft)}px`,
+        width: `${displayWidth}px`,
+        transform: dragTop !== null ? `translateY(${dragTop}px)` : undefined,
+        zIndex: dragTop !== null ? 100 : undefined,
+      }}
+      title={`${task.title} (${estimatedMin}min) — arraste para mover, arraste verticalmente para reatribuir`}
     >
       {/* Left resize handle */}
       {!isDone && onResize && (
@@ -206,6 +254,11 @@ export function TimelineTaskCard({ task, slotWidth, slotDuration = 20, startHour
         <>
           <Undo2 className="w-3 h-3 flex-shrink-0 animate-pulse" />
           <span className="truncate font-semibold">Soltar → Backlog</span>
+        </>
+      ) : targetMemberName ? (
+        <>
+          <GripVertical className="w-3 h-3 flex-shrink-0" />
+          <span className="truncate font-semibold">→ {targetMemberName}</span>
         </>
       ) : (
         <>

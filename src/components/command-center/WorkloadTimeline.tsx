@@ -23,6 +23,7 @@ interface Props {
   onResizeTask?: (taskId: string, newStartDate: Date, newEstimatedMinutes: number) => void;
   onClickTask?: (task: CommandCenterTask) => void;
   onSendToBacklog?: (taskId: string) => void;
+  onReassignTask?: (taskId: string, newUserId: string, newMemberName: string, newStartDate: Date) => void;
   draggingTask?: CommandCenterTask | null;
   dropSlotRef?: React.MutableRefObject<number | null>;
   timelineContainerRef?: React.MutableRefObject<HTMLDivElement | null>;
@@ -57,7 +58,7 @@ function saveSettings(s: { slotDuration: number; startHour: number; endHour: num
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch {}
 }
 
-export function WorkloadTimeline({ members, tasks, startHour: _startHourProp = 0, workSchedules = [], onRepositionTask, onResizeTask, onClickTask, onSendToBacklog, draggingTask, dropSlotRef, timelineContainerRef, selectedDate, onDateChange }: Props) {
+export function WorkloadTimeline({ members, tasks, startHour: _startHourProp = 0, workSchedules = [], onRepositionTask, onResizeTask, onClickTask, onSendToBacklog, onReassignTask, draggingTask, dropSlotRef, timelineContainerRef, selectedDate, onDateChange }: Props) {
   const saved = React.useMemo(() => loadSettings(), []);
   const [slotWidth, setSlotWidth] = useState(56);
   const [rowHeight, setRowHeight] = useState(68);
@@ -303,6 +304,7 @@ export function WorkloadTimeline({ members, tasks, startHour: _startHourProp = 0
                 onResizeTask={onResizeTask}
                 onClickTask={onClickTask}
                 onSendToBacklog={onSendToBacklog}
+                onReassignTask={onReassignTask}
                 ghostPreview={ghostPreview}
               />
             );

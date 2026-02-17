@@ -20,10 +20,11 @@ interface Props {
   onResizeTask?: (taskId: string, newStartDate: Date, newEstimatedMinutes: number) => void;
   onClickTask?: (task: CommandCenterTask) => void;
   onSendToBacklog?: (taskId: string) => void;
+  onReassignTask?: (taskId: string, newUserId: string, newMemberName: string, newStartDate: Date) => void;
   ghostPreview?: { startSlot: number; slotsNeeded: number; title: string } | null;
 }
 
-export function TimelineRow({ member, tasks, startHour, slotWidth, totalSlots, slotDuration = 20, rowHeight = 52, selectedDate, workSchedule, onRepositionTask, onResizeTask, onClickTask, onSendToBacklog, ghostPreview }: Props) {
+export function TimelineRow({ member, tasks, startHour, slotWidth, totalSlots, slotDuration = 20, rowHeight = 52, selectedDate, workSchedule, onRepositionTask, onResizeTask, onClickTask, onSendToBacklog, onReassignTask, ghostPreview }: Props) {
   const memberTasks = tasks.filter(t => t.assigned_user_id === member.user_id);
 
   const occupiedSlots = new Set<number>();
@@ -79,7 +80,7 @@ export function TimelineRow({ member, tasks, startHour, slotWidth, totalSlots, s
   }, [workSchedule, startHour, totalSlots, slotDuration]);
 
   return (
-    <div className="flex items-stretch border-b border-border/50 group" style={{ minHeight: `${rowHeight}px` }}>
+    <div className="flex items-stretch border-b border-border/50 group" style={{ minHeight: `${rowHeight}px` }} data-member-user-id={member.user_id} data-member-id={member.id} data-member-name={member.name}>
       {/* Member info */}
       <div className="w-48 flex-shrink-0 flex items-center gap-3 px-4 py-3 bg-muted/30">
         <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
@@ -129,6 +130,7 @@ export function TimelineRow({ member, tasks, startHour, slotWidth, totalSlots, s
                 onResize={onResizeTask}
                 onClickTask={onClickTask}
                 onSendToBacklog={onSendToBacklog}
+                onReassign={onReassignTask}
               />
             ))}
 

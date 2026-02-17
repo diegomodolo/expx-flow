@@ -238,6 +238,29 @@ export default function SquadCommandCenter() {
     }
   }, [unassignTask, fetchTasks, toast, timelineTasks]);
 
+  const handleReassignTask = useCallback(async (taskId: string, newUserId: string, newMemberName: string, newStartDate: Date) => {
+    const task = timelineTasks.find(t => t.id === taskId);
+    try {
+      const estimatedMinutes = task?.ai_estimated_minutes || 20;
+      const deadlineDate = new Date(newStartDate.getTime() + estimatedMinutes * 60000);
+      const { error } = await supabase
+        .from("tasks")
+        .update({
+          assigned_user_id: newUserId,
+          responsible_name: newMemberName,
+          start_date: newStartDate.toISOString(),
+          deadline: deadlineDate.toISOString().split('T')[0],
+          due_date: deadlineDate.toISOString(),
+        })
+        .eq("id", taskId);
+      if (error) throw error;
+      toast({ title: "Tarefa reatribuída", description: `"${task?.title}" → ${newMemberName}` });
+      fetchTasks();
+    } catch {
+      toast({ title: "Erro ao reatribuir tarefa", variant: "destructive" });
+    }
+  }, [fetchTasks, toast, timelineTasks]);
+
   const metrics = getTodayMetrics();
 
   // Calculate time-based availability
@@ -387,6 +410,7 @@ export default function SquadCommandCenter() {
                     onResizeTask={handleResizeTask}
                     onClickTask={(task) => { setEditingTask(task); setTaskDialogOpen(true); }}
                     onSendToBacklog={handleSendToBacklog}
+                    onReassignTask={handleReassignTask}
                     draggingTask={draggingTask}
                     dropSlotRef={dropSlotRef}
                     selectedDate={viewDate}
