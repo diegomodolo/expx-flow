@@ -958,7 +958,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                           </div>
                           <div>
                             <Label className="text-sm font-semibold">Categoria</Label>
-                            <Popover>
+                            <Popover modal={false}>
                               <PopoverTrigger asChild>
                                 <Button variant="outline" role="combobox" className="w-full justify-between font-normal mt-1.5">
                                   {formData.categoria_id
@@ -967,7 +967,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                                   <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                 </Button>
                               </PopoverTrigger>
-                              <PopoverContent className="w-[260px] p-0" align="start">
+                              <PopoverContent className="w-[260px] p-0" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
                                 <div className="p-2 border-b">
                                   <Input
                                     placeholder="Buscar categoria..."
@@ -1027,7 +1027,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                           </div>
                           <div>
                             <Label className="text-sm font-semibold">Classificação</Label>
-                            <Popover>
+                            <Popover modal={false}>
                               <PopoverTrigger asChild>
                                 <Button variant="outline" role="combobox" className="w-full justify-between font-normal mt-1.5">
                                   {formData.classificacao_id
@@ -1036,7 +1036,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                                   <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                 </Button>
                               </PopoverTrigger>
-                              <PopoverContent className="w-[260px] p-0" align="start">
+                              <PopoverContent className="w-[260px] p-0" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
                                 <div className="p-2 border-b">
                                   <Input
                                     placeholder="Buscar classificação..."
