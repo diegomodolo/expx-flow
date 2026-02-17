@@ -181,6 +181,9 @@ export function useSubtasks(parentTaskId: string | null) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['subtasks', parentTaskId] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['board-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['backlog-center-tasks'] });
       toast.success('Subtarefa removida!');
     },
     onError: () => toast.error('Erro ao remover subtarefa'),
