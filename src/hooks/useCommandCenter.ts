@@ -180,7 +180,7 @@ export function useCommandCenter() {
         assigned_user_id: userId,
         responsible_name: memberName,
         start_date: startDate.toISOString(),
-        status: "progress",
+        status: "todo",
         deadline: deadlineDate.toISOString().split('T')[0],
       };
       setBacklogTasks(prev => prev.filter(t => t.id !== taskId));
@@ -193,7 +193,7 @@ export function useCommandCenter() {
         assigned_user_id: userId,
         responsible_name: memberName,
         start_date: startDate.toISOString(),
-        status: "progress" as any,
+        status: "todo" as any,
         task_state: "execucao" as any,
         deadline: deadlineDate.toISOString().split('T')[0],
         due_date: deadlineDate.toISOString(),
