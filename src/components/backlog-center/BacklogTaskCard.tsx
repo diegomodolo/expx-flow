@@ -1,18 +1,20 @@
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Zap, RotateCcw, AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Clock, Zap, RotateCcw, AlertTriangle, Pencil } from "lucide-react";
 import type { BacklogTask } from "@/hooks/useBacklogCommandCenter";
 
 interface Props {
   task: BacklogTask;
   selected: boolean;
   onToggle: () => void;
+  onEdit?: (task: BacklogTask) => void;
   readiness: { ready: boolean; hasDescription: boolean; hasEstimate: boolean; hasClient: boolean };
   agingHours: number;
 }
 
-export function BacklogTaskCard({ task, selected, onToggle, readiness, agingHours }: Props) {
+export function BacklogTaskCard({ task, selected, onToggle, onEdit, readiness, agingHours }: Props) {
   const minutes = task.ai_estimated_minutes || 18;
   // Proportional height: 60-120px based on estimated minutes
   const cardMinHeight = Math.min(120, Math.max(60, (minutes / 60) * 120));
@@ -25,10 +27,9 @@ export function BacklogTaskCard({ task, selected, onToggle, readiness, agingHour
       style={{ minHeight: `${cardMinHeight}px` }}
       className={cn(
         "relative rounded-lg border p-3 cursor-pointer transition-all group",
-        "hover:elevation-2",
+        "hover:shadow-sm",
         selected && "ring-2 ring-primary border-primary/40 bg-primary/5",
-        !readiness.ready && "opacity-60",
-        isUrgent && "border-destructive/50 animate-pulse-slow"
+        isUrgent && "border-destructive/50"
       )}
     >
       <div className="flex items-start gap-3">
@@ -99,6 +100,21 @@ export function BacklogTaskCard({ task, selected, onToggle, readiness, agingHour
             </div>
           )}
         </div>
+
+        {/* Edit button */}
+        {onEdit && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(task);
+            }}
+          >
+            <Pencil className="w-3.5 h-3.5" />
+          </Button>
+        )}
       </div>
     </div>
   );
