@@ -72,7 +72,7 @@ export function BacklogBucket({
     const selected = selectedTaskIds.has(task.id);
     const readiness = getReadiness(task);
     const agingHours = getAgingHours(task.created_at);
-    const minutes = task.ai_estimated_minutes || 18;
+    const minutes = task.ai_estimated_minutes || 20;
     const isRecurring = !!task.recurring_template_id;
     const agingDays = Math.floor(agingHours / 24);
     const subtasks = subtasksByParent.get(task.id) || [];

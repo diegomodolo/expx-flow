@@ -15,7 +15,7 @@ interface Props {
 }
 
 export function BacklogTaskCard({ task, selected, onToggle, onEdit, readiness, agingHours }: Props) {
-  const minutes = task.ai_estimated_minutes || 18;
+  const minutes = task.ai_estimated_minutes || 20;
   // Proportional height: 60-120px based on estimated minutes
   const cardMinHeight = Math.min(120, Math.max(60, (minutes / 60) * 120));
   const isUrgent = task.priority === "high" || agingHours > 48;
