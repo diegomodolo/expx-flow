@@ -25,6 +25,7 @@ export default function BacklogCommandCenterPage() {
     getAgingHours,
     releaseToLeaders,
     clients,
+    taskToClients,
     squads,
     selectedSquadId,
     setSelectedSquadId,
@@ -72,6 +73,7 @@ export default function BacklogCommandCenterPage() {
             getReadiness={getReadiness}
             getAgingHours={getAgingHours}
             clients={clients}
+            taskToClients={taskToClients}
             companyId={activeCompany?.company_id}
           />
         </div>
