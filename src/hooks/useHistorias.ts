@@ -53,7 +53,7 @@ export function useHistorias() {
   const [filters, setFilters] = useState<Filters>({
     teamId: "all",
     clientSearch: "",
-    statusFilter: "open",
+    statusFilter: "all",
     titleSearch: "",
   });
 
