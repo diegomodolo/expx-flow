@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { DragDropContext, DropResult } from "react-beautiful-dnd";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -63,6 +63,8 @@ export default function SquadCommandCenter() {
     startDate: Date;
   } | null>(null);
   const [draggingTask, setDraggingTask] = useState<CommandCenterTask | null>(null);
+  const dropSlotRef = useRef<number | null>(null);
+  const timelineContainerRef = useRef<HTMLDivElement | null>(null);
 
   // Backlog center hooks
   const { activeCompany } = useCompany();
@@ -120,10 +122,13 @@ export default function SquadCommandCenter() {
   const handleDragStart = useCallback((start: any) => {
     const task = backlogTasks.find(t => t.id === start.draggableId);
     setDraggingTask(task || null);
+    dropSlotRef.current = null;
   }, [backlogTasks]);
 
   const handleDragEnd = useCallback(async (result: DropResult) => {
+    const currentDropSlot = dropSlotRef.current;
     setDraggingTask(null);
+    dropSlotRef.current = null;
     const { source, destination, draggableId } = result;
     if (!destination) return;
     if (source.droppableId === destination.droppableId) return;
@@ -139,30 +144,29 @@ export default function SquadCommandCenter() {
     const task = backlogTasks.find(t => t.id === draggableId);
     if (!task) return;
 
-    const nextFreeSlot = findNextFreeSlot(member.user_id);
-    const taskDuration = (task.ai_estimated_minutes || 20) * 60000;
-    const dayEnd = new Date();
-    dayEnd.setHours(START_HOUR + 6, 0, 0, 0);
-
-    // Check if it overflows
-    if (nextFreeSlot.getTime() + taskDuration > dayEnd.getTime()) {
-      setOverflowDialog({
-        taskId: draggableId,
-        memberId,
-        memberName: member.name,
-        startDate: nextFreeSlot,
-      });
-      return;
+    // Use the exact slot from mouse position, fallback to next free slot
+    let startDate: Date;
+    if (currentDropSlot !== null && currentDropSlot >= 0) {
+      // Load timeline settings for slot duration and start hour
+      const saved = (() => { try { const r = localStorage.getItem("cc-timeline-settings"); return r ? JSON.parse(r) : null; } catch { return null; } })();
+      const slotDuration = saved?.slotDuration ?? 20;
+      const timelineStartHour = saved?.startHour ?? 0;
+      const minutesFromDayStart = timelineStartHour * 60 + currentDropSlot * slotDuration;
+      startDate = new Date();
+      startDate.setHours(0, 0, 0, 0);
+      startDate.setMinutes(minutesFromDayStart);
+    } else {
+      startDate = findNextFreeSlot(member.user_id);
     }
 
     try {
-      await assignTask(draggableId, member.user_id, member.name, nextFreeSlot);
+      await assignTask(draggableId, member.user_id, member.name, startDate);
       await fetchTasks();
       toast({ title: "Tarefa atribuída", description: `"${task.title}" → ${member.name}` });
     } catch {
       toast({ title: "Erro ao atribuir", variant: "destructive" });
     }
-  }, [backlogTasks, members, findNextFreeSlot, assignTask, toast]);
+  }, [backlogTasks, members, findNextFreeSlot, assignTask, toast, fetchTasks]);
 
   const handleOverflowConfirm = async () => {
     if (!overflowDialog) return;
@@ -382,6 +386,7 @@ export default function SquadCommandCenter() {
                     onClickTask={(task) => { setEditingTask(task); setTaskDialogOpen(true); }}
                     onSendToBacklog={handleSendToBacklog}
                     draggingTask={draggingTask}
+                    dropSlotRef={dropSlotRef}
                   />
                 </div>
               </ResizablePanel>

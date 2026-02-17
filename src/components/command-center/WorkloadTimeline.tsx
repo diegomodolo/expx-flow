@@ -24,6 +24,8 @@ interface Props {
   onClickTask?: (task: CommandCenterTask) => void;
   onSendToBacklog?: (taskId: string) => void;
   draggingTask?: CommandCenterTask | null;
+  dropSlotRef?: React.MutableRefObject<number | null>;
+  timelineContainerRef?: React.MutableRefObject<HTMLDivElement | null>;
 }
 
 const DEFAULT_SLOT_DURATION = 20;
@@ -53,7 +55,7 @@ function saveSettings(s: { slotDuration: number; startHour: number; endHour: num
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch {}
 }
 
-export function WorkloadTimeline({ members, tasks, startHour: _startHourProp = 0, workSchedules = [], onRepositionTask, onResizeTask, onClickTask, onSendToBacklog, draggingTask }: Props) {
+export function WorkloadTimeline({ members, tasks, startHour: _startHourProp = 0, workSchedules = [], onRepositionTask, onResizeTask, onClickTask, onSendToBacklog, draggingTask, dropSlotRef, timelineContainerRef }: Props) {
   const saved = React.useMemo(() => loadSettings(), []);
   const [slotWidth, setSlotWidth] = useState(56);
   const [rowHeight, setRowHeight] = useState(68);
@@ -66,6 +68,8 @@ export function WorkloadTimeline({ members, tasks, startHour: _startHourProp = 0
   const [tempEndHour, setTempEndHour] = useState(timelineEndHour);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [mouseSlot, setMouseSlot] = useState<number | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const resizeRef = useRef<{ startY: number; startHeight: number } | null>(null);
 
   const effectiveStartHour = timelineStartHour;
@@ -107,6 +111,33 @@ export function WorkloadTimeline({ members, tasks, startHour: _startHourProp = 0
       taskDate.getDate() === selectedDate.getDate()
     );
   });
+
+  // Track mouse position over timeline during drag
+  React.useEffect(() => {
+    if (!draggingTask) {
+      setMouseSlot(null);
+      return;
+    }
+    const handleMouseMove = (e: MouseEvent) => {
+      const container = scrollContainerRef.current;
+      if (!container) return;
+      // Find the first timeline row's ruler area (after the 192px member column)
+      const rect = container.getBoundingClientRect();
+      const scrollLeft = container.scrollLeft;
+      const mouseX = e.clientX - rect.left + scrollLeft - 192; // 192 = w-48 member column
+      if (mouseX < 0) {
+        setMouseSlot(null);
+        if (dropSlotRef) dropSlotRef.current = null;
+        return;
+      }
+      const slot = Math.floor(mouseX / slotWidth);
+      const clampedSlot = Math.max(0, Math.min(slot, totalSlots - 1));
+      setMouseSlot(clampedSlot);
+      if (dropSlotRef) dropSlotRef.current = clampedSlot;
+    };
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, [draggingTask, slotWidth, totalSlots, dropSlotRef]);
 
   const isFuture = !isToday(selectedDate);
 
@@ -220,7 +251,7 @@ export function WorkloadTimeline({ members, tasks, startHour: _startHourProp = 0
       )}
 
       {/* Scrollable timeline area - single scroll for ruler + all rows */}
-      <div className="flex-1 min-h-0 overflow-auto">
+      <div ref={scrollContainerRef} className="flex-1 min-h-0 overflow-auto">
         <div style={{ minWidth: `${192 + slotWidth * totalSlots}px` }}>
           {/* Time ruler - sticky top */}
           <div className="flex border-b border-border sticky top-0 z-10 bg-card">
@@ -248,23 +279,11 @@ export function WorkloadTimeline({ members, tasks, startHour: _startHourProp = 0
             members.map(member => {
             const memberSchedule = workSchedules.find(ws => ws.id === member.work_schedule_id) || null;
             
-            // Compute ghost preview for this member
+            // Compute ghost preview for this member based on mouse position
             let ghostPreview: { startSlot: number; slotsNeeded: number; title: string } | null = null;
-            if (draggingTask) {
-              const memberTasks = filteredTasks.filter(t => t.assigned_user_id === member.user_id);
-              let latestEndMin = 0;
-              memberTasks.forEach(task => {
-                if (!task.start_date) return;
-                const taskStart = new Date(task.start_date);
-                const dayStart = new Date(taskStart);
-                dayStart.setHours(effectiveStartHour, 0, 0, 0);
-                const minsFromStart = (taskStart.getTime() - dayStart.getTime()) / 60000;
-                const end = minsFromStart + (task.ai_estimated_minutes || slotDuration);
-                if (end > latestEndMin) latestEndMin = end;
-              });
-              const startSlot = Math.floor(latestEndMin / slotDuration);
+            if (draggingTask && mouseSlot !== null) {
               const slotsNeeded = Math.max(1, Math.ceil((draggingTask.ai_estimated_minutes || 20) / slotDuration));
-              ghostPreview = { startSlot, slotsNeeded, title: draggingTask.title };
+              ghostPreview = { startSlot: mouseSlot, slotsNeeded, title: draggingTask.title };
             }
 
             return (
