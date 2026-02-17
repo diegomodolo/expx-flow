@@ -169,8 +169,23 @@ export function useCommandCenter() {
   }, [selectedTeamId, fetchTasks]);
 
   const assignTask = async (taskId: string, userId: string, memberName: string, startDate: Date) => {
-    const estimatedMinutes = backlogTasks.find(t => t.id === taskId)?.ai_estimated_minutes || 20;
+    const task = backlogTasks.find(t => t.id === taskId);
+    const estimatedMinutes = task?.ai_estimated_minutes || 20;
     const deadlineDate = new Date(startDate.getTime() + estimatedMinutes * 60000);
+
+    // Optimistic update: move task from backlog to timeline locally
+    if (task) {
+      const updatedTask: CommandCenterTask = {
+        ...task,
+        assigned_user_id: userId,
+        responsible_name: memberName,
+        start_date: startDate.toISOString(),
+        status: "progress",
+        deadline: deadlineDate.toISOString().split('T')[0],
+      };
+      setBacklogTasks(prev => prev.filter(t => t.id !== taskId));
+      setTimelineTasks(prev => [...prev, updatedTask].sort((a, b) => (a.start_date || '').localeCompare(b.start_date || '')));
+    }
     
     const { error } = await supabase
       .from("tasks")
@@ -184,10 +199,31 @@ export function useCommandCenter() {
         due_date: deadlineDate.toISOString(),
       })
       .eq("id", taskId);
-    if (error) throw error;
+    if (error) {
+      // Rollback on error
+      if (task) {
+        setTimelineTasks(prev => prev.filter(t => t.id !== taskId));
+        setBacklogTasks(prev => [...prev, task]);
+      }
+      throw error;
+    }
   };
 
   const unassignTask = async (taskId: string) => {
+    const task = timelineTasks.find(t => t.id === taskId);
+    
+    // Optimistic update: move task from timeline to backlog
+    if (task) {
+      const updatedTask: CommandCenterTask = {
+        ...task,
+        assigned_user_id: null,
+        start_date: null,
+        status: "todo",
+      };
+      setTimelineTasks(prev => prev.filter(t => t.id !== taskId));
+      setBacklogTasks(prev => [...prev, updatedTask]);
+    }
+
     const { error } = await supabase
       .from("tasks")
       .update({
@@ -198,7 +234,14 @@ export function useCommandCenter() {
         due_date: null,
       })
       .eq("id", taskId);
-    if (error) throw error;
+    if (error) {
+      // Rollback
+      if (task) {
+        setBacklogTasks(prev => prev.filter(t => t.id !== taskId));
+        setTimelineTasks(prev => [...prev, task]);
+      }
+      throw error;
+    }
   };
 
   const getAgingHours = (createdAt: string) => {
