@@ -53,6 +53,25 @@ export default function WorkSchedulesPage() {
   const [editingSchedule, setEditingSchedule] = useState<WorkSchedule | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<WorkSchedule | null>(null);
   const [form, setForm] = useState({ name: "", work_start: "08:00", lunch_start: "12:00", lunch_end: "13:00", work_end: "17:00" });
+  const [bulkScheduleId, setBulkScheduleId] = useState("");
+  const [bulkAssigning, setBulkAssigning] = useState(false);
+
+  const handleBulkAssign = async () => {
+    if (!bulkScheduleId) return;
+    setBulkAssigning(true);
+    try {
+      const activeEmployees = employees.filter((e: any) => e.status === "active");
+      for (const emp of activeEmployees) {
+        await assignScheduleToEmployee(emp.id, bulkScheduleId === "none" ? null : bulkScheduleId);
+      }
+      await fetchEmployees();
+      toast({ title: `Carga horária aplicada a ${activeEmployees.length} colaborador(es)` });
+    } catch {
+      toast({ title: "Erro ao aplicar em massa", variant: "destructive" });
+    } finally {
+      setBulkAssigning(false);
+    }
+  };
 
   const openCreate = () => {
     setEditingSchedule(null);
@@ -191,10 +210,38 @@ export default function WorkSchedulesPage() {
         {schedules.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <Users className="w-4 h-4 text-primary" />
-                Associar Colaboradores
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Users className="w-4 h-4 text-primary" />
+                  Associar Colaboradores
+                </CardTitle>
+                <div className="flex items-center gap-2">
+                  <Select
+                    value={bulkScheduleId}
+                    onValueChange={setBulkScheduleId}
+                  >
+                    <SelectTrigger className="w-52">
+                      <SelectValue placeholder="Selecionar carga horária..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Sem carga horária</SelectItem>
+                      {schedules.map(ws => (
+                        <SelectItem key={ws.id} value={ws.id}>{ws.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={!bulkScheduleId || bulkAssigning}
+                    onClick={handleBulkAssign}
+                    className="gap-1.5 whitespace-nowrap"
+                  >
+                    <Users className="w-3.5 h-3.5" />
+                    {bulkAssigning ? "Aplicando..." : "Aplicar a todos"}
+                  </Button>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="divide-y divide-border">
