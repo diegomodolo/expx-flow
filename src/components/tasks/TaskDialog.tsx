@@ -829,6 +829,25 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                   )}
                 </p>
               </div>
+              <div className="flex items-center gap-2">
+                {task?.task_state && (
+                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
+                    task.task_state === 'backlog'
+                      ? 'bg-muted text-muted-foreground'
+                      : task.task_state === 'planejamento'
+                      ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                      : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                  }`}>
+                    <span className={`h-1.5 w-1.5 rounded-full ${
+                      task.task_state === 'backlog'
+                        ? 'bg-muted-foreground'
+                        : task.task_state === 'planejamento'
+                        ? 'bg-amber-500'
+                        : 'bg-emerald-500'
+                    }`} />
+                    {task.task_state === 'backlog' ? 'Backlog' : task.task_state === 'planejamento' ? 'Planejamento' : 'Execução'}
+                  </span>
+                )}
               <div className="flex items-center gap-1">
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -850,6 +869,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                   <X className="w-4 h-4" />
                 </Button>
               </div>
+              </div>
             </div>
 
             {/* Scrollable Content */}
@@ -857,28 +877,6 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
               <div className="px-6 py-5">
                 {activeTab === 'principal' && (
                   <div className="space-y-5">
-                    {/* Indicador de Estado */}
-                    {task?.task_state && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium text-muted-foreground">Estado:</span>
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
-                          task.task_state === 'backlog'
-                            ? 'bg-muted text-muted-foreground'
-                            : task.task_state === 'planejamento'
-                            ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
-                            : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
-                        }`}>
-                          <span className={`h-1.5 w-1.5 rounded-full ${
-                            task.task_state === 'backlog'
-                              ? 'bg-muted-foreground'
-                              : task.task_state === 'planejamento'
-                              ? 'bg-amber-500'
-                              : 'bg-emerald-500'
-                          }`} />
-                          {task.task_state === 'backlog' ? 'Backlog' : task.task_state === 'planejamento' ? 'Planejamento' : 'Execução'}
-                        </span>
-                      </div>
-                    )}
                     {/* Título */}
                     <div>
                       <Label className="text-sm font-semibold">Título</Label>
