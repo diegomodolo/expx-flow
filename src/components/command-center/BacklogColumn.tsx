@@ -10,6 +10,7 @@ interface Props {
   tasks: CommandCenterTask[];
   getAgingHours: (createdAt: string) => number;
   teamColor?: string;
+  onClickTask?: (task: CommandCenterTask) => void;
 }
 
 const priorityColors: Record<string, string> = {
@@ -26,7 +27,7 @@ const typeColors: Record<string, string> = {
   default: "border-l-border",
 };
 
-export function BacklogColumn({ tasks, getAgingHours, teamColor }: Props) {
+export function BacklogColumn({ tasks, getAgingHours, teamColor, onClickTask }: Props) {
   return (
     <div className="flex flex-col h-full" data-backlog-column="true">
       <div className="flex items-center justify-between px-4 py-3">
@@ -67,6 +68,7 @@ export function BacklogColumn({ tasks, getAgingHours, teamColor }: Props) {
                                   isAging && "ring-1 ring-yellow-500/50 animate-pulse",
                                 )
                           )}
+                          onClick={() => onClickTask?.(task)}
                           style={{
                             ...provided.draggableProps.style,
                             ...(snapshot.isDragging ? { width: '180px', height: '32px' } : {}),

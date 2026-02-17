@@ -395,6 +395,7 @@ export default function SquadCommandCenter() {
                     tasks={backlogTasks}
                     getAgingHours={getAgingHours}
                     teamColor={selectedTeam?.color}
+                    onClickTask={(task) => { setEditingTask(task); setTaskDialogOpen(true); }}
                   />
                 </div>
               </ResizablePanel>
