@@ -69,7 +69,9 @@ export function useEmployeeBoard(selectedUserId?: string | null | "all") {
       if (!tasksData || tasksData.length === 0) return [];
 
       // Filtrar tarefas que já estão visíveis (visibility_date <= hoje ou null)
+      // Excluir Histórias (tarefas-pai) do Kanban — só subtarefas aparecem
       const visibleTasks = tasksData.filter(task => {
+        if (task.task_type === 'História') return false;
         if (!task.visibility_date) return true;
         return task.visibility_date <= today;
       });

@@ -60,7 +60,6 @@ const ZOOM_STORAGE_KEY = 'task-dialog-zoom';
 const ZOOM_LEVELS = [640, 768, 896, 1024, 1152, 1280];
 
 const TASK_TYPES = [
-  { value: 'Backlog', label: 'Backlog' },
   { value: 'Criativo', label: 'Criativo' },
   { value: 'História', label: 'História' },
   { value: 'Negócio', label: 'Negócio' },
