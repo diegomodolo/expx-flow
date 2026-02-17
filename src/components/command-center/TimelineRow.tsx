@@ -58,13 +58,17 @@ export function TimelineRow({ member, tasks, startHour, slotWidth, totalSlots, s
       const slotStartMin = timelineStart + i * slotDuration;
       const slotEndMin = slotStartMin + slotDuration;
 
-      // Before work starts
-      if (slotEndMin <= wsStart || slotStartMin >= wsEnd) {
+      // Before work starts or after work ends
+      if (slotStartMin < wsStart && slotEndMin <= wsStart) {
         slots.add(i);
         continue;
       }
-      // During lunch
-      if (slotStartMin >= lunchStart && slotEndMin <= lunchEnd) {
+      if (slotStartMin >= wsEnd) {
+        slots.add(i);
+        continue;
+      }
+      // During lunch (any overlap with lunch period)
+      if (lunchStart < lunchEnd && slotStartMin >= lunchStart && slotStartMin < lunchEnd) {
         slots.add(i);
       }
     }
