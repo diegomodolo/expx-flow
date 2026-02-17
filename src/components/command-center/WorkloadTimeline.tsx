@@ -36,18 +36,23 @@ function formatDateLabel(date: Date): string {
   return format(date, "EEE, d 'de' MMM", { locale: ptBR });
 }
 
-export function WorkloadTimeline({ members, tasks, startHour = 8, workSchedules = [], onRepositionTask, onClickTask }: Props) {
+export function WorkloadTimeline({ members, tasks, startHour: _startHourProp = 0, workSchedules = [], onRepositionTask, onClickTask }: Props) {
   const [slotWidth, setSlotWidth] = useState(56);
   const [rowHeight, setRowHeight] = useState(68);
   const [slotDuration, setSlotDuration] = useState(DEFAULT_SLOT_DURATION);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [tempSlotDuration, setTempSlotDuration] = useState(DEFAULT_SLOT_DURATION);
+  const [timelineStartHour, setTimelineStartHour] = useState(0);
+  const [timelineEndHour, setTimelineEndHour] = useState(23);
+  const [tempStartHour, setTempStartHour] = useState(0);
+  const [tempEndHour, setTempEndHour] = useState(23);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [calendarOpen, setCalendarOpen] = useState(false);
   const resizeRef = useRef<{ startY: number; startHeight: number } | null>(null);
 
-  const TIMELINE_HOURS = 6;
-  const totalSlots = Math.floor((TIMELINE_HOURS * 60) / slotDuration);
+  const effectiveStartHour = timelineStartHour;
+  const timelineMinutes = (timelineEndHour - timelineStartHour + 1) * 60;
+  const totalSlots = Math.floor(timelineMinutes / slotDuration);
 
   const handleResizeMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -92,7 +97,7 @@ export function WorkloadTimeline({ members, tasks, startHour = 8, workSchedules 
       {/* Header with controls */}
       <div className="flex items-center gap-2 px-4 py-3 border-b border-border flex-wrap gap-y-2">
         <Clock className="w-4 h-4 text-primary" />
-        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Timeline — 6h</h3>
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Timeline — {String(timelineStartHour).padStart(2,"0")}h às {String(timelineEndHour).padStart(2,"0")}h</h3>
 
         {/* Date navigation */}
         <div className="flex items-center gap-1 ml-4 bg-muted/40 rounded-lg px-1 py-0.5">
@@ -176,7 +181,7 @@ export function WorkloadTimeline({ members, tasks, startHour = 8, workSchedules 
             variant="ghost"
             size="icon"
             className="h-7 w-7"
-            onClick={() => { setTempSlotDuration(slotDuration); setSettingsOpen(true); }}
+            onClick={() => { setTempSlotDuration(slotDuration); setTempStartHour(timelineStartHour); setTempEndHour(timelineEndHour); setSettingsOpen(true); }}
             title="Configurar duração dos slots"
           >
             <Settings2 className="w-3.5 h-3.5 text-muted-foreground" />
@@ -206,7 +211,7 @@ export function WorkloadTimeline({ members, tasks, startHour = 8, workSchedules 
             </div>
             <div className="flex">
               {Array.from({ length: totalSlots }).map((_, i) => {
-                const totalMinutes = startHour * 60 + i * slotDuration;
+                const totalMinutes = effectiveStartHour * 60 + i * slotDuration;
                 const h = Math.floor(totalMinutes / 60);
                 const m = totalMinutes % 60;
                 const showLabel = (slotDuration * i) % 60 === 0 || i === 0;
@@ -229,7 +234,7 @@ export function WorkloadTimeline({ members, tasks, startHour = 8, workSchedules 
                 key={member.id}
                 member={member}
                 tasks={filteredTasks}
-                startHour={startHour}
+                startHour={effectiveStartHour}
                 slotWidth={slotWidth}
                 totalSlots={totalSlots}
                 slotDuration={slotDuration}
@@ -282,14 +287,46 @@ export function WorkloadTimeline({ members, tasks, startHour = 8, workSchedules 
                 onChange={e => setTempSlotDuration(Math.max(5, Math.min(60, Number(e.target.value))))}
                 className="mt-1"
               />
-              <p className="text-[11px] text-muted-foreground mt-1">
-                A timeline cobre 6h. Com slots de {tempSlotDuration}min, serão {Math.floor(360 / tempSlotDuration)} slots.
-              </p>
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Hora início</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={23}
+                  value={tempStartHour}
+                  onChange={e => {
+                    const v = Math.max(0, Math.min(23, Number(e.target.value)));
+                    setTempStartHour(v);
+                    if (v >= tempEndHour) setTempEndHour(Math.min(23, v + 1));
+                  }}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label>Hora fim</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={23}
+                  value={tempEndHour}
+                  onChange={e => {
+                    const v = Math.max(0, Math.min(23, Number(e.target.value)));
+                    setTempEndHour(v);
+                    if (v <= tempStartHour) setTempStartHour(Math.max(0, v - 1));
+                  }}
+                  className="mt-1"
+                />
+              </div>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              {String(tempStartHour).padStart(2,"0")}h às {String(tempEndHour).padStart(2,"0")}h = {(tempEndHour - tempStartHour + 1)}h → {Math.floor(((tempEndHour - tempStartHour + 1) * 60) / tempSlotDuration)} slots de {tempSlotDuration}min
+            </p>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setSettingsOpen(false)}>Cancelar</Button>
-            <Button onClick={() => { setSlotDuration(tempSlotDuration); setSettingsOpen(false); }}>Aplicar</Button>
+            <Button onClick={() => { setSlotDuration(tempSlotDuration); setTimelineStartHour(tempStartHour); setTimelineEndHour(tempEndHour); setSettingsOpen(false); }}>Aplicar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
