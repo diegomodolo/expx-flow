@@ -1,14 +1,15 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { HistoriaFilters } from "@/components/historias/HistoriaFilters";
-import { HistoriaCard } from "@/components/historias/HistoriaCard";
+import { HistoriaKPIs } from "@/components/historias/HistoriaKPIs";
+import { HistoriaTable } from "@/components/historias/HistoriaTable";
 import { useHistorias } from "@/hooks/useHistorias";
 import { TaskDialog } from "@/components/tasks/TaskDialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { BookOpen, Loader2 } from "lucide-react";
 
 export default function Historias() {
-  const { historias, loading, teams, filters, setFilters, refetch } = useHistorias();
+  const { historias, loading, teams, clients, filters, setFilters, refetch } = useHistorias();
   const [selectedTask, setSelectedTask] = useState<any>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -26,7 +27,6 @@ export default function Historias() {
   return (
     <DashboardLayout>
       <div className="h-[calc(100vh-130px)] flex flex-col gap-4">
-        {/* Header */}
         <div className="flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-2">
             <BookOpen className="h-5 w-5 text-primary" />
@@ -35,16 +35,19 @@ export default function Historias() {
           </div>
         </div>
 
-        {/* Filters */}
+        <div className="flex-shrink-0">
+          <HistoriaKPIs historias={historias} />
+        </div>
+
         <div className="flex-shrink-0">
           <HistoriaFilters
             teams={teams}
+            clients={clients}
             filters={filters}
             onFilterChange={setFilters}
           />
         </div>
 
-        {/* Content */}
         <ScrollArea className="flex-1">
           {loading ? (
             <div className="flex items-center justify-center py-20">
@@ -57,15 +60,7 @@ export default function Historias() {
               <p className="text-xs mt-1">Ajuste os filtros ou crie novas histórias no Backlog Center</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 pr-3">
-              {historias.map((historia) => (
-                <HistoriaCard
-                  key={historia.id}
-                  historia={historia}
-                  onEdit={handleEdit}
-                />
-              ))}
-            </div>
+            <HistoriaTable historias={historias} onEdit={handleEdit} />
           )}
         </ScrollArea>
       </div>

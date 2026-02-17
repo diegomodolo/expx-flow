@@ -17,6 +17,7 @@ export interface Historia {
   responsible_avatar: string | null;
   created_at: string;
   updated_at: string;
+  completed_at: string | null;
   progress: number;
   // Joined
   team_name: string | null;
@@ -27,6 +28,8 @@ export interface Historia {
   subtasks_total: number;
   subtasks_done: number;
   subtasks: Subtask[];
+  // Work time
+  total_work_minutes: number;
 }
 
 export interface Subtask {
@@ -40,8 +43,8 @@ export interface Subtask {
 
 interface Filters {
   teamId: string;
-  clientSearch: string;
-  statusFilter: "open" | "done" | "all";
+  clientId: string;
+  statusFilter: "open" | "in_progress" | "done" | "all";
   titleSearch: string;
 }
 
@@ -50,9 +53,10 @@ export function useHistorias() {
   const [historias, setHistorias] = useState<Historia[]>([]);
   const [loading, setLoading] = useState(true);
   const [teams, setTeams] = useState<{ id: string; name: string; color: string }[]>([]);
+  const [clients, setClients] = useState<{ id: string; name: string }[]>([]);
   const [filters, setFilters] = useState<Filters>({
     teamId: "all",
-    clientSearch: "",
+    clientId: "all",
     statusFilter: "all",
     titleSearch: "",
   });
@@ -67,18 +71,27 @@ export function useHistorias() {
     if (data) setTeams(data);
   }, [activeCompany]);
 
+  const fetchClients = useCallback(async () => {
+    if (!activeCompany) return;
+    const { data } = await supabase
+      .from("clients")
+      .select("id, name")
+      .eq("company_id", activeCompany.company_id)
+      .order("name");
+    if (data) setClients(data);
+  }, [activeCompany]);
+
   const fetchHistorias = useCallback(async () => {
     if (!activeCompany) return;
     setLoading(true);
 
     try {
-      // Fetch parent tasks (Histórias)
       let query = supabase
         .from("tasks")
         .select(`
           id, title, description, status, priority, deadline, due_date, start_date,
           team_id, related_client_id, responsible_name, responsible_avatar,
-          created_at, updated_at, progress
+          created_at, updated_at, completed_at, progress
         `)
         .eq("company_id", activeCompany.company_id)
         .eq("task_type", "História")
@@ -88,8 +101,14 @@ export function useHistorias() {
         query = query.eq("team_id", filters.teamId);
       }
 
+      if (filters.clientId !== "all") {
+        query = query.eq("related_client_id", filters.clientId);
+      }
+
       if (filters.statusFilter === "open") {
-        query = query.neq("status", "done");
+        query = query.not("status", "in", '("done","progress")');
+      } else if (filters.statusFilter === "in_progress") {
+        query = query.eq("status", "progress");
       } else if (filters.statusFilter === "done") {
         query = query.eq("status", "done");
       }
@@ -107,12 +126,12 @@ export function useHistorias() {
         return;
       }
 
-      // Fetch subtasks, teams, and clients in parallel
       const historiaIds = historiasData.map((h: any) => h.id);
       const teamIds = [...new Set(historiasData.map((h: any) => h.team_id).filter(Boolean))];
       const clientIds = [...new Set(historiasData.map((h: any) => h.related_client_id).filter(Boolean))];
 
-      const [subtasksRes, teamsRes, clientsRes] = await Promise.all([
+      // Fetch subtasks, teams, clients, and work time in parallel
+      const [subtasksRes, teamsRes, clientsRes, workTimeDirectRes, workTimeSubsRes] = await Promise.all([
         supabase
           .from("tasks")
           .select("id, title, status, priority, responsible_name, deadline, parent_task_id")
@@ -124,7 +143,48 @@ export function useHistorias() {
         clientIds.length > 0
           ? supabase.from("clients").select("id, name, avatar").in("id", clientIds)
           : Promise.resolve({ data: [] }),
+        // Direct work time on parent tasks
+        supabase
+          .from("task_time_tracking")
+          .select("task_id, duration_minutes")
+          .in("task_id", historiaIds),
+        // Work time on subtasks - fetch subtask IDs first then their time
+        supabase
+          .from("tasks")
+          .select("id, parent_task_id")
+          .in("parent_task_id", historiaIds)
+          .eq("company_id", activeCompany.company_id),
       ]);
+
+      // Now fetch time tracking for subtasks
+      const subtaskIds = (workTimeSubsRes.data || []).map((s: any) => s.id);
+      let subtaskTimeMap: Record<string, number> = {};
+
+      if (subtaskIds.length > 0) {
+        const { data: subtaskTimeData } = await supabase
+          .from("task_time_tracking")
+          .select("task_id, duration_minutes")
+          .in("task_id", subtaskIds);
+
+        // Map subtask time to parent
+        const subtaskToParent: Record<string, string> = {};
+        (workTimeSubsRes.data || []).forEach((s: any) => {
+          subtaskToParent[s.id] = s.parent_task_id;
+        });
+
+        (subtaskTimeData || []).forEach((t: any) => {
+          const parentId = subtaskToParent[t.task_id];
+          if (parentId) {
+            subtaskTimeMap[parentId] = (subtaskTimeMap[parentId] || 0) + (t.duration_minutes || 0);
+          }
+        });
+      }
+
+      // Direct time on parent
+      const directTimeMap: Record<string, number> = {};
+      (workTimeDirectRes.data || []).forEach((t: any) => {
+        directTimeMap[t.task_id] = (directTimeMap[t.task_id] || 0) + (t.duration_minutes || 0);
+      });
 
       const subtasksByParent: Record<string, Subtask[]> = {};
       (subtasksRes.data || []).forEach((s: any) => {
@@ -138,7 +198,7 @@ export function useHistorias() {
       const clientsMap: Record<string, any> = {};
       (clientsRes.data || []).forEach((c: any) => { clientsMap[c.id] = c; });
 
-      let mapped: Historia[] = historiasData.map((h: any) => {
+      const mapped: Historia[] = historiasData.map((h: any) => {
         const subs = subtasksByParent[h.id] || [];
         const team = teamsMap[h.team_id];
         const client = clientsMap[h.related_client_id];
@@ -151,14 +211,9 @@ export function useHistorias() {
           subtasks_total: subs.length,
           subtasks_done: subs.filter((s) => s.status === "done").length,
           subtasks: subs,
+          total_work_minutes: (directTimeMap[h.id] || 0) + (subtaskTimeMap[h.id] || 0),
         };
       });
-
-      // Client search filter (post-fetch since it's a joined field)
-      if (filters.clientSearch.trim()) {
-        const search = filters.clientSearch.trim().toLowerCase();
-        mapped = mapped.filter((h) => h.client_name?.toLowerCase().includes(search));
-      }
 
       setHistorias(mapped);
     } catch (err) {
@@ -171,7 +226,8 @@ export function useHistorias() {
 
   useEffect(() => {
     fetchTeams();
-  }, [fetchTeams]);
+    fetchClients();
+  }, [fetchTeams, fetchClients]);
 
   useEffect(() => {
     fetchHistorias();
@@ -181,6 +237,7 @@ export function useHistorias() {
     historias,
     loading,
     teams,
+    clients,
     filters,
     setFilters,
     refetch: fetchHistorias,
