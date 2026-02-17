@@ -51,8 +51,8 @@ export default function SquadCommandCenter() {
     discord_user_id: null,
   }));
 
-  const findNextFreeSlot = useCallback((memberId: string): Date => {
-    const memberTasks = timelineTasks.filter(t => t.assigned_user_id === memberId);
+  const findNextFreeSlot = useCallback((userId: string): Date => {
+    const memberTasks = timelineTasks.filter(t => t.assigned_user_id === userId);
     const today = new Date();
     today.setHours(START_HOUR, 0, 0, 0);
 
@@ -87,7 +87,7 @@ export default function SquadCommandCenter() {
     const task = backlogTasks.find(t => t.id === draggableId);
     if (!task) return;
 
-    const nextFreeSlot = findNextFreeSlot(memberId);
+    const nextFreeSlot = findNextFreeSlot(member.user_id);
     const taskDuration = (task.ai_estimated_minutes || 18) * 60000;
     const dayEnd = new Date();
     dayEnd.setHours(START_HOUR + 6, 0, 0, 0);

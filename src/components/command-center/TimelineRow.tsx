@@ -14,7 +14,7 @@ interface Props {
 }
 
 export function TimelineRow({ member, tasks, startHour, slotWidth, totalSlots }: Props) {
-  const memberTasks = tasks.filter(t => t.assigned_user_id === member.id);
+  const memberTasks = tasks.filter(t => t.assigned_user_id === member.user_id);
 
   const occupiedSlots = new Set<number>();
   memberTasks.forEach(task => {
