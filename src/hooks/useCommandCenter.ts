@@ -104,11 +104,11 @@ export function useCommandCenter() {
     return () => { supabase.removeChannel(channel); };
   }, [selectedTeamId, fetchTasks]);
 
-  const assignTask = async (taskId: string, memberId: string, memberName: string, startDate: Date) => {
+  const assignTask = async (taskId: string, userId: string, memberName: string, startDate: Date) => {
     const { error } = await supabase
       .from("tasks")
       .update({
-        assigned_user_id: memberId,
+        assigned_user_id: userId,
         responsible_name: memberName,
         start_date: startDate.toISOString(),
         status: "in_progress" as any,
