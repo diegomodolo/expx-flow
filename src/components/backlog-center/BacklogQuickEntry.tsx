@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from "react";
 import { Input } from "@/components/ui/input";
-import { Zap, User, Hash, Clock } from "lucide-react";
+import { Zap, User, Hash, Clock, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useQueryClient } from "@tanstack/react-query";
@@ -14,7 +14,7 @@ interface Props {
   companyId: string | undefined;
 }
 
-type TokenType = "@" | "#" | "/" | null;
+type TokenType = "@" | "#" | "/" | "!" | null;
 
 const TIME_SUGGESTIONS = [
   { label: "18 min", value: 18 },
@@ -24,17 +24,25 @@ const TIME_SUGGESTIONS = [
   { label: "90 min (5 blocos)", value: 90 },
 ];
 
+const PRIORITY_SUGGESTIONS = [
+  { id: "high", label: "Alta (Urgente)", value: "high" },
+  { id: "medium", label: "Média", value: "medium" },
+  { id: "low", label: "Baixa", value: "low" },
+];
+
 function getActiveToken(text: string, cursorPos: number): { type: TokenType; search: string; start: number } {
   const before = text.slice(0, cursorPos);
 
   let lastAt = before.lastIndexOf("@");
   let lastHash = before.lastIndexOf("#");
   let lastSlash = before.lastIndexOf("/");
+  let lastBang = before.lastIndexOf("!");
 
   const candidates = [
     { type: "@" as TokenType, pos: lastAt },
     { type: "#" as TokenType, pos: lastHash },
     { type: "/" as TokenType, pos: lastSlash },
+    { type: "!" as TokenType, pos: lastBang },
   ].filter(c => c.pos >= 0);
 
   if (candidates.length === 0) return { type: null, search: "", start: 0 };
@@ -51,9 +59,10 @@ function getActiveToken(text: string, cursorPos: number): { type: TokenType; sea
 }
 
 function parseQuickEntry(input: string, clients: any[]) {
-  const clientMatch = input.match(/@([\w\sÀ-ú]+?)(?=\s[#/]|$)/i);
-  const categoryMatch = input.match(/#([\w\sÀ-ú]+?)(?=\s[@/]|$)/i);
+  const clientMatch = input.match(/@([\w\sÀ-ú]+?)(?=\s[#/!]|$)/i);
+  const categoryMatch = input.match(/#([\w\sÀ-ú]+?)(?=\s[@/!]|$)/i);
   const minutesMatch = input.match(/\/(\d+)\s*min/i);
+  const priorityMatch = input.match(/!(alta|media|média|baixa|high|medium|low)/i);
 
   let clientId: string | null = null;
   if (clientMatch) {
@@ -62,10 +71,18 @@ function parseQuickEntry(input: string, clients: any[]) {
     if (found) clientId = found.id;
   }
 
+  let priority = "medium";
+  if (priorityMatch) {
+    const p = priorityMatch[1].toLowerCase();
+    if (p === "alta" || p === "high") priority = "high";
+    else if (p === "baixa" || p === "low") priority = "low";
+  }
+
   let title = input
     .replace(/@[\w\sÀ-ú]+/i, "")
     .replace(/#[\w\sÀ-ú]+/i, "")
     .replace(/\/\d+\s*min/i, "")
+    .replace(/!(alta|media|média|baixa|high|medium|low)/i, "")
     .trim();
 
   return {
@@ -73,6 +90,7 @@ function parseQuickEntry(input: string, clients: any[]) {
     clientId,
     category: categoryMatch?.[1]?.trim() || null,
     minutes: minutesMatch ? parseInt(minutesMatch[1]) : 18,
+    priority,
   };
 }
 
@@ -124,6 +142,12 @@ export function BacklogQuickEntry({ clients, companyId }: Props) {
         .map((t) => ({ id: String(t.value), label: t.label, icon: "clock" as const }));
     }
 
+    if (activeToken.type === "!") {
+      return PRIORITY_SUGGESTIONS
+        .filter((p) => p.label.toLowerCase().includes(q) || p.value.includes(q))
+        .map((p) => ({ id: p.id, label: p.label, icon: "priority" as const }));
+    }
+
     return [];
   }, [activeToken, clients, categorias]);
 
@@ -145,6 +169,10 @@ export function BacklogQuickEntry({ clients, companyId }: Props) {
         replacement = `#${suggestion.label} `;
       } else if (activeToken.type === "/") {
         replacement = `/${suggestion.id}min `;
+      } else if (activeToken.type === "!") {
+        // Map label back to keyword
+        const keyMap: Record<string, string> = { high: "alta", medium: "media", low: "baixa" };
+        replacement = `!${keyMap[suggestion.id] || suggestion.id} `;
       }
 
       const newValue = before + replacement + after;
@@ -174,7 +202,7 @@ export function BacklogQuickEntry({ clients, companyId }: Props) {
           title: parsed.title,
           description: "",
           status: "todo" as any,
-          priority: "medium" as any,
+          priority: parsed.priority as any,
           task_type: "Backlog",
           ai_estimated_minutes: parsed.minutes,
           responsible_name: user.user_metadata?.full_name || "Admin",
@@ -243,6 +271,7 @@ export function BacklogQuickEntry({ clients, companyId }: Props) {
   const iconForType = (icon: string) => {
     if (icon === "user") return <User className="w-3.5 h-3.5 text-muted-foreground" />;
     if (icon === "hash") return <Hash className="w-3.5 h-3.5 text-muted-foreground" />;
+    if (icon === "priority") return <AlertTriangle className="w-3.5 h-3.5 text-muted-foreground" />;
     return <Clock className="w-3.5 h-3.5 text-muted-foreground" />;
   };
 
@@ -295,6 +324,7 @@ export function BacklogQuickEntry({ clients, companyId }: Props) {
               {activeToken.type === "@" && "Selecionar cliente"}
               {activeToken.type === "#" && "Selecionar categoria"}
               {activeToken.type === "/" && "Tempo estimado"}
+              {activeToken.type === "!" && "Prioridade"}
             </div>
             <div className="max-h-48 overflow-y-auto">
               {suggestions.map((s, i) => (
@@ -321,7 +351,7 @@ export function BacklogQuickEntry({ clients, companyId }: Props) {
         )}
       </div>
       <p className="text-[10px] text-muted-foreground mt-1.5 px-1">
-        Use <span className="font-medium">@cliente</span> para vincular, <span className="font-medium">#categoria</span> para tipo, <span className="font-medium">/18min</span> para tempo — autocomplete com ↑↓ e Tab
+        Use <span className="font-medium">@cliente</span> para vincular, <span className="font-medium">#categoria</span> para tipo, <span className="font-medium">/18min</span> para tempo, <span className="font-medium">!alta</span> para prioridade — autocomplete com ↑↓ e Tab
       </p>
     </div>
   );
