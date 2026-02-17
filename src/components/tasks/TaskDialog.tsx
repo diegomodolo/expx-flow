@@ -133,6 +133,8 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
   const [classificacaoSearch, setClassificacaoSearch] = useState('');
   const [newCategoriaName, setNewCategoriaName] = useState('');
   const [newClassificacaoName, setNewClassificacaoName] = useState('');
+  const [categoriaPopoverOpen, setCategoriaPopoverOpen] = useState(false);
+  const [classificacaoPopoverOpen, setClassificacaoPopoverOpen] = useState(false);
   const { teams } = useTeams();
   const { employees } = useEmployees();
   const { timeSlots } = usePlannerSlots();
@@ -958,7 +960,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                           </div>
                           <div>
                             <Label className="text-sm font-semibold">Categoria</Label>
-                            <Popover modal={false}>
+                            <Popover open={categoriaPopoverOpen} onOpenChange={setCategoriaPopoverOpen}>
                               <PopoverTrigger asChild>
                                 <Button variant="outline" role="combobox" className="w-full justify-between font-normal mt-1.5">
                                   {formData.categoria_id
@@ -979,7 +981,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                                 <div className="max-h-[200px] overflow-y-auto">
                                   <div
                                     className="px-2 py-1.5 text-sm cursor-pointer hover:bg-muted text-muted-foreground"
-                                    onClick={() => { setFormData(prev => ({ ...prev, categoria_id: '' })); setCategoriaSearch(''); }}
+                                    onClick={() => { setFormData(prev => ({ ...prev, categoria_id: '' })); setCategoriaSearch(''); setCategoriaPopoverOpen(false); }}
                                   >
                                     Nenhuma
                                   </div>
@@ -992,7 +994,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                                           <div
                                             key={c.id}
                                             className={`px-2 py-1.5 text-sm cursor-pointer hover:bg-muted ${formData.categoria_id === c.id ? 'bg-primary/10 text-primary' : ''}`}
-                                            onClick={() => { setFormData(prev => ({ ...prev, categoria_id: c.id })); setCategoriaSearch(''); }}
+                                            onClick={() => { setFormData(prev => ({ ...prev, categoria_id: c.id })); setCategoriaSearch(''); setCategoriaPopoverOpen(false); }}
                                           >
                                             {c.nome}
                                           </div>
@@ -1003,14 +1005,11 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                                             onMouseDown={(e) => {
                                               e.stopPropagation();
                                               e.preventDefault();
-                                            }}
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              e.preventDefault();
                                               const name = categoriaSearch.trim();
                                               createCategoria.mutateAsync(name).then((created) => {
                                                 if (created) setFormData(prev => ({ ...prev, categoria_id: created.id }));
                                                 setCategoriaSearch('');
+                                                setCategoriaPopoverOpen(false);
                                               });
                                             }}
                                           >
@@ -1027,7 +1026,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                           </div>
                           <div>
                             <Label className="text-sm font-semibold">Classificação</Label>
-                            <Popover modal={false}>
+                            <Popover open={classificacaoPopoverOpen} onOpenChange={setClassificacaoPopoverOpen}>
                               <PopoverTrigger asChild>
                                 <Button variant="outline" role="combobox" className="w-full justify-between font-normal mt-1.5">
                                   {formData.classificacao_id
@@ -1048,7 +1047,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                                 <div className="max-h-[200px] overflow-y-auto">
                                   <div
                                     className="px-2 py-1.5 text-sm cursor-pointer hover:bg-muted text-muted-foreground"
-                                    onClick={() => { setFormData(prev => ({ ...prev, classificacao_id: '' })); setClassificacaoSearch(''); }}
+                                    onClick={() => { setFormData(prev => ({ ...prev, classificacao_id: '' })); setClassificacaoSearch(''); setClassificacaoPopoverOpen(false); }}
                                   >
                                     Nenhuma
                                   </div>
@@ -1061,7 +1060,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                                           <div
                                             key={c.id}
                                             className={`px-2 py-1.5 text-sm cursor-pointer hover:bg-muted ${formData.classificacao_id === c.id ? 'bg-primary/10 text-primary' : ''}`}
-                                            onClick={() => { setFormData(prev => ({ ...prev, classificacao_id: c.id })); setClassificacaoSearch(''); }}
+                                            onClick={() => { setFormData(prev => ({ ...prev, classificacao_id: c.id })); setClassificacaoSearch(''); setClassificacaoPopoverOpen(false); }}
                                           >
                                             {c.nome}
                                           </div>
@@ -1072,14 +1071,11 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                                             onMouseDown={(e) => {
                                               e.stopPropagation();
                                               e.preventDefault();
-                                            }}
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              e.preventDefault();
                                               const name = classificacaoSearch.trim();
                                               createClassificacao.mutateAsync(name).then((created) => {
                                                 if (created) setFormData(prev => ({ ...prev, classificacao_id: created.id }));
                                                 setClassificacaoSearch('');
+                                                setClassificacaoPopoverOpen(false);
                                               });
                                             }}
                                           >
