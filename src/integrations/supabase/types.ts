@@ -5486,6 +5486,16 @@ export type Database = {
           guild_name: string | null
           id: string
           is_connected: boolean
+          notify_campaign_status: boolean
+          notify_client_alerts: boolean
+          notify_daily_summary: boolean
+          notify_employee_mentions: boolean
+          notify_squad_updates: boolean
+          notify_task_assigned: boolean
+          notify_task_comment: boolean
+          notify_task_completed: boolean
+          notify_task_created: boolean
+          notify_task_overdue: boolean
           updated_at: string
         }
         Insert: {
@@ -5497,6 +5507,16 @@ export type Database = {
           guild_name?: string | null
           id?: string
           is_connected?: boolean
+          notify_campaign_status?: boolean
+          notify_client_alerts?: boolean
+          notify_daily_summary?: boolean
+          notify_employee_mentions?: boolean
+          notify_squad_updates?: boolean
+          notify_task_assigned?: boolean
+          notify_task_comment?: boolean
+          notify_task_completed?: boolean
+          notify_task_created?: boolean
+          notify_task_overdue?: boolean
           updated_at?: string
         }
         Update: {
@@ -5508,6 +5528,16 @@ export type Database = {
           guild_name?: string | null
           id?: string
           is_connected?: boolean
+          notify_campaign_status?: boolean
+          notify_client_alerts?: boolean
+          notify_daily_summary?: boolean
+          notify_employee_mentions?: boolean
+          notify_squad_updates?: boolean
+          notify_task_assigned?: boolean
+          notify_task_comment?: boolean
+          notify_task_completed?: boolean
+          notify_task_created?: boolean
+          notify_task_overdue?: boolean
           updated_at?: string
         }
         Relationships: [

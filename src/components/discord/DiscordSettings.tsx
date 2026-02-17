@@ -1,6 +1,7 @@
 import { DiscordBotConfig } from "./DiscordBotConfig";
 import { DiscordSquadChannels } from "./DiscordSquadChannels";
 import { DiscordEmployeeMapping } from "./DiscordEmployeeMapping";
+import { DiscordNotificationSettings } from "./DiscordNotificationSettings";
 
 export const DiscordSettings = () => {
   return (
@@ -12,6 +13,7 @@ export const DiscordSettings = () => {
         </p>
       </div>
       <DiscordBotConfig />
+      <DiscordNotificationSettings />
       <DiscordSquadChannels />
       <DiscordEmployeeMapping />
     </div>
