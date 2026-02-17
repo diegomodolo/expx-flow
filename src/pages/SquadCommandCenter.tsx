@@ -253,7 +253,7 @@ export default function SquadCommandCenter() {
     <DashboardLayout>
       <div className="flex flex-col h-[calc(100vh-130px)] overflow-hidden">
         {/* Top bar */}
-        <div className="flex items-center justify-between flex-shrink-0">
+        <div className="flex items-center justify-between flex-shrink-0 pb-4">
           <div className="flex items-center gap-3">
             {activeView === 'backlog' ? <Inbox className="w-6 h-6 text-primary" /> : <Radar className="w-6 h-6 text-primary" />}
             <h1 className="text-xl font-bold text-foreground tracking-tight">{activeView === 'backlog' ? 'Backlog' : 'Command Center'}</h1>
