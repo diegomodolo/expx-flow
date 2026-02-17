@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { DragDropContext, DropResult } from "react-beautiful-dnd";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -65,6 +65,19 @@ export default function SquadCommandCenter() {
   const { activeCompany } = useCompany();
   const backlogCenter = useBacklogCommandCenter();
   const [releasing, setReleasing] = useState(false);
+
+  // Sync squad filter: command center → backlog
+  useEffect(() => {
+    if (selectedTeamId && selectedTeamId !== backlogCenter.selectedSquadId) {
+      backlogCenter.setSelectedSquadId(selectedTeamId);
+    }
+  }, [selectedTeamId]);
+
+  // Unified squad change handler
+  const handleSquadChange = useCallback((id: string) => {
+    setSelectedTeamId(id);
+    backlogCenter.setSelectedSquadId(id);
+  }, [setSelectedTeamId, backlogCenter]);
 
   const handleRelease = async () => {
     if (backlogCenter.selectedTaskIds.size === 0) return;
@@ -261,7 +274,7 @@ export default function SquadCommandCenter() {
             <SquadSelector
               teams={teams}
               selectedTeamId={selectedTeamId}
-              onSelect={setSelectedTeamId}
+              onSelect={handleSquadChange}
               loading={teamsLoading}
             />
           </div>
@@ -277,8 +290,8 @@ export default function SquadCommandCenter() {
               <BacklogHeader
                 totalStats={backlogCenter.totalStats}
                 squads={backlogCenter.squads}
-                selectedSquadId={backlogCenter.selectedSquadId}
-                onSquadChange={backlogCenter.setSelectedSquadId}
+                selectedSquadId={selectedTeamId}
+                onSquadChange={handleSquadChange}
               />
             </div>
             <div className="flex flex-1 min-h-0">
