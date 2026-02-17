@@ -190,10 +190,9 @@ export function useCommandCenter() {
       .from("tasks")
       .update({
         assigned_user_id: null,
-        responsible_name: null,
         start_date: null,
         status: "todo" as any,
-        task_state: "released" as any,
+        task_state: "planejamento" as any,
         due_date: null,
       })
       .eq("id", taskId);
