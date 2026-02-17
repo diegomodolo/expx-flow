@@ -77,7 +77,7 @@ export function WorkloadTimeline({ members, tasks, startHour = 8, onRepositionTa
   const isFuture = !isToday(selectedDate);
 
   return (
-    <div className="rounded-2xl bg-card border border-border overflow-hidden flex flex-col">
+    <div className="rounded-2xl bg-card border border-border overflow-hidden flex flex-col flex-1 min-h-0">
       {/* Header with controls */}
       <div className="flex items-center gap-2 px-4 py-3 border-b border-border flex-wrap gap-y-2">
         <Clock className="w-4 h-4 text-primary" />
@@ -195,27 +195,29 @@ export function WorkloadTimeline({ members, tasks, startHour = 8, onRepositionTa
         </div>
       )}
 
-      {/* Member rows */}
-      {members.length > 0 ? (
-        members.map(member => (
-          <TimelineRow
-            key={member.id}
-            member={member}
-            tasks={filteredTasks}
-            startHour={startHour}
-            slotWidth={slotWidth}
-            totalSlots={TOTAL_SLOTS}
-            rowHeight={rowHeight}
-            selectedDate={selectedDate}
-            onRepositionTask={onRepositionTask}
-            onClickTask={onClickTask}
-          />
-        ))
-      ) : (
-        <div className="flex items-center justify-center py-16 text-muted-foreground/50 text-sm">
-          Nenhum membro na squad selecionada
-        </div>
-      )}
+      {/* Member rows - scrollable area */}
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        {members.length > 0 ? (
+          members.map(member => (
+            <TimelineRow
+              key={member.id}
+              member={member}
+              tasks={filteredTasks}
+              startHour={startHour}
+              slotWidth={slotWidth}
+              totalSlots={TOTAL_SLOTS}
+              rowHeight={rowHeight}
+              selectedDate={selectedDate}
+              onRepositionTask={onRepositionTask}
+              onClickTask={onClickTask}
+            />
+          ))
+        ) : (
+          <div className="flex items-center justify-center py-16 text-muted-foreground/50 text-sm">
+            Nenhum membro na squad selecionada
+          </div>
+        )}
+      </div>
 
       {/* Resize handle */}
       <div
