@@ -274,6 +274,7 @@ export function useCommandCenter() {
     selectedTeam,
     backlogTasks,
     timelineTasks,
+    setTimelineTasks,
     loading,
     assignTask,
     unassignTask,
