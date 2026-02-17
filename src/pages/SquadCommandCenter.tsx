@@ -49,6 +49,8 @@ export default function SquadCommandCenter() {
     getAgingHours,
     getTodayMetrics,
     fetchTasks,
+    viewDate,
+    setViewDate,
   } = useCommandCenter();
 
   const { schedules: workSchedules } = useWorkSchedules();
@@ -152,7 +154,7 @@ export default function SquadCommandCenter() {
       const slotDuration = saved?.slotDuration ?? 20;
       const timelineStartHour = saved?.startHour ?? 0;
       const minutesFromDayStart = timelineStartHour * 60 + currentDropSlot * slotDuration;
-      startDate = new Date();
+      startDate = new Date(viewDate);
       startDate.setHours(0, 0, 0, 0);
       startDate.setMinutes(minutesFromDayStart);
     } else {
@@ -166,7 +168,7 @@ export default function SquadCommandCenter() {
     } catch {
       toast({ title: "Erro ao atribuir", variant: "destructive" });
     }
-  }, [backlogTasks, members, findNextFreeSlot, assignTask, toast, fetchTasks]);
+  }, [backlogTasks, members, findNextFreeSlot, assignTask, toast, fetchTasks, viewDate]);
 
   const handleOverflowConfirm = async () => {
     if (!overflowDialog) return;
@@ -387,6 +389,8 @@ export default function SquadCommandCenter() {
                     onSendToBacklog={handleSendToBacklog}
                     draggingTask={draggingTask}
                     dropSlotRef={dropSlotRef}
+                    selectedDate={viewDate}
+                    onDateChange={setViewDate}
                   />
                 </div>
               </ResizablePanel>

@@ -57,13 +57,15 @@ export function useCommandCenter() {
     }
   }, [teams, selectedTeamId]);
 
+  const [viewDate, setViewDate] = useState<Date>(new Date());
+
   const fetchTasks = useCallback(async () => {
     if (!selectedTeamId || !activeCompany) return;
     setLoading(true);
     try {
-      const today = new Date();
-      const todayStart = startOfDay(today).toISOString();
-      const todayEnd = endOfDay(today).toISOString();
+      const targetDate = viewDate;
+      const dayStart = startOfDay(targetDate).toISOString();
+      const dayEnd = endOfDay(targetDate).toISOString();
 
       // Backlog: tasks with status 'todo' and no start_date, excluding tasks still in backlog state
       const { data: backlog } = await supabase
@@ -76,14 +78,14 @@ export function useCommandCenter() {
         .neq("task_state", "backlog")
         .order("created_at", { ascending: true });
 
-      // Timeline: tasks with start_date today
+      // Timeline: tasks with start_date on the selected day
       const { data: timeline } = await supabase
         .from("tasks")
         .select("*")
         .eq("team_id", selectedTeamId)
         .eq("company_id", activeCompany.company_id)
-        .gte("start_date", todayStart)
-        .lte("start_date", todayEnd)
+        .gte("start_date", dayStart)
+        .lte("start_date", dayEnd)
         .neq("status", "cancelled")
         .order("start_date", { ascending: true });
 
@@ -147,7 +149,7 @@ export function useCommandCenter() {
     } finally {
       setLoading(false);
     }
-  }, [selectedTeamId, activeCompany]);
+  }, [selectedTeamId, activeCompany, viewDate]);
 
   useEffect(() => {
     fetchTasks();
@@ -236,5 +238,7 @@ export function useCommandCenter() {
     getTodayMetrics,
     getNextBusinessDay,
     fetchTasks,
+    viewDate,
+    setViewDate,
   };
 }
