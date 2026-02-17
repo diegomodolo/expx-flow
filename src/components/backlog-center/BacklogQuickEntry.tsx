@@ -17,9 +17,9 @@ interface Props {
 type TokenType = "@" | "#" | "/" | "!" | null;
 
 const TIME_SUGGESTIONS = [
-  { label: "18 min", value: 18 },
-  { label: "36 min (2 blocos)", value: 36 },
-  { label: "54 min (3 blocos)", value: 54 },
+  { label: "20 min", value: 20 },
+  { label: "40 min (2 blocos)", value: 40 },
+  { label: "60 min (3 blocos)", value: 60 },
   { label: "72 min (4 blocos)", value: 72 },
   { label: "90 min (5 blocos)", value: 90 },
 ];
@@ -89,7 +89,7 @@ function parseQuickEntry(input: string, clients: any[]) {
     title: title || input,
     clientId,
     category: categoryMatch?.[1]?.trim() || null,
-    minutes: minutesMatch ? parseInt(minutesMatch[1]) : 18,
+    minutes: minutesMatch ? parseInt(minutesMatch[1]) : 20,
     priority,
   };
 }
@@ -341,7 +341,7 @@ export function BacklogQuickEntry({ clients, companyId }: Props) {
             setTimeout(() => setIsFocused(false), 200);
           }}
           onKeyDown={handleKeyDown}
-          placeholder="Nova tarefa... use @cliente #categoria /18min !alta"
+          placeholder="Nova tarefa... use @cliente #categoria /20min !alta"
           className="flex-1 border-0 bg-transparent shadow-none focus:outline-none focus-visible:ring-0 text-sm px-0 placeholder:text-muted-foreground/60 resize-none"
           rows={3}
           disabled={submitting}
