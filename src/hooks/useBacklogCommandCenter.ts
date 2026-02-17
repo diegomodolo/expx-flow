@@ -87,7 +87,7 @@ export function useBacklogCommandCenter() {
         .from("clients")
         .select("id, name, avatar")
         .eq("company_id", activeCompany.company_id)
-        .eq("is_active", true)
+        .eq("is_canceled", false)
         .order("name");
       if (error) throw error;
       return data || [];
