@@ -1,7 +1,7 @@
 import React, { useRef, useState, useCallback } from "react";
 import { CommandCenterTask } from "@/hooks/useCommandCenter";
 import { cn } from "@/lib/utils";
-import { Clock, CheckCircle2, AlertTriangle, GripVertical } from "lucide-react";
+import { Clock, CheckCircle2, AlertTriangle, GripVertical, Undo2 } from "lucide-react";
 import { differenceInMinutes } from "date-fns";
 
 interface Props {
@@ -13,9 +13,10 @@ interface Props {
   onReposition?: (taskId: string, newStartDate: Date) => void;
   onResize?: (taskId: string, newStartDate: Date, newEstimatedMinutes: number) => void;
   onClickTask?: (task: CommandCenterTask) => void;
+  onSendToBacklog?: (taskId: string) => void;
 }
 
-export function TimelineTaskCard({ task, slotWidth, slotDuration = 20, startHour, selectedDate, onReposition, onResize, onClickTask }: Props) {
+export function TimelineTaskCard({ task, slotWidth, slotDuration = 20, startHour, selectedDate, onReposition, onResize, onClickTask, onSendToBacklog }: Props) {
   const dragMoved = useRef(false);
   const estimatedMin = task.ai_estimated_minutes || slotDuration;
   const slotsOccupied = Math.max(1, Math.ceil(estimatedMin / slotDuration));
@@ -36,6 +37,7 @@ export function TimelineTaskCard({ task, slotWidth, slotDuration = 20, startHour
   // Drag-to-move state
   const [dragging, setDragging] = useState(false);
   const [dragLeft, setDragLeft] = useState<number | null>(null);
+  const [returningToBacklog, setReturningToBacklog] = useState(false);
   const dragRef = useRef<{ startX: number; startLeft: number } | null>(null);
 
   // Resize state
@@ -62,35 +64,47 @@ export function TimelineTaskCard({ task, slotWidth, slotDuration = 20, startHour
       if (Math.abs(dx) > 4) dragMoved.current = true;
       if (!dragMoved.current || isDone) return;
       const newLeft = dragRef.current.startLeft + dx;
+      // Detect drag far left → return to backlog
+      if (newLeft < -100 && onSendToBacklog) {
+        setReturningToBacklog(true);
+      } else {
+        setReturningToBacklog(false);
+      }
       const snappedSlot = Math.round(newLeft / slotWidth);
-      const snappedLeft = Math.max(0, snappedSlot * slotWidth);
+      const snappedLeft = Math.max(-150, snappedSlot * slotWidth);
       setDragLeft(snappedLeft);
     };
 
     const onMouseUp = (ev: MouseEvent) => {
       if (!dragMoved.current) {
         onClickTask?.(task);
-      } else if (dragRef.current && onReposition && !isDone) {
+      } else if (dragRef.current && !isDone) {
         const dx = ev.clientX - dragRef.current.startX;
         const newLeft = dragRef.current.startLeft + dx;
-        const snappedSlot = Math.max(0, Math.round(newLeft / slotWidth));
-        const newMinutesFromDayStart = snappedSlot * slotDuration;
-        const baseDate = selectedDate ? new Date(selectedDate) : (taskStart ? new Date(taskStart) : new Date());
-        const newDate = new Date(baseDate);
-        newDate.setHours(startHour, 0, 0, 0);
-        newDate.setMinutes(newMinutesFromDayStart);
-        onReposition(task.id, newDate);
+        // If dragged far left, send to backlog
+        if (newLeft < -100 && onSendToBacklog) {
+          onSendToBacklog(task.id);
+        } else if (onReposition) {
+          const snappedSlot = Math.max(0, Math.round(newLeft / slotWidth));
+          const newMinutesFromDayStart = snappedSlot * slotDuration;
+          const baseDate = selectedDate ? new Date(selectedDate) : (taskStart ? new Date(taskStart) : new Date());
+          const newDate = new Date(baseDate);
+          newDate.setHours(startHour, 0, 0, 0);
+          newDate.setMinutes(newMinutesFromDayStart);
+          onReposition(task.id, newDate);
+        }
       }
       dragRef.current = null;
       setDragging(false);
       setDragLeft(null);
+      setReturningToBacklog(false);
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("mouseup", onMouseUp);
     };
 
     window.addEventListener("mousemove", onMouseMove);
     window.addEventListener("mouseup", onMouseUp);
-  }, [isDone, onReposition, onClickTask, leftOffset, slotWidth, slotDuration, startHour, taskStart, selectedDate, task]);
+  }, [isDone, onReposition, onClickTask, onSendToBacklog, leftOffset, slotWidth, slotDuration, startHour, taskStart, selectedDate, task]);
 
   // --- RESIZE ---
   const handleResizeMouseDown = useCallback((edge: "left" | "right", e: React.MouseEvent) => {
@@ -164,7 +178,9 @@ export function TimelineTaskCard({ task, slotWidth, slotDuration = 20, startHour
       onMouseDown={handleMouseDown}
       className={cn(
         "absolute top-1 h-[calc(100%-8px)] rounded-lg px-2 py-1 flex items-center gap-1 text-xs font-medium overflow-hidden group/card",
-        isDone
+        returningToBacklog
+          ? "bg-destructive/20 border-2 border-dashed border-destructive/50 text-destructive"
+          : isDone
           ? "bg-emerald-500/20 border border-emerald-500/40 text-emerald-600 dark:text-emerald-400"
           : isOvertime
           ? "bg-orange-500/20 border border-orange-500/40 text-orange-600 dark:text-orange-400 animate-pulse"
@@ -173,8 +189,8 @@ export function TimelineTaskCard({ task, slotWidth, slotDuration = 20, startHour
         dragging ? "cursor-grabbing" : "cursor-grab",
         !(dragging || resizing) && "transition-all duration-300"
       )}
-      style={{ left: `${Math.max(0, displayLeft)}px`, width: `${displayWidth}px` }}
-      title={`${task.title} (${estimatedMin}min) — arraste para mover, bordas para redimensionar`}
+      style={{ left: `${Math.max(returningToBacklog ? -150 : 0, displayLeft)}px`, width: `${displayWidth}px` }}
+      title={`${task.title} (${estimatedMin}min) — arraste para mover, arraste para a esquerda para devolver ao backlog`}
     >
       {/* Left resize handle */}
       {!isDone && onResize && (
@@ -186,17 +202,26 @@ export function TimelineTaskCard({ task, slotWidth, slotDuration = 20, startHour
         </div>
       )}
 
-      {!isDone && onReposition && (
-        <GripVertical className="w-3 h-3 flex-shrink-0 opacity-40" />
-      )}
-      {isDone ? (
-        <CheckCircle2 className="w-3 h-3 flex-shrink-0" />
-      ) : isOvertime ? (
-        <AlertTriangle className="w-3 h-3 flex-shrink-0" />
+      {returningToBacklog ? (
+        <>
+          <Undo2 className="w-3 h-3 flex-shrink-0 animate-pulse" />
+          <span className="truncate font-semibold">Soltar → Backlog</span>
+        </>
       ) : (
-        <Clock className="w-3 h-3 flex-shrink-0" />
+        <>
+          {!isDone && onReposition && (
+            <GripVertical className="w-3 h-3 flex-shrink-0 opacity-40" />
+          )}
+          {isDone ? (
+            <CheckCircle2 className="w-3 h-3 flex-shrink-0" />
+          ) : isOvertime ? (
+            <AlertTriangle className="w-3 h-3 flex-shrink-0" />
+          ) : (
+            <Clock className="w-3 h-3 flex-shrink-0" />
+          )}
+          <span className="truncate">{task.title}</span>
+        </>
       )}
-      <span className="truncate">{task.title}</span>
 
       {/* Right resize handle */}
       {!isDone && onResize && (

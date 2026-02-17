@@ -45,6 +45,7 @@ export default function SquadCommandCenter() {
     timelineTasks,
     loading,
     assignTask,
+    unassignTask,
     getAgingHours,
     getTodayMetrics,
     fetchTasks,
@@ -220,6 +221,17 @@ export default function SquadCommandCenter() {
     }
   }, [fetchTasks, toast]);
 
+  const handleSendToBacklog = useCallback(async (taskId: string) => {
+    const task = timelineTasks.find(t => t.id === taskId);
+    try {
+      await unassignTask(taskId);
+      await fetchTasks();
+      toast({ title: "Tarefa devolvida ao backlog", description: `"${task?.title}" removida da timeline` });
+    } catch {
+      toast({ title: "Erro ao devolver ao backlog", variant: "destructive" });
+    }
+  }, [unassignTask, fetchTasks, toast, timelineTasks]);
+
   const metrics = getTodayMetrics();
 
   // Calculate time-based availability
@@ -368,6 +380,7 @@ export default function SquadCommandCenter() {
                     onRepositionTask={handleRepositionTask}
                     onResizeTask={handleResizeTask}
                     onClickTask={(task) => { setEditingTask(task); setTaskDialogOpen(true); }}
+                    onSendToBacklog={handleSendToBacklog}
                     draggingTask={draggingTask}
                   />
                 </div>

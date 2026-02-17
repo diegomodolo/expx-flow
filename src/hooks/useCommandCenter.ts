@@ -185,6 +185,21 @@ export function useCommandCenter() {
     if (error) throw error;
   };
 
+  const unassignTask = async (taskId: string) => {
+    const { error } = await supabase
+      .from("tasks")
+      .update({
+        assigned_user_id: null,
+        responsible_name: null,
+        start_date: null,
+        status: "todo" as any,
+        task_state: "released" as any,
+        due_date: null,
+      })
+      .eq("id", taskId);
+    if (error) throw error;
+  };
+
   const getAgingHours = (createdAt: string) => {
     return differenceInHours(new Date(), new Date(createdAt));
   };
@@ -217,6 +232,7 @@ export function useCommandCenter() {
     timelineTasks,
     loading,
     assignTask,
+    unassignTask,
     getAgingHours,
     getTodayMetrics,
     getNextBusinessDay,
