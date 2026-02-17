@@ -2,8 +2,10 @@ import { useState, useRef, useEffect, KeyboardEvent } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Send, Hash, Users } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Send, Hash, Users, Plus, Paperclip, MessageSquarePlus, BarChart3 } from 'lucide-react';
 import { MessageBubble } from './MessageBubble';
+import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { InternalChannel, InternalMessage } from '@/hooks/useInternalChat';
 import { useAuth } from '@/hooks/useAuth';
@@ -18,6 +20,7 @@ interface ChatFlowProps {
 
 export function ChatFlow({ channel, messages, loading, onSendMessage, sendingMessage }: ChatFlowProps) {
   const [inputValue, setInputValue] = useState('');
+  const [plusOpen, setPlusOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
 
@@ -103,6 +106,42 @@ export function ChatFlow({ channel, messages, loading, onSendMessage, sendingMes
       {/* Message Input */}
       <div className="p-4 border-t border-border shrink-0">
         <div className="flex items-end gap-2">
+          {/* Plus menu */}
+          <Popover open={plusOpen} onOpenChange={setPlusOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="rounded-xl shrink-0 h-10 w-10 text-muted-foreground hover:text-foreground"
+              >
+                <Plus className="w-5 h-5" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent side="top" align="start" className="w-52 p-1.5">
+              <button
+                onClick={() => { setPlusOpen(false); toast.info('Funcionalidade de envio de arquivo em breve!'); }}
+                className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm text-foreground hover:bg-accent transition-colors"
+              >
+                <Paperclip className="w-4 h-4 text-muted-foreground" />
+                Enviar um arquivo
+              </button>
+              <button
+                onClick={() => { setPlusOpen(false); toast.info('Funcionalidade de tópicos em breve!'); }}
+                className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm text-foreground hover:bg-accent transition-colors"
+              >
+                <MessageSquarePlus className="w-4 h-4 text-muted-foreground" />
+                Criar um tópico
+              </button>
+              <button
+                onClick={() => { setPlusOpen(false); toast.info('Funcionalidade de enquetes em breve!'); }}
+                className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm text-foreground hover:bg-accent transition-colors"
+              >
+                <BarChart3 className="w-4 h-4 text-muted-foreground" />
+                Criar uma enquete
+              </button>
+            </PopoverContent>
+          </Popover>
+
           <Textarea
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
