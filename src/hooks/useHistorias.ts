@@ -80,7 +80,7 @@ export function useHistorias() {
           team_id, related_client_id, responsible_name, responsible_avatar,
           created_at, updated_at, progress,
           teams:team_id (name, color),
-          clients:related_client_id (name, logo_url)
+          clients:related_client_id (name, avatar)
         `)
         .eq("company_id", activeCompany.id)
         .eq("task_type", "História")
@@ -132,7 +132,7 @@ export function useHistorias() {
           team_name: team?.name || null,
           team_color: team?.color || null,
           client_name: client?.name || null,
-          client_logo: client?.logo_url || null,
+          client_logo: client?.avatar || null,
           subtasks_total: subs.length,
           subtasks_done: subs.filter((s) => s.status === "done").length,
           subtasks: subs,
