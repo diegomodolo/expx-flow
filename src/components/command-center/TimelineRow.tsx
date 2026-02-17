@@ -11,9 +11,10 @@ interface Props {
   startHour: number;
   slotWidth: number;
   totalSlots: number;
+  rowHeight?: number;
 }
 
-export function TimelineRow({ member, tasks, startHour, slotWidth, totalSlots }: Props) {
+export function TimelineRow({ member, tasks, startHour, slotWidth, totalSlots, rowHeight = 52 }: Props) {
   const memberTasks = tasks.filter(t => t.assigned_user_id === member.user_id);
 
   const occupiedSlots = new Set<number>();
@@ -32,7 +33,7 @@ export function TimelineRow({ member, tasks, startHour, slotWidth, totalSlots }:
   });
 
   return (
-    <div className="flex items-stretch border-b border-border/50 group">
+    <div className="flex items-stretch border-b border-border/50 group" style={{ minHeight: `${rowHeight}px` }}>
       {/* Member info */}
       <div className="w-48 flex-shrink-0 flex items-center gap-3 px-4 py-3 bg-muted/30">
         <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
@@ -55,7 +56,7 @@ export function TimelineRow({ member, tasks, startHour, slotWidth, totalSlots }:
             ref={provided.innerRef}
             {...provided.droppableProps}
             className="flex-1 flex relative overflow-x-auto"
-            style={{ minHeight: "48px" }}
+            style={{ minHeight: `${rowHeight}px` }}
           >
             <div className="flex h-full">
               {Array.from({ length: totalSlots }).map((_, i) => (
