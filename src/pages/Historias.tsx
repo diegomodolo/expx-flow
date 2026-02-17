@@ -70,18 +70,20 @@ export default function Historias() {
         </ScrollArea>
       </div>
 
-      <TaskDialog
-        open={dialogOpen}
-        onOpenChange={(open) => {
-          setDialogOpen(open);
-          if (!open) {
-            setSelectedTask(null);
-            refetch();
-          }
-        }}
-        task={selectedTask}
-        onSave={handleSave}
-      />
+      {dialogOpen && (
+        <TaskDialog
+          open={dialogOpen}
+          onOpenChange={(open) => {
+            setDialogOpen(open);
+            if (!open) {
+              setSelectedTask(null);
+              refetch();
+            }
+          }}
+          task={selectedTask}
+          onSave={handleSave}
+        />
+      )}
     </DashboardLayout>
   );
 }
