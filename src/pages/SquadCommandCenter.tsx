@@ -22,8 +22,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-const START_HOUR = 8;
-const TOTAL_MINUTES = 360; // 6 hours
+const START_HOUR = 0;
+const TOTAL_MINUTES = 1440; // 24 hours
 
 export default function SquadCommandCenter() {
   const {
