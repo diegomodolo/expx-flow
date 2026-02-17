@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Clock, Flame, Users } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Clock, Flame, Search, Users } from "lucide-react";
 import type { BacklogClient } from "@/hooks/useBacklogCommandCenter";
 
 interface Props {
@@ -25,6 +27,12 @@ const tempLabels = {
 };
 
 export function BacklogClientSidebar({ clients, selectedClientId, onSelectClient, totalStats }: Props) {
+  const [search, setSearch] = useState("");
+
+  const filteredClients = clients.filter((c) =>
+    c.name.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
     <div className="w-72 border-r bg-card flex flex-col h-full shrink-0">
       {/* Header */}
@@ -38,6 +46,15 @@ export function BacklogClientSidebar({ clients, selectedClientId, onSelectClient
           <span>{totalStats.totalHours}h acumuladas</span>
           <span>•</span>
           <span>{totalStats.totalTasks} tarefas</span>
+        </div>
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            placeholder="Buscar cliente..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="h-8 pl-8 text-xs"
+          />
         </div>
       </div>
 
@@ -55,7 +72,7 @@ export function BacklogClientSidebar({ clients, selectedClientId, onSelectClient
       {/* Client list */}
       <ScrollArea className="flex-1">
         <div className="p-2 space-y-1">
-          {clients.map((client) => {
+          {filteredClients.map((client) => {
             const hours = Math.floor(client.totalMinutes / 60);
             const mins = client.totalMinutes % 60;
             const timeLabel = hours > 0 ? `${hours}h${mins > 0 ? `${mins}m` : ""}` : `${mins}m`;
@@ -97,8 +114,10 @@ export function BacklogClientSidebar({ clients, selectedClientId, onSelectClient
             );
           })}
 
-          {clients.length === 0 && (
-            <p className="text-xs text-muted-foreground text-center py-6">Nenhuma tarefa no backlog</p>
+          {filteredClients.length === 0 && (
+            <p className="text-xs text-muted-foreground text-center py-6">
+              {search ? "Nenhum cliente encontrado" : "Nenhuma tarefa no backlog"}
+            </p>
           )}
         </div>
       </ScrollArea>
