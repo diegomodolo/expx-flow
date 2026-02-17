@@ -7,7 +7,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useTeams } from "@/hooks/useTeams";
 import { useTaskCategorias } from "@/hooks/useTaskCategorias";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -26,15 +25,12 @@ const TIME_SUGGESTIONS = [
 ];
 
 function getActiveToken(text: string, cursorPos: number): { type: TokenType; search: string; start: number } {
-  // Walk backwards from cursor to find the active token
   const before = text.slice(0, cursorPos);
-  
-  // Find the last occurrence of @, # or / before cursor
+
   let lastAt = before.lastIndexOf("@");
   let lastHash = before.lastIndexOf("#");
   let lastSlash = before.lastIndexOf("/");
 
-  // Get the most recent token
   const candidates = [
     { type: "@" as TokenType, pos: lastAt },
     { type: "#" as TokenType, pos: lastHash },
@@ -46,8 +42,8 @@ function getActiveToken(text: string, cursorPos: number): { type: TokenType; sea
   const winner = candidates.reduce((a, b) => (a.pos > b.pos ? a : b));
   const searchText = before.slice(winner.pos + 1);
 
-  // If there's a space after the token marker followed by another token, it's closed
-  if (winner.type === "/" && searchText.match(/^\d+\s*min/i)) {
+  // If the token is already "closed" (e.g. /18min followed by space)
+  if (winner.type === "/" && searchText.match(/^\d+\s*min\s/i)) {
     return { type: null, search: "", start: 0 };
   }
 
@@ -85,7 +81,9 @@ export function BacklogQuickEntry({ clients, companyId }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [cursorPos, setCursorPos] = useState(0);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
   const { teams } = useTeams();
   const { categorias } = useTaskCategorias();
@@ -99,43 +97,30 @@ export function BacklogQuickEntry({ clients, companyId }: Props) {
     const q = activeToken.search.toLowerCase().trim();
 
     if (activeToken.type === "@") {
-      const filtered = clients.filter((c: any) =>
-        c.name.toLowerCase().includes(q)
-      );
-      return filtered.slice(0, 8).map((c: any) => ({
-        id: c.id,
-        label: c.name,
-        icon: "user" as const,
-      }));
+      return clients
+        .filter((c: any) => c.name.toLowerCase().includes(q))
+        .slice(0, 8)
+        .map((c: any) => ({ id: c.id, label: c.name, icon: "user" as const }));
     }
 
     if (activeToken.type === "#") {
-      const filtered = categorias.filter((cat) =>
-        cat.nome.toLowerCase().includes(q)
-      );
-      return filtered.slice(0, 8).map((cat) => ({
-        id: cat.id,
-        label: cat.nome,
-        icon: "hash" as const,
-      }));
+      return categorias
+        .filter((cat) => cat.nome.toLowerCase().includes(q))
+        .slice(0, 8)
+        .map((cat) => ({ id: cat.id, label: cat.nome, icon: "hash" as const }));
     }
 
     if (activeToken.type === "/") {
-      return TIME_SUGGESTIONS.filter((t) =>
-        t.label.toLowerCase().includes(q) || String(t.value).includes(q)
-      ).map((t) => ({
-        id: String(t.value),
-        label: t.label,
-        icon: "clock" as const,
-      }));
+      return TIME_SUGGESTIONS
+        .filter((t) => t.label.toLowerCase().includes(q) || String(t.value).includes(q))
+        .map((t) => ({ id: String(t.value), label: t.label, icon: "clock" as const }));
     }
 
     return [];
   }, [activeToken, clients, categorias]);
 
-  const isOpen = suggestions.length > 0;
+  const isOpen = isFocused && suggestions.length > 0;
 
-  // Reset selected index when suggestions change
   useEffect(() => {
     setSelectedIndex(0);
   }, [suggestions.length, activeToken.type, activeToken.search]);
@@ -157,7 +142,6 @@ export function BacklogQuickEntry({ clients, companyId }: Props) {
       const newValue = before + replacement + after;
       setValue(newValue);
 
-      // Move cursor after the replacement
       const newCursorPos = before.length + replacement.length;
       setCursorPos(newCursorPos);
       setTimeout(() => {
@@ -237,8 +221,8 @@ export function BacklogQuickEntry({ clients, companyId }: Props) {
         return;
       }
       if (e.key === "Escape") {
-        // Close by moving cursor — just refocus
-        inputRef.current?.focus();
+        e.preventDefault();
+        setIsFocused(false);
         return;
       }
     }
@@ -256,67 +240,68 @@ export function BacklogQuickEntry({ clients, companyId }: Props) {
 
   return (
     <div className="p-4 border-b">
-      <Popover open={isOpen}>
-        <PopoverTrigger asChild>
-          <div className="relative">
-            <Zap className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              ref={inputRef}
-              value={value}
-              onChange={(e) => {
-                setValue(e.target.value);
-                setCursorPos(e.target.selectionStart ?? e.target.value.length);
-              }}
-              onClick={(e) => {
-                setCursorPos((e.target as HTMLInputElement).selectionStart ?? 0);
-              }}
-              onKeyDown={handleKeyDown}
-              placeholder="Post Black Friday @Cliente #Design /18min — Enter para criar"
-              className="pl-9 pr-20 h-10 text-sm"
-              disabled={submitting}
-              autoComplete="off"
-            />
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[10px] text-muted-foreground">
-              <span>Enter</span>
+      <div className="relative">
+        <Zap className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <Input
+          ref={inputRef}
+          value={value}
+          onChange={(e) => {
+            setValue(e.target.value);
+            setCursorPos(e.target.selectionStart ?? e.target.value.length);
+          }}
+          onClick={(e) => {
+            setCursorPos((e.target as HTMLInputElement).selectionStart ?? 0);
+          }}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => {
+            // Small delay to allow clicking on suggestions
+            setTimeout(() => setIsFocused(false), 200);
+          }}
+          onKeyDown={handleKeyDown}
+          placeholder="Post Black Friday @Cliente #Design /18min — Enter para criar"
+          className="pl-9 pr-20 h-10 text-sm"
+          disabled={submitting}
+          autoComplete="off"
+        />
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[10px] text-muted-foreground">
+          <span>Enter</span>
+        </div>
+
+        {/* Dropdown de sugestões */}
+        {isOpen && (
+          <div
+            ref={dropdownRef}
+            className="absolute left-0 right-0 top-full mt-1 z-50 bg-popover border rounded-md shadow-lg p-1 animate-in fade-in-0 zoom-in-95"
+          >
+            <div className="text-[10px] text-muted-foreground px-2 py-1 font-medium">
+              {activeToken.type === "@" && "Selecionar cliente"}
+              {activeToken.type === "#" && "Selecionar categoria"}
+              {activeToken.type === "/" && "Tempo estimado"}
+            </div>
+            <div className="max-h-48 overflow-y-auto">
+              {suggestions.map((s, i) => (
+                <button
+                  key={s.id}
+                  className={cn(
+                    "flex items-center gap-2 w-full text-left px-2 py-1.5 text-sm rounded-sm transition-colors",
+                    i === selectedIndex
+                      ? "bg-accent text-accent-foreground"
+                      : "hover:bg-accent/50"
+                  )}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    applySuggestion(s);
+                  }}
+                  onMouseEnter={() => setSelectedIndex(i)}
+                >
+                  {iconForType(s.icon)}
+                  <span className="truncate">{s.label}</span>
+                </button>
+              ))}
             </div>
           </div>
-        </PopoverTrigger>
-        <PopoverContent
-          className="w-[var(--radix-popover-trigger-width)] p-1 z-50 bg-popover border shadow-lg"
-          align="start"
-          side="bottom"
-          sideOffset={4}
-          onOpenAutoFocus={(e) => e.preventDefault()}
-          onCloseAutoFocus={(e) => e.preventDefault()}
-        >
-          <div className="text-[10px] text-muted-foreground px-2 py-1 font-medium">
-            {activeToken.type === "@" && "Selecionar cliente"}
-            {activeToken.type === "#" && "Selecionar categoria"}
-            {activeToken.type === "/" && "Tempo estimado"}
-          </div>
-          <div className="max-h-48 overflow-y-auto">
-            {suggestions.map((s, i) => (
-              <button
-                key={s.id}
-                className={cn(
-                  "flex items-center gap-2 w-full text-left px-2 py-1.5 text-sm rounded-sm transition-colors",
-                  i === selectedIndex
-                    ? "bg-accent text-accent-foreground"
-                    : "hover:bg-accent/50"
-                )}
-                onMouseDown={(e) => {
-                  e.preventDefault(); // prevent input blur
-                  applySuggestion(s);
-                }}
-                onMouseEnter={() => setSelectedIndex(i)}
-              >
-                {iconForType(s.icon)}
-                <span className="truncate">{s.label}</span>
-              </button>
-            ))}
-          </div>
-        </PopoverContent>
-      </Popover>
+        )}
+      </div>
       <p className="text-[10px] text-muted-foreground mt-1.5 px-1">
         Use <span className="font-medium">@cliente</span> para vincular, <span className="font-medium">#categoria</span> para tipo, <span className="font-medium">/18min</span> para tempo — autocomplete com ↑↓ e Tab
       </p>
