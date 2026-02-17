@@ -26,6 +26,8 @@ interface Props {
   draggingTask?: CommandCenterTask | null;
   dropSlotRef?: React.MutableRefObject<number | null>;
   timelineContainerRef?: React.MutableRefObject<HTMLDivElement | null>;
+  selectedDate: Date;
+  onDateChange: (date: Date) => void;
 }
 
 const DEFAULT_SLOT_DURATION = 20;
@@ -55,7 +57,7 @@ function saveSettings(s: { slotDuration: number; startHour: number; endHour: num
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch {}
 }
 
-export function WorkloadTimeline({ members, tasks, startHour: _startHourProp = 0, workSchedules = [], onRepositionTask, onResizeTask, onClickTask, onSendToBacklog, draggingTask, dropSlotRef, timelineContainerRef }: Props) {
+export function WorkloadTimeline({ members, tasks, startHour: _startHourProp = 0, workSchedules = [], onRepositionTask, onResizeTask, onClickTask, onSendToBacklog, draggingTask, dropSlotRef, timelineContainerRef, selectedDate, onDateChange }: Props) {
   const saved = React.useMemo(() => loadSettings(), []);
   const [slotWidth, setSlotWidth] = useState(56);
   const [rowHeight, setRowHeight] = useState(68);
@@ -66,7 +68,6 @@ export function WorkloadTimeline({ members, tasks, startHour: _startHourProp = 0
   const [timelineEndHour, setTimelineEndHour] = useState(saved?.endHour ?? 23);
   const [tempStartHour, setTempStartHour] = useState(timelineStartHour);
   const [tempEndHour, setTempEndHour] = useState(timelineEndHour);
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [mouseSlot, setMouseSlot] = useState<number | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -154,7 +155,7 @@ export function WorkloadTimeline({ members, tasks, startHour: _startHourProp = 0
             variant="ghost"
             size="icon"
             className="h-6 w-6"
-            onClick={() => setSelectedDate(d => subDays(d, 1))}
+            onClick={() => onDateChange(subDays(selectedDate, 1))}
           >
             <ChevronLeft className="w-3.5 h-3.5" />
           </Button>
@@ -179,7 +180,7 @@ export function WorkloadTimeline({ members, tasks, startHour: _startHourProp = 0
                 selected={selectedDate}
                 onSelect={(d) => {
                   if (d) {
-                    setSelectedDate(d);
+                    onDateChange(d);
                     setCalendarOpen(false);
                   }
                 }}
@@ -194,7 +195,7 @@ export function WorkloadTimeline({ members, tasks, startHour: _startHourProp = 0
             variant="ghost"
             size="icon"
             className="h-6 w-6"
-            onClick={() => setSelectedDate(d => addDays(d, 1))}
+            onClick={() => onDateChange(addDays(selectedDate, 1))}
           >
             <ChevronRight className="w-3.5 h-3.5" />
           </Button>
@@ -204,7 +205,7 @@ export function WorkloadTimeline({ members, tasks, startHour: _startHourProp = 0
               variant="ghost"
               size="sm"
               className="h-6 px-2 text-[10px] text-muted-foreground hover:text-foreground"
-              onClick={() => setSelectedDate(new Date())}
+              onClick={() => onDateChange(new Date())}
             >
               Hoje
             </Button>
