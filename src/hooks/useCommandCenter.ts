@@ -173,6 +173,24 @@ export function useCommandCenter() {
     const estimatedMinutes = task?.ai_estimated_minutes || 20;
     const deadlineDate = new Date(startDate.getTime() + estimatedMinutes * 60000);
 
+    // Fetch the employee's board first column with status 'todo'
+    let boardColumnId: string | null = null;
+    try {
+      const { data: columns } = await (supabase
+        .from('task_board_columns' as any)
+        .select('id, status, order_index')
+        .eq('user_id', userId)
+        .eq('company_id', activeCompany?.company_id || '')
+        .order('order_index', { ascending: true }) as any);
+
+      if (columns && columns.length > 0) {
+        const todoCol = columns.find((c: any) => c.status === 'todo');
+        boardColumnId = todoCol?.id || columns[0]?.id || null;
+      }
+    } catch (e) {
+      console.warn('Could not fetch board columns for user', e);
+    }
+
     // Optimistic update: move task from backlog to timeline locally
     if (task) {
       const updatedTask: CommandCenterTask = {
@@ -187,17 +205,23 @@ export function useCommandCenter() {
       setTimelineTasks(prev => [...prev, updatedTask].sort((a, b) => (a.start_date || '').localeCompare(b.start_date || '')));
     }
     
+    const updatePayload: any = {
+      assigned_user_id: userId,
+      responsible_name: memberName,
+      start_date: startDate.toISOString(),
+      status: "todo",
+      task_state: "execucao",
+      deadline: deadlineDate.toISOString().split('T')[0],
+      due_date: deadlineDate.toISOString(),
+    };
+
+    if (boardColumnId) {
+      updatePayload.quadro_column_id = boardColumnId;
+    }
+
     const { error } = await supabase
       .from("tasks")
-      .update({
-        assigned_user_id: userId,
-        responsible_name: memberName,
-        start_date: startDate.toISOString(),
-        status: "todo" as any,
-        task_state: "execucao" as any,
-        deadline: deadlineDate.toISOString().split('T')[0],
-        due_date: deadlineDate.toISOString(),
-      })
+      .update(updatePayload)
       .eq("id", taskId);
     if (error) {
       // Rollback on error
@@ -228,11 +252,13 @@ export function useCommandCenter() {
       .from("tasks")
       .update({
         assigned_user_id: null,
+        responsible_name: null,
         start_date: null,
         status: "todo" as any,
         task_state: "planejamento" as any,
         due_date: null,
-      })
+        quadro_column_id: null,
+      } as any)
       .eq("id", taskId);
     if (error) {
       // Rollback
