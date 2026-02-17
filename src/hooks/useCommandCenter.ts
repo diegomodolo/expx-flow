@@ -4,6 +4,12 @@ import { useCompany } from "@/contexts/CompanyContext";
 import { useTeams, Team } from "@/hooks/useTeams";
 import { differenceInHours, startOfDay, endOfDay, addDays, isWeekend } from "date-fns";
 
+export interface TaskClient {
+  client_id: string;
+  client_name: string;
+  client_avatar: string | null;
+}
+
 export interface CommandCenterTask {
   id: string;
   title: string;
@@ -20,6 +26,7 @@ export interface CommandCenterTask {
   created_at: string;
   task_type: string;
   progress: number;
+  clients?: TaskClient[];
 }
 
 export interface SquadMember {
@@ -79,8 +86,35 @@ export function useCommandCenter() {
         .neq("status", "cancelled")
         .order("start_date", { ascending: true });
 
-      setBacklogTasks((backlog || []) as CommandCenterTask[]);
-      setTimelineTasks((timeline || []) as CommandCenterTask[]);
+      // Fetch task_clients for all tasks
+      const allTaskIds = [...(backlog || []), ...(timeline || [])].map(t => t.id);
+      let taskClientsMap: Record<string, TaskClient[]> = {};
+      
+      if (allTaskIds.length > 0) {
+        const { data: tcData } = await (supabase as any)
+          .from("task_clients")
+          .select("task_id, client_id, clients:client_id(name, avatar)")
+          .in("task_id", allTaskIds);
+        
+        if (tcData) {
+          for (const tc of tcData) {
+            if (!taskClientsMap[tc.task_id]) taskClientsMap[tc.task_id] = [];
+            taskClientsMap[tc.task_id].push({
+              client_id: tc.client_id,
+              client_name: tc.clients?.name || "Sem nome",
+              client_avatar: tc.clients?.avatar || null,
+            });
+          }
+        }
+      }
+
+      const enrichTask = (t: any): CommandCenterTask => ({
+        ...t,
+        clients: taskClientsMap[t.id] || [],
+      });
+
+      setBacklogTasks((backlog || []).map(enrichTask));
+      setTimelineTasks((timeline || []).map(enrichTask));
     } catch (err) {
       console.error("Error fetching command center tasks:", err);
     } finally {
