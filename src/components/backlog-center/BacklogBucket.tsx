@@ -44,12 +44,12 @@ export function BacklogBucket({
   }
 
   return (
-    <div className="flex-1 flex flex-col min-w-0">
+    <div className="flex-1 flex flex-col min-w-0 p-4 gap-4">
       {/* Quick Entry */}
       <BacklogQuickEntry clients={clients} companyId={companyId} />
 
-      {/* Tasks table */}
-      <ScrollArea className="flex-1">
+      <div className="flex-1 min-h-0 rounded-lg border bg-card shadow-sm overflow-hidden">
+        <ScrollArea className="h-full">
         {tasks.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
             <Inbox className="w-12 h-12 mb-3 opacity-40" />
@@ -168,8 +168,8 @@ export function BacklogBucket({
             </TableBody>
           </Table>
         )}
-      </ScrollArea>
-
+        </ScrollArea>
+      </div>
       {/* Edit Task Dialog */}
       <TaskDialog
         open={!!editingTask}
