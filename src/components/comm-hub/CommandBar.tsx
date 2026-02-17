@@ -118,7 +118,7 @@ export function CommandBar({ channels, onSelectChannel, onStatusRequest }: Comma
       {/* Trigger button */}
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-muted/50 text-muted-foreground text-sm hover:bg-accent/50 transition-colors min-w-[220px]"
+        className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-border bg-muted/50 text-muted-foreground text-sm hover:bg-accent/50 transition-colors w-full max-w-2xl"
       >
         <Search className="w-3.5 h-3.5" />
         <span className="flex-1 text-left">Buscar ou comando...</span>
