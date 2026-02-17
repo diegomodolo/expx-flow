@@ -8618,7 +8618,10 @@ export type Database = {
           created_at: string
           id: string
           is_pinned: boolean
+          message_type: string
+          reply_count: number
           task_reference_id: string | null
+          thread_parent_id: string | null
           user_id: string
         }
         Insert: {
@@ -8627,7 +8630,10 @@ export type Database = {
           created_at?: string
           id?: string
           is_pinned?: boolean
+          message_type?: string
+          reply_count?: number
           task_reference_id?: string | null
+          thread_parent_id?: string | null
           user_id: string
         }
         Update: {
@@ -8636,7 +8642,10 @@ export type Database = {
           created_at?: string
           id?: string
           is_pinned?: boolean
+          message_type?: string
+          reply_count?: number
           task_reference_id?: string | null
+          thread_parent_id?: string | null
           user_id?: string
         }
         Relationships: [
@@ -8645,6 +8654,13 @@ export type Database = {
             columns: ["channel_id"]
             isOneToOne: false
             referencedRelation: "internal_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_messages_thread_parent_id_fkey"
+            columns: ["thread_parent_id"]
+            isOneToOne: false
+            referencedRelation: "internal_messages"
             referencedColumns: ["id"]
           },
         ]
