@@ -276,9 +276,45 @@ export function BacklogQuickEntry({ clients, companyId }: Props) {
   };
 
   return (
-    <div className="p-4 border-b">
-      <div className="relative">
-        <Zap className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+    <div className="relative">
+      {/* Dropdown de sugestões - agora abre para cima */}
+      {isOpen && (
+        <div
+          ref={dropdownRef}
+          className="absolute left-0 right-0 bottom-full mb-2 z-50 bg-popover border rounded-xl shadow-lg p-1 animate-in fade-in-0 slide-in-from-bottom-2"
+        >
+          <div className="text-[10px] text-muted-foreground px-3 py-1.5 font-medium">
+            {activeToken.type === "@" && "Selecionar cliente"}
+            {activeToken.type === "#" && "Selecionar categoria"}
+            {activeToken.type === "/" && "Tempo estimado"}
+            {activeToken.type === "!" && "Prioridade"}
+          </div>
+          <div className="max-h-48 overflow-y-auto">
+            {suggestions.map((s, i) => (
+              <button
+                key={s.id}
+                className={cn(
+                  "flex items-center gap-2 w-full text-left px-3 py-2 text-sm rounded-lg transition-colors",
+                  i === selectedIndex
+                    ? "bg-accent text-accent-foreground"
+                    : "hover:bg-accent/50"
+                )}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  applySuggestion(s);
+                }}
+                onMouseEnter={() => setSelectedIndex(i)}
+              >
+                {iconForType(s.icon)}
+                <span className="truncate">{s.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="relative flex items-center bg-muted/50 border rounded-2xl px-4 py-2 focus-within:ring-2 focus-within:ring-ring focus-within:border-transparent transition-all">
+        <Zap className="w-4 h-4 text-muted-foreground mr-3 flex-shrink-0" />
         <Input
           ref={inputRef}
           value={value}
@@ -286,14 +322,12 @@ export function BacklogQuickEntry({ clients, companyId }: Props) {
             const newVal = e.target.value;
             const pos = e.target.selectionStart ?? newVal.length;
             setValue(newVal);
-            // Use requestAnimationFrame to ensure cursor position is read after React updates
             requestAnimationFrame(() => {
               const el = inputRef.current;
               if (el) setCursorPos(el.selectionStart ?? pos);
             });
           }}
           onKeyUp={(e) => {
-            // Always sync cursor after any keypress
             const el = e.target as HTMLInputElement;
             setCursorPos(el.selectionStart ?? 0);
           }}
@@ -305,54 +339,15 @@ export function BacklogQuickEntry({ clients, companyId }: Props) {
             setTimeout(() => setIsFocused(false), 200);
           }}
           onKeyDown={handleKeyDown}
-          placeholder="Post Black Friday @Cliente #Design /18min !alta — Enter para criar"
-          className="pl-9 pr-20 h-10 text-sm"
+          placeholder="Nova tarefa... use @cliente #categoria /18min !alta"
+          className="border-0 bg-transparent shadow-none focus-visible:ring-0 h-8 text-sm px-0 placeholder:text-muted-foreground/60"
           disabled={submitting}
           autoComplete="off"
         />
-        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[10px] text-muted-foreground">
-          <span>Enter</span>
+        <div className="flex items-center gap-2 ml-2 flex-shrink-0">
+          <kbd className="hidden sm:inline-flex text-[10px] text-muted-foreground bg-background border rounded px-1.5 py-0.5">Enter</kbd>
         </div>
-
-        {/* Dropdown de sugestões */}
-        {isOpen && (
-          <div
-            ref={dropdownRef}
-            className="absolute left-0 right-0 top-full mt-1 z-50 bg-popover border rounded-md shadow-lg p-1 animate-in fade-in-0 zoom-in-95"
-          >
-            <div className="text-[10px] text-muted-foreground px-2 py-1 font-medium">
-              {activeToken.type === "@" && "Selecionar cliente"}
-              {activeToken.type === "#" && "Selecionar categoria"}
-              {activeToken.type === "/" && "Tempo estimado"}
-              {activeToken.type === "!" && "Prioridade"}
-            </div>
-            <div className="max-h-48 overflow-y-auto">
-              {suggestions.map((s, i) => (
-                <button
-                  key={s.id}
-                  className={cn(
-                    "flex items-center gap-2 w-full text-left px-2 py-1.5 text-sm rounded-sm transition-colors",
-                    i === selectedIndex
-                      ? "bg-accent text-accent-foreground"
-                      : "hover:bg-accent/50"
-                  )}
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    applySuggestion(s);
-                  }}
-                  onMouseEnter={() => setSelectedIndex(i)}
-                >
-                  {iconForType(s.icon)}
-                  <span className="truncate">{s.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
-      <p className="text-[10px] text-muted-foreground mt-1.5 px-1">
-        Use <span className="font-medium">@cliente</span> para vincular, <span className="font-medium">#categoria</span> para tipo, <span className="font-medium">/18min</span> para tempo, <span className="font-medium">!alta</span> para prioridade — autocomplete com ↑↓ e Tab
-      </p>
     </div>
   );
 }
