@@ -31,7 +31,7 @@ export function useSubtasks(parentTaskId: string | null) {
       if (!parentTaskId) return null;
       const { data, error } = await supabase
         .from('tasks')
-        .select('team_id, description, responsible_name, responsible_avatar, deadline, start_date, origin, priority, quadro_column_id, etapa, assigned_user_id, related_campaign_id, related_client_id')
+        .select('team_id, description, responsible_name, responsible_avatar, deadline, start_date, origin, priority, quadro_column_id, etapa, assigned_user_id, related_campaign_id, related_client_id, task_state')
         .eq('id', parentTaskId)
         .single();
       if (error) throw error;
@@ -84,6 +84,7 @@ export function useSubtasks(parentTaskId: string | null) {
         etapa: parentTask.etapa || null,
         related_campaign_id: parentTask.related_campaign_id || null,
         related_client_id: parentTask.related_client_id || null,
+        task_state: parentTask.task_state || 'execucao',
       };
       const { data, error } = await supabase
         .from('tasks')
@@ -143,6 +144,7 @@ export function useSubtasks(parentTaskId: string | null) {
         etapa: parentTask.etapa || null,
         related_campaign_id: parentTask.related_campaign_id || null,
         related_client_id: parentTask.related_client_id || null,
+        task_state: parentTask.task_state || 'execucao',
         };
       });
 
