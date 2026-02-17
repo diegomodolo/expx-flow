@@ -82,12 +82,13 @@ export function useBacklogCommandCenter() {
       const parents = (parentTasks || []) as BacklogTask[];
       const parentIds = parents.map((t) => t.id);
       if (parentIds.length === 0) return parents;
-      // Fetch subtasks whose parent is in backlog (regardless of their own task_state)
+      // Fetch subtasks whose parent is in backlog, only those still in backlog
       const { data: subtasks, error: e2 } = await (supabase as any)
         .from("tasks")
         .select("*")
         .eq("company_id", activeCompany.company_id)
-        .in("parent_task_id", parentIds);
+        .in("parent_task_id", parentIds)
+        .eq("task_state", "backlog");
       if (e2) throw e2;
       // Merge, avoiding duplicates
       const allIds = new Set(parents.map((t) => t.id));
