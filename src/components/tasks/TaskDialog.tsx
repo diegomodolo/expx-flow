@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { InlineSearchableSelect } from './InlineSearchableSelect';
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -958,138 +959,20 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                               </SelectContent>
                             </Select>
                           </div>
-                          <div>
-                            <Label className="text-sm font-semibold">Categoria</Label>
-                            <Popover open={categoriaPopoverOpen} onOpenChange={setCategoriaPopoverOpen}>
-                              <PopoverTrigger asChild>
-                                <Button variant="outline" role="combobox" className="w-full justify-between font-normal mt-1.5">
-                                  {formData.categoria_id
-                                    ? categorias.find(c => c.id === formData.categoria_id)?.nome || "Selecione..."
-                                    : "Selecione..."}
-                                  <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-[260px] p-0" align="start" onInteractOutside={(e) => { e.preventDefault(); setCategoriaPopoverOpen(false); }}>
-                                <div className="p-2 border-b">
-                                  <Input
-                                    placeholder="Buscar categoria..."
-                                    value={categoriaSearch}
-                                    onChange={(e) => setCategoriaSearch(e.target.value)}
-                                    className="h-8"
-                                  />
-                                </div>
-                                <div className="max-h-[200px] overflow-y-auto">
-                                  <div
-                                    className="px-2 py-1.5 text-sm cursor-pointer hover:bg-muted text-muted-foreground"
-                                    onClick={() => { setFormData(prev => ({ ...prev, categoria_id: '' })); setCategoriaSearch(''); setCategoriaPopoverOpen(false); }}
-                                  >
-                                    Nenhuma
-                                  </div>
-                                  {(() => {
-                                    const filtered = categorias.filter(c => c.nome.toLowerCase().includes(categoriaSearch.toLowerCase()));
-                                    const exactMatch = categorias.some(c => c.nome.toLowerCase() === categoriaSearch.trim().toLowerCase());
-                                    return (
-                                      <>
-                                        {filtered.map(c => (
-                                          <div
-                                            key={c.id}
-                                            className={`px-2 py-1.5 text-sm cursor-pointer hover:bg-muted ${formData.categoria_id === c.id ? 'bg-primary/10 text-primary' : ''}`}
-                                            onClick={() => { setFormData(prev => ({ ...prev, categoria_id: c.id })); setCategoriaSearch(''); setCategoriaPopoverOpen(false); }}
-                                          >
-                                            {c.nome}
-                                          </div>
-                                        ))}
-                                        {categoriaSearch.trim() && !exactMatch && (
-                                          <div
-                                            className="px-2 py-1.5 text-sm cursor-pointer hover:bg-muted flex items-center gap-1.5 text-primary font-medium border-t mt-1 pt-1.5"
-                                            onMouseDown={(e) => {
-                                              e.stopPropagation();
-                                              e.preventDefault();
-                                              const name = categoriaSearch.trim();
-                                              createCategoria.mutateAsync(name).then((created) => {
-                                                if (created) setFormData(prev => ({ ...prev, categoria_id: created.id }));
-                                                setCategoriaSearch('');
-                                                setCategoriaPopoverOpen(false);
-                                              });
-                                            }}
-                                          >
-                                            <Plus className="w-3.5 h-3.5" />
-                                            Criar "{categoriaSearch.trim()}"
-                                          </div>
-                                        )}
-                                      </>
-                                    );
-                                  })()}
-                                </div>
-                              </PopoverContent>
-                            </Popover>
-                          </div>
-                          <div>
-                            <Label className="text-sm font-semibold">Classificação</Label>
-                            <Popover open={classificacaoPopoverOpen} onOpenChange={setClassificacaoPopoverOpen}>
-                              <PopoverTrigger asChild>
-                                <Button variant="outline" role="combobox" className="w-full justify-between font-normal mt-1.5">
-                                  {formData.classificacao_id
-                                    ? classificacoes.find(c => c.id === formData.classificacao_id)?.nome || "Selecione..."
-                                    : "Selecione..."}
-                                  <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-[260px] p-0" align="start" onInteractOutside={(e) => { e.preventDefault(); setClassificacaoPopoverOpen(false); }}>
-                                <div className="p-2 border-b">
-                                  <Input
-                                    placeholder="Buscar classificação..."
-                                    value={classificacaoSearch}
-                                    onChange={(e) => setClassificacaoSearch(e.target.value)}
-                                    className="h-8"
-                                  />
-                                </div>
-                                <div className="max-h-[200px] overflow-y-auto">
-                                  <div
-                                    className="px-2 py-1.5 text-sm cursor-pointer hover:bg-muted text-muted-foreground"
-                                    onClick={() => { setFormData(prev => ({ ...prev, classificacao_id: '' })); setClassificacaoSearch(''); setClassificacaoPopoverOpen(false); }}
-                                  >
-                                    Nenhuma
-                                  </div>
-                                  {(() => {
-                                    const filtered = classificacoes.filter(c => c.nome.toLowerCase().includes(classificacaoSearch.toLowerCase()));
-                                    const exactMatch = classificacoes.some(c => c.nome.toLowerCase() === classificacaoSearch.trim().toLowerCase());
-                                    return (
-                                      <>
-                                        {filtered.map(c => (
-                                          <div
-                                            key={c.id}
-                                            className={`px-2 py-1.5 text-sm cursor-pointer hover:bg-muted ${formData.classificacao_id === c.id ? 'bg-primary/10 text-primary' : ''}`}
-                                            onClick={() => { setFormData(prev => ({ ...prev, classificacao_id: c.id })); setClassificacaoSearch(''); setClassificacaoPopoverOpen(false); }}
-                                          >
-                                            {c.nome}
-                                          </div>
-                                        ))}
-                                        {classificacaoSearch.trim() && !exactMatch && (
-                                          <div
-                                            className="px-2 py-1.5 text-sm cursor-pointer hover:bg-muted flex items-center gap-1.5 text-primary font-medium border-t mt-1 pt-1.5"
-                                            onMouseDown={(e) => {
-                                              e.stopPropagation();
-                                              e.preventDefault();
-                                              const name = classificacaoSearch.trim();
-                                              createClassificacao.mutateAsync(name).then((created) => {
-                                                if (created) setFormData(prev => ({ ...prev, classificacao_id: created.id }));
-                                                setClassificacaoSearch('');
-                                                setClassificacaoPopoverOpen(false);
-                                              });
-                                            }}
-                                          >
-                                            <Plus className="w-3.5 h-3.5" />
-                                            Criar "{classificacaoSearch.trim()}"
-                                          </div>
-                                        )}
-                                      </>
-                                    );
-                                  })()}
-                                </div>
-                              </PopoverContent>
-                            </Popover>
-                          </div>
+                          <InlineSearchableSelect
+                            label="Categoria"
+                            value={formData.categoria_id || ''}
+                            options={categorias}
+                            onChange={(id) => setFormData(prev => ({ ...prev, categoria_id: id }))}
+                            onCreate={(name) => createCategoria.mutateAsync(name)}
+                          />
+                          <InlineSearchableSelect
+                            label="Classificação"
+                            value={formData.classificacao_id || ''}
+                            options={classificacoes}
+                            onChange={(id) => setFormData(prev => ({ ...prev, classificacao_id: id }))}
+                            onCreate={(name) => createClassificacao.mutateAsync(name)}
+                          />
                         </div>
                       </>
                     )}
