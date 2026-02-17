@@ -23,6 +23,7 @@ import WorkSchedules from "./pages/WorkSchedules";
 import Squad from "./pages/Squad";
 import SquadCommandCenter from "./pages/SquadCommandCenter";
 import BacklogCommandCenter from "./pages/BacklogCommandCenter";
+import Historias from "./pages/Historias";
 import AgentSquads from "./pages/AgentSquads";
 import AgentSquadEditor from "./pages/AgentSquadEditor";
 import Tarefas from "./pages/Tarefas";
@@ -318,6 +319,11 @@ const App = () => {
                <Route path="/backlog-command-center" element={
                  <PermissionProtectedRoute requiredPermission="command-center">
                    <BacklogCommandCenter />
+                 </PermissionProtectedRoute>
+               } />
+               <Route path="/historias" element={
+                 <PermissionProtectedRoute requiredPermission="command-center">
+                   <Historias />
                  </PermissionProtectedRoute>
                } />
                  <Route path="/tarefas" element={

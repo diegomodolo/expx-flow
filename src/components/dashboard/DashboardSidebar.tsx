@@ -125,6 +125,7 @@ const menuCategories: MenuCategory[] = [
         { title: "Colaboradores", url: "/colaboradores", icon: UserCheck, permission: "colaboradores" as MenuItemType },
         { title: "Backlog Center", url: "/backlog-command-center", icon: Inbox, permission: "command-center" as MenuItemType },
         { title: "Command Center", url: "/squad-command-center", icon: Radar, permission: "command-center" as MenuItemType },
+        { title: "Histórias", url: "/historias", icon: BookOpen, permission: "command-center" as MenuItemType },
         { title: "Planner", url: "/planner-config", icon: CalendarClock, permission: "tarefas" as MenuItemType },
         { title: "Relatórios", url: "/relatorios", icon: BarChart3, permission: "relatorios" as MenuItemType },
         { title: "Squad", url: "/squad", icon: UsersRound, permission: "squad" as MenuItemType },
