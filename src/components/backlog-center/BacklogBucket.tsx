@@ -67,7 +67,7 @@ export function BacklogBucket({
                 <TableHead className="w-[80px]">Tipo</TableHead>
                 <TableHead className="w-[80px] text-right">Tempo</TableHead>
                 <TableHead className="w-[100px] text-right">No backlog</TableHead>
-                <TableHead className="w-[120px]">Prontidão</TableHead>
+                <TableHead className="w-[50px]"></TableHead>
                 <TableHead className="w-[50px]"></TableHead>
               </TableRow>
             </TableHeader>
@@ -134,19 +134,6 @@ export function BacklogBucket({
                         </span>
                       ) : (
                         <span className="text-xs text-muted-foreground">{agingHours}h</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {readiness.ready ? (
-                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-green-500/10 text-green-700">
-                          Pronta
-                        </Badge>
-                      ) : (
-                        <div className="flex flex-col gap-0.5">
-                          {!readiness.hasDescription && <span className="text-[10px] text-destructive">⬚ Briefing</span>}
-                          {!readiness.hasEstimate && <span className="text-[10px] text-destructive">⬚ Estimativa</span>}
-                          {!readiness.hasClient && <span className="text-[10px] text-destructive">⬚ Cliente</span>}
-                        </div>
                       )}
                     </TableCell>
                     <TableCell>
