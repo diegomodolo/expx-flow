@@ -146,9 +146,9 @@ export default function SquadCommandCenter() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="flex flex-col h-[calc(100vh-130px)] overflow-hidden">
         {/* Top bar */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-3">
             <Radar className="w-6 h-6 text-primary" />
             <h1 className="text-xl font-bold text-foreground tracking-tight">Command Center</h1>
@@ -168,14 +168,14 @@ export default function SquadCommandCenter() {
         ) : (
           <DragDropContext onDragEnd={handleDragEnd}>
             {/* Header metrics */}
-            <div className="mb-6">
+            <div className="my-4 flex-shrink-0">
               <CommandCenterHeader metrics={metrics} teamName={selectedTeam?.name || "—"} />
             </div>
 
             {/* Main layout: Backlog + Timeline */}
-            <div className="flex gap-4">
+            <div className="flex gap-4 flex-1 min-h-0">
               {/* Backlog column */}
-              <div className="w-72 flex-shrink-0 rounded-2xl bg-card border border-border overflow-hidden">
+              <div className="w-72 flex-shrink-0 rounded-2xl bg-card border border-border overflow-hidden flex flex-col">
                 <BacklogColumn
                   tasks={backlogTasks}
                   getAgingHours={getAgingHours}
@@ -184,7 +184,7 @@ export default function SquadCommandCenter() {
               </div>
 
               {/* Timeline */}
-              <div className="flex-1 min-w-0 overflow-x-auto">
+              <div className="flex-1 min-w-0 overflow-auto flex flex-col">
                 <WorkloadTimeline
                   members={members}
                   tasks={timelineTasks}
