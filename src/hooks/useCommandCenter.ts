@@ -109,6 +109,32 @@ export function useCommandCenter() {
         }
       }
 
+      // Fallback: fetch client info for tasks using legacy related_client_id
+      const tasksWithLegacyClient = [...(backlog || []), ...(timeline || [])]
+        .filter(t => t.related_client_id && !taskClientsMap[t.id]);
+      
+      if (tasksWithLegacyClient.length > 0) {
+        const clientIds = [...new Set(tasksWithLegacyClient.map(t => t.related_client_id))];
+        const { data: clientsData } = await supabase
+          .from("clients")
+          .select("id, name, avatar")
+          .in("id", clientIds);
+        
+        if (clientsData) {
+          const clientsById = Object.fromEntries(clientsData.map(c => [c.id, c]));
+          for (const task of tasksWithLegacyClient) {
+            const client = clientsById[task.related_client_id];
+            if (client) {
+              taskClientsMap[task.id] = [{
+                client_id: client.id,
+                client_name: client.name || "Sem nome",
+                client_avatar: client.avatar || null,
+              }];
+            }
+          }
+        }
+      }
+
       const enrichTask = (t: any): CommandCenterTask => ({
         ...t,
         clients: taskClientsMap[t.id] || [],
