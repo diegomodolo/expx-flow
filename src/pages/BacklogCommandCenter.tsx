@@ -25,6 +25,9 @@ export default function BacklogCommandCenterPage() {
     getAgingHours,
     releaseToLeaders,
     clients,
+    squads,
+    selectedSquadId,
+    setSelectedSquadId,
   } = useBacklogCommandCenter();
 
   const [releasing, setReleasing] = useState(false);
@@ -43,7 +46,12 @@ export default function BacklogCommandCenterPage() {
     <DashboardLayout>
       <div className="flex flex-col h-[calc(100vh-130px)] overflow-hidden">
         {/* Header */}
-        <BacklogHeader totalStats={totalStats} />
+        <BacklogHeader
+          totalStats={totalStats}
+          squads={squads}
+          selectedSquadId={selectedSquadId}
+          onSquadChange={setSelectedSquadId}
+        />
 
         {/* Main content: Sidebar + Bucket */}
         <div className="flex flex-1 min-h-0">

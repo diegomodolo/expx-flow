@@ -44,6 +44,23 @@ export function useBacklogCommandCenter() {
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<"urgency" | "type" | "client">("client");
+  const [selectedSquadId, setSelectedSquadId] = useState<string | null>(null);
+
+  // Fetch squads
+  const { data: squads = [] } = useQuery({
+    queryKey: ["backlog-squads", activeCompany?.company_id],
+    queryFn: async () => {
+      if (!activeCompany?.company_id) return [];
+      const { data, error } = await supabase
+        .from("teams")
+        .select("id, name, color")
+        .eq("company_id", activeCompany.company_id)
+        .order("name");
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!activeCompany?.company_id,
+  });
 
   // Fetch backlog tasks (status todo, no start_date)
   const { data: backlogTasks = [], isLoading: tasksLoading } = useQuery({
@@ -211,6 +228,12 @@ export function useBacklogCommandCenter() {
   // Filter tasks by selected client
   const filteredTasks = useMemo(() => {
     let tasks = backlogTasks;
+
+    // Filter by squad
+    if (selectedSquadId) {
+      tasks = tasks.filter((t) => t.team_id === selectedSquadId);
+    }
+
     if (selectedClientId) {
       if (selectedClientId === "unassigned") {
         tasks = tasks.filter((t) => {
@@ -235,7 +258,7 @@ export function useBacklogCommandCenter() {
     });
 
     return tasks;
-  }, [backlogTasks, selectedClientId, taskToClients]);
+  }, [backlogTasks, selectedClientId, selectedSquadId, taskToClients]);
 
   // Selection helpers
   const toggleTaskSelection = (taskId: string) => {
@@ -348,5 +371,8 @@ export function useBacklogCommandCenter() {
       bulkAssignMutation.mutateAsync({ taskIds: ids, userId, userName }),
     taskToClients,
     clients,
+    squads,
+    selectedSquadId,
+    setSelectedSquadId,
   };
 }
