@@ -248,7 +248,11 @@ export default function SquadCommandCenter() {
             <Button
               variant={activeView === 'backlog' ? 'default' : 'outline'}
               size="sm"
-              onClick={() => setActiveView(activeView === 'backlog' ? 'timeline' : 'backlog')}
+              onClick={() => {
+                const newView = activeView === 'backlog' ? 'timeline' : 'backlog';
+                setActiveView(newView);
+                if (newView === 'timeline') fetchTasks();
+              }}
               className="gap-2"
             >
               <Inbox className="w-4 h-4" />
