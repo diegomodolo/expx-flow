@@ -41,7 +41,7 @@ export default function BacklogCommandCenterPage() {
 
   return (
     <DashboardLayout>
-      <div className="flex flex-col h-[calc(100vh-80px)] overflow-hidden">
+      <div className="flex flex-col h-[calc(100vh-100px)] overflow-hidden">
         {/* Header */}
         <BacklogHeader totalStats={totalStats} />
 
