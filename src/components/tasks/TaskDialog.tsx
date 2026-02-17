@@ -344,6 +344,9 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
           const col = allColumns.find(c => c.id === quadroColId);
           if (col) quadroUId = col.user_id;
         }
+        if (!quadroUId) {
+          quadroUId = task.assigned_user_id || task.user_id || '';
+        }
 
         setFormData({
           title: task.title || '',
@@ -353,7 +356,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
           team_id: task.team_id || '',
           responsible_name: task.responsible_name || '',
           responsible_avatar: task.responsible_avatar || '',
-          responsible_user_id: task.user_id || '',
+          responsible_user_id: task.assigned_user_id || task.user_id || '',
           responsible_employee_id: '',
           related_client_id: task.related_client_id || '',
           related_campaign_id: task.related_campaign_id || '',
