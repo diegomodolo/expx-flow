@@ -1,111 +1,159 @@
 
-
-# Tela de Historias Detalhada - Gestao de Projetos
+# Dashboard "Communication-First" - Fase 1: Layout 3 Colunas + Canais
 
 ## Resumo
 
-Redesenhar completamente a pagina `/historias`, substituindo os cards atuais por uma tela profissional com indicadores de performance, filtros avancados e tabela de dados detalhada.
-
-## Estrutura da Nova Tela
-
-A pagina tera 3 secoes principais:
-
-1. **Indicadores (KPIs)** - Cards de resumo no topo
-2. **Filtros** - Barra de filtros aprimorada
-3. **Tabela de Dados** - Tabela completa substituindo os cards
+Substituir o dashboard atual (`/dashboard`) por uma interface estilo Discord adaptada para a Expx. Nesta primeira fase, o foco sera no layout visual com 3 colunas funcionais, navegacao por canais de Squad e de Cliente, chat interno por canal e o painel "Meu Dia" com tarefas e timer.
 
 ---
 
-## 1. Indicadores (KPIs no topo)
+## Estrutura Visual
 
-Quatro cards de resumo:
-- **Total de Historias** - quantidade total filtrada
-- **Tempo Medio de Conclusao** - media em dias entre `created_at` e `completed_at` das historias concluidas
-- **Historias por Cliente** - quantidade de clientes distintos com historias
-- **Taxa de Conclusao** - percentual de historias com status `done`
-
----
-
-## 2. Filtros Aprimorados
-
-Manter os filtros existentes e adicionar:
-- **Filtro por Cliente** - Select com lista de clientes (substituindo o campo de busca por texto)
-- **Status expandido** - Aberta / Em Andamento / Concluida / Todas (mapear `progress` e `done`)
-- **Busca por titulo** - manter campo de busca
-- **Filtro por Squad** - manter select existente
-
----
-
-## 3. Tabela de Dados
-
-Colunas da tabela:
-
-| Coluna | Fonte |
-|--------|-------|
-| ID | `historia.id` (ultimos 6 chars) |
-| Cliente | `client_name` (do join com clients) |
-| Titulo/Descricao | `historia.title` + `description` truncada |
-| Data de Abertura | `created_at` |
-| Data de Fechamento | `completed_at` (se status = done) |
-| Tempo Total | Diferenca entre `created_at` e `completed_at` |
-| Tempo de Trabalho | Soma de `duration_minutes` da tabela `task_time_tracking` |
-| Lider Responsavel | `responsible_name` |
-| Progresso | Barra de progresso (subtasks_done / subtasks_total) |
-| Status | Badge colorido |
-
----
-
-## Detalhes Tecnicos
-
-### Arquivos a Modificar
-
-1. **`src/hooks/useHistorias.ts`**
-   - Adicionar campo `completed_at` na query de tasks
-   - Buscar tempo de trabalho da tabela `task_time_tracking` agrupado por `task_id` (sum de `duration_minutes`)
-   - Adicionar campo `clients` (lista unica) para popular o filtro de cliente por select
-   - Estender interface `Historia` com `completed_at` e `total_work_minutes`
-
-2. **`src/pages/Historias.tsx`**
-   - Substituir grid de cards por componentes de KPIs + Tabela
-   - Calcular metricas de resumo (tempo medio, taxa conclusao)
-   - Usar componentes `Table` do shadcn/ui
-
-3. **`src/components/historias/HistoriaFilters.tsx`**
-   - Adicionar Select de cliente (com lista populada do hook)
-   - Expandir opcoes de status para incluir "Em Andamento"
-
-4. **`src/components/historias/HistoriaCard.tsx`**
-   - Manter arquivo (pode ser usado futuramente) mas nao sera mais importado na pagina principal
-
-5. **Novo: `src/components/historias/HistoriaTable.tsx`**
-   - Componente de tabela com todas as colunas
-   - Formatacao de datas com `date-fns` e locale `ptBR`
-   - Calculo de tempo total (dias/horas) e tempo de trabalho
-
-6. **Novo: `src/components/historias/HistoriaKPIs.tsx`**
-   - 4 cards de indicadores com icones e valores calculados
-
-### Busca de Tempo de Trabalho
-
-Consulta adicional no hook para buscar tempo investido:
-```sql
-SELECT task_id, SUM(duration_minutes) as total_minutes
-FROM task_time_tracking
-WHERE task_id IN (historiaIds)
-GROUP BY task_id
+```text
++-------------------+----------------------------------+-------------------+
+|  COLUNA ESQUERDA  |       COLUNA CENTRAL             |  COLUNA DIREITA   |
+|   (240px fixa)    |        (flex-1)                  |   (320px fixa)    |
+|                   |                                  |                   |
+| [Canais de Squad] |  [Header do Canal Ativo]         | [Tarefa Atual]    |
+|  #squad-01        |  -------------------------       |  Timer 18:00      |
+|  #squad-02        |  | Chat de mensagens    |       |                   |
+|  #squad-03        |  | com scroll           |       | [Meu Dia]         |
+|                   |  | ...                  |       |  Lista de tarefas |
+| [Canais Cliente]  |  | ...                  |       |  pendentes        |
+|  @cliente-alpha   |  -------------------------       |                   |
+|  @cliente-beta    |  [Input de mensagem]             | [Status Equipe]   |
+|                   |                                  |  Quem esta online |
+| [Canal Geral]     |                                  |  e trabalhando    |
+|  #geral           |                                  |                   |
++-------------------+----------------------------------+-------------------+
 ```
 
-Para historias (tasks pai), tambem somar o tempo das subtarefas:
-```sql
-SELECT parent.id, SUM(ttt.duration_minutes)
-FROM tasks parent
-JOIN tasks sub ON sub.parent_task_id = parent.id
-JOIN task_time_tracking ttt ON ttt.task_id = sub.id
-WHERE parent.id IN (historiaIds)
-```
+---
 
-### Formatacao de Tempo
+## 1. Tabela de Banco de Dados
 
-- Tempo total: diferenca em dias entre abertura e fechamento (ex: "12 dias")
-- Tempo de trabalho: converter minutos para formato legivel (ex: "4h 30min")
+### Nova tabela: `internal_channels`
+Armazena os canais de comunicacao (squads, clientes, geral).
 
+| Coluna | Tipo | Descricao |
+|--------|------|-----------|
+| id | uuid (PK) | ID do canal |
+| company_id | uuid (FK companies) | Empresa |
+| name | text | Nome exibido |
+| channel_type | text | 'squad', 'client', 'general' |
+| reference_id | uuid (nullable) | ID do team ou client associado |
+| icon | text (nullable) | Emoji ou icone |
+| created_at | timestamptz | |
+
+### Nova tabela: `internal_messages`
+Mensagens enviadas nos canais internos.
+
+| Coluna | Tipo | Descricao |
+|--------|------|-----------|
+| id | uuid (PK) | ID da mensagem |
+| channel_id | uuid (FK internal_channels) | Canal |
+| user_id | uuid | Autor (ref auth.users) |
+| content | text | Corpo da mensagem |
+| task_reference_id | uuid (nullable) | Se menciona uma tarefa |
+| is_pinned | boolean | Fixada |
+| created_at | timestamptz | |
+
+### RLS Policies
+- Usuarios autenticados podem ler mensagens de canais da sua empresa (via company_members)
+- Usuarios autenticados podem inserir mensagens em canais da sua empresa
+- Usuarios podem deletar apenas suas proprias mensagens
+
+---
+
+## 2. Componentes a Criar
+
+### `src/pages/CommunicationDashboard.tsx`
+Pagina principal que substitui NewDashboard. Layout de 3 colunas usando CSS Grid ou flex com larguras fixas. Continua usando `DashboardLayout` (sidebar + header existentes).
+
+### `src/components/comm-hub/ChannelSidebar.tsx`
+Coluna esquerda:
+- Secao "Squads" - lista canais tipo squad (dados da tabela `teams`)
+- Secao "Clientes" - lista canais tipo client (dados da tabela `clients`)
+- Secao "Geral" - canal unico de toda a empresa
+- Cada item mostra icone + nome + badge de mensagens nao lidas
+- Canal ativo fica destacado
+- Estetica escura (#0B0E14 nos blocos, bordas sutis)
+
+### `src/components/comm-hub/ChatFlow.tsx`
+Coluna central:
+- Header com nome do canal ativo + contagem de membros
+- Area de scroll com mensagens (avatar, nome, hora, conteudo)
+- Deteccao de mencoes de tarefa (#ID) renderizadas como mini-cards clicaveis
+- Input de mensagem com envio por Enter (Shift+Enter para quebra de linha)
+- Scroll automatico para ultima mensagem
+
+### `src/components/comm-hub/MyDayPanel.tsx`
+Coluna direita:
+- **Timer da Tarefa Atual**: contagem regressiva de 18 minutos (visual grande e centralizado)
+- **Lista "Meu Dia"**: reutiliza logica do MyDayCard existente em formato vertical compacto
+- **Status da Equipe**: lista de membros da squad do usuario com indicadores de status (Online/Em Foco/Disponivel)
+
+### `src/components/comm-hub/MessageBubble.tsx`
+Componente de mensagem individual:
+- Avatar do autor + nome + timestamp
+- Conteudo com suporte a markdown basico
+- Deteccao de padroes `#XXXXXX` para renderizar mini-card de tarefa
+
+### `src/components/comm-hub/TaskMiniCard.tsx`
+Mini-card inline renderizado quando uma tarefa e mencionada no chat:
+- Titulo da tarefa, status (badge colorido), responsavel
+- Clicavel para abrir TaskDialog
+
+---
+
+## 3. Hook de Dados
+
+### `src/hooks/useInternalChat.ts`
+- Busca canais da empresa (auto-criados a partir de teams + clients)
+- Busca mensagens do canal selecionado com paginacao (50 por vez)
+- Envia mensagens via insert no Supabase
+- Subscription realtime para novas mensagens no canal ativo
+- Funcao para auto-criar canais quando nao existem (on first load)
+
+---
+
+## 4. Integracao com a Rota
+
+### `src/pages/DashboardPage.tsx`
+Alterar para importar `CommunicationDashboard` em vez de `NewDashboard`.
+
+---
+
+## 5. Estetica e UX
+
+- Fundo principal da area de canais: `bg-[#0B0E14]` ou equivalente dark
+- Glassmorphism sutil nos paineis (backdrop-blur + bg opacity)
+- Fonte Inter (ja instalada no projeto)
+- Cores neon para status: verde (disponivel), amarelo (em foco), vermelho (indisponivel)
+- Canal ativo com highlight lateral (barra vertical colorida a esquerda)
+- Mensagens com hover sutil e opcao de pin
+- Input de mensagem com borda arredondada e icone de envio
+
+---
+
+## 6. Sequencia de Implementacao
+
+1. Criar migracao SQL (tabelas + RLS)
+2. Criar hook `useInternalChat`
+3. Criar componentes visuais (ChannelSidebar, ChatFlow, MyDayPanel, MessageBubble, TaskMiniCard)
+4. Montar `CommunicationDashboard` com layout 3 colunas
+5. Conectar rota `/dashboard` ao novo componente
+6. Auto-gerar canais a partir de squads e clientes existentes
+
+---
+
+## O que NAO esta incluido nesta fase
+- Voice Channels / Huddles
+- Command Bar (slash commands)
+- Focus Mode (blur do chat)
+- Notificacoes inteligentes com IA
+- Botao de "Mao Levantada"
+- Thread automatica por tarefa
+- Reply-to-Task (transformar mensagem em atualizacao de tarefa)
+
+Esses recursos serao implementados em fases futuras.
