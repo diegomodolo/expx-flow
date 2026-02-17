@@ -1,6 +1,16 @@
 import React from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
-import { CheckCircle2, Users } from "lucide-react";
+import { CheckCircle2, Users, Clock } from "lucide-react";
+
+interface TimeAvailability {
+  totalCapacityMin: number;
+  totalAllocatedMin: number;
+  freeMin: number;
+  freePercent: number;
+  freeHours: number;
+  freeMinRemainder: number;
+  totalHours: number;
+}
 
 interface HeaderProps {
   metrics: {
@@ -11,18 +21,28 @@ interface HeaderProps {
     busyPercent: number;
   };
   teamName: string;
+  timeAvailability?: TimeAvailability;
 }
 
-export function CommandCenterHeader({ metrics, teamName }: HeaderProps) {
-  const available = metrics.totalMembers - metrics.busy;
-  const donutData = [
-    { name: "Ocupados", value: metrics.busy },
-    { name: "Disponíveis", value: available > 0 ? available : 0 },
-  ];
+export function CommandCenterHeader({ metrics, teamName, timeAvailability }: HeaderProps) {
+  const avail = timeAvailability;
+  const allocatedPercent = avail && avail.totalCapacityMin > 0
+    ? Math.round((avail.totalAllocatedMin / avail.totalCapacityMin) * 100)
+    : 0;
+
+  const donutData = avail
+    ? [
+        { name: "Alocado", value: avail.totalAllocatedMin },
+        { name: "Livre", value: Math.max(0, avail.freeMin) },
+      ]
+    : [
+        { name: "Ocupados", value: metrics.busy },
+        { name: "Disponíveis", value: Math.max(0, metrics.totalMembers - metrics.busy) },
+      ];
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      {/* Donut - Disponibilidade */}
+      {/* Donut - Disponibilidade baseada em horas */}
       <div className="rounded-2xl bg-card border border-border p-5 flex items-center gap-4">
         <div className="w-16 h-16">
           <ResponsiveContainer width="100%" height="100%">
@@ -36,8 +56,19 @@ export function CommandCenterHeader({ metrics, teamName }: HeaderProps) {
         </div>
         <div>
           <p className="text-xs text-primary font-medium uppercase tracking-wider">Disponibilidade</p>
-          <p className="text-2xl font-bold text-foreground">{100 - metrics.busyPercent}%</p>
-          <p className="text-xs text-muted-foreground">{available} de {metrics.totalMembers} livres</p>
+          {avail ? (
+            <>
+              <p className="text-2xl font-bold text-foreground">{avail.freePercent}%</p>
+              <p className="text-xs text-muted-foreground">
+                {avail.freeHours}h{avail.freeMinRemainder > 0 ? `${avail.freeMinRemainder}min` : ""} livre de {avail.totalHours}h
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-2xl font-bold text-foreground">{100 - metrics.busyPercent}%</p>
+              <p className="text-xs text-muted-foreground">{metrics.totalMembers - metrics.busy} de {metrics.totalMembers} livres</p>
+            </>
+          )}
         </div>
       </div>
 

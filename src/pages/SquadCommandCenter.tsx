@@ -175,6 +175,42 @@ export default function SquadCommandCenter() {
 
   const metrics = getTodayMetrics();
 
+  // Calculate time-based availability
+  const timeAvailability = React.useMemo(() => {
+    const toMin = (t: string) => {
+      const [h, m] = (t || "00:00").substring(0, 5).split(":").map(Number);
+      return h * 60 + m;
+    };
+
+    let totalCapacityMin = 0;
+    let totalAllocatedMin = 0;
+
+    members.forEach(member => {
+      const schedule = workSchedules.find(ws => ws.id === member.work_schedule_id);
+      let memberCapacity = 0;
+      if (schedule) {
+        const workMin = toMin(schedule.work_end) - toMin(schedule.work_start);
+        const lunchMin = toMin(schedule.lunch_end) - toMin(schedule.lunch_start);
+        memberCapacity = Math.max(0, workMin - lunchMin);
+      } else {
+        memberCapacity = 480; // default 8h
+      }
+      totalCapacityMin += memberCapacity;
+
+      const memberTasks = timelineTasks.filter(t => t.assigned_user_id === member.user_id);
+      const allocated = memberTasks.reduce((sum, t) => sum + (t.ai_estimated_minutes || 20), 0);
+      totalAllocatedMin += allocated;
+    });
+
+    const freeMin = Math.max(0, totalCapacityMin - totalAllocatedMin);
+    const freePercent = totalCapacityMin > 0 ? Math.round((freeMin / totalCapacityMin) * 100) : 0;
+    const freeHours = Math.floor(freeMin / 60);
+    const freeMinRemainder = freeMin % 60;
+    const totalHours = Math.floor(totalCapacityMin / 60);
+
+    return { totalCapacityMin, totalAllocatedMin, freeMin, freePercent, freeHours, freeMinRemainder, totalHours };
+  }, [members, timelineTasks, workSchedules]);
+
   return (
     <DashboardLayout>
       <div className="flex flex-col h-[calc(100vh-130px)] overflow-hidden">
@@ -200,7 +236,7 @@ export default function SquadCommandCenter() {
           <DragDropContext onDragEnd={handleDragEnd}>
             {/* Header metrics */}
             <div className="my-4 flex-shrink-0">
-              <CommandCenterHeader metrics={metrics} teamName={selectedTeam?.name || "—"} />
+              <CommandCenterHeader metrics={metrics} teamName={selectedTeam?.name || "—"} timeAvailability={timeAvailability} />
             </div>
 
             {/* Main layout: Backlog + Timeline */}
