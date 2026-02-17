@@ -7,16 +7,17 @@ import { differenceInMinutes } from "date-fns";
 interface Props {
   task: CommandCenterTask;
   slotWidth: number;
+  slotDuration?: number;
   startHour: number;
   selectedDate?: Date;
   onReposition?: (taskId: string, newStartDate: Date) => void;
   onClickTask?: (task: CommandCenterTask) => void;
 }
 
-export function TimelineTaskCard({ task, slotWidth, startHour, selectedDate, onReposition, onClickTask }: Props) {
+export function TimelineTaskCard({ task, slotWidth, slotDuration = 20, startHour, selectedDate, onReposition, onClickTask }: Props) {
   const dragMoved = useRef(false);
-  const estimatedMin = task.ai_estimated_minutes || 18;
-  const slotsOccupied = Math.max(1, Math.ceil(estimatedMin / 18));
+  const estimatedMin = task.ai_estimated_minutes || slotDuration;
+  const slotsOccupied = Math.max(1, Math.ceil(estimatedMin / slotDuration));
   const width = slotsOccupied * slotWidth;
 
   const taskStart = task.start_date ? new Date(task.start_date) : null;
@@ -25,7 +26,7 @@ export function TimelineTaskCard({ task, slotWidth, startHour, selectedDate, onR
     const dayStart = new Date(taskStart);
     dayStart.setHours(startHour, 0, 0, 0);
     const minutesFromStart = differenceInMinutes(taskStart, dayStart);
-    leftOffset = (minutesFromStart / 18) * slotWidth;
+    leftOffset = (minutesFromStart / slotDuration) * slotWidth;
   }
 
   const isDone = task.status === "done";
@@ -72,7 +73,7 @@ export function TimelineTaskCard({ task, slotWidth, startHour, selectedDate, onR
         const dx = ev.clientX - dragRef.current.startX;
         const newLeft = dragRef.current.startLeft + dx;
         const snappedSlot = Math.max(0, Math.round(newLeft / slotWidth));
-        const newMinutesFromDayStart = snappedSlot * 18;
+        const newMinutesFromDayStart = snappedSlot * slotDuration;
 
         // Use selectedDate as base date if provided, otherwise fall back to taskStart date
         const baseDate = selectedDate ? new Date(selectedDate) : (taskStart ? new Date(taskStart) : new Date());
@@ -90,7 +91,7 @@ export function TimelineTaskCard({ task, slotWidth, startHour, selectedDate, onR
 
     window.addEventListener("mousemove", onMouseMove);
     window.addEventListener("mouseup", onMouseUp);
-  }, [isDone, onReposition, onClickTask, leftOffset, slotWidth, startHour, taskStart, selectedDate, task]);
+  }, [isDone, onReposition, onClickTask, leftOffset, slotWidth, slotDuration, startHour, taskStart, selectedDate, task]);
 
   const displayLeft = dragLeft !== null ? dragLeft : leftOffset;
 
