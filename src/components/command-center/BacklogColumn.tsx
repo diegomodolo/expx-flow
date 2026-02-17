@@ -61,8 +61,8 @@ export function BacklogColumn({ tasks, getAgingHours, teamColor }: Props) {
                           className={cn(
                             snapshot.isDragging
                               ? "rounded-lg bg-primary/10 border border-primary/30 text-primary px-2 py-1 cursor-grabbing shadow-lg z-50 flex items-center gap-1"
-                              : cn(
-                                  "rounded-xl bg-card border border-border p-3 cursor-grab active:cursor-grabbing transition-all duration-200 border-l-2",
+                          : cn(
+                                  "rounded-lg bg-card border border-border px-2.5 py-1.5 cursor-grab active:cursor-grabbing transition-all duration-200 border-l-2",
                                   borderColor,
                                   isAging && "ring-1 ring-yellow-500/50 animate-pulse",
                                 )
@@ -79,46 +79,29 @@ export function BacklogColumn({ tasks, getAgingHours, teamColor }: Props) {
                               <span className="text-[10px] ml-auto opacity-60">{task.ai_estimated_minutes || 20}m</span>
                             </>
                           ) : (
-                            <div className="flex items-start gap-2">
-                              <GripVertical className="w-3 h-3 text-muted-foreground/50 mt-1 flex-shrink-0" />
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm text-foreground font-medium truncate">{task.title}</p>
+                            <div className="flex items-center gap-1.5">
+                              <GripVertical className="w-3 h-3 text-muted-foreground/50 flex-shrink-0" />
+                              <div className="flex-1 min-w-0 flex items-center gap-2">
+                                <p className="text-xs text-foreground font-medium truncate flex-1">{task.title}</p>
                                 {task.clients && task.clients.length > 0 && (
-                                  <div className="flex items-center gap-1.5 mt-1">
+                                  <div className="flex items-center gap-0.5 flex-shrink-0">
                                     {task.clients.slice(0, 2).map((client) => (
-                                      <div key={client.client_id} className="flex items-center gap-1 max-w-[120px]">
-                                        <Avatar className="w-4 h-4 flex-shrink-0">
-                                          <AvatarImage src={client.client_avatar || undefined} alt={client.client_name} />
-                                          <AvatarFallback className="text-[8px] bg-muted">
-                                            {client.client_name.substring(0, 2).toUpperCase()}
-                                          </AvatarFallback>
-                                        </Avatar>
-                                        <span className="text-[10px] text-muted-foreground truncate">{client.client_name}</span>
-                                      </div>
+                                      <Avatar key={client.client_id} className="w-4 h-4 flex-shrink-0">
+                                        <AvatarImage src={client.client_avatar || undefined} alt={client.client_name} />
+                                        <AvatarFallback className="text-[7px] bg-muted">
+                                          {client.client_name.substring(0, 2).toUpperCase()}
+                                        </AvatarFallback>
+                                      </Avatar>
                                     ))}
                                     {task.clients.length > 2 && (
-                                      <span className="text-[10px] text-muted-foreground">+{task.clients.length - 2}</span>
+                                      <span className="text-[9px] text-muted-foreground">+{task.clients.length - 2}</span>
                                     )}
                                   </div>
                                 )}
-                                <div className="flex items-center gap-2 mt-1.5">
-                                  <span className={cn(
-                                    "text-[10px] px-1.5 py-0.5 rounded-full",
-                                    priorityColors[task.priority] ? `border ${priorityColors[task.priority]} text-muted-foreground` : "text-muted-foreground"
-                                  )}>
-                                    {task.priority}
-                                  </span>
-                                  <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                                    <Clock className="w-3 h-3" />
-                                    {task.ai_estimated_minutes || 20}m
-                                  </span>
-                                </div>
+                                <span className="text-[9px] text-muted-foreground flex-shrink-0">{task.ai_estimated_minutes || 20}m</span>
                               </div>
                               {isAging && (
-                                <div className="flex items-center gap-1 text-yellow-500">
-                                  <AlertTriangle className="w-3 h-3" />
-                                  <span className="text-[10px]">{aging}h</span>
-                                </div>
+                                <AlertTriangle className="w-3 h-3 text-yellow-500 flex-shrink-0" />
                               )}
                             </div>
                           )}
