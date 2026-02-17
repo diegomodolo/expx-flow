@@ -4,6 +4,7 @@ import { Loader2, Inbox, Pencil, Clock, Zap, RotateCcw, AlertTriangle, ChevronRi
 import { TaskDialog } from "@/components/tasks/TaskDialog";
 import { useTasks } from "@/hooks/useTasks";
 import { useState, useMemo, Fragment } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +43,7 @@ export function BacklogBucket({
   const [editingTask, setEditingTask] = useState<any>(null);
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
   const { updateTask } = useTasks();
+  const queryClient = useQueryClient();
 
   const clientsMap = useMemo(() => {
     const map = new Map<string, { name: string; avatar: string | null }>();
@@ -266,6 +268,7 @@ export function BacklogBucket({
         onSave={async (data) => {
           if (editingTask) {
             await updateTask(editingTask.id, data);
+            queryClient.invalidateQueries({ queryKey: ["backlog-center-tasks"] });
             setEditingTask(null);
           }
         }}
