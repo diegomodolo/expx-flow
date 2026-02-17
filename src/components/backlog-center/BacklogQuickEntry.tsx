@@ -175,7 +175,7 @@ export function BacklogQuickEntry({ clients, companyId }: Props) {
           description: "",
           status: "todo" as any,
           priority: "medium" as any,
-          task_type: parsed.category || "geral",
+          task_type: "Backlog",
           ai_estimated_minutes: parsed.minutes,
           responsible_name: user.user_metadata?.full_name || "Admin",
           user_id: user.id,
