@@ -20,6 +20,7 @@ interface Props {
   startHour?: number;
   workSchedules?: WorkSchedule[];
   onRepositionTask?: (taskId: string, newStartDate: Date) => void;
+  onResizeTask?: (taskId: string, newStartDate: Date, newEstimatedMinutes: number) => void;
   onClickTask?: (task: CommandCenterTask) => void;
 }
 
@@ -50,7 +51,7 @@ function saveSettings(s: { slotDuration: number; startHour: number; endHour: num
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch {}
 }
 
-export function WorkloadTimeline({ members, tasks, startHour: _startHourProp = 0, workSchedules = [], onRepositionTask, onClickTask }: Props) {
+export function WorkloadTimeline({ members, tasks, startHour: _startHourProp = 0, workSchedules = [], onRepositionTask, onResizeTask, onClickTask }: Props) {
   const saved = React.useMemo(() => loadSettings(), []);
   const [slotWidth, setSlotWidth] = useState(56);
   const [rowHeight, setRowHeight] = useState(68);
@@ -257,6 +258,7 @@ export function WorkloadTimeline({ members, tasks, startHour: _startHourProp = 0
                 selectedDate={selectedDate}
                 workSchedule={memberSchedule}
                 onRepositionTask={onRepositionTask}
+                onResizeTask={onResizeTask}
                 onClickTask={onClickTask}
               />
             );
