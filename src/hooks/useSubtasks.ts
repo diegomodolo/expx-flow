@@ -98,8 +98,10 @@ export function useSubtasks(parentTaskId: string | null) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['subtasks', parentTaskId] });
+      queryClient.invalidateQueries({ queryKey: ['parentTask', parentTaskId] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['board-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['backlog-center-tasks'] });
       toast.success('Subtarefa criada!');
     },
     onError: () => toast.error('Erro ao criar subtarefa'),
@@ -156,6 +158,7 @@ export function useSubtasks(parentTaskId: string | null) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['subtasks', parentTaskId] });
+      queryClient.invalidateQueries({ queryKey: ['parentTask', parentTaskId] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['board-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['backlog-center-tasks'] });
