@@ -107,7 +107,7 @@ export default function SquadCommandCenter() {
     memberTasks.forEach(task => {
       if (!task.start_date) return;
       const start = new Date(task.start_date).getTime();
-      const duration = (task.ai_estimated_minutes || 18) * 60000;
+      const duration = (task.ai_estimated_minutes || 20) * 60000;
       const end = start + duration;
       if (end > latestEnd) latestEnd = end;
     });
@@ -132,7 +132,7 @@ export default function SquadCommandCenter() {
     if (!task) return;
 
     const nextFreeSlot = findNextFreeSlot(member.user_id);
-    const taskDuration = (task.ai_estimated_minutes || 18) * 60000;
+    const taskDuration = (task.ai_estimated_minutes || 20) * 60000;
     const dayEnd = new Date();
     dayEnd.setHours(START_HOUR + 6, 0, 0, 0);
 
@@ -149,6 +149,7 @@ export default function SquadCommandCenter() {
 
     try {
       await assignTask(draggableId, member.user_id, member.name, nextFreeSlot);
+      await fetchTasks();
       toast({ title: "Tarefa atribuída", description: `"${task.title}" → ${member.name}` });
     } catch {
       toast({ title: "Erro ao atribuir", variant: "destructive" });
@@ -161,6 +162,7 @@ export default function SquadCommandCenter() {
       const task = backlogTasks.find(t => t.id === overflowDialog.taskId);
       const member = members.find(m => m.id === overflowDialog.memberId);
       await assignTask(overflowDialog.taskId, member?.user_id || overflowDialog.memberId, overflowDialog.memberName, overflowDialog.startDate);
+      await fetchTasks();
       toast({ title: "Tarefa atribuída", description: `"${task?.title}" → ${overflowDialog.memberName} (overflow)` });
     } catch {
       toast({ title: "Erro ao atribuir", variant: "destructive" });
