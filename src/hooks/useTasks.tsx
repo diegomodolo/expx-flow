@@ -21,6 +21,7 @@ export interface Task {
   start_date?: string;
   progress: number;
   origin: 'manual' | 'automation' | 'dashboard' | 'flow' | 'ghost';
+  task_state?: 'backlog' | 'planejamento' | 'execucao';
   related_campaign_id?: string;
   related_client_id?: string;
   created_at?: string;

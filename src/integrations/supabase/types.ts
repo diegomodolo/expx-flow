@@ -12340,6 +12340,7 @@ export type Database = {
           responsible_name: string
           start_date: string | null
           status: Database["public"]["Enums"]["task_status"]
+          task_state: Database["public"]["Enums"]["task_state"]
           task_type: string
           team_id: string
           title: string
@@ -12378,6 +12379,7 @@ export type Database = {
           responsible_name: string
           start_date?: string | null
           status?: Database["public"]["Enums"]["task_status"]
+          task_state?: Database["public"]["Enums"]["task_state"]
           task_type?: string
           team_id: string
           title: string
@@ -12416,6 +12418,7 @@ export type Database = {
           responsible_name?: string
           start_date?: string | null
           status?: Database["public"]["Enums"]["task_status"]
+          task_state?: Database["public"]["Enums"]["task_state"]
           task_type?: string
           team_id?: string
           title?: string
@@ -15428,6 +15431,7 @@ export type Database = {
         | "authorizer"
       task_origin: "dashboard" | "manual" | "automation" | "flow" | "ghost"
       task_priority: "high" | "medium" | "low"
+      task_state: "backlog" | "planejamento" | "execucao"
       task_status:
         | "todo"
         | "progress"
@@ -15638,6 +15642,7 @@ export const Constants = {
       ],
       task_origin: ["dashboard", "manual", "automation", "flow", "ghost"],
       task_priority: ["high", "medium", "low"],
+      task_state: ["backlog", "planejamento", "execucao"],
       task_status: [
         "todo",
         "progress",

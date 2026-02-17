@@ -6,6 +6,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { differenceInHours, subDays } from "date-fns";
 
+export type TaskState = 'backlog' | 'planejamento' | 'execucao';
+
 export interface BacklogTask {
   id: string;
   title: string;
@@ -21,6 +23,7 @@ export interface BacklogTask {
   completed_at: string | null;
   created_at: string;
   task_type: string;
+  task_state: TaskState;
   progress: number;
   recurring_template_id: string | null;
   checklist: any;
@@ -63,17 +66,16 @@ export function useBacklogCommandCenter() {
     enabled: !!activeCompany?.company_id,
   });
 
-  // Fetch backlog tasks (status todo, no start_date)
+  // Fetch backlog tasks (task_state = 'backlog')
   const { data: backlogTasks = [], isLoading: tasksLoading } = useQuery({
     queryKey: ["backlog-center-tasks", activeCompany?.company_id],
     queryFn: async () => {
       if (!activeCompany?.company_id) return [];
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("tasks")
         .select("*")
         .eq("company_id", activeCompany.company_id)
-        .eq("status", "todo")
-        .is("start_date", null)
+        .eq("task_state", "backlog")
         .order("created_at", { ascending: true });
       if (error) throw error;
       return (data || []) as BacklogTask[];
@@ -317,10 +319,11 @@ export function useBacklogCommandCenter() {
   // Bulk release mutation
   const releaseToLeadersMutation = useMutation({
     mutationFn: async (taskIds: string[]) => {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("tasks")
         .update({ 
-          status: "todo" as any,
+          task_state: "execucao",
+          status: "todo",
           start_date: new Date().toISOString(),
         })
         .in("id", taskIds);
@@ -341,13 +344,14 @@ export function useBacklogCommandCenter() {
   // Bulk assign mutation
   const bulkAssignMutation = useMutation({
     mutationFn: async ({ taskIds, userId, userName }: { taskIds: string[]; userId: string; userName: string }) => {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("tasks")
         .update({
           assigned_user_id: userId,
           responsible_name: userName,
           start_date: new Date().toISOString(),
-          status: "in_progress" as any,
+          status: "in_progress",
+          task_state: "execucao",
         })
         .in("id", taskIds);
       if (error) throw error;
