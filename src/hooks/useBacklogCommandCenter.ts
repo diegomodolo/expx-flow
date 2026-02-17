@@ -102,7 +102,7 @@ export function useBacklogCommandCenter() {
       if (!activeCompany?.company_id) return [];
       const { data, error } = await (supabase as any)
         .from("clients")
-        .select("id, name, avatar")
+        .select("id, name, avatar, team_id")
         .eq("company_id", activeCompany.company_id)
         .eq("is_canceled", false)
         .order("name");
@@ -128,6 +128,12 @@ export function useBacklogCommandCenter() {
     },
     enabled: !!activeCompany?.company_id,
   });
+
+  // Filter clients by selected squad
+  const filteredClients = useMemo(() => {
+    if (!selectedSquadId) return clients;
+    return clients.filter((c: any) => c.team_id === selectedSquadId);
+  }, [clients, selectedSquadId]);
 
   // Build task->client mapping
   const taskToClients = useMemo(() => {
@@ -174,7 +180,7 @@ export function useBacklogCommandCenter() {
 
     const result: BacklogClient[] = [];
 
-    clients.forEach((client: any) => {
+    filteredClients.forEach((client: any) => {
       const stats = clientMap.get(client.id);
       if (!stats) return;
 
@@ -223,7 +229,7 @@ export function useBacklogCommandCenter() {
     }
 
     return result.sort((a, b) => b.totalMinutes - a.totalMinutes);
-  }, [backlogTasks, clients, taskToClients, recentActivity]);
+  }, [backlogTasks, filteredClients, taskToClients, recentActivity]);
 
   // Filter tasks by selected client
   const filteredTasks = useMemo(() => {
@@ -370,7 +376,7 @@ export function useBacklogCommandCenter() {
     bulkAssign: (ids: string[], userId: string, userName: string) =>
       bulkAssignMutation.mutateAsync({ taskIds: ids, userId, userName }),
     taskToClients,
-    clients,
+    clients: filteredClients,
     squads,
     selectedSquadId,
     setSelectedSquadId,
