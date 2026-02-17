@@ -2,6 +2,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { BacklogTaskCard } from "./BacklogTaskCard";
 import { BacklogQuickEntry } from "./BacklogQuickEntry";
 import { Loader2, Inbox } from "lucide-react";
+import { TaskDialog } from "@/components/tasks/TaskDialog";
+import { useTasks } from "@/hooks/useTasks";
+import { useState } from "react";
 import type { BacklogTask } from "@/hooks/useBacklogCommandCenter";
 
 interface Props {
@@ -25,6 +28,9 @@ export function BacklogBucket({
   clients,
   companyId,
 }: Props) {
+  const [editingTask, setEditingTask] = useState<any>(null);
+  const { updateTask } = useTasks();
+
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -54,6 +60,7 @@ export function BacklogBucket({
                 task={task}
                 selected={selectedTaskIds.has(task.id)}
                 onToggle={() => onToggleTask(task.id)}
+                onEdit={(t) => setEditingTask(t)}
                 readiness={getReadiness(task)}
                 agingHours={getAgingHours(task.created_at)}
               />
@@ -61,6 +68,19 @@ export function BacklogBucket({
           )}
         </div>
       </ScrollArea>
+
+      {/* Edit Task Dialog */}
+      <TaskDialog
+        open={!!editingTask}
+        onOpenChange={(open) => { if (!open) setEditingTask(null); }}
+        task={editingTask}
+        onSave={async (data) => {
+          if (editingTask) {
+            await updateTask(editingTask.id, data);
+            setEditingTask(null);
+          }
+        }}
+      />
     </div>
   );
 }

@@ -161,10 +161,10 @@ export function useBacklogCommandCenter() {
       const stats = clientMap.get(client.id);
       if (!stats) return;
 
-      // Temperature calc
+      // Temperature calc - based on distribution flow
       const twoDaysAgo = subDays(new Date(), 2);
       const clientRecentDistributed = recentActivity.filter(
-        (t: any) => t.related_client_id === client.id && t.start_date
+        (t: any) => t.related_client_id === client.id && t.start_date && t.status !== 'todo'
       );
       const clientRecentCreated = recentActivity.filter(
         (t: any) => t.related_client_id === client.id
@@ -174,9 +174,11 @@ export function useBacklogCommandCenter() {
       )[0];
 
       let temperature: "blue" | "orange" | "red" = "blue";
-      if (!lastDistributed || new Date(lastDistributed.start_date!) < twoDaysAgo) {
+      // Only mark as red if there ARE distributed tasks but the last one is older than 2 days
+      // New clients with only backlog tasks stay blue
+      if (lastDistributed && new Date(lastDistributed.start_date!) < twoDaysAgo) {
         temperature = "red";
-      } else if (clientRecentCreated.length > clientRecentDistributed.length * 1.5) {
+      } else if (clientRecentDistributed.length > 0 && clientRecentCreated.length > clientRecentDistributed.length * 1.5) {
         temperature = "orange";
       }
 
