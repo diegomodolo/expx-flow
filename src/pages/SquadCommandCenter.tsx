@@ -132,17 +132,25 @@ export default function SquadCommandCenter() {
 
   const handleRepositionTask = useCallback(async (taskId: string, newStartDate: Date) => {
     try {
+      // Find the task to calculate deadline based on estimated duration
+      const task = timelineTasks.find(t => t.id === taskId);
+      const estimatedMinutes = task?.ai_estimated_minutes || 20;
+      const newDeadline = new Date(newStartDate.getTime() + estimatedMinutes * 60000);
+
       const { error } = await supabase
         .from("tasks")
-        .update({ start_date: newStartDate.toISOString() })
+        .update({
+          start_date: newStartDate.toISOString(),
+          deadline: newDeadline.toISOString(),
+        })
         .eq("id", taskId);
       if (error) throw error;
-      toast({ title: "Horário atualizado" });
+      toast({ title: "Horário e prazo atualizados" });
       fetchTasks();
     } catch {
       toast({ title: "Erro ao mover tarefa", variant: "destructive" });
     }
-  }, [fetchTasks, toast]);
+  }, [fetchTasks, toast, timelineTasks]);
 
   const metrics = getTodayMetrics();
 
