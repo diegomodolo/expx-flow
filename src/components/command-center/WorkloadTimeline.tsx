@@ -22,6 +22,7 @@ interface Props {
   onRepositionTask?: (taskId: string, newStartDate: Date) => void;
   onResizeTask?: (taskId: string, newStartDate: Date, newEstimatedMinutes: number) => void;
   onClickTask?: (task: CommandCenterTask) => void;
+  draggingTask?: CommandCenterTask | null;
 }
 
 const DEFAULT_SLOT_DURATION = 20;
@@ -51,7 +52,7 @@ function saveSettings(s: { slotDuration: number; startHour: number; endHour: num
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch {}
 }
 
-export function WorkloadTimeline({ members, tasks, startHour: _startHourProp = 0, workSchedules = [], onRepositionTask, onResizeTask, onClickTask }: Props) {
+export function WorkloadTimeline({ members, tasks, startHour: _startHourProp = 0, workSchedules = [], onRepositionTask, onResizeTask, onClickTask, draggingTask }: Props) {
   const saved = React.useMemo(() => loadSettings(), []);
   const [slotWidth, setSlotWidth] = useState(56);
   const [rowHeight, setRowHeight] = useState(68);
@@ -245,6 +246,26 @@ export function WorkloadTimeline({ members, tasks, startHour: _startHourProp = 0
           {members.length > 0 ? (
             members.map(member => {
             const memberSchedule = workSchedules.find(ws => ws.id === member.work_schedule_id) || null;
+            
+            // Compute ghost preview for this member
+            let ghostPreview: { startSlot: number; slotsNeeded: number; title: string } | null = null;
+            if (draggingTask) {
+              const memberTasks = filteredTasks.filter(t => t.assigned_user_id === member.user_id);
+              let latestEndMin = 0;
+              memberTasks.forEach(task => {
+                if (!task.start_date) return;
+                const taskStart = new Date(task.start_date);
+                const dayStart = new Date(taskStart);
+                dayStart.setHours(effectiveStartHour, 0, 0, 0);
+                const minsFromStart = (taskStart.getTime() - dayStart.getTime()) / 60000;
+                const end = minsFromStart + (task.ai_estimated_minutes || slotDuration);
+                if (end > latestEndMin) latestEndMin = end;
+              });
+              const startSlot = Math.floor(latestEndMin / slotDuration);
+              const slotsNeeded = Math.max(1, Math.ceil((draggingTask.ai_estimated_minutes || 20) / slotDuration));
+              ghostPreview = { startSlot, slotsNeeded, title: draggingTask.title };
+            }
+
             return (
               <TimelineRow
                 key={member.id}
@@ -260,6 +281,7 @@ export function WorkloadTimeline({ members, tasks, startHour: _startHourProp = 0
                 onRepositionTask={onRepositionTask}
                 onResizeTask={onResizeTask}
                 onClickTask={onClickTask}
+                ghostPreview={ghostPreview}
               />
             );
           })

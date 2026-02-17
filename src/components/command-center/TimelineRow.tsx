@@ -4,7 +4,7 @@ import { SquadMember, CommandCenterTask } from "@/hooks/useCommandCenter";
 import { WorkSchedule } from "@/hooks/useWorkSchedules";
 import { TimelineSlot } from "./TimelineSlot";
 import { TimelineTaskCard } from "./TimelineTaskCard";
-import { User } from "lucide-react";
+import { User, Clock } from "lucide-react";
 
 interface Props {
   member: SquadMember;
@@ -19,9 +19,10 @@ interface Props {
   onRepositionTask?: (taskId: string, newStartDate: Date) => void;
   onResizeTask?: (taskId: string, newStartDate: Date, newEstimatedMinutes: number) => void;
   onClickTask?: (task: CommandCenterTask) => void;
+  ghostPreview?: { startSlot: number; slotsNeeded: number; title: string } | null;
 }
 
-export function TimelineRow({ member, tasks, startHour, slotWidth, totalSlots, slotDuration = 20, rowHeight = 52, selectedDate, workSchedule, onRepositionTask, onResizeTask, onClickTask }: Props) {
+export function TimelineRow({ member, tasks, startHour, slotWidth, totalSlots, slotDuration = 20, rowHeight = 52, selectedDate, workSchedule, onRepositionTask, onResizeTask, onClickTask, ghostPreview }: Props) {
   const memberTasks = tasks.filter(t => t.assigned_user_id === member.user_id);
 
   const occupiedSlots = new Set<number>();
@@ -128,6 +129,20 @@ export function TimelineRow({ member, tasks, startHour, slotWidth, totalSlots, s
                 onClickTask={onClickTask}
               />
             ))}
+
+            {/* Ghost preview when dragging from backlog */}
+            {snapshot.isDraggingOver && ghostPreview && (
+              <div
+                className="absolute top-1 h-[calc(100%-8px)] rounded-lg px-2 py-1 flex items-center gap-1 text-xs font-medium bg-primary/10 border-2 border-dashed border-primary/40 text-primary pointer-events-none animate-pulse"
+                style={{
+                  left: `${ghostPreview.startSlot * slotWidth}px`,
+                  width: `${ghostPreview.slotsNeeded * slotWidth}px`,
+                }}
+              >
+                <Clock className="w-3 h-3 flex-shrink-0" />
+                <span className="truncate">{ghostPreview.title}</span>
+              </div>
+            )}
 
             {provided.placeholder}
           </div>
