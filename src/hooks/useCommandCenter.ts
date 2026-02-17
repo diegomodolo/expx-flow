@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/CompanyContext";
 import { useTeams, Team } from "@/hooks/useTeams";
@@ -156,17 +156,22 @@ export function useCommandCenter() {
     fetchTasks();
   }, [fetchTasks]);
 
-  // Realtime subscription
+  // Realtime subscription (debounced to avoid jarring resets during drag-drop)
+  const realtimeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (!selectedTeamId) return;
     const channel = supabase
       .channel(`command-center-${selectedTeamId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "tasks", filter: `team_id=eq.${selectedTeamId}` }, () => {
-        fetchTasks();
+        if (realtimeTimerRef.current) clearTimeout(realtimeTimerRef.current);
+        realtimeTimerRef.current = setTimeout(() => fetchTasks(), 2000);
       })
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      if (realtimeTimerRef.current) clearTimeout(realtimeTimerRef.current);
+      supabase.removeChannel(channel);
+    };
   }, [selectedTeamId, fetchTasks]);
 
   const assignTask = async (taskId: string, userId: string, memberName: string, startDate: Date) => {
@@ -234,8 +239,7 @@ export function useCommandCenter() {
       }
       throw error;
     }
-    // Refetch to ensure full sync
-    fetchTasks();
+    // Realtime subscription handles the sync — no manual refetch needed
   };
 
   const unassignTask = async (taskId: string) => {
