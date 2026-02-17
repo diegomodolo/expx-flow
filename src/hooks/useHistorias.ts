@@ -78,9 +78,7 @@ export function useHistorias() {
         .select(`
           id, title, description, status, priority, deadline, due_date, start_date,
           team_id, related_client_id, responsible_name, responsible_avatar,
-          created_at, updated_at, progress,
-          teams:team_id (name, color),
-          clients:related_client_id (name, avatar)
+          created_at, updated_at, progress
         `)
         .eq("company_id", activeCompany.id)
         .eq("task_type", "História")
@@ -109,24 +107,41 @@ export function useHistorias() {
         return;
       }
 
-      // Fetch subtasks for all historias
+      // Fetch subtasks, teams, and clients in parallel
       const historiaIds = historiasData.map((h: any) => h.id);
-      const { data: subtasksData } = await supabase
-        .from("tasks")
-        .select("id, title, status, priority, responsible_name, deadline, parent_task_id")
-        .in("parent_task_id", historiaIds)
-        .eq("company_id", activeCompany.id);
+      const teamIds = [...new Set(historiasData.map((h: any) => h.team_id).filter(Boolean))];
+      const clientIds = [...new Set(historiasData.map((h: any) => h.related_client_id).filter(Boolean))];
+
+      const [subtasksRes, teamsRes, clientsRes] = await Promise.all([
+        supabase
+          .from("tasks")
+          .select("id, title, status, priority, responsible_name, deadline, parent_task_id")
+          .in("parent_task_id", historiaIds)
+          .eq("company_id", activeCompany.id),
+        teamIds.length > 0
+          ? supabase.from("teams").select("id, name, color").in("id", teamIds)
+          : Promise.resolve({ data: [] }),
+        clientIds.length > 0
+          ? supabase.from("clients").select("id, name, avatar").in("id", clientIds)
+          : Promise.resolve({ data: [] }),
+      ]);
 
       const subtasksByParent: Record<string, Subtask[]> = {};
-      (subtasksData || []).forEach((s: any) => {
+      (subtasksRes.data || []).forEach((s: any) => {
         if (!subtasksByParent[s.parent_task_id]) subtasksByParent[s.parent_task_id] = [];
         subtasksByParent[s.parent_task_id].push(s);
       });
 
+      const teamsMap: Record<string, any> = {};
+      (teamsRes.data || []).forEach((t: any) => { teamsMap[t.id] = t; });
+
+      const clientsMap: Record<string, any> = {};
+      (clientsRes.data || []).forEach((c: any) => { clientsMap[c.id] = c; });
+
       let mapped: Historia[] = historiasData.map((h: any) => {
         const subs = subtasksByParent[h.id] || [];
-        const team = h.teams as any;
-        const client = h.clients as any;
+        const team = teamsMap[h.team_id];
+        const client = clientsMap[h.related_client_id];
         return {
           ...h,
           team_name: team?.name || null,
