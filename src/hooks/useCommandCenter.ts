@@ -167,6 +167,9 @@ export function useCommandCenter() {
   }, [selectedTeamId, fetchTasks]);
 
   const assignTask = async (taskId: string, userId: string, memberName: string, startDate: Date) => {
+    const estimatedMinutes = backlogTasks.find(t => t.id === taskId)?.ai_estimated_minutes || 20;
+    const deadlineDate = new Date(startDate.getTime() + estimatedMinutes * 60000);
+    
     const { error } = await supabase
       .from("tasks")
       .update({
@@ -174,6 +177,9 @@ export function useCommandCenter() {
         responsible_name: memberName,
         start_date: startDate.toISOString(),
         status: "progress" as any,
+        task_state: "execucao" as any,
+        deadline: deadlineDate.toISOString().split('T')[0],
+        due_date: deadlineDate.toISOString(),
       })
       .eq("id", taskId);
     if (error) throw error;
