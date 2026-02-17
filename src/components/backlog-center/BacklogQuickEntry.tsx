@@ -305,7 +305,7 @@ export function BacklogQuickEntry({ clients, companyId }: Props) {
             setTimeout(() => setIsFocused(false), 200);
           }}
           onKeyDown={handleKeyDown}
-          placeholder="Post Black Friday @Cliente #Design /18min — Enter para criar"
+          placeholder="Post Black Friday @Cliente #Design /18min !alta — Enter para criar"
           className="pl-9 pr-20 h-10 text-sm"
           disabled={submitting}
           autoComplete="off"
