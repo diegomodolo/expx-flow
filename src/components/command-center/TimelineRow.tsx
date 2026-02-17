@@ -93,7 +93,7 @@ export function TimelineRow({ member, tasks, startHour, slotWidth, totalSlots, r
           <div
             ref={provided.innerRef}
             {...provided.droppableProps}
-            className="flex-1 flex relative overflow-x-auto"
+            className="flex-1 flex relative"
             style={{ minHeight: `${rowHeight}px` }}
           >
             <div className="flex h-full">

@@ -35,7 +35,7 @@ function formatDateLabel(date: Date): string {
 
 export function WorkloadTimeline({ members, tasks, startHour = 8, workSchedules = [], onRepositionTask, onClickTask }: Props) {
   const [slotWidth, setSlotWidth] = useState(56);
-  const [rowHeight, setRowHeight] = useState(52);
+  const [rowHeight, setRowHeight] = useState(68);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [calendarOpen, setCalendarOpen] = useState(false);
   const resizeRef = useRef<{ startY: number; startHeight: number } | null>(null);
@@ -167,26 +167,6 @@ export function WorkloadTimeline({ members, tasks, startHour = 8, workSchedules 
         </div>
       </div>
 
-      {/* Time ruler */}
-      <div className="flex border-b border-border">
-        <div className="w-48 flex-shrink-0 px-4 py-1">
-          <span className="text-[10px] text-muted-foreground/50">Colaborador</span>
-        </div>
-        <div className="flex-1 flex overflow-x-auto">
-          {Array.from({ length: TOTAL_SLOTS }).map((_, i) => {
-            const totalMinutes = startHour * 60 + i * 18;
-            const h = Math.floor(totalMinutes / 60);
-            const m = totalMinutes % 60;
-            const label = i % 3 === 0 ? `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}` : "";
-            return (
-              <div key={i} className="border-r border-border/50 flex-shrink-0 px-0.5" style={{ width: `${slotWidth}px` }}>
-                {label && <span className="text-[9px] text-muted-foreground/50">{label}</span>}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
       {/* Future date banner */}
       {isFuture && (
         <div className="flex items-center gap-2 px-4 py-2 bg-primary/5 border-b border-primary/10">
@@ -197,10 +177,32 @@ export function WorkloadTimeline({ members, tasks, startHour = 8, workSchedules 
         </div>
       )}
 
-      {/* Member rows - scrollable area */}
-      <div className="flex-1 min-h-0 overflow-y-auto">
-        {members.length > 0 ? (
-          members.map(member => {
+      {/* Scrollable timeline area - single scroll for ruler + all rows */}
+      <div className="flex-1 min-h-0 overflow-auto">
+        <div style={{ minWidth: `${192 + slotWidth * TOTAL_SLOTS}px` }}>
+          {/* Time ruler - sticky top */}
+          <div className="flex border-b border-border sticky top-0 z-10 bg-card">
+            <div className="w-48 flex-shrink-0 px-4 py-1">
+              <span className="text-[10px] text-muted-foreground/50">Colaborador</span>
+            </div>
+            <div className="flex">
+              {Array.from({ length: TOTAL_SLOTS }).map((_, i) => {
+                const totalMinutes = startHour * 60 + i * 18;
+                const h = Math.floor(totalMinutes / 60);
+                const m = totalMinutes % 60;
+                const label = i % 3 === 0 ? `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}` : "";
+                return (
+                  <div key={i} className="border-r border-border/50 flex-shrink-0 px-0.5" style={{ width: `${slotWidth}px` }}>
+                    {label && <span className="text-[9px] text-muted-foreground/50">{label}</span>}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Member rows */}
+          {members.length > 0 ? (
+            members.map(member => {
             const memberSchedule = workSchedules.find(ws => ws.id === member.work_schedule_id) || null;
             return (
               <TimelineRow
@@ -223,6 +225,7 @@ export function WorkloadTimeline({ members, tasks, startHour = 8, workSchedules 
             Nenhum membro na squad selecionada
           </div>
         )}
+        </div>
       </div>
 
       {/* Resize handle */}
