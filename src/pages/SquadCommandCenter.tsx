@@ -287,7 +287,7 @@ export default function SquadCommandCenter() {
           </div>
         ) : activeView === 'backlog' ? (
           <>
-            <div className="mt-4 flex-shrink-0">
+            <div className="flex-shrink-0">
               <BacklogHeader
                 totalStats={backlogCenter.totalStats}
                 squads={backlogCenter.squads}
