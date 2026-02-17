@@ -163,12 +163,11 @@ export default function SquadCommandCenter() {
 
     try {
       await assignTask(draggableId, member.user_id, member.name, startDate);
-      await fetchTasks();
       toast({ title: "Tarefa atribuída", description: `"${task.title}" → ${member.name}` });
     } catch {
       toast({ title: "Erro ao atribuir", variant: "destructive" });
     }
-  }, [backlogTasks, members, findNextFreeSlot, assignTask, toast, fetchTasks, viewDate]);
+  }, [backlogTasks, members, findNextFreeSlot, assignTask, toast, viewDate]);
 
   const handleOverflowConfirm = async () => {
     if (!overflowDialog) return;
@@ -176,7 +175,7 @@ export default function SquadCommandCenter() {
       const task = backlogTasks.find(t => t.id === overflowDialog.taskId);
       const member = members.find(m => m.id === overflowDialog.memberId);
       await assignTask(overflowDialog.taskId, member?.user_id || overflowDialog.memberId, overflowDialog.memberName, overflowDialog.startDate);
-      await fetchTasks();
+      
       toast({ title: "Tarefa atribuída", description: `"${task?.title}" → ${overflowDialog.memberName} (overflow)` });
     } catch {
       toast({ title: "Erro ao atribuir", variant: "destructive" });
@@ -201,11 +200,10 @@ export default function SquadCommandCenter() {
         .eq("id", taskId);
       if (error) throw error;
       toast({ title: "Horário e prazo atualizados" });
-      fetchTasks();
     } catch {
       toast({ title: "Erro ao mover tarefa", variant: "destructive" });
     }
-  }, [fetchTasks, toast, timelineTasks]);
+  }, [toast, timelineTasks]);
 
   const handleResizeTask = useCallback(async (taskId: string, newStartDate: Date, newEstimatedMinutes: number) => {
     try {
@@ -221,22 +219,20 @@ export default function SquadCommandCenter() {
         .eq("id", taskId);
       if (error) throw error;
       toast({ title: `Tarefa ajustada para ${newEstimatedMinutes}min` });
-      fetchTasks();
     } catch {
       toast({ title: "Erro ao redimensionar", variant: "destructive" });
     }
-  }, [fetchTasks, toast]);
+  }, [toast]);
 
   const handleSendToBacklog = useCallback(async (taskId: string) => {
     const task = timelineTasks.find(t => t.id === taskId);
     try {
       await unassignTask(taskId);
-      await fetchTasks();
       toast({ title: "Tarefa devolvida ao backlog", description: `"${task?.title}" removida da timeline` });
     } catch {
       toast({ title: "Erro ao devolver ao backlog", variant: "destructive" });
     }
-  }, [unassignTask, fetchTasks, toast, timelineTasks]);
+  }, [unassignTask, toast, timelineTasks]);
 
   const handleReassignTask = useCallback(async (taskId: string, newUserId: string, newMemberName: string, newStartDate: Date) => {
     const task = timelineTasks.find(t => t.id === taskId);
@@ -255,7 +251,6 @@ export default function SquadCommandCenter() {
         .eq("id", taskId);
       if (error) throw error;
       toast({ title: "Tarefa reatribuída", description: `"${task?.title}" → ${newMemberName}` });
-      fetchTasks();
     } catch {
       toast({ title: "Erro ao reatribuir tarefa", variant: "destructive" });
     }
