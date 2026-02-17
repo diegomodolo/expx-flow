@@ -983,50 +983,40 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                                   >
                                     Nenhuma
                                   </div>
-                                  {categorias
-                                    .filter(c => c.nome.toLowerCase().includes(categoriaSearch.toLowerCase()))
-                                    .map(c => (
-                                      <div
-                                        key={c.id}
-                                        className={`px-2 py-1.5 text-sm cursor-pointer hover:bg-muted ${formData.categoria_id === c.id ? 'bg-primary/10 text-primary' : ''}`}
-                                        onClick={() => { setFormData(prev => ({ ...prev, categoria_id: c.id })); setCategoriaSearch(''); }}
-                                      >
-                                        {c.nome}
-                                      </div>
-                                    ))}
-                                </div>
-                                <div className="p-2 border-t">
-                                  <div className="flex gap-1">
-                                    <Input
-                                      placeholder="Nova categoria..."
-                                      value={newCategoriaName}
-                                      onChange={(e) => setNewCategoriaName(e.target.value)}
-                                      className="h-8 text-sm"
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter' && newCategoriaName.trim()) {
-                                          e.preventDefault();
-                                          createCategoria.mutateAsync(newCategoriaName.trim()).then((created) => {
-                                            if (created) setFormData(prev => ({ ...prev, categoria_id: created.id }));
-                                            setNewCategoriaName('');
-                                          });
-                                        }
-                                      }}
-                                    />
-                                    <Button
-                                      variant="outline"
-                                      size="icon"
-                                      className="h-8 w-8 shrink-0"
-                                      disabled={!newCategoriaName.trim()}
-                                      onClick={() => {
-                                        createCategoria.mutateAsync(newCategoriaName.trim()).then((created) => {
-                                          if (created) setFormData(prev => ({ ...prev, categoria_id: created.id }));
-                                          setNewCategoriaName('');
-                                        });
-                                      }}
-                                    >
-                                      <Plus className="w-4 h-4" />
-                                    </Button>
-                                  </div>
+                                  {(() => {
+                                    const filtered = categorias.filter(c => c.nome.toLowerCase().includes(categoriaSearch.toLowerCase()));
+                                    const exactMatch = categorias.some(c => c.nome.toLowerCase() === categoriaSearch.trim().toLowerCase());
+                                    return (
+                                      <>
+                                        {filtered.map(c => (
+                                          <div
+                                            key={c.id}
+                                            className={`px-2 py-1.5 text-sm cursor-pointer hover:bg-muted ${formData.categoria_id === c.id ? 'bg-primary/10 text-primary' : ''}`}
+                                            onClick={() => { setFormData(prev => ({ ...prev, categoria_id: c.id })); setCategoriaSearch(''); }}
+                                          >
+                                            {c.nome}
+                                          </div>
+                                        ))}
+                                        {categoriaSearch.trim() && !exactMatch && (
+                                          <div
+                                            className="px-2 py-1.5 text-sm cursor-pointer hover:bg-muted flex items-center gap-1.5 text-primary font-medium border-t mt-1 pt-1.5"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              e.preventDefault();
+                                              const name = categoriaSearch.trim();
+                                              createCategoria.mutateAsync(name).then((created) => {
+                                                if (created) setFormData(prev => ({ ...prev, categoria_id: created.id }));
+                                                setCategoriaSearch('');
+                                              });
+                                            }}
+                                          >
+                                            <Plus className="w-3.5 h-3.5" />
+                                            Criar "{categoriaSearch.trim()}"
+                                          </div>
+                                        )}
+                                      </>
+                                    );
+                                  })()}
                                 </div>
                               </PopoverContent>
                             </Popover>
@@ -1058,50 +1048,40 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                                   >
                                     Nenhuma
                                   </div>
-                                  {classificacoes
-                                    .filter(c => c.nome.toLowerCase().includes(classificacaoSearch.toLowerCase()))
-                                    .map(c => (
-                                      <div
-                                        key={c.id}
-                                        className={`px-2 py-1.5 text-sm cursor-pointer hover:bg-muted ${formData.classificacao_id === c.id ? 'bg-primary/10 text-primary' : ''}`}
-                                        onClick={() => { setFormData(prev => ({ ...prev, classificacao_id: c.id })); setClassificacaoSearch(''); }}
-                                      >
-                                        {c.nome}
-                                      </div>
-                                    ))}
-                                </div>
-                                <div className="p-2 border-t">
-                                  <div className="flex gap-1">
-                                    <Input
-                                      placeholder="Nova classificação..."
-                                      value={newClassificacaoName}
-                                      onChange={(e) => setNewClassificacaoName(e.target.value)}
-                                      className="h-8 text-sm"
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter' && newClassificacaoName.trim()) {
-                                          e.preventDefault();
-                                          createClassificacao.mutateAsync(newClassificacaoName.trim()).then((created) => {
-                                            if (created) setFormData(prev => ({ ...prev, classificacao_id: created.id }));
-                                            setNewClassificacaoName('');
-                                          });
-                                        }
-                                      }}
-                                    />
-                                    <Button
-                                      variant="outline"
-                                      size="icon"
-                                      className="h-8 w-8 shrink-0"
-                                      disabled={!newClassificacaoName.trim()}
-                                      onClick={() => {
-                                        createClassificacao.mutateAsync(newClassificacaoName.trim()).then((created) => {
-                                          if (created) setFormData(prev => ({ ...prev, classificacao_id: created.id }));
-                                          setNewClassificacaoName('');
-                                        });
-                                      }}
-                                    >
-                                      <Plus className="w-4 h-4" />
-                                    </Button>
-                                  </div>
+                                  {(() => {
+                                    const filtered = classificacoes.filter(c => c.nome.toLowerCase().includes(classificacaoSearch.toLowerCase()));
+                                    const exactMatch = classificacoes.some(c => c.nome.toLowerCase() === classificacaoSearch.trim().toLowerCase());
+                                    return (
+                                      <>
+                                        {filtered.map(c => (
+                                          <div
+                                            key={c.id}
+                                            className={`px-2 py-1.5 text-sm cursor-pointer hover:bg-muted ${formData.classificacao_id === c.id ? 'bg-primary/10 text-primary' : ''}`}
+                                            onClick={() => { setFormData(prev => ({ ...prev, classificacao_id: c.id })); setClassificacaoSearch(''); }}
+                                          >
+                                            {c.nome}
+                                          </div>
+                                        ))}
+                                        {classificacaoSearch.trim() && !exactMatch && (
+                                          <div
+                                            className="px-2 py-1.5 text-sm cursor-pointer hover:bg-muted flex items-center gap-1.5 text-primary font-medium border-t mt-1 pt-1.5"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              e.preventDefault();
+                                              const name = classificacaoSearch.trim();
+                                              createClassificacao.mutateAsync(name).then((created) => {
+                                                if (created) setFormData(prev => ({ ...prev, classificacao_id: created.id }));
+                                                setClassificacaoSearch('');
+                                              });
+                                            }}
+                                          >
+                                            <Plus className="w-3.5 h-3.5" />
+                                            Criar "{classificacaoSearch.trim()}"
+                                          </div>
+                                        )}
+                                      </>
+                                    );
+                                  })()}
                                 </div>
                               </PopoverContent>
                             </Popover>
