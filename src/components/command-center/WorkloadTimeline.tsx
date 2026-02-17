@@ -1,9 +1,14 @@
 import React, { useState, useCallback, useRef } from "react";
 import { TimelineRow } from "./TimelineRow";
 import { SquadMember, CommandCenterTask } from "@/hooks/useCommandCenter";
-import { Clock, ZoomIn, ZoomOut, GripHorizontal } from "lucide-react";
+import { Clock, ZoomIn, ZoomOut, GripHorizontal, ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { format, addDays, subDays, isToday, isTomorrow, isYesterday } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface Props {
   members: SquadMember[];
@@ -19,9 +24,18 @@ const MAX_SLOT_WIDTH = 120;
 const MIN_ROW_HEIGHT = 44;
 const MAX_ROW_HEIGHT = 120;
 
+function formatDateLabel(date: Date): string {
+  if (isToday(date)) return "Hoje";
+  if (isTomorrow(date)) return "Amanhã";
+  if (isYesterday(date)) return "Ontem";
+  return format(date, "EEE, d 'de' MMM", { locale: ptBR });
+}
+
 export function WorkloadTimeline({ members, tasks, startHour = 8, onRepositionTask, onClickTask }: Props) {
   const [slotWidth, setSlotWidth] = useState(56);
   const [rowHeight, setRowHeight] = useState(52);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const resizeRef = useRef<{ startY: number; startHeight: number } | null>(null);
 
   const handleResizeMouseDown = useCallback((e: React.MouseEvent) => {
@@ -49,12 +63,88 @@ export function WorkloadTimeline({ members, tasks, startHour = 8, onRepositionTa
     window.addEventListener("mouseup", onMouseUp);
   }, [rowHeight, members.length]);
 
+  // Filter tasks by selected date
+  const filteredTasks = tasks.filter(task => {
+    if (!task.start_date) return false;
+    const taskDate = new Date(task.start_date);
+    return (
+      taskDate.getFullYear() === selectedDate.getFullYear() &&
+      taskDate.getMonth() === selectedDate.getMonth() &&
+      taskDate.getDate() === selectedDate.getDate()
+    );
+  });
+
+  const isFuture = !isToday(selectedDate);
+
   return (
     <div className="rounded-2xl bg-card border border-border overflow-hidden flex flex-col">
       {/* Header with controls */}
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-border flex-wrap gap-y-2">
         <Clock className="w-4 h-4 text-primary" />
         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Timeline — 6h</h3>
+
+        {/* Date navigation */}
+        <div className="flex items-center gap-1 ml-4 bg-muted/40 rounded-lg px-1 py-0.5">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6"
+            onClick={() => setSelectedDate(d => subDays(d, 1))}
+          >
+            <ChevronLeft className="w-3.5 h-3.5" />
+          </Button>
+
+          <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  "h-6 px-2 text-xs font-medium gap-1.5 min-w-[110px]",
+                  isFuture && "text-primary"
+                )}
+              >
+                <CalendarDays className="w-3 h-3" />
+                {formatDateLabel(selectedDate)}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={(d) => {
+                  if (d) {
+                    setSelectedDate(d);
+                    setCalendarOpen(false);
+                  }
+                }}
+                initialFocus
+                locale={ptBR}
+                className="p-3 pointer-events-auto"
+              />
+            </PopoverContent>
+          </Popover>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6"
+            onClick={() => setSelectedDate(d => addDays(d, 1))}
+          >
+            <ChevronRight className="w-3.5 h-3.5" />
+          </Button>
+
+          {!isToday(selectedDate) && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 px-2 text-[10px] text-muted-foreground hover:text-foreground"
+              onClick={() => setSelectedDate(new Date())}
+            >
+              Hoje
+            </Button>
+          )}
+        </div>
 
         <div className="ml-auto flex items-center gap-4">
           {/* Slot width control */}
@@ -95,17 +185,28 @@ export function WorkloadTimeline({ members, tasks, startHour = 8, onRepositionTa
         </div>
       </div>
 
+      {/* Future date banner */}
+      {isFuture && (
+        <div className="flex items-center gap-2 px-4 py-2 bg-primary/5 border-b border-primary/10">
+          <CalendarDays className="w-3.5 h-3.5 text-primary" />
+          <span className="text-xs text-primary/80">
+            Visualizando {format(selectedDate, "d 'de' MMMM", { locale: ptBR })} — tarefas agendadas para este dia aparecem na timeline.
+          </span>
+        </div>
+      )}
+
       {/* Member rows */}
       {members.length > 0 ? (
         members.map(member => (
           <TimelineRow
             key={member.id}
             member={member}
-            tasks={tasks}
+            tasks={filteredTasks}
             startHour={startHour}
             slotWidth={slotWidth}
             totalSlots={TOTAL_SLOTS}
             rowHeight={rowHeight}
+            selectedDate={selectedDate}
             onRepositionTask={onRepositionTask}
             onClickTask={onClickTask}
           />

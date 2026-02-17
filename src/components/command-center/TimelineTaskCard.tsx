@@ -8,11 +8,12 @@ interface Props {
   task: CommandCenterTask;
   slotWidth: number;
   startHour: number;
+  selectedDate?: Date;
   onReposition?: (taskId: string, newStartDate: Date) => void;
   onClickTask?: (task: CommandCenterTask) => void;
 }
 
-export function TimelineTaskCard({ task, slotWidth, startHour, onReposition, onClickTask }: Props) {
+export function TimelineTaskCard({ task, slotWidth, startHour, selectedDate, onReposition, onClickTask }: Props) {
   const dragMoved = useRef(false);
   const estimatedMin = task.ai_estimated_minutes || 18;
   const slotsOccupied = Math.max(1, Math.ceil(estimatedMin / 18));
@@ -73,12 +74,12 @@ export function TimelineTaskCard({ task, slotWidth, startHour, onReposition, onC
         const snappedSlot = Math.max(0, Math.round(newLeft / slotWidth));
         const newMinutesFromDayStart = snappedSlot * 18;
 
-        if (taskStart) {
-          const newDate = new Date(taskStart);
-          newDate.setHours(startHour, 0, 0, 0);
-          newDate.setMinutes(newMinutesFromDayStart);
-          onReposition(task.id, newDate);
-        }
+        // Use selectedDate as base date if provided, otherwise fall back to taskStart date
+        const baseDate = selectedDate ? new Date(selectedDate) : (taskStart ? new Date(taskStart) : new Date());
+        const newDate = new Date(baseDate);
+        newDate.setHours(startHour, 0, 0, 0);
+        newDate.setMinutes(newMinutesFromDayStart);
+        onReposition(task.id, newDate);
       }
       dragRef.current = null;
       setDragging(false);
@@ -89,7 +90,7 @@ export function TimelineTaskCard({ task, slotWidth, startHour, onReposition, onC
 
     window.addEventListener("mousemove", onMouseMove);
     window.addEventListener("mouseup", onMouseUp);
-  }, [isDone, onReposition, onClickTask, leftOffset, slotWidth, startHour, taskStart, task]);
+  }, [isDone, onReposition, onClickTask, leftOffset, slotWidth, startHour, taskStart, selectedDate, task]);
 
   const displayLeft = dragLeft !== null ? dragLeft : leftOffset;
 
