@@ -342,9 +342,7 @@ export function useBacklogCommandCenter() {
       const { error } = await (supabase as any)
         .from("tasks")
         .update({ 
-          task_state: "execucao",
-          status: "todo",
-          start_date: new Date().toISOString(),
+          task_state: "planejamento",
         })
         .in("id", taskIds);
       if (error) throw error;
