@@ -30,6 +30,7 @@ const TaskDialogLazy = React.lazy(() => import("./TaskDialog").then(m => ({ defa
 
 interface TaskSubtasksTabProps {
   taskId: string | null;
+  onParentTypeChange?: (type: string) => void;
 }
 
 const PRIORITY_CONFIG: Record<string, { label: string; className: string }> = {
@@ -57,7 +58,7 @@ function formatDate(dateStr: string | null): string {
   }
 }
 
-export function TaskSubtasksTab({ taskId }: TaskSubtasksTabProps) {
+export function TaskSubtasksTab({ taskId, onParentTypeChange }: TaskSubtasksTabProps) {
   const {
     subtasks,
     isLoading,
@@ -79,6 +80,7 @@ export function TaskSubtasksTab({ taskId }: TaskSubtasksTabProps) {
     try {
       const created = await createSubtask.mutateAsync({ title: newTitle.trim() });
       setNewTitle("");
+      onParentTypeChange?.('História');
       // Fetch full task data for the dialog
       const { data } = await supabase.from('tasks').select('*').eq('id', created.id).single();
       if (data) {
@@ -285,9 +287,10 @@ export function TaskSubtasksTab({ taskId }: TaskSubtasksTabProps) {
       <ImportRoteiroDialog
         open={showRoteiroDialog}
         onOpenChange={setShowRoteiroDialog}
-        onImport={(roteiroId) => {
-          importRoteiro.mutate(roteiroId);
+        onImport={async (roteiroId) => {
+          await importRoteiro.mutateAsync(roteiroId);
           setShowRoteiroDialog(false);
+          onParentTypeChange?.('História');
         }}
         isImporting={importRoteiro.isPending}
       />
