@@ -22,6 +22,7 @@ interface Props {
   clients: any[];
   taskToClients: Map<string, string[]>;
   companyId: string | undefined;
+  selectionBar?: React.ReactNode;
 }
 
 export function BacklogBucket({
@@ -34,6 +35,7 @@ export function BacklogBucket({
   clients,
   taskToClients,
   companyId,
+  selectionBar,
 }: Props) {
   const [editingTask, setEditingTask] = useState<any>(null);
   const { updateTask } = useTasks();
@@ -54,6 +56,7 @@ export function BacklogBucket({
 
   return (
     <div className="flex-1 flex flex-col min-w-0 p-4 gap-4">
+      {selectionBar}
       <div className="flex-1 min-h-0 rounded-lg border bg-card shadow-sm overflow-hidden">
         <ScrollArea className="h-full">
         {tasks.length === 0 ? (
