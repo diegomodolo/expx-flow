@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { useCompany } from "@/contexts/CompanyContext";
 import { useToast } from "@/hooks/use-toast";
+import { sendDiscordTaskNotification } from "@/hooks/useDiscordNotifications";
 
 export interface Task {
   id: string;
@@ -148,7 +149,7 @@ export function useTasks() {
         .from("tasks")
         .insert([{
           ...taskData,
-          user_id: taskData.user_id || user.id, // Usar o user_id do responsável, ou fallback para o usuário logado
+          user_id: taskData.user_id || user.id,
           company_id: activeCompany.company_id,
         }])
         .select()
@@ -157,7 +158,7 @@ export function useTasks() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['board-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['task-stats'] });
@@ -165,6 +166,17 @@ export function useTasks() {
         title: "Tarefa criada",
         description: "Tarefa criada com sucesso.",
       });
+
+      // Fire-and-forget Discord notification
+      if (activeCompany?.company_id && data) {
+        sendDiscordTaskNotification(activeCompany.company_id, "task_created", {
+          title: data.title,
+          responsible_name: data.responsible_name,
+          priority: data.priority,
+          due_date: data.due_date || data.deadline,
+          team_id: data.team_id,
+        });
+      }
     },
     onError: (error) => {
       console.error('Error creating task:', error);
