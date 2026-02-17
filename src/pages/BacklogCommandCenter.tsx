@@ -5,6 +5,7 @@ import { BacklogHeader } from "@/components/backlog-center/BacklogHeader";
 import { BacklogClientSidebar } from "@/components/backlog-center/BacklogClientSidebar";
 import { BacklogBucket } from "@/components/backlog-center/BacklogBucket";
 import { BacklogFooterBar } from "@/components/backlog-center/BacklogFooterBar";
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { useState } from "react";
 
 export default function BacklogCommandCenterPage() {
@@ -56,38 +57,40 @@ export default function BacklogCommandCenterPage() {
         />
 
         {/* Main content: Sidebar + Bucket */}
-        <div className="flex flex-1 min-h-0">
-          {/* Zone A: Client Sidebar */}
-          <BacklogClientSidebar
-            clients={backlogClients}
-            selectedClientId={selectedClientId}
-            onSelectClient={setSelectedClientId}
-            totalStats={totalStats}
-          />
-
-          {/* Zone B: Bucket */}
-          <BacklogBucket
-            tasks={filteredTasks}
-            loading={tasksLoading}
-            selectedTaskIds={selectedTaskIds}
-            onToggleTask={toggleTaskSelection}
-            getReadiness={getReadiness}
-            getAgingHours={getAgingHours}
-            clients={clients}
-            taskToClients={taskToClients}
-            companyId={activeCompany?.company_id}
-            subtasksByParent={subtasksByParent}
-            selectionBar={
-              <BacklogFooterBar
-                selectionStats={selectionStats}
-                onRelease={handleRelease}
-                onClear={clearSelection}
-                onSelectAll={selectAll}
-                releasing={releasing}
-              />
-            }
-          />
-        </div>
+        <ResizablePanelGroup direction="horizontal" autoSaveId="backlog-panels" className="flex flex-1 min-h-0">
+          <ResizablePanel defaultSize={25} minSize={15} maxSize={40}>
+            <BacklogClientSidebar
+              clients={backlogClients}
+              selectedClientId={selectedClientId}
+              onSelectClient={setSelectedClientId}
+              totalStats={totalStats}
+            />
+          </ResizablePanel>
+          <ResizableHandle withHandle />
+          <ResizablePanel defaultSize={75}>
+            <BacklogBucket
+              tasks={filteredTasks}
+              loading={tasksLoading}
+              selectedTaskIds={selectedTaskIds}
+              onToggleTask={toggleTaskSelection}
+              getReadiness={getReadiness}
+              getAgingHours={getAgingHours}
+              clients={clients}
+              taskToClients={taskToClients}
+              companyId={activeCompany?.company_id}
+              subtasksByParent={subtasksByParent}
+              selectionBar={
+                <BacklogFooterBar
+                  selectionStats={selectionStats}
+                  onRelease={handleRelease}
+                  onClear={clearSelection}
+                  onSelectAll={selectAll}
+                  releasing={releasing}
+                />
+              }
+            />
+          </ResizablePanel>
+        </ResizablePanelGroup>
       </div>
     </DashboardLayout>
   );

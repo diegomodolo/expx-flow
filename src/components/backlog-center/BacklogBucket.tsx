@@ -226,7 +226,7 @@ export function BacklogBucket({
   return (
     <div className="flex-1 flex flex-col min-w-0 p-4 gap-4">
       {selectionBar}
-      <div className="flex-1 min-h-0 rounded-lg border bg-card shadow-sm overflow-hidden">
+      <div className="flex-1 min-h-0 border bg-card shadow-sm overflow-hidden">
         <ScrollArea className="h-full">
         {tasks.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">

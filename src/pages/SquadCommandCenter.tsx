@@ -15,6 +15,7 @@ import { BacklogHeader } from "@/components/backlog-center/BacklogHeader";
 import { BacklogClientSidebar } from "@/components/backlog-center/BacklogClientSidebar";
 import { BacklogBucket } from "@/components/backlog-center/BacklogBucket";
 import { BacklogFooterBar } from "@/components/backlog-center/BacklogFooterBar";
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { Radar, Loader2, Inbox } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -294,35 +295,40 @@ export default function SquadCommandCenter() {
                 onSquadChange={handleSquadChange}
               />
             </div>
-            <div className="flex flex-1 min-h-0">
-              <BacklogClientSidebar
-                clients={backlogCenter.backlogClients}
-                selectedClientId={backlogCenter.selectedClientId}
-                onSelectClient={backlogCenter.setSelectedClientId}
-                totalStats={backlogCenter.totalStats}
-              />
-              <BacklogBucket
-                tasks={backlogCenter.filteredTasks}
-                loading={backlogCenter.tasksLoading}
-                selectedTaskIds={backlogCenter.selectedTaskIds}
-                onToggleTask={backlogCenter.toggleTaskSelection}
-                getReadiness={backlogCenter.getReadiness}
-                getAgingHours={backlogCenter.getAgingHours}
-                clients={backlogCenter.clients}
-                taskToClients={backlogCenter.taskToClients}
-                companyId={activeCompany?.company_id}
-                subtasksByParent={backlogCenter.subtasksByParent}
-                selectionBar={
-                  <BacklogFooterBar
-                    selectionStats={backlogCenter.selectionStats}
-                    onRelease={handleRelease}
-                    onClear={backlogCenter.clearSelection}
-                    onSelectAll={backlogCenter.selectAll}
-                    releasing={releasing}
-                  />
-                }
-              />
-            </div>
+            <ResizablePanelGroup direction="horizontal" autoSaveId="backlog-panels" className="flex flex-1 min-h-0">
+              <ResizablePanel defaultSize={25} minSize={15} maxSize={40}>
+                <BacklogClientSidebar
+                  clients={backlogCenter.backlogClients}
+                  selectedClientId={backlogCenter.selectedClientId}
+                  onSelectClient={backlogCenter.setSelectedClientId}
+                  totalStats={backlogCenter.totalStats}
+                />
+              </ResizablePanel>
+              <ResizableHandle withHandle />
+              <ResizablePanel defaultSize={75}>
+                <BacklogBucket
+                  tasks={backlogCenter.filteredTasks}
+                  loading={backlogCenter.tasksLoading}
+                  selectedTaskIds={backlogCenter.selectedTaskIds}
+                  onToggleTask={backlogCenter.toggleTaskSelection}
+                  getReadiness={backlogCenter.getReadiness}
+                  getAgingHours={backlogCenter.getAgingHours}
+                  clients={backlogCenter.clients}
+                  taskToClients={backlogCenter.taskToClients}
+                  companyId={activeCompany?.company_id}
+                  subtasksByParent={backlogCenter.subtasksByParent}
+                  selectionBar={
+                    <BacklogFooterBar
+                      selectionStats={backlogCenter.selectionStats}
+                      onRelease={handleRelease}
+                      onClear={backlogCenter.clearSelection}
+                      onSelectAll={backlogCenter.selectAll}
+                      releasing={releasing}
+                    />
+                  }
+                />
+              </ResizablePanel>
+            </ResizablePanelGroup>
           </>
         ) : (
           <DragDropContext onDragEnd={handleDragEnd}>
