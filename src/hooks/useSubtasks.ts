@@ -91,10 +91,14 @@ export function useSubtasks(parentTaskId: string | null) {
         .select()
         .single();
       if (error) throw error;
+      // Ensure parent becomes História
+      await supabase.from('tasks').update({ task_type: 'História' }).eq('id', parentTaskId);
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['subtasks', parentTaskId] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['board-tasks'] });
       toast.success('Subtarefa criada!');
     },
     onError: () => toast.error('Erro ao criar subtarefa'),
@@ -144,9 +148,15 @@ export function useSubtasks(parentTaskId: string | null) {
 
       const { error: insertError } = await supabase.from('tasks').insert(rows);
       if (insertError) throw insertError;
+
+      // Ensure parent is marked as História (belt-and-suspenders with DB trigger)
+      await supabase.from('tasks').update({ task_type: 'História' }).eq('id', parentTaskId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['subtasks', parentTaskId] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['board-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['backlog-center-tasks'] });
       toast.success('Roteiro importado com sucesso!');
     },
     onError: (e: any) => toast.error(e?.message || 'Erro ao importar roteiro'),
