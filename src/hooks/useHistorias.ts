@@ -62,7 +62,7 @@ export function useHistorias() {
     const { data } = await supabase
       .from("teams")
       .select("id, name, color")
-      .eq("company_id", activeCompany.id)
+      .eq("company_id", activeCompany.company_id)
       .order("name");
     if (data) setTeams(data);
   }, [activeCompany]);
@@ -80,7 +80,7 @@ export function useHistorias() {
           team_id, related_client_id, responsible_name, responsible_avatar,
           created_at, updated_at, progress
         `)
-        .eq("company_id", activeCompany.id)
+        .eq("company_id", activeCompany.company_id)
         .eq("task_type", "História")
         .is("parent_task_id", null);
 
@@ -117,7 +117,7 @@ export function useHistorias() {
           .from("tasks")
           .select("id, title, status, priority, responsible_name, deadline, parent_task_id")
           .in("parent_task_id", historiaIds)
-          .eq("company_id", activeCompany.id),
+          .eq("company_id", activeCompany.company_id),
         teamIds.length > 0
           ? supabase.from("teams").select("id, name, color").in("id", teamIds)
           : Promise.resolve({ data: [] }),
