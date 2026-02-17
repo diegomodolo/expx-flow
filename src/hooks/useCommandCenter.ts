@@ -65,7 +65,7 @@ export function useCommandCenter() {
       const todayStart = startOfDay(today).toISOString();
       const todayEnd = endOfDay(today).toISOString();
 
-      // Backlog: tasks with status 'todo' and no start_date
+      // Backlog: tasks with status 'todo' and no start_date, excluding tasks still in backlog state
       const { data: backlog } = await supabase
         .from("tasks")
         .select("*")
@@ -73,6 +73,7 @@ export function useCommandCenter() {
         .eq("company_id", activeCompany.company_id)
         .eq("status", "todo")
         .is("start_date", null)
+        .neq("task_state", "backlog")
         .order("created_at", { ascending: true });
 
       // Timeline: tasks with start_date today
