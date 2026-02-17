@@ -1,5 +1,6 @@
 import React, { useCallback } from "react";
 import { DragDropContext, DropResult } from "react-beautiful-dnd";
+import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { CommandCenterHeader } from "@/components/command-center/CommandCenterHeader";
 import { SquadSelector } from "@/components/command-center/SquadSelector";
@@ -124,6 +125,20 @@ export default function SquadCommandCenter() {
     setOverflowDialog(null);
   };
 
+  const handleRepositionTask = useCallback(async (taskId: string, newStartDate: Date) => {
+    try {
+      const { error } = await supabase
+        .from("tasks")
+        .update({ start_date: newStartDate.toISOString() })
+        .eq("id", taskId);
+      if (error) throw error;
+      toast({ title: "Horário atualizado" });
+      fetchTasks();
+    } catch {
+      toast({ title: "Erro ao mover tarefa", variant: "destructive" });
+    }
+  }, [fetchTasks, toast]);
+
   const metrics = getTodayMetrics();
 
   return (
@@ -171,6 +186,7 @@ export default function SquadCommandCenter() {
                   members={members}
                   tasks={timelineTasks}
                   startHour={START_HOUR}
+                  onRepositionTask={handleRepositionTask}
                 />
               </div>
             </div>

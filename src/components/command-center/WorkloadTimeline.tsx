@@ -9,6 +9,7 @@ interface Props {
   members: SquadMember[];
   tasks: CommandCenterTask[];
   startHour?: number;
+  onRepositionTask?: (taskId: string, newStartDate: Date) => void;
 }
 
 const TOTAL_SLOTS = 20;
@@ -17,7 +18,7 @@ const MAX_SLOT_WIDTH = 120;
 const MIN_ROW_HEIGHT = 44;
 const MAX_ROW_HEIGHT = 120;
 
-export function WorkloadTimeline({ members, tasks, startHour = 8 }: Props) {
+export function WorkloadTimeline({ members, tasks, startHour = 8, onRepositionTask }: Props) {
   const [slotWidth, setSlotWidth] = useState(56);
   const [rowHeight, setRowHeight] = useState(52);
   const resizeRef = useRef<{ startY: number; startHeight: number } | null>(null);
@@ -104,6 +105,7 @@ export function WorkloadTimeline({ members, tasks, startHour = 8 }: Props) {
             slotWidth={slotWidth}
             totalSlots={TOTAL_SLOTS}
             rowHeight={rowHeight}
+            onRepositionTask={onRepositionTask}
           />
         ))
       ) : (
