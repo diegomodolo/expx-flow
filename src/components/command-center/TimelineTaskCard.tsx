@@ -75,8 +75,14 @@ export function TimelineTaskCard({ task, slotWidth, slotDuration = 20, startHour
       if (Math.abs(dx) > 4 || Math.abs(dy) > 4) dragMoved.current = true;
       if (!dragMoved.current || isDone) return;
       const newLeft = dragRef.current.startLeft + dx;
-      // Detect drag far left → return to backlog
-      if (newLeft < -100 && onSendToBacklog) {
+      // Detect backlog: check if cursor is over the backlog column
+      const card = cardRef.current;
+      if (card) card.style.pointerEvents = 'none';
+      const elementsAtCursor = document.elementsFromPoint(ev.clientX, ev.clientY);
+      if (card) card.style.pointerEvents = '';
+      const overBacklog = elementsAtCursor.some(el => el.closest('[data-backlog-column]'));
+      
+      if (overBacklog && onSendToBacklog) {
         setReturningToBacklog(true);
         setTargetMemberName(null);
       } else {
@@ -112,16 +118,18 @@ export function TimelineTaskCard({ task, slotWidth, slotDuration = 20, startHour
       } else if (dragRef.current && !isDone) {
         const dx = ev.clientX - dragRef.current.startX;
         const newLeft = dragRef.current.startLeft + dx;
-        // If dragged far left, send to backlog
-        if (newLeft < -100 && onSendToBacklog) {
+        // Check if dropped over backlog column
+        const card = cardRef.current;
+        if (card) card.style.pointerEvents = 'none';
+        const dropElements = document.elementsFromPoint(ev.clientX, ev.clientY);
+        if (card) card.style.pointerEvents = '';
+        const droppedOnBacklog = dropElements.some(el => el.closest('[data-backlog-column]'));
+        
+        if (droppedOnBacklog && onSendToBacklog) {
           onSendToBacklog(task.id);
         } else {
-          // Check if dropped on a different member row - hide card to see row beneath
-          const card = cardRef.current;
-          if (card) card.style.pointerEvents = 'none';
-          const elementsUnder = document.elementsFromPoint(ev.clientX, ev.clientY);
-          if (card) card.style.pointerEvents = '';
-          const targetRow = elementsUnder.find(el => el.closest('[data-member-user-id]'))?.closest('[data-member-user-id]') as HTMLElement | null;
+          // Check if dropped on a different member row - reuse elementsFromPoint from above
+          const targetRow = dropElements.find(el => el.closest('[data-member-user-id]'))?.closest('[data-member-user-id]') as HTMLElement | null;
           const targetUserId = targetRow?.getAttribute('data-member-user-id');
           const targetName = targetRow?.getAttribute('data-member-name');
           const isNewMember = targetUserId && targetUserId !== task.assigned_user_id;
