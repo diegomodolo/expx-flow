@@ -26,6 +26,7 @@ export interface CommandCenterTask {
   created_at: string;
   task_type: string;
   progress: number;
+  parent_task_id: string | null;
   clients?: TaskClient[];
 }
 
