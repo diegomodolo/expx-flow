@@ -1000,6 +1000,10 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                                         {categoriaSearch.trim() && !exactMatch && (
                                           <div
                                             className="px-2 py-1.5 text-sm cursor-pointer hover:bg-muted flex items-center gap-1.5 text-primary font-medium border-t mt-1 pt-1.5"
+                                            onMouseDown={(e) => {
+                                              e.stopPropagation();
+                                              e.preventDefault();
+                                            }}
                                             onClick={(e) => {
                                               e.stopPropagation();
                                               e.preventDefault();
@@ -1065,6 +1069,10 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                                         {classificacaoSearch.trim() && !exactMatch && (
                                           <div
                                             className="px-2 py-1.5 text-sm cursor-pointer hover:bg-muted flex items-center gap-1.5 text-primary font-medium border-t mt-1 pt-1.5"
+                                            onMouseDown={(e) => {
+                                              e.stopPropagation();
+                                              e.preventDefault();
+                                            }}
                                             onClick={(e) => {
                                               e.stopPropagation();
                                               e.preventDefault();
