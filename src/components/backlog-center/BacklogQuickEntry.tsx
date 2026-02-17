@@ -90,6 +90,14 @@ export function BacklogQuickEntry({ clients, companyId }: Props) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  // Sync cursor position after every render when value changes
+  useEffect(() => {
+    const el = inputRef.current;
+    if (el && document.activeElement === el) {
+      setCursorPos(el.selectionStart ?? value.length);
+    }
+  }, [value]);
+
   const activeToken = useMemo(() => getActiveToken(value, cursorPos), [value, cursorPos]);
 
   const suggestions = useMemo(() => {
@@ -246,15 +254,25 @@ export function BacklogQuickEntry({ clients, companyId }: Props) {
           ref={inputRef}
           value={value}
           onChange={(e) => {
-            setValue(e.target.value);
-            setCursorPos(e.target.selectionStart ?? e.target.value.length);
+            const newVal = e.target.value;
+            const pos = e.target.selectionStart ?? newVal.length;
+            setValue(newVal);
+            // Use requestAnimationFrame to ensure cursor position is read after React updates
+            requestAnimationFrame(() => {
+              const el = inputRef.current;
+              if (el) setCursorPos(el.selectionStart ?? pos);
+            });
+          }}
+          onKeyUp={(e) => {
+            // Always sync cursor after any keypress
+            const el = e.target as HTMLInputElement;
+            setCursorPos(el.selectionStart ?? 0);
           }}
           onClick={(e) => {
             setCursorPos((e.target as HTMLInputElement).selectionStart ?? 0);
           }}
           onFocus={() => setIsFocused(true)}
           onBlur={() => {
-            // Small delay to allow clicking on suggestions
             setTimeout(() => setIsFocused(false), 200);
           }}
           onKeyDown={handleKeyDown}
