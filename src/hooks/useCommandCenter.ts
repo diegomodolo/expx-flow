@@ -199,8 +199,11 @@ export function useCommandCenter() {
         responsible_name: memberName,
         start_date: startDate.toISOString(),
         status: "todo",
+        task_state: "execucao",
         deadline: deadlineDate.toISOString().split('T')[0],
-      };
+        due_date: deadlineDate.toISOString(),
+        quadro_column_id: boardColumnId,
+      } as any;
       setBacklogTasks(prev => prev.filter(t => t.id !== taskId));
       setTimelineTasks(prev => [...prev, updatedTask].sort((a, b) => (a.start_date || '').localeCompare(b.start_date || '')));
     }
@@ -224,13 +227,14 @@ export function useCommandCenter() {
       .update(updatePayload)
       .eq("id", taskId);
     if (error) {
-      // Rollback on error
       if (task) {
         setTimelineTasks(prev => prev.filter(t => t.id !== taskId));
         setBacklogTasks(prev => [...prev, task]);
       }
       throw error;
     }
+    // Refetch to ensure full sync
+    fetchTasks();
   };
 
   const unassignTask = async (taskId: string) => {
@@ -241,9 +245,13 @@ export function useCommandCenter() {
       const updatedTask: CommandCenterTask = {
         ...task,
         assigned_user_id: null,
+        responsible_name: '',
         start_date: null,
         status: "todo",
-      };
+        task_state: "planejamento",
+        due_date: null,
+        quadro_column_id: null,
+      } as any;
       setTimelineTasks(prev => prev.filter(t => t.id !== taskId));
       setBacklogTasks(prev => [...prev, updatedTask]);
     }
@@ -261,13 +269,13 @@ export function useCommandCenter() {
       } as any)
       .eq("id", taskId);
     if (error) {
-      // Rollback
       if (task) {
         setBacklogTasks(prev => prev.filter(t => t.id !== taskId));
         setTimelineTasks(prev => [...prev, task]);
       }
       throw error;
     }
+    fetchTasks();
   };
 
   const getAgingHours = (createdAt: string) => {
