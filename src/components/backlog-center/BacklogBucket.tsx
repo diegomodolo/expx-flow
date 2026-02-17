@@ -169,6 +169,22 @@ export function BacklogBucket({
               </Badge>
             )}
           </TableCell>
+          <TableCell>
+            <span className={cn(
+              "inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full",
+              task.task_state === 'backlog' && "bg-muted text-muted-foreground",
+              task.task_state === 'planejamento' && "bg-amber-500/15 text-amber-600 dark:text-amber-400",
+              task.task_state === 'execucao' && "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
+            )}>
+              <span className={cn(
+                "h-1.5 w-1.5 rounded-full",
+                task.task_state === 'backlog' && "bg-muted-foreground",
+                task.task_state === 'planejamento' && "bg-amber-500",
+                task.task_state === 'execucao' && "bg-emerald-500",
+              )} />
+              {task.task_state === 'backlog' ? 'Backlog' : task.task_state === 'planejamento' ? 'Planejamento' : 'Execução'}
+            </span>
+          </TableCell>
           <TableCell className="text-right">
             <span className="text-xs text-muted-foreground flex items-center justify-end gap-1">
               <Clock className="w-3 h-3" />
@@ -226,6 +242,7 @@ export function BacklogBucket({
                 <TableHead className="w-[140px]">Cliente</TableHead>
                 <TableHead className="w-[100px]">Prioridade</TableHead>
                 <TableHead className="w-[80px]">Tipo</TableHead>
+                <TableHead className="w-[90px]">Estado</TableHead>
                 <TableHead className="w-[80px] text-right">Tempo</TableHead>
                 <TableHead className="w-[100px] text-right">No backlog</TableHead>
                 <TableHead className="w-[50px]"></TableHead>
