@@ -338,29 +338,31 @@ export default function SquadCommandCenter() {
             </div>
 
             {/* Main layout: Backlog + Timeline */}
-            <div className="flex gap-4 flex-1 min-h-0">
-              {/* Backlog column */}
-              <div className="w-72 flex-shrink-0 rounded-2xl bg-card border border-border overflow-hidden flex flex-col">
-                <BacklogColumn
-                  tasks={backlogTasks}
-                  getAgingHours={getAgingHours}
-                  teamColor={selectedTeam?.color}
-                />
-              </div>
-
-              {/* Timeline */}
-              <div className="flex-1 min-w-0 overflow-auto flex flex-col">
-                <WorkloadTimeline
-                  members={members}
-                  tasks={timelineTasks}
-                  startHour={START_HOUR}
-                  workSchedules={workSchedules}
-                  onRepositionTask={handleRepositionTask}
-                  onResizeTask={handleResizeTask}
-                  onClickTask={(task) => { setEditingTask(task); setTaskDialogOpen(true); }}
-                />
-              </div>
-            </div>
+            <ResizablePanelGroup direction="horizontal" autoSaveId="command-center-panels" className="flex gap-0 flex-1 min-h-0">
+              <ResizablePanel defaultSize={20} minSize={12} maxSize={35}>
+                <div className="bg-card border border-border overflow-hidden flex flex-col h-full">
+                  <BacklogColumn
+                    tasks={backlogTasks}
+                    getAgingHours={getAgingHours}
+                    teamColor={selectedTeam?.color}
+                  />
+                </div>
+              </ResizablePanel>
+              <ResizableHandle withHandle />
+              <ResizablePanel defaultSize={80}>
+                <div className="flex-1 min-w-0 overflow-auto flex flex-col h-full">
+                  <WorkloadTimeline
+                    members={members}
+                    tasks={timelineTasks}
+                    startHour={START_HOUR}
+                    workSchedules={workSchedules}
+                    onRepositionTask={handleRepositionTask}
+                    onResizeTask={handleResizeTask}
+                    onClickTask={(task) => { setEditingTask(task); setTaskDialogOpen(true); }}
+                  />
+                </div>
+              </ResizablePanel>
+            </ResizablePanelGroup>
           </DragDropContext>
         )}
 
