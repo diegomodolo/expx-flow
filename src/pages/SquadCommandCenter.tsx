@@ -9,8 +9,16 @@ import { WorkloadTimeline } from "@/components/command-center/WorkloadTimeline";
 import { TaskDialog } from "@/components/tasks/TaskDialog";
 import { useCommandCenter, SquadMember, CommandCenterTask } from "@/hooks/useCommandCenter";
 import { useWorkSchedules } from "@/hooks/useWorkSchedules";
-import { Radar, Loader2 } from "lucide-react";
+import { useBacklogCommandCenter } from "@/hooks/useBacklogCommandCenter";
+import { useCompany } from "@/contexts/CompanyContext";
+import { BacklogHeader } from "@/components/backlog-center/BacklogHeader";
+import { BacklogClientSidebar } from "@/components/backlog-center/BacklogClientSidebar";
+import { BacklogBucket } from "@/components/backlog-center/BacklogBucket";
+import { BacklogFooterBar } from "@/components/backlog-center/BacklogFooterBar";
+import { Radar, Loader2, Inbox } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -45,12 +53,28 @@ export default function SquadCommandCenter() {
   const { toast } = useToast();
   const [editingTask, setEditingTask] = useState<CommandCenterTask | null>(null);
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+  const [activeView, setActiveView] = useState<'timeline' | 'backlog'>('timeline');
   const [overflowDialog, setOverflowDialog] = React.useState<{
     taskId: string;
     memberId: string;
     memberName: string;
     startDate: Date;
   } | null>(null);
+
+  // Backlog center hooks
+  const { activeCompany } = useCompany();
+  const backlogCenter = useBacklogCommandCenter();
+  const [releasing, setReleasing] = useState(false);
+
+  const handleRelease = async () => {
+    if (backlogCenter.selectedTaskIds.size === 0) return;
+    setReleasing(true);
+    try {
+      await backlogCenter.releaseToLeaders(Array.from(backlogCenter.selectedTaskIds));
+    } finally {
+      setReleasing(false);
+    }
+  };
 
   const members: SquadMember[] = (selectedTeam?.members || []).map(m => ({
     ...m,
@@ -220,18 +244,69 @@ export default function SquadCommandCenter() {
             <Radar className="w-6 h-6 text-primary" />
             <h1 className="text-xl font-bold text-foreground tracking-tight">Command Center</h1>
           </div>
-          <SquadSelector
-            teams={teams}
-            selectedTeamId={selectedTeamId}
-            onSelect={setSelectedTeamId}
-            loading={teamsLoading}
-          />
+          <div className="flex items-center gap-3">
+            <Button
+              variant={activeView === 'backlog' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setActiveView(activeView === 'backlog' ? 'timeline' : 'backlog')}
+              className="gap-2"
+            >
+              <Inbox className="w-4 h-4" />
+              {activeView === 'backlog' ? 'Voltar à Timeline' : 'Backlog'}
+            </Button>
+            <SquadSelector
+              teams={teams}
+              selectedTeamId={selectedTeamId}
+              onSelect={setSelectedTeamId}
+              loading={teamsLoading}
+            />
+          </div>
         </div>
 
         {loading || teamsLoading ? (
           <div className="flex items-center justify-center py-32">
-            <Loader2 className="w-8 h-8 text-cyan-400 animate-spin" />
+            <Loader2 className="w-8 h-8 text-primary animate-spin" />
           </div>
+        ) : activeView === 'backlog' ? (
+          <>
+            <div className="mt-4 flex-shrink-0">
+              <BacklogHeader
+                totalStats={backlogCenter.totalStats}
+                squads={backlogCenter.squads}
+                selectedSquadId={backlogCenter.selectedSquadId}
+                onSquadChange={backlogCenter.setSelectedSquadId}
+              />
+            </div>
+            <div className="flex flex-1 min-h-0">
+              <BacklogClientSidebar
+                clients={backlogCenter.backlogClients}
+                selectedClientId={backlogCenter.selectedClientId}
+                onSelectClient={backlogCenter.setSelectedClientId}
+                totalStats={backlogCenter.totalStats}
+              />
+              <BacklogBucket
+                tasks={backlogCenter.filteredTasks}
+                loading={backlogCenter.tasksLoading}
+                selectedTaskIds={backlogCenter.selectedTaskIds}
+                onToggleTask={backlogCenter.toggleTaskSelection}
+                getReadiness={backlogCenter.getReadiness}
+                getAgingHours={backlogCenter.getAgingHours}
+                clients={backlogCenter.clients}
+                taskToClients={backlogCenter.taskToClients}
+                companyId={activeCompany?.company_id}
+                subtasksByParent={backlogCenter.subtasksByParent}
+                selectionBar={
+                  <BacklogFooterBar
+                    selectionStats={backlogCenter.selectionStats}
+                    onRelease={handleRelease}
+                    onClear={backlogCenter.clearSelection}
+                    onSelectAll={backlogCenter.selectAll}
+                    releasing={releasing}
+                  />
+                }
+              />
+            </div>
+          </>
         ) : (
           <DragDropContext onDragEnd={handleDragEnd}>
             {/* Header metrics */}
