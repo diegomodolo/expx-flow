@@ -8,6 +8,7 @@ import { BacklogColumn } from "@/components/command-center/BacklogColumn";
 import { WorkloadTimeline } from "@/components/command-center/WorkloadTimeline";
 import { TaskDialog } from "@/components/tasks/TaskDialog";
 import { useCommandCenter, SquadMember, CommandCenterTask } from "@/hooks/useCommandCenter";
+import { useWorkSchedules } from "@/hooks/useWorkSchedules";
 import { Radar, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -40,6 +41,7 @@ export default function SquadCommandCenter() {
     fetchTasks,
   } = useCommandCenter();
 
+  const { schedules: workSchedules } = useWorkSchedules();
   const { toast } = useToast();
   const [editingTask, setEditingTask] = useState<CommandCenterTask | null>(null);
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
@@ -189,6 +191,7 @@ export default function SquadCommandCenter() {
                   members={members}
                   tasks={timelineTasks}
                   startHour={START_HOUR}
+                  workSchedules={workSchedules}
                   onRepositionTask={handleRepositionTask}
                   onClickTask={(task) => { setEditingTask(task); setTaskDialogOpen(true); }}
                 />

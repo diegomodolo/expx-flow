@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useRef } from "react";
 import { TimelineRow } from "./TimelineRow";
 import { SquadMember, CommandCenterTask } from "@/hooks/useCommandCenter";
+import { WorkSchedule } from "@/hooks/useWorkSchedules";
 import { Clock, ZoomIn, ZoomOut, GripHorizontal, ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,7 @@ interface Props {
   members: SquadMember[];
   tasks: CommandCenterTask[];
   startHour?: number;
+  workSchedules?: WorkSchedule[];
   onRepositionTask?: (taskId: string, newStartDate: Date) => void;
   onClickTask?: (task: CommandCenterTask) => void;
 }
@@ -31,7 +33,7 @@ function formatDateLabel(date: Date): string {
   return format(date, "EEE, d 'de' MMM", { locale: ptBR });
 }
 
-export function WorkloadTimeline({ members, tasks, startHour = 8, onRepositionTask, onClickTask }: Props) {
+export function WorkloadTimeline({ members, tasks, startHour = 8, workSchedules = [], onRepositionTask, onClickTask }: Props) {
   const [slotWidth, setSlotWidth] = useState(56);
   const [rowHeight, setRowHeight] = useState(52);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -198,20 +200,24 @@ export function WorkloadTimeline({ members, tasks, startHour = 8, onRepositionTa
       {/* Member rows - scrollable area */}
       <div className="flex-1 min-h-0 overflow-y-auto">
         {members.length > 0 ? (
-          members.map(member => (
-            <TimelineRow
-              key={member.id}
-              member={member}
-              tasks={filteredTasks}
-              startHour={startHour}
-              slotWidth={slotWidth}
-              totalSlots={TOTAL_SLOTS}
-              rowHeight={rowHeight}
-              selectedDate={selectedDate}
-              onRepositionTask={onRepositionTask}
-              onClickTask={onClickTask}
-            />
-          ))
+          members.map(member => {
+            const memberSchedule = workSchedules.find(ws => ws.id === member.work_schedule_id) || null;
+            return (
+              <TimelineRow
+                key={member.id}
+                member={member}
+                tasks={filteredTasks}
+                startHour={startHour}
+                slotWidth={slotWidth}
+                totalSlots={TOTAL_SLOTS}
+                rowHeight={rowHeight}
+                selectedDate={selectedDate}
+                workSchedule={memberSchedule}
+                onRepositionTask={onRepositionTask}
+                onClickTask={onClickTask}
+              />
+            );
+          })
         ) : (
           <div className="flex items-center justify-center py-16 text-muted-foreground/50 text-sm">
             Nenhum membro na squad selecionada

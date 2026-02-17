@@ -10,6 +10,7 @@ export interface TeamMember {
   role: string;
   avatar: string | null;
   user_id: string;
+  work_schedule_id?: string | null;
 }
 
 export interface Team {
@@ -60,7 +61,7 @@ export function useTeams() {
       // Fetch all employees for this company to get members
       const { data: employees, error: employeesError } = await supabase
         .from("employees")
-        .select("id, user_id, name, email, role, avatar, team_id")
+        .select("id, user_id, name, email, role, avatar, team_id, work_schedule_id")
         .eq("company_id", activeCompany.company_id)
         .eq("status", "active");
 
@@ -77,6 +78,7 @@ export function useTeams() {
             email: emp.email,
             role: emp.role,
             avatar: emp.avatar,
+            work_schedule_id: (emp as any).work_schedule_id || null,
           }));
 
         const leader = teamMembers.find((m) => m.id === team.leader_id) || null;

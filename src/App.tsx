@@ -19,6 +19,7 @@ import Campanhas from "./pages/Campanhas";
 import CampanhasUnificadas from "./pages/CampanhasUnificadas";
 import CampanhaDetalhes from "./pages/CampanhaDetalhes";
 import Colaboradores from "./pages/Colaboradores";
+import WorkSchedules from "./pages/WorkSchedules";
 import Squad from "./pages/Squad";
 import SquadCommandCenter from "./pages/SquadCommandCenter";
 import BacklogCommandCenter from "./pages/BacklogCommandCenter";
@@ -295,10 +296,15 @@ const App = () => {
                   </PermissionProtectedRoute>
                 } />
                <Route path="/colaboradores" element={
-                 <PermissionProtectedRoute requiredPermission="colaboradores">
-                   <Colaboradores />
-                 </PermissionProtectedRoute>
-               } />
+                  <PermissionProtectedRoute requiredPermission="colaboradores">
+                    <Colaboradores />
+                  </PermissionProtectedRoute>
+                } />
+                <Route path="/colaboradores/cargas-horarias" element={
+                  <PermissionProtectedRoute requiredPermission="colaboradores">
+                    <WorkSchedules />
+                  </PermissionProtectedRoute>
+                } />
                <Route path="/squad" element={
                  <PermissionProtectedRoute requiredPermission="squad">
                    <Squad />

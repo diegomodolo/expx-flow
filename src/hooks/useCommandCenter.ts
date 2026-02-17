@@ -30,6 +30,7 @@ export interface SquadMember {
   avatar: string | null;
   user_id: string;
   discord_user_id?: string | null;
+  work_schedule_id?: string | null;
 }
 
 export function useCommandCenter() {

@@ -5695,6 +5695,7 @@ export type Database = {
           team_id: string | null
           updated_at: string
           user_id: string
+          work_schedule_id: string | null
         }
         Insert: {
           avatar?: string | null
@@ -5713,6 +5714,7 @@ export type Database = {
           team_id?: string | null
           updated_at?: string
           user_id: string
+          work_schedule_id?: string | null
         }
         Update: {
           avatar?: string | null
@@ -5731,6 +5733,7 @@ export type Database = {
           team_id?: string | null
           updated_at?: string
           user_id?: string
+          work_schedule_id?: string | null
         }
         Relationships: [
           {
@@ -5745,6 +5748,13 @@ export type Database = {
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_work_schedule_id_fkey"
+            columns: ["work_schedule_id"]
+            isOneToOne: false
+            referencedRelation: "work_schedules"
             referencedColumns: ["id"]
           },
         ]
@@ -14473,6 +14483,50 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "wordpress_sites_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      work_schedules: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          lunch_end: string
+          lunch_start: string
+          name: string
+          updated_at: string
+          work_end: string
+          work_start: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          lunch_end?: string
+          lunch_start?: string
+          name: string
+          updated_at?: string
+          work_end?: string
+          work_start?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          lunch_end?: string
+          lunch_start?: string
+          name?: string
+          updated_at?: string
+          work_end?: string
+          work_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_schedules_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
