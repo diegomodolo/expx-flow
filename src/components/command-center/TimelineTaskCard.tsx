@@ -18,6 +18,7 @@ interface Props {
 }
 
 export function TimelineTaskCard({ task, slotWidth, slotDuration = 20, startHour, selectedDate, onReposition, onResize, onClickTask, onSendToBacklog, onReassign }: Props) {
+  const cardRef = useRef<HTMLDivElement>(null);
   const dragMoved = useRef(false);
   const estimatedMin = task.ai_estimated_minutes || slotDuration;
   const slotsOccupied = Math.max(1, Math.ceil(estimatedMin / slotDuration));
@@ -88,8 +89,11 @@ export function TimelineTaskCard({ task, slotWidth, slotDuration = 20, startHour
       // Detect cross-row via Y offset
       if (Math.abs(dy) > 10) {
         setDragTop(dy);
-        // Find target row under cursor
+        // Temporarily hide card so elementsFromPoint can see the row beneath
+        const card = cardRef.current;
+        if (card) card.style.pointerEvents = 'none';
         const elementsUnder = document.elementsFromPoint(ev.clientX, ev.clientY);
+        if (card) card.style.pointerEvents = '';
         const targetRow = elementsUnder.find(el => el.closest('[data-member-user-id]'))?.closest('[data-member-user-id]') as HTMLElement | null;
         if (targetRow && targetRow !== dragRef.current.origParent) {
           setTargetMemberName(targetRow.getAttribute('data-member-name'));
@@ -112,8 +116,11 @@ export function TimelineTaskCard({ task, slotWidth, slotDuration = 20, startHour
         if (newLeft < -100 && onSendToBacklog) {
           onSendToBacklog(task.id);
         } else {
-          // Check if dropped on a different member row
+          // Check if dropped on a different member row - hide card to see row beneath
+          const card = cardRef.current;
+          if (card) card.style.pointerEvents = 'none';
           const elementsUnder = document.elementsFromPoint(ev.clientX, ev.clientY);
+          if (card) card.style.pointerEvents = '';
           const targetRow = elementsUnder.find(el => el.closest('[data-member-user-id]'))?.closest('[data-member-user-id]') as HTMLElement | null;
           const targetUserId = targetRow?.getAttribute('data-member-user-id');
           const targetName = targetRow?.getAttribute('data-member-name');
@@ -216,6 +223,7 @@ export function TimelineTaskCard({ task, slotWidth, slotDuration = 20, startHour
 
   return (
     <div
+      ref={cardRef}
       onMouseDown={handleMouseDown}
       className={cn(
         "absolute top-1 h-[calc(100%-8px)] rounded-lg px-2 py-1 flex items-center gap-1 text-xs font-medium overflow-hidden group/card",
