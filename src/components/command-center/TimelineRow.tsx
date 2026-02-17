@@ -12,6 +12,7 @@ interface Props {
   startHour: number;
   slotWidth: number;
   totalSlots: number;
+  slotDuration?: number;
   rowHeight?: number;
   selectedDate?: Date;
   workSchedule?: WorkSchedule | null;
@@ -19,7 +20,7 @@ interface Props {
   onClickTask?: (task: CommandCenterTask) => void;
 }
 
-export function TimelineRow({ member, tasks, startHour, slotWidth, totalSlots, rowHeight = 52, selectedDate, workSchedule, onRepositionTask, onClickTask }: Props) {
+export function TimelineRow({ member, tasks, startHour, slotWidth, totalSlots, slotDuration = 20, rowHeight = 52, selectedDate, workSchedule, onRepositionTask, onClickTask }: Props) {
   const memberTasks = tasks.filter(t => t.assigned_user_id === member.user_id);
 
   const occupiedSlots = new Set<number>();
@@ -29,9 +30,9 @@ export function TimelineRow({ member, tasks, startHour, slotWidth, totalSlots, r
     const dayStart = new Date(taskStart);
     dayStart.setHours(startHour, 0, 0, 0);
     const minutesFromStart = (taskStart.getTime() - dayStart.getTime()) / 60000;
-    const startSlot = Math.floor(minutesFromStart / 18);
-    const estimatedMin = task.ai_estimated_minutes || 18;
-    const slotsNeeded = Math.ceil(estimatedMin / 18);
+    const startSlot = Math.floor(minutesFromStart / slotDuration);
+    const estimatedMin = task.ai_estimated_minutes || slotDuration;
+    const slotsNeeded = Math.ceil(estimatedMin / slotDuration);
     for (let i = startSlot; i < startSlot + slotsNeeded && i < totalSlots; i++) {
       if (i >= 0) occupiedSlots.add(i);
     }
@@ -54,8 +55,8 @@ export function TimelineRow({ member, tasks, startHour, slotWidth, totalSlots, r
     const timelineStart = startHour * 60;
 
     for (let i = 0; i < totalSlots; i++) {
-      const slotStartMin = timelineStart + i * 18;
-      const slotEndMin = slotStartMin + 18;
+      const slotStartMin = timelineStart + i * slotDuration;
+      const slotEndMin = slotStartMin + slotDuration;
 
       // Before work starts
       if (slotEndMin <= wsStart || slotStartMin >= wsEnd) {
@@ -68,7 +69,7 @@ export function TimelineRow({ member, tasks, startHour, slotWidth, totalSlots, r
       }
     }
     return slots;
-  }, [workSchedule, startHour, totalSlots]);
+  }, [workSchedule, startHour, totalSlots, slotDuration]);
 
   return (
     <div className="flex items-stretch border-b border-border/50 group" style={{ minHeight: `${rowHeight}px` }}>
@@ -114,6 +115,7 @@ export function TimelineRow({ member, tasks, startHour, slotWidth, totalSlots, r
                 key={task.id}
                 task={task}
                 slotWidth={slotWidth}
+                slotDuration={slotDuration}
                 startHour={startHour}
                 selectedDate={selectedDate}
                 onReposition={onRepositionTask}

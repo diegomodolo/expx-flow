@@ -2,11 +2,14 @@ import React, { useState, useCallback, useRef } from "react";
 import { TimelineRow } from "./TimelineRow";
 import { SquadMember, CommandCenterTask } from "@/hooks/useCommandCenter";
 import { WorkSchedule } from "@/hooks/useWorkSchedules";
-import { Clock, ZoomIn, ZoomOut, GripHorizontal, ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
+import { Clock, ZoomIn, ZoomOut, GripHorizontal, ChevronLeft, ChevronRight, CalendarDays, Settings2 } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { format, addDays, subDays, isToday, isTomorrow, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -20,7 +23,7 @@ interface Props {
   onClickTask?: (task: CommandCenterTask) => void;
 }
 
-const TOTAL_SLOTS = 20;
+const DEFAULT_SLOT_DURATION = 20;
 const MIN_SLOT_WIDTH = 32;
 const MAX_SLOT_WIDTH = 120;
 const MIN_ROW_HEIGHT = 44;
@@ -36,9 +39,15 @@ function formatDateLabel(date: Date): string {
 export function WorkloadTimeline({ members, tasks, startHour = 8, workSchedules = [], onRepositionTask, onClickTask }: Props) {
   const [slotWidth, setSlotWidth] = useState(56);
   const [rowHeight, setRowHeight] = useState(68);
+  const [slotDuration, setSlotDuration] = useState(DEFAULT_SLOT_DURATION);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [tempSlotDuration, setTempSlotDuration] = useState(DEFAULT_SLOT_DURATION);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [calendarOpen, setCalendarOpen] = useState(false);
   const resizeRef = useRef<{ startY: number; startHeight: number } | null>(null);
+
+  const TIMELINE_HOURS = 6;
+  const totalSlots = Math.floor((TIMELINE_HOURS * 60) / slotDuration);
 
   const handleResizeMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -163,7 +172,17 @@ export function WorkloadTimeline({ members, tasks, startHour = 8, workSchedules 
             <ZoomIn className="w-3.5 h-3.5 text-muted-foreground" />
           </div>
 
-          <span className="text-[10px] text-muted-foreground/50">{TOTAL_SLOTS} slots de 18min</span>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={() => { setTempSlotDuration(slotDuration); setSettingsOpen(true); }}
+            title="Configurar duração dos slots"
+          >
+            <Settings2 className="w-3.5 h-3.5 text-muted-foreground" />
+          </Button>
+
+          <span className="text-[10px] text-muted-foreground/50">{totalSlots} slots de {slotDuration}min</span>
         </div>
       </div>
 
@@ -179,18 +198,19 @@ export function WorkloadTimeline({ members, tasks, startHour = 8, workSchedules 
 
       {/* Scrollable timeline area - single scroll for ruler + all rows */}
       <div className="flex-1 min-h-0 overflow-auto">
-        <div style={{ minWidth: `${192 + slotWidth * TOTAL_SLOTS}px` }}>
+        <div style={{ minWidth: `${192 + slotWidth * totalSlots}px` }}>
           {/* Time ruler - sticky top */}
           <div className="flex border-b border-border sticky top-0 z-10 bg-card">
             <div className="w-48 flex-shrink-0 px-4 py-1">
               <span className="text-[10px] text-muted-foreground/50">Colaborador</span>
             </div>
             <div className="flex">
-              {Array.from({ length: TOTAL_SLOTS }).map((_, i) => {
-                const totalMinutes = startHour * 60 + i * 18;
+              {Array.from({ length: totalSlots }).map((_, i) => {
+                const totalMinutes = startHour * 60 + i * slotDuration;
                 const h = Math.floor(totalMinutes / 60);
                 const m = totalMinutes % 60;
-                const label = i % 3 === 0 ? `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}` : "";
+                const showLabel = (slotDuration * i) % 60 === 0 || i === 0;
+                const label = showLabel ? `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}` : "";
                 return (
                   <div key={i} className="border-r border-border/50 flex-shrink-0 px-0.5" style={{ width: `${slotWidth}px` }}>
                     {label && <span className="text-[9px] text-muted-foreground/50">{label}</span>}
@@ -211,7 +231,8 @@ export function WorkloadTimeline({ members, tasks, startHour = 8, workSchedules 
                 tasks={filteredTasks}
                 startHour={startHour}
                 slotWidth={slotWidth}
-                totalSlots={TOTAL_SLOTS}
+                totalSlots={totalSlots}
+                slotDuration={slotDuration}
                 rowHeight={rowHeight}
                 selectedDate={selectedDate}
                 workSchedule={memberSchedule}
@@ -239,6 +260,39 @@ export function WorkloadTimeline({ members, tasks, startHour = 8, workSchedules 
       >
         <GripHorizontal className="w-5 h-5 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors" />
       </div>
+
+      {/* Settings Dialog */}
+      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings2 className="w-4 h-4" />
+              Configurar Timeline
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label>Duração de cada slot (minutos)</Label>
+              <Input
+                type="number"
+                min={5}
+                max={60}
+                step={5}
+                value={tempSlotDuration}
+                onChange={e => setTempSlotDuration(Math.max(5, Math.min(60, Number(e.target.value))))}
+                className="mt-1"
+              />
+              <p className="text-[11px] text-muted-foreground mt-1">
+                A timeline cobre 6h. Com slots de {tempSlotDuration}min, serão {Math.floor(360 / tempSlotDuration)} slots.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSettingsOpen(false)}>Cancelar</Button>
+            <Button onClick={() => { setSlotDuration(tempSlotDuration); setSettingsOpen(false); }}>Aplicar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
