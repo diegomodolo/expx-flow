@@ -3,11 +3,12 @@ import { BacklogQuickEntry } from "./BacklogQuickEntry";
 import { Loader2, Inbox, Pencil, Clock, Zap, RotateCcw, AlertTriangle } from "lucide-react";
 import { TaskDialog } from "@/components/tasks/TaskDialog";
 import { useTasks } from "@/hooks/useTasks";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import type { BacklogTask } from "@/hooks/useBacklogCommandCenter";
 
@@ -19,6 +20,7 @@ interface Props {
   getReadiness: (task: BacklogTask) => { ready: boolean; hasDescription: boolean; hasEstimate: boolean; hasClient: boolean };
   getAgingHours: (createdAt: string) => number;
   clients: any[];
+  taskToClients: Map<string, string[]>;
   companyId: string | undefined;
 }
 
@@ -30,10 +32,17 @@ export function BacklogBucket({
   getReadiness,
   getAgingHours,
   clients,
+  taskToClients,
   companyId,
 }: Props) {
   const [editingTask, setEditingTask] = useState<any>(null);
   const { updateTask } = useTasks();
+
+  const clientsMap = useMemo(() => {
+    const map = new Map<string, { name: string; avatar: string | null }>();
+    clients.forEach((c: any) => map.set(c.id, { name: c.name, avatar: c.avatar }));
+    return map;
+  }, [clients]);
 
   if (loading) {
     return (
@@ -63,6 +72,7 @@ export function BacklogBucket({
                 <TableHead className="w-[40px]"></TableHead>
                 <TableHead className="w-[30px]"></TableHead>
                 <TableHead>Tarefa</TableHead>
+                <TableHead className="w-[140px]">Cliente</TableHead>
                 <TableHead className="w-[100px]">Prioridade</TableHead>
                 <TableHead className="w-[80px]">Tipo</TableHead>
                 <TableHead className="w-[80px] text-right">Tempo</TableHead>
@@ -104,6 +114,28 @@ export function BacklogBucket({
                       {task.description && (
                         <p className="text-xs text-muted-foreground truncate max-w-[300px]">{task.description}</p>
                       )}
+                    </TableCell>
+                    <TableCell>
+                      {(() => {
+                        const clientIds = taskToClients.get(task.id) || [];
+                        if (clientIds.length === 0) return <span className="text-xs text-muted-foreground">—</span>;
+                        const firstClient = clientsMap.get(clientIds[0]);
+                        if (!firstClient) return <span className="text-xs text-muted-foreground">—</span>;
+                        return (
+                          <div className="flex items-center gap-1.5">
+                            <Avatar className="w-5 h-5 flex-shrink-0">
+                              <AvatarImage src={firstClient.avatar || undefined} alt={firstClient.name} />
+                              <AvatarFallback className="text-[8px] bg-muted">
+                                {firstClient.name.substring(0, 2).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="text-xs text-foreground truncate max-w-[90px]">{firstClient.name}</span>
+                            {clientIds.length > 1 && (
+                              <span className="text-[10px] text-muted-foreground">+{clientIds.length - 1}</span>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell>
                       <Badge
