@@ -111,7 +111,7 @@ export function useCommandCenter() {
         assigned_user_id: userId,
         responsible_name: memberName,
         start_date: startDate.toISOString(),
-        status: "in_progress" as any,
+        status: "progress" as any,
       })
       .eq("id", taskId);
     if (error) throw error;
