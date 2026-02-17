@@ -5,6 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Send, Hash, Users, Plus, Paperclip, MessageSquarePlus, BarChart3 } from 'lucide-react';
 import { MessageBubble } from './MessageBubble';
+import { EmojiGifPicker } from './EmojiGifPicker';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { InternalChannel, InternalMessage } from '@/hooks/useInternalChat';
@@ -150,14 +151,20 @@ export function ChatFlow({ channel, messages, loading, onSendMessage, sendingMes
             className="min-h-[40px] max-h-[120px] resize-none rounded-xl bg-muted/50 border-border focus-visible:ring-primary"
             rows={1}
           />
-          <Button
-            size="icon"
-            onClick={handleSend}
-            disabled={!inputValue.trim() || sendingMessage}
-            className="rounded-xl shrink-0 h-10 w-10"
-          >
-            <Send className="w-4 h-4" />
-          </Button>
+          <div className="flex items-center gap-0.5 shrink-0">
+            <EmojiGifPicker
+              onEmojiSelect={(emoji) => setInputValue(prev => prev + emoji)}
+              onGifSelect={() => {}}
+            />
+            <Button
+              size="icon"
+              onClick={handleSend}
+              disabled={!inputValue.trim() || sendingMessage}
+              className="rounded-xl h-10 w-10"
+            >
+              <Send className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
       </div>
     </div>
