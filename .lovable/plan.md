@@ -1,110 +1,166 @@
 
 
-# Mapa Mental -- Clone do MindMeister
+# Backlog Command Center - Central de Processamento de Demandas
 
 ## Resumo
-Criar uma ferramenta de Mapa Mental dentro do menu "Rotina" do sidebar, inspirada no MindMeister. A ferramenta usara a biblioteca `@xyflow/react` (ja instalada no projeto) para renderizar os nos e conexoes do mapa mental em um canvas interativo.
 
-## Estrutura
+Construir uma nova tela dedicada de administracao de Backlog, separada do Command Center existente, com foco em triagem rapida, organizacao por peso/cliente e prontidao para distribuicao aos lideres de Squad.
 
-### 1. Banco de Dados -- Nova tabela `mind_maps`
+---
 
-| Coluna | Tipo | Descricao |
-|---|---|---|
-| id | uuid (PK) | ID do mapa |
-| company_id | uuid (FK) | Empresa |
-| title | text | Nome do mapa |
-| description | text | Descricao opcional |
-| nodes | jsonb | Array de nos do React Flow |
-| edges | jsonb | Array de conexoes do React Flow |
-| created_by | uuid (FK) | Criador |
-| created_at | timestamptz | Data de criacao |
-| updated_at | timestamptz | Data de atualizacao |
+## Estrutura das 3 Zonas
 
-RLS habilitado com politica por `company_id`.
-
-### 2. Pagina de Listagem -- `/mapas-mentais`
-
-Seguindo o padrao de tabela usado em Checklists/Fluxos/Roteiros:
-- Breadcrumb de navegacao
-- Card com header (icone + titulo + botao "Novo Mapa")
-- Campo de busca integrado
-- Tabela com colunas: Nome, Descricao, Criado por, Atualizado em, Acoes
-- Clique na linha navega para o editor
-
-### 3. Editor do Mapa Mental -- `/mapas-mentais/:id`
-
-Canvas interativo estilo MindMeister com as seguintes funcionalidades:
-
-**Header fixo:**
-- Botao de voltar
-- Campo de titulo editavel inline
-- Indicador de salvamento automatico
-- Botoes de acao (zoom, centralizar, exportar)
-
-**Canvas (React Flow):**
-- No central (raiz) criado automaticamente
-- Nos filhos com cores por nivel de profundidade
-- Conexoes com curvas suaves (tipo `smoothstep`)
-- Drag-and-drop para reposicionar nos
-- Minimap no canto inferior
-
-**Barra de ferramentas flutuante:**
-- Adicionar no filho (Tab ou botao)
-- Adicionar no irmao (Enter ou botao)
-- Editar texto do no (duplo clique)
-- Alterar cor do no
-- Deletar no (Delete ou botao)
-
-**Atalhos de teclado:**
-- `Tab` -- adicionar filho
-- `Enter` -- adicionar irmao
-- `Delete/Backspace` -- remover no selecionado
-- `F2` ou duplo clique -- editar texto
-- `Ctrl+S` -- salvar (alem do auto-save)
-
-**Auto-save:**
-- Debounce de 2 segundos (mesmo padrao do editor de funis)
-
-### 4. Componente de No Customizado -- `MindMapNode`
-
-- Texto editavel inline
-- Borda colorida por nivel (nivel 0: azul, nivel 1: verde, nivel 2: laranja, nivel 3: roxo, etc.)
-- Handles de conexao nas 4 direcoes
-- Indicador visual de no selecionado
-- Botao "+" ao passar o mouse para adicionar filho rapidamente
-
-### 5. Integracao no Sidebar
-
-Adicionar ao grupo "Rotina" em `DashboardSidebar.tsx`:
-```
-{ title: "Mapas Mentais", url: "/mapas-mentais", icon: Brain, permission: "tarefas" }
+```text
++------------------+---------------------------------------------+
+|                  |                                             |
+|  ZONA A          |          ZONA B                             |
+|  Sidebar de      |          "Bucket" Central                   |
+|  Clientes +      |          Cards de Tarefas com               |
+|  Filtros         |          densidade proporcional             |
+|                  |                                             |
+|  - Logo cliente  |          - Selecao multipla                 |
+|  - Badge minutos |          - Indicador de Prontidao           |
+|  - Temperatura   |          - Tags inteligentes                |
+|                  |                                             |
++------------------+---------------------------------------------+
+|                                                                |
+|  ZONA C - Footer Dinamico ("Painel de Pesagem")               |
+|  "12 tarefas selecionadas (216 min) = 60% de 1 colaborador"   |
+|                                                                |
++----------------------------------------------------------------+
 ```
 
-### 6. Roteamento
+---
 
-Adicionar em `App.tsx`:
-- `/mapas-mentais` -- pagina de listagem
-- `/mapas-mentais/:id` -- editor do mapa
+## Fase 1 - Estrutura Base e Rota
+
+**O que sera feito:**
+- Nova pagina `BacklogCommandCenter.tsx` em `/backlog-command-center`
+- Hook dedicado `useBacklogCommandCenter.ts` para buscar tarefas com status `todo` sem `start_date`, agrupadas por cliente
+- Layout de 3 zonas usando flexbox: sidebar lateral (clientes), area central (cards), footer fixo
+
+**Detalhes tecnicos:**
+- Rota registrada no router existente com permissao `command-center`
+- Query Supabase com JOIN em `task_clients` e `clients` para obter dados de cliente por tarefa
+- Estado local para selecao multipla de tarefas (`selectedTaskIds: Set<string>`)
+
+---
+
+## Fase 2 - Zona A: Sidebar de Clientes e Filtros
+
+**Funcionalidades:**
+- Lista vertical de clientes com avatar/logo e nome
+- Badge ao lado mostrando total de minutos acumulados no backlog (soma de `ai_estimated_minutes`)
+- Barra de "Temperatura" por cliente:
+  - Azul: fluxo normal
+  - Laranja: backlog crescendo (mais tarefas criadas que concluidas nos ultimos 3 dias)
+  - Vermelho: sem tarefas distribuidas ha mais de 48h
+- Filtro por clique no cliente (filtra a Zona B)
+- Toggles de visualizacao: por Urgencia, por Tipo (`task_type`), por Projeto
+
+**Detalhes tecnicos:**
+- Componente `BacklogClientSidebar.tsx`
+- Calculo de temperatura baseado em comparacao de `created_at` vs `completed_at` dos ultimos 3 dias
+- Deteccao de 48h sem distribuicao: verificar ultima tarefa com `start_date` preenchido para aquele cliente
+
+---
+
+## Fase 3 - Zona B: Bucket Central de Tarefas
+
+**Funcionalidades:**
+- Cards com altura sutilmente proporcional ao `ai_estimated_minutes` (minimo 60px, maximo 120px)
+- Indicador de Prontidao ("raio"): card fica opaco se faltam informacoes (sem `description`, sem checklist, etc.)
+- Tags inteligentes:
+  - `[URGENTE]`: card com borda pulsante vermelha (reutiliza logica de aging existente)
+  - `[RECORRENTE]`: icone de loop se `recurring_template_id` esta preenchido
+- Selecao multipla com checkbox em cada card
+- Ordenacao inteligente (Smart Sorting): por custo-beneficio (tarefas rapidas com prioridade alta primeiro)
+
+**Detalhes tecnicos:**
+- Componente `BacklogBucket.tsx` e `BacklogTaskCard.tsx`
+- Calculo de readiness: `description` preenchido + `ai_estimated_minutes` > 0 + tem cliente vinculado
+- Altura do card: `Math.min(120, Math.max(60, (minutes / 60) * 120))px`
+
+---
+
+## Fase 4 - Zona C: Footer Dinamico (Painel de Pesagem)
+
+**Funcionalidades:**
+- Barra fixa no rodape que aparece quando ha tarefas selecionadas
+- Exibe: quantidade selecionada, total de minutos, equivalente em % de capacidade diaria (360 min = 100%)
+- Botoes de Bulk-Action:
+  - "Atribuir em Massa": abre modal para escolher Squad/membro
+  - "Liberar para Lideres": altera status das tarefas para `in_progress` com `start_date` definido
+- Animacao de entrada slide-up quando selecao ativa
+
+**Detalhes tecnicos:**
+- Componente `BacklogFooterBar.tsx`
+- Capacidade diaria = 360 minutos (6h uteis, alinhado com o Command Center existente)
+- Bulk update via Supabase batch: `supabase.from('tasks').update({...}).in('id', selectedIds)`
+
+---
+
+## Fase 5 - Quick Entry (Lancamento Relampago)
+
+**Funcionalidades:**
+- Campo de texto inteligente no topo da Zona B
+- Parser de sintaxe: `"Post Black Friday @ClienteX #Design /18min"`
+  - `@` = cliente (busca por nome)
+  - `#` = categoria/tipo
+  - `/` = tempo estimado em minutos
+- Criacao instantanea do card sem formulario
+
+**Detalhes tecnicos:**
+- Componente `BacklogQuickEntry.tsx`
+- Regex parser para extrair tokens: `/@(\w+)/`, `/#(\w+)/`, `/\/(\d+)min/`
+- Busca fuzzy no nome do cliente para o `@`
+- Fallback: se parser nao encontrar cliente, abre popover de selecao
+
+---
+
+## Fase 6 - Simulador de Impacto e Filtro de Ociosidade
+
+**Funcionalidades:**
+- Botao "Simular Distribuicao": mostra preview visual da timeline da Squad com as tarefas selecionadas encaixadas
+- Reutiliza componente `WorkloadTimeline` existente em modo read-only
+- Filtro de Ociosidade: botao que destaca tarefas que cabem nos slots livres dos membros da Squad
+
+**Detalhes tecnicos:**
+- Componente `BacklogImpactSimulator.tsx` usando Dialog/Sheet
+- Calculo de slots livres reutilizando logica de `findNextFreeSlot` do `useCommandCenter`
+- Tarefas compativeis recebem classe CSS de destaque (`ring-2 ring-primary`)
+
+---
 
 ## Arquivos a Criar
-- `src/pages/MapasMentais.tsx` -- listagem em tabela
-- `src/pages/MapaMentalEditor.tsx` -- editor com React Flow
-- `src/components/mind-map/MindMapNode.tsx` -- no customizado
-- `src/components/mind-map/MindMapToolbar.tsx` -- barra de ferramentas flutuante
-- `src/components/mind-map/useMindMapKeyboard.ts` -- hook de atalhos
-- `src/hooks/useMindMaps.ts` -- CRUD com React Query + Supabase
-- `supabase/migrations/xxx_create_mind_maps.sql` -- migracao do banco
+
+| Arquivo | Descricao |
+|---|---|
+| `src/pages/BacklogCommandCenter.tsx` | Pagina principal |
+| `src/hooks/useBacklogCommandCenter.ts` | Hook de dados e logica |
+| `src/components/backlog-center/BacklogClientSidebar.tsx` | Sidebar de clientes |
+| `src/components/backlog-center/BacklogBucket.tsx` | Area central de cards |
+| `src/components/backlog-center/BacklogTaskCard.tsx` | Card individual |
+| `src/components/backlog-center/BacklogFooterBar.tsx` | Footer dinamico |
+| `src/components/backlog-center/BacklogQuickEntry.tsx` | Campo de entrada rapida |
+| `src/components/backlog-center/BacklogImpactSimulator.tsx` | Modal de simulacao |
+| `src/components/backlog-center/BacklogHeader.tsx` | Header com metricas |
 
 ## Arquivos a Modificar
-- `src/App.tsx` -- adicionar rotas
-- `src/components/dashboard/DashboardSidebar.tsx` -- adicionar item no menu Rotina
-- `src/integrations/supabase/types.ts` -- tipos atualizados automaticamente
 
-## Detalhes Tecnicos
+| Arquivo | Motivo |
+|---|---|
+| `src/App.tsx` | Adicionar rota `/backlog-command-center` |
+| Sidebar/navegacao | Adicionar link no menu |
 
-- A biblioteca `@xyflow/react` v12 ja esta instalada e sera reaproveitada
-- Layout automatico dos nos usando algoritmo de arvore (calculo manual de posicoes x/y baseado em profundidade e indice do no)
-- Os dados de nos e edges sao armazenados como JSONB, permitindo flexibilidade total
-- O componente de no usa `NodeProps` do React Flow com `memo` para performance
+---
+
+## Ordem de Implementacao
+
+1. Hook de dados + Pagina base com layout de 3 zonas
+2. Sidebar de clientes com badges e temperatura
+3. Bucket central com cards proporcionais e indicador de prontidao
+4. Footer dinamico com bulk-actions
+5. Quick Entry com parser inteligente
+6. Simulador de impacto e filtro de ociosidade
 
