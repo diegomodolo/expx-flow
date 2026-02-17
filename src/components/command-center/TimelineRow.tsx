@@ -13,9 +13,10 @@ interface Props {
   totalSlots: number;
   rowHeight?: number;
   onRepositionTask?: (taskId: string, newStartDate: Date) => void;
+  onClickTask?: (task: CommandCenterTask) => void;
 }
 
-export function TimelineRow({ member, tasks, startHour, slotWidth, totalSlots, rowHeight = 52, onRepositionTask }: Props) {
+export function TimelineRow({ member, tasks, startHour, slotWidth, totalSlots, rowHeight = 52, onRepositionTask, onClickTask }: Props) {
   const memberTasks = tasks.filter(t => t.assigned_user_id === member.user_id);
 
   const occupiedSlots = new Set<number>();
@@ -78,6 +79,7 @@ export function TimelineRow({ member, tasks, startHour, slotWidth, totalSlots, r
                 slotWidth={slotWidth}
                 startHour={startHour}
                 onReposition={onRepositionTask}
+                onClickTask={onClickTask}
               />
             ))}
 

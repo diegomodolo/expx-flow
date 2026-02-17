@@ -10,6 +10,7 @@ interface Props {
   tasks: CommandCenterTask[];
   startHour?: number;
   onRepositionTask?: (taskId: string, newStartDate: Date) => void;
+  onClickTask?: (task: CommandCenterTask) => void;
 }
 
 const TOTAL_SLOTS = 20;
@@ -18,7 +19,7 @@ const MAX_SLOT_WIDTH = 120;
 const MIN_ROW_HEIGHT = 44;
 const MAX_ROW_HEIGHT = 120;
 
-export function WorkloadTimeline({ members, tasks, startHour = 8, onRepositionTask }: Props) {
+export function WorkloadTimeline({ members, tasks, startHour = 8, onRepositionTask, onClickTask }: Props) {
   const [slotWidth, setSlotWidth] = useState(56);
   const [rowHeight, setRowHeight] = useState(52);
   const resizeRef = useRef<{ startY: number; startHeight: number } | null>(null);
@@ -106,6 +107,7 @@ export function WorkloadTimeline({ members, tasks, startHour = 8, onRepositionTa
             totalSlots={TOTAL_SLOTS}
             rowHeight={rowHeight}
             onRepositionTask={onRepositionTask}
+            onClickTask={onClickTask}
           />
         ))
       ) : (
