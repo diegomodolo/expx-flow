@@ -2,7 +2,7 @@ import React, { useState, useMemo } from "react";
 import { Draggable, Droppable } from "react-beautiful-dnd";
 import { CommandCenterTask } from "@/hooks/useCommandCenter";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
-import { Clock, AlertTriangle, GripVertical, Filter, X } from "lucide-react";
+import { Clock, AlertTriangle, GripVertical, Filter, X, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -53,6 +53,7 @@ export function BacklogColumn({ tasks, getAgingHours, teamColor, onClickTask }: 
   const [filterPriority, setFilterPriority] = useState<string>("all");
   const [filterClient, setFilterClient] = useState<string>("all");
   const [filterResponsible, setFilterResponsible] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Extract unique values for filter options
   const uniqueClients = useMemo(() => {
@@ -88,22 +89,30 @@ export function BacklogColumn({ tasks, getAgingHours, teamColor, onClickTask }: 
   }, [tasks]);
 
   const activeFilterCount = [filterType, filterPriority, filterClient, filterResponsible].filter(f => f !== "all").length;
+  const hasSearch = searchQuery.trim().length > 0;
 
   const filteredTasks = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
     return tasks.filter(t => {
       if (filterType !== "all" && t.task_type !== filterType) return false;
       if (filterPriority !== "all" && t.priority !== filterPriority) return false;
       if (filterClient !== "all" && !t.clients?.some(c => c.client_id === filterClient)) return false;
       if (filterResponsible !== "all" && t.responsible_name !== filterResponsible) return false;
+      if (query) {
+        const matchTitle = t.title?.toLowerCase().includes(query);
+        const matchClient = t.clients?.some(c => c.client_name?.toLowerCase().includes(query));
+        if (!matchTitle && !matchClient) return false;
+      }
       return true;
     });
-  }, [tasks, filterType, filterPriority, filterClient, filterResponsible]);
+  }, [tasks, filterType, filterPriority, filterClient, filterResponsible, searchQuery]);
 
   const clearFilters = () => {
     setFilterType("all");
     setFilterPriority("all");
     setFilterClient("all");
     setFilterResponsible("all");
+    setSearchQuery("");
   };
 
   return (
@@ -128,8 +137,30 @@ export function BacklogColumn({ tasks, getAgingHours, teamColor, onClickTask }: 
             )}
           </Button>
           <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-            {filteredTasks.length}{activeFilterCount > 0 ? `/${tasks.length}` : ''}
+            {filteredTasks.length}{(activeFilterCount > 0 || hasSearch) ? `/${tasks.length}` : ''}
           </span>
+        </div>
+      </div>
+
+      {/* Fixed search input */}
+      <div className="px-3 pb-2">
+        <div className="relative">
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Buscar tarefa ou cliente..."
+            className="w-full h-7 pl-7 pr-7 text-[11px] rounded-md border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+          />
+          {hasSearch && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          )}
         </div>
       </div>
 
