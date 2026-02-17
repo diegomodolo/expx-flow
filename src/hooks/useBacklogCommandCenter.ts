@@ -66,19 +66,39 @@ export function useBacklogCommandCenter() {
     enabled: !!activeCompany?.company_id,
   });
 
-  // Fetch backlog tasks (task_state = 'backlog')
+  // Fetch backlog tasks (task_state = 'backlog') + their subtasks
   const { data: backlogTasks = [], isLoading: tasksLoading } = useQuery({
     queryKey: ["backlog-center-tasks", activeCompany?.company_id],
     queryFn: async () => {
       if (!activeCompany?.company_id) return [];
-      const { data, error } = await (supabase as any)
+      // First fetch all backlog tasks
+      const { data: parentTasks, error: e1 } = await (supabase as any)
         .from("tasks")
         .select("*")
         .eq("company_id", activeCompany.company_id)
         .eq("task_state", "backlog")
         .order("created_at", { ascending: true });
-      if (error) throw error;
-      return (data || []) as BacklogTask[];
+      if (e1) throw e1;
+      const parents = (parentTasks || []) as BacklogTask[];
+      const parentIds = parents.map((t) => t.id);
+      if (parentIds.length === 0) return parents;
+      // Fetch subtasks whose parent is in backlog (regardless of their own task_state)
+      const { data: subtasks, error: e2 } = await (supabase as any)
+        .from("tasks")
+        .select("*")
+        .eq("company_id", activeCompany.company_id)
+        .in("parent_task_id", parentIds);
+      if (e2) throw e2;
+      // Merge, avoiding duplicates
+      const allIds = new Set(parents.map((t) => t.id));
+      const merged = [...parents];
+      (subtasks || []).forEach((s: BacklogTask) => {
+        if (!allIds.has(s.id)) {
+          merged.push(s);
+          allIds.add(s.id);
+        }
+      });
+      return merged;
     },
     enabled: !!activeCompany?.company_id,
   });
