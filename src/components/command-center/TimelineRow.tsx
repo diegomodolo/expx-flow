@@ -135,7 +135,7 @@ export function TimelineRow({ member, tasks, startHour, slotWidth, totalSlots, s
             {/* Ghost preview when dragging from backlog */}
             {snapshot.isDraggingOver && ghostPreview && (
               <div
-                className="absolute top-1 h-[calc(100%-8px)] rounded-lg px-2 py-1 flex items-center gap-1 text-xs font-medium bg-primary/10 border-2 border-dashed border-primary/40 text-primary pointer-events-none animate-pulse"
+                className="absolute top-1 h-[calc(100%-8px)] rounded-lg px-2 py-1 flex items-center gap-1 text-xs font-medium bg-primary/10 border-2 border-dashed border-primary/40 text-primary pointer-events-none transition-[left] duration-75"
                 style={{
                   left: `${ghostPreview.startSlot * slotWidth}px`,
                   width: `${ghostPreview.slotsNeeded * slotWidth}px`,
