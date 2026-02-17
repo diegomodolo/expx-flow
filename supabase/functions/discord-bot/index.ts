@@ -119,8 +119,12 @@ serve(async (req) => {
         });
         if (!res.ok) {
           const err = await res.json();
+          console.error(`Discord API error (send-message): ${res.status}`, JSON.stringify(err));
+          const errorMsg = err.message === "Missing Access" 
+            ? "O bot não tem permissão para enviar mensagens neste canal. Verifique as permissões do bot no Discord (Send Messages)."
+            : err.message || "Falha ao enviar mensagem";
           return new Response(
-            JSON.stringify({ error: err.message || "Falha ao enviar mensagem" }),
+            JSON.stringify({ error: errorMsg, discord_code: err.code }),
             { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
