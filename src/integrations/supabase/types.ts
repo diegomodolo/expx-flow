@@ -12912,6 +12912,7 @@ export type Database = {
         Row: {
           ai_estimated_minutes: number | null
           ai_organization_date: string | null
+          ai_output: string | null
           alert_id: string | null
           assigned_user_id: string | null
           autorizador_id: string | null
@@ -12951,6 +12952,7 @@ export type Database = {
         Insert: {
           ai_estimated_minutes?: number | null
           ai_organization_date?: string | null
+          ai_output?: string | null
           alert_id?: string | null
           assigned_user_id?: string | null
           autorizador_id?: string | null
@@ -12990,6 +12992,7 @@ export type Database = {
         Update: {
           ai_estimated_minutes?: number | null
           ai_organization_date?: string | null
+          ai_output?: string | null
           alert_id?: string | null
           assigned_user_id?: string | null
           autorizador_id?: string | null
