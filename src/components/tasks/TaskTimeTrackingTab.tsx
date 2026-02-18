@@ -229,6 +229,8 @@ export function TaskTimeTrackingTab({ taskId, taskStatus }: TaskTimeTrackingTabP
             isOwner={session.user_id === user?.id}
             onDelete={() => deleteSession.mutate(session.id)}
             onEdit={() => openEditForm(session)}
+            onStop={() => stopTracking.mutate(session.id)}
+            isStopping={stopTracking.isPending}
           />
         ))}
       </div>
@@ -310,11 +312,15 @@ function SessionRow({
   isOwner,
   onDelete,
   onEdit,
+  onStop,
+  isStopping,
 }: {
   session: TimeTrackingSession;
   isOwner: boolean;
   onDelete: () => void;
   onEdit: () => void;
+  onStop: () => void;
+  isStopping: boolean;
 }) {
   const isActive = !session.ended_at;
 
@@ -353,6 +359,18 @@ function SessionRow({
             <span>{formatDuration(Number(session.duration_minutes || 0))}</span>
           )}
         </div>
+        {isActive && (
+          <Button
+            variant="destructive"
+            size="sm"
+            className="h-7 gap-1 text-xs px-2"
+            onClick={onStop}
+            disabled={isStopping}
+          >
+            <Square className="w-3 h-3" />
+            Parar
+          </Button>
+        )}
         {!isActive && (
           <Button
             variant="ghost"
