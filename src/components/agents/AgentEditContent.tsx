@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { SearchableClientSelect } from "@/components/ui/searchable-client-select";
-import { Settings, Brain, FileText, Bot, Puzzle, MessageCircle, Save } from "lucide-react";
+import { Settings, Brain, FileText, Bot, Puzzle, MessageCircle, Save, UserCheck } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +11,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { useIAAgents } from "@/hooks/useIAAgents";
 import { useClients } from "@/hooks/useClients";
+import { useCompany } from "@/contexts/CompanyContext";
+import { supabase } from "@/integrations/supabase/client";
 import { KnowledgeDocumentsManager } from "@/components/agents/KnowledgeDocumentsManager";
 import { TelegramBotConfig } from "@/components/agents/TelegramBotConfig";
 import { AgentSkillsConfig } from "@/components/agents/AgentSkillsConfig";
@@ -68,6 +71,41 @@ export function AgentEditContent({
     sendMessage,
   } = useIAAgents();
   const { clients } = useClients();
+  const { activeCompany } = useCompany();
+  
+  const syncCollaboratorStatus = async (agentId: string, isCollaborator: boolean, agentName: string) => {
+    if (!activeCompany?.company_id) return;
+    
+    const { data: existingEmployee } = await supabase
+      .from('employees')
+      .select('id')
+      .eq('ia_agent_id', agentId as any)
+      .eq('company_id', activeCompany.company_id)
+      .maybeSingle();
+    
+    if (isCollaborator && !existingEmployee) {
+      // Create employee record for the agent
+      const { data: { user } } = await supabase.auth.getUser();
+      await supabase.from('employees').insert({
+        company_id: activeCompany.company_id,
+        name: `🤖 ${agentName}`,
+        email: `agent-${agentId}@ai.internal`,
+        role: 'Agente IA',
+        status: 'active',
+        start_date: new Date().toISOString().split('T')[0],
+        user_id: user?.id || '',
+        ia_agent_id: agentId,
+      } as any);
+    } else if (!isCollaborator && existingEmployee) {
+      // Remove employee record
+      await supabase.from('employees').delete().eq('id', existingEmployee.id);
+    } else if (isCollaborator && existingEmployee) {
+      // Update name if changed
+      await supabase.from('employees').update({
+        name: `🤖 ${agentName}`,
+      }).eq('id', existingEmployee.id);
+    }
+  };
   const [saving, setSaving] = useState(false);
   const [activeSection, setActiveSection] = useState<Section>(defaultSection);
   const [formData, setFormData] = useState({
@@ -76,6 +114,7 @@ export function AgentEditContent({
     prompt_base: "",
     additional_instructions: "",
     client_id: "none",
+    is_collaborator: false,
   });
   const [showWarning, setShowWarning] = useState(false);
   const promptRef = useRef<HTMLTextAreaElement>(null);
@@ -112,6 +151,7 @@ export function AgentEditContent({
         prompt_base: currentAgent.prompt_base,
         additional_instructions: currentAgent.additional_instructions || "",
         client_id: currentAgent.client_id || "none",
+        is_collaborator: (currentAgent as any).is_collaborator || false,
       });
     }
   }, [currentAgent]);
@@ -127,10 +167,16 @@ export function AgentEditContent({
 
     setSaving(true);
     try {
+      const { is_collaborator, ...rest } = formData;
       await updateAgent(agentId, {
-        ...formData,
-        client_id: formData.client_id === "none" ? null : formData.client_id,
-      });
+        ...rest,
+        client_id: rest.client_id === "none" ? null : rest.client_id,
+        is_collaborator,
+      } as any);
+      
+      // Handle collaborator sync
+      await syncCollaboratorStatus(agentId, is_collaborator, formData.agent_name);
+      
       onSaved?.();
     } finally {
       setSaving(false);
@@ -233,7 +279,7 @@ export function AgentEditContent({
           </div>
         ) : (
           <div className="flex-1 min-h-0 overflow-y-auto p-6">
-            <div className="max-w-2xl">
+            <div className="w-full">
               {activeSection === "geral" && (
                 <div className="space-y-6">
                   <h2 className="text-lg font-semibold mb-4">Configurações Gerais</h2>
@@ -268,6 +314,25 @@ export function AgentEditContent({
                     <p className="text-sm text-muted-foreground mt-1">
                       Quando associado, o agente terá acesso automático ao briefing, campanhas e métricas deste cliente.
                     </p>
+                  </div>
+                  
+                  {/* Collaborator Toggle */}
+                  <div className="flex items-center justify-between rounded-lg border border-border p-4">
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-2">
+                        <UserCheck className="w-4 h-4 text-primary" />
+                        <Label htmlFor="is_collaborator" className="font-medium">Ativar como Colaborador</Label>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Quando ativado, este agente aparecerá como colaborador da empresa — podendo ser atribuído a tarefas, 
+                        adicionado a squads e contactado no chat interno.
+                      </p>
+                    </div>
+                    <Switch
+                      id="is_collaborator"
+                      checked={formData.is_collaborator}
+                      onCheckedChange={(checked) => setFormData({ ...formData, is_collaborator: checked })}
+                    />
                   </div>
                 </div>
               )}

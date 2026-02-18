@@ -5749,6 +5749,7 @@ export type Database = {
           discord_user_id: string | null
           discord_username: string | null
           email: string
+          ia_agent_id: string | null
           id: string
           name: string
           phone: string | null
@@ -5768,6 +5769,7 @@ export type Database = {
           discord_user_id?: string | null
           discord_username?: string | null
           email: string
+          ia_agent_id?: string | null
           id?: string
           name: string
           phone?: string | null
@@ -5787,6 +5789,7 @@ export type Database = {
           discord_user_id?: string | null
           discord_username?: string | null
           email?: string
+          ia_agent_id?: string | null
           id?: string
           name?: string
           phone?: string | null
@@ -5805,6 +5808,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_ia_agent_id_fkey"
+            columns: ["ia_agent_id"]
+            isOneToOne: false
+            referencedRelation: "ia_agents"
             referencedColumns: ["id"]
           },
           {
@@ -8253,6 +8263,7 @@ export type Database = {
           created_at: string | null
           description: string | null
           id: string
+          is_collaborator: boolean
           model: string | null
           prompt_base: string
           telegram_bot_name: string | null
@@ -8268,6 +8279,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           id?: string
+          is_collaborator?: boolean
           model?: string | null
           prompt_base: string
           telegram_bot_name?: string | null
@@ -8283,6 +8295,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           id?: string
+          is_collaborator?: boolean
           model?: string | null
           prompt_base?: string
           telegram_bot_name?: string | null
