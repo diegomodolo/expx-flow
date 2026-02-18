@@ -23,6 +23,8 @@ export interface GoogleMeetMeeting {
   ai_summary: string | null;
   ai_action_items: any[] | null;
   transcript_doc_url: string | null;
+  recording_url: string | null;
+  recording_drive_file_id: string | null;
   created_at: string;
   updated_at: string;
   clients?: { name: string } | null;

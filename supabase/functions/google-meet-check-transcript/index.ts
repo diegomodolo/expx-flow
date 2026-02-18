@@ -19,9 +19,9 @@ async function getValidAccessToken(supabaseClient: any, companyId: string) {
   const expiresAt = new Date(integration.expires_at);
   const now = new Date();
   if (expiresAt.getTime() - now.getTime() < 5 * 60 * 1000) {
-    const clientId = Deno.env.get('GOOGLE_ADS_CLIENT_ID')?.trim();
-    const clientSecret = Deno.env.get('GOOGLE_ADS_CLIENT_SECRET')?.trim();
-    if (!clientId || !clientSecret) throw new Error('Google OAuth credentials not configured');
+    const clientId = Deno.env.get('GOOGLE_MEET_CLIENT_ID')?.trim();
+    const clientSecret = Deno.env.get('GOOGLE_MEET_CLIENT_SECRET')?.trim();
+    if (!clientId || !clientSecret) throw new Error('Google Meet OAuth credentials not configured');
 
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
@@ -59,7 +59,6 @@ serve(async (req) => {
     const { meetingId } = await req.json();
     if (!meetingId) throw new Error('Missing meetingId');
 
-    // Get meeting from DB
     const { data: meeting, error: meetingError } = await supabaseClient
       .from('google_meet_meetings')
       .select('*')
@@ -72,7 +71,6 @@ serve(async (req) => {
 
     const accessToken = await getValidAccessToken(supabaseClient, meeting.company_id);
 
-    // Update status to processing
     await supabaseClient.from('google_meet_meetings')
       .update({ transcript_status: 'processing' })
       .eq('id', meetingId);
@@ -103,17 +101,15 @@ serve(async (req) => {
         .update({ transcript_status: 'not_available' })
         .eq('id', meetingId);
       return new Response(
-        JSON.stringify({ success: false, message: 'No conference records found. The meeting may not have started yet or transcription is still processing.' }),
+        JSON.stringify({ success: false, message: 'Nenhum registro de conferência encontrado. A reunião pode não ter começado ou a transcrição ainda está sendo processada.' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Use the most recent conference record
     const latestRecord = conferenceRecords[conferenceRecords.length - 1];
     const conferenceRecordName = latestRecord.name;
     console.log('Found conference record:', conferenceRecordName);
 
-    // Update meeting with conference record info
     await supabaseClient.from('google_meet_meetings')
       .update({
         conference_record_id: conferenceRecordName,
@@ -148,6 +144,52 @@ serve(async (req) => {
       console.warn('Failed to fetch participants:', e);
     }
 
+    // Fetch recordings
+    let recordingUrl: string | null = null;
+    let recordingDriveFileId: string | null = null;
+    try {
+      const recordingsUrl = `https://meet.googleapis.com/v2/${conferenceRecordName}/recordings`;
+      console.log('Fetching recordings from:', recordingsUrl);
+      const recordingsResponse = await fetch(recordingsUrl, {
+        headers: { 'Authorization': `Bearer ${accessToken}` },
+      });
+      
+      if (recordingsResponse.ok) {
+        const recordingsData = await recordingsResponse.json();
+        const recordings = recordingsData.recordings || [];
+        console.log('Found', recordings.length, 'recordings');
+        
+        if (recordings.length > 0) {
+          const recording = recordings[0];
+          // driveDestination contains the file ID and export URI
+          if (recording.driveDestination) {
+            recordingDriveFileId = recording.driveDestination.file || null;
+            recordingUrl = recording.driveDestination.exportUri || null;
+            console.log('Recording drive file:', recordingDriveFileId, 'URL:', recordingUrl);
+          }
+          // If no driveDestination, try to build a Drive link from the file name
+          if (!recordingUrl && recordingDriveFileId) {
+            recordingUrl = `https://drive.google.com/file/d/${recordingDriveFileId}/view`;
+          }
+        }
+      } else {
+        const recErr = await recordingsResponse.text();
+        console.log('No recordings available:', recordingsResponse.status, recErr);
+      }
+    } catch (recError) {
+      console.warn('Failed to fetch recordings (non-blocking):', recError);
+    }
+
+    // Update recording info
+    if (recordingUrl || recordingDriveFileId) {
+      await supabaseClient.from('google_meet_meetings')
+        .update({
+          recording_url: recordingUrl,
+          recording_drive_file_id: recordingDriveFileId,
+        })
+        .eq('id', meetingId);
+    }
+
     // Fetch transcripts
     const transcriptsUrl = `https://meet.googleapis.com/v2/${conferenceRecordName}/transcripts`;
     const transcriptsResponse = await fetch(transcriptsUrl, {
@@ -161,7 +203,12 @@ serve(async (req) => {
         .update({ transcript_status: 'not_available' })
         .eq('id', meetingId);
       return new Response(
-        JSON.stringify({ success: false, message: 'Transcription not available yet. It may take 2-5 minutes after the meeting ends.' }),
+        JSON.stringify({ 
+          success: false, 
+          message: 'Transcrição ainda não disponível. Pode levar de 2 a 5 minutos após o término da reunião.',
+          hasRecording: !!recordingUrl,
+          recordingUrl,
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -174,7 +221,12 @@ serve(async (req) => {
         .update({ transcript_status: 'not_available' })
         .eq('id', meetingId);
       return new Response(
-        JSON.stringify({ success: false, message: 'No transcripts found for this meeting.' }),
+        JSON.stringify({ 
+          success: false, 
+          message: 'Nenhuma transcrição encontrada para esta reunião. Verifique se a transcrição estava habilitada durante a reunião.',
+          hasRecording: !!recordingUrl,
+          recordingUrl,
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -198,7 +250,6 @@ serve(async (req) => {
     const entriesData = await entriesResponse.json();
     const entries = entriesData.transcriptEntries || [];
 
-    // Build raw transcript text
     const rawTranscript = entries
       .map((entry: any) => {
         const speaker = entry.participant?.displayName || 'Unknown';
@@ -210,7 +261,6 @@ serve(async (req) => {
 
     console.log('Transcript captured, length:', rawTranscript.length);
 
-    // Save transcript
     await supabaseClient.from('google_meet_meetings')
       .update({
         raw_transcript: rawTranscript,
@@ -222,9 +272,11 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Transcript captured successfully',
+        message: 'Transcrição capturada com sucesso!',
         transcriptLength: rawTranscript.length,
         entriesCount: entries.length,
+        hasRecording: !!recordingUrl,
+        recordingUrl,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
