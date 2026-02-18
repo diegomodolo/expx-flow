@@ -128,6 +128,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
   const [newChecklistItem, setNewChecklistItem] = useState('');
   const [previewSlot, setPreviewSlot] = useState('');
   const [importChecklistOpen, setImportChecklistOpen] = useState(false);
+  const [responsibleSearch, setResponsibleSearch] = useState('');
   const [clientSearch, setClientSearch] = useState('');
   const [categoriaSearch, setCategoriaSearch] = useState('');
   const [classificacaoSearch, setClassificacaoSearch] = useState('');
@@ -1104,28 +1105,58 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                           </div>
                           <div>
                             <Label className="text-sm font-semibold">Responsável</Label>
-                            <Select
-                              value={formData.responsible_name}
-                              onValueChange={(value) => {
-                                const employee = employees?.find(e => e.name === value);
-                                const empUserId = employee?.user_id || '';
-                                setFormData(prev => ({
-                                  ...prev,
-                                  responsible_name: value,
-                                  responsible_avatar: employee?.avatar || employee?.profile_avatar_url || '',
-                                  responsible_user_id: empUserId,
-                                  quadro_user_id: empUserId,
-                                  quadro_column_id: '',
-                                }));
-                              }}
-                            >
-                              <SelectTrigger className="mt-1.5"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                              <SelectContent>
-                                {employees?.map((employee) => (
-                                  <SelectItem key={employee.id} value={employee.name}>{employee.name}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button variant="outline" role="combobox" className="w-full justify-between font-normal mt-1.5">
+                                  {formData.responsible_name || "Selecione..."}
+                                  <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-[280px] p-2" align="start">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <Search className="h-4 w-4 text-muted-foreground" />
+                                  <Input
+                                    placeholder="Buscar responsável..."
+                                    value={responsibleSearch}
+                                    onChange={(e) => setResponsibleSearch(e.target.value)}
+                                    className="h-8 text-sm"
+                                    autoFocus
+                                  />
+                                </div>
+                                <ScrollArea className="max-h-[200px]">
+                                  {(employees || [])
+                                    .filter(emp => {
+                                      // Filtrar por squad selecionada
+                                      if (formData.team_id && emp.team_id !== formData.team_id) return false;
+                                      // Filtrar por busca
+                                      if (responsibleSearch && !emp.name.toLowerCase().includes(responsibleSearch.toLowerCase())) return false;
+                                      return true;
+                                    })
+                                    .map((employee) => (
+                                      <Button
+                                        key={employee.id}
+                                        variant="ghost"
+                                        className="w-full justify-start text-sm h-8 px-2"
+                                        onClick={() => {
+                                          const empUserId = employee.user_id || '';
+                                          setFormData(prev => ({
+                                            ...prev,
+                                            responsible_name: employee.name,
+                                            responsible_avatar: employee.avatar || employee.profile_avatar_url || '',
+                                            responsible_user_id: empUserId,
+                                            quadro_user_id: empUserId,
+                                            quadro_column_id: '',
+                                          }));
+                                          setResponsibleSearch('');
+                                        }}
+                                      >
+                                        {employee.name}
+                                      </Button>
+                                    ))
+                                  }
+                                </ScrollArea>
+                              </PopoverContent>
+                            </Popover>
                           </div>
                         </div>
 
