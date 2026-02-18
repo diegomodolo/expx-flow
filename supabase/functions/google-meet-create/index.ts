@@ -18,15 +18,14 @@ async function getValidAccessToken(supabaseClient: any, companyId: string) {
     throw new Error('Google Meet integration not found. Please connect Google Meet first in Settings > Google Meet & Drive.');
   }
 
-  // Check if token is expired or about to expire (5 min buffer)
   const expiresAt = new Date(integration.expires_at);
   const now = new Date();
   const bufferMs = 5 * 60 * 1000;
 
   if (expiresAt.getTime() - now.getTime() < bufferMs) {
     console.log('Token expired or expiring soon, refreshing...');
-    const clientId = Deno.env.get('GOOGLE_ADS_CLIENT_ID')?.trim();
-    const clientSecret = Deno.env.get('GOOGLE_ADS_CLIENT_SECRET')?.trim();
+    const clientId = Deno.env.get('GOOGLE_MEET_CLIENT_ID')?.trim();
+    const clientSecret = Deno.env.get('GOOGLE_MEET_CLIENT_SECRET')?.trim();
 
     if (!clientId || !clientSecret) {
       throw new Error('Google OAuth credentials not configured');
@@ -81,7 +80,7 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
     if (userError || !user) throw new Error('Unauthorized');
 
-    const { title, clientId, squadId, scheduledAt, companyId } = await req.json();
+    const { title, clientId, squadId, scheduledAt, companyId, participants, timezoneOffset } = await req.json();
 
     if (!companyId || !title) {
       throw new Error('Missing required fields: companyId, title');
@@ -114,6 +113,92 @@ serve(async (req) => {
     const space = await meetResponse.json();
     console.log('Meet space created:', space);
 
+    // Convert scheduledAt from local time to UTC using the timezone offset
+    let scheduledAtUTC: string | null = null;
+    if (scheduledAt) {
+      // scheduledAt comes as "YYYY-MM-DDTHH:mm" (local time)
+      // timezoneOffset is in minutes (e.g., 180 for UTC-3)
+      const offset = timezoneOffset || 0;
+      const localDate = new Date(scheduledAt);
+      // The browser datetime-local gives us the local time components
+      // We need to interpret it as the user's local time and convert to UTC
+      const utcDate = new Date(localDate.getTime() + offset * 60 * 1000);
+      scheduledAtUTC = utcDate.toISOString();
+      console.log('Scheduled at (local):', scheduledAt, 'Offset:', offset, 'UTC:', scheduledAtUTC);
+    }
+
+    // Create Google Calendar event if we have a scheduled time
+    let calendarEventId: string | null = null;
+    if (scheduledAtUTC) {
+      try {
+        const startTime = new Date(scheduledAtUTC);
+        const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // 1 hour default
+
+        const attendees = (participants || [])
+          .filter((p: any) => p.email)
+          .map((p: any) => ({ email: p.email, displayName: p.name || undefined }));
+
+        const calendarEvent = {
+          summary: title,
+          start: {
+            dateTime: startTime.toISOString(),
+            timeZone: 'America/Sao_Paulo',
+          },
+          end: {
+            dateTime: endTime.toISOString(),
+            timeZone: 'America/Sao_Paulo',
+          },
+          conferenceData: {
+            entryPoints: [{
+              entryPointType: 'video',
+              uri: space.meetingUri,
+              label: space.meetingCode,
+            }],
+            conferenceSolution: {
+              key: { type: 'hangoutsMeet' },
+              name: 'Google Meet',
+            },
+            conferenceId: space.meetingCode,
+          },
+          attendees,
+          reminders: {
+            useDefault: false,
+            overrides: [
+              { method: 'popup', minutes: 10 },
+              { method: 'email', minutes: 30 },
+            ],
+          },
+          sendUpdates: 'all',
+        };
+
+        console.log('Creating Calendar event with', attendees.length, 'attendees');
+
+        const calendarResponse = await fetch(
+          'https://www.googleapis.com/calendar/v3/calendars/primary/events?conferenceDataVersion=1&sendUpdates=all',
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(calendarEvent),
+          }
+        );
+
+        if (calendarResponse.ok) {
+          const calEvent = await calendarResponse.json();
+          calendarEventId = calEvent.id;
+          console.log('Calendar event created:', calendarEventId);
+        } else {
+          const calError = await calendarResponse.text();
+          console.error('Calendar event creation failed (non-blocking):', calendarResponse.status, calError);
+          // Non-blocking: meeting is still created even if calendar fails
+        }
+      } catch (calErr) {
+        console.error('Calendar event creation error (non-blocking):', calErr);
+      }
+    }
+
     // Save to database
     const { data: meeting, error: meetingError } = await supabaseClient
       .from('google_meet_meetings')
@@ -127,8 +212,10 @@ serve(async (req) => {
         meeting_code: space.meetingCode || '',
         title,
         status: 'scheduled',
-        scheduled_at: scheduledAt || null,
+        scheduled_at: scheduledAtUTC || null,
         transcript_status: 'pending',
+        participants: participants || [],
+        google_calendar_event_id: calendarEventId,
       })
       .select()
       .single();
@@ -141,7 +228,7 @@ serve(async (req) => {
     console.log('Meeting saved:', meeting.id);
 
     return new Response(
-      JSON.stringify({ success: true, meeting }),
+      JSON.stringify({ success: true, meeting, calendarEventCreated: !!calendarEventId }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {

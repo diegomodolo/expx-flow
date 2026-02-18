@@ -65,6 +65,8 @@ export function useGoogleMeetMeetings() {
     clientId?: string;
     squadId?: string;
     scheduledAt?: string;
+    participants?: { email: string; name: string; type: string }[];
+    timezoneOffset?: number;
   }) => {
     if (!companyId) return null;
     try {
@@ -76,6 +78,8 @@ export function useGoogleMeetMeetings() {
           squadId: data.squadId,
           scheduledAt: data.scheduledAt,
           companyId,
+          participants: data.participants,
+          timezoneOffset: data.timezoneOffset,
         },
       });
 

@@ -6759,10 +6759,12 @@ export type Database = {
           created_at: string
           created_by: string
           ended_at: string | null
+          google_calendar_event_id: string | null
           google_space_id: string
           id: string
           meeting_code: string
           meeting_uri: string
+          participants: Json | null
           raw_transcript: string | null
           scheduled_at: string | null
           squad_id: string | null
@@ -6782,10 +6784,12 @@ export type Database = {
           created_at?: string
           created_by: string
           ended_at?: string | null
+          google_calendar_event_id?: string | null
           google_space_id?: string
           id?: string
           meeting_code?: string
           meeting_uri?: string
+          participants?: Json | null
           raw_transcript?: string | null
           scheduled_at?: string | null
           squad_id?: string | null
@@ -6805,10 +6809,12 @@ export type Database = {
           created_at?: string
           created_by?: string
           ended_at?: string | null
+          google_calendar_event_id?: string | null
           google_space_id?: string
           id?: string
           meeting_code?: string
           meeting_uri?: string
+          participants?: Json | null
           raw_transcript?: string | null
           scheduled_at?: string | null
           squad_id?: string | null
