@@ -30,7 +30,7 @@ export default function CommunicationDashboard() {
           channel={activeChannel}
           messages={messages}
           loading={messagesLoading}
-          onSendMessage={sendMessage}
+          onSendMessage={(content, threadParentId) => sendMessage(content, threadParentId)}
           sendingMessage={sendingMessage}
         />
         <MyDayPanel />
