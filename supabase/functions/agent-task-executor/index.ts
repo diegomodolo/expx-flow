@@ -110,8 +110,9 @@ Deno.serve(async (req) => {
           const { error: ttStartErr } = await supabase.from('task_time_tracking').insert({
             task_id: task.id,
             user_id: employee.user_id,
-            user_name: employee.name,
+            company_id: task.company_id || employee.company_id,
             started_at: timeTrackingStartedAt,
+            notes: `⏱️ Sessão iniciada pelo agente ${employee.name}`,
           });
           if (ttStartErr) console.error(`[agent-task-executor] ❌ Error starting time tracking:`, ttStartErr);
 
