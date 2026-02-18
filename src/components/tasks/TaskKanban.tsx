@@ -586,21 +586,28 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
             const columnTasks = tasks.filter(task => {
               if (task.status !== column.status) return false;
               if (assignedTaskIds.has(task.id)) return false;
+              // If the task has a specific quadro_column_id, only show it in that column
+              if (task.quadro_column_id) {
+                return task.quadro_column_id === column.id;
+              }
               return true;
             });
             
+            // For tasks WITHOUT quadro_column_id, assign to first column of that status
             const isFirstColumnOfStatus = columns.findIndex(c => c.status === column.status) === columnIndex;
-            if (isFirstColumnOfStatus) {
-              columnTasks.forEach(task => assignedTaskIds.add(task.id));
-            } else {
-              columnTasks.length = 0;
-            }
+            columnTasks.forEach(task => {
+              if (task.quadro_column_id === column.id || (!task.quadro_column_id && isFirstColumnOfStatus)) {
+                assignedTaskIds.add(task.id);
+              }
+            });
+            // Remove tasks that weren't actually assigned to this column
+            const finalTasks = columnTasks.filter(task => assignedTaskIds.has(task.id));
             const isDropTarget = dragOverColumn === column.id;
-            const canDrop = draggedTask && draggedTask.status !== column.status;
+            const canDrop = draggedTask && (draggedTask.status !== column.status || draggedTask.quadro_column_id !== column.id);
             const isDoneColumn = column.status === 'done';
             const isColumnDragTarget = dragOverColumnId === column.id && draggedColumn?.id !== column.id;
             const isBeingDragged = draggedColumn?.id === column.id;
-            const isEmpty = columnTasks.length === 0;
+            const isEmpty = finalTasks.length === 0;
             const isExpandedEmpty = isEmpty && isDropTarget && canDrop;
             
             return (
@@ -650,7 +657,7 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
                       )} style={{ color: column.color }}>
                         {!isUsingDefaults && <span className="opacity-40 mr-1">⋮⋮</span>}
                         {column.name}
-                        <Badge variant="secondary" className={cn("bg-background/80", isCompactMode && "text-xs px-1.5 py-0")}>{columnTasks.length}</Badge>
+                        <Badge variant="secondary" className={cn("bg-background/80", isCompactMode && "text-xs px-1.5 py-0")}>{finalTasks.length}</Badge>
                       </h3>
                       <Button
                         variant="ghost"
@@ -678,7 +685,7 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
                 >
                   {isDoneColumn ? (
                     <>
-                      {columnTasks.length > 0 ? (
+                      {finalTasks.length > 0 ? (
                         <Card 
                           className="p-6 border cursor-pointer hover:shadow-md transition-all group"
                           style={{ 
@@ -693,8 +700,8 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
                                 <CheckCircle2 className="w-8 h-8" style={{ color: column.color }} />
                               </div>
                               <div>
-                                <p className="text-3xl font-bold" style={{ color: column.color }}>{columnTasks.length}</p>
-                                <p className="text-sm" style={{ color: column.color }}>{columnTasks.length === 1 ? 'tarefa concluída' : 'tarefas concluídas'}</p>
+                                <p className="text-3xl font-bold" style={{ color: column.color }}>{finalTasks.length}</p>
+                                <p className="text-sm" style={{ color: column.color }}>{finalTasks.length === 1 ? 'tarefa concluída' : 'tarefas concluídas'}</p>
                               </div>
                               <div className="flex items-center gap-1 text-xs group-hover:translate-x-1 transition-transform" style={{ color: column.color }}>
                                 <span>Ver tarefas</span>
@@ -708,7 +715,7 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
                           <CheckCircle2 className="w-8 h-8 text-muted-foreground/20" />
                         </div>
                       )}
-                      {columnTasks.length > 0 && isDropTarget && canDrop && (
+                      {finalTasks.length > 0 && isDropTarget && canDrop && (
                         <div className="border-2 border-dashed border-primary bg-primary/10 rounded-lg p-4 text-center">
                           <p className="text-sm font-medium text-primary">Solte aqui para mover</p>
                         </div>
@@ -716,13 +723,13 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
                     </>
                   ) : (
                     <>
-                      {columnTasks.map((task) => renderTaskCard(task, column.color))}
-                      {columnTasks.length === 0 && (
+                      {finalTasks.map((task) => renderTaskCard(task, column.color))}
+                      {finalTasks.length === 0 && (
                         <div className="flex items-center justify-center py-6">
                           <ClipboardList className="w-8 h-8 text-muted-foreground/20" />
                         </div>
                       )}
-                      {columnTasks.length > 0 && isDropTarget && canDrop && (
+                      {finalTasks.length > 0 && isDropTarget && canDrop && (
                         <div className="border-2 border-dashed border-primary bg-primary/10 rounded-lg p-4 text-center">
                           <p className="text-sm font-medium text-primary">Solte aqui para mover</p>
                         </div>
