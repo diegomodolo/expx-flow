@@ -26,6 +26,7 @@ export function useGoogleMeetIntegration() {
       'https://www.googleapis.com/auth/meetings.space.readonly',
       'https://www.googleapis.com/auth/drive.readonly',
       'https://www.googleapis.com/auth/userinfo.email',
+      'https://www.googleapis.com/auth/calendar.events',
     ].join(' ');
 
     return `https://accounts.google.com/o/oauth2/v2/auth?` +
