@@ -12857,6 +12857,53 @@ export type Database = {
           },
         ]
       }
+      task_outputs: {
+        Row: {
+          attachments: Json | null
+          author_avatar: string | null
+          author_name: string
+          company_id: string
+          content: string
+          created_at: string
+          id: string
+          task_id: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          attachments?: Json | null
+          author_avatar?: string | null
+          author_name?: string
+          company_id: string
+          content?: string
+          created_at?: string
+          id?: string
+          task_id: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          attachments?: Json | null
+          author_avatar?: string | null
+          author_name?: string
+          company_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          task_id?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_outputs_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_time_tracking: {
         Row: {
           company_id: string
