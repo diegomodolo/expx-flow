@@ -19,7 +19,7 @@ export function useGoogleMeetIntegration() {
   const processingCodeRef = useRef<string | null>(null);
 
   const getAuthUrl = () => {
-    const clientId = import.meta.env.VITE_GOOGLE_ADS_CLIENT_ID;
+    const clientId = import.meta.env.VITE_GOOGLE_MEET_CLIENT_ID;
     const redirectUri = `${window.location.origin}/google-meet/callback`;
     const scopes = [
       'https://www.googleapis.com/auth/meetings.space.created',
