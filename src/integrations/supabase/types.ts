@@ -12672,6 +12672,7 @@ export type Database = {
         Row: {
           avatar: string | null
           created_at: string
+          employee_id: string | null
           id: string
           name: string
           team_id: string
@@ -12679,6 +12680,7 @@ export type Database = {
         Insert: {
           avatar?: string | null
           created_at?: string
+          employee_id?: string | null
           id?: string
           name: string
           team_id: string
@@ -12686,11 +12688,19 @@ export type Database = {
         Update: {
           avatar?: string | null
           created_at?: string
+          employee_id?: string | null
           id?: string
           name?: string
           team_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "team_members_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "team_members_team_id_fkey"
             columns: ["team_id"]
@@ -15488,6 +15498,7 @@ export type Database = {
           company_id: string
         }[]
       }
+      get_user_team_ids: { Args: { _user_id: string }; Returns: string[] }
       is_company_admin_or_owner: {
         Args: { _company_id: string; _user_id: string }
         Returns: boolean
@@ -15496,7 +15507,19 @@ export type Database = {
         Args: { _company_id: string; _user_id: string }
         Returns: boolean
       }
+      is_company_owner: {
+        Args: { _company_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_squad_member: {
+        Args: { _team_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_team_leader: {
+        Args: { _team_id: string; _user_id: string }
+        Returns: boolean
+      }
       log_activity: {
         Args: {
           p_activity_type: string
