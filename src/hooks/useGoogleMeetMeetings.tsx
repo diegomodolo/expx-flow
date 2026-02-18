@@ -100,6 +100,59 @@ export function useGoogleMeetMeetings() {
     }
   };
 
+  const updateMeeting = async (meetingId: string, data: {
+    title?: string;
+    clientId?: string | null;
+    squadId?: string | null;
+    scheduledAt?: string | null;
+  }) => {
+    if (!companyId) return false;
+    try {
+      const updateData: any = {};
+      if (data.title !== undefined) updateData.title = data.title;
+      if (data.clientId !== undefined) updateData.client_id = data.clientId;
+      if (data.squadId !== undefined) updateData.squad_id = data.squadId;
+      if (data.scheduledAt !== undefined) updateData.scheduled_at = data.scheduledAt;
+
+      const { error } = await supabase
+        .from('google_meet_meetings')
+        .update(updateData)
+        .eq('id', meetingId)
+        .eq('company_id', companyId);
+
+      if (error) throw error;
+
+      toast.success('Reunião atualizada com sucesso!');
+      await fetchMeetings();
+      return true;
+    } catch (err: any) {
+      console.error('Error updating meeting:', err);
+      toast.error(err.message || 'Erro ao atualizar reunião');
+      return false;
+    }
+  };
+
+  const deleteMeeting = async (meetingId: string) => {
+    if (!companyId) return false;
+    try {
+      const { error } = await supabase
+        .from('google_meet_meetings')
+        .delete()
+        .eq('id', meetingId)
+        .eq('company_id', companyId);
+
+      if (error) throw error;
+
+      toast.success('Reunião excluída com sucesso!');
+      await fetchMeetings();
+      return true;
+    } catch (err: any) {
+      console.error('Error deleting meeting:', err);
+      toast.error(err.message || 'Erro ao excluir reunião');
+      return false;
+    }
+  };
+
   const checkTranscript = async (meetingId: string) => {
     try {
       const { data: result, error } = await supabase.functions.invoke('google-meet-check-transcript', {
@@ -149,6 +202,8 @@ export function useGoogleMeetMeetings() {
     creating,
     fetchMeetings,
     createMeeting,
+    updateMeeting,
+    deleteMeeting,
     checkTranscript,
     processSummary,
   };
