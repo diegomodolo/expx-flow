@@ -6705,6 +6705,141 @@ export type Database = {
           },
         ]
       }
+      google_meet_meetings: {
+        Row: {
+          ai_action_items: Json | null
+          ai_summary: string | null
+          client_id: string | null
+          company_id: string
+          conference_record_id: string | null
+          created_at: string
+          created_by: string
+          ended_at: string | null
+          google_space_id: string
+          id: string
+          meeting_code: string
+          meeting_uri: string
+          raw_transcript: string | null
+          scheduled_at: string | null
+          squad_id: string | null
+          started_at: string | null
+          status: string
+          title: string
+          transcript_doc_url: string | null
+          transcript_status: string
+          updated_at: string
+        }
+        Insert: {
+          ai_action_items?: Json | null
+          ai_summary?: string | null
+          client_id?: string | null
+          company_id: string
+          conference_record_id?: string | null
+          created_at?: string
+          created_by: string
+          ended_at?: string | null
+          google_space_id?: string
+          id?: string
+          meeting_code?: string
+          meeting_uri?: string
+          raw_transcript?: string | null
+          scheduled_at?: string | null
+          squad_id?: string | null
+          started_at?: string | null
+          status?: string
+          title: string
+          transcript_doc_url?: string | null
+          transcript_status?: string
+          updated_at?: string
+        }
+        Update: {
+          ai_action_items?: Json | null
+          ai_summary?: string | null
+          client_id?: string | null
+          company_id?: string
+          conference_record_id?: string | null
+          created_at?: string
+          created_by?: string
+          ended_at?: string | null
+          google_space_id?: string
+          id?: string
+          meeting_code?: string
+          meeting_uri?: string
+          raw_transcript?: string | null
+          scheduled_at?: string | null
+          squad_id?: string | null
+          started_at?: string | null
+          status?: string
+          title?: string
+          transcript_doc_url?: string | null
+          transcript_status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_meet_meetings_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "google_meet_meetings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "google_meet_meetings_squad_id_fkey"
+            columns: ["squad_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      google_meet_participants: {
+        Row: {
+          created_at: string
+          display_name: string
+          email: string | null
+          id: string
+          joined_at: string | null
+          left_at: string | null
+          meeting_id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string
+          email?: string | null
+          id?: string
+          joined_at?: string | null
+          left_at?: string | null
+          meeting_id: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          email?: string | null
+          id?: string
+          joined_at?: string | null
+          left_at?: string | null
+          meeting_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_meet_participants_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "google_meet_meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       groupops_badges: {
         Row: {
           company_id: string

@@ -40,6 +40,7 @@ import {
   BookOpen,
   Radar,
   Inbox,
+  Video,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useEmployeePermissions, MenuItemType } from "@/hooks/useEmployeePermissions";
@@ -130,6 +131,7 @@ const menuCategories: MenuCategory[] = [
         { title: "Relatórios", url: "/relatorios", icon: BarChart3, permission: "relatorios" as MenuItemType },
         { title: "Dashboard Equipe", url: "/squad-dashboard", icon: BarChart3, permission: "squad" as MenuItemType },
         { title: "Squad", url: "/squad", icon: UsersRound, permission: "squad" as MenuItemType },
+        { title: "Reuniões", url: "/reunioes", icon: Video, permission: "squad" as MenuItemType },
       ].sort((a, b) => a.title.localeCompare(b.title, 'pt-BR')),
     },
     {
