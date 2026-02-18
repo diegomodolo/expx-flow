@@ -15831,6 +15831,10 @@ export type Database = {
         | "radar-tv"
         | "relatorios-marketing"
         | "ver-quadros-outros"
+        | "skills-ia"
+        | "editar-skills"
+        | "roteiros"
+        | "command-center"
       payment_type: "prepaid" | "postpaid"
       routine_category:
         | "saldo"
@@ -16038,6 +16042,10 @@ export const Constants = {
         "radar-tv",
         "relatorios-marketing",
         "ver-quadros-outros",
+        "skills-ia",
+        "editar-skills",
+        "roteiros",
+        "command-center",
       ],
       payment_type: ["prepaid", "postpaid"],
       routine_category: [
