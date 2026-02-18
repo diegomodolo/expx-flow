@@ -537,3 +537,6 @@ verify_jwt = true
 
 [functions.google-meet-oauth]
 verify_jwt = true
+
+[functions.agent-task-executor]
+verify_jwt = false
