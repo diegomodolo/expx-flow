@@ -102,10 +102,10 @@ serve(async (req) => {
           accessType: 'OPEN',
           artifactConfig: {
             recordingConfig: {
-              autoRecordingGeneration: 'AUTOMATICALLY_START_AND_STOP',
+              autoRecordingGeneration: 'ENABLED',
             },
             transcriptionConfig: {
-              autoTranscriptionGeneration: 'AUTOMATICALLY_START_AND_STOP',
+              autoTranscriptionGeneration: 'ENABLED',
             },
           },
         },
