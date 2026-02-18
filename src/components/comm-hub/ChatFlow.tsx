@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, KeyboardEvent, useCallback, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -94,8 +95,16 @@ export function ChatFlow({ channel, messages, loading, onSendMessage, sendingMes
     }
   }, [user?.id, activeCompany?.company_id]);
 
+  const queryClient = useQueryClient();
+
   const handleDeleteMessage = useCallback(async (message: InternalMessage) => {
     if (!user?.id || message.user_id !== user.id) return;
+
+    // Optimistically remove from UI immediately
+    queryClient.setQueryData(
+      ['internal-messages', channel?.id],
+      (old: InternalMessage[] | undefined) => old?.filter(m => m.id !== message.id) ?? []
+    );
 
     try {
       const { error } = await supabase
@@ -108,9 +117,11 @@ export function ChatFlow({ channel, messages, loading, onSendMessage, sendingMes
       toast.success('Mensagem apagada');
     } catch (err) {
       console.error('Error deleting message:', err);
+      // Revert on failure
+      queryClient.invalidateQueries({ queryKey: ['internal-messages', channel?.id] });
       toast.error('Erro ao apagar mensagem');
     }
-  }, [user?.id]);
+  }, [user?.id, channel?.id, queryClient]);
 
   // Group messages: parent messages with their replies nested
   const groupedMessages = useMemo(() => {
