@@ -173,7 +173,6 @@ export function ChatFlow({ channel, messages, loading, onSendMessage, sendingMes
   const handleDeleteMessage = useCallback(async (message: InternalMessage) => {
     if (!user?.id || message.user_id !== user.id) return;
 
-    // Optimistically remove from UI immediately
     queryClient.setQueryData(
       ['internal-messages', channel?.id],
       (old: InternalMessage[] | undefined) => old?.filter(m => m.id !== message.id) ?? []
@@ -190,11 +189,26 @@ export function ChatFlow({ channel, messages, loading, onSendMessage, sendingMes
       toast.success('Mensagem apagada');
     } catch (err) {
       console.error('Error deleting message:', err);
-      // Revert on failure
       queryClient.invalidateQueries({ queryKey: ['internal-messages', channel?.id] });
       toast.error('Erro ao apagar mensagem');
     }
   }, [user?.id, channel?.id, queryClient]);
+
+  const handleTogglePin = useCallback(async (message: InternalMessage) => {
+    try {
+      const { error } = await supabase
+        .from('internal_messages')
+        .update({ is_pinned: !message.is_pinned })
+        .eq('id', message.id);
+
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ['internal-messages', channel?.id] });
+      toast.success(message.is_pinned ? 'Mensagem desafixada' : 'Mensagem fixada');
+    } catch (err) {
+      console.error('Error toggling pin:', err);
+      toast.error('Erro ao fixar mensagem');
+    }
+  }, [channel?.id, queryClient]);
 
   // Group messages: parent messages with their replies nested
   const groupedMessages = useMemo(() => {
@@ -270,6 +284,7 @@ export function ChatFlow({ channel, messages, loading, onSendMessage, sendingMes
                   onReplyInThread={handleReplyInThread}
                   onConvertToTask={handleConvertToTask}
                   onDeleteMessage={handleDeleteMessage}
+                  onTogglePin={handleTogglePin}
                 />
                 {/* Inline thread replies */}
                 {replies.length > 0 && (
@@ -282,6 +297,7 @@ export function ChatFlow({ channel, messages, loading, onSendMessage, sendingMes
                         onReplyInThread={() => handleReplyInThread(parent)}
                         onConvertToTask={handleConvertToTask}
                         onDeleteMessage={handleDeleteMessage}
+                        onTogglePin={handleTogglePin}
                         isThreadReply
                       />
                     ))}

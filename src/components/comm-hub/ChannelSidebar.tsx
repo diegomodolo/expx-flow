@@ -1,4 +1,5 @@
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Hash, Users, Building2, MessageCircle } from 'lucide-react';
 import type { InternalChannel } from '@/hooks/useInternalChat';
@@ -8,9 +9,10 @@ interface ChannelSidebarProps {
   activeChannelId: string | null;
   onSelectChannel: (id: string) => void;
   loading?: boolean;
+  unreadCounts?: Record<string, number>;
 }
 
-export function ChannelSidebar({ channels, activeChannelId, onSelectChannel, loading }: ChannelSidebarProps) {
+export function ChannelSidebar({ channels, activeChannelId, onSelectChannel, loading, unreadCounts = {} }: ChannelSidebarProps) {
   const squads = channels.filter(c => c.channel_type === 'squad');
   const clients = channels.filter(c => c.channel_type === 'client');
   const general = channels.filter(c => c.channel_type === 'general');
@@ -26,6 +28,7 @@ export function ChannelSidebar({ channels, activeChannelId, onSelectChannel, loa
   const renderChannel = (channel: InternalChannel) => {
     const Icon = getIcon(channel.channel_type);
     const isActive = channel.id === activeChannelId;
+    const unread = unreadCounts[channel.id] || 0;
 
     return (
       <button
@@ -36,11 +39,17 @@ export function ChannelSidebar({ channels, activeChannelId, onSelectChannel, loa
           'hover:bg-accent/60',
           isActive
             ? 'bg-primary/10 text-primary font-medium border-l-2 border-primary'
-            : 'text-muted-foreground border-l-2 border-transparent'
+            : 'text-muted-foreground border-l-2 border-transparent',
+          unread > 0 && !isActive && 'text-foreground font-semibold'
         )}
       >
         <Icon className="w-4 h-4 shrink-0" />
-        <span className="truncate">{channel.name}</span>
+        <span className="truncate flex-1 text-left">{channel.name}</span>
+        {unread > 0 && !isActive && (
+          <Badge className="h-5 min-w-[20px] rounded-full px-1.5 text-[10px] shrink-0">
+            {unread > 99 ? '99+' : unread}
+          </Badge>
+        )}
       </button>
     );
   };
@@ -66,7 +75,6 @@ export function ChannelSidebar({ channels, activeChannelId, onSelectChannel, loa
 
       <ScrollArea className="flex-1">
         <div className="p-3 space-y-4">
-          {/* General */}
           {general.length > 0 && (
             <div>
               <p className="text-label-sm text-muted-foreground uppercase tracking-wider px-3 mb-1.5">
@@ -78,7 +86,6 @@ export function ChannelSidebar({ channels, activeChannelId, onSelectChannel, loa
             </div>
           )}
 
-          {/* Squads */}
           {squads.length > 0 && (
             <div>
               <p className="text-label-sm text-muted-foreground uppercase tracking-wider px-3 mb-1.5">
@@ -90,7 +97,6 @@ export function ChannelSidebar({ channels, activeChannelId, onSelectChannel, loa
             </div>
           )}
 
-          {/* Clients */}
           {clients.length > 0 && (
             <div>
               <p className="text-label-sm text-muted-foreground uppercase tracking-wider px-3 mb-1.5">
