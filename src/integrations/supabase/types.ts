@@ -8677,6 +8677,92 @@ export type Database = {
           },
         ]
       }
+      internal_poll_votes: {
+        Row: {
+          created_at: string
+          id: string
+          option_index: number
+          poll_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          option_index: number
+          poll_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          option_index?: number
+          poll_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "internal_poll_votes_poll_id_fkey"
+            columns: ["poll_id"]
+            isOneToOne: false
+            referencedRelation: "internal_polls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      internal_polls: {
+        Row: {
+          allow_multiple: boolean
+          channel_id: string
+          created_at: string
+          created_by: string
+          expires_at: string | null
+          id: string
+          is_anonymous: boolean
+          message_id: string
+          options: Json
+          question: string
+        }
+        Insert: {
+          allow_multiple?: boolean
+          channel_id: string
+          created_at?: string
+          created_by: string
+          expires_at?: string | null
+          id?: string
+          is_anonymous?: boolean
+          message_id: string
+          options?: Json
+          question: string
+        }
+        Update: {
+          allow_multiple?: boolean
+          channel_id?: string
+          created_at?: string
+          created_by?: string
+          expires_at?: string | null
+          id?: string
+          is_anonymous?: boolean
+          message_id?: string
+          options?: Json
+          question?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "internal_polls_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "internal_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_polls_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "internal_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_api_request_log: {
         Row: {
           api_key_id: string | null

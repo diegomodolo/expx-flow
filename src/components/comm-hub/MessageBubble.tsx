@@ -7,6 +7,7 @@ import { ptBR } from 'date-fns/locale';
 import { MessageSquare, CheckSquare, Trash2, Download, FileIcon, MessageSquarePlus } from 'lucide-react';
 import type { InternalMessage } from '@/hooks/useInternalChat';
 import { TaskMiniCard } from './TaskMiniCard';
+import { PollCard } from './PollCard';
 
 interface MessageBubbleProps {
   message: InternalMessage;
@@ -117,10 +118,18 @@ export function MessageBubble({ message, isOwnMessage, isThreadReply, onReplyInT
           </div>
         )}
 
-        <div className="text-sm text-foreground/90 break-words whitespace-pre-wrap">
-          {renderContent(message.content)}
-        </div>
+        {/* Hide raw content for poll messages, show poll card instead */}
+        {message.content.startsWith('📊') ? null : (
+          <div className="text-sm text-foreground/90 break-words whitespace-pre-wrap">
+            {renderContent(message.content)}
+          </div>
+        )}
         {renderFileAttachment()}
+
+        {/* Poll card */}
+        {message.content.startsWith('📊') && (
+          <PollCard messageId={message.id} />
+        )}
 
         {/* Thread indicator - only show on parent messages, not on inline replies */}
         {!isThreadReply && replyCount > 0 && (
