@@ -23,6 +23,9 @@ export interface InternalMessage {
   thread_parent_id: string | null;
   reply_count: number;
   is_pinned: boolean;
+  file_url: string | null;
+  file_name: string | null;
+  file_type: string | null;
   created_at: string;
   // Joined data
   user_name?: string;

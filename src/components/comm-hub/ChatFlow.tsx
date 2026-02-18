@@ -4,7 +4,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Send, Hash, Users, Plus, Paperclip, MessageSquarePlus, BarChart3, X } from 'lucide-react';
+import { Send, Hash, Users, Plus, Paperclip, MessageSquarePlus, BarChart3, X, FileIcon, Loader2 } from 'lucide-react';
 import { MessageBubble } from './MessageBubble';
 import { EmojiGifPicker } from './EmojiGifPicker';
 import { toast } from 'sonner';
@@ -26,8 +26,11 @@ export function ChatFlow({ channel, messages, loading, onSendMessage, sendingMes
   const [inputValue, setInputValue] = useState('');
   const [plusOpen, setPlusOpen] = useState(false);
   const [replyingTo, setReplyingTo] = useState<InternalMessage | null>(null);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [uploadingFile, setUploadingFile] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
   const { activeCompany } = useCompany();
 
@@ -37,12 +40,78 @@ export function ChatFlow({ channel, messages, loading, onSendMessage, sendingMes
     }
   }, [messages]);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     const trimmed = inputValue.trim();
-    if (!trimmed || sendingMessage) return;
+    if ((!trimmed && !pendingFile) || sendingMessage || uploadingFile) return;
+
+    if (pendingFile) {
+      await handleUploadAndSend(trimmed);
+      return;
+    }
+
     onSendMessage(trimmed, replyingTo?.id);
     setInputValue('');
     setReplyingTo(null);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error('Arquivo muito grande (máx. 20MB)');
+      return;
+    }
+    setPendingFile(file);
+    setPlusOpen(false);
+    setTimeout(() => inputRef.current?.focus(), 50);
+  };
+
+  const handleUploadAndSend = async (text: string) => {
+    if (!pendingFile || !user?.id || !channel) return;
+    setUploadingFile(true);
+    try {
+      const ext = pendingFile.name.split('.').pop();
+      const filePath = `${user.id}/${channel.id}/${Date.now()}.${ext}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('internal-chat-files')
+        .upload(filePath, pendingFile);
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from('internal-chat-files')
+        .getPublicUrl(filePath);
+
+      const insertData: any = {
+        channel_id: channel.id,
+        user_id: user.id,
+        content: text || `📎 ${pendingFile.name}`,
+        file_url: urlData.publicUrl,
+        file_name: pendingFile.name,
+        file_type: pendingFile.type,
+      };
+
+      if (replyingTo) {
+        insertData.thread_parent_id = replyingTo.id;
+      }
+
+      const { error } = await supabase
+        .from('internal_messages')
+        .insert(insertData);
+
+      if (error) throw error;
+
+      setPendingFile(null);
+      setInputValue('');
+      setReplyingTo(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    } catch (err) {
+      console.error('Upload error:', err);
+      toast.error('Erro ao enviar arquivo');
+    } finally {
+      setUploadingFile(false);
+    }
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -220,9 +289,18 @@ export function ChatFlow({ channel, messages, loading, onSendMessage, sendingMes
         )}
       </div>
 
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        className="hidden"
+        onChange={handleFileSelect}
+        accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.txt,.csv"
+      />
+
       {/* Message Input */}
       <div className="border-t border-border shrink-0">
-        {/* Reply indicator bar (Discord-style) */}
+        {/* Reply indicator bar */}
         {replyingTo && (
           <div className="flex items-center gap-2 px-4 py-2 bg-muted/60 border-b border-border">
             <span className="text-xs text-muted-foreground">
@@ -243,6 +321,25 @@ export function ChatFlow({ channel, messages, loading, onSendMessage, sendingMes
           </div>
         )}
 
+        {/* Pending file preview */}
+        {pendingFile && (
+          <div className="flex items-center gap-2 px-4 py-2 bg-muted/60 border-b border-border">
+            <FileIcon className="w-4 h-4 text-primary shrink-0" />
+            <span className="text-xs text-foreground truncate flex-1">{pendingFile.name}</span>
+            <span className="text-xs text-muted-foreground shrink-0">
+              {(pendingFile.size / 1024).toFixed(0)}KB
+            </span>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-5 w-5 shrink-0 text-muted-foreground hover:text-foreground"
+              onClick={() => { setPendingFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; }}
+            >
+              <X className="w-3 h-3" />
+            </Button>
+          </div>
+        )}
+
         <div className="flex items-end gap-2 p-4">
           <Popover open={plusOpen} onOpenChange={setPlusOpen}>
             <PopoverTrigger asChild>
@@ -256,7 +353,7 @@ export function ChatFlow({ channel, messages, loading, onSendMessage, sendingMes
             </PopoverTrigger>
             <PopoverContent side="top" align="start" className="w-52 p-1.5">
               <button
-                onClick={() => { setPlusOpen(false); toast.info('Funcionalidade de envio de arquivo em breve!'); }}
+                onClick={() => { setPlusOpen(false); fileInputRef.current?.click(); }}
                 className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm text-foreground hover:bg-accent transition-colors"
               >
                 <Paperclip className="w-4 h-4 text-muted-foreground" />
@@ -296,10 +393,10 @@ export function ChatFlow({ channel, messages, loading, onSendMessage, sendingMes
             <Button
               size="icon"
               onClick={handleSend}
-              disabled={!inputValue.trim() || sendingMessage}
+              disabled={(!inputValue.trim() && !pendingFile) || sendingMessage || uploadingFile}
               className="rounded-xl h-10 w-10"
             >
-              <Send className="w-4 h-4" />
+              {uploadingFile ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
             </Button>
           </div>
         </div>
