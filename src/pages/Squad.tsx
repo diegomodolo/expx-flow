@@ -4,6 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useTeams, Team } from "@/hooks/useTeams";
 import { useToast } from "@/hooks/use-toast";
@@ -29,10 +37,9 @@ import {
   HeadphonesIcon,
   Crown,
   MessageSquare,
-  ShieldCheck
+  ShieldCheck,
+  Trash2,
 } from "lucide-react";
-
-type StatusType = "all" | "high" | "medium" | "low";
 
 const iconMap: { [key: string]: React.ComponentType<any> } = {
   Megaphone,
@@ -47,9 +54,6 @@ const iconMap: { [key: string]: React.ComponentType<any> } = {
 };
 
 const Squad = () => {
-  const [statusFilter, setStatusFilter] = useState("todos");
-  const [typeFilter, setTypeFilter] = useState("todos");
-  const [performanceFilter, setPerformanceFilter] = useState("todas");
   const [searchTerm, setSearchTerm] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -59,25 +63,16 @@ const Squad = () => {
   const { teams, loading, error, createTeam, updateTeam, deleteTeam, fetchTeams } = useTeams();
   const { toast } = useToast();
 
-  // Cálculos para métricas
   const activeTeams = teams.filter(team => team.progress > 0).length;
-  const averagePerformance = teams.length > 0 
-    ? Math.round(teams.reduce((acc, team) => acc + team.progress, 0) / teams.length)
-    : 0;
-  const totalProjects = teams.reduce((acc, team) => acc + team.active_tasks, 0);
   const totalMembers = teams.reduce((acc, team) => acc + (team.members?.length || 0), 0);
 
-  // Filtros
   const filteredTeams = teams.filter(team => {
-    const matchesStatus = statusFilter === "todos" || team.progress > 0; // Simplificado para agora
-    const matchesType = typeFilter === "todos" || true; // Simplificado para agora  
-    const matchesPerformance = performanceFilter === "todas" || true; // Simplificado para agora
-    const matchesSearch = team.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         team.description.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesStatus && matchesType && matchesPerformance && matchesSearch;
+    const matchesSearch = searchTerm
+      ? [team.name, team.description].some(v => v?.toLowerCase().includes(searchTerm.toLowerCase()))
+      : true;
+    return matchesSearch;
   });
 
-  // Handle error with useEffect to prevent infinite renders
   useEffect(() => {
     if (error) {
       toast({
@@ -88,26 +83,25 @@ const Squad = () => {
     }
   }, [error, toast]);
 
-  const getPerformanceStatus = (progress: number) => {
-    if (progress >= 90) return "high";
-    if (progress >= 70) return "medium";
-    return "low";
+  const getPerformanceBadge = (progress: number) => {
+    if (progress >= 90) return <Badge className="bg-green-500/10 text-green-600 dark:text-green-400 border-0 text-xs">Alta</Badge>;
+    if (progress >= 70) return <Badge className="bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-0 text-xs">Média</Badge>;
+    return <Badge className="bg-red-500/10 text-red-600 dark:text-red-400 border-0 text-xs">Baixa</Badge>;
   };
 
-  const getStatusBadge = (progress: number) => {
-    const status = getPerformanceStatus(progress);
-    const config = {
-      high: "bg-green-500/10 text-green-500 dark:bg-green-500/20 dark:text-green-400",
-      medium: "bg-yellow-500/10 text-yellow-600 dark:bg-yellow-500/20 dark:text-yellow-400", 
-      low: "bg-red-500/10 text-red-600 dark:bg-red-500/20 dark:text-red-400"
-    };
-    return config[status];
-  };
-
-  const getPerformanceIndicator = (progress: number) => {
-    if (progress >= 90) return "bg-green-500";
-    if (progress >= 70) return "bg-yellow-500";
-    return "bg-red-500";
+  const PersonCell = ({ person }: { person?: { name: string; avatar?: string | null } | null }) => {
+    if (!person) return <span className="text-xs text-muted-foreground">—</span>;
+    return (
+      <div className="flex items-center gap-1.5">
+        <Avatar className="h-5 w-5">
+          <AvatarImage src={person.avatar || undefined} />
+          <AvatarFallback className="text-[9px] bg-primary/10 text-primary">
+            {person.name.charAt(0)}
+          </AvatarFallback>
+        </Avatar>
+        <span className="text-xs text-foreground truncate max-w-[120px]">{person.name}</span>
+      </div>
+    );
   };
 
   return (
@@ -147,325 +141,208 @@ const Squad = () => {
             </div>
 
             {/* Metrics Overview */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <Card className="shadow-sm border">
-                <CardContent className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Card className="border-border bg-card shadow-sm">
+                <CardContent className="p-5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-2xl font-bold text-foreground">{teams.length}</div>
+                      <div className="text-sm text-muted-foreground">Total de Squads</div>
+                    </div>
+                    <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                      <Users className="text-primary w-5 h-5" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-border bg-card shadow-sm">
+                <CardContent className="p-5">
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="text-2xl font-bold text-foreground">{activeTeams}</div>
                       <div className="text-sm text-muted-foreground">Squads Ativos</div>
                     </div>
-                    <div className="w-12 h-12 bg-green-500/10 dark:bg-green-500/20 rounded-lg flex items-center justify-center">
-                      <Users className="text-green-600 dark:text-green-400 text-xl" />
+                    <div className="w-10 h-10 bg-green-500/10 rounded-lg flex items-center justify-center">
+                      <BarChart3 className="text-green-500 w-5 h-5" />
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="shadow-sm border">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="text-2xl font-bold text-foreground">{averagePerformance}%</div>
-                      <div className="text-sm text-muted-foreground">Performance Média</div>
-                    </div>
-                    <div className="w-12 h-12 bg-blue-500/10 dark:bg-blue-500/20 rounded-lg flex items-center justify-center">
-                      <BarChart3 className="text-blue-600 dark:text-blue-400 text-xl" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="shadow-sm border">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="text-2xl font-bold text-foreground">{totalProjects}</div>
-                      <div className="text-sm text-muted-foreground">Projetos Ativos</div>
-                    </div>
-                    <div className="w-12 h-12 bg-purple-500/10 dark:bg-purple-500/20 rounded-lg flex items-center justify-center">
-                      <Briefcase className="text-purple-600 dark:text-purple-400 text-xl" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="shadow-sm border">
-                <CardContent className="p-6">
+              <Card className="border-border bg-card shadow-sm">
+                <CardContent className="p-5">
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="text-2xl font-bold text-foreground">{totalMembers}</div>
                       <div className="text-sm text-muted-foreground">Total de Membros</div>
                     </div>
-                    <div className="w-12 h-12 bg-orange-500/10 dark:bg-orange-500/20 rounded-lg flex items-center justify-center">
-                      <User className="text-orange-600 dark:text-orange-400 text-xl" />
+                    <div className="w-10 h-10 bg-blue-500/10 rounded-lg flex items-center justify-center">
+                      <User className="text-blue-500 w-5 h-5" />
                     </div>
                   </div>
                 </CardContent>
               </Card>
             </div>
 
-            {/* Filters */}
-            <Card className="shadow-sm border">
-              <CardContent className="p-6">
-                <div className="flex flex-wrap items-center gap-4">
-                  <div className="flex items-center space-x-2">
-                    <label className="text-sm font-medium text-muted-foreground">Status:</label>
-                    <Select value={statusFilter} onValueChange={setStatusFilter}>
-                      <SelectTrigger className="w-32">
-                        <SelectValue placeholder="Todos" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="todos">Todos</SelectItem>
-                        <SelectItem value="ativo">Ativo</SelectItem>
-                        <SelectItem value="inativo">Inativo</SelectItem>
-                        <SelectItem value="pausa">Em Pausa</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <label className="text-sm font-medium text-muted-foreground">Tipo:</label>
-                    <Select value={typeFilter} onValueChange={setTypeFilter}>
-                      <SelectTrigger className="w-40">
-                        <SelectValue placeholder="Todos" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="todos">Todos</SelectItem>
-                        <SelectItem value="desenvolvimento">Desenvolvimento</SelectItem>
-                        <SelectItem value="design">Design</SelectItem>
-                        <SelectItem value="marketing">Marketing</SelectItem>
-                        <SelectItem value="vendas">Vendas</SelectItem>
-                        <SelectItem value="suporte">Suporte</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <label className="text-sm font-medium text-muted-foreground">Performance:</label>
-                    <Select value={performanceFilter} onValueChange={setPerformanceFilter}>
-                      <SelectTrigger className="w-36">
-                        <SelectValue placeholder="Todas" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="todas">Todas</SelectItem>
-                        <SelectItem value="alta">Alta (90%+)</SelectItem>
-                        <SelectItem value="media">Média (70-89%)</SelectItem>
-                        <SelectItem value="baixa">Baixa (&lt;70%)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="flex-1 max-w-md">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input
-                        type="text"
-                        placeholder="Buscar por nome do squad..."
-                        className="pl-10"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Squads Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {filteredTeams.map((team) => {
-                const IconComponent = iconMap[team.icon] || Code;
-                return (
-                  <Card key={team.id} className="shadow-sm border hover:shadow-lg transition-shadow">
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center space-x-3">
-                          <div className={`w-12 h-12 ${team.icon_bg || 'bg-blue-500/10 dark:bg-blue-500/20'} rounded-lg flex items-center justify-center`}>
-                            <IconComponent className={`${team.icon_color || 'text-blue-600 dark:text-blue-400'} text-xl`} />
-                          </div>
-                          <div>
-                            <h3 className="font-semibold text-foreground">{team.name}</h3>
-                            <Badge className="text-xs bg-green-500/10 text-green-600 dark:bg-green-500/20 dark:text-green-400 border-0">Ativo</Badge>
-                          </div>
-                        </div>
-                        <div className={`w-2 h-2 rounded-full ${getPerformanceIndicator(team.progress)}`}></div>
-                      </div>
-
-                      {/* Leader and WhatsApp Responsible */}
-                      <div className="space-y-2 mb-4">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground flex items-center gap-1">
-                            <Crown className="h-3.5 w-3.5 text-yellow-500" />
-                            Líder:
-                          </span>
-                          {team.leader ? (
-                            <div className="flex items-center gap-1.5">
-                              <Avatar className="h-5 w-5">
-                                <AvatarImage src={team.leader.avatar || undefined} />
-                                <AvatarFallback className="text-[9px] bg-primary/10 text-primary">
-                                  {team.leader.name.charAt(0)}
-                                </AvatarFallback>
-                              </Avatar>
-                              <span className="font-medium text-foreground text-xs truncate max-w-[100px]">
-                                {team.leader.name}
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">Não definido</span>
-                          )}
-                        </div>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground flex items-center gap-1">
-                            <MessageSquare className="h-3.5 w-3.5 text-green-500" />
-                            CS WhatsApp:
-                          </span>
-                          {team.whatsapp_responsible ? (
-                            <div className="flex items-center gap-1.5">
-                              <Avatar className="h-5 w-5">
-                                <AvatarImage src={team.whatsapp_responsible.avatar || undefined} />
-                                <AvatarFallback className="text-[9px] bg-primary/10 text-primary">
-                                  {team.whatsapp_responsible.name.charAt(0)}
-                                </AvatarFallback>
-                              </Avatar>
-                              <span className="font-medium text-foreground text-xs truncate max-w-[100px]">
-                                {team.whatsapp_responsible.name}
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">Não definido</span>
-                          )}
-                        </div>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground flex items-center gap-1">
-                            <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
-                            Autorizador:
-                          </span>
-                          {team.authorizer ? (
-                            <div className="flex items-center gap-1.5">
-                              <Avatar className="h-5 w-5">
-                                <AvatarImage src={team.authorizer.avatar || undefined} />
-                                <AvatarFallback className="text-[9px] bg-primary/10 text-primary">
-                                  {team.authorizer.name.charAt(0)}
-                                </AvatarFallback>
-                              </Avatar>
-                              <span className="font-medium text-foreground text-xs truncate max-w-[100px]">
-                                {team.authorizer.name}
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">Não definido</span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Members preview */}
-                      <div className="flex items-center justify-between text-sm mb-4">
-                        <span className="text-muted-foreground">Membros:</span>
-                        <div className="flex items-center gap-1">
-                          {team.members && team.members.length > 0 ? (
-                            <>
-                              <div className="flex -space-x-2">
-                                {team.members.slice(0, 4).map((member) => (
-                                  <Tooltip key={member.id}>
-                                    <TooltipTrigger asChild>
-                                      <Avatar className="h-6 w-6 border-2 border-background">
-                                        <AvatarImage src={member.avatar || undefined} />
-                                        <AvatarFallback className="text-[9px] bg-primary/10 text-primary">
-                                          {member.name.charAt(0)}
-                                        </AvatarFallback>
-                                      </Avatar>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="top" className="text-xs">
-                                      {member.name}
-                                    </TooltipContent>
-                                  </Tooltip>
-                                ))}
-                              </div>
-                              {team.members.length > 4 && (
-                                <span className="text-xs text-muted-foreground ml-1">
-                                  +{team.members.length - 4}
-                                </span>
-                              )}
-                            </>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">Nenhum membro</span>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="border-t border-border pt-4 mb-4">
-                        <div className="grid grid-cols-3 gap-4 text-center text-xs">
-                          <div>
-                            <div className="font-semibold text-foreground">{team.members?.length || 0}</div>
-                            <div className="text-muted-foreground">Membros</div>
-                          </div>
-                          <div>
-                            <div className="font-semibold text-foreground">{team.active_tasks}</div>
-                            <div className="text-muted-foreground">Projetos</div>
-                          </div>
-                          <div>
-                            <div className={`font-semibold ${team.progress >= 90 ? 'text-green-600 dark:text-green-400' : team.progress >= 70 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400'}`}>
-                              {team.progress}%
-                            </div>
-                            <div className="text-muted-foreground">Performance</div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center space-x-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="flex-1"
-                          onClick={() => {
-                            setDialogMode('edit');
-                            setSelectedSquad(team);
-                            setDialogOpen(true);
-                          }}
-                        >
-                          Editar
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          className="flex-1"
-                          onClick={() => {
-                            setSelectedSquad(team);
-                            setMembersDialogOpen(true);
-                          }}
-                        >
-                          <Users className="h-4 w-4 mr-1" />
-                          Membros
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
+            {/* Search */}
+            <div className="flex items-center gap-4">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar squad..."
+                  className="pl-10"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <span className="text-sm text-muted-foreground">
+                {filteredTeams.length} squad{filteredTeams.length !== 1 ? 's' : ''}
+              </span>
             </div>
 
-            {/* Performance Chart Placeholder */}
-            <Card className="shadow-sm border">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-blue-500/10 dark:bg-blue-500/20 rounded-lg flex items-center justify-center">
-                      <BarChart3 className="text-blue-600 dark:text-blue-400 text-xl" />
-                    </div>
-                    <h3 className="text-lg font-semibold text-foreground">Distribuição de Carga de Trabalho</h3>
-                  </div>
-                  <Button variant="ghost" className="text-sm text-primary hover:text-primary/80 font-medium">
-                    Ver Detalhes
-                  </Button>
-                </div>
-                <div className="h-72 bg-muted/50 rounded-lg flex items-center justify-center">
-                  <div className="text-center">
-                    <BarChart3 className="w-16 h-16 text-muted-foreground/50 mx-auto mb-4" />
-                    <p className="text-muted-foreground">Gráfico de distribuição de tarefas</p>
-                    <p className="text-sm text-muted-foreground/70">Dados dos squads em tempo real</p>
-                  </div>
-                </div>
-              </CardContent>
+            {/* Table */}
+            <Card className="border-border bg-card shadow-sm">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-border hover:bg-transparent">
+                    <TableHead>Squad</TableHead>
+                    <TableHead>Líder</TableHead>
+                    <TableHead>CS WhatsApp</TableHead>
+                    <TableHead>Autorizador</TableHead>
+                    <TableHead className="text-center">Membros</TableHead>
+                    <TableHead className="text-center">Projetos</TableHead>
+                    <TableHead className="text-center">Performance</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredTeams.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
+                        Nenhum squad encontrado
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredTeams.map((team) => {
+                      const IconComponent = iconMap[team.icon] || Code;
+                      return (
+                        <TableRow key={team.id} className="border-border">
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <div
+                                className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
+                                style={{
+                                  backgroundColor: team.color ? `${team.color}20` : undefined,
+                                }}
+                              >
+                                <IconComponent
+                                  className="w-4 h-4"
+                                  style={{ color: team.color || undefined }}
+                                />
+                              </div>
+                              <div className="min-w-0">
+                                <div className="font-medium text-foreground text-sm truncate">{team.name}</div>
+                                {team.description && (
+                                  <div className="text-xs text-muted-foreground truncate max-w-[200px]">{team.description}</div>
+                                )}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell><PersonCell person={team.leader} /></TableCell>
+                          <TableCell><PersonCell person={team.whatsapp_responsible} /></TableCell>
+                          <TableCell><PersonCell person={team.authorizer} /></TableCell>
+                          <TableCell className="text-center">
+                            <div className="flex items-center justify-center gap-1">
+                              {team.members && team.members.length > 0 ? (
+                                <>
+                                  <div className="flex -space-x-1.5">
+                                    {team.members.slice(0, 3).map((member) => (
+                                      <Tooltip key={member.id}>
+                                        <TooltipTrigger asChild>
+                                          <Avatar className="h-5 w-5 border border-background">
+                                            <AvatarImage src={member.avatar || undefined} />
+                                            <AvatarFallback className="text-[8px] bg-primary/10 text-primary">
+                                              {member.name.charAt(0)}
+                                            </AvatarFallback>
+                                          </Avatar>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="top" className="text-xs">{member.name}</TooltipContent>
+                                      </Tooltip>
+                                    ))}
+                                  </div>
+                                  <span className="text-xs text-muted-foreground ml-1">{team.members.length}</span>
+                                </>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">0</span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <span className="text-sm text-foreground">{team.active_tasks}</span>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {getPerformanceBadge(team.progress)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => {
+                                      setSelectedSquad(team);
+                                      setMembersDialogOpen(true);
+                                    }}
+                                  >
+                                    <Users className="h-4 w-4 text-muted-foreground" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Membros</TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => {
+                                      setDialogMode('edit');
+                                      setSelectedSquad(team);
+                                      setDialogOpen(true);
+                                    }}
+                                  >
+                                    <Edit className="h-4 w-4 text-muted-foreground" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Editar</TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-destructive hover:text-destructive"
+                                    onClick={() => {
+                                      setSelectedSquad(team);
+                                      setDeleteDialogOpen(true);
+                                    }}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Excluir</TooltipContent>
+                              </Tooltip>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
             </Card>
           </>
         )}
