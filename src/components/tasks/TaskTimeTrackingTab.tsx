@@ -13,7 +13,15 @@ import { useAuth } from '@/hooks/useAuth';
 import { useEmployees } from '@/hooks/useEmployees';
 
 function formatDuration(minutes: number): string {
-  if (minutes < 1) return '< 1min';
+  if (minutes < 0.017) return '0s'; // less than 1 second
+  if (minutes < 10) {
+    // Under 10 minutes: show minutes and seconds
+    const totalSeconds = Math.round(minutes * 60);
+    const m = Math.floor(totalSeconds / 60);
+    const s = totalSeconds % 60;
+    if (m === 0) return `${s}s`;
+    return `${m}min ${s}s`;
+  }
   const h = Math.floor(minutes / 60);
   const m = Math.round(minutes % 60);
   if (h === 0) return `${m}min`;

@@ -48,9 +48,23 @@ export function useTaskTimeTracking(taskId: string | null) {
         (profiles || []).map((p: any) => [p.user_id, { name: p.full_name, avatar: p.avatar_url }])
       );
 
+      // Fallback: check employees table for agent users not found in profiles
+      const missingUserIds = userIds.filter(uid => !profileMap.has(uid));
+      if (missingUserIds.length > 0) {
+        const { data: empData } = await supabase
+          .from('employees')
+          .select('user_id, name, avatar')
+          .in('user_id', missingUserIds);
+        for (const emp of (empData || [])) {
+          if (emp.user_id) {
+            profileMap.set(emp.user_id, { name: emp.name, avatar: emp.avatar });
+          }
+        }
+      }
+
       return (data || []).map(s => ({
         ...s,
-        user_name: profileMap.get(s.user_id)?.name || 'Usuário',
+        user_name: profileMap.get(s.user_id)?.name || (s.notes?.includes('agente') ? s.notes.replace('⏱️ Sessão iniciada pelo agente ', '') : 'Usuário'),
         user_avatar: profileMap.get(s.user_id)?.avatar || null,
       })) as TimeTrackingSession[];
     },
