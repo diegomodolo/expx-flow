@@ -38,6 +38,7 @@ import { useTaskHistory } from "@/hooks/useTaskHistory";
 import { TaskTimeTrackingTab } from "./TaskTimeTrackingTab";
 import { handleAutoTimeTracking } from "@/utils/autoTimeTracking";
 import { ImportChecklistTemplateModal } from "@/components/checklist-templates/ImportChecklistTemplateModal";
+import { TaskOutputPanel } from "./TaskOutputPanel";
 
 export type TaskDialogMode = 'kanban' | 'roteiro';
 
@@ -57,7 +58,7 @@ interface TaskDialogProps {
 type SidebarTab = 'principal' | 'clientes' | 'equipe' | 'checklist' | 'subtarefas' | 'historico' | 'timetracking';
 
 const ZOOM_STORAGE_KEY = 'task-dialog-zoom';
-const ZOOM_LEVELS = [640, 768, 896, 1024, 1152, 1280];
+const ZOOM_LEVELS = [640, 768, 896, 1024, 1152, 1280, 1408, 1536];
 
 const TASK_TYPES = [
   { value: 'Criativo', label: 'Criativo' },
@@ -1496,6 +1497,13 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
               </Button>
             </div>
           </div>
+
+          {/* Output Panel - shown for non-creative tasks when editing */}
+          {!isRoteiro && formData.tipo !== 'Criativo' && task?.id && (
+            <div className="w-[320px] border-l border-border shrink-0">
+              <TaskOutputPanel taskId={task.id} companyId={companyId} />
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
