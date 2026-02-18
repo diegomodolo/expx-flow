@@ -90,7 +90,7 @@ serve(async (req) => {
 
     const accessToken = await getValidAccessToken(supabaseClient, companyId);
 
-    // Create Google Meet Space
+    // Create Google Meet Space with auto-recording and auto-transcription enabled
     const meetResponse = await fetch('https://meet.googleapis.com/v2/spaces', {
       method: 'POST',
       headers: {
@@ -100,6 +100,14 @@ serve(async (req) => {
       body: JSON.stringify({
         config: {
           accessType: 'OPEN',
+          artifactConfig: {
+            recordingConfig: {
+              autoRecordingGeneration: 'AUTOMATICALLY_START_AND_STOP',
+            },
+            transcriptionConfig: {
+              autoTranscriptionGeneration: 'AUTOMATICALLY_START_AND_STOP',
+            },
+          },
         },
       }),
     });
