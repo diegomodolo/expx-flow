@@ -125,7 +125,23 @@ export function useInternalChat() {
     enabled: !!companyId,
   });
 
-  // Auto-select first channel
+  // Realtime subscription for channels (new squads, etc.)
+  useEffect(() => {
+    if (!companyId) return;
+    const channelSub = supabase
+      .channel(`internal-channels-${companyId}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'internal_channels',
+        filter: `company_id=eq.${companyId}`,
+      }, () => {
+        queryClient.invalidateQueries({ queryKey: ['internal-channels', companyId] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channelSub); };
+  }, [companyId, queryClient]);
+
   useEffect(() => {
     if (channels.length > 0 && !activeChannelId) {
       // Prefer general channel
