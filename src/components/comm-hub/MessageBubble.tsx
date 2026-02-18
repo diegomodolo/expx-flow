@@ -1,12 +1,14 @@
+import { useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { MessageSquare, CheckSquare, Trash2, Download, FileIcon, MessageSquarePlus, Pin } from 'lucide-react';
+import { MessageSquare, CheckSquare, Trash2, Download, FileIcon, MessageSquarePlus, Pin, LinkIcon } from 'lucide-react';
 import type { InternalMessage } from '@/hooks/useInternalChat';
 import { TaskMiniCard } from './TaskMiniCard';
 import { PollCard } from './PollCard';
+import { ReplyToTaskDialog } from './ReplyToTaskDialog';
 
 interface MessageBubbleProps {
   message: InternalMessage;
@@ -75,6 +77,8 @@ function renderMarkdown(text: string): React.ReactNode[] {
 }
 
 export function MessageBubble({ message, isOwnMessage, isThreadReply, onReplyInThread, onConvertToTask, onDeleteMessage, onTogglePin }: MessageBubbleProps) {
+  const [replyToTaskOpen, setReplyToTaskOpen] = useState(false);
+
   const initials = (message.user_name || 'U')
     .split(' ')
     .map(w => w[0])
@@ -183,6 +187,15 @@ export function MessageBubble({ message, isOwnMessage, isThreadReply, onReplyInT
 
           <Tooltip>
             <TooltipTrigger asChild>
+              <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setReplyToTaskOpen(true)}>
+                <LinkIcon className="w-3.5 h-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="text-xs">Vincular à tarefa</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
               <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => onConvertToTask?.(message)}>
                 <CheckSquare className="w-3.5 h-3.5" />
               </Button>
@@ -202,6 +215,12 @@ export function MessageBubble({ message, isOwnMessage, isThreadReply, onReplyInT
           )}
         </div>
       </TooltipProvider>
+
+      <ReplyToTaskDialog
+        open={replyToTaskOpen}
+        onOpenChange={setReplyToTaskOpen}
+        message={message}
+      />
     </div>
   );
 }

@@ -522,3 +522,6 @@ verify_jwt = false
 
 [functions.discord-bot]
 verify_jwt = true
+
+[functions.prioritize-notification]
+verify_jwt = true
