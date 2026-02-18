@@ -26,6 +26,7 @@ export interface InternalMessage {
   file_url: string | null;
   file_name: string | null;
   file_type: string | null;
+  topic_title: string | null;
   created_at: string;
   // Joined data
   user_name?: string;

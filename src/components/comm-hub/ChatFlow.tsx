@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Send, Hash, Users, Plus, Paperclip, MessageSquarePlus, BarChart3, X, FileIcon, Loader2 } from 'lucide-react';
 import { MessageBubble } from './MessageBubble';
+import { CreateTopicDialog } from './CreateTopicDialog';
 import { EmojiGifPicker } from './EmojiGifPicker';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -28,6 +29,7 @@ export function ChatFlow({ channel, messages, loading, onSendMessage, sendingMes
   const [replyingTo, setReplyingTo] = useState<InternalMessage | null>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [uploadingFile, setUploadingFile] = useState(false);
+  const [topicDialogOpen, setTopicDialogOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -360,7 +362,7 @@ export function ChatFlow({ channel, messages, loading, onSendMessage, sendingMes
                 Enviar um arquivo
               </button>
               <button
-                onClick={() => { setPlusOpen(false); toast.info('Funcionalidade de tópicos em breve!'); }}
+                onClick={() => { setPlusOpen(false); setTopicDialogOpen(true); }}
                 className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm text-foreground hover:bg-accent transition-colors"
               >
                 <MessageSquarePlus className="w-4 h-4 text-muted-foreground" />
@@ -401,6 +403,12 @@ export function ChatFlow({ channel, messages, loading, onSendMessage, sendingMes
           </div>
         </div>
       </div>
+
+      <CreateTopicDialog
+        open={topicDialogOpen}
+        onOpenChange={setTopicDialogOpen}
+        channelId={channel.id}
+      />
     </div>
   );
 }
