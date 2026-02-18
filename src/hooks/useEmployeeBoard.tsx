@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
@@ -145,6 +146,34 @@ export function useEmployeeBoard(selectedUserId?: string | null | "all") {
 
   // Verificar se pode ver quadros de outros - usa a permissão do sistema
   const canViewOthersBoards = isOwner || isManager || hasPermission('ver-quadros-outros');
+
+  // Subscribe to realtime changes on tasks table for auto-refresh
+  useEffect(() => {
+    if (!activeCompany?.company_id) return;
+
+    const channel = supabase
+      .channel('board-tasks-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'tasks',
+          filter: `company_id=eq.${activeCompany.company_id}`,
+        },
+        () => {
+          // Debounce: invalidate after a short delay to batch rapid changes
+          setTimeout(() => {
+            queryClient.invalidateQueries({ queryKey: ['board-tasks', activeCompany.company_id, selectedUserId] });
+          }, 1000);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [activeCompany?.company_id, selectedUserId, queryClient]);
 
   return {
     boardTasks,
