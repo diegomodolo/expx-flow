@@ -11,11 +11,12 @@ import { TaskMiniCard } from './TaskMiniCard';
 interface MessageBubbleProps {
   message: InternalMessage;
   isOwnMessage?: boolean;
+  isThreadReply?: boolean;
   onReplyInThread?: (message: InternalMessage) => void;
   onConvertToTask?: (message: InternalMessage) => void;
 }
 
-export function MessageBubble({ message, isOwnMessage, onReplyInThread, onConvertToTask }: MessageBubbleProps) {
+export function MessageBubble({ message, isOwnMessage, isThreadReply, onReplyInThread, onConvertToTask }: MessageBubbleProps) {
   const initials = (message.user_name || 'U')
     .split(' ')
     .map(w => w[0])
@@ -34,13 +35,13 @@ export function MessageBubble({ message, isOwnMessage, onReplyInThread, onConver
     });
   };
 
-  const replyCount = (message as any).reply_count || 0;
+  const replyCount = message.reply_count || 0;
 
   return (
-    <div className="group relative flex items-start gap-3 px-4 py-1.5 hover:bg-muted/30 transition-colors">
-      <Avatar className="w-8 h-8 mt-0.5 shrink-0">
+    <div className={`group relative flex items-start gap-3 px-4 py-1.5 hover:bg-muted/30 transition-colors ${isThreadReply ? 'px-2 py-1' : ''}`}>
+      <Avatar className={`${isThreadReply ? 'w-6 h-6' : 'w-8 h-8'} mt-0.5 shrink-0`}>
         <AvatarImage src={message.user_avatar} />
-        <AvatarFallback className="text-xs bg-primary/10 text-primary">
+        <AvatarFallback className={`${isThreadReply ? 'text-[10px]' : 'text-xs'} bg-primary/10 text-primary`}>
           {initials}
         </AvatarFallback>
       </Avatar>
@@ -58,8 +59,8 @@ export function MessageBubble({ message, isOwnMessage, onReplyInThread, onConver
           {renderContent(message.content)}
         </div>
 
-        {/* Thread indicator */}
-        {replyCount > 0 && (
+        {/* Thread indicator - only show on parent messages, not on inline replies */}
+        {!isThreadReply && replyCount > 0 && (
           <button
             onClick={() => onReplyInThread?.(message)}
             className="flex items-center gap-1.5 mt-1 text-xs text-primary hover:underline"

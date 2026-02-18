@@ -20,6 +20,8 @@ export interface InternalMessage {
   user_id: string;
   content: string;
   task_reference_id: string | null;
+  thread_parent_id: string | null;
+  reply_count: number;
   is_pinned: boolean;
   created_at: string;
   // Joined data
@@ -201,21 +203,27 @@ export function useInternalChat() {
 
   // Send message mutation
   const sendMessage = useMutation({
-    mutationFn: async (content: string) => {
+    mutationFn: async ({ content, threadParentId }: { content: string; threadParentId?: string }) => {
       if (!activeChannelId || !user?.id) throw new Error('Missing data');
 
       // Check for task references (#UUID pattern)
       const taskRefMatch = content.match(/#([a-f0-9-]{36})/i);
       const taskRefId = taskRefMatch ? taskRefMatch[1] : null;
 
+      const insertData: any = {
+        channel_id: activeChannelId,
+        user_id: user.id,
+        content,
+        task_reference_id: taskRefId,
+      };
+
+      if (threadParentId) {
+        insertData.thread_parent_id = threadParentId;
+      }
+
       const { error } = await supabase
         .from('internal_messages')
-        .insert({
-          channel_id: activeChannelId,
-          user_id: user.id,
-          content,
-          task_reference_id: taskRefId,
-        });
+        .insert(insertData);
 
       if (error) throw error;
     },
@@ -234,7 +242,7 @@ export function useInternalChat() {
     setActiveChannelId,
     messages,
     messagesLoading,
-    sendMessage: sendMessage.mutate,
+    sendMessage: (content: string, threadParentId?: string) => sendMessage.mutate({ content, threadParentId }),
     sendingMessage: sendMessage.isPending,
   };
 }
