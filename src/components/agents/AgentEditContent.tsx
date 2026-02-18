@@ -83,7 +83,6 @@ export function AgentEditContent({
       .maybeSingle();
     
     if (isCollaborator && !existingEmployee) {
-      const { data: { user } } = await supabase.auth.getUser();
       await supabase.from('employees').insert({
         company_id: activeCompany.company_id,
         name: `🤖 ${agentName}`,
@@ -91,7 +90,7 @@ export function AgentEditContent({
         role: 'Agente IA',
         status: 'active',
         start_date: new Date().toISOString().split('T')[0],
-        user_id: user?.id || '',
+        user_id: agentId,
         ia_agent_id: agentId,
       } as any);
     } else if (!isCollaborator && existingEmployee) {
