@@ -94,6 +94,24 @@ export function ChatFlow({ channel, messages, loading, onSendMessage, sendingMes
     }
   }, [user?.id, activeCompany?.company_id]);
 
+  const handleDeleteMessage = useCallback(async (message: InternalMessage) => {
+    if (!user?.id || message.user_id !== user.id) return;
+
+    try {
+      const { error } = await supabase
+        .from('internal_messages')
+        .delete()
+        .eq('id', message.id)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+      toast.success('Mensagem apagada');
+    } catch (err) {
+      console.error('Error deleting message:', err);
+      toast.error('Erro ao apagar mensagem');
+    }
+  }, [user?.id]);
+
   // Group messages: parent messages with their replies nested
   const groupedMessages = useMemo(() => {
     const parents: InternalMessage[] = [];
@@ -167,6 +185,7 @@ export function ChatFlow({ channel, messages, loading, onSendMessage, sendingMes
                   isOwnMessage={parent.user_id === user?.id}
                   onReplyInThread={handleReplyInThread}
                   onConvertToTask={handleConvertToTask}
+                  onDeleteMessage={handleDeleteMessage}
                 />
                 {/* Inline thread replies */}
                 {replies.length > 0 && (
@@ -178,6 +197,7 @@ export function ChatFlow({ channel, messages, loading, onSendMessage, sendingMes
                         isOwnMessage={reply.user_id === user?.id}
                         onReplyInThread={() => handleReplyInThread(parent)}
                         onConvertToTask={handleConvertToTask}
+                        onDeleteMessage={handleDeleteMessage}
                         isThreadReply
                       />
                     ))}

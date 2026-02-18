@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { MessageSquare, CheckSquare, MoreHorizontal } from 'lucide-react';
+import { MessageSquare, CheckSquare, Trash2 } from 'lucide-react';
 import type { InternalMessage } from '@/hooks/useInternalChat';
 import { TaskMiniCard } from './TaskMiniCard';
 
@@ -14,9 +14,10 @@ interface MessageBubbleProps {
   isThreadReply?: boolean;
   onReplyInThread?: (message: InternalMessage) => void;
   onConvertToTask?: (message: InternalMessage) => void;
+  onDeleteMessage?: (message: InternalMessage) => void;
 }
 
-export function MessageBubble({ message, isOwnMessage, isThreadReply, onReplyInThread, onConvertToTask }: MessageBubbleProps) {
+export function MessageBubble({ message, isOwnMessage, isThreadReply, onReplyInThread, onConvertToTask, onDeleteMessage }: MessageBubbleProps) {
   const initials = (message.user_name || 'U')
     .split(' ')
     .map(w => w[0])
@@ -101,6 +102,22 @@ export function MessageBubble({ message, isOwnMessage, isThreadReply, onReplyInT
             </TooltipTrigger>
             <TooltipContent side="top" className="text-xs">Converter em tarefa</TooltipContent>
           </Tooltip>
+
+          {isOwnMessage && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-7 w-7 text-destructive hover:text-destructive"
+                  onClick={() => onDeleteMessage?.(message)}
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="text-xs">Apagar mensagem</TooltipContent>
+            </Tooltip>
+          )}
         </div>
       </TooltipProvider>
     </div>
