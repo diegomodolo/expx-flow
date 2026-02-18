@@ -68,12 +68,29 @@ export function useEmployeeBoard(selectedUserId?: string | null | "all") {
       if (tasksError) throw tasksError;
       if (!tasksData || tasksData.length === 0) return [];
 
+      // Buscar colunas do quadro do usuário alvo para filtrar tarefas de outros quadros
+      const targetUserId2 = selectedUserId === "all" ? null : (selectedUserId || user.id);
+      let userColumnIds: Set<string> = new Set();
+      if (targetUserId2) {
+        const { data: userCols } = await supabase
+          .from("task_board_columns")
+          .select("id")
+          .eq("user_id", targetUserId2)
+          .eq("company_id", activeCompany.company_id);
+        userColumnIds = new Set((userCols || []).map(c => c.id));
+      }
+
       // Filtrar tarefas que já estão visíveis (visibility_date <= hoje ou null)
       // Excluir Histórias (tarefas-pai) do Kanban — só subtarefas aparecem
+      // Excluir tarefas que estão no quadro de outro usuário
       const visibleTasks = tasksData.filter(task => {
         if (task.task_type === 'História') return false;
-        if (!task.visibility_date) return true;
-        return task.visibility_date <= today;
+        if (!task.visibility_date ? false : task.visibility_date > today) return false;
+        // Se a tarefa tem quadro_column_id definido e pertence a outro quadro, excluir
+        if (task.quadro_column_id && targetUserId2 && userColumnIds.size > 0) {
+          if (!userColumnIds.has(task.quadro_column_id)) return false;
+        }
+        return true;
       });
 
       // Buscar perfis dos usuários
