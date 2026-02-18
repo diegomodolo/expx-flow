@@ -105,6 +105,16 @@ Deno.serve(async (req) => {
           }
           await supabase.from('tasks').update(progressUpdate).eq('id', task.id);
 
+          // Start time tracking session for the agent
+          const timeTrackingStartedAt = new Date().toISOString();
+          const { error: ttStartErr } = await supabase.from('task_time_tracking').insert({
+            task_id: task.id,
+            user_id: employee.user_id,
+            user_name: employee.name,
+            started_at: timeTrackingStartedAt,
+          });
+          if (ttStartErr) console.error(`[agent-task-executor] ❌ Error starting time tracking:`, ttStartErr);
+
           // Log status change in task history
           const historyEntries: any[] = [
             {
@@ -264,6 +274,32 @@ Gere o resultado/output da execução desta tarefa de forma completa e estrutura
             reviewUpdate.etapa = reviewColumn.name;
           }
           await supabase.from('tasks').update(reviewUpdate).eq('id', task.id);
+
+          // Stop time tracking session (close the open session for this task)
+          const timeTrackingEndedAt = new Date().toISOString();
+          const { data: openSession } = await supabase
+            .from('task_time_tracking')
+            .select('id, started_at')
+            .eq('task_id', task.id)
+            .is('ended_at', null)
+            .order('started_at', { ascending: false })
+            .limit(1)
+            .single();
+
+          if (openSession) {
+            const startMs = new Date(openSession.started_at).getTime();
+            const endMs = new Date(timeTrackingEndedAt).getTime();
+            const durationMinutes = Math.round((endMs - startMs) / 60000);
+            const { error: ttEndErr } = await supabase
+              .from('task_time_tracking')
+              .update({
+                ended_at: timeTrackingEndedAt,
+                duration_minutes: durationMinutes,
+              })
+              .eq('id', openSession.id);
+            if (ttEndErr) console.error(`[agent-task-executor] ❌ Error stopping time tracking:`, ttEndErr);
+            else console.log(`[agent-task-executor] ⏱️ Time tracking: ${durationMinutes}min for task "${task.title}"`);
+          }
 
           // Save output to task_outputs table (the new output/result chat)
           const { error: outputErr } = await supabase.from('task_outputs').insert({
