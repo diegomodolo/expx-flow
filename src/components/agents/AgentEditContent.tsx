@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { useIAAgents } from "@/hooks/useIAAgents";
 import { useClients } from "@/hooks/useClients";
 import { useCompany } from "@/contexts/CompanyContext";
@@ -42,11 +44,8 @@ const menuItems: { id: Section; label: string; icon: React.ElementType }[] = [
 
 interface AgentEditContentProps {
   agentId: string;
-  /** Initial section to show */
   defaultSection?: Section;
-  /** Whether to show the chat section */
   showChat?: boolean;
-  /** Called after agent is saved */
   onSaved?: () => void;
 }
 
@@ -84,7 +83,6 @@ export function AgentEditContent({
       .maybeSingle();
     
     if (isCollaborator && !existingEmployee) {
-      // Create employee record for the agent
       const { data: { user } } = await supabase.auth.getUser();
       await supabase.from('employees').insert({
         company_id: activeCompany.company_id,
@@ -97,15 +95,14 @@ export function AgentEditContent({
         ia_agent_id: agentId,
       } as any);
     } else if (!isCollaborator && existingEmployee) {
-      // Remove employee record
       await supabase.from('employees').delete().eq('id', existingEmployee.id);
     } else if (isCollaborator && existingEmployee) {
-      // Update name if changed
       await supabase.from('employees').update({
         name: `🤖 ${agentName}`,
       }).eq('id', existingEmployee.id);
     }
   };
+
   const [saving, setSaving] = useState(false);
   const [activeSection, setActiveSection] = useState<Section>(defaultSection);
   const [formData, setFormData] = useState({
@@ -130,7 +127,6 @@ export function AgentEditContent({
     const text = formData.prompt_base;
     const newText = text.substring(0, start) + skillTag + text.substring(end);
     setFormData(prev => ({ ...prev, prompt_base: newText }));
-    // Restore cursor position after React re-render
     setTimeout(() => {
       textarea.focus();
       textarea.setSelectionRange(start + skillTag.length, start + skillTag.length);
@@ -174,7 +170,6 @@ export function AgentEditContent({
         is_collaborator,
       } as any);
       
-      // Handle collaborator sync
       await syncCollaboratorStatus(agentId, is_collaborator, formData.agent_name);
       
       onSaved?.();
@@ -209,42 +204,55 @@ export function AgentEditContent({
   const isChat = activeSection === "chat";
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b">
-        <h2 className="text-lg font-semibold truncate">{currentAgent.agent_name}</h2>
-        {!isChat && (
-          <Button onClick={() => handleSubmit()} disabled={saving} size="sm">
-            <Save className="w-4 h-4 mr-2" />
-            {saving ? "Salvando..." : "Salvar"}
-          </Button>
-        )}
-      </div>
+    <div className="flex gap-6 min-h-[600px] h-full">
+      {/* Sidebar Card — same pattern as SettingsLayout */}
+      <Card className="w-80 p-6 shrink-0">
+        <div className="space-y-6">
+          <div>
+            <h2 className="text-lg font-semibold text-foreground">{currentAgent.agent_name}</h2>
+            <p className="text-sm text-muted-foreground">
+              Configurações do agente
+            </p>
+          </div>
 
-      {/* Body: sidebar + content */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar */}
-        <nav className="w-48 border-r bg-muted/30 p-2 space-y-1 shrink-0 overflow-y-auto">
-          {visibleMenuItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setActiveSection(item.id)}
-              className={cn(
-                "flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left",
-                activeSection === item.id
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              )}
-            >
-              <item.icon className="w-4 h-4 shrink-0" />
-              {item.label}
-            </button>
-          ))}
-        </nav>
+          <Separator />
 
-        {/* Content */}
+          <nav className="space-y-1">
+            {visibleMenuItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setActiveSection(item.id)}
+                className={cn(
+                  "flex items-center gap-3 p-3 rounded-lg transition-colors w-full text-left",
+                  activeSection === item.id
+                    ? "bg-primary text-primary-foreground"
+                    : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <item.icon className="h-4 w-4 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium">{item.label}</div>
+                </div>
+              </button>
+            ))}
+          </nav>
+
+          {!isChat && (
+            <>
+              <Separator />
+              <Button onClick={() => handleSubmit()} disabled={saving} className="w-full">
+                <Save className="w-4 h-4 mr-2" />
+                {saving ? "Salvando..." : "Salvar Alterações"}
+              </Button>
+            </>
+          )}
+        </div>
+      </Card>
+
+      {/* Content */}
+      <div className="flex-1 min-w-0">
         {isChat ? (
-          <div className="flex-1 flex overflow-hidden">
+          <Card className="flex h-full overflow-hidden">
             <AgentConversationsSidebar
               conversations={conversations}
               currentConversation={currentConversation}
@@ -276,145 +284,143 @@ export function AgentEditContent({
                 </div>
               )}
             </div>
-          </div>
+          </Card>
         ) : (
-          <div className="flex-1 min-h-0 overflow-y-auto p-6">
-            <div className="w-full">
-              {activeSection === "geral" && (
-                <div className="space-y-6">
-                  <h2 className="text-lg font-semibold mb-4">Configurações Gerais</h2>
-                  <div>
-                    <Label htmlFor="agent_name">Nome do Agente *</Label>
-                    <Input
-                      id="agent_name"
-                      value={formData.agent_name}
-                      onChange={(e) => setFormData({ ...formData, agent_name: e.target.value })}
-                      placeholder="Ex: Assistente de Marketing"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="description">Descrição Resumida</Label>
-                    <Input
-                      id="description"
-                      value={formData.description}
-                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      placeholder="Breve descrição do agente (opcional)"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="client_id">Cliente Associado (Opcional)</Label>
-                    <SearchableClientSelect
-                      clients={clients.map(c => ({ id: c.id, name: c.name }))}
-                      value={formData.client_id}
-                      onValueChange={(value) => setFormData({ ...formData, client_id: value })}
-                      noneLabel="Nenhum cliente específico"
-                      placeholder="Selecione um cliente"
-                    />
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Quando associado, o agente terá acesso automático ao briefing, campanhas e métricas deste cliente.
-                    </p>
-                  </div>
-                  
-                  {/* Collaborator Toggle */}
-                  <div className="flex items-center justify-between rounded-lg border border-border p-4">
-                    <div className="space-y-0.5">
-                      <div className="flex items-center gap-2">
-                        <UserCheck className="w-4 h-4 text-primary" />
-                        <Label htmlFor="is_collaborator" className="font-medium">Ativar como Colaborador</Label>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        Quando ativado, este agente aparecerá como colaborador da empresa — podendo ser atribuído a tarefas, 
-                        adicionado a squads e contactado no chat interno.
-                      </p>
-                    </div>
-                    <Switch
-                      id="is_collaborator"
-                      checked={formData.is_collaborator}
-                      onCheckedChange={(checked) => setFormData({ ...formData, is_collaborator: checked })}
-                    />
-                  </div>
+          <Card className="p-6 overflow-y-auto max-h-[calc(100vh-220px)]">
+            {activeSection === "geral" && (
+              <div className="space-y-6">
+                <h2 className="text-lg font-semibold mb-4">Configurações Gerais</h2>
+                <div>
+                  <Label htmlFor="agent_name">Nome do Agente *</Label>
+                  <Input
+                    id="agent_name"
+                    value={formData.agent_name}
+                    onChange={(e) => setFormData({ ...formData, agent_name: e.target.value })}
+                    placeholder="Ex: Assistente de Marketing"
+                    required
+                  />
                 </div>
-              )}
-
-              {activeSection === "prompt" && (
-                <div className="space-y-6">
-                  <h2 className="text-lg font-semibold mb-4">Prompt & Instruções</h2>
-                  <div>
-                    <Label htmlFor="prompt_base">Prompt Base do Agente *</Label>
-                    <Textarea
-                      id="prompt_base"
-                      ref={promptRef}
-                      value={formData.prompt_base}
-                      onChange={(e) => {
-                        setFormData({ ...formData, prompt_base: e.target.value });
-                        if (e.target.value.length >= 50) setShowWarning(false);
-                      }}
-                      placeholder="Descreva como o agente deve se comportar, seu tom de voz, especialidades..."
-                      className="min-h-[250px]"
-                      required
-                    />
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {formData.prompt_base.length}/50 caracteres mínimos
-                    </p>
-                  </div>
-                  <PromptSkillInjector agentId={agentId} onInsertSkill={handleInsertSkill} />
-                  <div>
-                    <Label htmlFor="additional_instructions">Instruções Adicionais</Label>
-                    <Textarea
-                      id="additional_instructions"
-                      value={formData.additional_instructions}
-                      onChange={(e) =>
-                        setFormData({ ...formData, additional_instructions: e.target.value })
-                      }
-                      placeholder="Contexto adicional, regras específicas... (opcional)"
-                      className="min-h-[180px]"
-                    />
-                  </div>
-                  {showWarning && (
-                    <Alert variant="destructive">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription>
-                        O prompt deve ter no mínimo 50 caracteres. Seja mais específico sobre como o agente deve se comportar.
-                      </AlertDescription>
-                    </Alert>
-                  )}
+                <div>
+                  <Label htmlFor="description">Descrição Resumida</Label>
+                  <Input
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="Breve descrição do agente (opcional)"
+                  />
                 </div>
-              )}
-
-              {activeSection === "conhecimento" && (
-                <div className="space-y-6">
-                  <h2 className="text-lg font-semibold mb-4">Base de Conhecimento</h2>
-                  <KnowledgeDocumentsManager agentId={agentId} />
-                </div>
-              )}
-
-              {activeSection === "skills" && (
-                <div className="space-y-6">
-                  <h2 className="text-lg font-semibold mb-1">Skills do Agente</h2>
-                  <p className="text-sm text-muted-foreground">
-                    Habilite as capacidades que este agente pode executar durante conversas.
+                <div>
+                  <Label htmlFor="client_id">Cliente Associado (Opcional)</Label>
+                  <SearchableClientSelect
+                    clients={clients.map(c => ({ id: c.id, name: c.name }))}
+                    value={formData.client_id}
+                    onValueChange={(value) => setFormData({ ...formData, client_id: value })}
+                    noneLabel="Nenhum cliente específico"
+                    placeholder="Selecione um cliente"
+                  />
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Quando associado, o agente terá acesso automático ao briefing, campanhas e métricas deste cliente.
                   </p>
-                  <AgentSkillsConfig
-                    agentId={agentId}
-                    hasClient={formData.client_id !== "none"}
+                </div>
+                
+                {/* Collaborator Toggle */}
+                <div className="flex items-center justify-between rounded-lg border border-border p-4">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <UserCheck className="w-4 h-4 text-primary" />
+                      <Label htmlFor="is_collaborator" className="font-medium">Ativar como Colaborador</Label>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Quando ativado, este agente aparecerá como colaborador da empresa — podendo ser atribuído a tarefas, 
+                      adicionado a squads e contactado no chat interno.
+                    </p>
+                  </div>
+                  <Switch
+                    id="is_collaborator"
+                    checked={formData.is_collaborator}
+                    onCheckedChange={(checked) => setFormData({ ...formData, is_collaborator: checked })}
                   />
                 </div>
-              )}
+              </div>
+            )}
 
-              {activeSection === "telegram" && (
-                <div className="space-y-6">
-                  <h2 className="text-lg font-semibold mb-4">Integração com Telegram</h2>
-                  <TelegramBotConfig
-                    agentId={agentId}
-                    telegramBotToken={(currentAgent as any).telegram_bot_token || null}
-                    telegramBotName={(currentAgent as any).telegram_bot_name || null}
-                    onUpdate={() => loadAgent(agentId)}
+            {activeSection === "prompt" && (
+              <div className="space-y-6">
+                <h2 className="text-lg font-semibold mb-4">Prompt & Instruções</h2>
+                <div>
+                  <Label htmlFor="prompt_base">Prompt Base do Agente *</Label>
+                  <Textarea
+                    id="prompt_base"
+                    ref={promptRef}
+                    value={formData.prompt_base}
+                    onChange={(e) => {
+                      setFormData({ ...formData, prompt_base: e.target.value });
+                      if (e.target.value.length >= 50) setShowWarning(false);
+                    }}
+                    placeholder="Descreva como o agente deve se comportar, seu tom de voz, especialidades..."
+                    className="min-h-[250px]"
+                    required
+                  />
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {formData.prompt_base.length}/50 caracteres mínimos
+                  </p>
+                </div>
+                <PromptSkillInjector agentId={agentId} onInsertSkill={handleInsertSkill} />
+                <div>
+                  <Label htmlFor="additional_instructions">Instruções Adicionais</Label>
+                  <Textarea
+                    id="additional_instructions"
+                    value={formData.additional_instructions}
+                    onChange={(e) =>
+                      setFormData({ ...formData, additional_instructions: e.target.value })
+                    }
+                    placeholder="Contexto adicional, regras específicas... (opcional)"
+                    className="min-h-[180px]"
                   />
                 </div>
-              )}
-            </div>
-          </div>
+                {showWarning && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      O prompt deve ter no mínimo 50 caracteres. Seja mais específico sobre como o agente deve se comportar.
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </div>
+            )}
+
+            {activeSection === "conhecimento" && (
+              <div className="space-y-6">
+                <h2 className="text-lg font-semibold mb-4">Base de Conhecimento</h2>
+                <KnowledgeDocumentsManager agentId={agentId} />
+              </div>
+            )}
+
+            {activeSection === "skills" && (
+              <div className="space-y-6">
+                <h2 className="text-lg font-semibold mb-1">Skills do Agente</h2>
+                <p className="text-sm text-muted-foreground">
+                  Habilite as capacidades que este agente pode executar durante conversas.
+                </p>
+                <AgentSkillsConfig
+                  agentId={agentId}
+                  hasClient={formData.client_id !== "none"}
+                />
+              </div>
+            )}
+
+            {activeSection === "telegram" && (
+              <div className="space-y-6">
+                <h2 className="text-lg font-semibold mb-4">Integração com Telegram</h2>
+                <TelegramBotConfig
+                  agentId={agentId}
+                  telegramBotToken={(currentAgent as any).telegram_bot_token || null}
+                  telegramBotName={(currentAgent as any).telegram_bot_name || null}
+                  onUpdate={() => loadAgent(agentId)}
+                />
+              </div>
+            )}
+          </Card>
         )}
       </div>
     </div>
