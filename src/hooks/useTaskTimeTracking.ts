@@ -112,11 +112,24 @@ export function useTaskTimeTracking(taskId: string | null) {
         .eq('id', sessionId);
       if (error) throw error;
     },
+    onMutate: async (sessionId: string) => {
+      await queryClient.cancelQueries({ queryKey });
+      const previous = queryClient.getQueryData<TimeTrackingSession[]>(queryKey);
+      queryClient.setQueryData<TimeTrackingSession[]>(queryKey, (old) =>
+        (old || []).map(s =>
+          s.id === sessionId
+            ? { ...s, ended_at: new Date().toISOString(), duration_minutes: (Date.now() - new Date(s.started_at).getTime()) / 60000 }
+            : s
+        )
+      );
+      return { previous };
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
       toast({ title: 'Timer parado' });
     },
-    onError: () => {
+    onError: (_err, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(queryKey, context.previous);
       toast({ title: 'Erro ao parar timer', variant: 'destructive' });
     },
   });
