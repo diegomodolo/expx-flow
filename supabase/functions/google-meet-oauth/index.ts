@@ -28,8 +28,8 @@ serve(async (req) => {
     const { action, code, companyId, redirectUri } = body;
 
     if (action === 'exchange') {
-      const clientId = Deno.env.get('GOOGLE_ADS_CLIENT_ID')?.trim();
-      const clientSecret = Deno.env.get('GOOGLE_ADS_CLIENT_SECRET')?.trim();
+      const clientId = Deno.env.get('GOOGLE_MEET_CLIENT_ID')?.trim();
+      const clientSecret = Deno.env.get('GOOGLE_MEET_CLIENT_SECRET')?.trim();
 
       if (!clientId || !clientSecret) {
         throw new Error('Google OAuth credentials not configured');
@@ -103,8 +103,8 @@ serve(async (req) => {
     }
 
     if (action === 'refresh_token') {
-      const clientId = Deno.env.get('GOOGLE_ADS_CLIENT_ID')?.trim();
-      const clientSecret = Deno.env.get('GOOGLE_ADS_CLIENT_SECRET')?.trim();
+      const clientId = Deno.env.get('GOOGLE_MEET_CLIENT_ID')?.trim();
+      const clientSecret = Deno.env.get('GOOGLE_MEET_CLIENT_SECRET')?.trim();
 
       if (!clientId || !clientSecret) {
         throw new Error('Google OAuth credentials not configured');
