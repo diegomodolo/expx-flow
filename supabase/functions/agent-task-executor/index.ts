@@ -118,7 +118,33 @@ Deno.serve(async (req) => {
             new_value: 'progress',
           });
 
-          // 2. Build prompt from task content
+          // 2. Fetch client context if task has related_client_id
+          let clientContext = '';
+          const clientId = task.related_client_id || agent.client_id;
+          if (clientId) {
+            const { data: client } = await supabase
+              .from('clients')
+              .select('name, company, sector, website_url, target_audience, product_name, voice_tone, objectives, ai_briefing')
+              .eq('id', clientId)
+              .single();
+
+            if (client) {
+              clientContext = `
+**CLIENTE:** ${client.name}
+${client.company ? `**Empresa:** ${client.company}` : ''}
+${client.sector ? `**Setor:** ${client.sector}` : ''}
+${client.website_url ? `**Website:** ${client.website_url}` : ''}
+${client.target_audience ? `**Público-alvo:** ${client.target_audience}` : ''}
+${client.product_name ? `**Produto/Serviço:** ${client.product_name}` : ''}
+${client.voice_tone ? `**Tom de voz:** ${client.voice_tone}` : ''}
+${client.objectives ? `**Objetivos:** ${client.objectives}` : ''}
+${client.ai_briefing ? `\n**BRIEFING DETALHADO:**\n${client.ai_briefing}` : ''}
+`;
+              console.log(`[agent-task-executor] Client context loaded: ${client.name}`);
+            }
+          }
+
+          // 3. Build prompt from task content
           let checklistText = '';
           try {
             const parsed = task.checklist
@@ -139,6 +165,8 @@ ${task.description ? `**DESCRIÇÃO:**\n${task.description}` : ''}
 ${checklistText ? `**CHECKLIST:**\n${checklistText}` : ''}
 
 ${task.due_date ? `**PRAZO:** ${task.due_date}` : ''}
+
+${clientContext ? `\n---\n\n**CONTEXTO DO CLIENTE:**\n${clientContext}` : ''}
 
 Gere o resultado/output da execução desta tarefa de forma completa e estruturada. Seja direto e objetivo.
 `.trim();
@@ -176,8 +204,8 @@ Gere o resultado/output da execução desta tarefa de forma completa e estrutura
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              agent_id: agent.id,
-              conversation_id: conversation.id,
+              agentId: agent.id,
+              conversationId: conversation.id,
               message: taskPrompt,
             }),
           });
