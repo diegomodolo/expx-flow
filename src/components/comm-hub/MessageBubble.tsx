@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { MessageSquare, CheckSquare, Trash2 } from 'lucide-react';
+import { MessageSquare, CheckSquare, Trash2, Download, FileIcon } from 'lucide-react';
 import type { InternalMessage } from '@/hooks/useInternalChat';
 import { TaskMiniCard } from './TaskMiniCard';
 
@@ -36,6 +36,56 @@ export function MessageBubble({ message, isOwnMessage, isThreadReply, onReplyInT
     });
   };
 
+  const isImage = message.file_type?.startsWith('image/');
+  const isVideo = message.file_type?.startsWith('video/');
+  const isAudio = message.file_type?.startsWith('audio/');
+
+  const renderFileAttachment = () => {
+    if (!message.file_url) return null;
+
+    if (isImage) {
+      return (
+        <a href={message.file_url} target="_blank" rel="noopener noreferrer" className="block mt-1.5 max-w-xs">
+          <img
+            src={message.file_url}
+            alt={message.file_name || 'Imagem'}
+            className="rounded-lg max-h-60 object-cover border border-border"
+            loading="lazy"
+          />
+        </a>
+      );
+    }
+
+    if (isVideo) {
+      return (
+        <video
+          src={message.file_url}
+          controls
+          className="rounded-lg max-h-60 mt-1.5 max-w-xs border border-border"
+        />
+      );
+    }
+
+    if (isAudio) {
+      return (
+        <audio src={message.file_url} controls className="mt-1.5 max-w-xs" />
+      );
+    }
+
+    return (
+      <a
+        href={message.file_url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center gap-2 mt-1.5 px-3 py-2 rounded-lg bg-muted/50 border border-border hover:bg-muted transition-colors max-w-xs"
+      >
+        <FileIcon className="w-4 h-4 text-primary shrink-0" />
+        <span className="text-sm text-foreground truncate flex-1">{message.file_name || 'Arquivo'}</span>
+        <Download className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+      </a>
+    );
+  };
+
   const replyCount = message.reply_count || 0;
 
   return (
@@ -59,6 +109,7 @@ export function MessageBubble({ message, isOwnMessage, isThreadReply, onReplyInT
         <div className="text-sm text-foreground/90 break-words whitespace-pre-wrap">
           {renderContent(message.content)}
         </div>
+        {renderFileAttachment()}
 
         {/* Thread indicator - only show on parent messages, not on inline replies */}
         {!isThreadReply && replyCount > 0 && (
