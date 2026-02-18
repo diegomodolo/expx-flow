@@ -17,14 +17,23 @@ Deno.serve(async (req) => {
     const companyId = body.company_id || body.companyId;
     const style = body.style || 'professional marketing';
 
+    // Accept direct client context from agent parameters
+    const directClientName = body.client_name || body.clientName || '';
+    const directBriefing = body.client_briefing || body.clientBriefing || '';
+    const directVoiceTone = body.voice_tone || body.voiceTone || '';
+    const directTargetAudience = body.target_audience || body.targetAudience || '';
+    const directReferenceImages: string[] = body.reference_image_urls || body.referenceImageUrls || [];
+
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    // Fetch client data including reference images
+    // Fetch client data from DB (enriches with stored info)
     let clientContext = '';
     const referenceImageUrls: string[] = [];
+    let dbClientName = '';
+    let dbVoiceTone = '';
 
     if (clientId) {
       const supabase = createClient(
@@ -34,20 +43,51 @@ Deno.serve(async (req) => {
 
       const { data: client } = await supabase
         .from('clients')
-        .select('name, company, sector, ai_briefing, voice_tone, ai_reference_image_1, ai_reference_image_2, ai_reference_image_3, avatar')
+        .select('name, company, sector, ai_briefing, voice_tone, target_audience, ai_reference_image_1, ai_reference_image_2, ai_reference_image_3, avatar')
         .eq('id', clientId)
         .single();
 
       if (client) {
-        clientContext = `Contexto da marca: ${client.company || client.name}, setor: ${client.sector || 'geral'}. ${client.ai_briefing ? `Identidade visual e briefing: ${client.ai_briefing.substring(0, 800)}` : ''}`;
+        dbClientName = client.company || client.name || '';
+        dbVoiceTone = client.voice_tone || '';
 
-        // Collect reference images
-        for (const key of ['ai_reference_image_1', 'ai_reference_image_2', 'ai_reference_image_3'] as const) {
-          const url = client[key];
-          if (url && typeof url === 'string' && url.startsWith('http')) {
-            referenceImageUrls.push(url);
+        // Build context from DB data
+        const briefing = directBriefing || client.ai_briefing || '';
+        const audience = directTargetAudience || client.target_audience || '';
+        const tone = directVoiceTone || dbVoiceTone || '';
+        const brandName = directClientName || dbClientName;
+
+        let contextParts: string[] = [];
+        if (brandName) contextParts.push(`Marca: ${brandName}`);
+        if (client.sector) contextParts.push(`Setor: ${client.sector}`);
+        if (briefing) contextParts.push(`Identidade visual e briefing: ${briefing.substring(0, 1000)}`);
+        if (tone) contextParts.push(`Tom de voz: ${tone}`);
+        if (audience) contextParts.push(`Público-alvo: ${audience}`);
+        clientContext = contextParts.join('. ');
+
+        // Collect reference images: prefer direct params, fallback to DB
+        if (directReferenceImages.length > 0) {
+          referenceImageUrls.push(...directReferenceImages.filter((u: string) => u && u.startsWith('http')));
+        } else {
+          for (const key of ['ai_reference_image_1', 'ai_reference_image_2', 'ai_reference_image_3'] as const) {
+            const url = client[key];
+            if (url && typeof url === 'string' && url.startsWith('http')) {
+              referenceImageUrls.push(url);
+            }
           }
         }
+      }
+    } else {
+      // No client_id but may have direct params
+      let contextParts: string[] = [];
+      if (directClientName) contextParts.push(`Marca: ${directClientName}`);
+      if (directBriefing) contextParts.push(`Briefing: ${directBriefing.substring(0, 1000)}`);
+      if (directVoiceTone) contextParts.push(`Tom de voz: ${directVoiceTone}`);
+      if (directTargetAudience) contextParts.push(`Público-alvo: ${directTargetAudience}`);
+      clientContext = contextParts.join('. ');
+
+      if (directReferenceImages.length > 0) {
+        referenceImageUrls.push(...directReferenceImages.filter((u: string) => u && u.startsWith('http')));
       }
     }
 
