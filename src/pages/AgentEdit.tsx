@@ -46,27 +46,27 @@ export default function AgentEdit() {
 
   return (
     <DashboardLayout>
-      <div className="flex flex-col h-full">
-        {/* Back button header */}
-        <div className="flex items-center gap-3 p-4 border-b">
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate('/ia/agents')}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <span className="text-sm text-muted-foreground">Voltar para Agentes</span>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Editar Agente</h1>
+            <p className="text-muted-foreground">Configure o comportamento e capacidades do agente</p>
+          </div>
         </div>
 
-        <div className="flex-1 overflow-hidden">
-          <AgentEditContent
-            agentId={currentId}
-            defaultSection={!agentId ? "geral" : "chat"}
-            showChat={true}
-            onSaved={() => {
-              if (!agentId && currentId) {
-                navigate(`/ia/agents/${currentId}/edit`);
-              }
-            }}
-          />
-        </div>
+        <AgentEditContent
+          agentId={currentId}
+          defaultSection={!agentId ? "geral" : "chat"}
+          showChat={true}
+          onSaved={() => {
+            if (!agentId && currentId) {
+              navigate(`/ia/agents/${currentId}/edit`);
+            }
+          }}
+        />
       </div>
     </DashboardLayout>
   );
