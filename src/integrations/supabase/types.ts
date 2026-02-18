@@ -6705,6 +6705,50 @@ export type Database = {
           },
         ]
       }
+      google_meet_integrations: {
+        Row: {
+          access_token: string
+          company_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          is_active: boolean
+          refresh_token: string
+          updated_at: string
+          user_email: string | null
+        }
+        Insert: {
+          access_token: string
+          company_id: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          is_active?: boolean
+          refresh_token: string
+          updated_at?: string
+          user_email?: string | null
+        }
+        Update: {
+          access_token?: string
+          company_id?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          is_active?: boolean
+          refresh_token?: string
+          updated_at?: string
+          user_email?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_meet_integrations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       google_meet_meetings: {
         Row: {
           ai_action_items: Json | null

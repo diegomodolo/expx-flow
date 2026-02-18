@@ -8,14 +8,14 @@ const corsHeaders = {
 
 async function getValidAccessToken(supabaseClient: any, companyId: string) {
   const { data: integration, error } = await supabaseClient
-    .from('google_ads_integrations')
+    .from('google_meet_integrations')
     .select('*')
     .eq('company_id', companyId)
     .eq('is_active', true)
     .single();
 
   if (error || !integration) {
-    throw new Error('Google integration not found. Please connect Google first.');
+    throw new Error('Google Meet integration not found. Please connect Google Meet first in Settings > Google Meet & Drive.');
   }
 
   // Check if token is expired or about to expire (5 min buffer)
@@ -46,14 +46,14 @@ async function getValidAccessToken(supabaseClient: any, companyId: string) {
     if (!tokenResponse.ok) {
       const err = await tokenResponse.text();
       console.error('Token refresh failed:', err);
-      throw new Error('Failed to refresh Google token. Please reconnect.');
+      throw new Error('Failed to refresh Google Meet token. Please reconnect in Settings > Google Meet & Drive.');
     }
 
     const tokens = await tokenResponse.json();
     const newExpiresAt = new Date(Date.now() + tokens.expires_in * 1000).toISOString();
 
     await supabaseClient
-      .from('google_ads_integrations')
+      .from('google_meet_integrations')
       .update({ access_token: tokens.access_token, expires_at: newExpiresAt })
       .eq('id', integration.id);
 
