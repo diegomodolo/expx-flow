@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Send, Hash, Users, Plus, Paperclip, MessageSquarePlus, BarChart3, X, FileIcon, Loader2 } from 'lucide-react';
 import { MessageBubble } from './MessageBubble';
+import { NotificationBell } from './NotificationBell';
 import { CreateTopicDialog } from './CreateTopicDialog';
 import { CreatePollDialog } from './CreatePollDialog';
 import { EmojiGifPicker } from './EmojiGifPicker';
@@ -301,11 +302,12 @@ export function ChatFlow({ channel, messages, loading, onSendMessage, sendingMes
         <div className="flex-1">
           <h3 className="text-title-md text-foreground">{channel.name}</h3>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
           <HandRaiseButton channelId={channel.id} />
           {onToggleFocusMode && (
             <FocusModeToggle active={!!focusMode} onToggle={onToggleFocusMode} />
           )}
+          <NotificationBell />
         </div>
       </div>
 

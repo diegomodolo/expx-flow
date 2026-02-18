@@ -50,10 +50,6 @@ export default function CommunicationDashboard() {
           onToggleFocusMode={() => setFocusMode(prev => !prev)}
         />
         <MyDayPanel />
-        {/* Notification bell floating */}
-        <div className="absolute top-3 right-[340px] z-10">
-          <NotificationBell />
-        </div>
       </div>
     </DashboardLayout>
   );
