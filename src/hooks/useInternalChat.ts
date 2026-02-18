@@ -183,7 +183,7 @@ export function useInternalChat() {
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
           table: 'internal_messages',
           filter: `channel_id=eq.${activeChannelId}`,
