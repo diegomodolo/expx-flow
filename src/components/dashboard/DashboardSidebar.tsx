@@ -128,6 +128,7 @@ const menuCategories: MenuCategory[] = [
         { title: "Histórias", url: "/historias", icon: BookOpen, permission: "command-center" as MenuItemType },
         { title: "Planner", url: "/planner-config", icon: CalendarClock, permission: "tarefas" as MenuItemType },
         { title: "Relatórios", url: "/relatorios", icon: BarChart3, permission: "relatorios" as MenuItemType },
+        { title: "Dashboard Equipe", url: "/squad-dashboard", icon: BarChart3, permission: "squad" as MenuItemType },
         { title: "Squad", url: "/squad", icon: UsersRound, permission: "squad" as MenuItemType },
       ].sort((a, b) => a.title.localeCompare(b.title, 'pt-BR')),
     },
