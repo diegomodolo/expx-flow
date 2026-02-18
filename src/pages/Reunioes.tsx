@@ -1,11 +1,16 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Video, FileText, Brain, Copy, ExternalLink, RefreshCw, ChevronDown, ChevronUp, Clock, Users } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Plus, Video, Brain, Copy, ExternalLink, RefreshCw, Clock, Users, Search, Trash2, Pencil, Film } from "lucide-react";
 import { useGoogleMeetMeetings, GoogleMeetMeeting } from "@/hooks/useGoogleMeetMeetings";
 import { CreateMeetingModal } from "@/components/meetings/CreateMeetingModal";
+import { EditMeetingModal } from "@/components/meetings/EditMeetingModal";
 import { MeetingDetailsModal } from "@/components/meetings/MeetingDetailsModal";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -35,12 +40,35 @@ const transcriptStatusLabels: Record<string, string> = {
 };
 
 export default function Reunioes() {
-  const { meetings, loading, createMeeting, creating, checkTranscript, processSummary } = useGoogleMeetMeetings();
+  const { meetings, loading, createMeeting, creating, updateMeeting, deleteMeeting, checkTranscript, processSummary } = useGoogleMeetMeetings();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedMeeting, setSelectedMeeting] = useState<GoogleMeetMeeting | null>(null);
+  const [editingMeeting, setEditingMeeting] = useState<GoogleMeetMeeting | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const handleCopyLink = (uri: string) => {
+  // Filters
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [transcriptFilter, setTranscriptFilter] = useState("all");
+
+  const filteredMeetings = useMemo(() => {
+    return meetings.filter((m) => {
+      if (searchTerm) {
+        const term = searchTerm.toLowerCase();
+        const matchTitle = m.title.toLowerCase().includes(term);
+        const matchClient = (m.clients as any)?.name?.toLowerCase().includes(term);
+        const matchTeam = (m.teams as any)?.name?.toLowerCase().includes(term);
+        if (!matchTitle && !matchClient && !matchTeam) return false;
+      }
+      if (statusFilter !== "all" && m.status !== statusFilter) return false;
+      if (transcriptFilter !== "all" && m.transcript_status !== transcriptFilter) return false;
+      return true;
+    });
+  }, [meetings, searchTerm, statusFilter, transcriptFilter]);
+
+  const handleCopyLink = (uri: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
     navigator.clipboard.writeText(uri);
     toast.success("Link copiado!");
   };
@@ -55,6 +83,12 @@ export default function Reunioes() {
     setProcessingId(meetingId);
     await processSummary(meetingId);
     setProcessingId(null);
+  };
+
+  const handleDelete = async (meetingId: string) => {
+    setDeletingId(meetingId);
+    await deleteMeeting(meetingId);
+    setDeletingId(null);
   };
 
   return (
@@ -74,136 +108,223 @@ export default function Reunioes() {
           </Button>
         </div>
 
-        {/* Meetings List */}
+        {/* Filters */}
+        <Card className="p-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por título, cliente ou squad..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os status</SelectItem>
+                <SelectItem value="scheduled">Agendada</SelectItem>
+                <SelectItem value="in_progress">Em Andamento</SelectItem>
+                <SelectItem value="completed">Concluída</SelectItem>
+                <SelectItem value="failed">Falhou</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={transcriptFilter} onValueChange={setTranscriptFilter}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Transcrição" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas transcrições</SelectItem>
+                <SelectItem value="pending">Pendente</SelectItem>
+                <SelectItem value="completed">Disponível</SelectItem>
+                <SelectItem value="failed">Falhou</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </Card>
+
+        {/* Table */}
         {loading ? (
-          <div className="grid gap-4">
+          <div className="space-y-2">
             {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-32 w-full rounded-xl" />
+              <Skeleton key={i} className="h-14 w-full rounded-lg" />
             ))}
           </div>
-        ) : meetings.length === 0 ? (
+        ) : filteredMeetings.length === 0 ? (
           <Card className="p-12 text-center">
             <Video className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
-            <h3 className="text-lg font-medium text-foreground mb-2">Nenhuma reunião ainda</h3>
+            <h3 className="text-lg font-medium text-foreground mb-2">
+              {meetings.length === 0 ? "Nenhuma reunião ainda" : "Nenhuma reunião encontrada"}
+            </h3>
             <p className="text-muted-foreground text-sm mb-4">
-              Crie sua primeira reunião para começar a usar transcrições automáticas
+              {meetings.length === 0
+                ? "Crie sua primeira reunião para começar a usar transcrições automáticas"
+                : "Tente ajustar os filtros de busca"}
             </p>
-            <Button onClick={() => setShowCreateModal(true)} variant="outline" className="gap-2">
-              <Plus className="h-4 w-4" />
-              Criar Reunião
-            </Button>
+            {meetings.length === 0 && (
+              <Button onClick={() => setShowCreateModal(true)} variant="outline" className="gap-2">
+                <Plus className="h-4 w-4" />
+                Criar Reunião
+              </Button>
+            )}
           </Card>
         ) : (
-          <div className="grid gap-4">
-            {meetings.map((meeting) => (
-              <Card
-                key={meeting.id}
-                className="cursor-pointer hover:shadow-md transition-shadow"
-                onClick={() => setSelectedMeeting(meeting)}
-              >
-                <CardContent className="p-5">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="font-medium text-foreground truncate">{meeting.title}</h3>
-                        <Badge className={statusColors[meeting.status] || statusColors.scheduled}>
-                          {statusLabels[meeting.status] || meeting.status}
+          <Card>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Título</TableHead>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead>Squad</TableHead>
+                  <TableHead>Data/Hora</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Transcrição</TableHead>
+                  <TableHead>IA</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredMeetings.map((meeting) => (
+                  <TableRow
+                    key={meeting.id}
+                    className="cursor-pointer"
+                    onClick={() => setSelectedMeeting(meeting)}
+                  >
+                    <TableCell className="font-medium max-w-[200px] truncate">
+                      {meeting.title}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {(meeting.clients as any)?.name || "—"}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {(meeting.teams as any)?.name || "—"}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground whitespace-nowrap">
+                      {meeting.scheduled_at
+                        ? format(new Date(meeting.scheduled_at), "dd/MM/yyyy HH:mm", { locale: ptBR })
+                        : format(new Date(meeting.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={statusColors[meeting.status] || statusColors.scheduled}>
+                        {statusLabels[meeting.status] || meeting.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-xs text-muted-foreground">
+                        {transcriptStatusLabels[meeting.transcript_status] || meeting.transcript_status}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      {meeting.ai_summary ? (
+                        <Badge variant="outline" className="text-xs gap-1">
+                          <Brain className="h-3 w-3" />
+                          Resumo
                         </Badge>
-                      </div>
-
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        {meeting.clients && (
-                          <span className="flex items-center gap-1">
-                            <Users className="h-3.5 w-3.5" />
-                            {(meeting.clients as any)?.name}
-                          </span>
-                        )}
-                        {meeting.teams && (
-                          <span className="flex items-center gap-1">
-                            <Users className="h-3.5 w-3.5" />
-                            {(meeting.teams as any)?.name}
-                          </span>
-                        )}
-                        {meeting.scheduled_at && (
-                          <span className="flex items-center gap-1">
-                            <Clock className="h-3.5 w-3.5" />
-                            {format(new Date(meeting.scheduled_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
-                          </span>
-                        )}
-                        {!meeting.scheduled_at && meeting.created_at && (
-                          <span className="flex items-center gap-1">
-                            <Clock className="h-3.5 w-3.5" />
-                            {format(new Date(meeting.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Transcript status */}
-                      <div className="flex items-center gap-2 mt-2">
-                        <span className="text-xs text-muted-foreground">
-                          Transcrição: {transcriptStatusLabels[meeting.transcript_status] || meeting.transcript_status}
-                        </span>
-                        {meeting.ai_summary && (
-                          <Badge variant="outline" className="text-xs gap-1">
-                            <Brain className="h-3 w-3" />
-                            Resumo disponível
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex items-center gap-2 ml-4" onClick={(e) => e.stopPropagation()}>
-                      {meeting.meeting_uri && (
-                        <>
+                      ) : meeting.recording_url ? (
+                        <Badge variant="outline" className="text-xs gap-1">
+                          <Film className="h-3 w-3" />
+                          Gravação
+                        </Badge>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center justify-end gap-1">
+                        {meeting.meeting_uri && (
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => handleCopyLink(meeting.meeting_uri)}
+                            className="h-8 w-8"
+                            onClick={(e) => handleCopyLink(meeting.meeting_uri, e)}
                             title="Copiar link"
                           >
-                            <Copy className="h-4 w-4" />
+                            <Copy className="h-3.5 w-3.5" />
                           </Button>
+                        )}
+                        {meeting.meeting_uri && (
                           <Button
                             variant="ghost"
                             size="icon"
+                            className="h-8 w-8"
                             onClick={() => window.open(meeting.meeting_uri, '_blank')}
                             title="Abrir no Meet"
                           >
-                            <ExternalLink className="h-4 w-4" />
+                            <ExternalLink className="h-3.5 w-3.5" />
                           </Button>
-                        </>
-                      )}
-                      {meeting.status === 'completed' && meeting.transcript_status !== 'completed' && (
+                        )}
+                        {meeting.status === 'completed' && meeting.transcript_status !== 'completed' && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleCheckTranscript(meeting.id)}
+                            disabled={processingId === meeting.id}
+                            title="Buscar transcrição"
+                          >
+                            <RefreshCw className={`h-3.5 w-3.5 ${processingId === meeting.id ? 'animate-spin' : ''}`} />
+                          </Button>
+                        )}
+                        {meeting.transcript_status === 'completed' && !meeting.ai_summary && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleProcessSummary(meeting.id)}
+                            disabled={processingId === meeting.id}
+                            title="Gerar resumo IA"
+                          >
+                            <Brain className={`h-3.5 w-3.5 ${processingId === meeting.id ? 'animate-spin' : ''}`} />
+                          </Button>
+                        )}
                         <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleCheckTranscript(meeting.id)}
-                          disabled={processingId === meeting.id}
-                          className="gap-1"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => setEditingMeeting(meeting)}
+                          title="Editar"
                         >
-                          <RefreshCw className={`h-3.5 w-3.5 ${processingId === meeting.id ? 'animate-spin' : ''}`} />
-                          Buscar Transcrição
+                          <Pencil className="h-3.5 w-3.5" />
                         </Button>
-                      )}
-                      {meeting.transcript_status === 'completed' && !meeting.ai_summary && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleProcessSummary(meeting.id)}
-                          disabled={processingId === meeting.id}
-                          className="gap-1"
-                        >
-                          <Brain className={`h-3.5 w-3.5 ${processingId === meeting.id ? 'animate-spin' : ''}`} />
-                          Gerar Resumo
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                              title="Excluir"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Excluir reunião</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Tem certeza que deseja excluir a reunião "{meeting.title}"? Essa ação não pode ser desfeita.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDelete(meeting.id)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Excluir
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
         )}
       </div>
 
@@ -213,6 +334,15 @@ export default function Reunioes() {
         onSubmit={createMeeting}
         creating={creating}
       />
+
+      {editingMeeting && (
+        <EditMeetingModal
+          meeting={editingMeeting}
+          open={!!editingMeeting}
+          onClose={() => setEditingMeeting(null)}
+          onSubmit={updateMeeting}
+        />
+      )}
 
       {selectedMeeting && (
         <MeetingDetailsModal
