@@ -450,8 +450,8 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Fetch agent
-    const { data: agent, error: agentError } = await supabaseClient
+    // Fetch agent using serviceClient to support both user and service-role calls (cron)
+    const { data: agent, error: agentError } = await serviceClient
       .from('ia_agents')
       .select('*')
       .eq('id', agentId)
@@ -463,7 +463,7 @@ Deno.serve(async (req) => {
 
     // Fetch knowledge docs, client data, and enabled skills in parallel
     const [knowledgeResult, enabledSkillsResult] = await Promise.all([
-      supabaseClient
+      serviceClient
         .from('ia_agent_knowledge_documents')
         .select('content_text, file_name')
         .eq('agent_id', agentId),
@@ -482,7 +482,7 @@ Deno.serve(async (req) => {
     // Client context
     let clientContext = '';
     if (agent.client_id) {
-      const { data: client } = await supabaseClient
+      const { data: client } = await serviceClient
         .from('clients')
         .select(`
           *,
@@ -494,7 +494,7 @@ Deno.serve(async (req) => {
         .single();
 
       if (client) {
-        const { data: campaigns } = await supabaseClient
+        const { data: campaigns } = await serviceClient
           .from('campaigns')
           .select('*')
           .eq('client_id', agent.client_id)
