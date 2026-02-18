@@ -525,3 +525,12 @@ verify_jwt = true
 
 [functions.prioritize-notification]
 verify_jwt = true
+
+[functions.google-meet-create]
+verify_jwt = true
+
+[functions.google-meet-check-transcript]
+verify_jwt = true
+
+[functions.google-meet-process-summary]
+verify_jwt = true

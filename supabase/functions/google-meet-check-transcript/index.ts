@@ -1,0 +1,238 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+async function getValidAccessToken(supabaseClient: any, companyId: string) {
+  const { data: integration, error } = await supabaseClient
+    .from('google_ads_integrations')
+    .select('*')
+    .eq('company_id', companyId)
+    .eq('is_active', true)
+    .single();
+
+  if (error || !integration) throw new Error('Google integration not found.');
+
+  const expiresAt = new Date(integration.expires_at);
+  const now = new Date();
+  if (expiresAt.getTime() - now.getTime() < 5 * 60 * 1000) {
+    const clientId = Deno.env.get('GOOGLE_ADS_CLIENT_ID')?.trim();
+    const clientSecret = Deno.env.get('GOOGLE_ADS_CLIENT_SECRET')?.trim();
+    if (!clientId || !clientSecret) throw new Error('Google OAuth credentials not configured');
+
+    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: clientId, client_secret: clientSecret,
+        refresh_token: integration.refresh_token, grant_type: 'refresh_token',
+      }),
+    });
+    if (!tokenResponse.ok) throw new Error('Failed to refresh Google token.');
+    const tokens = await tokenResponse.json();
+    await supabaseClient.from('google_ads_integrations')
+      .update({ access_token: tokens.access_token, expires_at: new Date(Date.now() + tokens.expires_in * 1000).toISOString() })
+      .eq('id', integration.id);
+    return tokens.access_token;
+  }
+  return integration.access_token;
+}
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
+
+  try {
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) throw new Error('Missing authorization header');
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
+    if (userError || !user) throw new Error('Unauthorized');
+
+    const { meetingId } = await req.json();
+    if (!meetingId) throw new Error('Missing meetingId');
+
+    // Get meeting from DB
+    const { data: meeting, error: meetingError } = await supabaseClient
+      .from('google_meet_meetings')
+      .select('*')
+      .eq('id', meetingId)
+      .single();
+
+    if (meetingError || !meeting) throw new Error('Meeting not found');
+
+    console.log('Checking transcript for meeting:', meeting.id, 'space:', meeting.google_space_id);
+
+    const accessToken = await getValidAccessToken(supabaseClient, meeting.company_id);
+
+    // Update status to processing
+    await supabaseClient.from('google_meet_meetings')
+      .update({ transcript_status: 'processing' })
+      .eq('id', meetingId);
+
+    // List conference records for this space
+    const spaceName = meeting.google_space_id;
+    const recordsUrl = `https://meet.googleapis.com/v2/conferenceRecords?filter=space.name="${spaceName}"`;
+    
+    const recordsResponse = await fetch(recordsUrl, {
+      headers: { 'Authorization': `Bearer ${accessToken}` },
+    });
+
+    if (!recordsResponse.ok) {
+      const errText = await recordsResponse.text();
+      console.error('Failed to list conference records:', recordsResponse.status, errText);
+      await supabaseClient.from('google_meet_meetings')
+        .update({ transcript_status: 'failed' })
+        .eq('id', meetingId);
+      throw new Error(`Failed to fetch conference records: ${errText}`);
+    }
+
+    const recordsData = await recordsResponse.json();
+    const conferenceRecords = recordsData.conferenceRecords || [];
+
+    if (conferenceRecords.length === 0) {
+      console.log('No conference records found yet');
+      await supabaseClient.from('google_meet_meetings')
+        .update({ transcript_status: 'not_available' })
+        .eq('id', meetingId);
+      return new Response(
+        JSON.stringify({ success: false, message: 'No conference records found. The meeting may not have started yet or transcription is still processing.' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Use the most recent conference record
+    const latestRecord = conferenceRecords[conferenceRecords.length - 1];
+    const conferenceRecordName = latestRecord.name;
+    console.log('Found conference record:', conferenceRecordName);
+
+    // Update meeting with conference record info
+    await supabaseClient.from('google_meet_meetings')
+      .update({
+        conference_record_id: conferenceRecordName,
+        started_at: latestRecord.startTime || null,
+        ended_at: latestRecord.endTime || null,
+        status: latestRecord.endTime ? 'completed' : 'in_progress',
+      })
+      .eq('id', meetingId);
+
+    // Fetch participants
+    try {
+      const participantsUrl = `https://meet.googleapis.com/v2/${conferenceRecordName}/participants`;
+      const participantsResponse = await fetch(participantsUrl, {
+        headers: { 'Authorization': `Bearer ${accessToken}` },
+      });
+      if (participantsResponse.ok) {
+        const participantsData = await participantsResponse.json();
+        const participants = participantsData.participants || [];
+        
+        for (const p of participants) {
+          const signedinUser = p.signedinUser;
+          await supabaseClient.from('google_meet_participants').upsert({
+            meeting_id: meetingId,
+            display_name: signedinUser?.displayName || p.anonymousUser?.displayName || 'Unknown',
+            email: signedinUser?.user ? null : null,
+            joined_at: p.earliestStartTime || null,
+            left_at: p.latestEndTime || null,
+          }, { onConflict: 'id' });
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to fetch participants:', e);
+    }
+
+    // Fetch transcripts
+    const transcriptsUrl = `https://meet.googleapis.com/v2/${conferenceRecordName}/transcripts`;
+    const transcriptsResponse = await fetch(transcriptsUrl, {
+      headers: { 'Authorization': `Bearer ${accessToken}` },
+    });
+
+    if (!transcriptsResponse.ok) {
+      const errText = await transcriptsResponse.text();
+      console.log('No transcripts available yet:', errText);
+      await supabaseClient.from('google_meet_meetings')
+        .update({ transcript_status: 'not_available' })
+        .eq('id', meetingId);
+      return new Response(
+        JSON.stringify({ success: false, message: 'Transcription not available yet. It may take 2-5 minutes after the meeting ends.' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const transcriptsData = await transcriptsResponse.json();
+    const transcripts = transcriptsData.transcripts || [];
+
+    if (transcripts.length === 0) {
+      await supabaseClient.from('google_meet_meetings')
+        .update({ transcript_status: 'not_available' })
+        .eq('id', meetingId);
+      return new Response(
+        JSON.stringify({ success: false, message: 'No transcripts found for this meeting.' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Fetch transcript entries
+    const transcriptName = transcripts[0].name;
+    const entriesUrl = `https://meet.googleapis.com/v2/${transcriptName}/entries`;
+    const entriesResponse = await fetch(entriesUrl, {
+      headers: { 'Authorization': `Bearer ${accessToken}` },
+    });
+
+    if (!entriesResponse.ok) {
+      const errText = await entriesResponse.text();
+      console.error('Failed to fetch transcript entries:', errText);
+      await supabaseClient.from('google_meet_meetings')
+        .update({ transcript_status: 'failed' })
+        .eq('id', meetingId);
+      throw new Error('Failed to fetch transcript entries');
+    }
+
+    const entriesData = await entriesResponse.json();
+    const entries = entriesData.transcriptEntries || [];
+
+    // Build raw transcript text
+    const rawTranscript = entries
+      .map((entry: any) => {
+        const speaker = entry.participant?.displayName || 'Unknown';
+        const text = entry.text || '';
+        const time = entry.startTime || '';
+        return `[${time}] ${speaker}: ${text}`;
+      })
+      .join('\n');
+
+    console.log('Transcript captured, length:', rawTranscript.length);
+
+    // Save transcript
+    await supabaseClient.from('google_meet_meetings')
+      .update({
+        raw_transcript: rawTranscript,
+        transcript_status: 'completed',
+        transcript_doc_url: transcripts[0].docsDestination?.document || null,
+      })
+      .eq('id', meetingId);
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message: 'Transcript captured successfully',
+        transcriptLength: rawTranscript.length,
+        entriesCount: entries.length,
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  } catch (error) {
+    console.error('Error in google-meet-check-transcript:', error);
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+});

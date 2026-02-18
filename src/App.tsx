@@ -153,6 +153,7 @@ import TaskFlows from "./pages/TaskFlows";
 import TaskFlowEditorPage from "./pages/TaskFlowEditorPage";
 import MapasMentais from "./pages/MapasMentais";
 import MapaMentalEditor from "./pages/MapaMentalEditor";
+import Reunioes from "./pages/Reunioes";
 import { AuthProvider } from "@/hooks/useAuth";
 import { CompanyProvider } from "@/contexts/CompanyContext";
 import { CRMAuthProvider } from "@/contexts/CRMAuthContext";
@@ -311,7 +312,12 @@ const App = () => {
                  <PermissionProtectedRoute requiredPermission="squad">
                    <Squad />
                  </PermissionProtectedRoute>
-               } />
+                } />
+                <Route path="/reunioes" element={
+                  <PermissionProtectedRoute requiredPermission="squad">
+                    <Reunioes />
+                  </PermissionProtectedRoute>
+                } />
                <Route path="/squad-dashboard" element={
                  <PermissionProtectedRoute requiredPermission="squad">
                    <SquadDashboard />
