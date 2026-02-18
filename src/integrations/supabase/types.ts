@@ -2113,6 +2113,41 @@ export type Database = {
           },
         ]
       }
+      channel_hand_raises: {
+        Row: {
+          channel_id: string
+          dismissed_at: string | null
+          id: string
+          raised_at: string
+          user_id: string
+          user_name: string
+        }
+        Insert: {
+          channel_id: string
+          dismissed_at?: string | null
+          id?: string
+          raised_at?: string
+          user_id: string
+          user_name?: string
+        }
+        Update: {
+          channel_id?: string
+          dismissed_at?: string | null
+          id?: string
+          raised_at?: string
+          user_id?: string
+          user_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_hand_raises_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "internal_channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       channel_read_status: {
         Row: {
           channel_id: string

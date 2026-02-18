@@ -5,7 +5,7 @@ import { MyDayPanel } from '@/components/comm-hub/MyDayPanel';
 import { NotificationBell } from '@/components/comm-hub/NotificationBell';
 import { useInternalChat } from '@/hooks/useInternalChat';
 import { useChannelUnread } from '@/hooks/useChannelUnread';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function CommunicationDashboard() {
   const {
@@ -21,6 +21,7 @@ export default function CommunicationDashboard() {
   } = useInternalChat();
 
   const { unreadCounts, markAsRead } = useChannelUnread();
+  const [focusMode, setFocusMode] = useState(false);
 
   // Mark channel as read when switching
   useEffect(() => {
@@ -45,6 +46,8 @@ export default function CommunicationDashboard() {
           loading={messagesLoading}
           onSendMessage={(content, threadParentId) => sendMessage(content, threadParentId)}
           sendingMessage={sendingMessage}
+          focusMode={focusMode}
+          onToggleFocusMode={() => setFocusMode(prev => !prev)}
         />
         <MyDayPanel />
         {/* Notification bell floating */}
