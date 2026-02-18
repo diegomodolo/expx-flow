@@ -136,7 +136,8 @@ Deno.serve(async (req) => {
             });
           }
 
-          await supabase.from('task_history').insert(historyEntries);
+          const { error: histErr1 } = await supabase.from('task_history').insert(historyEntries);
+          if (histErr1) console.error(`[agent-task-executor] ❌ Error inserting progress history:`, histErr1);
 
           // 2. Fetch client context if task has related_client_id
           let clientContext = '';
@@ -265,7 +266,7 @@ Gere o resultado/output da execução desta tarefa de forma completa e estrutura
           await supabase.from('tasks').update(reviewUpdate).eq('id', task.id);
 
           // Save output to task_outputs table (the new output/result chat)
-          await supabase.from('task_outputs').insert({
+          const { error: outputErr } = await supabase.from('task_outputs').insert({
             task_id: task.id,
             company_id: task.company_id || employee.company_id,
             user_id: employee.user_id,
@@ -274,6 +275,7 @@ Gere o resultado/output da execução desta tarefa de forma completa e estrutura
             content: chatResult.response,
             attachments: [],
           });
+          if (outputErr) console.error(`[agent-task-executor] ❌ Error inserting task_outputs:`, outputErr);
 
           // Log completion + stage change in task history
           const completionHistory: any[] = [
@@ -330,7 +332,8 @@ Gere o resultado/output da execução desta tarefa de forma completa e estrutura
             new_value: '100',
           });
 
-          await supabase.from('task_history').insert(completionHistory);
+          const { error: histErr2 } = await supabase.from('task_history').insert(completionHistory);
+          if (histErr2) console.error(`[agent-task-executor] ❌ Error inserting completion history:`, histErr2);
 
           console.log(`[agent-task-executor] ✅ Task "${task.title}" completed, output saved to task_outputs`);
           totalProcessed++;
