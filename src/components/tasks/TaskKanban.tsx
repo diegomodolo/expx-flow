@@ -584,12 +584,13 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
           
           return columns.map((column, columnIndex) => {
             const columnTasks = tasks.filter(task => {
-              if (task.status !== column.status) return false;
               if (assignedTaskIds.has(task.id)) return false;
-              // If the task has a specific quadro_column_id, only show it in that column
+              // If the task has a specific quadro_column_id, match by column ID only (ignore status mismatch)
               if (task.quadro_column_id) {
                 return task.quadro_column_id === column.id;
               }
+              // Otherwise, match by status
+              if (task.status !== column.status) return false;
               return true;
             });
             
