@@ -7,6 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Send, Hash, Users, Plus, Paperclip, MessageSquarePlus, BarChart3, X, FileIcon, Loader2 } from 'lucide-react';
 import { MessageBubble } from './MessageBubble';
 import { CreateTopicDialog } from './CreateTopicDialog';
+import { CreatePollDialog } from './CreatePollDialog';
 import { EmojiGifPicker } from './EmojiGifPicker';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -30,6 +31,7 @@ export function ChatFlow({ channel, messages, loading, onSendMessage, sendingMes
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [uploadingFile, setUploadingFile] = useState(false);
   const [topicDialogOpen, setTopicDialogOpen] = useState(false);
+  const [pollDialogOpen, setPollDialogOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -369,7 +371,7 @@ export function ChatFlow({ channel, messages, loading, onSendMessage, sendingMes
                 Criar um tópico
               </button>
               <button
-                onClick={() => { setPlusOpen(false); toast.info('Funcionalidade de enquetes em breve!'); }}
+                onClick={() => { setPlusOpen(false); setPollDialogOpen(true); }}
                 className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm text-foreground hover:bg-accent transition-colors"
               >
                 <BarChart3 className="w-4 h-4 text-muted-foreground" />
@@ -407,6 +409,12 @@ export function ChatFlow({ channel, messages, loading, onSendMessage, sendingMes
       <CreateTopicDialog
         open={topicDialogOpen}
         onOpenChange={setTopicDialogOpen}
+        channelId={channel.id}
+      />
+
+      <CreatePollDialog
+        open={pollDialogOpen}
+        onOpenChange={setPollDialogOpen}
         channelId={channel.id}
       />
     </div>
