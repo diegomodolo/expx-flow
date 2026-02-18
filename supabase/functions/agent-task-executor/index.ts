@@ -15,13 +15,11 @@ Deno.serve(async (req) => {
   const supabase = createClient(supabaseUrl, serviceRoleKey);
 
   try {
+    // Use full ISO timestamp for comparison (SP timezone = UTC-3)
     const now = new Date();
-    const spOffset = -3 * 60 * 60 * 1000;
-    const nowSP = new Date(now.getTime() + spOffset);
-    const isoDateSP = nowSP.toISOString().split('T')[0];
-    const timeSP = `${String(nowSP.getUTCHours()).padStart(2, '0')}:${String(nowSP.getUTCMinutes()).padStart(2, '0')}`;
+    const nowISO = now.toISOString();
 
-    console.log(`[agent-task-executor] Running at ${isoDateSP} ${timeSP} SP time`);
+    console.log(`[agent-task-executor] Running at ${nowISO} (UTC)`);
 
     // Find all employees that are AI agents (ia_agent_id is not null)
     const { data: agentEmployees, error: empError } = await supabase
@@ -44,15 +42,16 @@ Deno.serve(async (req) => {
 
     for (const employee of agentEmployees) {
       // Find tasks assigned to this agent that are ready to execute
-      // Tasks where: user_id = employee.user_id (which is the agent id), status = 'todo', start_date <= now
+      // Tasks where: user_id = employee.user_id, status = 'todo', start_date <= now (full timestamp)
       const { data: tasks, error: taskError } = await supabase
         .from('tasks')
-        .select('id, title, description, checklist, start_date, deadline, related_client_id, company_id, team_id')
+        .select('id, title, description, checklist, start_date, due_date, related_client_id, company_id, team_id, quadro_column_id')
         .or(`user_id.eq.${employee.user_id},assigned_user_id.eq.${employee.user_id}`)
         .eq('status', 'todo')
-        .lte('start_date', isoDateSP)
+        .not('start_date', 'is', null)
+        .lte('start_date', nowISO)
         .order('start_date', { ascending: true })
-        .limit(5); // Process max 5 tasks per agent per run
+        .limit(5);
 
       if (taskError) {
         console.error(`[agent-task-executor] Error fetching tasks for agent ${employee.name}:`, taskError);
@@ -65,6 +64,19 @@ Deno.serve(async (req) => {
       }
 
       console.log(`[agent-task-executor] Found ${tasks.length} tasks for agent ${employee.name}`);
+
+      // Get the agent's board columns to find "progress" and "review" columns
+      const { data: boardColumns } = await supabase
+        .from('task_board_columns')
+        .select('id, name, status, order_index')
+        .eq('user_id', employee.user_id)
+        .eq('company_id', employee.company_id)
+        .order('order_index', { ascending: true });
+
+      const progressColumn = boardColumns?.find(c => c.status === 'progress');
+      const reviewColumn = boardColumns?.find(c => c.status === 'review');
+
+      console.log(`[agent-task-executor] Board columns for ${employee.name}: progress=${progressColumn?.name || 'NOT FOUND'}, review=${reviewColumn?.name || 'NOT FOUND'}`);
 
       // Get the agent's config
       const { data: agent, error: agentError } = await supabase
@@ -82,18 +94,40 @@ Deno.serve(async (req) => {
         try {
           console.log(`[agent-task-executor] Processing task "${task.title}" (${task.id})`);
 
-          // 1. Move task to "in progress"
-          await supabase.from('tasks').update({
+          // 1. Move task to "in progress" + update board column
+          const progressUpdate: any = {
             status: 'progress',
             updated_at: new Date().toISOString(),
-          }).eq('id', task.id);
+          };
+          if (progressColumn) {
+            progressUpdate.quadro_column_id = progressColumn.id;
+            progressUpdate.etapa = progressColumn.name;
+          }
+          await supabase.from('tasks').update(progressUpdate).eq('id', task.id);
+
+          // Log status change in task history
+          await supabase.from('task_history').insert({
+            task_id: task.id,
+            company_id: task.company_id || employee.company_id,
+            user_id: employee.user_id,
+            user_name: employee.name,
+            history_type: 'automatic',
+            description: `🤖 Agente iniciou a execução da tarefa`,
+            field_changed: 'status',
+            old_value: 'todo',
+            new_value: 'progress',
+          });
 
           // 2. Build prompt from task content
-          const checklistText = task.checklist
-            ? JSON.parse(typeof task.checklist === 'string' ? task.checklist : JSON.stringify(task.checklist))
-                .map((item: any) => `- ${item.checked ? '✅' : '⬜'} ${item.text}`)
-                .join('\n')
-            : '';
+          let checklistText = '';
+          try {
+            const parsed = task.checklist
+              ? JSON.parse(typeof task.checklist === 'string' ? task.checklist : JSON.stringify(task.checklist))
+              : [];
+            if (Array.isArray(parsed)) {
+              checklistText = parsed.map((item: any) => `- ${item.checked || item.completed || item.done ? '✅' : '⬜'} ${item.text}`).join('\n');
+            }
+          } catch { /* ignore checklist parse errors */ }
 
           const taskPrompt = `
 Você está executando uma tarefa automaticamente. Leia o conteúdo abaixo e execute conforme solicitado.
@@ -104,13 +138,12 @@ ${task.description ? `**DESCRIÇÃO:**\n${task.description}` : ''}
 
 ${checklistText ? `**CHECKLIST:**\n${checklistText}` : ''}
 
-${task.deadline ? `**PRAZO:** ${task.deadline}` : ''}
+${task.due_date ? `**PRAZO:** ${task.due_date}` : ''}
 
 Gere o resultado/output da execução desta tarefa de forma completa e estruturada. Seja direto e objetivo.
 `.trim();
 
           // 3. Call ia-agent-chat to process the task
-          // Create a temporary conversation for this task execution
           const { data: conversation, error: convError } = await supabase
             .from('ia_agent_conversations')
             .insert({
@@ -124,8 +157,7 @@ Gere o resultado/output da execução desta tarefa de forma completa e estrutura
 
           if (convError) {
             console.error(`[agent-task-executor] Error creating conversation:`, convError);
-            // Revert to todo
-            await supabase.from('tasks').update({ status: 'todo' }).eq('id', task.id);
+            await supabase.from('tasks').update({ status: 'todo', quadro_column_id: task.quadro_column_id }).eq('id', task.id);
             continue;
           }
 
@@ -154,26 +186,55 @@ Gere o resultado/output da execução desta tarefa de forma completa e estrutura
 
           if (!chatResult.success) {
             console.error(`[agent-task-executor] Agent chat failed for task ${task.id}:`, chatResult.error);
-            // Revert to todo
-            await supabase.from('tasks').update({ status: 'todo' }).eq('id', task.id);
+            await supabase.from('tasks').update({ status: 'todo', quadro_column_id: task.quadro_column_id }).eq('id', task.id);
+
+            // Log failure
+            await supabase.from('task_history').insert({
+              task_id: task.id,
+              company_id: task.company_id || employee.company_id,
+              user_id: employee.user_id,
+              user_name: employee.name,
+              history_type: 'automatic',
+              description: `🤖 Erro na execução: ${chatResult.error || 'Falha desconhecida'}`,
+              field_changed: 'ai_execution',
+              old_value: 'progress',
+              new_value: 'todo',
+            });
             continue;
           }
 
-          // 4. Save the output and move to "review"
-          await supabase.from('tasks').update({
+          // 4. Save the output and move to "review" + update board column
+          const reviewUpdate: any = {
             status: 'review',
             ai_output: chatResult.response,
             progress: 100,
             updated_at: new Date().toISOString(),
-          }).eq('id', task.id);
+          };
+          if (reviewColumn) {
+            reviewUpdate.quadro_column_id = reviewColumn.id;
+            reviewUpdate.etapa = reviewColumn.name;
+          }
+          await supabase.from('tasks').update(reviewUpdate).eq('id', task.id);
+
+          // Log completion in task history
+          await supabase.from('task_history').insert({
+            task_id: task.id,
+            company_id: task.company_id || employee.company_id,
+            user_id: employee.user_id,
+            user_name: employee.name,
+            history_type: 'automatic',
+            description: `🤖 Agente concluiu a execução da tarefa. Output salvo.`,
+            field_changed: 'status',
+            old_value: 'progress',
+            new_value: 'review',
+          });
 
           console.log(`[agent-task-executor] ✅ Task "${task.title}" completed and moved to review`);
           totalProcessed++;
 
         } catch (taskErr) {
           console.error(`[agent-task-executor] Error processing task ${task.id}:`, taskErr);
-          // Revert to todo on error
-          await supabase.from('tasks').update({ status: 'todo' }).eq('id', task.id);
+          await supabase.from('tasks').update({ status: 'todo', quadro_column_id: task.quadro_column_id }).eq('id', task.id);
         }
       }
     }
