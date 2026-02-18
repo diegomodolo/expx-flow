@@ -3,7 +3,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Building, Bell, CreditCard, Facebook, Shield, RefreshCw, MessageCircle, Database, SlidersHorizontal, ChevronDown, Plug } from "lucide-react";
+import { Building, Bell, CreditCard, Facebook, Shield, RefreshCw, MessageCircle, Database, SlidersHorizontal, ChevronDown, Plug, Video } from "lucide-react";
 import { SiGoogle, SiDiscord } from "react-icons/si";
 
 interface SettingsLayoutProps {
@@ -86,6 +86,12 @@ const settingsNavGroups: NavGroup[] = [
         href: "/configuracoes/sincronizacao-google",
         icon: RefreshCw,
         description: "Sincronização do Google Ads",
+      },
+      {
+        title: "Google Meet & Drive",
+        href: "/configuracoes/integracao-google-meet",
+        icon: Video,
+        description: "Conta Google para reuniões e transcrições",
       },
       {
         title: "WhatsApp (Z-API)",

@@ -8,7 +8,7 @@ const corsHeaders = {
 
 async function getValidAccessToken(supabaseClient: any, companyId: string) {
   const { data: integration, error } = await supabaseClient
-    .from('google_ads_integrations')
+    .from('google_meet_integrations')
     .select('*')
     .eq('company_id', companyId)
     .eq('is_active', true)
@@ -33,7 +33,7 @@ async function getValidAccessToken(supabaseClient: any, companyId: string) {
     });
     if (!tokenResponse.ok) throw new Error('Failed to refresh Google token.');
     const tokens = await tokenResponse.json();
-    await supabaseClient.from('google_ads_integrations')
+    await supabaseClient.from('google_meet_integrations')
       .update({ access_token: tokens.access_token, expires_at: new Date(Date.now() + tokens.expires_in * 1000).toISOString() })
       .eq('id', integration.id);
     return tokens.access_token;

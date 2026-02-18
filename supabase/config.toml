@@ -534,3 +534,6 @@ verify_jwt = true
 
 [functions.google-meet-process-summary]
 verify_jwt = true
+
+[functions.google-meet-oauth]
+verify_jwt = true
