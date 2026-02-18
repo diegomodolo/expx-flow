@@ -295,7 +295,6 @@ Gere o resultado/output da execução desta tarefa de forma completa e estrutura
               .from('task_time_tracking')
               .update({
                 ended_at: timeTrackingEndedAt,
-                duration_minutes: durationMinutes,
               })
               .eq('id', openSession.id);
             if (ttEndErr) console.error(`[agent-task-executor] ❌ Error stopping time tracking:`, ttEndErr);
