@@ -9,7 +9,11 @@ import { MessageBubble } from './MessageBubble';
 import { CreateTopicDialog } from './CreateTopicDialog';
 import { CreatePollDialog } from './CreatePollDialog';
 import { EmojiGifPicker } from './EmojiGifPicker';
+import { SlashCommandMenu, SlashCommand } from './SlashCommandMenu';
+import { HandRaiseButton } from './HandRaiseButton';
+import { FocusModeToggle } from './FocusModeToggle';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
 import { useCompany } from '@/contexts/CompanyContext';
@@ -22,9 +26,11 @@ interface ChatFlowProps {
   loading?: boolean;
   onSendMessage: (content: string, threadParentId?: string) => void;
   sendingMessage?: boolean;
+  focusMode?: boolean;
+  onToggleFocusMode?: () => void;
 }
 
-export function ChatFlow({ channel, messages, loading, onSendMessage, sendingMessage }: ChatFlowProps) {
+export function ChatFlow({ channel, messages, loading, onSendMessage, sendingMessage, focusMode, onToggleFocusMode }: ChatFlowProps) {
   const [inputValue, setInputValue] = useState('');
   const [plusOpen, setPlusOpen] = useState(false);
   const [replyingTo, setReplyingTo] = useState<InternalMessage | null>(null);
@@ -32,6 +38,8 @@ export function ChatFlow({ channel, messages, loading, onSendMessage, sendingMes
   const [uploadingFile, setUploadingFile] = useState(false);
   const [topicDialogOpen, setTopicDialogOpen] = useState(false);
   const [pollDialogOpen, setPollDialogOpen] = useState(false);
+  const [slashMenuOpen, setSlashMenuOpen] = useState(false);
+  const [slashQuery, setSlashQuery] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -118,7 +126,50 @@ export function ChatFlow({ channel, messages, loading, onSendMessage, sendingMes
     }
   };
 
+  // Slash command input detection
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value;
+    setInputValue(val);
+
+    // Detect slash commands at the start of input
+    if (val.startsWith('/')) {
+      setSlashMenuOpen(true);
+      setSlashQuery(val.slice(1));
+    } else {
+      setSlashMenuOpen(false);
+      setSlashQuery('');
+    }
+  };
+
+  const handleSlashSelect = (cmd: SlashCommand) => {
+    setSlashMenuOpen(false);
+    setInputValue('');
+    switch (cmd.id) {
+      case 'tarefa':
+        // Create a task message placeholder
+        setInputValue('');
+        toast.info('Use o menu + para criar tarefas, ou envie uma mensagem e converta-a em tarefa.');
+        break;
+      case 'enquete':
+        setPollDialogOpen(true);
+        break;
+      case 'topico':
+        setTopicDialogOpen(true);
+        break;
+      case 'arquivo':
+        fileInputRef.current?.click();
+        break;
+      case 'mao':
+        // Will be handled by the HandRaiseButton but also available via slash
+        toast.info('Use o botão ✋ no header do canal para levantar a mão.');
+        break;
+    }
+  };
+
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    // Let SlashCommandMenu handle arrow keys/enter/tab when open
+    if (slashMenuOpen) return;
+
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
@@ -247,13 +298,19 @@ export function ChatFlow({ channel, messages, loading, onSendMessage, sendingMes
       {/* Channel Header */}
       <div className="h-14 border-b border-border flex items-center px-4 gap-3 shrink-0">
         <Hash className="w-5 h-5 text-primary" />
-        <div>
+        <div className="flex-1">
           <h3 className="text-title-md text-foreground">{channel.name}</h3>
+        </div>
+        <div className="flex items-center gap-1">
+          <HandRaiseButton channelId={channel.id} />
+          {onToggleFocusMode && (
+            <FocusModeToggle active={!!focusMode} onToggle={onToggleFocusMode} />
+          )}
         </div>
       </div>
 
       {/* Messages Area */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto py-4">
+      <div ref={scrollRef} className={cn("flex-1 overflow-y-auto py-4 transition-all duration-300", focusMode && "opacity-20 blur-sm pointer-events-none")}>
         {loading ? (
           <div className="space-y-4 px-4">
             {[...Array(5)].map((_, i) => (
@@ -396,15 +453,23 @@ export function ChatFlow({ channel, messages, loading, onSendMessage, sendingMes
             </PopoverContent>
           </Popover>
 
-          <Textarea
-            ref={inputRef}
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={replyingTo ? `Responder para ${replyingTo.user_name}...` : `Mensagem em #${channel.name}...`}
-            className="min-h-[40px] max-h-[120px] resize-none rounded-xl bg-muted/50 border-border focus-visible:ring-primary"
-            rows={1}
-          />
+          <div className="relative flex-1">
+            <SlashCommandMenu
+              query={slashQuery}
+              onSelect={handleSlashSelect}
+              onClose={() => setSlashMenuOpen(false)}
+              visible={slashMenuOpen}
+            />
+            <Textarea
+              ref={inputRef}
+              value={inputValue}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
+              placeholder={replyingTo ? `Responder para ${replyingTo.user_name}...` : `Mensagem em #${channel.name}... (digite / para comandos)`}
+              className="min-h-[40px] max-h-[120px] resize-none rounded-xl bg-muted/50 border-border focus-visible:ring-primary"
+              rows={1}
+            />
+          </div>
           <div className="flex items-center gap-0.5 shrink-0">
             <EmojiGifPicker
               onEmojiSelect={(emoji) => setInputValue(prev => prev + emoji)}
