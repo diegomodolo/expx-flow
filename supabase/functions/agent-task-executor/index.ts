@@ -106,17 +106,37 @@ Deno.serve(async (req) => {
           await supabase.from('tasks').update(progressUpdate).eq('id', task.id);
 
           // Log status change in task history
-          await supabase.from('task_history').insert({
-            task_id: task.id,
-            company_id: task.company_id || employee.company_id,
-            user_id: employee.user_id,
-            user_name: employee.name,
-            history_type: 'automatic',
-            description: `🤖 Agente iniciou a execução da tarefa`,
-            field_changed: 'status',
-            old_value: 'todo',
-            new_value: 'progress',
-          });
+          const historyEntries: any[] = [
+            {
+              task_id: task.id,
+              company_id: task.company_id || employee.company_id,
+              user_id: employee.user_id,
+              user_name: employee.name,
+              history_type: 'automatic',
+              description: `🤖 Agente alterou o status de Pendente para Em Andamento`,
+              field_changed: 'status',
+              old_value: 'todo',
+              new_value: 'progress',
+            },
+          ];
+
+          // Log stage/column change
+          if (progressColumn && task.quadro_column_id !== progressColumn.id) {
+            const oldColName = boardColumns?.find(c => c.id === task.quadro_column_id)?.name || 'Nenhuma';
+            historyEntries.push({
+              task_id: task.id,
+              company_id: task.company_id || employee.company_id,
+              user_id: employee.user_id,
+              user_name: employee.name,
+              history_type: 'automatic',
+              description: `🤖 Agente moveu a tarefa da etapa ${oldColName} para ${progressColumn.name}`,
+              field_changed: 'etapa',
+              old_value: oldColName,
+              new_value: progressColumn.name,
+            });
+          }
+
+          await supabase.from('task_history').insert(historyEntries);
 
           // 2. Fetch client context if task has related_client_id
           let clientContext = '';
@@ -244,20 +264,75 @@ Gere o resultado/output da execução desta tarefa de forma completa e estrutura
           }
           await supabase.from('tasks').update(reviewUpdate).eq('id', task.id);
 
-          // Log completion in task history
-          await supabase.from('task_history').insert({
+          // Save output to task_outputs table (the new output/result chat)
+          await supabase.from('task_outputs').insert({
+            task_id: task.id,
+            company_id: task.company_id || employee.company_id,
+            user_id: employee.user_id,
+            author_name: employee.name,
+            author_avatar: null,
+            content: chatResult.response,
+            attachments: [],
+          });
+
+          // Log completion + stage change in task history
+          const completionHistory: any[] = [
+            {
+              task_id: task.id,
+              company_id: task.company_id || employee.company_id,
+              user_id: employee.user_id,
+              user_name: employee.name,
+              history_type: 'automatic',
+              description: `🤖 Agente alterou o status de Em Andamento para Em Revisão`,
+              field_changed: 'status',
+              old_value: 'progress',
+              new_value: 'review',
+            },
+            {
+              task_id: task.id,
+              company_id: task.company_id || employee.company_id,
+              user_id: employee.user_id,
+              user_name: employee.name,
+              history_type: 'automatic',
+              description: `🤖 Agente concluiu a execução e salvou o resultado no output da tarefa`,
+              field_changed: 'ai_execution',
+              old_value: 'progress',
+              new_value: 'review',
+            },
+          ];
+
+          // Log stage change
+          if (reviewColumn) {
+            const prevCol = progressColumn?.name || boardColumns?.find(c => c.id === task.quadro_column_id)?.name || 'Nenhuma';
+            completionHistory.push({
+              task_id: task.id,
+              company_id: task.company_id || employee.company_id,
+              user_id: employee.user_id,
+              user_name: employee.name,
+              history_type: 'automatic',
+              description: `🤖 Agente moveu a tarefa da etapa ${prevCol} para ${reviewColumn.name}`,
+              field_changed: 'etapa',
+              old_value: prevCol,
+              new_value: reviewColumn.name,
+            });
+          }
+
+          // Log progress change
+          completionHistory.push({
             task_id: task.id,
             company_id: task.company_id || employee.company_id,
             user_id: employee.user_id,
             user_name: employee.name,
             history_type: 'automatic',
-            description: `🤖 Agente concluiu a execução da tarefa. Output salvo.`,
-            field_changed: 'status',
-            old_value: 'progress',
-            new_value: 'review',
+            description: `🤖 Agente alterou o progresso de 0% para 100%`,
+            field_changed: 'progress',
+            old_value: '0',
+            new_value: '100',
           });
 
-          console.log(`[agent-task-executor] ✅ Task "${task.title}" completed and moved to review`);
+          await supabase.from('task_history').insert(completionHistory);
+
+          console.log(`[agent-task-executor] ✅ Task "${task.title}" completed, output saved to task_outputs`);
           totalProcessed++;
 
         } catch (taskErr) {
