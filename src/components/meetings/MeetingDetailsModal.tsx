@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Copy, ExternalLink, RefreshCw, Brain, ChevronDown, ChevronUp, FileText, CheckCircle2, Clock, Users, Video } from "lucide-react";
+import { Copy, ExternalLink, RefreshCw, Brain, ChevronDown, ChevronUp, FileText, CheckCircle2, Clock, Users, Video, Play, Film } from "lucide-react";
 import { GoogleMeetMeeting } from "@/hooks/useGoogleMeetMeetings";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -106,19 +106,72 @@ export function MeetingDetailsModal({
               </Card>
             )}
 
+            {/* Recording */}
+            {meeting.recording_url && (
+              <Card className="border-primary/30 bg-primary/5">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Film className="h-5 w-5 text-primary" />
+                      <div>
+                        <p className="text-sm font-medium">Gravação da Reunião</p>
+                        <p className="text-xs text-muted-foreground">Disponível no Google Drive</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.open(meeting.recording_url!, '_blank')}
+                        className="gap-2"
+                      >
+                        <Play className="h-4 w-4" />
+                        Assistir Gravação
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleCopy(meeting.recording_url!)}>
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Transcript Doc URL */}
+            {meeting.transcript_doc_url && (
+              <Card>
+                <CardContent className="p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <FileText className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium">Documento da Transcrição</p>
+                      <p className="text-xs text-muted-foreground">Google Docs</p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.open(meeting.transcript_doc_url!, '_blank')}
+                    className="gap-2"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    Abrir no Docs
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Actions */}
-            <div className="flex gap-3">
-              {meeting.transcript_status !== 'completed' && (
-                <Button
-                  variant="outline"
-                  onClick={() => onCheckTranscript(meeting.id)}
-                  disabled={processing}
-                  className="gap-2"
-                >
-                  <RefreshCw className={`h-4 w-4 ${processing ? 'animate-spin' : ''}`} />
-                  Buscar Transcrição
-                </Button>
-              )}
+            <div className="flex gap-3 flex-wrap">
+              <Button
+                variant="outline"
+                onClick={() => onCheckTranscript(meeting.id)}
+                disabled={processing}
+                className="gap-2"
+              >
+                <RefreshCw className={`h-4 w-4 ${processing ? 'animate-spin' : ''}`} />
+                {meeting.transcript_status === 'completed' ? 'Atualizar Dados' : 'Buscar Transcrição e Gravação'}
+              </Button>
               {meeting.transcript_status === 'completed' && !meeting.ai_summary && (
                 <Button
                   variant="outline"
@@ -131,6 +184,27 @@ export function MeetingDetailsModal({
                 </Button>
               )}
             </div>
+
+            {/* Status info when no recording/transcript yet */}
+            {!meeting.recording_url && !meeting.raw_transcript && meeting.status === 'completed' && (
+              <Card className="border-accent/30 bg-accent/5">
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3">
+                    <Clock className="h-5 w-5 text-accent-foreground mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium">Aguardando processamento</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        A gravação e transcrição podem levar de 2 a 10 minutos após o término da reunião para ficarem disponíveis. 
+                        Clique em "Buscar Transcrição e Gravação" para verificar.
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        <strong>Importante:</strong> A transcrição e gravação precisam estar habilitadas durante a reunião no Google Meet.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* AI Summary */}
             {meeting.ai_summary && (

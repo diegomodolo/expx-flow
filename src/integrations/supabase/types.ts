@@ -6766,6 +6766,8 @@ export type Database = {
           meeting_uri: string
           participants: Json | null
           raw_transcript: string | null
+          recording_drive_file_id: string | null
+          recording_url: string | null
           scheduled_at: string | null
           squad_id: string | null
           started_at: string | null
@@ -6791,6 +6793,8 @@ export type Database = {
           meeting_uri?: string
           participants?: Json | null
           raw_transcript?: string | null
+          recording_drive_file_id?: string | null
+          recording_url?: string | null
           scheduled_at?: string | null
           squad_id?: string | null
           started_at?: string | null
@@ -6816,6 +6820,8 @@ export type Database = {
           meeting_uri?: string
           participants?: Json | null
           raw_transcript?: string | null
+          recording_drive_file_id?: string | null
+          recording_url?: string | null
           scheduled_at?: string | null
           squad_id?: string | null
           started_at?: string | null
