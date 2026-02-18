@@ -246,6 +246,22 @@ export function useInternalChat() {
         .insert(insertData);
 
       if (error) throw error;
+
+      // Trigger AI notification for other channel members (fire-and-forget)
+      if (activeChannel && user?.id) {
+        supabase.functions.invoke('prioritize-notification', {
+          body: {
+            message_content: content,
+            sender_name: user.user_metadata?.full_name || 'Usuário',
+            channel_name: activeChannel.name,
+            channel_type: activeChannel.channel_type,
+            company_id: companyId,
+            user_id: user.id, // This will be replaced server-side per recipient
+            channel_id: activeChannelId,
+            message_id: null, // Would need the inserted message id
+          },
+        }).catch(err => console.warn('Notification trigger failed:', err));
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['internal-messages', activeChannelId] });

@@ -2,6 +2,7 @@ import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { ChannelSidebar } from '@/components/comm-hub/ChannelSidebar';
 import { ChatFlow } from '@/components/comm-hub/ChatFlow';
 import { MyDayPanel } from '@/components/comm-hub/MyDayPanel';
+import { NotificationBell } from '@/components/comm-hub/NotificationBell';
 import { useInternalChat } from '@/hooks/useInternalChat';
 import { useChannelUnread } from '@/hooks/useChannelUnread';
 import { useEffect } from 'react';
@@ -30,7 +31,7 @@ export default function CommunicationDashboard() {
 
   return (
     <DashboardLayout>
-      <div className="flex h-[calc(100vh-4rem)] -m-8 rounded-none overflow-hidden">
+      <div className="flex h-[calc(100vh-4rem)] -m-8 rounded-none overflow-hidden relative">
         <ChannelSidebar
           channels={channels}
           activeChannelId={activeChannelId}
@@ -46,6 +47,10 @@ export default function CommunicationDashboard() {
           sendingMessage={sendingMessage}
         />
         <MyDayPanel />
+        {/* Notification bell floating */}
+        <div className="absolute top-3 right-[340px] z-10">
+          <NotificationBell />
+        </div>
       </div>
     </DashboardLayout>
   );

@@ -8706,6 +8706,86 @@ export type Database = {
           },
         ]
       }
+      internal_notifications: {
+        Row: {
+          ai_reason: string | null
+          ai_score: number | null
+          body: string | null
+          channel_id: string | null
+          company_id: string
+          created_at: string
+          id: string
+          is_read: boolean
+          message_id: string | null
+          priority: string
+          task_id: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          ai_reason?: string | null
+          ai_score?: number | null
+          body?: string | null
+          channel_id?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message_id?: string | null
+          priority?: string
+          task_id?: string | null
+          title: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          ai_reason?: string | null
+          ai_score?: number | null
+          body?: string | null
+          channel_id?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message_id?: string | null
+          priority?: string
+          task_id?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "internal_notifications_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "internal_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_notifications_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_notifications_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "internal_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_notifications_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       internal_poll_votes: {
         Row: {
           created_at: string
@@ -12181,6 +12261,68 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_chat_comments: {
+        Row: {
+          channel_id: string
+          company_id: string
+          content: string
+          created_at: string
+          id: string
+          message_id: string
+          task_id: string
+          user_id: string
+        }
+        Insert: {
+          channel_id: string
+          company_id: string
+          content: string
+          created_at?: string
+          id?: string
+          message_id: string
+          task_id: string
+          user_id: string
+        }
+        Update: {
+          channel_id?: string
+          company_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          message_id?: string
+          task_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_chat_comments_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "internal_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_chat_comments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_chat_comments_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "internal_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_chat_comments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
             referencedColumns: ["id"]
           },
         ]
