@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { MessageSquare, CheckSquare, Trash2, Download, FileIcon } from 'lucide-react';
+import { MessageSquare, CheckSquare, Trash2, Download, FileIcon, MessageSquarePlus } from 'lucide-react';
 import type { InternalMessage } from '@/hooks/useInternalChat';
 import { TaskMiniCard } from './TaskMiniCard';
 
@@ -88,6 +88,8 @@ export function MessageBubble({ message, isOwnMessage, isThreadReply, onReplyInT
 
   const replyCount = message.reply_count || 0;
 
+  const isTopic = !!message.topic_title;
+
   return (
     <div className={`group relative flex items-start gap-3 px-4 py-1.5 hover:bg-muted/30 transition-colors ${isThreadReply ? 'px-2 py-1' : ''}`}>
       <Avatar className={`${isThreadReply ? 'w-6 h-6' : 'w-8 h-8'} mt-0.5 shrink-0`}>
@@ -106,6 +108,15 @@ export function MessageBubble({ message, isOwnMessage, isThreadReply, onReplyInT
             {format(parseISO(message.created_at), "HH:mm", { locale: ptBR })}
           </span>
         </div>
+
+        {/* Topic header */}
+        {isTopic && (
+          <div className="flex items-center gap-2 mt-1 mb-1">
+            <MessageSquarePlus className="w-4 h-4 text-primary shrink-0" />
+            <span className="text-sm font-semibold text-primary">{message.topic_title}</span>
+          </div>
+        )}
+
         <div className="text-sm text-foreground/90 break-words whitespace-pre-wrap">
           {renderContent(message.content)}
         </div>

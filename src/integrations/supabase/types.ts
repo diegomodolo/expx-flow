@@ -8625,6 +8625,7 @@ export type Database = {
           reply_count: number
           task_reference_id: string | null
           thread_parent_id: string | null
+          topic_title: string | null
           user_id: string
         }
         Insert: {
@@ -8640,6 +8641,7 @@ export type Database = {
           reply_count?: number
           task_reference_id?: string | null
           thread_parent_id?: string | null
+          topic_title?: string | null
           user_id: string
         }
         Update: {
@@ -8655,6 +8657,7 @@ export type Database = {
           reply_count?: number
           task_reference_id?: string | null
           thread_parent_id?: string | null
+          topic_title?: string | null
           user_id?: string
         }
         Relationships: [
