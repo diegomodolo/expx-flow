@@ -1,13 +1,18 @@
-import { useState, useEffect, useRef } from 'react';
-import { useTaskTvDashboard, ActiveSession, CollaboratorRanking } from '@/hooks/useTaskTvDashboard';
+import { useState, useEffect, lazy, Suspense } from 'react';
+import { useTaskTvDashboard, ActiveSession, CollaboratorRanking, TaskItem } from '@/hooks/useTaskTvDashboard';
 import { useCompany } from '@/contexts/CompanyContext';
-import { useAuth } from '@/hooks/useAuth';
 import {
   CheckCircle2, Clock, AlertTriangle, Zap, TrendingUp, Award, Users,
-  RefreshCw, Wifi, WifiOff, Star, Medal, Trophy
+  RefreshCw, Wifi, Star, Medal, Trophy, X, ExternalLink, User
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, parseISO, isPast } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { cn } from '@/lib/utils';
+
+const TaskDialog = lazy(() =>
+  import('@/components/tasks/TaskDialog').then(m => ({ default: m.TaskDialog }))
+);
 
 // ---- Live timer hook ----
 function useLiveTimer(startedAt: string) {
@@ -44,20 +49,146 @@ function LiveClock() {
   );
 }
 
-// ---- KPI Card ----
+// ---- Priority badge ----
+const priorityMap: Record<string, { label: string; cls: string }> = {
+  high: { label: 'Alta', cls: 'bg-red-500/20 text-red-300 border-red-500/30' },
+  alta: { label: 'Alta', cls: 'bg-red-500/20 text-red-300 border-red-500/30' },
+  medium: { label: 'Média', cls: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30' },
+  media: { label: 'Média', cls: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30' },
+  low: { label: 'Baixa', cls: 'bg-green-500/20 text-green-300 border-green-500/30' },
+  baixa: { label: 'Baixa', cls: 'bg-green-500/20 text-green-300 border-green-500/30' },
+};
+
+function PriorityBadge({ priority }: { priority: string }) {
+  const cfg = priorityMap[priority] || priorityMap.medium;
+  return (
+    <span className={cn('text-[10px] font-semibold px-2 py-0.5 rounded border', cfg.cls)}>
+      {cfg.label}
+    </span>
+  );
+}
+
+// ---- Task list modal ----
+type ModalKind = 'open' | 'overdue' | 'completed' | null;
+
+const modalConfig: Record<Exclude<ModalKind, null>, { title: string; icon: any; color: string }> = {
+  open:      { title: 'Tarefas em Aberto',    icon: Clock,         color: 'text-blue-400' },
+  overdue:   { title: 'Tarefas em Atraso',    icon: AlertTriangle, color: 'text-red-400'  },
+  completed: { title: 'Concluídas Hoje',      icon: CheckCircle2,  color: 'text-emerald-400' },
+};
+
+function TaskListModal({
+  kind,
+  tasks,
+  onClose,
+  onOpenTask,
+}: {
+  kind: ModalKind;
+  tasks: TaskItem[];
+  onClose: () => void;
+  onOpenTask: (id: string) => void;
+}) {
+  if (!kind) return null;
+  const cfg = modalConfig[kind];
+  const Icon = cfg.icon;
+
+  return (
+    <Dialog open onOpenChange={v => !v && onClose()}>
+      <DialogContent
+        className="max-w-2xl bg-gray-900 border-white/10 text-white"
+        hideCloseButton
+      >
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Icon className={cn('w-5 h-5', cfg.color)} />
+            <span>{cfg.title}</span>
+            <span className="ml-auto text-sm font-normal text-gray-400">{tasks.length} tarefas</span>
+            <button onClick={onClose} className="ml-2 text-gray-500 hover:text-white transition-colors">
+              <X className="w-4 h-4" />
+            </button>
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="flex flex-col gap-2 max-h-[60vh] overflow-y-auto pr-1 mt-2">
+          {tasks.length === 0 && (
+            <p className="text-center text-gray-500 py-8 text-sm">Nenhuma tarefa nesta categoria</p>
+          )}
+          {tasks.map(task => {
+            const dl = task.due_date || task.deadline;
+            const isOverdue = dl && isPast(parseISO(dl)) && task.status !== 'done';
+            return (
+              <div
+                key={task.id}
+                className={cn(
+                  'flex items-center gap-3 rounded-lg p-3 border transition-colors cursor-pointer',
+                  'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20',
+                  isOverdue && 'border-l-2 border-l-red-500'
+                )}
+                onClick={() => onOpenTask(task.id)}
+              >
+                {/* Avatar / Initial */}
+                <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center shrink-0">
+                  {task.responsible_avatar ? (
+                    <img src={task.responsible_avatar} alt="" className="w-8 h-8 rounded-full object-cover" />
+                  ) : (
+                    <User className="w-4 h-4 text-gray-400" />
+                  )}
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-white truncate">{task.title}</p>
+                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                    {task.responsible_name && (
+                      <span className="text-xs text-gray-400">{task.responsible_name}</span>
+                    )}
+                    {dl && (
+                      <span className={cn('text-xs', isOverdue ? 'text-red-400' : 'text-gray-500')}>
+                        {isOverdue ? 'Vencido · ' : 'Prazo: '}
+                        {format(parseISO(dl), 'dd/MM/yyyy', { locale: ptBR })}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <PriorityBadge priority={task.priority} />
+                  <ExternalLink className="w-3.5 h-3.5 text-gray-500" />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ---- KPI Card (clickable) ----
 function KpiCard({
-  label, value, icon: Icon, color, sublabel
+  label, value, icon: Icon, color, sublabel, onClick
 }: {
   label: string; value: number | string; icon: any; color: string; sublabel?: string;
+  onClick?: () => void;
 }) {
   return (
-    <div className="relative overflow-hidden rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm p-5 flex flex-col gap-2">
+    <div
+      onClick={onClick}
+      className={cn(
+        'relative overflow-hidden rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm p-5 flex flex-col gap-2',
+        onClick && 'cursor-pointer hover:bg-white/10 hover:border-white/20 transition-all active:scale-[0.98]'
+      )}
+    >
       <div className="flex items-start justify-between">
         <span className="text-xs font-semibold uppercase tracking-widest text-gray-400">{label}</span>
         <Icon className={`w-5 h-5 ${color}`} />
       </div>
       <div className={`text-5xl font-black tabular-nums ${color}`}>{value}</div>
       {sublabel && <div className="text-xs text-gray-500">{sublabel}</div>}
+      {onClick && (
+        <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100">
+          <ExternalLink className="w-3 h-3 text-gray-600" />
+        </div>
+      )}
     </div>
   );
 }
@@ -86,13 +217,16 @@ function IndicatorBar({ label, value, color, description }: {
   );
 }
 
-// ---- Active Session Card ----
-function SessionCard({ session }: { session: ActiveSession }) {
+// ---- Active Session Card (clickable) ----
+function SessionCard({ session, onOpenTask }: { session: ActiveSession; onOpenTask: (id: string) => void }) {
   const timer = useLiveTimer(session.started_at);
   const isOverdue = session.task_deadline && new Date(session.task_deadline) < new Date();
 
   return (
-    <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4 flex flex-col gap-3 min-w-0">
+    <div
+      onClick={() => onOpenTask(session.task_id)}
+      className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4 flex flex-col gap-3 min-w-0 cursor-pointer hover:bg-emerald-500/10 hover:border-emerald-500/50 transition-all active:scale-[0.98]"
+    >
       <div className="flex items-center gap-3">
         {session.user_avatar ? (
           <img src={session.user_avatar} alt={session.user_name}
@@ -104,10 +238,11 @@ function SessionCard({ session }: { session: ActiveSession }) {
             </span>
           </div>
         )}
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="text-xs text-emerald-400 font-semibold truncate">{session.user_name}</p>
           <p className="text-sm font-bold text-white truncate leading-tight">{session.task_title}</p>
         </div>
+        <ExternalLink className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
       </div>
 
       {isOverdue && (
@@ -175,6 +310,16 @@ export default function TaskTvDashboard() {
   const { data, isLoading, isFetching, refetch } = useTaskTvDashboard(30_000);
   const { activeCompany } = useCompany();
 
+  // Modal state for KPI cards
+  const [listModal, setListModal] = useState<ModalKind>(null);
+  // Task dialog state
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+
+  function openTask(id: string) {
+    setListModal(null); // close list modal first
+    setEditingTaskId(id);
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-950 flex items-center justify-center">
@@ -194,9 +339,19 @@ export default function TaskTvDashboard() {
     );
   }
 
-  const topPerformers = [...data.rankings].sort((a, b) => b.score - a.score).slice(0, 5);
-  const topRegularity = [...data.rankings].sort((a, b) => b.regularity - a.regularity).slice(0, 5);
-  const topEfficiency = [...data.rankings].sort((a, b) => b.efficiency - a.efficiency).slice(0, 5);
+  const topPerformers  = [...data.rankings].sort((a, b) => b.score      - a.score     ).slice(0, 5);
+  const topRegularity  = [...data.rankings].sort((a, b) => b.regularity - a.regularity).slice(0, 5);
+  const topEfficiency  = [...data.rankings].sort((a, b) => b.efficiency - a.efficiency).slice(0, 5);
+
+  const listTasks: TaskItem[] =
+    listModal === 'open'      ? data.openTasksList :
+    listModal === 'overdue'   ? data.overdueTasksList :
+    listModal === 'completed' ? data.completedTodayList : [];
+
+  // Find the full task object for TaskDialog
+  const editingTask = editingTaskId
+    ? [...data.openTasksList, ...data.overdueTasksList, ...data.completedTodayList].find(t => t.id === editingTaskId)
+    : null;
 
   return (
     <div className="min-h-screen bg-gray-950 text-white p-6 flex flex-col gap-5" style={{ fontFamily: 'system-ui, sans-serif' }}>
@@ -222,11 +377,14 @@ export default function TaskTvDashboard() {
       {/* ---- KPI ROW ---- */}
       <div className="grid grid-cols-4 gap-4">
         <KpiCard label="Em Aberto" value={data.openTasks} icon={Clock} color="text-blue-400"
-          sublabel="Tarefas ativas no momento" />
+          sublabel="Clique para ver a lista"
+          onClick={() => setListModal('open')} />
         <KpiCard label="Em Atraso" value={data.overdueTasks} icon={AlertTriangle} color="text-red-400"
-          sublabel="Prazo vencido" />
+          sublabel="Clique para ver a lista"
+          onClick={() => setListModal('overdue')} />
         <KpiCard label="Concluídas Hoje" value={data.completedToday} icon={CheckCircle2} color="text-emerald-400"
-          sublabel={`Em ${format(new Date(), 'dd/MM')}`} />
+          sublabel={`Clique para ver — ${format(new Date(), 'dd/MM')}`}
+          onClick={() => setListModal('completed')} />
         <KpiCard label="Executando Agora" value={data.executingNow} icon={Zap} color="text-yellow-400"
           sublabel="Sessões ativas" />
       </div>
@@ -258,7 +416,9 @@ export default function TaskTvDashboard() {
                 <p className="text-sm text-gray-500">Nenhuma sessão ativa</p>
               </div>
             ) : (
-              data.activeSessions.map(s => <SessionCard key={s.session_id} session={s} />)
+              data.activeSessions.map(s => (
+                <SessionCard key={s.session_id} session={s} onOpenTask={openTask} />
+              ))
             )}
           </div>
         </div>
@@ -317,7 +477,7 @@ export default function TaskTvDashboard() {
 
       {/* ---- FOOTER ---- */}
       <div className="flex items-center justify-between text-xs text-gray-600 border-t border-white/5 pt-3">
-        <span>Atualização automática a cada 30 segundos</span>
+        <span>Atualização automática a cada 30 segundos · Clique nos cards para ver detalhes</span>
         <button
           onClick={() => refetch()}
           className="flex items-center gap-1.5 text-gray-500 hover:text-gray-300 transition-colors"
@@ -329,6 +489,39 @@ export default function TaskTvDashboard() {
           Última sync: {data.lastSync ? format(data.lastSync, 'HH:mm:ss') : '—'}
         </span>
       </div>
+
+      {/* ---- MODALS ---- */}
+      {listModal && (
+        <TaskListModal
+          kind={listModal}
+          tasks={listTasks}
+          onClose={() => setListModal(null)}
+          onOpenTask={openTask}
+        />
+      )}
+
+      {editingTaskId && (
+        <Suspense fallback={null}>
+          <TaskDialog
+            open={!!editingTaskId}
+            onOpenChange={open => { if (!open) setEditingTaskId(null); }}
+            task={editingTask ? {
+              id: editingTask.id,
+              title: editingTask.title,
+              status: editingTask.status as any,
+              priority: editingTask.priority as any,
+              deadline: editingTask.deadline,
+              due_date: editingTask.due_date,
+              responsible_name: editingTask.responsible_name,
+              responsible_avatar: editingTask.responsible_avatar,
+              assigned_user_id: editingTask.assigned_user_id,
+              user_id: editingTask.user_id,
+            } as any : undefined}
+            onSave={() => { setEditingTaskId(null); refetch(); }}
+            onDelete={() => { setEditingTaskId(null); refetch(); }}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }
