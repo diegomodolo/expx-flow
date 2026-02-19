@@ -91,8 +91,6 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
   const [zoomWidth, setZoomWidth] = useState(1024);
   const [authUserId, setAuthUserId] = useState<string | null>(null);
   const [outputWidth, setOutputWidth] = useState(320);
-  const [dialogSize, setDialogSize] = useState({ width: 1024, height: 0 });
-  const dialogRef = React.useRef<HTMLDivElement>(null);
 
   // Output panel divider drag
   const isDraggingRef = React.useRef(false);
@@ -121,65 +119,6 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
     document.addEventListener('mousemove', onMouseMove);
     document.addEventListener('mouseup', onMouseUp);
   }, [outputWidth]);
-
-  // Window resize drag
-  const resizeStateRef = React.useRef<{
-    active: boolean;
-    edge: string;
-    startX: number;
-    startY: number;
-    startW: number;
-    startH: number;
-    startLeft: number;
-    startTop: number;
-  }>({ active: false, edge: '', startX: 0, startY: 0, startW: 0, startH: 0, startLeft: 0, startTop: 0 });
-
-  const handleResizeMouseDown = React.useCallback((e: React.MouseEvent, edge: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const el = dialogRef.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    resizeStateRef.current = {
-      active: true,
-      edge,
-      startX: e.clientX,
-      startY: e.clientY,
-      startW: rect.width,
-      startH: rect.height,
-      startLeft: rect.left,
-      startTop: rect.top,
-    };
-
-    const onMouseMove = (ev: MouseEvent) => {
-      if (!resizeStateRef.current.active) return;
-      const { edge, startX, startY, startW, startH } = resizeStateRef.current;
-      const dx = ev.clientX - startX;
-      const dy = ev.clientY - startY;
-
-      let newW = startW;
-      let newH = startH;
-
-      if (edge.includes('e')) newW = Math.max(400, startW + dx);
-      if (edge.includes('w')) newW = Math.max(400, startW - dx);
-      if (edge.includes('s')) newH = Math.max(300, startH + dy);
-      if (edge.includes('n')) newH = Math.max(300, startH - dy);
-
-      setDialogSize({ width: newW, height: newH });
-    };
-
-    const onMouseUp = () => {
-      resizeStateRef.current.active = false;
-      document.removeEventListener('mousemove', onMouseMove);
-      document.removeEventListener('mouseup', onMouseUp);
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-    };
-
-    document.body.style.userSelect = 'none';
-    document.addEventListener('mousemove', onMouseMove);
-    document.addEventListener('mouseup', onMouseUp);
-  }, []);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -814,26 +753,11 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        ref={dialogRef}
         hideCloseButton
-        className="p-0 gap-0 overflow-hidden relative"
-        style={{
-          width: dialogSize.width > 0 ? `${dialogSize.width}px` : `${zoomWidth}px`,
-          maxWidth: 'none',
-          height: dialogSize.height > 0 ? `${dialogSize.height}px` : undefined,
-          maxHeight: dialogSize.height > 0 ? 'none' : '90vh',
-        }}
+        className="p-0 gap-0 overflow-hidden"
+        style={{ maxWidth: `${zoomWidth}px` }}
       >
-        {/* Resize handles */}
-        <div onMouseDown={(e) => handleResizeMouseDown(e, 'e')} className="absolute right-0 top-4 bottom-4 w-1.5 cursor-ew-resize z-50 hover:bg-primary/30 transition-colors rounded-full" />
-        <div onMouseDown={(e) => handleResizeMouseDown(e, 'w')} className="absolute left-0 top-4 bottom-4 w-1.5 cursor-ew-resize z-50 hover:bg-primary/30 transition-colors rounded-full" />
-        <div onMouseDown={(e) => handleResizeMouseDown(e, 's')} className="absolute bottom-0 left-4 right-4 h-1.5 cursor-ns-resize z-50 hover:bg-primary/30 transition-colors rounded-full" />
-        <div onMouseDown={(e) => handleResizeMouseDown(e, 'n')} className="absolute top-0 left-4 right-4 h-1.5 cursor-ns-resize z-50 hover:bg-primary/30 transition-colors rounded-full" />
-        <div onMouseDown={(e) => handleResizeMouseDown(e, 'se')} className="absolute bottom-0 right-0 w-3 h-3 cursor-se-resize z-50" />
-        <div onMouseDown={(e) => handleResizeMouseDown(e, 'sw')} className="absolute bottom-0 left-0 w-3 h-3 cursor-sw-resize z-50" />
-        <div onMouseDown={(e) => handleResizeMouseDown(e, 'ne')} className="absolute top-0 right-0 w-3 h-3 cursor-ne-resize z-50" />
-        <div onMouseDown={(e) => handleResizeMouseDown(e, 'nw')} className="absolute top-0 left-0 w-3 h-3 cursor-nw-resize z-50" />
-        <div className="flex h-full" style={{ height: dialogSize.height > 0 ? '100%' : undefined, maxHeight: dialogSize.height > 0 ? 'none' : '90vh' }}>
+        <div className="flex max-h-[90vh]">
           {/* Left Sidebar */}
           <div className="w-20 border-r border-border bg-muted/30 flex flex-col items-center py-4 gap-1 shrink-0">
             {sidebarItems.map((item) => (
@@ -916,8 +840,8 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
             )}
           </div>
 
-          {/* Main Content */}
-          <div className="flex-1 flex flex-col min-w-0">
+          {/* Main Content + Output Panel share the same scroll context */}
+          <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
             {/* Header */}
             <div className="px-6 py-4 border-b border-border flex items-center gap-4">
               <Avatar className="h-12 w-12">
@@ -992,9 +916,11 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
               </div>
             </div>
 
-            {/* Scrollable Content */}
+            {/* Scrollable Content + Output Panel share the same scroll area */}
             <ScrollArea className="flex-1">
-              <div className="px-6 py-5">
+              <div className="flex min-h-full">
+                {/* Central column content */}
+                <div className="flex-1 px-6 py-5 min-w-0">
                 {activeTab === 'principal' && (
                   <div className="space-y-5">
                     {/* Título */}
@@ -1593,7 +1519,25 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                     <TaskHistoryTab taskId={task?.id || null} />
                   </div>
                 )}
+                </div>
               </div>
+
+              {/* Output Panel inside the same ScrollArea - shown for non-creative tasks when editing */}
+              {!isRoteiro && formData.tipo !== 'Criativo' && task?.id && (
+                <div className="flex shrink-0" style={{ width: outputWidth }}>
+                  {/* Draggable divider */}
+                  <div
+                    onMouseDown={handleDividerMouseDown}
+                    className="w-1 shrink-0 bg-border hover:bg-primary/40 cursor-col-resize transition-colors duration-150 relative group sticky top-0 self-stretch"
+                    title="Arraste para redimensionar"
+                  >
+                    <div className="absolute inset-y-0 -left-1 -right-1 group-hover:bg-primary/10" />
+                  </div>
+                  <div className="flex-1 overflow-hidden sticky top-0" style={{ height: 'calc(90vh - 57px - 65px)' }}>
+                    <TaskOutputPanel taskId={task.id} companyId={companyId} clientId={formData.related_client_id} expanded={outputExpanded} onToggleExpand={() => setOutputExpanded(prev => !prev)} />
+                  </div>
+                </div>
+              )}
             </ScrollArea>
 
             {/* Footer */}
@@ -1604,23 +1548,6 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
               </Button>
             </div>
           </div>
-
-          {/* Output Panel - shown for non-creative tasks when editing */}
-          {!isRoteiro && formData.tipo !== 'Criativo' && task?.id && (
-            <>
-              {/* Draggable divider */}
-              <div
-                onMouseDown={handleDividerMouseDown}
-                className="w-1 shrink-0 bg-border hover:bg-primary/40 cursor-col-resize transition-colors duration-150 relative group"
-                title="Arraste para redimensionar"
-              >
-                <div className="absolute inset-y-0 -left-1 -right-1 group-hover:bg-primary/10" />
-              </div>
-              <div className="shrink-0 overflow-hidden" style={{ width: outputWidth }}>
-                <TaskOutputPanel taskId={task.id} companyId={companyId} clientId={formData.related_client_id} expanded={outputExpanded} onToggleExpand={() => setOutputExpanded(prev => !prev)} />
-              </div>
-            </>
-          )}
         </div>
       </DialogContent>
     </Dialog>
