@@ -324,6 +324,7 @@ async function chatWithToolCalling(
   // Mutable context so _lookup_client can set client_id dynamically
   const mutableContext = { ...agentContext };
   let lastGeneratedImageUrl: string | null = null;
+  let imageAlreadyGenerated = false;
 
   for (let i = 0; i < maxIterations; i++) {
     const requestBody: Record<string, unknown> = {
@@ -331,8 +332,13 @@ async function chatWithToolCalling(
       messages: currentMessages,
     };
 
-    if (tools.length > 0) {
-      requestBody.tools = tools;
+    // Filter out generate_image tool if already generated to prevent duplicates
+    const activeTools = imageAlreadyGenerated
+      ? tools.filter((t: any) => t.function?.name !== 'generate_image_ai' && t.function?.name !== 'generate_image')
+      : tools;
+
+    if (activeTools.length > 0) {
+      requestBody.tools = activeTools;
       requestBody.tool_choice = 'auto';
     }
 
@@ -367,7 +373,17 @@ async function chatWithToolCalling(
         fnArgs = JSON.parse(toolCall.function.arguments || '{}');
       } catch { /* empty args */ }
 
-      console.log(`Executing tool: ${fnName}`, fnArgs);
+      // Skip duplicate image generation within same iteration
+      const isImageSkill = fnName === 'generate_image_ai' || fnName === 'generate_image';
+      if (isImageSkill && imageAlreadyGenerated) {
+        console.log(`[ia-agent-chat] Skipping duplicate image generation call`);
+        currentMessages.push({
+          role: 'tool',
+          tool_call_id: toolCall.id,
+          content: JSON.stringify({ success: true, message: 'Imagem já foi gerada nesta sessão. Use a URL já fornecida.', image_url: lastGeneratedImageUrl }),
+        } as any);
+        continue;
+      }
 
       let result: Record<string, unknown>;
 
@@ -411,6 +427,7 @@ async function chatWithToolCalling(
           const imgUrl = result.image_url as string;
           if (imgUrl.startsWith('http')) {
             lastGeneratedImageUrl = imgUrl;
+            imageAlreadyGenerated = true;
             console.log(`[ia-agent-chat] Saved lastGeneratedImageUrl: ${lastGeneratedImageUrl}`);
           }
         }
