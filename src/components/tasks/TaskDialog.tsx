@@ -39,6 +39,7 @@ import { TaskTimeTrackingTab } from "./TaskTimeTrackingTab";
 import { handleAutoTimeTracking } from "@/utils/autoTimeTracking";
 import { ImportChecklistTemplateModal } from "@/components/checklist-templates/ImportChecklistTemplateModal";
 import { TaskOutputPanel } from "./TaskOutputPanel";
+import { cn } from "@/lib/utils";
 
 export type TaskDialogMode = 'kanban' | 'roteiro';
 
@@ -86,6 +87,7 @@ function saveZoom(userId: string, zoom: number) {
 export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, defaultBoardUserId, mode = 'kanban', loading, onDelete }: TaskDialogProps) {
   const isRoteiro = mode === 'roteiro';
   const [activeTab, setActiveTab] = useState<SidebarTab>('principal');
+  const [outputExpanded, setOutputExpanded] = useState(false);
   const [zoomWidth, setZoomWidth] = useState(1024);
   const [authUserId, setAuthUserId] = useState<string | null>(null);
 
@@ -1500,8 +1502,8 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
 
           {/* Output Panel - shown for non-creative tasks when editing */}
           {!isRoteiro && formData.tipo !== 'Criativo' && task?.id && (
-            <div className="w-[320px] border-l border-border shrink-0">
-              <TaskOutputPanel taskId={task.id} companyId={companyId} />
+            <div className={cn("border-l border-border shrink-0 transition-all duration-300", outputExpanded ? "w-[600px]" : "w-[320px]")}>
+              <TaskOutputPanel taskId={task.id} companyId={companyId} expanded={outputExpanded} onToggleExpand={() => setOutputExpanded(prev => !prev)} />
             </div>
           )}
         </div>

@@ -1,21 +1,23 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { useCompany } from '@/contexts/CompanyContext';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Send, Paperclip, X, FileText, Image as ImageIcon, Link2, Loader2, Trash2 } from 'lucide-react';
+import { Send, Paperclip, X, FileText, Image as ImageIcon, Link2, Loader2, Trash2, Maximize2, Minimize2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import ReactMarkdown from 'react-markdown';
 import { cn } from '@/lib/utils';
+import { useNavigate } from 'react-router-dom';
 
 interface TaskOutputPanelProps {
   taskId: string | null;
   companyId?: string;
+  expanded?: boolean;
+  onToggleExpand?: () => void;
 }
 
 interface OutputMessage {
@@ -30,13 +32,23 @@ interface OutputMessage {
   created_at: string;
 }
 
-export function TaskOutputPanel({ taskId, companyId }: TaskOutputPanelProps) {
+const IMAGE_URL_REGEX = /https?:\/\/[^\s"'<>]+\.(?:png|jpg|jpeg|gif|webp|bmp|svg)(?:\?[^\s"'<>]*)?/gi;
+
+function extractImageUrls(text: string): string[] {
+  if (!text) return [];
+  const matches = text.match(IMAGE_URL_REGEX);
+  return matches ? [...new Set(matches)] : [];
+}
+
+export function TaskOutputPanel({ taskId, companyId, expanded, onToggleExpand }: TaskOutputPanelProps) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [content, setContent] = useState('');
   const [attachments, setAttachments] = useState<Array<{ name: string; url: string; type: string; size?: number }>>([]);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
 
   const { data: outputs = [], isLoading } = useQuery({
@@ -53,6 +65,15 @@ export function TaskOutputPanel({ taskId, companyId }: TaskOutputPanelProps) {
     },
     enabled: !!taskId,
   });
+
+  // Auto-scroll to bottom when outputs load or change
+  useEffect(() => {
+    if (outputs.length > 0 && bottomRef.current) {
+      setTimeout(() => {
+        bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 150);
+    }
+  }, [outputs]);
 
   const { data: currentEmployee } = useQuery({
     queryKey: ['current-employee-for-output', user?.id, companyId],
@@ -90,8 +111,8 @@ export function TaskOutputPanel({ taskId, companyId }: TaskOutputPanelProps) {
       setAttachments([]);
       queryClient.invalidateQueries({ queryKey: ['task-outputs', taskId] });
       setTimeout(() => {
-        scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
-      }, 100);
+        bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 200);
     },
   });
 
@@ -150,6 +171,12 @@ export function TaskOutputPanel({ taskId, companyId }: TaskOutputPanelProps) {
     return <FileText className="w-4 h-4" />;
   };
 
+  const handleImageClick = (imageUrl: string) => {
+    // Open in the image editor with the image URL as a query param
+    const encodedUrl = encodeURIComponent(imageUrl);
+    navigate(`/editor-imagens?image=${encodedUrl}`);
+  };
+
   if (!taskId) {
     return (
       <div className="flex items-center justify-center h-full text-sm text-muted-foreground p-4">
@@ -161,9 +188,16 @@ export function TaskOutputPanel({ taskId, companyId }: TaskOutputPanelProps) {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-border">
-        <h3 className="text-sm font-semibold text-foreground">Output / Resultado</h3>
-        <p className="text-xs text-muted-foreground">Resultados e entregas desta tarefa</p>
+      <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+        <div>
+          <h3 className="text-sm font-semibold text-foreground">Output / Resultado</h3>
+          <p className="text-xs text-muted-foreground">Resultados e entregas desta tarefa</p>
+        </div>
+        {onToggleExpand && (
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onToggleExpand} title={expanded ? 'Recolher' : 'Expandir'}>
+            {expanded ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+          </Button>
+        )}
       </div>
 
       {/* Messages */}
@@ -178,62 +212,119 @@ export function TaskOutputPanel({ taskId, companyId }: TaskOutputPanelProps) {
               Nenhum output registrado ainda
             </div>
           ) : (
-            outputs.map((output) => (
-              <div key={output.id} className="group relative">
-                <div className="flex gap-3">
-                  <Avatar className="h-8 w-8 shrink-0">
-                    {output.author_avatar && <AvatarImage src={output.author_avatar} />}
-                    <AvatarFallback className="text-xs bg-primary/10 text-primary">
-                      {output.author_name?.charAt(0)?.toUpperCase() || '?'}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-foreground">{output.author_name}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {format(new Date(output.created_at), "dd/MM/yy HH:mm", { locale: ptBR })}
-                      </span>
-                      {output.user_id === user?.id && (
-                        <button
-                          onClick={() => deleteMutation.mutate(output.id)}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity ml-auto"
-                        >
-                          <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                        </button>
+            outputs.map((output) => {
+              // Extract image URLs from the content text
+              const inlineImageUrls = extractImageUrls(output.content);
+
+              return (
+                <div key={output.id} className="group relative">
+                  <div className="flex gap-3">
+                    <Avatar className="h-8 w-8 shrink-0">
+                      {output.author_avatar && <AvatarImage src={output.author_avatar} />}
+                      <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                        {output.author_name?.charAt(0)?.toUpperCase() || '?'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-foreground">{output.author_name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {format(new Date(output.created_at), "dd/MM/yy HH:mm", { locale: ptBR })}
+                        </span>
+                        {output.user_id === user?.id && (
+                          <button
+                            onClick={() => deleteMutation.mutate(output.id)}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity ml-auto"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                          </button>
+                        )}
+                      </div>
+                      {output.content && (
+                        <div className="mt-1 text-sm prose prose-sm dark:prose-invert max-w-none break-words">
+                          <ReactMarkdown>{output.content}</ReactMarkdown>
+                        </div>
+                      )}
+
+                      {/* Inline detected image previews */}
+                      {inlineImageUrls.length > 0 && (
+                        <div className="mt-2 grid gap-2" style={{ gridTemplateColumns: inlineImageUrls.length === 1 ? '1fr' : 'repeat(2, 1fr)' }}>
+                          {inlineImageUrls.map((url, i) => (
+                            <button
+                              key={i}
+                              onClick={() => handleImageClick(url)}
+                              className="relative group/img rounded-lg overflow-hidden border border-border hover:border-primary/50 transition-colors cursor-pointer"
+                              title="Clique para editar no Editor de Imagens"
+                            >
+                              <img
+                                src={url}
+                                alt="Preview"
+                                className="w-full h-auto max-h-48 object-cover"
+                                loading="lazy"
+                              />
+                              <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/40 transition-colors flex items-center justify-center">
+                                <span className="opacity-0 group-hover/img:opacity-100 transition-opacity text-white text-xs font-medium flex items-center gap-1.5 bg-black/60 px-3 py-1.5 rounded-full">
+                                  <ImageIcon className="w-3.5 h-3.5" />
+                                  Editar imagem
+                                </span>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Attachments */}
+                      {output.attachments && (output.attachments as any[]).length > 0 && (
+                        <div className="mt-2 space-y-1.5">
+                          {(output.attachments as any[]).map((att, i) => {
+                            const isImage = att.type?.startsWith('image/') || /\.(png|jpg|jpeg|gif|webp|svg)$/i.test(att.url || '');
+
+                            if (isImage) {
+                              return (
+                                <button
+                                  key={i}
+                                  onClick={() => handleImageClick(att.url)}
+                                  className="relative group/img block w-full rounded-lg overflow-hidden border border-border hover:border-primary/50 transition-colors cursor-pointer text-left"
+                                  title="Clique para editar no Editor de Imagens"
+                                >
+                                  <img src={att.url} alt={att.name} className="w-full h-auto max-h-48 object-cover" loading="lazy" />
+                                  <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/40 transition-colors flex items-center justify-center">
+                                    <span className="opacity-0 group-hover/img:opacity-100 transition-opacity text-white text-xs font-medium flex items-center gap-1.5 bg-black/60 px-3 py-1.5 rounded-full">
+                                      <ImageIcon className="w-3.5 h-3.5" />
+                                      Editar imagem
+                                    </span>
+                                  </div>
+                                  <div className="absolute bottom-0 left-0 right-0 bg-black/50 px-2 py-1 text-xs text-white truncate">
+                                    {att.name}
+                                  </div>
+                                </button>
+                              );
+                            }
+
+                            return (
+                              <a
+                                key={i}
+                                href={att.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-muted/30 hover:bg-muted/60 transition-colors text-sm"
+                              >
+                                {getFileIcon(att.type || '')}
+                                <span className="truncate text-foreground">{att.name}</span>
+                                <Link2 className="w-3.5 h-3.5 text-muted-foreground shrink-0 ml-auto" />
+                              </a>
+                            );
+                          })}
+                        </div>
                       )}
                     </div>
-                    {output.content && (
-                      <div className="mt-1 text-sm prose prose-sm dark:prose-invert max-w-none break-words">
-                        <ReactMarkdown>{output.content}</ReactMarkdown>
-                      </div>
-                    )}
-                    {/* Attachments */}
-                    {output.attachments && (output.attachments as any[]).length > 0 && (
-                      <div className="mt-2 space-y-1.5">
-                        {(output.attachments as any[]).map((att, i) => (
-                          <a
-                            key={i}
-                            href={att.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-muted/30 hover:bg-muted/60 transition-colors text-sm"
-                          >
-                            {att.type?.startsWith('image/') ? (
-                              <img src={att.url} alt={att.name} className="w-16 h-16 object-cover rounded" />
-                            ) : (
-                              getFileIcon(att.type || '')
-                            )}
-                            <span className="truncate text-foreground">{att.name}</span>
-                            <Link2 className="w-3.5 h-3.5 text-muted-foreground shrink-0 ml-auto" />
-                          </a>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
+          {/* Scroll anchor */}
+          <div ref={bottomRef} />
         </div>
       </ScrollArea>
 
