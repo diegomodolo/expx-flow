@@ -91,8 +91,6 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
   const [zoomWidth, setZoomWidth] = useState(1024);
   const [authUserId, setAuthUserId] = useState<string | null>(null);
   const [outputWidth, setOutputWidth] = useState(320);
-
-  // Output panel divider drag
   const isDraggingRef = React.useRef(false);
   const dragStartXRef = React.useRef(0);
   const dragStartWidthRef = React.useRef(320);
@@ -106,7 +104,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
     const onMouseMove = (ev: MouseEvent) => {
       if (!isDraggingRef.current) return;
       const delta = dragStartXRef.current - ev.clientX;
-      const newWidth = Math.max(200, dragStartWidthRef.current + delta);
+      const newWidth = Math.min(700, Math.max(240, dragStartWidthRef.current + delta));
       setOutputWidth(newWidth);
     };
 
@@ -840,8 +838,8 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
             )}
           </div>
 
-          {/* Main Content + Output Panel share the same scroll context */}
-          <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+          {/* Main Content */}
+          <div className="flex-1 flex flex-col min-w-0">
             {/* Header */}
             <div className="px-6 py-4 border-b border-border flex items-center gap-4">
               <Avatar className="h-12 w-12">
@@ -916,11 +914,9 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
               </div>
             </div>
 
-            {/* Scrollable Content + Output Panel share the same scroll area */}
+            {/* Scrollable Content */}
             <ScrollArea className="flex-1">
-              <div className="flex min-h-full">
-                {/* Central column content */}
-                <div className="flex-1 px-6 py-5 min-w-0">
+              <div className="px-6 py-5">
                 {activeTab === 'principal' && (
                   <div className="space-y-5">
                     {/* Título */}
@@ -1519,25 +1515,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                     <TaskHistoryTab taskId={task?.id || null} />
                   </div>
                 )}
-                </div>
               </div>
-
-              {/* Output Panel inside the same ScrollArea - shown for non-creative tasks when editing */}
-              {!isRoteiro && formData.tipo !== 'Criativo' && task?.id && (
-                <div className="flex shrink-0" style={{ width: outputWidth }}>
-                  {/* Draggable divider */}
-                  <div
-                    onMouseDown={handleDividerMouseDown}
-                    className="w-1 shrink-0 bg-border hover:bg-primary/40 cursor-col-resize transition-colors duration-150 relative group sticky top-0 self-stretch"
-                    title="Arraste para redimensionar"
-                  >
-                    <div className="absolute inset-y-0 -left-1 -right-1 group-hover:bg-primary/10" />
-                  </div>
-                  <div className="flex-1 overflow-hidden sticky top-0" style={{ height: 'calc(90vh - 57px - 65px)' }}>
-                    <TaskOutputPanel taskId={task.id} companyId={companyId} clientId={formData.related_client_id} expanded={outputExpanded} onToggleExpand={() => setOutputExpanded(prev => !prev)} />
-                  </div>
-                </div>
-              )}
             </ScrollArea>
 
             {/* Footer */}
@@ -1548,6 +1526,23 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
               </Button>
             </div>
           </div>
+
+          {/* Output Panel - shown for non-creative tasks when editing */}
+          {!isRoteiro && formData.tipo !== 'Criativo' && task?.id && (
+            <>
+              {/* Draggable divider */}
+              <div
+                onMouseDown={handleDividerMouseDown}
+                className="w-1 shrink-0 bg-border hover:bg-primary/40 cursor-col-resize transition-colors duration-150 relative group"
+                title="Arraste para redimensionar"
+              >
+                <div className="absolute inset-y-0 -left-1 -right-1 group-hover:bg-primary/10" />
+              </div>
+              <div className="shrink-0 overflow-hidden" style={{ width: outputWidth }}>
+                <TaskOutputPanel taskId={task.id} companyId={companyId} clientId={formData.related_client_id} expanded={outputExpanded} onToggleExpand={() => setOutputExpanded(prev => !prev)} />
+              </div>
+            </>
+          )}
         </div>
       </DialogContent>
     </Dialog>
