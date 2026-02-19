@@ -192,40 +192,74 @@ export function useTasks() {
   // Mutation para atualizar tarefa
   const updateTaskMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Task> }) => {
+      const isTriggeredConflict = (err: any) =>
+        err?.message?.includes('tuple to be updated was already modified') ||
+        err?.code === '55000';
+
       const { error } = await supabase
         .from("tasks")
         .update(updates)
         .eq("id", id);
 
       if (error) {
-        // "tuple to be updated was already modified by an operation triggered by the current command"
-        // This happens when the TASK_FLOW trigger processes the move simultaneously.
-        // The operation succeeded via the trigger, so we can safely ignore this specific conflict.
-        const isTriggeredConflict =
-          error.message?.includes('tuple to be updated was already modified') ||
-          error.code === '55000';
+        if (isTriggeredConflict(error)) {
+          console.warn('[useTasks] Trigger conflict, retrying in 400ms...');
+          // Wait for trigger transaction to fully commit, then retry
+          await new Promise(resolve => setTimeout(resolve, 400));
+          const { error: retryError } = await supabase
+            .from("tasks")
+            .update(updates)
+            .eq("id", id);
 
-        if (isTriggeredConflict) {
-          console.warn('[useTasks] Trigger conflict on update (expected with task flow triggers), ignoring:', error.message);
-          return; // Operation was handled by trigger, treat as success
+          if (retryError) {
+            if (isTriggeredConflict(retryError)) {
+              // Still conflicting — the task flow trigger fully owns this move.
+              // Just let the invalidation bring the correct state.
+              console.warn('[useTasks] Trigger conflict persists after retry — letting task flow handle it.');
+              return;
+            }
+            throw retryError;
+          }
+          return;
         }
         throw error;
       }
     },
-    onSuccess: () => {
-      console.log('🔄 Invalidating queries after task update');
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['board-tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['planner-tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['task-stats'] });
+    onMutate: async ({ id, updates }) => {
+      // Cancel any in-flight queries to avoid overwriting our optimistic update
+      await queryClient.cancelQueries({ queryKey: ['tasks', activeCompany?.company_id] });
+
+      // Snapshot the previous value for rollback
+      const previousTasks = queryClient.getQueryData(['tasks', activeCompany?.company_id]);
+
+      // Optimistically update the task in the cache so the card moves immediately
+      queryClient.setQueryData(['tasks', activeCompany?.company_id], (old: any) => {
+        if (!Array.isArray(old)) return old;
+        return old.map((task: any) =>
+          task.id === id ? { ...task, ...updates } : task
+        );
+      });
+
+      return { previousTasks };
     },
-    onError: (error) => {
+    onError: (error, _variables, context: any) => {
+      // Revert the optimistic update on a real (non-trigger) error
+      if (context?.previousTasks !== undefined) {
+        queryClient.setQueryData(['tasks', activeCompany?.company_id], context.previousTasks);
+      }
       console.error('Error updating task:', error);
       toast({
         title: "Erro",
         description: "Erro ao atualizar tarefa.",
         variant: "destructive",
       });
+    },
+    onSettled: () => {
+      // Always refetch to sync with the real DB state (including trigger-driven moves)
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['board-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['planner-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['task-stats'] });
     },
   });
 
