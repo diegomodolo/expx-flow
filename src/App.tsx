@@ -127,6 +127,7 @@ import DashboardRadarTVPublic from "./pages/DashboardRadarTVPublic";
 import DashboardCSTVPublic from "./pages/DashboardCSTVPublic";
 import KeywordPlannerPage from "./pages/KeywordPlanner";
 import RepositorioCriativos from "./pages/RepositorioCriativos";
+import TaskTvDashboard from "./pages/TaskTvDashboard";
 import PublicContentReview from "./pages/PublicContentReview";
 import CSLayout from "./components/cs/CSLayout";
 import CSCockpitPage from "./pages/cs/CSCockpitPage";
@@ -772,6 +773,13 @@ const App = () => {
                 {/* Public CS Routes */}
                 <Route path="/cs/value-statement/:token" element={<ValueStatementPublic />} />
               
+                 {/* Task TV Dashboard */}
+                 <Route path="/tarefas-tv" element={
+                   <ProtectedRoute>
+                     <TaskTvDashboard />
+                   </ProtectedRoute>
+                 } />
+
               {/* Catch-all route */}
               <Route path="*" element={<NotFound />} />
             </Routes>
