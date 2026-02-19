@@ -388,6 +388,18 @@ async function chatWithToolCalling(
         if (fnArgs.client_id && !mutableContext.client_id) {
           mutableContext.client_id = fnArgs.client_id as string;
         }
+        // Auto-resolve client_name to client_id if client_id is missing
+        if (!mutableContext.client_id && (fnArgs.client_name || fnArgs.clientName)) {
+          const clientName = (fnArgs.client_name || fnArgs.clientName) as string;
+          console.log(`[ia-agent-chat] Auto-resolving client_name "${clientName}" to client_id`);
+          const lookupResult = await handleLookupClient({ search_query: clientName }, mutableContext.company_id || '');
+          const foundClients = lookupResult.clients as Array<{ id: string }> | undefined;
+          if (foundClients && foundClients.length > 0) {
+            mutableContext.client_id = foundClients[0].id;
+            fnArgs.client_id = foundClients[0].id;
+            console.log(`[ia-agent-chat] Auto-resolved client_id: ${mutableContext.client_id}`);
+          }
+        }
         // Auto-inject last generated image URL into schedule_post if not provided
         if (fnName === 'schedule_post' && !fnArgs.image_url && !fnArgs.media_urls && lastGeneratedImageUrl) {
           fnArgs.image_url = lastGeneratedImageUrl;

@@ -35,16 +35,33 @@ Deno.serve(async (req) => {
     let dbClientName = '';
     let dbVoiceTone = '';
 
-    if (clientId) {
-      const supabase = createClient(
-        Deno.env.get('SUPABASE_URL') ?? '',
-        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-      );
+    // Build supabase client for DB lookups
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
 
+    // Auto-resolve clientId from client_name if not provided
+    let resolvedClientId = clientId;
+    if (!resolvedClientId && directClientName && companyId) {
+      console.log(`[generate-image-ai] Auto-resolving client by name: "${directClientName}"`);
+      const { data: foundClients } = await supabase
+        .from('clients')
+        .select('id')
+        .eq('company_id', companyId)
+        .or(`name.ilike.%${directClientName}%,company.ilike.%${directClientName}%`)
+        .limit(1);
+      if (foundClients && foundClients.length > 0) {
+        resolvedClientId = foundClients[0].id;
+        console.log(`[generate-image-ai] Resolved client_id: ${resolvedClientId}`);
+      }
+    }
+
+    if (resolvedClientId) {
       const { data: client } = await supabase
         .from('clients')
         .select('name, company, sector, ai_briefing, voice_tone, target_audience, ai_reference_image_1, ai_reference_image_2, ai_reference_image_3, avatar')
-        .eq('id', clientId)
+        .eq('id', resolvedClientId)
         .single();
 
       if (client) {
