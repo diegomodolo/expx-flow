@@ -27,6 +27,24 @@ export function ChatMessages({ messages, loading }: ChatMessagesProps) {
     scrollToBottom();
   }, [messages, loading]);
 
+  // Regex to detect image URLs
+  const imageUrlRegex = /(https?:\/\/[^\s"'<>]+\.(?:png|jpg|jpeg|gif|webp|svg)(?:\?[^\s"'<>]*)?)/gi;
+  const supabaseImageRegex = /(https?:\/\/[^\s"'<>]*supabase[^\s"'<>]*\/storage\/v1\/object\/public\/[^\s"'<>]+)/gi;
+
+  // Extract image URLs from content
+  const extractImageUrls = (content: string): string[] => {
+    const urls = new Set<string>();
+    let match;
+    
+    const regex1 = new RegExp(imageUrlRegex.source, 'gi');
+    while ((match = regex1.exec(content)) !== null) urls.add(match[1]);
+    
+    const regex2 = new RegExp(supabaseImageRegex.source, 'gi');
+    while ((match = regex2.exec(content)) !== null) urls.add(match[1]);
+    
+    return Array.from(urls);
+  };
+
   // Function to format message content with basic markdown
   const formatMessage = (content: string) => {
     // Convert **bold** to <strong>
@@ -81,6 +99,19 @@ export function ChatMessages({ messages, loading }: ChatMessagesProps) {
                       : 'bg-muted mr-12'
                   }`}
                 >
+                  {/* Render detected images */}
+                  {message.role === 'assistant' && extractImageUrls(message.content).map((imgUrl, idx) => (
+                    <div key={idx} className="mb-3">
+                      <a href={imgUrl} target="_blank" rel="noopener noreferrer">
+                        <img 
+                          src={imgUrl} 
+                          alt="Imagem gerada" 
+                          className="rounded-lg max-w-full max-h-80 object-contain border border-border"
+                          loading="lazy"
+                        />
+                      </a>
+                    </div>
+                  ))}
                   <div
                     className="prose prose-sm max-w-none text-current"
                     dangerouslySetInnerHTML={{
