@@ -203,7 +203,7 @@ export function AgentEditContent({
   const isChat = activeSection === "chat";
 
   return (
-    <div className="flex gap-6 min-h-[600px] h-full">
+    <div className="flex gap-6 h-[calc(100vh-180px)]">
       {/* Sidebar Card — same pattern as SettingsLayout */}
       <Card className="w-80 p-6 shrink-0">
         <div className="space-y-6">
@@ -251,7 +251,7 @@ export function AgentEditContent({
       {/* Content */}
       <div className="flex-1 min-w-0">
         {isChat ? (
-          <Card className="flex h-full overflow-hidden">
+          <Card className="flex h-full overflow-hidden min-h-0">
             <AgentConversationsSidebar
               conversations={conversations}
               currentConversation={currentConversation}
