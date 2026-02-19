@@ -8265,6 +8265,7 @@ export type Database = {
           id: string
           is_collaborator: boolean
           model: string | null
+          output_instructions: string | null
           prompt_base: string
           telegram_bot_name: string | null
           telegram_bot_token: string | null
@@ -8281,6 +8282,7 @@ export type Database = {
           id?: string
           is_collaborator?: boolean
           model?: string | null
+          output_instructions?: string | null
           prompt_base: string
           telegram_bot_name?: string | null
           telegram_bot_token?: string | null
@@ -8297,6 +8299,7 @@ export type Database = {
           id?: string
           is_collaborator?: boolean
           model?: string | null
+          output_instructions?: string | null
           prompt_base?: string
           telegram_bot_name?: string | null
           telegram_bot_token?: string | null
