@@ -95,13 +95,14 @@ Deno.serve(async (req) => {
     const textInstruction = referenceImageUrls.length > 0
       ? `Crie uma imagem no estilo "${style}" para: ${prompt}. ${clientContext}. 
 
-INSTRUÇÕES CRÍTICAS DE ESTILO: 
-- As imagens de referência anexadas mostram o estilo visual e identidade da marca. 
-- Você DEVE seguir o mesmo estilo, cores, tipografia e linguagem visual dessas referências.
-- A nova imagem deve parecer que foi feita pelo mesmo designer que criou as referências.
-- Mantenha a paleta de cores, estilo de ilustração/fotografia e elementos visuais consistentes.
+INSTRUÇÕES CRÍTICAS DE ESTILO (PRIORIDADE MÁXIMA):
+- As imagens de referência anexadas são a PRINCIPAL GUIA. A imagem gerada DEVE parecer da mesma marca.
+- COPIE a paleta de cores exata das referências. NÃO invente cores novas.
+- SIGA o mesmo estilo visual: se as referências usam flat design, use flat design. Se usam foto, use foto.
+- REPLIQUE a tipografia, layout e elementos gráficos (ícones, formas, gradientes) das referências.
+- A nova imagem deve ser INDISTINGUÍVEL em estilo das referências — como se fosse parte da mesma campanha.
 - Alta qualidade, profissional, adequada para marketing em redes sociais.
-- IMPORTANTE: Todo texto na imagem DEVE estar em português brasileiro correto, sem erros de ortografia ou gramática. Revise cada palavra antes de renderizar.`
+- IMPORTANTE: Todo texto na imagem DEVE estar em português brasileiro correto, sem erros de ortografia ou gramática.`
       : `Create a ${style} image for: ${prompt}. ${clientContext}. High quality, professional, suitable for social media marketing. IMPORTANT: All text in the image MUST be in correct Brazilian Portuguese with no spelling or grammar errors.`;
 
     // Build message content array
@@ -109,18 +110,35 @@ INSTRUÇÕES CRÍTICAS DE ESTILO:
       { type: 'text', text: textInstruction },
     ];
 
-    // Download reference images and convert to base64 (URLs like Instagram CDN block external access)
+    // Helper: convert ArrayBuffer to base64 without stack overflow
+    function arrayBufferToBase64(buffer: ArrayBuffer): string {
+      const bytes = new Uint8Array(buffer);
+      const CHUNK_SIZE = 8192;
+      let binary = '';
+      for (let i = 0; i < bytes.length; i += CHUNK_SIZE) {
+        const chunk = bytes.subarray(i, Math.min(i + CHUNK_SIZE, bytes.length));
+        binary += String.fromCharCode(...chunk);
+      }
+      return btoa(binary);
+    }
+
+    // Download reference images and convert to base64
     let imagesLoaded = 0;
     for (const imgUrl of referenceImageUrls) {
       try {
         console.log(`Downloading reference image: ${imgUrl.substring(0, 100)}...`);
         const imgResponse = await fetch(imgUrl, {
           headers: { 'User-Agent': 'Mozilla/5.0' },
-          signal: AbortSignal.timeout(10000),
+          signal: AbortSignal.timeout(15000),
         });
         if (imgResponse.ok) {
           const imgBuffer = await imgResponse.arrayBuffer();
-          const base64 = btoa(String.fromCharCode(...new Uint8Array(imgBuffer)));
+          // Skip images larger than 4MB to avoid memory issues
+          if (imgBuffer.byteLength > 4 * 1024 * 1024) {
+            console.warn(`Reference image too large (${(imgBuffer.byteLength / 1024 / 1024).toFixed(1)}MB), skipping`);
+            continue;
+          }
+          const base64 = arrayBufferToBase64(imgBuffer);
           const contentType = imgResponse.headers.get('content-type') || 'image/jpeg';
           const dataUrl = `data:${contentType};base64,${base64}`;
           messageContent.push({
