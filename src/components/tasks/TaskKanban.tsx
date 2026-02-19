@@ -333,11 +333,15 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
     staleTime: 30000,
   });
 
-  // ===== Drag handlers (unchanged) =====
+  // ===== Drag handlers =====
   const handleDragStart = (e: React.DragEvent, task: Task) => {
     setDraggedTask(task);
     e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/html', '');
+    // Use task id as payload — avoids the browser snapshotting page text/HTML
+    e.dataTransfer.setData('text/plain', task.id);
+    // Set a custom drag image (the card element itself) so only the card moves visually
+    const el = e.currentTarget as HTMLElement;
+    e.dataTransfer.setDragImage(el, el.offsetWidth / 2, el.offsetHeight / 2);
   };
   const handleDragEnd = () => { setDraggedTask(null); setDragOverColumn(null); };
   const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; };
