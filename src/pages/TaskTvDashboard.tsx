@@ -3,7 +3,7 @@ import { useTaskTvDashboard, ActiveSession, CollaboratorRanking, TaskItem } from
 import { useCompany } from '@/contexts/CompanyContext';
 import {
   CheckCircle2, Clock, AlertTriangle, Zap, TrendingUp, Award,
-  RefreshCw, Wifi, Star, Medal, Trophy, X, ExternalLink, User
+  RefreshCw, Wifi, Star, Medal, Trophy, X, ExternalLink, User, Search
 } from 'lucide-react';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { format, parseISO, isPast } from 'date-fns';
@@ -89,9 +89,18 @@ function TaskListModal({
   onClose: () => void;
   onOpenTask: (id: string) => void;
 }) {
+  const [search, setSearch] = useState('');
+
   if (!kind) return null;
   const cfg = modalConfig[kind];
   const Icon = cfg.icon;
+
+  const filtered = search.trim()
+    ? tasks.filter(t =>
+        t.title.toLowerCase().includes(search.toLowerCase()) ||
+        (t.responsible_name || '').toLowerCase().includes(search.toLowerCase())
+      )
+    : tasks;
 
   return (
     <Dialog open onOpenChange={v => !v && onClose()}>
@@ -103,18 +112,41 @@ function TaskListModal({
           <DialogTitle className="flex items-center gap-2">
             <Icon className={cn('w-5 h-5', cfg.color)} />
             <span>{cfg.title}</span>
-            <span className="ml-auto text-sm font-normal text-gray-400">{tasks.length} tarefas</span>
+            <span className="ml-auto text-sm font-normal text-gray-400">{filtered.length} de {tasks.length}</span>
             <button onClick={onClose} className="ml-2 text-gray-500 hover:text-white transition-colors">
               <X className="w-4 h-4" />
             </button>
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex flex-col gap-2 max-h-[60vh] overflow-y-auto pr-1 mt-2">
-          {tasks.length === 0 && (
-            <p className="text-center text-gray-500 py-8 text-sm">Nenhuma tarefa nesta categoria</p>
+        {/* Search input */}
+        <div className="relative mt-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Pesquisar por título ou responsável..."
+            className="w-full bg-white/5 border border-white/10 rounded-lg pl-9 pr-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-white/30 focus:bg-white/8 transition-colors"
+            autoFocus
+          />
+          {search && (
+            <button
+              onClick={() => setSearch('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
           )}
-          {tasks.map(task => {
+        </div>
+
+        <div className="flex flex-col gap-2 max-h-[55vh] overflow-y-auto pr-1 mt-1">
+          {filtered.length === 0 && (
+            <p className="text-center text-gray-500 py-8 text-sm">
+              {search ? 'Nenhuma tarefa encontrada para essa busca' : 'Nenhuma tarefa nesta categoria'}
+            </p>
+          )}
+          {filtered.map(task => {
             const dl = task.due_date || task.deadline;
             const isOverdue = dl && isPast(parseISO(dl)) && task.status !== 'done';
             return (
