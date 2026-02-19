@@ -104,7 +104,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
     const onMouseMove = (ev: MouseEvent) => {
       if (!isDraggingRef.current) return;
       const delta = dragStartXRef.current - ev.clientX;
-      const newWidth = Math.min(700, Math.max(240, dragStartWidthRef.current + delta));
+      const newWidth = Math.max(40, dragStartWidthRef.current + delta);
       setOutputWidth(newWidth);
     };
 
