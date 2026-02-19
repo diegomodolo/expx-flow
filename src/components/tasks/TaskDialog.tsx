@@ -1503,7 +1503,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
           {/* Output Panel - shown for non-creative tasks when editing */}
           {!isRoteiro && formData.tipo !== 'Criativo' && task?.id && (
             <div className={cn("border-l border-border shrink-0 transition-all duration-300", outputExpanded ? "w-[600px]" : "w-[320px]")}>
-              <TaskOutputPanel taskId={task.id} companyId={companyId} expanded={outputExpanded} onToggleExpand={() => setOutputExpanded(prev => !prev)} />
+              <TaskOutputPanel taskId={task.id} companyId={companyId} clientId={formData.related_client_id} expanded={outputExpanded} onToggleExpand={() => setOutputExpanded(prev => !prev)} />
             </div>
           )}
         </div>
