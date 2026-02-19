@@ -91,6 +91,10 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
   const [zoomWidth, setZoomWidth] = useState(1024);
   const [authUserId, setAuthUserId] = useState<string | null>(null);
   const [outputWidth, setOutputWidth] = useState(320);
+  const [dialogSize, setDialogSize] = useState({ width: 1024, height: 0 });
+  const dialogRef = React.useRef<HTMLDivElement>(null);
+
+  // Output panel divider drag
   const isDraggingRef = React.useRef(false);
   const dragStartXRef = React.useRef(0);
   const dragStartWidthRef = React.useRef(320);
@@ -104,7 +108,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
     const onMouseMove = (ev: MouseEvent) => {
       if (!isDraggingRef.current) return;
       const delta = dragStartXRef.current - ev.clientX;
-      const newWidth = Math.min(700, Math.max(240, dragStartWidthRef.current + delta));
+      const newWidth = Math.max(200, dragStartWidthRef.current + delta);
       setOutputWidth(newWidth);
     };
 
@@ -117,6 +121,65 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
     document.addEventListener('mousemove', onMouseMove);
     document.addEventListener('mouseup', onMouseUp);
   }, [outputWidth]);
+
+  // Window resize drag
+  const resizeStateRef = React.useRef<{
+    active: boolean;
+    edge: string;
+    startX: number;
+    startY: number;
+    startW: number;
+    startH: number;
+    startLeft: number;
+    startTop: number;
+  }>({ active: false, edge: '', startX: 0, startY: 0, startW: 0, startH: 0, startLeft: 0, startTop: 0 });
+
+  const handleResizeMouseDown = React.useCallback((e: React.MouseEvent, edge: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const el = dialogRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    resizeStateRef.current = {
+      active: true,
+      edge,
+      startX: e.clientX,
+      startY: e.clientY,
+      startW: rect.width,
+      startH: rect.height,
+      startLeft: rect.left,
+      startTop: rect.top,
+    };
+
+    const onMouseMove = (ev: MouseEvent) => {
+      if (!resizeStateRef.current.active) return;
+      const { edge, startX, startY, startW, startH } = resizeStateRef.current;
+      const dx = ev.clientX - startX;
+      const dy = ev.clientY - startY;
+
+      let newW = startW;
+      let newH = startH;
+
+      if (edge.includes('e')) newW = Math.max(400, startW + dx);
+      if (edge.includes('w')) newW = Math.max(400, startW - dx);
+      if (edge.includes('s')) newH = Math.max(300, startH + dy);
+      if (edge.includes('n')) newH = Math.max(300, startH - dy);
+
+      setDialogSize({ width: newW, height: newH });
+    };
+
+    const onMouseUp = () => {
+      resizeStateRef.current.active = false;
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  }, []);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -751,11 +814,26 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
+        ref={dialogRef}
         hideCloseButton
-        className="p-0 gap-0 overflow-hidden"
-        style={{ maxWidth: `${zoomWidth}px` }}
+        className="p-0 gap-0 overflow-hidden relative"
+        style={{
+          width: dialogSize.width > 0 ? `${dialogSize.width}px` : `${zoomWidth}px`,
+          maxWidth: 'none',
+          height: dialogSize.height > 0 ? `${dialogSize.height}px` : undefined,
+          maxHeight: dialogSize.height > 0 ? 'none' : '90vh',
+        }}
       >
-        <div className="flex max-h-[90vh]">
+        {/* Resize handles */}
+        <div onMouseDown={(e) => handleResizeMouseDown(e, 'e')} className="absolute right-0 top-4 bottom-4 w-1.5 cursor-ew-resize z-50 hover:bg-primary/30 transition-colors rounded-full" />
+        <div onMouseDown={(e) => handleResizeMouseDown(e, 'w')} className="absolute left-0 top-4 bottom-4 w-1.5 cursor-ew-resize z-50 hover:bg-primary/30 transition-colors rounded-full" />
+        <div onMouseDown={(e) => handleResizeMouseDown(e, 's')} className="absolute bottom-0 left-4 right-4 h-1.5 cursor-ns-resize z-50 hover:bg-primary/30 transition-colors rounded-full" />
+        <div onMouseDown={(e) => handleResizeMouseDown(e, 'n')} className="absolute top-0 left-4 right-4 h-1.5 cursor-ns-resize z-50 hover:bg-primary/30 transition-colors rounded-full" />
+        <div onMouseDown={(e) => handleResizeMouseDown(e, 'se')} className="absolute bottom-0 right-0 w-3 h-3 cursor-se-resize z-50" />
+        <div onMouseDown={(e) => handleResizeMouseDown(e, 'sw')} className="absolute bottom-0 left-0 w-3 h-3 cursor-sw-resize z-50" />
+        <div onMouseDown={(e) => handleResizeMouseDown(e, 'ne')} className="absolute top-0 right-0 w-3 h-3 cursor-ne-resize z-50" />
+        <div onMouseDown={(e) => handleResizeMouseDown(e, 'nw')} className="absolute top-0 left-0 w-3 h-3 cursor-nw-resize z-50" />
+        <div className="flex h-full" style={{ height: dialogSize.height > 0 ? '100%' : undefined, maxHeight: dialogSize.height > 0 ? 'none' : '90vh' }}>
           {/* Left Sidebar */}
           <div className="w-20 border-r border-border bg-muted/30 flex flex-col items-center py-4 gap-1 shrink-0">
             {sidebarItems.map((item) => (
