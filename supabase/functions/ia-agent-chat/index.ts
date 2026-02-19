@@ -596,6 +596,8 @@ As skills serão executadas automaticamente e você receberá o resultado para f
 A data e hora EXATA de agora é: ${todaySP}, ${timeSP} (horário de Brasília / UTC-3).
 Quando o usuário disser "hoje", a data é ${isoDateSP}. NUNCA invente ou adivinhe a data.`;
 
+    const outputInstructions = agent.output_instructions ? `\n\n[INSTRUÇÕES DE SAÍDA / OUTPUT]\n${agent.output_instructions}\nSempre siga estas instruções ao formatar sua resposta final.\n` : '';
+
     const systemPrompt = `${dateBlock}
 
 ${agent.prompt_base}
@@ -606,6 +608,7 @@ ${knowledgeContext ? `\n\n[BIBLIOTECA DE CONHECIMENTO]\n${knowledgeContext}\n` :
 
 ${clientContext ? `\n\n${clientContext}\n` : ''}
 ${skillInstructions}
+${outputInstructions}
 
 INSTRUÇÕES IMPORTANTES:
 - Use as informações da biblioteca de conhecimento quando relevante

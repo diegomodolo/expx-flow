@@ -109,6 +109,7 @@ export function AgentEditContent({
     description: "",
     prompt_base: "",
     additional_instructions: "",
+    output_instructions: "",
     client_id: "none",
     is_collaborator: false,
   });
@@ -145,6 +146,7 @@ export function AgentEditContent({
         description: currentAgent.description || "",
         prompt_base: currentAgent.prompt_base,
         additional_instructions: currentAgent.additional_instructions || "",
+        output_instructions: (currentAgent as any).output_instructions || "",
         client_id: currentAgent.client_id || "none",
         is_collaborator: (currentAgent as any).is_collaborator || false,
       });
@@ -385,6 +387,24 @@ export function AgentEditContent({
                     </AlertDescription>
                   </Alert>
                 )}
+
+                <Separator />
+
+                <div>
+                  <Label htmlFor="output_instructions">Instruções de Saída (Output)</Label>
+                  <Textarea
+                    id="output_instructions"
+                    value={formData.output_instructions}
+                    onChange={(e) =>
+                      setFormData({ ...formData, output_instructions: e.target.value })
+                    }
+                    placeholder="Ex: Sempre inclua a URL da imagem gerada na resposta. Formate links como [texto](url). Liste todos os artefatos produzidos com seus respectivos links."
+                    className="min-h-[120px]"
+                  />
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Define como o agente deve formatar suas respostas finais — quais dados incluir, como apresentar links, imagens e resultados.
+                  </p>
+                </div>
               </div>
             )}
 
