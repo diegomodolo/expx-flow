@@ -22,6 +22,8 @@ interface VariationRequest {
   format: string;
   variationIndex: number;
   modelType?: "flash" | "pro";
+  clientId?: string;
+  companyId?: string;
 }
 
 // Generate image using Gemini API
@@ -56,7 +58,6 @@ async function generateImage(
       const errorText = await response.text();
       console.error(`Gemini API error: ${response.status}`, errorText);
       
-      // Check for rate limiting or payment required
       if (response.status === 429) {
         throw new Error("Rate limit exceeded. Please try again later.");
       }
@@ -67,7 +68,6 @@ async function generateImage(
       return null;
     }
 
-    // Safely parse JSON response
     let data: any;
     try {
       const responseText = await response.text();
@@ -83,7 +83,6 @@ async function generateImage(
 
     const base64Url = data?.choices?.[0]?.message?.images?.[0]?.image_url?.url;
 
-    // Check if model refused to generate
     const finishReason = data?.choices?.[0]?.finish_reason;
     if (
       finishReason === "IMAGE_OTHER" ||
@@ -123,16 +122,14 @@ async function generateWithRetry(
           return result;
         }
       } catch (error: any) {
-        // If it's a rate limit or payment error, don't retry
         if (error.message?.includes("Rate limit") || error.message?.includes("Payment required")) {
           throw error;
         }
         console.error(`Attempt ${attempt} failed:`, error);
       }
       
-      // Exponential backoff before retry
       if (attempt < maxRetries) {
-        const delay = Math.pow(2, attempt) * 500; // 1s, 2s
+        const delay = Math.pow(2, attempt) * 500;
         console.log(`Waiting ${delay}ms before retry...`);
         await new Promise((r) => setTimeout(r, delay));
       }
@@ -143,7 +140,6 @@ async function generateWithRetry(
 }
 
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -164,18 +160,41 @@ serve(async (req) => {
       format,
       variationIndex,
       modelType = "flash",
+      clientId,
+      companyId,
     } = body;
 
     console.log(`Generating variation ${variationIndex + 1} for format: ${format}, model: ${modelType}`);
 
-    // Select model based on type
+    // Fetch client context if clientId is provided
+    let clientContext = "";
+    if (clientId) {
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const supabaseAdmin = createClient(supabaseUrl, supabaseKey);
+
+      const { data: clientData } = await supabaseAdmin
+        .from("clients")
+        .select("name, segment, ai_briefing")
+        .eq("id", clientId)
+        .maybeSingle();
+
+      if (clientData) {
+        const parts: string[] = [];
+        parts.push(`Cliente: ${clientData.name}`);
+        if (clientData.segment) parts.push(`Segmento: ${clientData.segment}`);
+        if (clientData.ai_briefing) parts.push(`Briefing do cliente: ${clientData.ai_briefing}`);
+        clientContext = parts.join("\n");
+        console.log(`Client context loaded: ${clientData.name}`);
+      }
+    }
+
     const model = modelType === "pro" 
-      ? "google/gemini-3-pro-image-preview"  // Maximum quality
-      : "google/gemini-2.5-flash-image";      // Fast generation
+      ? "google/gemini-3-pro-image-preview"
+      : "google/gemini-2.5-flash-image";
 
     console.log(`Using model: ${model}`);
 
-    // Determine aspect ratio and dimensions based on format
     let aspectRatio = "4:5";
     let dimensions = { width: 1080, height: 1350 };
 
@@ -185,139 +204,132 @@ serve(async (req) => {
     } else if (format === "instagram_story" || format === "instagram_reels") {
       aspectRatio = "9:16";
       dimensions = { width: 1080, height: 1920 };
+    } else if (format === "1:1") {
+      aspectRatio = "1:1";
+      dimensions = { width: 1080, height: 1080 };
     }
 
-    // Build specific variation instructions based on options
+    // Build variation instructions
     const variationInstructions: string[] = [];
     
-    // Add unique seed to ensure each variation is different
     const uniqueSeed = Math.random().toString(36).substring(2, 10);
-    variationInstructions.push(`UNIQUE VARIATION SEED: ${uniqueSeed} - Use this to make this variation distinctly different from others.`);
+    variationInstructions.push(`UNIQUE VARIATION SEED: ${uniqueSeed}`);
 
     if (variationOptions.varyComposition) {
       variationInstructions.push(`
-LAYOUT COMPOSITION - MUST BE DIFFERENT:
-- Dramatically change the position of all elements
-- If person/subject is on left → move to right or center
-- If person/subject is on right → move to left or center
-- If text is at top → move to bottom, middle, or side
-- If text is at bottom → move to top or overlay on image
-- Change the visual hierarchy (what's most prominent)
-- Use different cropping, framing, or zoom level
-- Alter spacing and margins between elements
-- This variation #${variationIndex + 1} must have a NOTICEABLY different layout`);
+COMPOSIÇÃO / LAYOUT — VARIAR:
+- Mude a posição dos elementos (textos, pessoa, logo)
+- Se a pessoa está à esquerda, mova para a direita ou centro
+- Se o texto está em cima, mova para baixo ou lateral
+- Mude o enquadramento ou zoom
+- MAS MANTENHA todos os textos visíveis e legíveis`);
     }
 
     if (variationOptions.varyBackground) {
       variationInstructions.push(`
-BACKGROUND ENVIRONMENT - MUST BE DIFFERENT:
-- Create a completely different background setting
-- Change the environment (indoor/outdoor, urban/natural, etc.)
-- Use different patterns, textures, or gradients
-- Alter lighting conditions and atmosphere
-- Keep professional marketing aesthetic
-- Background must be visually distinct from reference`);
+FUNDO / AMBIENTE — VARIAR:
+- Mude o cenário de fundo
+- ${clientContext ? "O novo fundo DEVE ser coerente com o segmento e briefing do cliente descrito acima" : "O novo fundo deve ser coerente com o contexto da imagem original"}
+- Mantenha estética profissional de marketing
+- NÃO coloque a pessoa/produto em cenários aleatórios — o fundo deve fazer sentido para o negócio do cliente`);
     }
 
     if (variationOptions.changePoseExpression) {
       variationInstructions.push(`
-PERSON POSE/EXPRESSION - MUST BE DIFFERENT (if person is present):
-- Use a noticeably different body pose or angle
-- Change facial expression (smiling/serious/confident/friendly)
-- Alter hand position, gesture, or body language
-- Different head tilt or eye direction
-- Maintain the person's identity but vary their presentation`);
+POSE / EXPRESSÃO — VARIAR (se houver pessoa):
+- Mude a pose, ângulo ou expressão facial
+- Mantenha a identidade da pessoa reconhecível
+- Mantenha o estilo de roupa/vestuário coerente`);
     }
 
     if (variationOptions.alterColorPalette) {
       variationInstructions.push(`
-COLOR PALETTE - MUST BE DIFFERENT:
-- Use a distinctly different color scheme
-- Change primary and accent colors
-- Alter color temperature (warm/cool)
-- Maintain professional marketing look
-- Colors should be noticeably different from reference`);
+PALETA DE CORES — VARIAR:
+- Use um esquema de cores diferente
+- Mantenha aspecto profissional de marketing`);
     } else {
       variationInstructions.push(`
-COLOR PALETTE - PRESERVE EXACTLY:
-- Keep the exact same colors from the reference image
-- Maintain the same color temperature and mood
-- Do NOT change the color scheme`);
+PALETA DE CORES — PRESERVAR EXATAMENTE:
+- Mantenha EXATAMENTE as mesmas cores da imagem de referência
+- Mesma temperatura de cor, mesmos tons
+- NÃO altere o esquema de cores de forma alguma`);
     }
 
-    // Build text instruction with detailed legibility requirements for professional advertising
-    const textInstruction = text 
-      ? `TEXT CONTENT AND LEGIBILITY - THIS IS CRITICAL FOR PAID ADVERTISING:
+    // Text preservation is ALWAYS mandatory
+    const textPreservationInstruction = `
+═══════════════════════════════════════════════════════════
+REGRA MAIS IMPORTANTE — PRESERVAÇÃO DE TEXTOS (OBRIGATÓRIO):
+═══════════════════════════════════════════════════════════
 
-Include this exact text in the image: "${text}"
+1. ANALISE a imagem de referência e IDENTIFIQUE todos os textos presentes nela (títulos, subtítulos, calls-to-action, nomes, números, etc.)
 
-PROFESSIONAL TYPOGRAPHY REQUIREMENTS (MANDATORY):
-- Text MUST be instantly readable at first glance - this is for paid social media advertising campaigns
-- ALWAYS ensure strong contrast between text and background (minimum contrast ratio for readability)
-- If placing text over images, photos, or complex backgrounds, you MUST use one of these techniques:
-  * Solid or semi-transparent color block/banner behind the text
-  * Strong drop shadow on text (dark shadow for light text, light shadow for dark text)
-  * Text outline/stroke for additional contrast
-  * Gradient overlay on background to create a dedicated contrast zone for text
-- NEVER place text directly on busy, complex, textured, or low-contrast backgrounds without treatment
-- Use bold or semibold font weights for headlines and important text
-- Maintain clear visual hierarchy (headlines should be larger and bolder than secondary text)
-- Ensure adequate spacing and padding around text elements
-- Text should look professional, polished, and premium - like a real marketing campaign from a top brand
-- Consider using colored text banners, ribbons, or callout boxes for emphasis and clarity
-- The text must be the focal point and draw attention immediately`
-      : "Do NOT include any text in the image.";
+2. TODOS os textos encontrados na imagem original DEVEM aparecer na variação gerada.
+   - Você pode REPOSICIONAR os textos (mudar de lugar)
+   - Você pode REFORMULAR levemente o texto (parafrasear mantendo o sentido)
+   - Você NÃO PODE REMOVER textos
+   - Você NÃO PODE omitir nenhum texto que existia na original
+
+3. Os textos devem ser LEGÍVEIS e com ALTO CONTRASTE:
+   - Use fundo sólido ou semi-transparente atrás do texto se necessário
+   - Use sombra no texto para garantir legibilidade
+   - Fontes em negrito ou semibold para títulos
+   - NUNCA coloque texto sobre fundo complexo sem tratamento de contraste
+
+4. ${text ? `Texto adicional fornecido pelo usuário para incluir: "${text}"` : "Nenhum texto adicional — use APENAS os textos que já existem na imagem de referência."}
+
+5. Os textos são a PARTE MAIS IMPORTANTE dessas imagens de marketing.
+   Sem os textos, a imagem perde completamente seu propósito.
+═══════════════════════════════════════════════════════════`;
+
+    const clientContextInstruction = clientContext 
+      ? `\nCONTEXTO DO CLIENTE (use para manter coerência):\n${clientContext}\n`
+      : "";
 
     const designInstruction = designGuidance 
-      ? `DESIGN STYLE GUIDANCE: ${designGuidance}`
+      ? `\nORIENTAÇÃO DE DESIGN: ${designGuidance}`
       : "";
 
     const identityInstruction = personImage
-      ? "IDENTITY PRESERVATION: Keep the person from the second reference image recognizable - same face, features, and identity."
+      ? "\nPRESERVAÇÃO DE IDENTIDADE: Mantenha a pessoa da segunda imagem de referência reconhecível."
       : "";
 
-    const mainPrompt = `Create VARIATION #${variationIndex + 1} of this marketing image for ${format.replace('_', ' ')}.
+    const mainPrompt = `Crie a VARIAÇÃO #${variationIndex + 1} desta imagem de marketing.
 
-OUTPUT REQUIREMENTS:
-- Aspect ratio: ${aspectRatio}
-- Dimensions: ${dimensions.width}x${dimensions.height}px
-- Professional marketing quality
+FORMATO: ${aspectRatio} (${dimensions.width}x${dimensions.height}px)
+Qualidade profissional de marketing para redes sociais.
 
-CRITICAL - THIS MUST BE A UNIQUE VARIATION:
+${clientContextInstruction}
+
+${textPreservationInstruction}
+
+INSTRUÇÕES DE VARIAÇÃO:
 ${variationInstructions.join('\n\n')}
-
-${textInstruction}
 
 ${designInstruction}
 
 ${identityInstruction}
 
-IMPORTANT: This is variation number ${variationIndex + 1}. It MUST look visibly different from the original reference. 
-Each variation should be unique while maintaining the core message and brand identity.
+RESUMO: Gere uma variação que mantenha TODOS os textos da imagem original (reposicionados se necessário), respeite as opções marcadas acima, e seja coerente com o contexto do cliente. A variação deve parecer uma versão alternativa do mesmo anúncio, NÃO uma imagem completamente diferente.`;
 
-Generate a high-quality professional marketing image.`;
+    const fallbackPrompt = `Crie uma variação profissional desta imagem de marketing.
+Formato: ${aspectRatio}
+Variação número: ${variationIndex + 1}
 
-    // Build fallback prompt (simpler, more likely to succeed)
-    const fallbackPrompt = `Create a professional marketing image variation.
-Format: ${format.replace('_', ' ')}
-Aspect ratio: ${aspectRatio}
-Variation number: ${variationIndex + 1}
+REGRA CRÍTICA: Copie TODOS os textos que aparecem na imagem de referência para a nova imagem. Os textos são obrigatórios e devem ser legíveis.
 
-${text ? `Include text: "${text}"` : "No text needed."}
-${designGuidance ? `Style: ${designGuidance}` : ""}
+${text ? `Texto adicional: "${text}"` : ""}
+${designGuidance ? `Estilo: ${designGuidance}` : ""}
+${clientContext ? `Contexto: ${clientContext}` : ""}
 
-Make this variation unique and different from the reference.
-Professional quality suitable for social media marketing.`;
+A variação deve parecer uma versão alternativa do mesmo anúncio, com todos os textos preservados.`;
 
-    // Build minimal prompt (last resort)
-    const minimalPrompt = `Professional ${format.replace('_', ' ')} marketing image, ${aspectRatio} aspect ratio, variation ${variationIndex + 1}. ${text ? `Text: "${text}".` : ""} Clean, modern design.`;
+    const minimalPrompt = `Crie uma variação desta imagem de marketing (${aspectRatio}). COPIE TODOS OS TEXTOS da imagem original para a nova imagem. Textos devem ser legíveis. Variação ${variationIndex + 1}. ${text ? `Texto: "${text}".` : ""} Design profissional.`;
 
-    // Build content arrays for each prompt
+    // Build content arrays
     const baseContent: any[] = [
       { type: "text", text: mainPrompt },
       { type: "image_url", image_url: { url: baseImage } },
     ];
-
     if (personImage) {
       baseContent.push({ type: "image_url", image_url: { url: personImage } });
     }
@@ -326,7 +338,6 @@ Professional quality suitable for social media marketing.`;
       { type: "text", text: fallbackPrompt },
       { type: "image_url", image_url: { url: baseImage } },
     ];
-
     if (personImage) {
       fallbackContent.push({ type: "image_url", image_url: { url: personImage } });
     }
@@ -336,13 +347,12 @@ Professional quality suitable for social media marketing.`;
       { type: "image_url", image_url: { url: baseImage } },
     ];
 
-    // Try generating with retry logic
     const base64Url = await generateWithRetry(
       LOVABLE_API_KEY,
       [mainPrompt, fallbackPrompt, minimalPrompt],
       [baseContent, fallbackContent, minimalContent],
       model,
-      2 // 2 retries per prompt
+      2
     );
 
     if (!base64Url) {
@@ -364,7 +374,6 @@ Professional quality suitable for social media marketing.`;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Convert base64 to blob
     const base64Data = base64Url.replace(/^data:image\/\w+;base64,/, "");
     const imageBytes = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
 
@@ -379,7 +388,6 @@ Professional quality suitable for social media marketing.`;
 
     if (uploadError) {
       console.error("Upload error:", uploadError);
-      // Return base64 URL if upload fails
       return new Response(
         JSON.stringify({
           success: true,
@@ -394,7 +402,6 @@ Professional quality suitable for social media marketing.`;
       );
     }
 
-    // Get public URL
     const { data: publicUrlData } = supabase.storage
       .from("ai-generated-images")
       .getPublicUrl(fileName);

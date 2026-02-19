@@ -36,7 +36,7 @@ export const GenerateVariationsModal: React.FC<GenerateVariationsModalProps> = (
   const [generatedCount, setGeneratedCount] = useState(0);
   const [options, setOptions] = useState({
     varyComposition: true,
-    alterColorPalette: true,
+    alterColorPalette: false,
     varyBackground: false,
     changePoseExpression: false,
   });
@@ -47,7 +47,6 @@ export const GenerateVariationsModal: React.FC<GenerateVariationsModalProps> = (
     const generatedUrls: string[] = [];
 
     try {
-      // Generate variations sequentially to avoid overload
       for (let i = 0; i < quantity; i++) {
         const { data, error } = await supabase.functions.invoke(
           'generate-creative-variations',
@@ -55,11 +54,13 @@ export const GenerateVariationsModal: React.FC<GenerateVariationsModalProps> = (
             body: {
               baseImage: currentImageUrl,
               text: '',
-              designGuidance: 'Crie uma variação visual mantendo a essência do criativo original.',
+              designGuidance: 'Crie uma variação visual mantendo a essência, os textos e a identidade do criativo original. A variação deve parecer uma versão alternativa do mesmo anúncio.',
               variationOptions: options,
               format: '1:1',
               variationIndex: i,
               modelType: 'flash',
+              clientId: clientId || undefined,
+              companyId: companyId || undefined,
             },
           }
         );
@@ -128,13 +129,13 @@ export const GenerateVariationsModal: React.FC<GenerateVariationsModalProps> = (
 
           {/* Options */}
           <div className="space-y-2">
-            <Label>Opções de variação</Label>
+            <Label>O que variar</Label>
             <div className="space-y-2">
               {[
-                { key: 'varyComposition', label: 'Variar composição' },
-                { key: 'alterColorPalette', label: 'Alterar paleta de cores' },
-                { key: 'varyBackground', label: 'Variar fundo' },
-                { key: 'changePoseExpression', label: 'Alterar pose/expressão' },
+                { key: 'varyComposition', label: 'Composição (posição dos elementos)' },
+                { key: 'alterColorPalette', label: 'Paleta de cores' },
+                { key: 'varyBackground', label: 'Fundo / cenário' },
+                { key: 'changePoseExpression', label: 'Pose / expressão da pessoa' },
               ].map(({ key, label }) => (
                 <div key={key} className="flex items-center gap-2">
                   <Checkbox
@@ -150,6 +151,9 @@ export const GenerateVariationsModal: React.FC<GenerateVariationsModalProps> = (
                 </div>
               ))}
             </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Os textos da imagem original serão sempre preservados na variação.
+            </p>
           </div>
         </div>
 
