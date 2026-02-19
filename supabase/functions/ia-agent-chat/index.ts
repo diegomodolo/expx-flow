@@ -548,12 +548,16 @@ Leads Gerados: ${client.leads_generated || 0}
 
     if (userMsgError) throw userMsgError;
 
-    // Fetch message history
-    const { data: previousMessages } = await supabaseClient
+    // Fetch message history (limit to last 30 messages to avoid polluted context)
+    const { data: allMessages } = await supabaseClient
       .from('ia_agent_messages')
       .select('role, content')
       .eq('conversation_id', conversationId)
-      .order('created_at', { ascending: true });
+      .order('created_at', { ascending: false })
+      .limit(30);
+    
+    // Reverse to get chronological order
+    const previousMessages = allMessages?.reverse() || [];
 
     // Build enabled skills list
     const enabledSkills: SkillRecord[] = (enabledSkillsResult.data || [])
@@ -619,6 +623,8 @@ ${agent.client_id ? '- Mencione métricas específicas quando pertinente' : ''}
 - Não repita informações que o usuário já sabe
 - Ao executar uma skill com sucesso, confirme brevemente sem reexplicar o contexto
 - Priorize economia de tokens: vá direto ao ponto
+- NUNCA responda que algo falhou sem antes ter EXECUTADO a ferramenta. Sempre tente chamar a ferramenta antes de dizer que houve erro.
+- Ignore mensagens de erro anteriores no histórico. Cada nova solicitação deve ser tratada como uma tentativa nova e independente.
 - LEMBRETE: A data de hoje é ${isoDateSP}. Use ESTA data para qualquer referência temporal.
 
 REGRA CRÍTICA DE AGENDAMENTO:
