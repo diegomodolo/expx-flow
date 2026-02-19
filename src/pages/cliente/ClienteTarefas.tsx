@@ -39,7 +39,7 @@ export function ClienteTarefas({ clientId, clientName }: ClienteTarefasProps) {
     setTaskDialogOpen(true);
   };
 
-  const handleUpdateTaskStatus = async (taskId: string, status: string, columnId?: string, columnName?: string) => {
+  const handleUpdateTaskStatus = async (taskId: string, status: string, columnId?: string | null, columnName?: string) => {
     // Block completion if settings require it
     if (status === 'done') {
       const blockSubtasks = getSetting(USAGE_KEYS.BLOCK_FINISH_WITH_PENDING_SUBTASKS);
@@ -85,7 +85,14 @@ export function ClienteTarefas({ clientId, clientName }: ClienteTarefasProps) {
     if (existingTask && existingTask.status !== status) {
       await handleAutoTimeTracking(taskId, existingTask.status, status, user?.id, activeCompany?.company_id);
     }
-    await updateTask(taskId, { status: status as any });
+
+    const updates: any = { status: status as any };
+    // Always update quadro_column_id so task moves to correct column
+    // If columnId is explicitly provided, use it; otherwise clear it so status-based fallback works
+    updates.quadro_column_id = columnId !== undefined ? (columnId || null) : null;
+    if (columnName !== undefined) updates.etapa = columnName || null;
+
+    await updateTask(taskId, updates);
   };
 
   const handleDeleteTask = async (taskId: string) => {
