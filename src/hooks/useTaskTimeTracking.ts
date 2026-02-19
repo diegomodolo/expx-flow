@@ -71,7 +71,9 @@ export function useTaskTimeTracking(taskId: string | null) {
     enabled: !!taskId,
   });
 
-  const activeSession = sessions.find(s => !s.ended_at && s.user_id === user?.id);
+  // Active session: the current user's session OR any open session (for agent sessions)
+  const activeSession = sessions.find(s => !s.ended_at && s.user_id === user?.id) 
+    || sessions.find(s => !s.ended_at);
   const anyActiveSession = sessions.find(s => !s.ended_at);
 
   const totalMinutes = sessions.reduce((acc, s) => {
