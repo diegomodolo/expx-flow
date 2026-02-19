@@ -46,6 +46,8 @@ export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
     setZoom,
     setCurrentImage,
     updateImage,
+    addImage,
+    removeImage,
     addAIMessage,
     setProcessingAI,
     setOrientation,
@@ -191,6 +193,10 @@ export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
             onUpdateElement={updateElement}
             onDeleteElement={removeElement}
             canvasRef={canvasRef}
+            onAddImage={addImage}
+            onRemoveImage={removeImage}
+            clientId={clientId}
+            companyId={companyId}
           />
 
           <EditorAIChat

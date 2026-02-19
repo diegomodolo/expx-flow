@@ -253,6 +253,36 @@ export function useImageEditor({ initialImages, initialOrientation = 'post' }: U
     });
   }, []);
 
+  const addImage = useCallback((url: string) => {
+    setState(prev => {
+      const newImages = [...prev.images, url];
+      const newElements = [...prev.elements, []];
+      return {
+        ...prev,
+        images: newImages,
+        elements: newElements,
+        currentImageIndex: newImages.length - 1,
+        selectedElementId: null,
+      };
+    });
+  }, []);
+
+  const removeImage = useCallback((index: number) => {
+    setState(prev => {
+      if (prev.images.length <= 1) return prev;
+      const newImages = prev.images.filter((_, i) => i !== index);
+      const newElements = prev.elements.filter((_, i) => i !== index);
+      const newIndex = Math.min(prev.currentImageIndex, newImages.length - 1);
+      return {
+        ...prev,
+        images: newImages,
+        elements: newElements,
+        currentImageIndex: newIndex,
+        selectedElementId: null,
+      };
+    });
+  }, []);
+
   const addAIMessage = useCallback((message: Omit<AIMessage, 'id' | 'timestamp'>) => {
     const newMessage: AIMessage = {
       ...message,
@@ -291,6 +321,8 @@ export function useImageEditor({ initialImages, initialOrientation = 'post' }: U
     setZoom,
     setCurrentImage,
     updateImage,
+    addImage,
+    removeImage,
     addAIMessage,
     setProcessingAI,
     setOrientation,
