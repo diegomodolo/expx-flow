@@ -16029,6 +16029,10 @@ export type Database = {
           total_spend: number
         }[]
       }
+      stop_time_tracking_session: {
+        Args: { p_company_id: string; p_session_id: string }
+        Returns: undefined
+      }
       upsert_client_url: {
         Args: {
           p_client_id: string
