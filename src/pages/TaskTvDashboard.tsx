@@ -2,9 +2,10 @@ import { useState, useEffect, lazy, Suspense } from 'react';
 import { useTaskTvDashboard, ActiveSession, CollaboratorRanking, TaskItem } from '@/hooks/useTaskTvDashboard';
 import { useCompany } from '@/contexts/CompanyContext';
 import {
-  CheckCircle2, Clock, AlertTriangle, Zap, TrendingUp, Award, Users,
+  CheckCircle2, Clock, AlertTriangle, Zap, TrendingUp, Award,
   RefreshCw, Wifi, Star, Medal, Trophy, X, ExternalLink, User
 } from 'lucide-react';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { format, parseISO, isPast } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -354,6 +355,7 @@ export default function TaskTvDashboard() {
     : null;
 
   return (
+    <TooltipProvider>
     <div className="min-h-screen bg-gray-950 text-white p-6 flex flex-col gap-5" style={{ fontFamily: 'system-ui, sans-serif' }}>
       {/* ---- HEADER ---- */}
       <div className="flex items-center justify-between">
@@ -523,5 +525,6 @@ export default function TaskTvDashboard() {
         </Suspense>
       )}
     </div>
+    </TooltipProvider>
   );
 }
