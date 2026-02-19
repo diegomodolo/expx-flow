@@ -90,6 +90,33 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
   const [outputExpanded, setOutputExpanded] = useState(false);
   const [zoomWidth, setZoomWidth] = useState(1024);
   const [authUserId, setAuthUserId] = useState<string | null>(null);
+  const [outputWidth, setOutputWidth] = useState(320);
+  const isDraggingRef = React.useRef(false);
+  const dragStartXRef = React.useRef(0);
+  const dragStartWidthRef = React.useRef(320);
+
+  const handleDividerMouseDown = React.useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isDraggingRef.current = true;
+    dragStartXRef.current = e.clientX;
+    dragStartWidthRef.current = outputWidth;
+
+    const onMouseMove = (ev: MouseEvent) => {
+      if (!isDraggingRef.current) return;
+      const delta = dragStartXRef.current - ev.clientX;
+      const newWidth = Math.min(700, Math.max(240, dragStartWidthRef.current + delta));
+      setOutputWidth(newWidth);
+    };
+
+    const onMouseUp = () => {
+      isDraggingRef.current = false;
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  }, [outputWidth]);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -1502,9 +1529,19 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
 
           {/* Output Panel - shown for non-creative tasks when editing */}
           {!isRoteiro && formData.tipo !== 'Criativo' && task?.id && (
-            <div className={cn("border-l border-border shrink-0 transition-all duration-300", outputExpanded ? "w-[600px]" : "w-[320px]")}>
-              <TaskOutputPanel taskId={task.id} companyId={companyId} clientId={formData.related_client_id} expanded={outputExpanded} onToggleExpand={() => setOutputExpanded(prev => !prev)} />
-            </div>
+            <>
+              {/* Draggable divider */}
+              <div
+                onMouseDown={handleDividerMouseDown}
+                className="w-1 shrink-0 bg-border hover:bg-primary/40 cursor-col-resize transition-colors duration-150 relative group"
+                title="Arraste para redimensionar"
+              >
+                <div className="absolute inset-y-0 -left-1 -right-1 group-hover:bg-primary/10" />
+              </div>
+              <div className="shrink-0 overflow-hidden" style={{ width: outputWidth }}>
+                <TaskOutputPanel taskId={task.id} companyId={companyId} clientId={formData.related_client_id} expanded={outputExpanded} onToggleExpand={() => setOutputExpanded(prev => !prev)} />
+              </div>
+            </>
           )}
         </div>
       </DialogContent>
