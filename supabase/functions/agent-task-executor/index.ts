@@ -239,6 +239,7 @@ Gere o resultado/output da execução desta tarefa de forma completa e estrutura
               agentId: agent.id,
               conversationId: conversation.id,
               message: taskPrompt,
+              client_id: clientId || undefined,
             }),
           });
 

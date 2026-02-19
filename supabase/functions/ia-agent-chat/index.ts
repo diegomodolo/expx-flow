@@ -461,7 +461,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { conversationId, message, agentId } = await req.json();
+    const { conversationId, message, agentId, client_id: requestClientId } = await req.json();
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -510,7 +510,8 @@ Deno.serve(async (req) => {
 
     // Client context
     let clientContext = '';
-    if (agent.client_id) {
+    const effectiveClientId = agent.client_id || requestClientId;
+    if (effectiveClientId) {
       const { data: client } = await serviceClient
         .from('clients')
         .select(`
@@ -519,14 +520,14 @@ Deno.serve(async (req) => {
             account_name, balance, account_status
           )
         `)
-        .eq('id', agent.client_id)
+        .eq('id', effectiveClientId)
         .single();
 
       if (client) {
         const { data: campaigns } = await serviceClient
           .from('campaigns')
           .select('*')
-          .eq('client_id', agent.client_id)
+          .eq('client_id', effectiveClientId)
           .eq('status', 'active')
           .order('spend', { ascending: false })
           .limit(10);
@@ -681,7 +682,7 @@ REGRA CRÍTICA DE AGENDAMENTO:
       tools,
       enabledSkills,
       {
-        client_id: agent.client_id,
+        client_id: agent.client_id || requestClientId || undefined,
         company_id: agent.company_id,
         user_id: user?.id,
       },

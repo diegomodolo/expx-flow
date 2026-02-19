@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -11,11 +11,13 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import ReactMarkdown from 'react-markdown';
 import { cn } from '@/lib/utils';
-import { useNavigate } from 'react-router-dom';
+import { ImageEditorModal } from '@/components/image-editor/ImageEditorModal';
+import { useCompany } from '@/contexts/CompanyContext';
 
 interface TaskOutputPanelProps {
   taskId: string | null;
   companyId?: string;
+  clientId?: string;
   expanded?: boolean;
   onToggleExpand?: () => void;
 }
@@ -32,7 +34,7 @@ interface OutputMessage {
   created_at: string;
 }
 
-const IMAGE_URL_REGEX = /https?:\/\/[^\s"'<>]+\.(?:png|jpg|jpeg|gif|webp|bmp|svg)(?:\?[^\s"'<>]*)?/gi;
+const IMAGE_URL_REGEX = /https?:\/\/[^\s"'<>)]+\.(?:png|jpg|jpeg|gif|webp|bmp|svg)(?:\?[^\s"'<>)]*)?/gi;
 
 function extractImageUrls(text: string): string[] {
   if (!text) return [];
@@ -40,16 +42,21 @@ function extractImageUrls(text: string): string[] {
   return matches ? [...new Set(matches)] : [];
 }
 
-export function TaskOutputPanel({ taskId, companyId, expanded, onToggleExpand }: TaskOutputPanelProps) {
+export function TaskOutputPanel({ taskId, companyId, clientId, expanded, onToggleExpand }: TaskOutputPanelProps) {
   const { user } = useAuth();
-  const navigate = useNavigate();
+  const { activeCompany } = useCompany();
   const [content, setContent] = useState('');
   const [attachments, setAttachments] = useState<Array<{ name: string; url: string; type: string; size?: number }>>([]);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
+
+  // Image editor modal state
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editorImageUrl, setEditorImageUrl] = useState<string | null>(null);
+
+  const effectiveCompanyId = companyId || activeCompany?.company_id || '';
 
   const { data: outputs = [], isLoading } = useQuery({
     queryKey: ['task-outputs', taskId],
@@ -66,14 +73,18 @@ export function TaskOutputPanel({ taskId, companyId, expanded, onToggleExpand }:
     enabled: !!taskId,
   });
 
+  const scrollToBottom = useCallback(() => {
+    setTimeout(() => {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 150);
+  }, []);
+
   // Auto-scroll to bottom when outputs load or change
   useEffect(() => {
-    if (outputs.length > 0 && bottomRef.current) {
-      setTimeout(() => {
-        bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 150);
+    if (outputs.length > 0) {
+      scrollToBottom();
     }
-  }, [outputs]);
+  }, [outputs, scrollToBottom]);
 
   const { data: currentEmployee } = useQuery({
     queryKey: ['current-employee-for-output', user?.id, companyId],
@@ -172,9 +183,19 @@ export function TaskOutputPanel({ taskId, companyId, expanded, onToggleExpand }:
   };
 
   const handleImageClick = (imageUrl: string) => {
-    // Open in the image editor with the image URL as a query param
-    const encodedUrl = encodeURIComponent(imageUrl);
-    navigate(`/editor-imagens?image=${encodedUrl}`);
+    setEditorImageUrl(imageUrl);
+    setEditorOpen(true);
+  };
+
+  const handleEditorSave = (newImages: string[]) => {
+    // Image was edited and saved, nothing else to do
+    setEditorOpen(false);
+    setEditorImageUrl(null);
+  };
+
+  // Scroll to bottom when an image finishes loading
+  const handleImageLoad = () => {
+    scrollToBottom();
   };
 
   if (!taskId) {
@@ -201,7 +222,7 @@ export function TaskOutputPanel({ taskId, companyId, expanded, onToggleExpand }:
       </div>
 
       {/* Messages */}
-      <ScrollArea className="flex-1" ref={scrollRef as any}>
+      <ScrollArea className="flex-1">
         <div className="p-4 space-y-4">
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
@@ -213,7 +234,6 @@ export function TaskOutputPanel({ taskId, companyId, expanded, onToggleExpand }:
             </div>
           ) : (
             outputs.map((output) => {
-              // Extract image URLs from the content text
               const inlineImageUrls = extractImageUrls(output.content);
 
               return (
@@ -261,6 +281,7 @@ export function TaskOutputPanel({ taskId, companyId, expanded, onToggleExpand }:
                                 alt="Preview"
                                 className="w-full h-auto max-h-48 object-cover"
                                 loading="lazy"
+                                onLoad={handleImageLoad}
                               />
                               <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/40 transition-colors flex items-center justify-center">
                                 <span className="opacity-0 group-hover/img:opacity-100 transition-opacity text-white text-xs font-medium flex items-center gap-1.5 bg-black/60 px-3 py-1.5 rounded-full">
@@ -287,7 +308,7 @@ export function TaskOutputPanel({ taskId, companyId, expanded, onToggleExpand }:
                                   className="relative group/img block w-full rounded-lg overflow-hidden border border-border hover:border-primary/50 transition-colors cursor-pointer text-left"
                                   title="Clique para editar no Editor de Imagens"
                                 >
-                                  <img src={att.url} alt={att.name} className="w-full h-auto max-h-48 object-cover" loading="lazy" />
+                                  <img src={att.url} alt={att.name} className="w-full h-auto max-h-48 object-cover" loading="lazy" onLoad={handleImageLoad} />
                                   <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/40 transition-colors flex items-center justify-center">
                                     <span className="opacity-0 group-hover/img:opacity-100 transition-opacity text-white text-xs font-medium flex items-center gap-1.5 bg-black/60 px-3 py-1.5 rounded-full">
                                       <ImageIcon className="w-3.5 h-3.5" />
@@ -389,6 +410,21 @@ export function TaskOutputPanel({ taskId, companyId, expanded, onToggleExpand }:
           </Button>
         </div>
       </div>
+
+      {/* Image Editor Modal */}
+      {editorImageUrl && effectiveCompanyId && (
+        <ImageEditorModal
+          open={editorOpen}
+          onOpenChange={(open) => {
+            setEditorOpen(open);
+            if (!open) setEditorImageUrl(null);
+          }}
+          images={[editorImageUrl]}
+          onSave={handleEditorSave}
+          clientId={clientId || ''}
+          companyId={effectiveCompanyId}
+        />
+      )}
     </div>
   );
 }
