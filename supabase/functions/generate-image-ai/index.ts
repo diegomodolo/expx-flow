@@ -109,15 +109,35 @@ INSTRUÇÕES CRÍTICAS DE ESTILO:
       { type: 'text', text: textInstruction },
     ];
 
-    // Add reference images as visual input
+    // Download reference images and convert to base64 (URLs like Instagram CDN block external access)
+    let imagesLoaded = 0;
     for (const imgUrl of referenceImageUrls) {
-      messageContent.push({
-        type: 'image_url',
-        image_url: { url: imgUrl },
-      });
+      try {
+        console.log(`Downloading reference image: ${imgUrl.substring(0, 100)}...`);
+        const imgResponse = await fetch(imgUrl, {
+          headers: { 'User-Agent': 'Mozilla/5.0' },
+          signal: AbortSignal.timeout(10000),
+        });
+        if (imgResponse.ok) {
+          const imgBuffer = await imgResponse.arrayBuffer();
+          const base64 = btoa(String.fromCharCode(...new Uint8Array(imgBuffer)));
+          const contentType = imgResponse.headers.get('content-type') || 'image/jpeg';
+          const dataUrl = `data:${contentType};base64,${base64}`;
+          messageContent.push({
+            type: 'image_url',
+            image_url: { url: dataUrl },
+          });
+          imagesLoaded++;
+          console.log(`Reference image loaded successfully (${(imgBuffer.byteLength / 1024).toFixed(0)}KB)`);
+        } else {
+          console.warn(`Failed to download reference image (${imgResponse.status}): ${imgUrl.substring(0, 80)}`);
+        }
+      } catch (dlErr) {
+        console.warn(`Error downloading reference image: ${dlErr.message}`);
+      }
     }
 
-    console.log(`Generating image with ${referenceImageUrls.length} reference images. Prompt: ${textInstruction.substring(0, 200)}`);
+    console.log(`Generating image with ${imagesLoaded}/${referenceImageUrls.length} reference images loaded. Prompt: ${textInstruction.substring(0, 200)}`);
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
