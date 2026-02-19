@@ -29,6 +29,19 @@ export interface CollaboratorRanking {
   score: number;      // weighted final score
 }
 
+export interface TaskItem {
+  id: string;
+  title: string;
+  status: string;
+  priority: string;
+  deadline: string | null;
+  due_date: string | null;
+  responsible_name: string | null;
+  responsible_avatar: string | null;
+  assigned_user_id: string | null;
+  user_id: string | null;
+}
+
 export interface TaskTvData {
   openTasks: number;
   overdueTasks: number;
@@ -40,6 +53,10 @@ export interface TaskTvData {
   activeSessions: ActiveSession[];
   rankings: CollaboratorRanking[];
   lastSync: Date;
+  // Lists for modal drill-down
+  openTasksList: TaskItem[];
+  overdueTasksList: TaskItem[];
+  completedTodayList: TaskItem[];
 }
 
 export function useTaskTvDashboard(refreshMs = 30_000) {
@@ -90,7 +107,7 @@ export function useTaskTvDashboard(refreshMs = 30_000) {
       // Completed today
       const completedTodayRes = await supabase
         .from('tasks')
-        .select('id')
+        .select('id, title, status, priority, deadline, due_date, responsible_name, responsible_avatar, assigned_user_id, user_id')
         .eq('company_id', companyId)
         .eq('status', 'done')
         .gte('updated_at', todayStart);
@@ -192,6 +209,49 @@ export function useTaskTvDashboard(refreshMs = 30_000) {
         }).filter(r => r.total_tasks > 0).sort((a, b) => b.score - a.score);
       }
 
+      const openTasksList: TaskItem[] = tasks.filter(t => !['done', 'cancelled'].includes(t.status)).map(t => ({
+        id: t.id,
+        title: t.title,
+        status: t.status,
+        priority: t.priority,
+        deadline: t.deadline,
+        due_date: t.due_date,
+        responsible_name: t.responsible_name,
+        responsible_avatar: t.responsible_avatar,
+        assigned_user_id: t.assigned_user_id,
+        user_id: t.user_id,
+      }));
+
+      const overdueTasksList: TaskItem[] = tasks.filter(t => {
+        if (['done', 'cancelled'].includes(t.status)) return false;
+        const deadline = t.due_date || t.deadline;
+        return deadline && new Date(deadline) < now;
+      }).map(t => ({
+        id: t.id,
+        title: t.title,
+        status: t.status,
+        priority: t.priority,
+        deadline: t.deadline,
+        due_date: t.due_date,
+        responsible_name: t.responsible_name,
+        responsible_avatar: t.responsible_avatar,
+        assigned_user_id: t.assigned_user_id,
+        user_id: t.user_id,
+      }));
+
+      const completedTodayList: TaskItem[] = (completedTodayRes.data || []).map((t: any) => ({
+        id: t.id,
+        title: t.title || '',
+        status: t.status || 'done',
+        priority: t.priority || 'medium',
+        deadline: t.deadline || null,
+        due_date: t.due_date || null,
+        responsible_name: t.responsible_name || null,
+        responsible_avatar: t.responsible_avatar || null,
+        assigned_user_id: t.assigned_user_id || null,
+        user_id: t.user_id || null,
+      }));
+
       return {
         openTasks,
         overdueTasks,
@@ -203,6 +263,9 @@ export function useTaskTvDashboard(refreshMs = 30_000) {
         activeSessions,
         rankings,
         lastSync: new Date(),
+        openTasksList,
+        overdueTasksList,
+        completedTodayList,
       };
     },
     enabled: !!activeCompany?.company_id,
