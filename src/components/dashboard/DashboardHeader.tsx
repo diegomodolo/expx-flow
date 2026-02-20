@@ -1,4 +1,4 @@
-import { AlertTriangle, Sun, Moon, LogOut, User, ChevronDown, FileText } from "lucide-react";
+import { Sun, Moon, LogOut, User, ChevronDown, FileText } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -8,9 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { CompanySelector } from "@/components/company/CompanySelector";
 import { UniversalCommandBar } from "./UniversalCommandBar";
 import { Link, useNavigate } from "react-router-dom";
-import { useLeadDisqualificationNotifications } from "@/hooks/useLeadDisqualificationNotifications";
-import { Badge } from "@/components/ui/badge";
-import { PendingAdsNotification } from "@/components/notifications/PendingAdsNotification";
+import { NotificationCenter } from "@/components/notifications/NotificationCenter";
 import { WhatsAppInboxDrawer } from "@/components/whatsapp/WhatsAppInboxDrawer";
 import { useUserWhatsAppInstances } from "@/hooks/useUserWhatsAppInstances";
 import {
@@ -30,20 +28,15 @@ export function DashboardHeader() {
   let signOut = null;
   let toast = null;
   let profile = null;
-  let unviewedCount = 0;
-  let markAllAsViewed = null;
   
   try {
     const auth = useAuth();
     const toastHook = useToast();
     const userProfile = useUserProfile();
-    const notifications = useLeadDisqualificationNotifications();
     user = auth.user;
     signOut = auth.signOut;
     toast = toastHook.toast;
     profile = userProfile.profile;
-    unviewedCount = notifications.unviewedCount;
-    markAllAsViewed = notifications.markAllAsViewed;
   } catch (error) {
     toast = () => {};
     signOut = async () => ({ error: null });
@@ -89,13 +82,6 @@ export function DashboardHeader() {
 
   const displayName = profile?.full_name || user?.email || "Usuário";
 
-  const handleNotificationClick = async () => {
-    if (markAllAsViewed) {
-      await markAllAsViewed();
-    }
-    navigate('/leads-desqualificados');
-  };
-
   const toggleTheme = () => {
     const newTheme = theme === "dark" ? "light" : "dark";
     setTheme(newTheme);
@@ -117,25 +103,8 @@ export function DashboardHeader() {
         
         {/* Right side - Actions */}
         <div className="flex items-center gap-2">
-          {/* Notification Icon */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleNotificationClick}
-            className="relative w-10 h-10 rounded-full hover:bg-muted/60"
-          >
-            <AlertTriangle className="h-5 w-5 text-muted-foreground" />
-            {unviewedCount > 0 && (
-              <Badge 
-                className="absolute -top-0.5 -right-0.5 h-5 min-w-5 px-1 flex items-center justify-center text-xs bg-destructive hover:bg-destructive"
-              >
-                {unviewedCount > 99 ? '99+' : unviewedCount}
-              </Badge>
-            )}
-          </Button>
-
-          {/* Pending Ads Notification */}
-          <PendingAdsNotification />
+          {/* Unified Notification Center */}
+          <NotificationCenter />
 
           {/* Workspace Quick Access */}
           <Button
