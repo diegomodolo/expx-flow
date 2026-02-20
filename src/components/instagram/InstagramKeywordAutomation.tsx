@@ -73,7 +73,7 @@ export function InstagramKeywordAutomation() {
     try {
       const { error } = await supabase
         .from("instagram_accounts")
-        .update({ webhook_verify_token: token })
+        .update({ webhook_verify_token: token } as any)
         .eq("id", accountId);
       if (error) throw error;
       await refetchAccounts();
@@ -84,6 +84,7 @@ export function InstagramKeywordAutomation() {
       setSavingToken(false);
     }
   };
+
 
 
   const { data: flows } = useQuery({
@@ -225,21 +226,86 @@ export function InstagramKeywordAutomation() {
             Webhook do Instagram
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2">
-          <p className="text-sm text-muted-foreground">Configure este URL no seu App Meta para receber mensagens diretas do Instagram:</p>
-          <div className="flex items-center gap-2">
-            <code className="text-xs bg-muted px-3 py-2 rounded flex-1 break-all">{webhookUrl}</code>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => { navigator.clipboard.writeText(webhookUrl); toast({ title: "URL copiada!" }); }}
-            >
-              Copiar
-            </Button>
+        <CardContent className="space-y-4">
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">URL de Callback</Label>
+            <div className="flex items-center gap-2">
+              <code className="text-xs bg-muted px-3 py-2 rounded flex-1 break-all">{webhookUrl}</code>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  navigator.clipboard.writeText(webhookUrl);
+                  setCopiedUrl(true);
+                  setTimeout(() => setCopiedUrl(false), 2000);
+                  toast({ title: "URL copiada!" });
+                }}
+              >
+                {copiedUrl ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+              </Button>
+            </div>
           </div>
-          <p className="text-xs text-muted-foreground">No Meta for Developers: adicione o produto "Messenger" ao seu App, habilite "Instagram Messaging" e configure o webhook com o URL acima. Use o token de verificação configurado na sua conta Instagram.</p>
+
+          {/* Verify Token per account */}
+          {instagramAccounts && instagramAccounts.length > 0 && (
+            <div className="space-y-3 border-t pt-3">
+              <Label className="text-xs text-muted-foreground">Verificar Token (por conta)</Label>
+              {instagramAccounts.map((acc: any) => {
+                const currentToken = acc.webhook_verify_token || "";
+                return (
+                  <div key={acc.id} className="space-y-1.5">
+                    <p className="text-xs font-medium">@{acc.username}</p>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        className="text-xs font-mono h-8"
+                        value={selectedTokenAccountId === acc.id ? (acc.webhook_verify_token || "") : currentToken}
+                        readOnly
+                        placeholder="Nenhum token gerado"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        title="Gerar novo token"
+                        onClick={async () => {
+                          const newToken = generateToken();
+                          setSelectedTokenAccountId(acc.id);
+                          await saveVerifyToken(acc.id, newToken);
+                        }}
+                        disabled={savingToken}
+                      >
+                        <RefreshCw className={`w-4 h-4 ${savingToken && selectedTokenAccountId === acc.id ? "animate-spin" : ""}`} />
+                      </Button>
+                      {currentToken && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          title="Copiar token"
+                          onClick={() => {
+                            navigator.clipboard.writeText(currentToken);
+                            setCopiedToken(true);
+                            setTimeout(() => setCopiedToken(false), 2000);
+                            toast({ title: "Token copiado!" });
+                          }}
+                        >
+                          {copiedToken ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+              <p className="text-xs text-muted-foreground">
+                Clique em <RefreshCw className="inline w-3 h-3" /> para gerar e salvar um token automaticamente. Depois copie e cole no campo "Verificar Token" do Meta for Developers.
+              </p>
+            </div>
+          )}
+
+          {(!instagramAccounts || instagramAccounts.length === 0) && (
+            <p className="text-xs text-muted-foreground">Conecte uma conta do Instagram para configurar o token de verificação.</p>
+          )}
         </CardContent>
       </Card>
+
 
       {/* Flows Section */}
       <div className="flex items-center justify-between">

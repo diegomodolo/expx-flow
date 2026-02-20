@@ -1,0 +1,1 @@
+ALTER TABLE public.instagram_accounts ADD COLUMN IF NOT EXISTS webhook_verify_token TEXT;
