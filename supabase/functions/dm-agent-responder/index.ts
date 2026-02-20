@@ -121,41 +121,31 @@ CONTEXTO: Você está em uma conversa direta (DM) no chat interno da empresa com
 Responda de forma natural, direta e útil. Seja proativo e ofereça ajuda específica baseado na sua especialidade.
 Não use formatação excessiva. Use linguagem natural e amigável.`;
 
-    // 8. Call the AI model
-    const gatewayUrl = `${supabaseUrl}/functions/v1/ai-gateway`;
-    const model = agent.model || 'gemini-1.5-flash';
+    // 8. Call the AI model via Lovable AI Gateway (same as ia-agent-chat)
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    const model = agent.model || 'gemini-2.0-flash';
 
-    const messages = [
-      { role: 'system', content: systemPrompt },
-      ...conversationHistory,
-    ];
+    const requestBody = {
+      model,
+      messages,
+    };
 
-    // Add current message if not already in history
-    const lastMsg = conversationHistory[conversationHistory.length - 1];
-    if (!lastMsg || lastMsg.content !== content || lastMsg.role !== 'user') {
-      messages.push({ role: 'user', content });
-    }
-
-    console.log(`[dm-agent-responder] Calling AI with model ${model}, ${messages.length} messages`);
-
-    const aiResponse = await fetch(gatewayUrl, {
+    const aiResponse = await fetch('https://gateway.lovable.app/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${serviceRoleKey}`,
       },
-      body: JSON.stringify({ model, messages }),
+      body: JSON.stringify(requestBody),
     });
-
-    let agentReply = '';
 
     if (aiResponse.ok) {
       const aiData = await aiResponse.json();
-      agentReply = aiData?.choices?.[0]?.message?.content || aiData?.text || '';
+      agentReply = aiData?.choices?.[0]?.message?.content || '';
     } else {
-      // Fallback: try OpenAI-compatible format via Lovable gateway
-      console.error('[dm-agent-responder] AI gateway failed, status:', aiResponse.status);
-      agentReply = `Olá! Recebi sua mensagem. Estou processando e responderei em breve. (Agente: ${agent.agent_name})`;
+      const errorText = await aiResponse.text();
+      console.error('[dm-agent-responder] AI Gateway error:', aiResponse.status, errorText);
+      agentReply = `Olá! Sou ${agent.agent_name}. Estou com dificuldades técnicas no momento, mas já fui notificado. Tente novamente em instantes!`;
     }
 
     if (!agentReply) {
