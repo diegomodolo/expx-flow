@@ -1,9 +1,12 @@
-import { useState, useEffect, lazy, Suspense } from 'react';
-import { useTaskTvDashboard, ActiveSession, CollaboratorRanking, TaskItem } from '@/hooks/useTaskTvDashboard';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import {
+  useTaskTvDashboard, ActiveSession, CollaboratorRanking, TaskItem, SquadTvRanking, CompletionTrendDay
+} from '@/hooks/useTaskTvDashboard';
 import { useCompany } from '@/contexts/CompanyContext';
 import {
   CheckCircle2, Clock, AlertTriangle, Zap, TrendingUp, Award,
-  RefreshCw, Wifi, Star, Medal, Trophy, X, ExternalLink, User, Search
+  RefreshCw, Wifi, Star, Medal, Trophy, X, ExternalLink, User, Search,
+  ClipboardCheck, Timer, Users, PartyPopper, Siren
 } from 'lucide-react';
 import { RadarTVControls } from '@/components/radar-tv-dashboard/RadarTVControls';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -11,6 +14,9 @@ import { format, parseISO, isPast } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip as RechartTooltip, ResponsiveContainer, Cell, CartesianGrid
+} from 'recharts';
 
 const TaskDialog = lazy(() =>
   import('@/components/tasks/TaskDialog').then(m => ({ default: m.TaskDialog }))
@@ -53,12 +59,12 @@ function LiveClock() {
 
 // ---- Priority badge ----
 const priorityMap: Record<string, { label: string; cls: string }> = {
-  high: { label: 'Alta', cls: 'bg-red-500/20 text-red-300 border-red-500/30' },
-  alta: { label: 'Alta', cls: 'bg-red-500/20 text-red-300 border-red-500/30' },
+  high:   { label: 'Alta',  cls: 'bg-red-500/20 text-red-300 border-red-500/30' },
+  alta:   { label: 'Alta',  cls: 'bg-red-500/20 text-red-300 border-red-500/30' },
   medium: { label: 'Média', cls: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30' },
-  media: { label: 'Média', cls: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30' },
-  low: { label: 'Baixa', cls: 'bg-green-500/20 text-green-300 border-green-500/30' },
-  baixa: { label: 'Baixa', cls: 'bg-green-500/20 text-green-300 border-green-500/30' },
+  media:  { label: 'Média', cls: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30' },
+  low:    { label: 'Baixa', cls: 'bg-green-500/20 text-green-300 border-green-500/30' },
+  baixa:  { label: 'Baixa', cls: 'bg-green-500/20 text-green-300 border-green-500/30' },
 };
 
 function PriorityBadge({ priority }: { priority: string }) {
@@ -70,28 +76,76 @@ function PriorityBadge({ priority }: { priority: string }) {
   );
 }
 
+// ---- Celebration Overlay ----
+function CelebrationOverlay({ task, onDismiss }: { task: TaskItem; onDismiss: () => void }) {
+  useEffect(() => {
+    const t = setTimeout(onDismiss, 6000);
+    return () => clearTimeout(t);
+  }, [onDismiss]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
+      <div className="relative flex flex-col items-center gap-4 animate-scale-in">
+        {/* Confetti rings */}
+        <div className="absolute inset-0 rounded-full bg-yellow-400/10 animate-ping" style={{ animationDuration: '1s' }} />
+        <div className="relative bg-gradient-to-br from-yellow-400/30 to-emerald-400/30 backdrop-blur-xl border border-yellow-400/40 rounded-3xl px-12 py-8 flex flex-col items-center gap-3 shadow-2xl">
+          <PartyPopper className="w-16 h-16 text-yellow-400 animate-bounce" />
+          <div className="text-4xl font-black text-white text-center">🎉 Alta Prioridade Concluída!</div>
+          <div className="text-lg text-yellow-200 text-center max-w-md font-semibold">{task.title}</div>
+          {task.responsible_name && (
+            <div className="text-sm text-gray-300">por {task.responsible_name}</div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---- Critical Alert Banner ----
+function CriticalAlertBanner({ task, onDismiss }: { task: TaskItem; onDismiss: () => void }) {
+  useEffect(() => {
+    const t = setTimeout(onDismiss, 10000);
+    return () => clearTimeout(t);
+  }, [onDismiss]);
+
+  return (
+    <div className="fixed top-0 left-0 right-0 z-50 pointer-events-none">
+      <div className="bg-red-900/95 border-b-2 border-red-500 px-6 py-4 flex items-center gap-4 animate-fade-in shadow-2xl">
+        <Siren className="w-8 h-8 text-red-400 animate-pulse shrink-0" />
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-bold text-red-300 uppercase tracking-widest">⚠ Tarefa de Alta Prioridade em Atraso</div>
+          <div className="text-white font-black text-lg truncate">{task.title}</div>
+          {task.responsible_name && (
+            <div className="text-sm text-red-300">Responsável: {task.responsible_name}</div>
+          )}
+        </div>
+        <button
+          onClick={onDismiss}
+          className="pointer-events-auto text-red-400 hover:text-white transition-colors shrink-0"
+        >
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ---- Task list modal ----
-type ModalKind = 'open' | 'overdue' | 'completed' | null;
+type ModalKind = 'open' | 'overdue' | 'completed' | 'review' | null;
 
 const modalConfig: Record<Exclude<ModalKind, null>, { title: string; icon: any; color: string }> = {
-  open:      { title: 'Tarefas em Aberto',    icon: Clock,         color: 'text-blue-400' },
-  overdue:   { title: 'Tarefas em Atraso',    icon: AlertTriangle, color: 'text-red-400'  },
-  completed: { title: 'Concluídas Hoje',      icon: CheckCircle2,  color: 'text-emerald-400' },
+  open:      { title: 'Tarefas em Aberto',      icon: Clock,           color: 'text-blue-400' },
+  overdue:   { title: 'Tarefas em Atraso',      icon: AlertTriangle,   color: 'text-red-400'  },
+  completed: { title: 'Concluídas Hoje',        icon: CheckCircle2,    color: 'text-emerald-400' },
+  review:    { title: 'Aguardando Revisão',     icon: ClipboardCheck,  color: 'text-purple-400' },
 };
 
 function TaskListModal({
-  kind,
-  tasks,
-  onClose,
-  onOpenTask,
+  kind, tasks, onClose, onOpenTask,
 }: {
-  kind: ModalKind;
-  tasks: TaskItem[];
-  onClose: () => void;
-  onOpenTask: (id: string) => void;
+  kind: ModalKind; tasks: TaskItem[]; onClose: () => void; onOpenTask: (id: string) => void;
 }) {
   const [search, setSearch] = useState('');
-
   if (!kind) return null;
   const cfg = modalConfig[kind];
   const Icon = cfg.icon;
@@ -105,10 +159,7 @@ function TaskListModal({
 
   return (
     <Dialog open onOpenChange={v => !v && onClose()}>
-      <DialogContent
-        className="max-w-2xl bg-gray-900 border-white/10 text-white"
-        hideCloseButton
-      >
+      <DialogContent className="max-w-2xl bg-gray-900 border-white/10 text-white" hideCloseButton>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Icon className={cn('w-5 h-5', cfg.color)} />
@@ -120,7 +171,6 @@ function TaskListModal({
           </DialogTitle>
         </DialogHeader>
 
-        {/* Search input */}
         <div className="relative mt-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
           <input
@@ -160,7 +210,6 @@ function TaskListModal({
                 )}
                 onClick={() => onOpenTask(task.id)}
               >
-                {/* Avatar / Initial */}
                 <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center shrink-0">
                   {task.responsible_avatar ? (
                     <img src={task.responsible_avatar} alt="" className="w-8 h-8 rounded-full object-cover" />
@@ -168,7 +217,6 @@ function TaskListModal({
                     <User className="w-4 h-4 text-gray-400" />
                   )}
                 </div>
-
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-white truncate">{task.title}</p>
                   <div className="flex items-center gap-2 mt-0.5 flex-wrap">
@@ -183,7 +231,6 @@ function TaskListModal({
                     )}
                   </div>
                 </div>
-
                 <div className="flex items-center gap-2 shrink-0">
                   <PriorityBadge priority={task.priority} />
                   <ExternalLink className="w-3.5 h-3.5 text-gray-500" />
@@ -197,12 +244,11 @@ function TaskListModal({
   );
 }
 
-// ---- KPI Card (clickable) ----
+// ---- KPI Card ----
 function KpiCard({
   label, value, icon: Icon, color, sublabel, onClick
 }: {
-  label: string; value: number | string; icon: any; color: string; sublabel?: string;
-  onClick?: () => void;
+  label: string; value: number | string; icon: any; color: string; sublabel?: string; onClick?: () => void;
 }) {
   return (
     <div
@@ -218,11 +264,6 @@ function KpiCard({
       </div>
       <div className={`text-5xl font-black tabular-nums ${color}`}>{value}</div>
       {sublabel && <div className="text-xs text-gray-500">{sublabel}</div>}
-      {onClick && (
-        <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100">
-          <ExternalLink className="w-3 h-3 text-gray-600" />
-        </div>
-      )}
     </div>
   );
 }
@@ -251,7 +292,123 @@ function IndicatorBar({ label, value, color, description }: {
   );
 }
 
-// ---- Active Session Card (clickable) ----
+// ---- Completion Trend Chart ----
+function CompletionTrendChart({ data }: { data: CompletionTrendDay[] }) {
+  const maxVal = Math.max(...data.map(d => d.count), 1);
+
+  return (
+    <div className="rounded-xl border border-white/10 bg-white/5 p-5 flex flex-col gap-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <TrendingUp className="w-4 h-4 text-emerald-400" />
+          <h3 className="text-xs font-bold uppercase tracking-wider text-gray-300">Ritmo de Conclusão</h3>
+          <span className="text-xs text-gray-600">· últimos 14 dias</span>
+        </div>
+        <span className="text-xs text-gray-500">
+          Total: {data.reduce((s, d) => s + d.count, 0)} tarefas
+        </span>
+      </div>
+      <div className="h-28">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data} margin={{ top: 0, right: 0, left: -28, bottom: 0 }}>
+            <defs>
+              <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#10b981" stopOpacity={0.9} />
+                <stop offset="95%" stopColor="#059669" stopOpacity={0.6} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+            <XAxis
+              dataKey="day"
+              tick={{ fontSize: 9, fill: '#6b7280' }}
+              axisLine={false}
+              tickLine={false}
+              interval={1}
+            />
+            <YAxis
+              tick={{ fontSize: 9, fill: '#6b7280' }}
+              axisLine={false}
+              tickLine={false}
+              allowDecimals={false}
+            />
+            <RechartTooltip
+              contentStyle={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 12 }}
+              labelStyle={{ color: '#9ca3af' }}
+              itemStyle={{ color: '#10b981' }}
+              formatter={(v: any) => [`${v} tarefas`, 'Concluídas']}
+            />
+            <Bar dataKey="count" radius={[4, 4, 0, 0]} maxBarSize={32}>
+              {data.map((entry, idx) => (
+                <Cell
+                  key={idx}
+                  fill={entry.count === maxVal ? '#10b981' : 'url(#barGrad)'}
+                  opacity={entry.count === 0 ? 0.2 : 1}
+                />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
+// ---- Squad Ranking Card ----
+function SquadRankCard({ squad, pos }: { squad: SquadTvRanking; pos: number }) {
+  const scoreColor = squad.productivityScore >= 70 ? '#10b981' : squad.productivityScore >= 40 ? '#f59e0b' : '#ef4444';
+  const medal = pos === 0 ? '🥇' : pos === 1 ? '🥈' : pos === 2 ? '🥉' : null;
+
+  return (
+    <div className="flex items-center gap-3 py-3 border-b border-white/5 last:border-0">
+      <div className="flex items-center gap-2 w-6 shrink-0">
+        {medal ? (
+          <span className="text-lg">{medal}</span>
+        ) : (
+          <span className="text-xs font-bold text-gray-500">#{pos + 1}</span>
+        )}
+      </div>
+
+      {/* Squad color dot */}
+      <div
+        className="w-3 h-3 rounded-full shrink-0"
+        style={{ backgroundColor: squad.team_color || '#6366f1' }}
+      />
+
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <p className="text-sm font-bold text-white truncate">{squad.team_name}</p>
+          {squad.activeSessions > 0 && (
+            <div className="flex items-center gap-1">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-[10px] text-emerald-400 font-semibold">{squad.activeSessions} ativo{squad.activeSessions > 1 ? 's' : ''}</span>
+            </div>
+          )}
+        </div>
+        <div className="flex items-center gap-3 mt-0.5 text-[10px] text-gray-500">
+          <span>{squad.completedTasks}/{squad.totalTasks} concluídas</span>
+          {squad.overdueTasks > 0 && (
+            <span className="text-red-400">{squad.overdueTasks} atrasada{squad.overdueTasks > 1 ? 's' : ''}</span>
+          )}
+        </div>
+
+        {/* Score bar */}
+        <div className="flex items-center gap-2 mt-1.5">
+          <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all duration-700"
+              style={{ width: `${squad.productivityScore}%`, backgroundColor: scoreColor }}
+            />
+          </div>
+          <span className="text-xs font-black tabular-nums shrink-0" style={{ color: scoreColor }}>
+            {squad.productivityScore}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---- Active Session Card ----
 function SessionCard({ session, onOpenTask }: { session: ActiveSession; onOpenTask: (id: string) => void }) {
   const timer = useLiveTimer(session.started_at);
   const isOverdue = session.task_deadline && new Date(session.task_deadline) < new Date();
@@ -267,9 +424,7 @@ function SessionCard({ session, onOpenTask }: { session: ActiveSession; onOpenTa
             className="w-10 h-10 rounded-full object-cover ring-2 ring-emerald-500/50 shrink-0" />
         ) : (
           <div className="w-10 h-10 rounded-full bg-emerald-700 flex items-center justify-center shrink-0">
-            <span className="text-sm font-bold text-emerald-200">
-              {session.user_name.charAt(0).toUpperCase()}
-            </span>
+            <span className="text-sm font-bold text-emerald-200">{session.user_name.charAt(0).toUpperCase()}</span>
           </div>
         )}
         <div className="min-w-0 flex-1">
@@ -278,14 +433,12 @@ function SessionCard({ session, onOpenTask }: { session: ActiveSession; onOpenTa
         </div>
         <ExternalLink className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
       </div>
-
       {isOverdue && (
         <div className="flex items-center gap-1.5 rounded-md bg-red-900/40 border border-red-500/30 px-2 py-1">
           <AlertTriangle className="w-3 h-3 text-red-400 shrink-0" />
           <span className="text-xs text-red-300">Vencido</span>
         </div>
       )}
-
       <div className="flex items-center gap-2">
         <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
         <span className="font-mono text-xl font-bold text-emerald-300 tabular-nums">{timer}</span>
@@ -354,24 +507,47 @@ export default function TaskTvDashboard() {
     return saved ? parseInt(saved) : 0;
   });
 
-  const handleZoomChange = (newZoom: number) => {
-    setZoom(newZoom);
-    localStorage.setItem('task-tv-zoom', newZoom.toString());
-  };
-  const handleRotationChange = (newRotation: number) => {
-    setRotation(newRotation);
-    localStorage.setItem('task-tv-rotation', newRotation.toString());
-  };
-  const handleRefreshIntervalChange = (interval: number) => {
-    setRefreshInterval(interval);
-    localStorage.setItem('task-tv-refresh-interval', interval.toString());
-  };
+  const handleZoomChange = (v: number) => { setZoom(v); localStorage.setItem('task-tv-zoom', v.toString()); };
+  const handleRotationChange = (v: number) => { setRotation(v); localStorage.setItem('task-tv-rotation', v.toString()); };
+  const handleRefreshIntervalChange = (v: number) => { setRefreshInterval(v); localStorage.setItem('task-tv-refresh-interval', v.toString()); };
 
   const { data, isLoading, isFetching, refetch } = useTaskTvDashboard(refreshInterval);
   const { activeCompany } = useCompany();
 
   const [listModal, setListModal] = useState<ModalKind>(null);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+
+  // --- Alert states ---
+  const [celebrationTask, setCelebrationTask] = useState<TaskItem | null>(null);
+  const [criticalAlert, setCriticalAlert] = useState<TaskItem | null>(null);
+  const prevCompletedIdsRef = useRef<Set<string>>(new Set());
+  const prevOverdueIdsRef = useRef<Set<string>>(new Set());
+
+  // Detect new high-priority completions
+  useEffect(() => {
+    if (!data) return;
+    const currentIds = new Set(data.completedTodayList.map(t => t.id));
+    const newHighPriority = data.completedTodayList.filter(
+      t => !prevCompletedIdsRef.current.has(t.id) && ['high', 'alta'].includes(t.priority)
+    );
+    if (prevCompletedIdsRef.current.size > 0 && newHighPriority.length > 0) {
+      setCelebrationTask(newHighPriority[0]);
+    }
+    prevCompletedIdsRef.current = currentIds;
+  }, [data?.completedTodayList]);
+
+  // Detect new high-priority overdues
+  useEffect(() => {
+    if (!data) return;
+    const currentIds = new Set(data.overdueTasksList.map(t => t.id));
+    const newOverdue = data.overdueTasksList.filter(
+      t => !prevOverdueIdsRef.current.has(t.id) && ['high', 'alta'].includes(t.priority)
+    );
+    if (prevOverdueIdsRef.current.size > 0 && newOverdue.length > 0 && !criticalAlert) {
+      setCriticalAlert(newOverdue[0]);
+    }
+    prevOverdueIdsRef.current = currentIds;
+  }, [data?.overdueTasksList]);
 
   function openTask(id: string) {
     setListModal(null);
@@ -397,18 +573,21 @@ export default function TaskTvDashboard() {
     );
   }
 
-  const topPerformers  = [...data.rankings].sort((a, b) => b.score      - a.score     ).slice(0, 5);
-  const topRegularity  = [...data.rankings].sort((a, b) => b.regularity - a.regularity).slice(0, 5);
-  const topEfficiency  = [...data.rankings].sort((a, b) => b.efficiency - a.efficiency).slice(0, 5);
+  const topPerformers = [...data.rankings].sort((a, b) => b.score      - a.score     ).slice(0, 5);
+  const topRegularity = [...data.rankings].sort((a, b) => b.regularity - a.regularity).slice(0, 5);
+  const topEfficiency = [...data.rankings].sort((a, b) => b.efficiency - a.efficiency).slice(0, 5);
 
   const listTasks: TaskItem[] =
     listModal === 'open'      ? data.openTasksList :
     listModal === 'overdue'   ? data.overdueTasksList :
-    listModal === 'completed' ? data.completedTodayList : [];
+    listModal === 'completed' ? data.completedTodayList :
+    listModal === 'review'    ? data.reviewTasksList : [];
 
-  const editingTask = editingTaskId
-    ? [...data.openTasksList, ...data.overdueTasksList, ...data.completedTodayList].find(t => t.id === editingTaskId)
-    : null;
+  const allTasksForEdit = [
+    ...data.openTasksList, ...data.overdueTasksList,
+    ...data.completedTodayList, ...data.reviewTasksList,
+  ];
+  const editingTask = editingTaskId ? allTasksForEdit.find(t => t.id === editingTaskId) : null;
 
   const isRotated = rotation === 90 || rotation === 270;
 
@@ -427,6 +606,16 @@ export default function TaskTvDashboard() {
         right: rotation === 270 ? 0 : undefined,
       }}
     >
+      {/* Celebration Overlay */}
+      {celebrationTask && (
+        <CelebrationOverlay task={celebrationTask} onDismiss={() => setCelebrationTask(null)} />
+      )}
+
+      {/* Critical Alert Banner */}
+      {criticalAlert && (
+        <CriticalAlertBanner task={criticalAlert} onDismiss={() => setCriticalAlert(null)} />
+      )}
+
       <TooltipProvider>
         <div
           className="text-white p-6 flex flex-col gap-5 origin-top-left"
@@ -455,19 +644,25 @@ export default function TaskTvDashboard() {
             </div>
           </div>
 
-          {/* ---- KPI ROW ---- */}
-          <div className="grid grid-cols-4 gap-4">
+          {/* ---- KPI ROW — 6 cards ---- */}
+          <div className="grid grid-cols-6 gap-4">
             <KpiCard label="Em Aberto" value={data.openTasks} icon={Clock} color="text-blue-400"
-              sublabel="Clique para ver a lista"
-              onClick={() => setListModal('open')} />
+              sublabel="Clique para ver a lista" onClick={() => setListModal('open')} />
             <KpiCard label="Em Atraso" value={data.overdueTasks} icon={AlertTriangle} color="text-red-400"
-              sublabel="Clique para ver a lista"
-              onClick={() => setListModal('overdue')} />
+              sublabel="Clique para ver a lista" onClick={() => setListModal('overdue')} />
             <KpiCard label="Concluídas Hoje" value={data.completedToday} icon={CheckCircle2} color="text-emerald-400"
-              sublabel={`Clique para ver — ${format(new Date(), 'dd/MM')}`}
-              onClick={() => setListModal('completed')} />
+              sublabel={`Clique para ver — ${format(new Date(), 'dd/MM')}`} onClick={() => setListModal('completed')} />
+            <KpiCard label="Em Revisão" value={data.reviewTasks} icon={ClipboardCheck} color="text-purple-400"
+              sublabel="Aguardando aprovação" onClick={() => setListModal('review')} />
             <KpiCard label="Executando Agora" value={data.executingNow} icon={Zap} color="text-yellow-400"
               sublabel="Sessões ativas" />
+            <KpiCard
+              label="Horas Rastreadas (7d)"
+              value={`${data.hoursTrackedLast7Days}h`}
+              icon={Timer}
+              color="text-cyan-400"
+              sublabel={`Média ${data.avgHoursPerCollaborator}h/colaborador`}
+            />
           </div>
 
           {/* ---- INDICATORS ---- */}
@@ -480,10 +675,36 @@ export default function TaskTvDashboard() {
               description="Combina regularidade e qualidade para medir eficiência geral." />
           </div>
 
-          {/* ---- EXECUTING NOW + RANKINGS ---- */}
-          <div className="grid grid-cols-12 gap-4 flex-1 min-h-0">
+          {/* ---- TREND CHART ---- */}
+          {data.completionTrend.length > 0 && (
+            <CompletionTrendChart data={data.completionTrend} />
+          )}
+
+          {/* ---- SQUADS + EXECUTING + RANKINGS ---- */}
+          <div className="grid grid-cols-12 gap-4">
+            {/* Squad Ranking */}
+            {data.squadRankings.length > 0 && (
+              <div className="col-span-3 rounded-xl border border-white/10 bg-white/5 p-4 flex flex-col gap-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <Users className="w-4 h-4 text-indigo-400" />
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-gray-300">Performance por Squad</h3>
+                </div>
+                <div className="flex flex-col">
+                  {data.squadRankings.slice(0, 6).map((sq, i) => (
+                    <SquadRankCard key={sq.team_id} squad={sq} pos={i} />
+                  ))}
+                </div>
+                {data.squadRankings.length === 0 && (
+                  <p className="text-xs text-gray-600 text-center py-4">Squads sem dados suficientes</p>
+                )}
+              </div>
+            )}
+
             {/* Active sessions */}
-            <div className="col-span-4 flex flex-col gap-3">
+            <div className={cn(
+              'flex flex-col gap-3',
+              data.squadRankings.length > 0 ? 'col-span-3' : 'col-span-4'
+            )}>
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                 <h2 className="text-sm font-bold uppercase tracking-wider text-gray-300">
@@ -505,7 +726,10 @@ export default function TaskTvDashboard() {
             </div>
 
             {/* Rankings */}
-            <div className="col-span-8 grid grid-cols-3 gap-4">
+            <div className={cn(
+              'grid grid-cols-3 gap-4',
+              data.squadRankings.length > 0 ? 'col-span-6' : 'col-span-8'
+            )}>
               {/* Top Performers */}
               <div className="rounded-xl border border-white/10 bg-white/5 p-4 flex flex-col gap-2">
                 <div className="flex items-center gap-2 mb-1">
@@ -513,13 +737,10 @@ export default function TaskTvDashboard() {
                   <h3 className="text-xs font-bold uppercase tracking-wider text-gray-300">Top Performers</h3>
                 </div>
                 <p className="text-xs text-gray-500 mb-2">Score combinado da última semana</p>
-                <div className="flex-1">
-                  {topPerformers.length === 0 ? (
-                    <p className="text-xs text-gray-600 text-center py-4">Sem dados suficientes</p>
-                  ) : (
-                    topPerformers.map((c, i) => <RankingRow key={c.user_id} collab={c} pos={i} metric="score" />)
-                  )}
-                </div>
+                {topPerformers.length === 0
+                  ? <p className="text-xs text-gray-600 text-center py-4">Sem dados suficientes</p>
+                  : topPerformers.map((c, i) => <RankingRow key={c.user_id} collab={c} pos={i} metric="score" />)
+                }
               </div>
 
               {/* Top Regularidade */}
@@ -529,13 +750,10 @@ export default function TaskTvDashboard() {
                   <h3 className="text-xs font-bold uppercase tracking-wider text-gray-300">Top Regularidade</h3>
                 </div>
                 <p className="text-xs text-gray-500 mb-2">Tarefas entregues dentro do prazo</p>
-                <div className="flex-1">
-                  {topRegularity.length === 0 ? (
-                    <p className="text-xs text-gray-600 text-center py-4">Sem dados suficientes</p>
-                  ) : (
-                    topRegularity.map((c, i) => <RankingRow key={c.user_id} collab={c} pos={i} metric="regularity" />)
-                  )}
-                </div>
+                {topRegularity.length === 0
+                  ? <p className="text-xs text-gray-600 text-center py-4">Sem dados suficientes</p>
+                  : topRegularity.map((c, i) => <RankingRow key={c.user_id} collab={c} pos={i} metric="regularity" />)
+                }
               </div>
 
               {/* Top Eficiência */}
@@ -545,13 +763,10 @@ export default function TaskTvDashboard() {
                   <h3 className="text-xs font-bold uppercase tracking-wider text-gray-300">Top Eficiência</h3>
                 </div>
                 <p className="text-xs text-gray-500 mb-2">Conclusão vs. em andamento</p>
-                <div className="flex-1">
-                  {topEfficiency.length === 0 ? (
-                    <p className="text-xs text-gray-600 text-center py-4">Sem dados suficientes</p>
-                  ) : (
-                    topEfficiency.map((c, i) => <RankingRow key={c.user_id} collab={c} pos={i} metric="efficiency" />)
-                  )}
-                </div>
+                {topEfficiency.length === 0
+                  ? <p className="text-xs text-gray-600 text-center py-4">Sem dados suficientes</p>
+                  : topEfficiency.map((c, i) => <RankingRow key={c.user_id} collab={c} pos={i} metric="efficiency" />)
+                }
               </div>
             </div>
           </div>
@@ -566,9 +781,7 @@ export default function TaskTvDashboard() {
               <RefreshCw className="w-3 h-3" />
               Atualizar agora
             </button>
-            <span>
-              Última sync: {data.lastSync ? format(data.lastSync, 'HH:mm:ss') : '—'}
-            </span>
+            <span>Última sync: {data.lastSync ? format(data.lastSync, 'HH:mm:ss') : '—'}</span>
           </div>
 
           {/* ---- MODALS ---- */}
