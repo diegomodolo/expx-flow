@@ -10,7 +10,7 @@ import {
   MoreHorizontal, CheckCircle2, ChevronRight, Plus,
   Clock, ListChecks, GitBranch,
   Briefcase, Palette, BookOpen, Handshake, Users as UsersIcon, ClipboardList, Ticket, Archive,
-  AlertTriangle, CheckCircle, CalendarClock, Timer
+  AlertTriangle, CheckCircle, CalendarClock, Timer, XCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuItem } from "@/components/ui/dropdown-menu";
@@ -58,6 +58,9 @@ interface Task {
   quadro_column_id?: string | null;
   etapa?: string | null;
   task_type?: string | null;
+  task_quality_score?: number | null;
+  last_rejected_at?: string | null;
+  rejection_count?: number | null;
   checklist?: any;
   parent_task_id?: string | null;
   team?: { name: string; color: string };
@@ -424,6 +427,8 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
       }
     }
 
+    const isRejected = !!task.last_rejected_at;
+
     return (
       <Card
         key={task.id}
@@ -431,9 +436,10 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
           "shadow-sm hover:shadow-md transition-all border-l-4 bg-card group select-none",
           "cursor-pointer",
           !inModal && draggedTask?.id === task.id && 'opacity-50 rotate-2 scale-105',
-          isCompactMode ? "p-2" : "p-3"
+          isCompactMode ? "p-2" : "p-3",
+          isRejected && "ring-1 ring-destructive/40"
         )}
-        style={{ borderLeftColor: priorityConf.color }}
+        style={{ borderLeftColor: isRejected ? 'hsl(var(--destructive))' : priorityConf.color }}
         draggable={!inModal}
         onDragStart={!inModal ? (e) => { didDragRef.current = true; handleDragStart(e, task); } : undefined}
         onDragEnd={!inModal ? () => { handleDragEnd(); didDragRef.current = false; } : undefined}
@@ -521,6 +527,14 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
           )}>
             {task.title}
           </h4>
+
+          {/* Rejection badge */}
+          {isRejected && (
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-destructive/10 border border-destructive/25 text-destructive text-[11px] font-medium">
+              <XCircle className="w-3 h-3 shrink-0" />
+              <span>Rejeitada{(task.rejection_count ?? 0) > 1 ? ` (${task.rejection_count}x)` : ''} — retornou para Pendente</span>
+            </div>
+          )}
 
           {/* Row 4: Time tracked / Live timer */}
           {activeTimeSessions[task.id] ? (

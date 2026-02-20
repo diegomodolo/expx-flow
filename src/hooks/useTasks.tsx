@@ -31,6 +31,9 @@ export interface Task {
   etapa?: string | null;
   parent_task_id?: string | null;
   task_type?: string | null;
+  task_quality_score?: number | null;
+  last_rejected_at?: string | null;
+  rejection_count?: number | null;
   team?: {
     name: string;
     color: string;

@@ -13045,6 +13045,7 @@ export type Database = {
           due_date: string | null
           etapa: string | null
           id: string
+          last_rejected_at: string | null
           organized_by_ai: boolean | null
           origin: Database["public"]["Enums"]["task_origin"] | null
           parent_task_id: string | null
@@ -13052,6 +13053,7 @@ export type Database = {
           progress: number
           quadro_column_id: string | null
           recurring_template_id: string | null
+          rejection_count: number
           related_campaign_id: string | null
           related_client_id: string | null
           responsible_avatar: string | null
@@ -13086,6 +13088,7 @@ export type Database = {
           due_date?: string | null
           etapa?: string | null
           id?: string
+          last_rejected_at?: string | null
           organized_by_ai?: boolean | null
           origin?: Database["public"]["Enums"]["task_origin"] | null
           parent_task_id?: string | null
@@ -13093,6 +13096,7 @@ export type Database = {
           progress?: number
           quadro_column_id?: string | null
           recurring_template_id?: string | null
+          rejection_count?: number
           related_campaign_id?: string | null
           related_client_id?: string | null
           responsible_avatar?: string | null
@@ -13127,6 +13131,7 @@ export type Database = {
           due_date?: string | null
           etapa?: string | null
           id?: string
+          last_rejected_at?: string | null
           organized_by_ai?: boolean | null
           origin?: Database["public"]["Enums"]["task_origin"] | null
           parent_task_id?: string | null
@@ -13134,6 +13139,7 @@ export type Database = {
           progress?: number
           quadro_column_id?: string | null
           recurring_template_id?: string | null
+          rejection_count?: number
           related_campaign_id?: string | null
           related_client_id?: string | null
           responsible_avatar?: string | null
