@@ -98,7 +98,7 @@ Deno.serve(async (req) => {
     // Get task current state
     const { data: task, error: taskError } = await supabase
       .from("tasks")
-      .select("id, title, status, task_quality_score, team_id, responsible_name, related_client_id, assigned_user_id, rejection_count")
+      .select("id, title, status, task_quality_score, team_id, responsible_name, related_client_id, assigned_user_id, user_id, rejection_count")
       .eq("id", taskId)
       .single();
 
@@ -131,11 +131,13 @@ Deno.serve(async (req) => {
 
       // Find the "todo" column for the responsible user's board so the card
       // goes back to the "Pendente" column visually on their Kanban board.
-      if (task.assigned_user_id) {
+      // Use assigned_user_id first, fallback to user_id
+      const targetUserId = task.assigned_user_id || task.user_id;
+      if (targetUserId) {
         const { data: todoCols } = await supabase
           .from("task_board_columns")
           .select("id")
-          .eq("user_id", task.assigned_user_id)
+          .eq("user_id", targetUserId)
           .eq("status", "todo")
           .order("order_index", { ascending: true })
           .limit(1);
