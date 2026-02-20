@@ -6,6 +6,8 @@ type NotificationType =
   | "task_assigned"
   | "task_overdue"
   | "task_comment"
+  | "task_review"
+  | "task_rejected"
   | "squad_updates";
 
 interface TaskNotificationPayload {
@@ -17,6 +19,9 @@ interface TaskNotificationPayload {
   team_id?: string;
   assigned_user_name?: string;
   client_name?: string;
+  authorizer_name?: string;
+  rejection_reason?: string;
+  quality_score?: number;
 }
 
 const PRIORITY_LABELS: Record<string, string> = {
@@ -32,6 +37,8 @@ function buildTaskEmbed(type: NotificationType, payload: TaskNotificationPayload
     task_assigned: 0xf59e0b,     // amber
     task_overdue: 0xef4444,      // red
     task_comment: 0x8b5cf6,      // purple
+    task_review: 0xf59e0b,       // amber – awaiting review
+    task_rejected: 0xef4444,     // red
     squad_updates: 0x6366f1,     // indigo
   };
 
@@ -41,6 +48,8 @@ function buildTaskEmbed(type: NotificationType, payload: TaskNotificationPayload
     task_assigned: "👤 Tarefa Atribuída",
     task_overdue: "⏰ Tarefa Atrasada",
     task_comment: "💬 Novo Comentário",
+    task_review: "📋 Tarefa em Revisão — Aguardando Aprovação",
+    task_rejected: "❌ Tarefa Rejeitada",
     squad_updates: "📢 Atualização do Squad",
   };
 
@@ -63,6 +72,15 @@ function buildTaskEmbed(type: NotificationType, payload: TaskNotificationPayload
   }
   if (payload.team_name) {
     fields.push({ name: "Squad", value: payload.team_name, inline: true });
+  }
+  if (payload.authorizer_name) {
+    fields.push({ name: "Autorizador", value: payload.authorizer_name, inline: true });
+  }
+  if (payload.rejection_reason) {
+    fields.push({ name: "Motivo", value: payload.rejection_reason, inline: true });
+  }
+  if (payload.quality_score !== undefined) {
+    fields.push({ name: "Qualidade", value: `${payload.quality_score}%`, inline: true });
   }
 
   return {

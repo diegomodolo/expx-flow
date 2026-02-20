@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Loader2, Save, Bell, CheckSquare, UserPlus, AlertTriangle, MessageSquare, BarChart3, Users, Megaphone, AtSign, CalendarClock } from "lucide-react";
+import { Loader2, Save, Bell, CheckSquare, UserPlus, AlertTriangle, MessageSquare, BarChart3, Users, Megaphone, AtSign, CalendarClock, ShieldCheck } from "lucide-react";
 import { useDiscordConfig } from "@/hooks/useDiscordConfig";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -50,6 +50,20 @@ const NOTIFICATION_OPTIONS: NotificationOption[] = [
     label: "Comentário em tarefa",
     description: "Notifica quando alguém comenta em uma tarefa",
     icon: <MessageSquare className="h-4 w-4" />,
+    category: "tarefas",
+  },
+  {
+    key: "notify_task_review",
+    label: "Tarefa em revisão",
+    description: "Notifica o autorizador quando uma tarefa é enviada para revisão",
+    icon: <ShieldCheck className="h-4 w-4" />,
+    category: "tarefas",
+  },
+  {
+    key: "notify_task_rejected",
+    label: "Tarefa rejeitada",
+    description: "Notifica o responsável quando uma tarefa é rejeitada pelo autorizador",
+    icon: <AlertTriangle className="h-4 w-4" />,
     category: "tarefas",
   },
   {

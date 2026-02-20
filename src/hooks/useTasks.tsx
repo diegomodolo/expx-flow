@@ -301,7 +301,7 @@ export function useTasks() {
     return updateTaskMutation.mutateAsync({ id, updates });
   };
 
-  const updateTaskStatus = (id: string, status: Task["status"]) => {
+  const updateTaskStatus = (id: string, status: Task["status"], taskData?: Partial<Task>) => {
     const progress = status === "done" ? 100 : 
                     status === "review" ? 90 :
                     status === "progress" ? 50 : 0;
@@ -309,6 +309,18 @@ export function useTasks() {
     return updateTaskMutation.mutateAsync({ 
       id, 
       updates: { status, progress } 
+    }).then((result) => {
+      // Fire Discord notification when moving to review
+      if (status === "review" && activeCompany?.company_id) {
+        sendDiscordTaskNotification(activeCompany.company_id, "task_review", {
+          title: taskData?.title || id,
+          responsible_name: taskData?.responsible_name,
+          priority: taskData?.priority,
+          due_date: taskData?.due_date || taskData?.deadline,
+          team_id: taskData?.team_id,
+        });
+      }
+      return result;
     });
   };
 
