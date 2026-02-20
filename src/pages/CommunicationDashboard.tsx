@@ -2,10 +2,10 @@ import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { ChannelSidebar } from '@/components/comm-hub/ChannelSidebar';
 import { ChatFlow } from '@/components/comm-hub/ChatFlow';
 import { MyDayPanel } from '@/components/comm-hub/MyDayPanel';
-import { NotificationBell } from '@/components/comm-hub/NotificationBell';
 import { useInternalChat } from '@/hooks/useInternalChat';
 import { useChannelUnread } from '@/hooks/useChannelUnread';
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
 export default function CommunicationDashboard() {
   const {
@@ -18,6 +18,7 @@ export default function CommunicationDashboard() {
     messagesLoading,
     sendMessage,
     sendingMessage,
+    getOrCreateDMChannel,
   } = useInternalChat();
 
   const { unreadCounts, markAsRead } = useChannelUnread();
@@ -29,6 +30,15 @@ export default function CommunicationDashboard() {
       markAsRead(activeChannelId);
     }
   }, [activeChannelId]);
+
+  const handleOpenDM = async (userId: string, userName: string) => {
+    const channelId = await getOrCreateDMChannel(userId, userName);
+    if (channelId) {
+      setActiveChannelId(channelId);
+    } else {
+      toast.error('Não foi possível abrir a conversa');
+    }
+  };
 
   return (
     <DashboardLayout>
@@ -49,7 +59,7 @@ export default function CommunicationDashboard() {
           focusMode={focusMode}
           onToggleFocusMode={() => setFocusMode(prev => !prev)}
         />
-        <MyDayPanel />
+        <MyDayPanel onOpenDM={handleOpenDM} />
       </div>
     </DashboardLayout>
   );
