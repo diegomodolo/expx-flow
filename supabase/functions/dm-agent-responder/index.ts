@@ -125,10 +125,19 @@ Não use formatação excessiva. Use linguagem natural e amigável.`;
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     const model = agent.model || 'gemini-2.0-flash';
 
+    const messages = [
+      { role: 'system', content: systemPrompt },
+      ...conversationHistory,
+    ];
+
     const requestBody = {
       model,
       messages,
     };
+
+    console.log(`[dm-agent-responder] Calling AI Gateway with model ${model}, ${messages.length} messages`);
+
+    let agentReply = '';
 
     const aiResponse = await fetch('https://gateway.lovable.app/openai/v1/chat/completions', {
       method: 'POST',
