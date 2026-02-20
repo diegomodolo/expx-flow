@@ -8634,6 +8634,118 @@ export type Database = {
           },
         ]
       }
+      instagram_automation_flows: {
+        Row: {
+          company_id: string
+          created_at: string
+          flow_data: Json
+          flow_name: string
+          id: string
+          is_active: boolean
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          flow_data?: Json
+          flow_name: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          flow_data?: Json
+          flow_name?: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instagram_automation_flows_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      instagram_automation_logs: {
+        Row: {
+          company_id: string
+          conversation_id: string | null
+          created_at: string
+          error_message: string | null
+          executed_at: string
+          flow_id: string | null
+          id: string
+          ig_user_id: string
+          matched_keyword: string | null
+          status: string
+          steps_executed: number | null
+          trigger_id: string | null
+        }
+        Insert: {
+          company_id: string
+          conversation_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          executed_at?: string
+          flow_id?: string | null
+          id?: string
+          ig_user_id: string
+          matched_keyword?: string | null
+          status?: string
+          steps_executed?: number | null
+          trigger_id?: string | null
+        }
+        Update: {
+          company_id?: string
+          conversation_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          executed_at?: string
+          flow_id?: string | null
+          id?: string
+          ig_user_id?: string
+          matched_keyword?: string | null
+          status?: string
+          steps_executed?: number | null
+          trigger_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instagram_automation_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instagram_automation_logs_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "instagram_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instagram_automation_logs_flow_id_fkey"
+            columns: ["flow_id"]
+            isOneToOne: false
+            referencedRelation: "instagram_automation_flows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instagram_automation_logs_trigger_id_fkey"
+            columns: ["trigger_id"]
+            isOneToOne: false
+            referencedRelation: "instagram_keyword_triggers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       instagram_autopost_knowledge_files: {
         Row: {
           config_id: string
@@ -8846,6 +8958,191 @@ export type Database = {
             columns: ["feed_id"]
             isOneToOne: false
             referencedRelation: "instagram_autopost_rss_feeds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      instagram_conversations: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          ig_profile_pic_url: string | null
+          ig_user_id: string
+          ig_username: string | null
+          instagram_account_id: string
+          last_message_at: string | null
+          last_message_preview: string | null
+          unread_count: number
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          ig_profile_pic_url?: string | null
+          ig_user_id: string
+          ig_username?: string | null
+          instagram_account_id: string
+          last_message_at?: string | null
+          last_message_preview?: string | null
+          unread_count?: number
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          ig_profile_pic_url?: string | null
+          ig_user_id?: string
+          ig_username?: string | null
+          instagram_account_id?: string
+          last_message_at?: string | null
+          last_message_preview?: string | null
+          unread_count?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instagram_conversations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instagram_conversations_instagram_account_id_fkey"
+            columns: ["instagram_account_id"]
+            isOneToOne: false
+            referencedRelation: "instagram_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      instagram_keyword_triggers: {
+        Row: {
+          client_id: string | null
+          company_id: string
+          created_at: string
+          flow_id: string
+          id: string
+          instagram_account_id: string
+          is_active: boolean
+          keywords: string[]
+          match_mode: string
+          trigger_name: string
+          updated_at: string
+        }
+        Insert: {
+          client_id?: string | null
+          company_id: string
+          created_at?: string
+          flow_id: string
+          id?: string
+          instagram_account_id: string
+          is_active?: boolean
+          keywords?: string[]
+          match_mode?: string
+          trigger_name: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string | null
+          company_id?: string
+          created_at?: string
+          flow_id?: string
+          id?: string
+          instagram_account_id?: string
+          is_active?: boolean
+          keywords?: string[]
+          match_mode?: string
+          trigger_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instagram_keyword_triggers_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instagram_keyword_triggers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instagram_keyword_triggers_flow_id_fkey"
+            columns: ["flow_id"]
+            isOneToOne: false
+            referencedRelation: "instagram_automation_flows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instagram_keyword_triggers_instagram_account_id_fkey"
+            columns: ["instagram_account_id"]
+            isOneToOne: false
+            referencedRelation: "instagram_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      instagram_messages: {
+        Row: {
+          company_id: string
+          content: string | null
+          conversation_id: string
+          created_at: string
+          direction: string
+          external_id: string | null
+          id: string
+          media_url: string | null
+          message_type: string
+          sent_at: string
+          status: string | null
+        }
+        Insert: {
+          company_id: string
+          content?: string | null
+          conversation_id: string
+          created_at?: string
+          direction: string
+          external_id?: string | null
+          id?: string
+          media_url?: string | null
+          message_type?: string
+          sent_at?: string
+          status?: string | null
+        }
+        Update: {
+          company_id?: string
+          content?: string | null
+          conversation_id?: string
+          created_at?: string
+          direction?: string
+          external_id?: string | null
+          id?: string
+          media_url?: string | null
+          message_type?: string
+          sent_at?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instagram_messages_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instagram_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "instagram_conversations"
             referencedColumns: ["id"]
           },
         ]

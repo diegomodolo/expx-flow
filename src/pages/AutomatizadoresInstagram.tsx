@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -8,15 +8,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/CompanyContext";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Instagram, Plus, ArrowLeft, Loader2, Settings, Clock, Calendar } from "lucide-react";
+import { Instagram, Plus, ArrowLeft, Loader2, Settings, Clock, Calendar, MessageSquare } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { InstagramKeywordAutomation } from "@/components/instagram/InstagramKeywordAutomation";
 
 const DAYS_OF_WEEK = [
   { value: 0, label: 'Dom' },
@@ -171,99 +173,118 @@ export default function AutomatizadoresInstagram() {
                 <Instagram className="w-6 h-6" />
                 Automatizadores Instagram
               </h1>
-              <p className="text-muted-foreground">Gerencie suas automações de postagens no Instagram</p>
+              <p className="text-muted-foreground">Gerencie suas automações do Instagram</p>
             </div>
           </div>
-          <Button onClick={() => setIsCreateOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Nova Automação
-          </Button>
         </div>
 
-        {isLoading ? (
-          <div className="flex items-center justify-center h-64">
-            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-          </div>
-        ) : automations && automations.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {automations.map((automation: any) => (
-              <Card
-                key={automation.id}
-                className="cursor-pointer hover:shadow-md transition-shadow"
-                onClick={() => navigate(`/automatizadores/instagram/${automation.id}`)}
-              >
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      {automation.instagram_accounts?.profile_picture_url ? (
-                        <img
-                          src={automation.instagram_accounts.profile_picture_url}
-                          alt=""
-                          className="w-10 h-10 rounded-full"
-                        />
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                          <Instagram className="w-5 h-5 text-white" />
-                        </div>
-                      )}
-                      <div>
-                        <CardTitle className="text-base">
-                          {automation.name || `@${automation.instagram_accounts?.username}`}
-                        </CardTitle>
-                        {automation.name && automation.instagram_accounts?.username && (
-                          <p className="text-sm text-muted-foreground">
-                            @{automation.instagram_accounts.username}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <Badge variant={automation.is_enabled ? "default" : "secondary"}>
-                      {automation.is_enabled ? "Ativo" : "Inativo"}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <p className="text-sm text-muted-foreground line-clamp-2">
-                    {automation.post_briefing}
-                  </p>
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                    <div className="flex items-center gap-1">
-                      <Calendar className="w-3 h-3" />
-                      {automation.scheduled_days?.length || 0} dias
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      {automation.scheduled_hours?.length || 0} horários
-                    </div>
-                  </div>
-                  {automation.last_post_at && (
-                    <p className="text-xs text-muted-foreground">
-                      Último post: {format(new Date(automation.last_post_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-16">
-              <div className="p-4 rounded-full bg-muted mb-4">
-                <Instagram className="w-8 h-8 text-muted-foreground" />
-              </div>
-              <h3 className="text-lg font-medium mb-2">Nenhuma automação criada</h3>
-              <p className="text-muted-foreground text-center mb-4">
-                Crie sua primeira automação para começar a postar automaticamente no Instagram
-              </p>
+        <Tabs defaultValue="posts">
+          <TabsList>
+            <TabsTrigger value="posts" className="flex items-center gap-2">
+              <Settings className="w-4 h-4" /> Postagens Auto
+            </TabsTrigger>
+            <TabsTrigger value="dm" className="flex items-center gap-2">
+              <MessageSquare className="w-4 h-4" /> Automação por DM
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="posts" className="pt-4">
+            <div className="flex justify-end mb-4">
               <Button onClick={() => setIsCreateOpen(true)}>
                 <Plus className="w-4 h-4 mr-2" />
-                Criar Automação
+                Nova Automação
               </Button>
-            </CardContent>
-          </Card>
-        )}
+            </div>
+            {isLoading ? (
+              <div className="flex items-center justify-center h-64">
+                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : automations && automations.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {automations.map((automation: any) => (
+                  <Card
+                    key={automation.id}
+                    className="cursor-pointer hover:shadow-md transition-shadow"
+                    onClick={() => navigate(`/automatizadores/instagram/${automation.id}`)}
+                  >
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          {automation.instagram_accounts?.profile_picture_url ? (
+                            <img
+                              src={automation.instagram_accounts.profile_picture_url}
+                              alt=""
+                              className="w-10 h-10 rounded-full"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/70 to-primary flex items-center justify-center">
+                              <Instagram className="w-5 h-5 text-primary-foreground" />
+                            </div>
+                          )}
+                          <div>
+                            <CardTitle className="text-base">
+                              {automation.name || `@${automation.instagram_accounts?.username}`}
+                            </CardTitle>
+                            {automation.name && automation.instagram_accounts?.username && (
+                              <p className="text-sm text-muted-foreground">
+                                @{automation.instagram_accounts.username}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <Badge variant={automation.is_enabled ? "default" : "secondary"}>
+                          {automation.is_enabled ? "Ativo" : "Inativo"}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <p className="text-sm text-muted-foreground line-clamp-2">
+                        {automation.post_briefing}
+                      </p>
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <Calendar className="w-3 h-3" />
+                          {automation.scheduled_days?.length || 0} dias
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {automation.scheduled_hours?.length || 0} horários
+                        </div>
+                      </div>
+                      {automation.last_post_at && (
+                        <p className="text-xs text-muted-foreground">
+                          Último post: {format(new Date(automation.last_post_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-16">
+                  <div className="p-4 rounded-full bg-muted mb-4">
+                    <Instagram className="w-8 h-8 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-lg font-medium mb-2">Nenhuma automação criada</h3>
+                  <p className="text-muted-foreground text-center mb-4">
+                    Crie sua primeira automação para começar a postar automaticamente no Instagram
+                  </p>
+                  <Button onClick={() => setIsCreateOpen(true)}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Criar Automação
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
 
-        {/* Create Dialog */}
+          <TabsContent value="dm" className="pt-4">
+            <InstagramKeywordAutomation />
+          </TabsContent>
+        </Tabs>
+
+
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>

@@ -3,6 +3,15 @@ project_id = "ejwpfztkspbvmuwwiwmk"
 [functions.dm-agent-responder]
 verify_jwt = false
 
+[functions.instagram-messaging-webhook]
+verify_jwt = false
+
+[functions.send-instagram-message]
+verify_jwt = false
+
+[functions.instagram-automation-executor]
+verify_jwt = false
+
 [functions.tv-dashboard-data]
 verify_jwt = false
 
