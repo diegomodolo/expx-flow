@@ -8,10 +8,13 @@ export interface InternalChannel {
   id: string;
   company_id: string;
   name: string;
-  channel_type: 'squad' | 'client' | 'general';
+  channel_type: 'squad' | 'client' | 'general' | 'dm';
   reference_id: string | null;
   icon: string | null;
   created_at: string;
+  // DM-specific extras (populated client-side)
+  dm_user_id?: string;
+  dm_user_avatar?: string;
 }
 
 export interface InternalMessage {
@@ -270,6 +273,49 @@ export function useInternalChat() {
 
   const activeChannel = channels.find(c => c.id === activeChannelId) || null;
 
+  /**
+   * Get or create a DM channel between the current user and another user.
+   * Returns the channel id.
+   */
+  const getOrCreateDMChannel = async (otherUserId: string, otherUserName: string): Promise<string | null> => {
+    if (!companyId || !user?.id) return null;
+    const pair = [user.id, otherUserId].sort().join(':');
+
+    // Check if DM channel already exists
+    const { data: existing } = await supabase
+      .from('internal_channels')
+      .select('id')
+      .eq('company_id', companyId)
+      .eq('channel_type', 'dm')
+      .eq('reference_id', pair)
+      .maybeSingle();
+
+    if (existing) return existing.id;
+
+    // Create new DM channel
+    const { data: created, error } = await supabase
+      .from('internal_channels')
+      .insert({
+        company_id: companyId,
+        name: otherUserName,
+        channel_type: 'dm',
+        reference_id: pair,
+        icon: '💬',
+      })
+      .select('id')
+      .single();
+
+    if (error) {
+      console.error('Failed to create DM channel:', error);
+      return null;
+    }
+
+    // Invalidate channels cache so the new DM appears in the sidebar
+    queryClient.invalidateQueries({ queryKey: ['internal-channels', companyId] });
+
+    return created.id;
+  };
+
   return {
     channels,
     channelsLoading,
@@ -280,5 +326,6 @@ export function useInternalChat() {
     messagesLoading,
     sendMessage: (content: string, threadParentId?: string) => sendMessage.mutate({ content, threadParentId }),
     sendingMessage: sendMessage.isPending,
+    getOrCreateDMChannel,
   };
 }
