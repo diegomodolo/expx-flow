@@ -118,6 +118,46 @@ Deno.serve(async (req) => {
 
     console.log('Report created successfully:', reportData.id);
 
+    // ── Fase 3: Notificar usuários da empresa sobre o novo lead desqualificado ──
+    try {
+      // Buscar todos os membros da empresa para notificar
+      const { data: members } = await supabase
+        .from('company_members')
+        .select('user_id')
+        .eq('company_id', tokenData.company_id);
+
+      if (members && members.length > 0) {
+        const notifications = members.map((m: { user_id: string }) => ({
+          company_id: tokenData.company_id,
+          user_id: m.user_id,
+          type: 'lead_disqualified',
+          title: `Lead desqualificado — ${clientData.name}`,
+          body: `Motivo: ${disqualification_reason}. Reportado por: ${reporter_name}`,
+          priority: 'high',
+          action_url: `/leads-desqualificados`,
+          action_metadata: {
+            report_id: reportData.id,
+            client_id: tokenData.client_id,
+          },
+          source_type: 'lead_report',
+          source_id: reportData.id,
+        }));
+
+        const { error: notifError } = await supabase
+          .from('user_notifications')
+          .insert(notifications);
+
+        if (notifError) {
+          console.error('Error inserting notifications:', notifError);
+        } else {
+          console.log(`Notified ${notifications.length} users about new lead disqualification`);
+        }
+      }
+    } catch (notifErr) {
+      console.error('Error creating notifications:', notifErr);
+      // Não falha o processo principal
+    }
+
     return new Response(
       JSON.stringify({ 
         success: true, 
