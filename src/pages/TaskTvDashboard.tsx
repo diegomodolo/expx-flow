@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import {
-  useTaskTvDashboard, ActiveSession, CollaboratorRanking, TaskItem, SquadTvRanking, CompletionTrendDay
+  useTaskTvDashboard, ActiveSession, CollaboratorRanking, TaskItem, SquadTvRanking, CompletionTrendDay, HourlyTrendPoint
 } from '@/hooks/useTaskTvDashboard';
 import { useCompany } from '@/contexts/CompanyContext';
 import {
@@ -406,6 +406,91 @@ function CompletionTrendChart({ data }: { data: CompletionTrendDay[] }) {
   );
 }
 
+// ---- Hourly Trend Chart (today) ----
+function HourlyTrendChart({ data }: { data: HourlyTrendPoint[] }) {
+  const maxVal = Math.max(...data.map(d => d.count), 1);
+  const totalToday = data.reduce((s, d) => s + d.count, 0);
+  const currentHourData = data.find(d => d.isCurrent);
+
+  return (
+    <div className="rounded-xl border border-white/10 bg-white/5 p-5 flex flex-col gap-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Clock className="w-4 h-4 text-blue-400" />
+          <h3 className="text-xs font-bold uppercase tracking-wider text-gray-300">Ritmo por Hora</h3>
+          <span className="text-xs text-gray-600">· hoje</span>
+        </div>
+        <div className="flex items-center gap-3">
+          {currentHourData && (
+            <span className="text-xs text-blue-400 font-semibold">
+              {currentHourData.count} nesta hora
+            </span>
+          )}
+          <span className="text-xs text-gray-500">Total: {totalToday}</span>
+        </div>
+      </div>
+      <div className="h-28">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data} margin={{ top: 0, right: 0, left: -28, bottom: 0 }}>
+            <defs>
+              <linearGradient id="hourBarGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%"  stopColor="#3b82f6" stopOpacity={0.9} />
+                <stop offset="95%" stopColor="#1d4ed8" stopOpacity={0.6} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+            <XAxis
+              dataKey="hour"
+              tick={{ fontSize: 9, fill: '#6b7280' }}
+              axisLine={false}
+              tickLine={false}
+              interval={data.length > 12 ? 1 : 0}
+            />
+            <YAxis
+              tick={{ fontSize: 9, fill: '#6b7280' }}
+              axisLine={false}
+              tickLine={false}
+              allowDecimals={false}
+            />
+            <RechartTooltip
+              contentStyle={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 12 }}
+              labelStyle={{ color: '#9ca3af' }}
+              itemStyle={{ color: '#3b82f6' }}
+              formatter={(v: any) => [`${v} tarefas`, 'Concluídas']}
+            />
+            <Bar dataKey="count" radius={[4, 4, 0, 0]} maxBarSize={28}>
+              {data.map((entry, idx) => (
+                <Cell
+                  key={idx}
+                  fill={entry.isCurrent ? '#60a5fa' : entry.count === maxVal && maxVal > 0 ? '#3b82f6' : 'url(#hourBarGrad)'}
+                  opacity={entry.count === 0 ? 0.2 : 1}
+                />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+      {/* Hour summary chips */}
+      {data.some(d => d.count > 0) && (
+        <div className="flex flex-wrap gap-1.5">
+          {data.filter(d => d.count > 0).map(d => (
+            <span
+              key={d.hour}
+              className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                d.isCurrent
+                  ? 'bg-blue-500/30 text-blue-200 ring-1 ring-blue-400/50'
+                  : 'bg-white/5 text-gray-400'
+              }`}
+            >
+              {d.hour}: {d.count}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ---- Squad Ranking Card ----
 function SquadRankCard({ squad, pos }: { squad: SquadTvRanking; pos: number }) {
   const scoreColor = squad.productivityScore >= 70 ? '#10b981' : squad.productivityScore >= 40 ? '#f59e0b' : '#ef4444';
@@ -766,9 +851,12 @@ export default function TaskTvDashboard() {
               description="Combina regularidade e qualidade para medir eficiência geral." />
           </div>
 
-          {/* ---- TREND CHART ---- */}
+          {/* ---- TREND CHARTS (diário + horário lado a lado) ---- */}
           {data.completionTrend.length > 0 && (
-            <CompletionTrendChart data={data.completionTrend} />
+            <div className="grid grid-cols-2 gap-4">
+              <CompletionTrendChart data={data.completionTrend} />
+              <HourlyTrendChart data={data.hourlyTrend} />
+            </div>
           )}
 
           {/* ---- EXECUTANDO AGORA — linha completa, só aparece se houver sessões ---- */}

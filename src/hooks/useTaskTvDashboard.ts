@@ -63,6 +63,12 @@ export interface CompletionTrendDay {
   count: number;
 }
 
+export interface HourlyTrendPoint {
+  hour: string;  // "HH:00"
+  count: number;
+  isCurrent: boolean;
+}
+
 export interface TaskTvData {
   openTasks: number;
   overdueTasks: number;
@@ -78,6 +84,7 @@ export interface TaskTvData {
   rankings: CollaboratorRanking[];
   squadRankings: SquadTvRanking[];
   completionTrend: CompletionTrendDay[];
+  hourlyTrend: HourlyTrendPoint[];
   lastSync: Date;
   // Lists for modal drill-down
   openTasksList: TaskItem[];
@@ -201,6 +208,24 @@ export function useTaskTvDashboard(refreshMs = 30_000) {
           count,
         };
       });
+
+      // --- Hourly trend (today, hour by hour up to current hour) ---
+      const currentHour = now.getHours();
+      const hourlyMap = new Map<number, number>();
+      for (let h = 0; h <= currentHour; h++) hourlyMap.set(h, 0);
+
+      (completedTodayRes.data || []).forEach((t: any) => {
+        if (t.updated_at) {
+          const h = new Date(t.updated_at).getHours();
+          if (hourlyMap.has(h)) hourlyMap.set(h, (hourlyMap.get(h) || 0) + 1);
+        }
+      });
+
+      const hourlyTrend: HourlyTrendPoint[] = Array.from(hourlyMap.entries()).map(([h, count]) => ({
+        hour: `${String(h).padStart(2, '0')}h`,
+        count,
+        isCurrent: h === currentHour,
+      }));
 
       // --- Indicators ---
       const onTime = tasks.filter(t => {
@@ -408,6 +433,7 @@ export function useTaskTvDashboard(refreshMs = 30_000) {
         rankings,
         squadRankings,
         completionTrend,
+        hourlyTrend,
         lastSync: new Date(),
         openTasksList,
         overdueTasksList,
