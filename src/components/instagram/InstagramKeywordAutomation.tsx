@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/CompanyContext";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -39,7 +39,6 @@ export function InstagramKeywordAutomation() {
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [copiedToken, setCopiedToken] = useState(false);
   const [savingToken, setSavingToken] = useState(false);
-  const [selectedTokenAccountId, setSelectedTokenAccountId] = useState<string>("");
 
   // Form state
   const [triggerName, setTriggerName] = useState("");
@@ -57,8 +56,46 @@ export function InstagramKeywordAutomation() {
     return token;
   };
 
+  // Global verify token — stored in whatsapp_configs (already checked by the webhook)
+  const { data: waConfig, refetch: refetchWaConfig } = useQuery({
+    queryKey: ["whatsapp-config-verify-token", companyId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("whatsapp_configs")
+        .select("id, meta_webhook_verify_token")
+        .eq("company_id", companyId!)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!companyId,
+  });
 
-  const { data: instagramAccounts, refetch: refetchAccounts } = useQuery({
+  const globalVerifyToken = (waConfig as any)?.meta_webhook_verify_token ?? "";
+
+  const saveGlobalVerifyToken = async () => {
+    setSavingToken(true);
+    try {
+      const newToken = generateToken();
+      if (waConfig) {
+        await supabase
+          .from("whatsapp_configs")
+          .update({ meta_webhook_verify_token: newToken } as any)
+          .eq("id", (waConfig as any).id);
+      } else {
+        await supabase
+          .from("whatsapp_configs")
+          .insert({ company_id: companyId!, meta_webhook_verify_token: newToken } as any);
+      }
+      await refetchWaConfig();
+      toast({ title: "Token gerado e salvo!", description: "Copie e cole no campo 'Verificar Token' do Meta for Developers." });
+    } catch (err: any) {
+      toast({ title: "Erro ao salvar token", description: err.message, variant: "destructive" });
+    } finally {
+      setSavingToken(false);
+    }
+  };
+
+  const { data: instagramAccounts } = useQuery({
     queryKey: ["company-instagram-accounts", companyId],
     queryFn: async () => {
       const { data, error } = await supabase.from("instagram_accounts").select("*").eq("company_id", companyId!);
@@ -67,25 +104,6 @@ export function InstagramKeywordAutomation() {
     },
     enabled: !!companyId,
   });
-
-  const saveVerifyToken = async (accountId: string, token: string) => {
-    setSavingToken(true);
-    try {
-      const { error } = await supabase
-        .from("instagram_accounts")
-        .update({ webhook_verify_token: token } as any)
-        .eq("id", accountId);
-      if (error) throw error;
-      await refetchAccounts();
-      toast({ title: "Token salvo!", description: "O Verificar Token foi salvo na conta do Instagram." });
-    } catch (err: any) {
-      toast({ title: "Erro ao salvar token", description: err.message, variant: "destructive" });
-    } finally {
-      setSavingToken(false);
-    }
-  };
-
-
 
   const { data: flows } = useQuery({
     queryKey: ["instagram-automation-flows", companyId],
@@ -107,11 +125,7 @@ export function InstagramKeywordAutomation() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("instagram_keyword_triggers")
-        .select(`
-          *,
-          instagram_automation_flows(flow_name, flow_data),
-          instagram_accounts(username)
-        `)
+        .select(`*, instagram_automation_flows(flow_name, flow_data), instagram_accounts(username)`)
         .eq("company_id", companyId!)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -223,10 +237,11 @@ export function InstagramKeywordAutomation() {
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Zap className="w-4 h-4 text-primary" />
-            Webhook do Instagram
+            Configuração do Webhook Meta
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* URL de Callback */}
           <div className="space-y-1.5">
             <Label className="text-xs text-muted-foreground">URL de Callback</Label>
             <div className="flex items-center gap-2">
@@ -246,66 +261,53 @@ export function InstagramKeywordAutomation() {
             </div>
           </div>
 
-          {/* Verify Token per account */}
-          {instagramAccounts && instagramAccounts.length > 0 && (
-            <div className="space-y-3 border-t pt-3">
-              <Label className="text-xs text-muted-foreground">Verificar Token (por conta)</Label>
-              {instagramAccounts.map((acc: any) => {
-                const currentToken = acc.webhook_verify_token || "";
-                return (
-                  <div key={acc.id} className="space-y-1.5">
-                    <p className="text-xs font-medium">@{acc.username}</p>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        className="text-xs font-mono h-8"
-                        value={selectedTokenAccountId === acc.id ? (acc.webhook_verify_token || "") : currentToken}
-                        readOnly
-                        placeholder="Nenhum token gerado"
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        title="Gerar novo token"
-                        onClick={async () => {
-                          const newToken = generateToken();
-                          setSelectedTokenAccountId(acc.id);
-                          await saveVerifyToken(acc.id, newToken);
-                        }}
-                        disabled={savingToken}
-                      >
-                        <RefreshCw className={`w-4 h-4 ${savingToken && selectedTokenAccountId === acc.id ? "animate-spin" : ""}`} />
-                      </Button>
-                      {currentToken && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          title="Copiar token"
-                          onClick={() => {
-                            navigator.clipboard.writeText(currentToken);
-                            setCopiedToken(true);
-                            setTimeout(() => setCopiedToken(false), 2000);
-                            toast({ title: "Token copiado!" });
-                          }}
-                        >
-                          {copiedToken ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-              <p className="text-xs text-muted-foreground">
-                Clique em <RefreshCw className="inline w-3 h-3" /> para gerar e salvar um token automaticamente. Depois copie e cole no campo "Verificar Token" do Meta for Developers.
-              </p>
+          {/* Token único global */}
+          <div className="space-y-1.5 border-t pt-4">
+            <Label className="text-xs text-muted-foreground">Verificar Token (único para todas as contas)</Label>
+            <p className="text-xs text-muted-foreground">
+              Este token é usado pelo Meta para verificar o webhook. É o mesmo para todas as suas contas do Instagram.
+            </p>
+            <div className="flex items-center gap-2">
+              <Input
+                className="text-xs font-mono h-9"
+                value={globalVerifyToken}
+                readOnly
+                placeholder="Clique em 'Gerar Token' para criar um token"
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={saveGlobalVerifyToken}
+                disabled={savingToken}
+                title="Gerar novo token"
+              >
+                <RefreshCw className={`w-4 h-4 ${savingToken ? "animate-spin" : ""}`} />
+              </Button>
+              {globalVerifyToken && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  title="Copiar token"
+                  onClick={() => {
+                    navigator.clipboard.writeText(globalVerifyToken);
+                    setCopiedToken(true);
+                    setTimeout(() => setCopiedToken(false), 2000);
+                    toast({ title: "Token copiado!" });
+                  }}
+                >
+                  {copiedToken ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                </Button>
+              )}
             </div>
-          )}
-
-          {(!instagramAccounts || instagramAccounts.length === 0) && (
-            <p className="text-xs text-muted-foreground">Conecte uma conta do Instagram para configurar o token de verificação.</p>
-          )}
+            {!globalVerifyToken && (
+              <Button size="sm" onClick={saveGlobalVerifyToken} disabled={savingToken} className="w-full mt-1">
+                <RefreshCw className={`w-4 h-4 mr-2 ${savingToken ? "animate-spin" : ""}`} />
+                Gerar Token
+              </Button>
+            )}
+          </div>
         </CardContent>
       </Card>
-
 
       {/* Flows Section */}
       <div className="flex items-center justify-between">
@@ -432,7 +434,7 @@ export function InstagramKeywordAutomation() {
               {logs.map((log: any) => (
                 <div key={log.id} className="flex items-center justify-between text-xs bg-muted/50 rounded px-3 py-2">
                   <span className="text-muted-foreground">{new Date(log.executed_at).toLocaleString("pt-BR")}</span>
-                  <span>Usuário: {log.ig_user_id.substring(0, 12)}...</span>
+                  <span>Usuário: {log.ig_user_id?.substring(0, 12)}...</span>
                   <span>Palavra: <strong>{log.matched_keyword}</strong></span>
                   <Badge variant={log.status === "completed" ? "default" : "destructive"} className="text-xs">
                     {log.status}
@@ -507,15 +509,12 @@ export function InstagramKeywordAutomation() {
       </Dialog>
 
       {/* Flow Editor Dialog */}
-      <Dialog open={isFlowDialogOpen} onOpenChange={setIsFlowDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Editor de Fluxos de Mensagens</DialogTitle>
-            <DialogDescription>Crie ou edite sequências de mensagens e delays</DialogDescription>
-          </DialogHeader>
-          <InstagramFlowEditor companyId={companyId!} onClose={() => { setIsFlowDialogOpen(false); queryClient.invalidateQueries({ queryKey: ["instagram-automation-flows"] }); }} />
-        </DialogContent>
-      </Dialog>
+      {isFlowDialogOpen && (
+        <InstagramFlowEditor
+          companyId={companyId!}
+          onClose={() => setIsFlowDialogOpen(false)}
+        />
+      )}
     </div>
   );
 }
