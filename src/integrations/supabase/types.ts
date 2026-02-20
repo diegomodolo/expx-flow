@@ -13379,6 +13379,62 @@ export type Database = {
           },
         ]
       }
+      user_notifications: {
+        Row: {
+          action_metadata: Json | null
+          action_url: string | null
+          body: string | null
+          company_id: string
+          created_at: string
+          id: string
+          is_read: boolean
+          priority: string
+          source_id: string | null
+          source_type: string
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          action_metadata?: Json | null
+          action_url?: string | null
+          body?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          priority?: string
+          source_id?: string | null
+          source_type?: string
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          action_metadata?: Json | null
+          action_url?: string | null
+          body?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          priority?: string
+          source_id?: string | null
+          source_type?: string
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_notifications_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       value_statements: {
         Row: {
           approval_notes: string | null
