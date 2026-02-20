@@ -5560,6 +5560,8 @@ export type Database = {
           notify_task_completed: boolean
           notify_task_created: boolean
           notify_task_overdue: boolean
+          notify_task_rejected: boolean
+          notify_task_review: boolean
           updated_at: string
         }
         Insert: {
@@ -5581,6 +5583,8 @@ export type Database = {
           notify_task_completed?: boolean
           notify_task_created?: boolean
           notify_task_overdue?: boolean
+          notify_task_rejected?: boolean
+          notify_task_review?: boolean
           updated_at?: string
         }
         Update: {
@@ -5602,6 +5606,8 @@ export type Database = {
           notify_task_completed?: boolean
           notify_task_created?: boolean
           notify_task_overdue?: boolean
+          notify_task_rejected?: boolean
+          notify_task_review?: boolean
           updated_at?: string
         }
         Relationships: [
@@ -12907,6 +12913,67 @@ export type Database = {
           },
         ]
       }
+      task_review_history: {
+        Row: {
+          action: string
+          comment: string | null
+          company_id: string
+          created_at: string
+          id: string
+          quality_after: number
+          quality_before: number
+          rejection_reason: string | null
+          reviewer_employee_id: string
+          task_id: string
+        }
+        Insert: {
+          action: string
+          comment?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          quality_after: number
+          quality_before: number
+          rejection_reason?: string | null
+          reviewer_employee_id: string
+          task_id: string
+        }
+        Update: {
+          action?: string
+          comment?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          quality_after?: number
+          quality_before?: number
+          rejection_reason?: string | null
+          reviewer_employee_id?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_review_history_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_review_history_reviewer_employee_id_fkey"
+            columns: ["reviewer_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_review_history_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_time_tracking: {
         Row: {
           company_id: string
@@ -12991,6 +13058,7 @@ export type Database = {
           responsible_name: string
           start_date: string | null
           status: Database["public"]["Enums"]["task_status"]
+          task_quality_score: number
           task_state: Database["public"]["Enums"]["task_state"]
           task_type: string
           team_id: string
@@ -13031,6 +13099,7 @@ export type Database = {
           responsible_name: string
           start_date?: string | null
           status?: Database["public"]["Enums"]["task_status"]
+          task_quality_score?: number
           task_state?: Database["public"]["Enums"]["task_state"]
           task_type?: string
           team_id: string
@@ -13071,6 +13140,7 @@ export type Database = {
           responsible_name?: string
           start_date?: string | null
           status?: Database["public"]["Enums"]["task_status"]
+          task_quality_score?: number
           task_state?: Database["public"]["Enums"]["task_state"]
           task_type?: string
           team_id?: string

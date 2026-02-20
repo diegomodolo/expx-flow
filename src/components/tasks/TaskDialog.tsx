@@ -39,6 +39,7 @@ import { TaskTimeTrackingTab } from "./TaskTimeTrackingTab";
 import { handleAutoTimeTracking } from "@/utils/autoTimeTracking";
 import { ImportChecklistTemplateModal } from "@/components/checklist-templates/ImportChecklistTemplateModal";
 import { TaskOutputPanel } from "./TaskOutputPanel";
+import { TaskReviewPanel } from "./TaskReviewPanel";
 import { cn } from "@/lib/utils";
 
 export type TaskDialogMode = 'kanban' | 'roteiro';
@@ -561,6 +562,17 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
       // Auto time tracking: start when moving TO progress, stop when moving FROM progress
       if (task.status !== formData.status) {
         await handleAutoTimeTracking(task.id, task.status, formData.status, authUserId || user?.id, companyId);
+        // Discord notification when moving to review
+        if (formData.status === 'review' && activeCompany?.company_id) {
+          const { sendDiscordTaskNotification: notify } = await import('@/hooks/useDiscordNotifications');
+          notify(activeCompany.company_id, 'task_review', {
+            title: formData.title,
+            responsible_name: formData.responsible_name,
+            priority: formData.priority,
+            due_date: formData.due_date?.toISOString(),
+            team_id: formData.team_id,
+          });
+        }
       }
     }
 
@@ -1407,6 +1419,17 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                         </div>
                         <Separator />
                       </>
+                    )}
+
+                    {/* Review Panel – visible for all tasks with an ID */}
+                    {!isRoteiro && task?.id && (
+                      <TaskReviewPanel
+                        task={{ ...task, status: formData.status, task_quality_score: task.task_quality_score }}
+                        onTaskUpdated={() => {
+                          // Close dialog after approve/reject to force refresh
+                          onOpenChange(false);
+                        }}
+                      />
                     )}
 
                     {/* Descrição */}
