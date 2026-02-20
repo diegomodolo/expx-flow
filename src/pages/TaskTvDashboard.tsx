@@ -680,7 +680,24 @@ export default function TaskTvDashboard() {
             <CompletionTrendChart data={data.completionTrend} />
           )}
 
-          {/* ---- SQUADS + EXECUTING + RANKINGS ---- */}
+          {/* ---- EXECUTANDO AGORA — linha completa, só aparece se houver sessões ---- */}
+          {data.activeSessions.length > 0 && (
+            <div className="flex flex-col gap-3 rounded-xl border border-emerald-500/25 bg-emerald-500/5 p-4">
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-300">
+                  Executando Agora — {data.executingNow} sessão{data.executingNow !== 1 ? 'ões' : ''} ativa{data.executingNow !== 1 ? 's' : ''}
+                </h2>
+              </div>
+              <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${Math.min(data.activeSessions.length, 4)}, minmax(0, 1fr))` }}>
+                {data.activeSessions.map(s => (
+                  <SessionCard key={s.session_id} session={s} onOpenTask={openTask} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ---- SQUADS + RANKINGS ---- */}
           <div className="grid grid-cols-12 gap-4">
             {/* Squad Ranking */}
             {data.squadRankings.length > 0 && (
@@ -694,41 +711,13 @@ export default function TaskTvDashboard() {
                     <SquadRankCard key={sq.team_id} squad={sq} pos={i} />
                   ))}
                 </div>
-                {data.squadRankings.length === 0 && (
-                  <p className="text-xs text-gray-600 text-center py-4">Squads sem dados suficientes</p>
-                )}
               </div>
             )}
-
-            {/* Active sessions */}
-            <div className={cn(
-              'flex flex-col gap-3',
-              data.squadRankings.length > 0 ? 'col-span-3' : 'col-span-4'
-            )}>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <h2 className="text-sm font-bold uppercase tracking-wider text-gray-300">
-                  Executando Agora ({data.executingNow})
-                </h2>
-              </div>
-              <div className="flex flex-col gap-3 overflow-y-auto max-h-72 pr-1">
-                {data.activeSessions.length === 0 ? (
-                  <div className="rounded-xl border border-white/10 bg-white/5 p-6 flex flex-col items-center gap-2">
-                    <Zap className="w-8 h-8 text-gray-600" />
-                    <p className="text-sm text-gray-500">Nenhuma sessão ativa</p>
-                  </div>
-                ) : (
-                  data.activeSessions.map(s => (
-                    <SessionCard key={s.session_id} session={s} onOpenTask={openTask} />
-                  ))
-                )}
-              </div>
-            </div>
 
             {/* Rankings */}
             <div className={cn(
               'grid grid-cols-3 gap-4',
-              data.squadRankings.length > 0 ? 'col-span-6' : 'col-span-8'
+              data.squadRankings.length > 0 ? 'col-span-9' : 'col-span-12'
             )}>
               {/* Top Performers */}
               <div className="rounded-xl border border-white/10 bg-white/5 p-4 flex flex-col gap-2">
