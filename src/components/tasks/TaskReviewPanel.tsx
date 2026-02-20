@@ -48,31 +48,6 @@ export function TaskReviewPanel({ task, onTaskUpdated }: TaskReviewPanelProps) {
 
   return (
     <div className="space-y-4">
-      {/* Quality Score */}
-      {task?.id && (
-        <div className="rounded-lg border border-border bg-muted/30 p-4">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <Star className="w-4 h-4 text-yellow-500" />
-              <span className="text-sm font-semibold">Qualidade da Tarefa</span>
-            </div>
-            <span className={cn("text-xl font-black tabular-nums", qualityColor)}>
-              {qualityScore.toFixed(0)}%
-            </span>
-          </div>
-          <div className="w-full h-2 rounded-full bg-border overflow-hidden">
-            <div
-              className={cn("h-full rounded-full transition-all duration-700", qualityBg)}
-              style={{ width: `${qualityScore}%` }}
-            />
-          </div>
-          {reviewHistory.length > 0 && (
-            <p className="text-xs text-muted-foreground mt-1.5">
-              {reviewHistory.filter(r => r.action === "rejected").length} rejeição(ões) registrada(s)
-            </p>
-          )}
-        </div>
-      )}
 
       {/* Authorizer Action Block */}
       {isAuthorizer && isInReview && !showRejectForm && (

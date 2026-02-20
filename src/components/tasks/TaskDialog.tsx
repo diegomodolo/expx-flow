@@ -902,6 +902,32 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                     {task.task_state === 'backlog' ? 'Backlog' : task.task_state === 'planejamento' ? 'Planejamento' : 'Execução'}
                   </span>
                 )}
+                {task?.id && (() => {
+                  const score = task.task_quality_score ?? 100;
+                  const scoreColor = score >= 80
+                    ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                    : score >= 60
+                    ? 'bg-yellow-500/15 text-yellow-600 dark:text-yellow-400'
+                    : 'bg-red-500/15 text-red-600 dark:text-red-400';
+                  const tooltipText = score >= 80
+                    ? `Qualidade alta — sem rejeições ou apenas ajustes menores`
+                    : score >= 60
+                    ? `Qualidade média — tarefa teve rejeições significativas`
+                    : `Qualidade baixa — tarefa foi rejeitada várias vezes`;
+                  return (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold cursor-default ${scoreColor}`}>
+                          ⭐ {Number(score).toFixed(0)}%
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="max-w-[200px] text-center">
+                        <p className="font-semibold">Qualidade da Tarefa</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{tooltipText}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  );
+                })()}
               <div className="flex items-center gap-1">
                 <Tooltip>
                   <TooltipTrigger asChild>
