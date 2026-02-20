@@ -536,6 +536,10 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.google-meet-oauth]
+verify_jwt = false
+
+[functions.dm-agent-responder]
+verify_jwt = false
 verify_jwt = true
 
 [functions.agent-task-executor]
