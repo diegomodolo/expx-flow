@@ -187,10 +187,10 @@ function CriticalAlertBanner({ task, onDismiss }: { task: TaskItem; onDismiss: (
 type ModalKind = 'open' | 'overdue' | 'completed' | 'review' | null;
 
 const modalConfig: Record<Exclude<ModalKind, null>, { title: string; icon: any; color: string }> = {
-  open:      { title: 'Tarefas em Aberto',      icon: Clock,           color: 'text-blue-400' },
+  open:      { title: 'Tarefas em Aberto',      icon: Clock,           color: 'text-gray-300' },
   overdue:   { title: 'Tarefas em Atraso',      icon: AlertTriangle,   color: 'text-red-400'  },
   completed: { title: 'Concluídas Hoje',        icon: CheckCircle2,    color: 'text-emerald-400' },
-  review:    { title: 'Aguardando Revisão',     icon: ClipboardCheck,  color: 'text-purple-400' },
+  review:    { title: 'Aguardando Revisão',     icon: ClipboardCheck,  color: 'text-yellow-400' },
 };
 
 function TaskListModal({
@@ -416,13 +416,13 @@ function HourlyTrendChart({ data }: { data: HourlyTrendPoint[] }) {
     <div className="rounded-xl border border-white/10 bg-white/5 p-5 flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Clock className="w-4 h-4 text-blue-400" />
+          <Clock className="w-4 h-4 text-gray-400" />
           <h3 className="text-xs font-bold uppercase tracking-wider text-gray-300">Ritmo por Hora</h3>
           <span className="text-xs text-gray-600">· hoje</span>
         </div>
         <div className="flex items-center gap-3">
           {currentHourData && (
-            <span className="text-xs text-blue-400 font-semibold">
+            <span className="text-xs text-gray-300 font-semibold">
               {currentHourData.count} nesta hora
             </span>
           )}
@@ -434,8 +434,8 @@ function HourlyTrendChart({ data }: { data: HourlyTrendPoint[] }) {
           <BarChart data={data} margin={{ top: 0, right: 0, left: -28, bottom: 0 }}>
             <defs>
               <linearGradient id="hourBarGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%"  stopColor="#3b82f6" stopOpacity={0.9} />
-                <stop offset="95%" stopColor="#1d4ed8" stopOpacity={0.6} />
+                <stop offset="5%"  stopColor="#a3a3a3" stopOpacity={0.9} />
+                <stop offset="95%" stopColor="#737373" stopOpacity={0.6} />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
@@ -455,15 +455,15 @@ function HourlyTrendChart({ data }: { data: HourlyTrendPoint[] }) {
             <RechartTooltip
               contentStyle={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 12 }}
               labelStyle={{ color: '#9ca3af' }}
-              itemStyle={{ color: '#3b82f6' }}
+              itemStyle={{ color: '#d4d4d4' }}
               formatter={(v: any) => [`${v} tarefas`, 'Concluídas']}
             />
             <Bar dataKey="count" radius={[4, 4, 0, 0]} maxBarSize={28}>
               {data.map((entry, idx) => (
                 <Cell
                   key={idx}
-                  fill={entry.isCurrent ? '#60a5fa' : entry.count === maxVal && maxVal > 0 ? '#3b82f6' : 'url(#hourBarGrad)'}
-                  opacity={entry.count === 0 ? 0.2 : 1}
+                  fill={entry.isCurrent ? '#ffffff' : entry.count === maxVal && maxVal > 0 ? '#a3a3a3' : 'url(#hourBarGrad)'}
+                  opacity={entry.count === 0 ? 0.15 : 1}
                 />
               ))}
             </Bar>
@@ -478,7 +478,7 @@ function HourlyTrendChart({ data }: { data: HourlyTrendPoint[] }) {
               key={d.hour}
               className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
                 d.isCurrent
-                  ? 'bg-blue-500/30 text-blue-200 ring-1 ring-blue-400/50'
+                  ? 'bg-white/20 text-white ring-1 ring-white/30'
                   : 'bg-white/5 text-gray-400'
               }`}
             >
@@ -823,28 +823,28 @@ export default function TaskTvDashboard() {
 
           {/* ---- KPI ROW — 6 cards ---- */}
           <div className="grid grid-cols-6 gap-4">
-            <KpiCard label="Em Aberto" value={data.openTasks} icon={Clock} color="text-blue-400"
+            <KpiCard label="Em Aberto" value={data.openTasks} icon={Clock} color="text-gray-300"
               sublabel="Clique para ver a lista" onClick={() => setListModal('open')} />
             <KpiCard label="Em Atraso" value={data.overdueTasks} icon={AlertTriangle} color="text-red-400"
               sublabel="Clique para ver a lista" onClick={() => setListModal('overdue')} />
             <KpiCard label="Concluídas Hoje" value={data.completedToday} icon={CheckCircle2} color="text-emerald-400"
               sublabel={`Clique para ver — ${format(new Date(), 'dd/MM')}`} onClick={() => setListModal('completed')} />
-            <KpiCard label="Em Revisão" value={data.reviewTasks} icon={ClipboardCheck} color="text-purple-400"
+            <KpiCard label="Em Revisão" value={data.reviewTasks} icon={ClipboardCheck} color="text-yellow-400"
               sublabel="Aguardando aprovação" onClick={() => setListModal('review')} />
-            <KpiCard label="Executando Agora" value={data.executingNow} icon={Zap} color="text-yellow-400"
+            <KpiCard label="Executando Agora" value={data.executingNow} icon={Zap} color="text-emerald-400"
               sublabel="Sessões ativas" />
             <KpiCard
               label="Horas Rastreadas (7d)"
               value={`${data.hoursTrackedLast7Days}h`}
               icon={Timer}
-              color="text-cyan-400"
+              color="text-gray-300"
               sublabel={`Média ${data.avgHoursPerCollaborator}h/colaborador`}
             />
           </div>
 
           {/* ---- INDICATORS ---- */}
           <div className="grid grid-cols-3 gap-4">
-            <IndicatorBar label="Regularidade" value={data.regularity} color="text-blue-400"
+            <IndicatorBar label="Regularidade" value={data.regularity} color="text-gray-300"
               description="Mede tarefas abertas em relação às que estão dentro do prazo." />
             <IndicatorBar label="Qualidade" value={data.quality} color="text-emerald-400"
               description="Índice de eficiência das tarefas concluídas sem retrabalho." />
@@ -883,7 +883,7 @@ export default function TaskTvDashboard() {
             {data.squadRankings.length > 0 && (
               <div className="col-span-3 rounded-xl border border-white/10 bg-white/5 p-4 flex flex-col gap-1">
                 <div className="flex items-center gap-2 mb-2">
-                  <Users className="w-4 h-4 text-indigo-400" />
+                  <Users className="w-4 h-4 text-gray-400" />
                   <h3 className="text-xs font-bold uppercase tracking-wider text-gray-300">Performance por Squad</h3>
                 </div>
                 <div className="flex flex-col">
