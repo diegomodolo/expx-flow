@@ -5,6 +5,7 @@ import {
   CheckCircle2, Clock, AlertTriangle, Zap, TrendingUp, Award,
   RefreshCw, Wifi, Star, Medal, Trophy, X, ExternalLink, User, Search
 } from 'lucide-react';
+import { RadarTVControls } from '@/components/radar-tv-dashboard/RadarTVControls';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { format, parseISO, isPast } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -127,7 +128,7 @@ function TaskListModal({
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Pesquisar por título ou responsável..."
-            className="w-full bg-white/5 border border-white/10 rounded-lg pl-9 pr-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-white/30 focus:bg-white/8 transition-colors"
+            className="w-full bg-white/5 border border-white/10 rounded-lg pl-9 pr-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-white/30 transition-colors"
             autoFocus
           />
           {search && (
@@ -340,16 +341,40 @@ function RankingRow({ collab, pos, metric }: {
 
 // ---- Main Dashboard ----
 export default function TaskTvDashboard() {
-  const { data, isLoading, isFetching, refetch } = useTaskTvDashboard(30_000);
+  const [refreshInterval, setRefreshInterval] = useState(() => {
+    const saved = localStorage.getItem('task-tv-refresh-interval');
+    return saved ? parseInt(saved) : 30_000;
+  });
+  const [zoom, setZoom] = useState(() => {
+    const saved = localStorage.getItem('task-tv-zoom');
+    return saved ? parseInt(saved) : 100;
+  });
+  const [rotation, setRotation] = useState(() => {
+    const saved = localStorage.getItem('task-tv-rotation');
+    return saved ? parseInt(saved) : 0;
+  });
+
+  const handleZoomChange = (newZoom: number) => {
+    setZoom(newZoom);
+    localStorage.setItem('task-tv-zoom', newZoom.toString());
+  };
+  const handleRotationChange = (newRotation: number) => {
+    setRotation(newRotation);
+    localStorage.setItem('task-tv-rotation', newRotation.toString());
+  };
+  const handleRefreshIntervalChange = (interval: number) => {
+    setRefreshInterval(interval);
+    localStorage.setItem('task-tv-refresh-interval', interval.toString());
+  };
+
+  const { data, isLoading, isFetching, refetch } = useTaskTvDashboard(refreshInterval);
   const { activeCompany } = useCompany();
 
-  // Modal state for KPI cards
   const [listModal, setListModal] = useState<ModalKind>(null);
-  // Task dialog state
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
 
   function openTask(id: string) {
-    setListModal(null); // close list modal first
+    setListModal(null);
     setEditingTaskId(id);
   }
 
@@ -381,182 +406,217 @@ export default function TaskTvDashboard() {
     listModal === 'overdue'   ? data.overdueTasksList :
     listModal === 'completed' ? data.completedTodayList : [];
 
-  // Find the full task object for TaskDialog
   const editingTask = editingTaskId
     ? [...data.openTasksList, ...data.overdueTasksList, ...data.completedTodayList].find(t => t.id === editingTaskId)
     : null;
 
+  const isRotated = rotation === 90 || rotation === 270;
+
   return (
-    <TooltipProvider>
-    <div className="min-h-screen bg-gray-950 text-white p-6 flex flex-col gap-5" style={{ fontFamily: 'system-ui, sans-serif' }}>
-      {/* ---- HEADER ---- */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-black tracking-tight text-white">
-            {activeCompany?.company?.name || 'Dashboard de Tarefas'}
-          </h1>
-          <p className="text-xs text-gray-500 mt-0.5 uppercase tracking-widest">Painel de Operações em Tempo Real</p>
-        </div>
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2 text-xs">
-            {isFetching
-              ? <><RefreshCw className="w-3.5 h-3.5 animate-spin text-emerald-400" /><span className="text-emerald-400">Atualizando...</span></>
-              : <><Wifi className="w-3.5 h-3.5 text-emerald-400" /><span className="text-gray-400">Ao vivo</span></>
-            }
-          </div>
-          <LiveClock />
-        </div>
-      </div>
-
-      {/* ---- KPI ROW ---- */}
-      <div className="grid grid-cols-4 gap-4">
-        <KpiCard label="Em Aberto" value={data.openTasks} icon={Clock} color="text-blue-400"
-          sublabel="Clique para ver a lista"
-          onClick={() => setListModal('open')} />
-        <KpiCard label="Em Atraso" value={data.overdueTasks} icon={AlertTriangle} color="text-red-400"
-          sublabel="Clique para ver a lista"
-          onClick={() => setListModal('overdue')} />
-        <KpiCard label="Concluídas Hoje" value={data.completedToday} icon={CheckCircle2} color="text-emerald-400"
-          sublabel={`Clique para ver — ${format(new Date(), 'dd/MM')}`}
-          onClick={() => setListModal('completed')} />
-        <KpiCard label="Executando Agora" value={data.executingNow} icon={Zap} color="text-yellow-400"
-          sublabel="Sessões ativas" />
-      </div>
-
-      {/* ---- INDICATORS ---- */}
-      <div className="grid grid-cols-3 gap-4">
-        <IndicatorBar label="Regularidade" value={data.regularity} color="text-blue-400"
-          description="Mede tarefas abertas em relação às que estão dentro do prazo." />
-        <IndicatorBar label="Qualidade" value={data.quality} color="text-emerald-400"
-          description="Índice de eficiência das tarefas concluídas sem retrabalho." />
-        <IndicatorBar label="Eficiência" value={data.efficiency} color="text-yellow-400"
-          description="Combina regularidade e qualidade para medir eficiência geral." />
-      </div>
-
-      {/* ---- EXECUTING NOW + RANKINGS ---- */}
-      <div className="grid grid-cols-12 gap-4 flex-1 min-h-0">
-        {/* Active sessions */}
-        <div className="col-span-4 flex flex-col gap-3">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <h2 className="text-sm font-bold uppercase tracking-wider text-gray-300">
-              Executando Agora ({data.executingNow})
-            </h2>
-          </div>
-          <div className="flex flex-col gap-3 overflow-y-auto max-h-72 pr-1">
-            {data.activeSessions.length === 0 ? (
-              <div className="rounded-xl border border-white/10 bg-white/5 p-6 flex flex-col items-center gap-2">
-                <Zap className="w-8 h-8 text-gray-600" />
-                <p className="text-sm text-gray-500">Nenhuma sessão ativa</p>
-              </div>
-            ) : (
-              data.activeSessions.map(s => (
-                <SessionCard key={s.session_id} session={s} onOpenTask={openTask} />
-              ))
-            )}
-          </div>
-        </div>
-
-        {/* Rankings */}
-        <div className="col-span-8 grid grid-cols-3 gap-4">
-          {/* Top Performers */}
-          <div className="rounded-xl border border-white/10 bg-white/5 p-4 flex flex-col gap-2">
-            <div className="flex items-center gap-2 mb-1">
-              <Trophy className="w-4 h-4 text-yellow-400" />
-              <h3 className="text-xs font-bold uppercase tracking-wider text-gray-300">Top Performers</h3>
-            </div>
-            <p className="text-xs text-gray-500 mb-2">Score combinado da última semana</p>
-            <div className="flex-1">
-              {topPerformers.length === 0 ? (
-                <p className="text-xs text-gray-600 text-center py-4">Sem dados suficientes</p>
-              ) : (
-                topPerformers.map((c, i) => <RankingRow key={c.user_id} collab={c} pos={i} metric="score" />)
-              )}
-            </div>
-          </div>
-
-          {/* Top Regularidade */}
-          <div className="rounded-xl border border-white/10 bg-white/5 p-4 flex flex-col gap-2">
-            <div className="flex items-center gap-2 mb-1">
-              <Star className="w-4 h-4 text-blue-400" />
-              <h3 className="text-xs font-bold uppercase tracking-wider text-gray-300">Top Regularidade</h3>
-            </div>
-            <p className="text-xs text-gray-500 mb-2">Tarefas entregues dentro do prazo</p>
-            <div className="flex-1">
-              {topRegularity.length === 0 ? (
-                <p className="text-xs text-gray-600 text-center py-4">Sem dados suficientes</p>
-              ) : (
-                topRegularity.map((c, i) => <RankingRow key={c.user_id} collab={c} pos={i} metric="regularity" />)
-              )}
-            </div>
-          </div>
-
-          {/* Top Eficiência */}
-          <div className="rounded-xl border border-white/10 bg-white/5 p-4 flex flex-col gap-2">
-            <div className="flex items-center gap-2 mb-1">
-              <TrendingUp className="w-4 h-4 text-emerald-400" />
-              <h3 className="text-xs font-bold uppercase tracking-wider text-gray-300">Top Eficiência</h3>
-            </div>
-            <p className="text-xs text-gray-500 mb-2">Conclusão vs. em andamento</p>
-            <div className="flex-1">
-              {topEfficiency.length === 0 ? (
-                <p className="text-xs text-gray-600 text-center py-4">Sem dados suficientes</p>
-              ) : (
-                topEfficiency.map((c, i) => <RankingRow key={c.user_id} collab={c} pos={i} metric="efficiency" />)
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ---- FOOTER ---- */}
-      <div className="flex items-center justify-between text-xs text-gray-600 border-t border-white/5 pt-3">
-        <span>Atualização automática a cada 30 segundos · Clique nos cards para ver detalhes</span>
-        <button
-          onClick={() => refetch()}
-          className="flex items-center gap-1.5 text-gray-500 hover:text-gray-300 transition-colors"
+    <div
+      className="min-h-screen bg-gray-950 overflow-hidden"
+      style={{
+        transform: `rotate(${rotation}deg)`,
+        transformOrigin: rotation === 90 ? 'top left' : rotation === 270 ? 'bottom right' : 'center',
+        width: isRotated ? '100vh' : '100%',
+        height: isRotated ? '100vw' : '100%',
+        position: isRotated ? 'absolute' : 'relative',
+        top: rotation === 90 ? 0 : rotation === 270 ? 'auto' : undefined,
+        left: rotation === 90 ? '100vw' : undefined,
+        bottom: rotation === 270 ? '100vh' : undefined,
+        right: rotation === 270 ? 0 : undefined,
+      }}
+    >
+      <TooltipProvider>
+        <div
+          className="text-white p-6 flex flex-col gap-5 origin-top-left"
+          style={{
+            transform: `scale(${zoom / 100})`,
+            width: `${10000 / zoom}%`,
+            fontFamily: 'system-ui, sans-serif',
+          }}
         >
-          <RefreshCw className="w-3 h-3" />
-          Atualizar agora
-        </button>
-        <span>
-          Última sync: {data.lastSync ? format(data.lastSync, 'HH:mm:ss') : '—'}
-        </span>
-      </div>
+          {/* ---- HEADER ---- */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-black tracking-tight text-white">
+                {activeCompany?.company?.name || 'Dashboard de Tarefas'}
+              </h1>
+              <p className="text-xs text-gray-500 mt-0.5 uppercase tracking-widest">Painel de Operações em Tempo Real</p>
+            </div>
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2 text-xs">
+                {isFetching
+                  ? <><RefreshCw className="w-3.5 h-3.5 animate-spin text-emerald-400" /><span className="text-emerald-400">Atualizando...</span></>
+                  : <><Wifi className="w-3.5 h-3.5 text-emerald-400" /><span className="text-gray-400">Ao vivo</span></>
+                }
+              </div>
+              <LiveClock />
+            </div>
+          </div>
 
-      {/* ---- MODALS ---- */}
-      {listModal && (
-        <TaskListModal
-          kind={listModal}
-          tasks={listTasks}
-          onClose={() => setListModal(null)}
-          onOpenTask={openTask}
-        />
-      )}
+          {/* ---- KPI ROW ---- */}
+          <div className="grid grid-cols-4 gap-4">
+            <KpiCard label="Em Aberto" value={data.openTasks} icon={Clock} color="text-blue-400"
+              sublabel="Clique para ver a lista"
+              onClick={() => setListModal('open')} />
+            <KpiCard label="Em Atraso" value={data.overdueTasks} icon={AlertTriangle} color="text-red-400"
+              sublabel="Clique para ver a lista"
+              onClick={() => setListModal('overdue')} />
+            <KpiCard label="Concluídas Hoje" value={data.completedToday} icon={CheckCircle2} color="text-emerald-400"
+              sublabel={`Clique para ver — ${format(new Date(), 'dd/MM')}`}
+              onClick={() => setListModal('completed')} />
+            <KpiCard label="Executando Agora" value={data.executingNow} icon={Zap} color="text-yellow-400"
+              sublabel="Sessões ativas" />
+          </div>
 
-      {editingTaskId && (
-        <Suspense fallback={null}>
-          <TaskDialog
-            open={!!editingTaskId}
-            onOpenChange={open => { if (!open) setEditingTaskId(null); }}
-            task={editingTask ? {
-              id: editingTask.id,
-              title: editingTask.title,
-              status: editingTask.status as any,
-              priority: editingTask.priority as any,
-              deadline: editingTask.deadline,
-              due_date: editingTask.due_date,
-              responsible_name: editingTask.responsible_name,
-              responsible_avatar: editingTask.responsible_avatar,
-              assigned_user_id: editingTask.assigned_user_id,
-              user_id: editingTask.user_id,
-            } as any : undefined}
-            onSave={() => { setEditingTaskId(null); refetch(); }}
-            onDelete={() => { setEditingTaskId(null); refetch(); }}
-          />
-        </Suspense>
-      )}
+          {/* ---- INDICATORS ---- */}
+          <div className="grid grid-cols-3 gap-4">
+            <IndicatorBar label="Regularidade" value={data.regularity} color="text-blue-400"
+              description="Mede tarefas abertas em relação às que estão dentro do prazo." />
+            <IndicatorBar label="Qualidade" value={data.quality} color="text-emerald-400"
+              description="Índice de eficiência das tarefas concluídas sem retrabalho." />
+            <IndicatorBar label="Eficiência" value={data.efficiency} color="text-yellow-400"
+              description="Combina regularidade e qualidade para medir eficiência geral." />
+          </div>
+
+          {/* ---- EXECUTING NOW + RANKINGS ---- */}
+          <div className="grid grid-cols-12 gap-4 flex-1 min-h-0">
+            {/* Active sessions */}
+            <div className="col-span-4 flex flex-col gap-3">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <h2 className="text-sm font-bold uppercase tracking-wider text-gray-300">
+                  Executando Agora ({data.executingNow})
+                </h2>
+              </div>
+              <div className="flex flex-col gap-3 overflow-y-auto max-h-72 pr-1">
+                {data.activeSessions.length === 0 ? (
+                  <div className="rounded-xl border border-white/10 bg-white/5 p-6 flex flex-col items-center gap-2">
+                    <Zap className="w-8 h-8 text-gray-600" />
+                    <p className="text-sm text-gray-500">Nenhuma sessão ativa</p>
+                  </div>
+                ) : (
+                  data.activeSessions.map(s => (
+                    <SessionCard key={s.session_id} session={s} onOpenTask={openTask} />
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Rankings */}
+            <div className="col-span-8 grid grid-cols-3 gap-4">
+              {/* Top Performers */}
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4 flex flex-col gap-2">
+                <div className="flex items-center gap-2 mb-1">
+                  <Trophy className="w-4 h-4 text-yellow-400" />
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-gray-300">Top Performers</h3>
+                </div>
+                <p className="text-xs text-gray-500 mb-2">Score combinado da última semana</p>
+                <div className="flex-1">
+                  {topPerformers.length === 0 ? (
+                    <p className="text-xs text-gray-600 text-center py-4">Sem dados suficientes</p>
+                  ) : (
+                    topPerformers.map((c, i) => <RankingRow key={c.user_id} collab={c} pos={i} metric="score" />)
+                  )}
+                </div>
+              </div>
+
+              {/* Top Regularidade */}
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4 flex flex-col gap-2">
+                <div className="flex items-center gap-2 mb-1">
+                  <Star className="w-4 h-4 text-blue-400" />
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-gray-300">Top Regularidade</h3>
+                </div>
+                <p className="text-xs text-gray-500 mb-2">Tarefas entregues dentro do prazo</p>
+                <div className="flex-1">
+                  {topRegularity.length === 0 ? (
+                    <p className="text-xs text-gray-600 text-center py-4">Sem dados suficientes</p>
+                  ) : (
+                    topRegularity.map((c, i) => <RankingRow key={c.user_id} collab={c} pos={i} metric="regularity" />)
+                  )}
+                </div>
+              </div>
+
+              {/* Top Eficiência */}
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4 flex flex-col gap-2">
+                <div className="flex items-center gap-2 mb-1">
+                  <TrendingUp className="w-4 h-4 text-emerald-400" />
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-gray-300">Top Eficiência</h3>
+                </div>
+                <p className="text-xs text-gray-500 mb-2">Conclusão vs. em andamento</p>
+                <div className="flex-1">
+                  {topEfficiency.length === 0 ? (
+                    <p className="text-xs text-gray-600 text-center py-4">Sem dados suficientes</p>
+                  ) : (
+                    topEfficiency.map((c, i) => <RankingRow key={c.user_id} collab={c} pos={i} metric="efficiency" />)
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ---- FOOTER ---- */}
+          <div className="flex items-center justify-between text-xs text-gray-600 border-t border-white/5 pt-3">
+            <span>Atualização automática a cada {refreshInterval / 1000}s · Clique nos cards para ver detalhes</span>
+            <button
+              onClick={() => refetch()}
+              className="flex items-center gap-1.5 text-gray-500 hover:text-gray-300 transition-colors"
+            >
+              <RefreshCw className="w-3 h-3" />
+              Atualizar agora
+            </button>
+            <span>
+              Última sync: {data.lastSync ? format(data.lastSync, 'HH:mm:ss') : '—'}
+            </span>
+          </div>
+
+          {/* ---- MODALS ---- */}
+          {listModal && (
+            <TaskListModal
+              kind={listModal}
+              tasks={listTasks}
+              onClose={() => setListModal(null)}
+              onOpenTask={openTask}
+            />
+          )}
+
+          {editingTaskId && (
+            <Suspense fallback={null}>
+              <TaskDialog
+                open={!!editingTaskId}
+                onOpenChange={open => { if (!open) setEditingTaskId(null); }}
+                task={editingTask ? {
+                  id: editingTask.id,
+                  title: editingTask.title,
+                  status: editingTask.status as any,
+                  priority: editingTask.priority as any,
+                  deadline: editingTask.deadline,
+                  due_date: editingTask.due_date,
+                  responsible_name: editingTask.responsible_name,
+                  responsible_avatar: editingTask.responsible_avatar,
+                  assigned_user_id: editingTask.assigned_user_id,
+                  user_id: editingTask.user_id,
+                } as any : undefined}
+                onSave={() => { setEditingTaskId(null); refetch(); }}
+                onDelete={() => { setEditingTaskId(null); refetch(); }}
+              />
+            </Suspense>
+          )}
+        </div>
+      </TooltipProvider>
+
+      {/* ---- SETTINGS CONTROLS ---- */}
+      <RadarTVControls
+        refreshInterval={refreshInterval}
+        onRefreshIntervalChange={handleRefreshIntervalChange}
+        onRefreshNow={() => refetch()}
+        isRefreshing={isFetching}
+        zoom={zoom}
+        onZoomChange={handleZoomChange}
+        rotation={rotation}
+        onRotationChange={handleRotationChange}
+      />
     </div>
-    </TooltipProvider>
   );
 }
