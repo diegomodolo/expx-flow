@@ -278,17 +278,24 @@ export function useInternalChat() {
    * Returns the channel id.
    */
   const getOrCreateDMChannel = async (otherUserId: string, otherUserName: string): Promise<string | null> => {
-    if (!companyId || !user?.id) return null;
+    if (!companyId || !user?.id) {
+      console.error('getOrCreateDMChannel: missing companyId or user.id', { companyId, userId: user?.id });
+      return null;
+    }
     const pair = [user.id, otherUserId].sort().join(':');
 
     // Check if DM channel already exists
-    const { data: existing } = await supabase
+    const { data: existing, error: fetchError } = await supabase
       .from('internal_channels')
       .select('id')
       .eq('company_id', companyId)
       .eq('channel_type', 'dm')
       .eq('reference_id', pair)
       .maybeSingle();
+
+    if (fetchError) {
+      console.error('Failed to fetch DM channel:', fetchError);
+    }
 
     if (existing) return existing.id;
 
@@ -311,7 +318,7 @@ export function useInternalChat() {
     }
 
     // Invalidate channels cache so the new DM appears in the sidebar
-    queryClient.invalidateQueries({ queryKey: ['internal-channels', companyId] });
+    await queryClient.invalidateQueries({ queryKey: ['internal-channels', companyId] });
 
     return created.id;
   };
