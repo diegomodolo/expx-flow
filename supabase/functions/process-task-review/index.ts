@@ -245,6 +245,41 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ── Fase 6: Notificação in-app para o responsável pela tarefa ──
+    try {
+      const targetUserId = task.assigned_user_id || task.user_id;
+      if (targetUserId) {
+        const reasonLabels: Record<string, string> = {
+          very_bad: "Muito ruim",
+          bad: "Ruim",
+          adjustments: "Precisa de ajustes",
+        };
+
+        await supabase.from("user_notifications").insert({
+          company_id: companyId,
+          user_id: targetUserId,
+          type: action === "approved" ? "task_review" : "task_review",
+          title: action === "approved"
+            ? `✅ Tarefa aprovada — ${task.title}`
+            : `❌ Tarefa rejeitada — ${task.title}`,
+          body: action === "approved"
+            ? `Aprovada por ${reviewer.name}. Qualidade: ${qualityAfter}%`
+            : `Rejeitada por ${reviewer.name}. Motivo: ${reasonLabels[rejectionReason] || rejectionReason}. Qualidade: ${qualityBefore}% → ${qualityAfter}%${comment ? `. Comentário: ${comment}` : ""}`,
+          priority: action === "rejected" ? "high" : "normal",
+          action_url: "/tarefas",
+          action_metadata: {
+            task_id: taskId,
+            task_title: task.title,
+            action,
+          },
+          source_type: "task",
+          source_id: taskId,
+        });
+      }
+    } catch (notifErr) {
+      console.error("In-app notification error:", notifErr);
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
