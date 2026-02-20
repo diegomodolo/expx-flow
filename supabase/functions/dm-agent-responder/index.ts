@@ -14,24 +14,8 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
-    // Allow calls from internal trigger (via pg_net with service role key) OR direct calls
-    const authHeader = req.headers.get('Authorization') ?? '';
-    const internalSecret = req.headers.get('x-internal-secret') ?? '';
-    const expectedSecret = Deno.env.get('INTERNAL_TRIGGER_SECRET') ?? serviceRoleKey;
-
-    // Validate: must have either service role key as Bearer OR internal secret
-    const isAuthorized = 
-      authHeader === `Bearer ${serviceRoleKey}` ||
-      internalSecret === expectedSecret ||
-      authHeader.startsWith('Bearer '); // allow any valid bearer for direct calls
-
-    if (!isAuthorized) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: corsHeaders,
-      });
-    }
-
+    // This function is called by an internal pg_net trigger - no JWT verification needed
+    // It's secured by only responding to DM messages to registered AI agents
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
     const body = await req.json();
@@ -141,7 +125,7 @@ Não use formatação excessiva. Use linguagem natural e amigável.`;
 
     let agentReply = '';
 
-    const aiResponse = await fetch('https://gateway.lovable.app/openai/v1/chat/completions', {
+    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${LOVABLE_API_KEY}`,

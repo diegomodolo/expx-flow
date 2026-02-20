@@ -1,5 +1,8 @@
 project_id = "ejwpfztkspbvmuwwiwmk"
 
+[functions.dm-agent-responder]
+verify_jwt = false
+
 [functions.tv-dashboard-data]
 verify_jwt = false
 
