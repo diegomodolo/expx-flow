@@ -98,7 +98,7 @@ Deno.serve(async (req) => {
     // Get task current state
     const { data: task, error: taskError } = await supabase
       .from("tasks")
-      .select("id, title, status, task_quality_score, team_id, responsible_name, related_client_id")
+      .select("id, title, status, task_quality_score, team_id, responsible_name, related_client_id, assigned_user_id, rejection_count")
       .eq("id", taskId)
       .single();
 
@@ -119,25 +119,56 @@ Deno.serve(async (req) => {
     const qualityBefore = Number(task.task_quality_score ?? 100);
     let qualityAfter = qualityBefore;
     let newStatus: string;
+    let todoColumnId: string | null = null;
 
     if (action === "approved") {
       newStatus = "done";
-      qualityAfter = qualityBefore; // no change on approval
+      qualityAfter = qualityBefore;
     } else {
       const reduction = QUALITY_REDUCTION[rejectionReason] ?? 10;
       qualityAfter = Math.max(0, qualityBefore - reduction);
-      newStatus = "progress";
+      newStatus = "todo";
+
+      // Find the "todo" column for the responsible user's board so the card
+      // goes back to the "Pendente" column visually on their Kanban board.
+      if (task.assigned_user_id) {
+        const { data: todoCols } = await supabase
+          .from("task_board_columns")
+          .select("id")
+          .eq("user_id", task.assigned_user_id)
+          .eq("status", "todo")
+          .order("order_index", { ascending: true })
+          .limit(1);
+
+        if (todoCols && todoCols.length > 0) {
+          todoColumnId = todoCols[0].id;
+        }
+      }
+    }
+
+    // Build update payload
+    const updatePayload: Record<string, unknown> = {
+      status: newStatus,
+      task_quality_score: qualityAfter,
+      completed_at: action === "approved" ? new Date().toISOString() : null,
+    };
+
+    if (action === "approved") {
+      updatePayload.progress = 100;
+      // Clear rejection signal on approval
+      updatePayload.last_rejected_at = null;
+    } else {
+      updatePayload.last_rejected_at = new Date().toISOString();
+      updatePayload.rejection_count = (Number(task.rejection_count ?? 0)) + 1;
+      if (todoColumnId) {
+        updatePayload.quadro_column_id = todoColumnId;
+      }
     }
 
     // Update task
     const { error: updateError } = await supabase
       .from("tasks")
-      .update({
-        status: newStatus,
-        task_quality_score: qualityAfter,
-        progress: action === "approved" ? 100 : undefined,
-        completed_at: action === "approved" ? new Date().toISOString() : null,
-      })
+      .update(updatePayload)
       .eq("id", taskId);
 
     if (updateError) {
