@@ -418,6 +418,7 @@ function SessionCard({ session, onOpenTask }: { session: ActiveSession; onOpenTa
       onClick={() => onOpenTask(session.task_id)}
       className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4 flex flex-col gap-3 min-w-0 cursor-pointer hover:bg-emerald-500/10 hover:border-emerald-500/50 transition-all active:scale-[0.98]"
     >
+      {/* Header: colaborador + timer */}
       <div className="flex items-center gap-3">
         {session.user_avatar ? (
           <img src={session.user_avatar} alt={session.user_name}
@@ -431,18 +432,36 @@ function SessionCard({ session, onOpenTask }: { session: ActiveSession; onOpenTa
           <p className="text-xs text-emerald-400 font-semibold truncate">{session.user_name}</p>
           <p className="text-sm font-bold text-white truncate leading-tight">{session.task_title}</p>
         </div>
-        <ExternalLink className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+        <div className="flex items-center gap-1.5 shrink-0">
+          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="font-mono text-lg font-bold text-emerald-300 tabular-nums">{timer}</span>
+        </div>
       </div>
+
+      {/* Client badge */}
+      {session.client_name && (
+        <div className="flex items-center gap-2 rounded-lg bg-white/5 border border-white/10 px-3 py-2">
+          {session.client_avatar ? (
+            <img
+              src={session.client_avatar}
+              alt={session.client_name}
+              className="w-6 h-6 rounded-full object-cover shrink-0 ring-1 ring-white/20"
+            />
+          ) : (
+            <div className="w-6 h-6 rounded-full bg-gray-700 flex items-center justify-center shrink-0">
+              <User className="w-3.5 h-3.5 text-gray-400" />
+            </div>
+          )}
+          <span className="text-xs font-semibold text-gray-300 truncate">{session.client_name}</span>
+        </div>
+      )}
+
       {isOverdue && (
         <div className="flex items-center gap-1.5 rounded-md bg-red-900/40 border border-red-500/30 px-2 py-1">
           <AlertTriangle className="w-3 h-3 text-red-400 shrink-0" />
           <span className="text-xs text-red-300">Vencido</span>
         </div>
       )}
-      <div className="flex items-center gap-2">
-        <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-        <span className="font-mono text-xl font-bold text-emerald-300 tabular-nums">{timer}</span>
-      </div>
     </div>
   );
 }

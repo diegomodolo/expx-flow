@@ -13,6 +13,9 @@ export interface ActiveSession {
   user_name: string;
   user_avatar: string | null;
   started_at: string;
+  client_id: string | null;
+  client_name: string | null;
+  client_avatar: string | null;
 }
 
 export interface CollaboratorRanking {
@@ -224,16 +227,27 @@ export function useTaskTvDashboard(refreshMs = 30_000) {
           ? supabase.from('profiles').select('user_id, full_name, avatar_url').in('user_id', sessionUserIds)
           : Promise.resolve({ data: [] }),
         sessionTaskIds.length > 0
-          ? supabase.from('tasks').select('id, title, priority, deadline, due_date').in('id', sessionTaskIds)
+          ? supabase.from('tasks').select('id, title, priority, deadline, due_date, client_id').in('id', sessionTaskIds)
           : Promise.resolve({ data: [] }),
       ]);
 
       const profileMap = new Map((profilesRes.data || []).map((p: any) => [p.user_id, p]));
       const taskMap = new Map((sessionTasksRes.data || []).map((t: any) => [t.id, t]));
 
+      // Fetch client info for tasks in active sessions
+      const sessionClientIds = [...new Set(
+        (sessionTasksRes.data || []).map((t: any) => t.client_id).filter(Boolean)
+      )] as string[];
+
+      const clientsRes = sessionClientIds.length > 0
+        ? await supabase.from('clients').select('id, name, avatar').in('id', sessionClientIds)
+        : { data: [] };
+      const clientMap = new Map((clientsRes.data || []).map((c: any) => [c.id, c]));
+
       const activeSessions: ActiveSession[] = rawSessions.map(s => {
         const profile = profileMap.get(s.user_id) as any;
         const task = taskMap.get(s.task_id) as any;
+        const client = task?.client_id ? clientMap.get(task.client_id) as any : null;
         return {
           session_id: s.id,
           task_id: s.task_id,
@@ -244,6 +258,9 @@ export function useTaskTvDashboard(refreshMs = 30_000) {
           user_name: profile?.full_name || 'Colaborador',
           user_avatar: profile?.avatar_url || null,
           started_at: s.started_at,
+          client_id: task?.client_id || null,
+          client_name: client?.name || null,
+          client_avatar: client?.avatar || null,
         };
       });
 
