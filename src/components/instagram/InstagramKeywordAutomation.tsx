@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Trash2, Plus, Pencil, Zap, MessageSquare, Clock, ChevronDown, ChevronUp } from "lucide-react";
+import { Trash2, Plus, Pencil, Zap, MessageSquare, Clock, ChevronDown, ChevronUp, RefreshCw, Check, Copy } from "lucide-react";
 import { InstagramFlowEditor } from "./InstagramFlowEditor";
 
 interface KeywordTrigger {
@@ -36,6 +36,10 @@ export function InstagramKeywordAutomation() {
   const [isFlowDialogOpen, setIsFlowDialogOpen] = useState(false);
   const [editingTrigger, setEditingTrigger] = useState<KeywordTrigger | null>(null);
   const [expandedLogs, setExpandedLogs] = useState<string | null>(null);
+  const [copiedUrl, setCopiedUrl] = useState(false);
+  const [copiedToken, setCopiedToken] = useState(false);
+  const [savingToken, setSavingToken] = useState(false);
+  const [selectedTokenAccountId, setSelectedTokenAccountId] = useState<string>("");
 
   // Form state
   const [triggerName, setTriggerName] = useState("");
@@ -46,7 +50,15 @@ export function InstagramKeywordAutomation() {
 
   const companyId = activeCompany?.company_id;
 
-  const { data: instagramAccounts } = useQuery({
+  const generateToken = () => {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    let token = "";
+    for (let i = 0; i < 32; i++) token += chars.charAt(Math.floor(Math.random() * chars.length));
+    return token;
+  };
+
+
+  const { data: instagramAccounts, refetch: refetchAccounts } = useQuery({
     queryKey: ["company-instagram-accounts", companyId],
     queryFn: async () => {
       const { data, error } = await supabase.from("instagram_accounts").select("*").eq("company_id", companyId!);
@@ -55,6 +67,24 @@ export function InstagramKeywordAutomation() {
     },
     enabled: !!companyId,
   });
+
+  const saveVerifyToken = async (accountId: string, token: string) => {
+    setSavingToken(true);
+    try {
+      const { error } = await supabase
+        .from("instagram_accounts")
+        .update({ webhook_verify_token: token })
+        .eq("id", accountId);
+      if (error) throw error;
+      await refetchAccounts();
+      toast({ title: "Token salvo!", description: "O Verificar Token foi salvo na conta do Instagram." });
+    } catch (err: any) {
+      toast({ title: "Erro ao salvar token", description: err.message, variant: "destructive" });
+    } finally {
+      setSavingToken(false);
+    }
+  };
+
 
   const { data: flows } = useQuery({
     queryKey: ["instagram-automation-flows", companyId],
