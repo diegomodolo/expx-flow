@@ -79,24 +79,47 @@ function PriorityBadge({ priority }: { priority: string }) {
 // ---- Celebration Overlay ----
 function CelebrationOverlay({ task, onDismiss }: { task: TaskItem; onDismiss: () => void }) {
   useEffect(() => {
-    const t = setTimeout(onDismiss, 6000);
+    const t = setTimeout(onDismiss, 7000);
     return () => clearTimeout(t);
   }, [onDismiss]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
-      <div className="relative flex flex-col items-center gap-4 animate-scale-in">
-        {/* Confetti rings */}
-        <div className="absolute inset-0 rounded-full bg-yellow-400/10 animate-ping" style={{ animationDuration: '1s' }} />
-        <div className="relative bg-gradient-to-br from-yellow-400/30 to-emerald-400/30 backdrop-blur-xl border border-yellow-400/40 rounded-3xl px-12 py-8 flex flex-col items-center gap-3 shadow-2xl">
-          <PartyPopper className="w-16 h-16 text-yellow-400 animate-bounce" />
-          <div className="text-4xl font-black text-white text-center">🎉 Alta Prioridade Concluída!</div>
-          <div className="text-lg text-yellow-200 text-center max-w-md font-semibold">{task.title}</div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ pointerEvents: 'none' }}>
+      {/* Dark backdrop */}
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+
+      {/* Pulsing rings */}
+      <div className="absolute w-96 h-96 rounded-full bg-yellow-400/10 animate-ping" style={{ animationDuration: '0.8s' }} />
+      <div className="absolute w-80 h-80 rounded-full bg-emerald-400/10 animate-ping" style={{ animationDuration: '1.2s', animationDelay: '0.2s' }} />
+
+      {/* Card */}
+      <div
+        className="relative flex flex-col items-center gap-5 rounded-3xl px-16 py-12 shadow-2xl text-center"
+        style={{
+          background: 'linear-gradient(135deg, rgba(251,191,36,0.25) 0%, rgba(16,185,129,0.25) 100%)',
+          border: '2px solid rgba(251,191,36,0.5)',
+          backdropFilter: 'blur(24px)',
+          animation: 'celebrationPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
+        }}
+      >
+        <div style={{ fontSize: 80 }} className="animate-bounce select-none">🏆</div>
+        <div className="flex flex-col gap-2">
+          <div className="text-yellow-300 text-sm font-bold uppercase tracking-[0.3em]">Alta Prioridade Concluída</div>
+          <div className="text-white font-black text-4xl leading-tight max-w-lg">{task.title}</div>
           {task.responsible_name && (
-            <div className="text-sm text-gray-300">por {task.responsible_name}</div>
+            <div className="text-emerald-300 text-lg font-semibold mt-1">🎉 {task.responsible_name}</div>
           )}
         </div>
+        {/* Dismiss hint */}
+        <div className="text-gray-500 text-xs mt-2">Fechando automaticamente...</div>
       </div>
+
+      <style>{`
+        @keyframes celebrationPop {
+          from { opacity: 0; transform: scale(0.5) translateY(40px); }
+          to   { opacity: 1; transform: scale(1)   translateY(0);    }
+        }
+      `}</style>
     </div>
   );
 }
@@ -104,31 +127,61 @@ function CelebrationOverlay({ task, onDismiss }: { task: TaskItem; onDismiss: ()
 // ---- Critical Alert Banner ----
 function CriticalAlertBanner({ task, onDismiss }: { task: TaskItem; onDismiss: () => void }) {
   useEffect(() => {
-    const t = setTimeout(onDismiss, 10000);
+    const t = setTimeout(onDismiss, 12000);
     return () => clearTimeout(t);
   }, [onDismiss]);
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 pointer-events-none">
-      <div className="bg-red-900/95 border-b-2 border-red-500 px-6 py-4 flex items-center gap-4 animate-fade-in shadow-2xl">
-        <Siren className="w-8 h-8 text-red-400 animate-pulse shrink-0" />
-        <div className="flex-1 min-w-0">
-          <div className="text-sm font-bold text-red-300 uppercase tracking-widest">⚠ Tarefa de Alta Prioridade em Atraso</div>
-          <div className="text-white font-black text-lg truncate">{task.title}</div>
-          {task.responsible_name && (
-            <div className="text-sm text-red-300">Responsável: {task.responsible_name}</div>
-          )}
+    <div className="fixed inset-0 z-50 flex items-end justify-center pb-8" style={{ pointerEvents: 'none' }}>
+      {/* Subtle backdrop flash */}
+      <div className="absolute inset-0 bg-red-950/40" style={{ animation: 'alertFlash 1s ease-in-out infinite alternate' }} />
+
+      {/* Banner */}
+      <div
+        className="relative w-full max-w-4xl mx-6 rounded-2xl shadow-2xl overflow-hidden"
+        style={{ pointerEvents: 'auto', animation: 'slideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards' }}
+      >
+        {/* Red animated top bar */}
+        <div className="h-1.5 w-full bg-red-500" style={{ animation: 'shrinkBar 12s linear forwards' }} />
+
+        <div className="bg-red-950/95 border border-red-500/60 px-8 py-5 flex items-center gap-5 backdrop-blur-xl">
+          <Siren className="w-10 h-10 text-red-400 shrink-0" style={{ animation: 'pulse 0.6s ease-in-out infinite alternate' }} />
+          <div className="flex-1 min-w-0">
+            <div className="text-red-400 text-xs font-bold uppercase tracking-[0.3em] mb-1">
+              ⚠ Tarefa de Alta Prioridade em Atraso
+            </div>
+            <div className="text-white font-black text-2xl truncate">{task.title}</div>
+            {task.responsible_name && (
+              <div className="text-red-300 text-sm mt-0.5">Responsável: {task.responsible_name}</div>
+            )}
+          </div>
+          <button
+            onClick={onDismiss}
+            className="text-red-400 hover:text-white transition-colors shrink-0 p-2 hover:bg-red-800/50 rounded-lg"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
-        <button
-          onClick={onDismiss}
-          className="pointer-events-auto text-red-400 hover:text-white transition-colors shrink-0"
-        >
-          <X className="w-5 h-5" />
-        </button>
       </div>
+
+      <style>{`
+        @keyframes alertFlash {
+          from { opacity: 0; }
+          to   { opacity: 1; }
+        }
+        @keyframes slideUp {
+          from { opacity: 0; transform: translateY(60px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes shrinkBar {
+          from { width: 100%; }
+          to   { width: 0%; }
+        }
+      `}</style>
     </div>
   );
 }
+
 
 // ---- Task list modal ----
 type ModalKind = 'open' | 'overdue' | 'completed' | 'review' | null;
@@ -541,15 +594,26 @@ export default function TaskTvDashboard() {
   const [criticalAlert, setCriticalAlert] = useState<TaskItem | null>(null);
   const prevCompletedIdsRef = useRef<Set<string>>(new Set());
   const prevOverdueIdsRef = useRef<Set<string>>(new Set());
+  // Track whether first load has happened (to avoid alerts on initial render)
+  const completedInitializedRef = useRef(false);
+  const overdueInitializedRef = useRef(false);
 
   // Detect new high-priority completions
   useEffect(() => {
     if (!data) return;
     const currentIds = new Set(data.completedTodayList.map(t => t.id));
+
+    if (!completedInitializedRef.current) {
+      // First load — just seed the ref, no alert
+      prevCompletedIdsRef.current = currentIds;
+      completedInitializedRef.current = true;
+      return;
+    }
+
     const newHighPriority = data.completedTodayList.filter(
-      t => !prevCompletedIdsRef.current.has(t.id) && ['high', 'alta'].includes(t.priority)
+      t => !prevCompletedIdsRef.current.has(t.id) && ['high', 'alta'].includes(t.priority?.toLowerCase() ?? '')
     );
-    if (prevCompletedIdsRef.current.size > 0 && newHighPriority.length > 0) {
+    if (newHighPriority.length > 0) {
       setCelebrationTask(newHighPriority[0]);
     }
     prevCompletedIdsRef.current = currentIds;
@@ -559,14 +623,22 @@ export default function TaskTvDashboard() {
   useEffect(() => {
     if (!data) return;
     const currentIds = new Set(data.overdueTasksList.map(t => t.id));
+
+    if (!overdueInitializedRef.current) {
+      // First load — just seed the ref, no alert
+      prevOverdueIdsRef.current = currentIds;
+      overdueInitializedRef.current = true;
+      return;
+    }
+
     const newOverdue = data.overdueTasksList.filter(
-      t => !prevOverdueIdsRef.current.has(t.id) && ['high', 'alta'].includes(t.priority)
+      t => !prevOverdueIdsRef.current.has(t.id) && ['high', 'alta'].includes(t.priority?.toLowerCase() ?? '')
     );
-    if (prevOverdueIdsRef.current.size > 0 && newOverdue.length > 0 && !criticalAlert) {
+    if (newOverdue.length > 0 && !criticalAlert) {
       setCriticalAlert(newOverdue[0]);
     }
     prevOverdueIdsRef.current = currentIds;
-  }, [data?.overdueTasksList]);
+  }, [data?.overdueTasksList, criticalAlert]);
 
   function openTask(id: string) {
     setListModal(null);
