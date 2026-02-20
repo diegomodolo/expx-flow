@@ -100,6 +100,7 @@ import Agendamento from "./pages/Agendamento";
 import ApresentacaoPublica from "./pages/ApresentacaoPublica";
 import ApresentacaoResultadosPublica from "./pages/ApresentacaoResultadosPublica";
 import NotificacoesWhatsApp from "./pages/NotificacoesWhatsApp";
+import Notificacoes from "./pages/Notificacoes";
 import LeadIntelligenceHub from "./pages/LeadIntelligenceHub";
 import LeadIntelligenceSegmentsView from "./pages/LeadIntelligenceSegmentsView";
 import LeadIntelligenceSegments from "./pages/LeadIntelligenceSegments";
@@ -625,6 +626,11 @@ const App = () => {
                   <Route path="/automatizadores/wordpress/:configId" element={
                     <ProtectedRoute>
                       <AutomatizadorWordpressDetalhes />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/notificacoes" element={
+                    <ProtectedRoute>
+                      <Notificacoes />
                     </ProtectedRoute>
                   } />
                   <Route path="/notificacoes/whatsapp" element={
