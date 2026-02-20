@@ -1,195 +1,104 @@
 
+# Proposta de Enriquecimento do Dashboard TV de Tarefas (/tarefas-tv)
 
-# Integracao Google Meet - Transcricao Automatica e Resumos com IA
+## O que o sistema já possui e pode ser aproveitado
 
-## Visao Geral
+O sistema tem dados ricos disponíveis nas tabelas `tasks`, `task_time_tracking`, `teams` (squads) e `profiles`, além do hook `useSquadDashboard` com métricas completas de produtividade por squad. O dashboard atual exibe KPIs básicos, indicadores de regularidade/qualidade/eficiência, sessões ativas e ranking de colaboradores.
 
-Integrar o Google Meet ao sistema para que reunioes possam ser criadas pela aplicacao, e ao terminar, a transcricao seja capturada automaticamente, processada por IA para gerar resumos executivos, e salva no banco de dados vinculada ao cliente/squad.
+## O que falta e seria muito valioso
 
-## Pre-requisitos (Configuracao no Google Cloud Console)
+### 1. Ranking de Squads (Comparativo em Tempo Real)
+O sistema já calcula `productivityScore` por squad no `useSquadDashboard`, mas o dashboard TV não exibe nada sobre squads. Seria a seção mais impactante visualmente para uma TV de operações.
 
-Antes da implementacao, voce precisara:
+Exibição: Cards horizontais em ranking com barra de score colorida (verde > amarelo > vermelho), nome do squad, membros ativos agora, tarefas em atraso e taxa de conclusão.
 
-1. No Google Cloud Console do seu projeto (o mesmo usado pelo Google Ads):
-   - Habilitar as APIs: **Google Meet REST API**, **Google Drive API**, **Google Docs API**
-   - No OAuth Consent Screen, adicionar os escopos:
-     - `https://www.googleapis.com/auth/meetings.space.created`
-     - `https://www.googleapis.com/auth/meetings.space.readonly`
-     - `https://www.googleapis.com/auth/drive.readonly`
-   - Nas credenciais OAuth (as mesmas do Google Ads), adicionar a redirect URI do sistema
+### 2. Gráfico de Velocidade de Conclusão (Últimos 14 dias)
+O banco já tem `completed_at` nas tarefas. Os dados mostram variação diária real: 22 tarefas em 16/02, 10 em 17/02, 5 em 18/02, 2 em 19/02. Um gráfico de barras com `recharts` (já instalado) mostrando esse ritmo de entrega diária é altamente informativo para equipes.
 
-2. Os secrets `GOOGLE_ADS_CLIENT_ID` e `GOOGLE_ADS_CLIENT_SECRET` ja existem e serao reutilizados (sao as mesmas credenciais OAuth do Google Cloud Project)
+### 3. KPI de Horas Trabalhadas (Time Tracking Agregado)
+A tabela `task_time_tracking` tem `duration_minutes` e `started_at/ended_at`. O sistema registrou 3.336 minutos (~55,6 horas) de trabalho rastreado nos últimos 7 dias em 28 sessões. Adicionar um card "Horas Trabalhadas (7d)" com média por colaborador é um diferencial real.
 
----
+### 4. Seção "Em Revisão" (status = review)
+Atualmente o dashboard ignora tarefas com status `review`. Há 8 tarefas nesse status. Uma coluna ou card para "Aguardando Revisão" aumenta a visibilidade do gargalo mais comum no fluxo de trabalho.
 
-## Parte 1: Banco de Dados
-
-### Tabela `google_meet_meetings`
-
-| Coluna | Tipo | Descricao |
-|--------|------|-----------|
-| id | UUID PK | Identificador |
-| company_id | UUID FK | Empresa |
-| client_id | UUID FK (nullable) | Cliente vinculado |
-| squad_id | UUID FK (nullable) | Squad vinculada |
-| created_by | UUID | Usuario que criou |
-| google_space_id | TEXT | ID do espaco no Meet |
-| meeting_uri | TEXT | Link da reuniao |
-| meeting_code | TEXT | Codigo da reuniao |
-| conference_record_id | TEXT (nullable) | ID do registro pos-reuniao |
-| status | TEXT | scheduled, in_progress, completed, failed |
-| title | TEXT | Titulo da reuniao |
-| scheduled_at | TIMESTAMPTZ (nullable) | Data agendada |
-| started_at | TIMESTAMPTZ (nullable) | Inicio real |
-| ended_at | TIMESTAMPTZ (nullable) | Fim real |
-| transcript_status | TEXT | pending, processing, completed, failed, not_available |
-| raw_transcript | TEXT (nullable) | Transcricao bruta |
-| ai_summary | TEXT (nullable) | Resumo gerado por IA |
-| ai_action_items | JSONB (nullable) | Itens de acao extraidos |
-| transcript_doc_url | TEXT (nullable) | URL do Google Docs |
-| created_at / updated_at | TIMESTAMPTZ | Timestamps |
-
-### Tabela `google_meet_participants`
-
-| Coluna | Tipo | Descricao |
-|--------|------|-----------|
-| id | UUID PK | Identificador |
-| meeting_id | UUID FK | Reuniao |
-| user_id | UUID (nullable) | Usuario do sistema |
-| display_name | TEXT | Nome exibido |
-| email | TEXT (nullable) | Email |
-| joined_at | TIMESTAMPTZ (nullable) | Quando entrou |
-| left_at | TIMESTAMPTZ (nullable) | Quando saiu |
-
-### RLS Policies
-- Acesso restrito por `company_id` usando `is_company_member(auth.uid(), company_id)`
+### 5. Alertas Visuais Automáticos (Celebração / Alerta Crítico)
+O dashboard CS-TV já tem `CSTVCelebrationOverlay` e `CSTVCriticalAlertOverlay`. Trazer o mesmo padrão para o dashboard de tarefas: quando uma tarefa de alta prioridade é concluída, exibir uma animação de celebração por alguns segundos. Quando uma tarefa de alta prioridade entra em atraso, exibir um alerta pulsante.
 
 ---
 
-## Parte 2: Edge Functions
+## Plano de Implementação
 
-### 2.1 `google-meet-create` - Criar Reuniao
+### Fase 1 — Novos KPIs e seção "Em Revisão"
 
-- Recebe: `title`, `clientId`, `squadId`, `scheduledAt`
-- Usa o `access_token` do Google (da tabela `google_ads_integrations`) para chamar `POST https://meet.googleapis.com/v2/spaces`
-- Configura transcricao automatica via `config.transcriptionConfig`
-- Salva na tabela `google_meet_meetings`
-- Retorna o link da reuniao
+**Arquivo: `src/hooks/useTaskTvDashboard.ts`**
+- Adicionar busca de tarefas com status `review` na query principal
+- Adicionar cálculo de `hoursTrackedLast7Days` (soma de `duration_minutes` dos últimos 7 dias)
+- Adicionar `reviewTasksList: TaskItem[]` para o modal de drill-down
+- Expandir a interface `TaskTvData` com os novos campos
 
-### 2.2 `google-meet-check-transcript` - Buscar Transcricao
+**Arquivo: `src/pages/TaskTvDashboard.tsx`**
+- Adicionar um 5º card KPI "Em Revisão" na linha de KPIs (grid de 5 colunas)
+- Adicionar um 5º card KPI "Horas Trabalhadas" na segunda linha ou substituindo uma das métricas menos relevantes
+- Adicionar modal para a lista de tarefas em revisão
 
-- Recebe: `meetingId`
-- Consulta `conferenceRecords` do Google Meet API para obter o status
-- Se a conferencia terminou, busca `conferenceRecords.transcripts`
-- Extrai as `entries` (falas com autor e timestamp)
-- Concatena em texto bruto e salva em `raw_transcript`
-- Dispara processamento com IA
+### Fase 2 — Gráfico de Velocidade de Conclusão (Ritmo Diário)
 
-### 2.3 `google-meet-process-summary` - Gerar Resumo com IA
+**Arquivo: `src/hooks/useTaskTvDashboard.ts`**
+- Adicionar busca das últimas 14 dias com `GROUP BY DATE(updated_at)` para tarefas concluídas
+- Adicionar campo `completionTrend: { day: string; count: number }[]` ao retorno
 
-- Recebe: `meetingId`
-- Le o `raw_transcript` do banco
-- Envia para API de IA (reutilizando o padrao ja existente no `ai-chat`)
-- Prompt estruturado para extrair:
-  - Resumo executivo
-  - Decisoes tomadas
-  - Proximos passos com responsaveis
-  - Tarefas sugeridas
-- Salva `ai_summary` e `ai_action_items` no banco
+**Arquivo: `src/pages/TaskTvDashboard.tsx`**
+- Adicionar componente `CompletionTrendChart` usando `BarChart` do recharts (já instalado)
+- Exibir gráfico de barras verticais com gradiente verde, mostrando o ritmo dos últimos 14 dias
+- Estilizado no tema dark do dashboard (fundo transparente, eixos em cinza)
 
-### 2.4 `google-meet-webhook` - Listener de Eventos (opcional/futuro)
+### Fase 3 — Ranking de Squads
 
-- Endpoint publico para receber eventos da Workspace Events API
-- Detecta quando reuniao termina e dispara busca de transcricao automaticamente
-- Alternativa: polling via cron/scheduler (mais simples para MVP)
+**Arquivo: `src/hooks/useTaskTvDashboard.ts`**
+- Adicionar busca por `team_id` nas tasks, cruzando com tabela `teams`
+- Calcular por squad: `productivityScore`, `activeSessions`, `overdueTasks`, `completionRate`
+- Adicionar campo `squadRankings: SquadTvRanking[]` ao retorno
 
----
+**Arquivo: `src/pages/TaskTvDashboard.tsx`**
+- Adicionar seção "Performance por Squad" com cards horizontais em ranking
+- Cada card: cor do squad à esquerda, nome, membros executando agora (com ícone pulsante), barra de progresso colorida por score
+- Ordenado por `productivityScore` decrescente
 
-## Parte 3: Interface do Usuario
+### Fase 4 — Alertas Visuais Automáticos
 
-### 3.1 Pagina de Reunioes (`/reunioes`)
-
-- Rota nova no sidebar dentro da categoria "Equipe"
-- Listagem de reunioes com filtros por status, cliente, squad
-- Cards com: titulo, cliente, data, status, link para resumo
-
-### 3.2 Componente "Criar Reuniao"
-
-- Modal com campos: titulo, cliente (select), squad (select), data/hora
-- Botao gera o link do Meet e exibe para copiar
-- Link salvo automaticamente no banco
-
-### 3.3 Componente "Detalhes da Reuniao"
-
-- Exibe o resumo gerado pela IA em formato estruturado
-- Secao de transcricao bruta (colapsavel)
-- Lista de action items com botao "Criar Tarefa" que cria task no board do usuario
-- Participantes da reuniao
-
-### 3.4 Widget no Canal do Cliente
-
-- Pequeno card mostrando "Ultima reuniao" com link para o resumo
-- Indicador de reuniao em andamento
+**Arquivo: `src/pages/TaskTvDashboard.tsx`**
+- Implementar `useEffect` que observa mudanças em `data.completedTodayList` e detecta novas conclusões de tarefas de alta prioridade
+- Exibir overlay de celebração por 5 segundos (animação CSS de confetti simples ou ícone de troféu animado)
+- Observar `data.overdueTasksList` para alertas: quando uma tarefa de alta prioridade entra em atraso, exibir banner pulsante vermelho no topo por 8 segundos
 
 ---
 
-## Parte 4: Fluxo Completo
+## Resultado Visual Esperado
 
 ```text
-[Usuario clica "Criar Reuniao"]
-        |
-        v
-[Edge Function cria Space no Google Meet]
-        |
-        v
-[Link exibido - usuario compartilha e faz a reuniao]
-        |
-        v
-[Reuniao termina - Google processa transcricao (~2-5 min)]
-        |
-        v
-[Usuario clica "Buscar Transcricao" ou polling automatico]
-        |
-        v
-[Edge Function busca transcript entries via Meet API]
-        |
-        v
-[Texto enviado para IA - gera resumo + action items]
-        |
-        v
-[Resumo salvo e exibido na interface]
-        |
-        v
-[Usuario cria tarefas a partir dos action items]
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  Dashboard de Tarefas · Ao Vivo                              10:42:33        │
+├──────────┬──────────┬──────────┬──────────┬──────────┬──────────────────────┤
+│ Em Aberto│Em Atraso │Concl. Hoje│Em Revisão│Executando│  Horas Trabalhadas   │
+│    12    │    3     │    5     │    8     │    2     │      55.6h / 7d      │
+├──────────┴──────────┴──────────┴──────────┴──────────┴──────────────────────┤
+│  Regularidade 87%  │  Qualidade 92%  │  Eficiência 89%                      │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  Ritmo de Conclusão (14 dias) ─ BarChart                                    │
+│  ████ ███ ██ █ ████ ███ ██ ██ ██ ██ ██ ██ ██ ██                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  Ranking de Squads            │  Executando Agora  │  Top Performers        │
+│  🥇 Squad #02  ████████ 78   │  ● João · Tarefa X │  1. Maria · 94%        │
+│  🥈 Squad #01  ██████   62   │  ● Ana · Tarefa Y  │  2. Pedro · 87%        │
+│  🥉 Squad #03  ████     41   │                    │  3. Lucas · 82%        │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
----
+## Resumo dos Arquivos a Modificar
 
-## Parte 5: Detalhes Tecnicos
+| Arquivo | Mudança |
+|---|---|
+| `src/hooks/useTaskTvDashboard.ts` | Adicionar dados de revisão, horas rastreadas, trend de conclusão e ranking de squads |
+| `src/pages/TaskTvDashboard.tsx` | Adicionar novos KPI cards, gráfico de tendência, seção de squads e alertas visuais |
 
-### Autenticacao Google
-
-O sistema ja possui OAuth com Google (via Google Ads). O token armazenado em `google_ads_integrations` sera reutilizado, porem sera necessario:
-- Adicionar os escopos do Meet ao fluxo OAuth existente
-- Implementar refresh de token antes de chamar APIs do Meet
-
-### Retry para Transcricao
-
-A transcricao do Google pode levar 2-5 minutos apos o fim da reuniao. A estrategia sera:
-- Primeira tentativa imediata apos detectar fim
-- Se nao disponivel, agendar retry com backoff (30s, 60s, 120s)
-- Maximo de 5 tentativas
-
-### Sequencia de Implementacao
-
-1. Migracao do banco (tabelas + RLS)
-2. Edge function `google-meet-create`
-3. Edge function `google-meet-check-transcript`
-4. Edge function `google-meet-process-summary`
-5. Hook `useGoogleMeetMeetings`
-6. Pagina `/reunioes` com listagem
-7. Modal de criacao
-8. Tela de detalhes com resumo
-9. Integracao com sistema de tarefas
-10. Widget no canal do cliente
-
+Nenhuma migração de banco de dados é necessária — todos os dados já existem.
