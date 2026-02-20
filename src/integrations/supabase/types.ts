@@ -8343,6 +8343,7 @@ export type Database = {
           source: string | null
           updated_at: string | null
           username: string
+          webhook_verify_token: string | null
         }
         Insert: {
           business_id?: string | null
@@ -8357,6 +8358,7 @@ export type Database = {
           source?: string | null
           updated_at?: string | null
           username: string
+          webhook_verify_token?: string | null
         }
         Update: {
           business_id?: string | null
@@ -8371,6 +8373,7 @@ export type Database = {
           source?: string | null
           updated_at?: string | null
           username?: string
+          webhook_verify_token?: string | null
         }
         Relationships: [
           {
