@@ -185,15 +185,9 @@ export function TreeGridRow({
         )}
       </td>
 
-      {/* CTR column */}
+      {/* Conversions column */}
       <td className="px-3 py-3">
-        <MetricCell
-          metric="ctr"
-          value={node.metrics.ctr}
-          targets={targets}
-          suffix="%"
-          decimals={2}
-        />
+        <span className="text-sm font-medium">{node.metrics.conversions}</span>
       </td>
 
       {/* CPA column */}
@@ -204,6 +198,17 @@ export function TreeGridRow({
           targets={targets}
           prefix="R$"
           decimals={0}
+        />
+      </td>
+
+      {/* CTR column */}
+      <td className="px-3 py-3">
+        <MetricCell
+          metric="ctr"
+          value={node.metrics.ctr}
+          targets={targets}
+          suffix="%"
+          decimals={2}
         />
       </td>
 
@@ -227,11 +232,6 @@ export function TreeGridRow({
           prefix="R$"
           decimals={2}
         />
-      </td>
-
-      {/* Conversions column */}
-      <td className="px-3 py-3">
-        <span className="text-sm font-medium">{node.metrics.conversions}</span>
       </td>
 
       {/* Spend column */}

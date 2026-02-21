@@ -389,8 +389,8 @@ export function MultiCampaignTreeGrid({
                 onSort={handleSort}
               />
               <SortableHeader 
-                column="ctr" 
-                label="CTR" 
+                column="conversions" 
+                label="Conv." 
                 width="7%" 
                 sortColumn={sortColumn}
                 sortDirection={sortDirection}
@@ -400,6 +400,14 @@ export function MultiCampaignTreeGrid({
                 column="cpa" 
                 label="CPA" 
                 width="8%" 
+                sortColumn={sortColumn}
+                sortDirection={sortDirection}
+                onSort={handleSort}
+              />
+              <SortableHeader 
+                column="ctr" 
+                label="CTR" 
+                width="7%" 
                 sortColumn={sortColumn}
                 sortDirection={sortDirection}
                 onSort={handleSort}
@@ -415,14 +423,6 @@ export function MultiCampaignTreeGrid({
               <SortableHeader 
                 column="cpc" 
                 label="CPC" 
-                width="7%" 
-                sortColumn={sortColumn}
-                sortDirection={sortDirection}
-                onSort={handleSort}
-              />
-              <SortableHeader 
-                column="conversions" 
-                label="Conv." 
                 width="7%" 
                 sortColumn={sortColumn}
                 sortDirection={sortDirection}
