@@ -304,14 +304,14 @@ export function YouTubeScriptBuilder({
   // Don't render until sizes are loaded to prevent flicker
   if (!isLoaded) {
     return (
-      <div className="h-[calc(100vh-8rem)] flex items-center justify-center">
+      <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   return (
-    <div className="h-[calc(100vh-8rem)] flex flex-col">
+    <div className="flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
@@ -364,7 +364,7 @@ export function YouTubeScriptBuilder({
       </div>
 
       {/* Main Content with Resizable Panels */}
-      <div className="flex-1 min-h-0">
+      <div className="h-[1200px]">
         <ResizablePanelGroup
           direction="horizontal"
           className="h-full rounded-lg"
