@@ -1306,6 +1306,60 @@ async function processSync(
                     }
                   }
                   
+                  // Helper function to persist an image to Supabase Storage
+                  // Downloads the temporary Facebook CDN image and stores it permanently
+                  const persistImageToStorage = async (tempUrl: string, adFacebookId: string): Promise<string> => {
+                    if (!tempUrl) return ''
+                    try {
+                      // Skip if already a Supabase Storage URL (already persisted)
+                      const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
+                      if (tempUrl.includes(supabaseUrl) || tempUrl.includes('supabase.co/storage')) {
+                        return tempUrl
+                      }
+
+                      console.log(`💾 Persisting image to storage for ad ${adFacebookId}...`)
+                      const imgResponse = await fetch(tempUrl)
+                      if (!imgResponse.ok) {
+                        console.log(`⚠️ Failed to download image: status ${imgResponse.status}`)
+                        return tempUrl // Return original URL as fallback
+                      }
+
+                      const contentType = imgResponse.headers.get('content-type') || 'image/jpeg'
+                      const ext = contentType.includes('png') ? 'png' : contentType.includes('webp') ? 'webp' : 'jpg'
+                      const filePath = `ads/${adFacebookId}.${ext}`
+                      const imageBlob = await imgResponse.blob()
+                      const imageBuffer = new Uint8Array(await imageBlob.arrayBuffer())
+
+                      // Use service role client for storage uploads
+                      const serviceClient = createClient(
+                        Deno.env.get('SUPABASE_URL') ?? '',
+                        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+                      )
+
+                      const { error: uploadError } = await serviceClient.storage
+                        .from('campaign-creatives')
+                        .upload(filePath, imageBuffer, {
+                          contentType,
+                          upsert: true
+                        })
+
+                      if (uploadError) {
+                        console.log(`⚠️ Storage upload error: ${uploadError.message}`)
+                        return tempUrl // Return original URL as fallback
+                      }
+
+                      const { data: urlData } = serviceClient.storage
+                        .from('campaign-creatives')
+                        .getPublicUrl(filePath)
+
+                      console.log(`✅ Image persisted to storage: ${urlData.publicUrl}`)
+                      return urlData.publicUrl
+                    } catch (error) {
+                      console.error(`⚠️ Error persisting image to storage:`, error)
+                      return tempUrl // Return original URL as fallback
+                    }
+                  }
+
                   // Helper function to extract media URLs (async for video source fetching)
                   // IMPROVED: Priority order changed to get high-res images first
                   const extractMediaUrls = async (creative: any, objectStory: any) => {
@@ -1363,6 +1417,11 @@ async function processSync(
                       }
                     }
                     
+                    // 5. PERSIST: Save image to Supabase Storage for permanent URL
+                    if (imageUrl) {
+                      imageUrl = await persistImageToStorage(imageUrl, ad.id)
+                    }
+                    
                     let videoUrl = ''
                     let videoThumbnail = ''
                     
@@ -1383,7 +1442,12 @@ async function processSync(
                     }
                     
                     // Use video thumbnail as image if no image available
-                    const finalImageUrl = imageUrl || videoThumbnail
+                    let finalImageUrl = imageUrl || videoThumbnail
+                    
+                    // Persist video thumbnail too if it's from Facebook CDN
+                    if (finalImageUrl && finalImageUrl !== imageUrl && finalImageUrl.includes('fbcdn.net')) {
+                      finalImageUrl = await persistImageToStorage(finalImageUrl, `${ad.id}_thumb`)
+                    }
                     
                     console.log('📊 Final extracted URLs:')
                     console.log(`   - Image: ${finalImageUrl ? 'found' : 'not found'}`)
