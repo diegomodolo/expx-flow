@@ -47,7 +47,8 @@ Deno.serve(async (req) => {
 
   try {
     console.log('Creating Supabase client...')
-    const supabase = createClient(
+    // Use anon key + user auth for initial request validation
+    const supabaseUser = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       {
@@ -56,7 +57,12 @@ Deno.serve(async (req) => {
         },
       }
     )
-    console.log('Supabase client created successfully')
+    // Use service role key for background processing (bypasses RLS)
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
+    console.log('Supabase clients created successfully')
 
     // Parse request body
     console.log('Parsing request body...')
