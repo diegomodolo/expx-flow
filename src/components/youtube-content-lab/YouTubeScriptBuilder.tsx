@@ -171,7 +171,6 @@ export function YouTubeScriptBuilder({
     setChatInput("");
     setSending(true);
 
-    // Optimistically add user message
     setMessages((prev) => [
       ...prev,
       {
@@ -243,13 +242,9 @@ export function YouTubeScriptBuilder({
       console.log('Thumbnail generated, URL:', imageUrl);
       
       if (imageUrl) {
-        // Update local state with the new thumbnail
         setThumbnailUrl(imageUrl);
-        // Close progress modal first
         setShowThumbnailModal(false);
-        // Set the image to edit and open editor
         setImageToEdit(imageUrl);
-        // Small delay to ensure state is set before opening modal
         setTimeout(() => {
           setShowImageEditor(true);
         }, 100);
@@ -262,7 +257,6 @@ export function YouTubeScriptBuilder({
     }
   };
 
-  // Generate thumbnail silently (for slides) - returns URL without opening editor
   const handleGenerateThumbnailForSlides = async (): Promise<string | null> => {
     try {
       const imageUrl = await onGenerateThumbnail(
@@ -291,7 +285,6 @@ export function YouTubeScriptBuilder({
   };
 
   const handleImageEditorSave = async (newImages: string[]) => {
-    // Update the script with the new thumbnail URL
     if (newImages.length > 0) {
       const newUrl = newImages[0];
       await onUpdate({ thumbnail_url: newUrl });
@@ -301,7 +294,6 @@ export function YouTubeScriptBuilder({
     setImageToEdit(null);
   };
 
-  // Don't render until sizes are loaded to prevent flicker
   if (!isLoaded) {
     return (
       <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center">
@@ -439,15 +431,16 @@ export function YouTubeScriptBuilder({
 
           <ResizableHandle withHandle />
 
-          {/* Right Column - Thumbnail, Chat & Titles */}
+          {/* Right Column - Thumbnail, Titles, Description & Chat */}
           <ResizablePanel defaultSize={sizes.rightColumn} minSize={25}>
             <div className="h-full pl-2">
               <ResizablePanelGroup
                 direction="vertical"
                 className="h-full"
-                onLayout={(sizes) => {
-                  if (sizes.length === 4) {
-                    setRightColumnSizes(sizes[0], sizes[1], sizes[2], sizes[3]);
+                onLayout={(panelSizes) => {
+                  if (panelSizes.length === 4) {
+                    // Panel order: [0]=thumbnail, [1]=titles, [2]=description, [3]=chat
+                    setRightColumnSizes(panelSizes[0], panelSizes[3], panelSizes[1], panelSizes[2]);
                   }
                 }}
               >
@@ -570,61 +563,6 @@ export function YouTubeScriptBuilder({
 
                 <ResizableHandle withHandle />
 
-                {/* Chat com IA */}
-                <ResizablePanel defaultSize={sizes.chat} minSize={15}>
-                  <Card className="h-full flex flex-col overflow-hidden mt-2">
-                    <CardHeader className="pb-3 flex-shrink-0">
-                      <CardTitle className="text-base">Chat com IA</CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden pb-4">
-                      <ScrollArea className="flex-1 pr-4">
-                        <div className="space-y-4">
-                          {messages.map((msg) => (
-                            <div
-                              key={msg.id}
-                              className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-                            >
-                              <div
-                                className={`max-w-[85%] rounded-lg px-3 py-2 text-sm ${
-                                  msg.role === "user"
-                                    ? "bg-primary text-primary-foreground"
-                                    : "bg-muted"
-                                }`}
-                              >
-                                <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:mb-2 [&>p:last-child]:mb-0">
-                                  <ReactMarkdown>{msg.content}</ReactMarkdown>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                          {sending && (
-                            <div className="flex justify-start">
-                              <div className="bg-muted rounded-lg px-3 py-2">
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              </div>
-                            </div>
-                          )}
-                          <div ref={messagesEndRef} />
-                        </div>
-                      </ScrollArea>
-                      <div className="flex gap-2 mt-4 pt-4 border-t flex-shrink-0">
-                        <Input
-                          value={chatInput}
-                          onChange={(e) => setChatInput(e.target.value)}
-                          placeholder="Peça ajustes no roteiro..."
-                          onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSendMessage()}
-                          disabled={sending}
-                        />
-                        <Button size="icon" onClick={handleSendMessage} disabled={sending || !chatInput.trim()}>
-                          <Send className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </ResizablePanel>
-
-                <ResizableHandle withHandle />
-
                 {/* Descrição SEO */}
                 <ResizablePanel defaultSize={sizes.description} minSize={10}>
                   <Card className="h-full flex flex-col overflow-hidden mt-2">
@@ -683,6 +621,61 @@ export function YouTubeScriptBuilder({
                           <p className="text-sm text-muted-foreground">Clique para gerar descrição SEO</p>
                         </div>
                       )}
+                    </CardContent>
+                  </Card>
+                </ResizablePanel>
+
+                <ResizableHandle withHandle />
+
+                {/* Chat com IA */}
+                <ResizablePanel defaultSize={sizes.chat} minSize={15}>
+                  <Card className="h-full flex flex-col overflow-hidden mt-2">
+                    <CardHeader className="pb-3 flex-shrink-0">
+                      <CardTitle className="text-base">Chat com IA</CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden pb-4">
+                      <ScrollArea className="flex-1 pr-4">
+                        <div className="space-y-4">
+                          {messages.map((msg) => (
+                            <div
+                              key={msg.id}
+                              className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                            >
+                              <div
+                                className={`max-w-[85%] rounded-lg px-3 py-2 text-sm ${
+                                  msg.role === "user"
+                                    ? "bg-primary text-primary-foreground"
+                                    : "bg-muted"
+                                }`}
+                              >
+                                <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:mb-2 [&>p:last-child]:mb-0">
+                                  <ReactMarkdown>{msg.content}</ReactMarkdown>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                          {sending && (
+                            <div className="flex justify-start">
+                              <div className="bg-muted rounded-lg px-3 py-2">
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              </div>
+                            </div>
+                          )}
+                          <div ref={messagesEndRef} />
+                        </div>
+                      </ScrollArea>
+                      <div className="flex gap-2 mt-4 pt-4 border-t flex-shrink-0">
+                        <Input
+                          value={chatInput}
+                          onChange={(e) => setChatInput(e.target.value)}
+                          placeholder="Peça ajustes no roteiro..."
+                          onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSendMessage()}
+                          disabled={sending}
+                        />
+                        <Button size="icon" onClick={handleSendMessage} disabled={sending || !chatInput.trim()}>
+                          <Send className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </CardContent>
                   </Card>
                 </ResizablePanel>
