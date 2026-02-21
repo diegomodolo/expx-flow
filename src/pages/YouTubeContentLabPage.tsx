@@ -16,6 +16,7 @@ import { YouTubeScriptBuilder } from "@/components/youtube-content-lab/YouTubeSc
 import { YouTubeThumbnailConfig } from "@/components/youtube-content-lab/YouTubeThumbnailConfig";
 import { YouTubeCategorySidebar } from "@/components/youtube-content-lab/YouTubeCategorySidebar";
 import { YouTubeRefreshModal, ChannelRefreshStatus } from "@/components/youtube-content-lab/YouTubeRefreshModal";
+import { YouTubeRefreshConfigModal } from "@/components/youtube-content-lab/YouTubeRefreshConfigModal";
 import { Youtube, BarChart3, Lightbulb, FileText, Loader2, Image, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
@@ -48,6 +49,7 @@ export default function YouTubeContentLabPage() {
   const [activeTab, setActiveTab] = useState("channels");
   const [selectedScriptId, setSelectedScriptId] = useState<string | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [refreshConfigOpen, setRefreshConfigOpen] = useState(false);
   const [refreshModalOpen, setRefreshModalOpen] = useState(false);
   const [refreshStatuses, setRefreshStatuses] = useState<ChannelRefreshStatus[]>([]);
   const [refreshFinished, setRefreshFinished] = useState(false);
@@ -245,44 +247,7 @@ export default function YouTubeContentLabPage() {
                   setActiveTab("scripts");
                 }}
                 onRefreshAnalysis={async () => {
-                  const channelsToRefresh = filteredChannels;
-                  const statuses: ChannelRefreshStatus[] = channelsToRefresh.map((ch) => ({
-                    channelId: ch.id,
-                    channelName: ch.channel_name,
-                    status: "pending" as const,
-                  }));
-                  setRefreshStatuses(statuses);
-                  setRefreshFinished(false);
-                  setRefreshModalOpen(true);
-
-                  for (let i = 0; i < channelsToRefresh.length; i++) {
-                    const channel = channelsToRefresh[i];
-                    setRefreshStatuses((prev) =>
-                      prev.map((s, idx) =>
-                        idx === i ? { ...s, status: "loading" as const } : s
-                      )
-                    );
-
-                    try {
-                      const data = await channelsHook.refreshChannel(channel.id);
-                      setRefreshStatuses((prev) =>
-                        prev.map((s, idx) =>
-                          idx === i
-                            ? { ...s, status: "success" as const, videoCount: data?.analyzedCount ?? 0 }
-                            : s
-                        )
-                      );
-                    } catch {
-                      setRefreshStatuses((prev) =>
-                        prev.map((s, idx) =>
-                          idx === i ? { ...s, status: "error" as const } : s
-                        )
-                      );
-                    }
-                  }
-
-                  await analyticsHook.refetch();
-                  setRefreshFinished(true);
+                  setRefreshConfigOpen(true);
                 }}
                 refreshing={channelsHook.analyzing}
               />
@@ -323,6 +288,51 @@ export default function YouTubeContentLabPage() {
           </Tabs>
         </div>
       </div>
+      <YouTubeRefreshConfigModal
+        open={refreshConfigOpen}
+        onOpenChange={setRefreshConfigOpen}
+        channels={filteredChannels}
+        onConfirm={async (selectedIds, periodDays) => {
+          const channelsToRefresh = filteredChannels.filter((ch) => selectedIds.includes(ch.id));
+          const statuses: ChannelRefreshStatus[] = channelsToRefresh.map((ch) => ({
+            channelId: ch.id,
+            channelName: ch.channel_name,
+            status: "pending" as const,
+          }));
+          setRefreshStatuses(statuses);
+          setRefreshFinished(false);
+          setRefreshModalOpen(true);
+
+          for (let i = 0; i < channelsToRefresh.length; i++) {
+            const channel = channelsToRefresh[i];
+            setRefreshStatuses((prev) =>
+              prev.map((s, idx) =>
+                idx === i ? { ...s, status: "loading" as const } : s
+              )
+            );
+
+            try {
+              const data = await channelsHook.refreshChannel(channel.id, periodDays);
+              setRefreshStatuses((prev) =>
+                prev.map((s, idx) =>
+                  idx === i
+                    ? { ...s, status: "success" as const, videoCount: data?.analyzedCount ?? 0 }
+                    : s
+                )
+              );
+            } catch {
+              setRefreshStatuses((prev) =>
+                prev.map((s, idx) =>
+                  idx === i ? { ...s, status: "error" as const } : s
+                )
+              );
+            }
+          }
+
+          await analyticsHook.refetch();
+          setRefreshFinished(true);
+        }}
+      />
       <YouTubeRefreshModal
         open={refreshModalOpen}
         onOpenChange={setRefreshModalOpen}
