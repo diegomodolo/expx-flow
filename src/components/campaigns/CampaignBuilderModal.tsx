@@ -83,12 +83,16 @@ export function CampaignBuilderModal({
   const renderContent = () => {
     if (state.currentSection === 'ai-generator') {
       return (
-        <AIGeneratorSection
-          clientId={clientId}
-          companyId={companyId}
-          onGenerated={handleAIGenerated}
-          onNavigateToSection={setCurrentSection}
-        />
+        <ScrollArea className="flex-1">
+          <div className="p-6 max-w-4xl">
+            <AIGeneratorSection
+              clientId={clientId}
+              companyId={companyId}
+              onGenerated={handleAIGenerated}
+              onNavigateToSection={setCurrentSection}
+            />
+          </div>
+        </ScrollArea>
       );
     }
 
@@ -102,33 +106,23 @@ export function CampaignBuilderModal({
     }
 
     if (state.currentSection === 'adsets' && currentAdSet) {
-      // If a creative is selected, show only the creative editor
+      // If a creative is selected, show the creative editor (matches AdEditContent structure)
       if (state.selectedCreativeIndex !== undefined) {
         const creative = currentAdSet.creatives[state.selectedCreativeIndex];
         if (creative) {
           return (
-            <div className="space-y-6">
-              <div>
-                <h2 className="text-xl font-semibold mb-1">
-                  {creative.title || `Criativo ${state.selectedCreativeIndex + 1}`}
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  Conjunto: {currentAdSet.name || `Conjunto ${state.currentAdSetIndex + 1}`}
-                </p>
-              </div>
-              <CreativeEditor
-                creative={creative}
-                onChange={(updates) => updateCreative(state.currentAdSetIndex, state.selectedCreativeIndex!, updates)}
-                clientId={clientId}
-                companyId={companyId}
-                clientName={clientName}
-              />
-            </div>
+            <CreativeEditor
+              creative={creative}
+              onChange={(updates) => updateCreative(state.currentAdSetIndex, state.selectedCreativeIndex!, updates)}
+              clientId={clientId}
+              companyId={companyId}
+              clientName={clientName}
+            />
           );
         }
       }
 
-      // Show ad set section
+      // Show ad set section (matches AdSetEditContent structure)
       return (
         <AdSetSection
           adSet={currentAdSet}
@@ -148,10 +142,14 @@ export function CampaignBuilderModal({
 
     if (state.currentSection === 'review') {
       return (
-        <ReviewSection
-          state={state}
-          validationError={validationError}
-        />
+        <ScrollArea className="flex-1">
+          <div className="p-6 max-w-4xl">
+            <ReviewSection
+              state={state}
+              validationError={validationError}
+            />
+          </div>
+        </ScrollArea>
       );
     }
 
@@ -222,11 +220,7 @@ export function CampaignBuilderModal({
 
           {/* Right content area */}
           <div className="flex-1 overflow-hidden flex flex-col">
-            <ScrollArea className="flex-1">
-              <div className="p-6 max-w-4xl">
-                {renderContent()}
-              </div>
-            </ScrollArea>
+            {renderContent()}
           </div>
         </div>
       </DialogContent>

@@ -2,6 +2,15 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Target,
+  Settings,
+  DollarSign,
+  Info,
+} from "lucide-react";
 import { CampaignData } from "@/hooks/useCampaignBuilder";
 
 interface CampaignSectionProps {
@@ -46,94 +55,144 @@ export function CampaignSection({ campaign, onChange }: CampaignSectionProps) {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-semibold mb-1">Configurações da Campanha</h2>
-        <p className="text-sm text-muted-foreground">
-          Defina as configurações básicas da sua campanha no Meta Ads
-        </p>
-      </div>
-
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="campaign-name">Nome da Campanha *</Label>
-          <Input
-            id="campaign-name"
-            placeholder="Ex: Black Friday 2024"
-            value={campaign.name}
-            onChange={(e) => onChange({ name: e.target.value })}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label>Objetivo da Campanha *</Label>
-          <Select
-            value={campaign.objective}
-            onValueChange={(value) => onChange({ objective: value })}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Selecione o objetivo" />
-            </SelectTrigger>
-            <SelectContent>
-              {OBJECTIVES.map((obj) => (
-                <SelectItem key={obj.value} value={obj.value}>
-                  {obj.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <p className="text-xs text-muted-foreground">
-            O objetivo determina como o Meta otimizará a entrega dos seus anúncios
-          </p>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label>Tipo de Orçamento</Label>
-            <Select
-              value={campaign.budgetType}
-              onValueChange={(value: 'daily' | 'lifetime') => onChange({ budgetType: value })}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="daily">Orçamento Diário</SelectItem>
-                <SelectItem value="lifetime">Orçamento Vitalício</SelectItem>
-              </SelectContent>
-            </Select>
+    <div className="flex flex-col h-full">
+      {/* Header - matches CampaignEditContent */}
+      <div className="p-6 pb-4">
+        <div className="flex items-center gap-3">
+          <Target className="w-6 h-6 text-primary" />
+          <div className="flex-1">
+            <h2 className="text-xl font-semibold">Campanha</h2>
+            <div className="flex items-center gap-2 mt-1">
+              <Badge variant="outline">META</Badge>
+              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">
+                Nova
+              </Badge>
+            </div>
           </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="budget-value">Valor do Orçamento *</Label>
-            <Input
-              id="budget-value"
-              placeholder="R$ 0,00"
-              value={formatCurrency(campaign.budgetValue)}
-              onChange={handleBudgetChange}
+          {/* Status Toggle */}
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-muted-foreground">
+              {campaign.status === 'ACTIVE' ? 'Ativo' : 'Pausado'}
+            </span>
+            <Switch
+              checked={campaign.status === 'ACTIVE'}
+              onCheckedChange={(checked) => onChange({ status: checked ? 'ACTIVE' : 'PAUSED' })}
+              className="data-[state=checked]:bg-green-500"
             />
-            <p className="text-xs text-muted-foreground">Mínimo: R$ 1,00</p>
           </div>
-        </div>
-
-        <div className="flex items-center justify-between p-4 rounded-lg border bg-muted/30">
-          <div>
-            <Label htmlFor="campaign-status" className="font-medium">
-              Iniciar campanha ativa
-            </Label>
-            <p className="text-sm text-muted-foreground">
-              {campaign.status === 'ACTIVE' 
-                ? 'A campanha começará a veicular imediatamente'
-                : 'A campanha será criada pausada para revisão'}
-            </p>
-          </div>
-          <Switch
-            id="campaign-status"
-            checked={campaign.status === 'ACTIVE'}
-            onCheckedChange={(checked) => onChange({ status: checked ? 'ACTIVE' : 'PAUSED' })}
-          />
         </div>
       </div>
+
+      <Separator />
+
+      <ScrollArea className="flex-1">
+        <div className="p-6 space-y-6">
+          {/* Two Column Layout - matches CampaignEditContent */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Left Column - Configurations */}
+            <div className="space-y-6">
+              <div className="space-y-4">
+                <h4 className="font-medium text-sm flex items-center gap-2 text-muted-foreground uppercase tracking-wider">
+                  <Settings className="w-4 h-4" />
+                  Configurações
+                </h4>
+
+                {/* Name Field */}
+                <div className="space-y-2">
+                  <Label>Nome da Campanha *</Label>
+                  <Input
+                    value={campaign.name}
+                    onChange={(e) => onChange({ name: e.target.value })}
+                    placeholder="Ex: Campanha de Conversões - Janeiro"
+                  />
+                  {campaign.name.trim() === '' && (
+                    <p className="text-xs text-destructive">O nome não pode estar vazio</p>
+                  )}
+                </div>
+
+                {/* Objective */}
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    Objetivo da Campanha *
+                  </Label>
+                  <Select
+                    value={campaign.objective}
+                    onValueChange={(value) => onChange({ objective: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o objetivo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {OBJECTIVES.map((obj) => (
+                        <SelectItem key={obj.value} value={obj.value}>
+                          {obj.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    O objetivo determina como o Meta otimizará a entrega dos seus anúncios
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column - Budget */}
+            <div className="space-y-6">
+              <div className="space-y-4">
+                <h4 className="font-medium text-sm flex items-center gap-2 text-muted-foreground uppercase tracking-wider">
+                  <DollarSign className="w-4 h-4" />
+                  Orçamento
+                </h4>
+
+                {/* Budget Type */}
+                <div className="space-y-2">
+                  <Label>Tipo de Orçamento</Label>
+                  <Select
+                    value={campaign.budgetType}
+                    onValueChange={(value: 'daily' | 'lifetime') => onChange({ budgetType: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="daily">Diário</SelectItem>
+                      <SelectItem value="lifetime">Vitalício</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Budget Value */}
+                <div className="space-y-2">
+                  <Label>Valor (R$) *</Label>
+                  <Input
+                    placeholder="R$ 0,00"
+                    value={formatCurrency(campaign.budgetValue)}
+                    onChange={handleBudgetChange}
+                  />
+                  {campaign.budgetValue < 1 && (
+                    <p className="text-xs text-destructive">O orçamento mínimo é R$ 1,00</p>
+                  )}
+                </div>
+
+                {/* Budget Info */}
+                <div className="p-4 rounded-lg bg-muted/50 space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">
+                      {campaign.budgetType === 'daily' ? 'Orçamento Diário:' : 'Orçamento Total:'}
+                    </span>
+                    <span className="font-medium">{formatCurrency(campaign.budgetValue)}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Info className="w-3 h-3" />
+                    <span>A campanha será criada {campaign.status === 'ACTIVE' ? 'ativa' : 'pausada para revisão'}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </ScrollArea>
     </div>
   );
 }
