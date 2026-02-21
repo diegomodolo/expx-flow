@@ -658,14 +658,27 @@ export function YouTubeScriptBuilder({
                             </p>
                           ) : (
                             script.suggested_titles.map((t, i) => (
-                              <Button
-                                key={i}
-                                variant={t === title ? "secondary" : "ghost"}
-                                className="w-full justify-start h-auto py-2 px-3 text-left"
-                                onClick={() => handleSelectTitle(t)}
-                              >
-                                <span className="line-clamp-2 text-sm">{t}</span>
-                              </Button>
+                              <div key={i} className="flex items-center gap-1">
+                                <Button
+                                  variant={t === title ? "secondary" : "ghost"}
+                                  className="flex-1 justify-start h-auto py-2 px-3 text-left"
+                                  onClick={() => handleSelectTitle(t)}
+                                >
+                                  <span className="line-clamp-2 text-sm">{t}</span>
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 shrink-0"
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    await navigator.clipboard.writeText(t);
+                                    toast({ title: "Título copiado!" });
+                                  }}
+                                >
+                                  <Copy className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
                             ))
                           )}
                         </div>
