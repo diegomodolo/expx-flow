@@ -780,9 +780,12 @@ async function processSync(
         return
       }
     } else {
-      // Fetch all campaigns
+      // Fetch all campaigns - include more statuses when includeInactive is true
+      const statusFilter = includeInactive 
+        ? '["ACTIVE","PAUSED","ARCHIVED","CAMPAIGN_PAUSED","IN_PROCESS","WITH_ISSUES","ADSET_PAUSED"]'
+        : '["ACTIVE","PAUSED"]'
       const baseCampaignsUrl = `https://graph.facebook.com/v20.0/${accountId}/campaigns?fields=id,name,status,objective,daily_budget,lifetime_budget,insights${dateParam}.action_report_time(conversion).action_attribution_windows(["7d_click","1d_view"])` +
-        `{impressions,clicks,spend,actions,conversions,conversion_values,action_values,reach,frequency,quality_ranking,engagement_rate_ranking,conversion_rate_ranking}&effective_status=["ACTIVE","PAUSED"]&limit=100&access_token=${accessToken}`
+        `{impressions,clicks,spend,actions,conversions,conversion_values,action_values,reach,frequency,quality_ranking,engagement_rate_ranking,conversion_rate_ranking}&effective_status=${statusFilter}&limit=100&access_token=${accessToken}`
       console.log('Facebook API URL (without token):', baseCampaignsUrl.replace(accessToken, '[REDACTED]'))
 
       let pageUrl: string | null = baseCampaignsUrl
