@@ -319,50 +319,6 @@ export function YouTubeVideoAnalytics({
                 </div>
               </div>
               
-              {/* Channel Filter */}
-              {channels.length > 1 && (
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm text-muted-foreground flex items-center gap-1.5">
-                    <Youtube className="h-4 w-4" />
-                    Canal:
-                  </span>
-                  <Button
-                    size="sm"
-                    variant={selectedChannelIds.length === 0 ? 'default' : 'outline'}
-                    onClick={() => onChannelSelect([])}
-                    className="h-7 text-xs"
-                  >
-                    Todos
-                  </Button>
-                  {channels.map((channel) => (
-                    <Button
-                      key={channel.id}
-                      size="sm"
-                      variant={selectedChannelIds.includes(channel.id) ? 'default' : 'outline'}
-                      onClick={() => {
-                        if (selectedChannelIds.includes(channel.id)) {
-                          onChannelSelect(selectedChannelIds.filter(id => id !== channel.id));
-                        } else {
-                          onChannelSelect([...selectedChannelIds, channel.id]);
-                        }
-                      }}
-                      className="h-7 text-xs flex items-center gap-1.5"
-                    >
-                      {channel.thumbnail_url && (
-                        <img 
-                          src={channel.thumbnail_url} 
-                          alt={channel.channel_name}
-                          className="h-4 w-4 rounded-full"
-                        />
-                      )}
-                      {channel.channel_name}
-                      {selectedChannelIds.includes(channel.id) && (
-                        <X className="h-3 w-3 ml-0.5" />
-                      )}
-                    </Button>
-                  ))}
-                </div>
-              )}
             </CardHeader>
             <CardContent>
               {videos.length === 0 ? (

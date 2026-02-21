@@ -180,9 +180,16 @@ export function YouTubeAnalysisFilters({
             <Badge
               key={channel.id}
               variant={selectedChannelIds.includes(channel.id) ? "default" : "outline"}
-              className="cursor-pointer hover:opacity-80 transition-opacity"
+              className="cursor-pointer hover:opacity-80 transition-opacity flex items-center gap-1.5"
               onClick={() => handleChannelToggle(channel.id)}
             >
+              {channel.thumbnail_url && (
+                <img
+                  src={channel.thumbnail_url}
+                  alt={channel.channel_name}
+                  className="h-4 w-4 rounded-full"
+                />
+              )}
               {channel.channel_name}
             </Badge>
           ))}
