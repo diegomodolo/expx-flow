@@ -4,10 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { YouTubeVideo, PeriodOption, SortOption } from "@/hooks/useYouTubeAnalytics";
 import { YouTubeChannel } from "@/hooks/useYouTubeChannels";
-import { Eye, ThumbsUp, MessageCircle, TrendingUp, FileText, Loader2, ExternalLink, BarChart3, Clock, Hash, Youtube, X, RefreshCw, Film, Zap } from "lucide-react";
+import { Eye, ThumbsUp, MessageCircle, TrendingUp, FileText, Loader2, ExternalLink, BarChart3, Clock, Hash, Youtube, X, RefreshCw, Film, Zap, DollarSign } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { YouTubeAnalysisFilters } from "./YouTubeAnalysisFilters";
-import { YouTubeChannelComparison } from "./YouTubeChannelComparison";
+import { YouTubeMonetizationRanking } from "./YouTubeMonetizationRanking";
 import { YouTubeTrendAnalysis } from "./YouTubeTrendAnalysis";
 import { YouTubeDurationAnalysis } from "./YouTubeDurationAnalysis";
 import { YouTubePostingBehavior } from "./YouTubePostingBehavior";
@@ -232,8 +232,8 @@ export function YouTubeVideoAnalytics({
             <span className="hidden sm:inline">Ranking Canais</span>
           </TabsTrigger>
           <TabsTrigger value="channels" className="flex items-center gap-2">
-            <BarChart3 className="h-4 w-4" />
-            <span className="hidden sm:inline">Canais</span>
+            <DollarSign className="h-4 w-4" />
+            <span className="hidden sm:inline">Monetização</span>
           </TabsTrigger>
           <TabsTrigger value="trends" className="flex items-center gap-2">
             <Hash className="h-4 w-4" />
@@ -414,9 +414,9 @@ export function YouTubeVideoAnalytics({
           <YouTubeChannelRanking videos={videos} channels={channels} />
         </TabsContent>
 
-        {/* Channel Comparison Tab */}
+        {/* Monetization Tab */}
         <TabsContent value="channels" className="mt-6">
-          <YouTubeChannelComparison videos={videos} channels={channels} />
+          <YouTubeMonetizationRanking videos={videos} channels={channels} />
         </TabsContent>
 
         {/* Trends Tab */}
