@@ -18,9 +18,10 @@ interface RoteiroDialogProps {
   onSave: (data: { nome: string; categoria_id?: string | null; icone?: string; objetivo?: string; publico?: boolean }) => void;
   roteiro?: Roteiro | null;
   loading?: boolean;
+  prefill?: { nome?: string; objetivo?: string } | null;
 }
 
-export function RoteiroDialog({ open, onOpenChange, onSave, roteiro, loading }: RoteiroDialogProps) {
+export function RoteiroDialog({ open, onOpenChange, onSave, roteiro, loading, prefill }: RoteiroDialogProps) {
   const [nome, setNome] = useState('');
   const [categoriaId, setCategoriaId] = useState<string | null>(null);
   const [icone, setIcone] = useState('BookOpen');
@@ -37,10 +38,14 @@ export function RoteiroDialog({ open, onOpenChange, onSave, roteiro, loading }: 
       setIcone(roteiro.icone || 'BookOpen');
       setObjetivo(roteiro.objetivo || '');
       setPublico(roteiro.publico);
+    } else if (prefill) {
+      setNome(prefill.nome || '');
+      setObjetivo(prefill.objetivo || '');
+      setCategoriaId(null); setIcone('BookOpen'); setPublico(false);
     } else {
       setNome(''); setCategoriaId(null); setIcone('BookOpen'); setObjetivo(''); setPublico(false);
     }
-  }, [roteiro, open]);
+  }, [roteiro, prefill, open]);
 
   const handleSave = () => {
     if (!nome.trim()) return;
