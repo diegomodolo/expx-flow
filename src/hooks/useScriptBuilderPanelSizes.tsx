@@ -18,14 +18,14 @@ interface PanelSizes {
 }
 
 const DEFAULT_SIZES: PanelSizes = {
-  leftColumn: 66,
-  rightColumn: 34,
+  leftColumn: 60,
+  rightColumn: 40,
   scriptEditor: 50,
   slidesSection: 50,
-  thumbnail: 25,
-  chat: 30,
+  thumbnail: 22,
+  chat: 28,
   titles: 20,
-  description: 25,
+  description: 30,
 };
 
 export function useScriptBuilderPanelSizes() {

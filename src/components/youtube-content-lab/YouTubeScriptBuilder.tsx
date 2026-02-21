@@ -510,6 +510,121 @@ export function YouTubeScriptBuilder({
 
                 <ResizableHandle withHandle />
 
+                {/* Títulos Sugeridos */}
+                <ResizablePanel defaultSize={sizes.titles} minSize={10}>
+                  <Card className="h-full flex flex-col overflow-hidden mt-2">
+                    <CardHeader className="pb-3 flex-shrink-0">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-base">Títulos Sugeridos</CardTitle>
+                        <Select onValueChange={handleGenerateTitles} disabled={generatingTitles}>
+                          <SelectTrigger className="w-[120px] h-8">
+                            <SelectValue placeholder={generatingTitles ? "Gerando..." : "Gerar"} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="mixed">Variados</SelectItem>
+                            <SelectItem value="curiosity">Curiosidade</SelectItem>
+                            <SelectItem value="urgency">Urgência</SelectItem>
+                            <SelectItem value="benefit">Benefício</SelectItem>
+                            <SelectItem value="provocative">Provocativo</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="flex-1 overflow-hidden pb-4">
+                      <ScrollArea className="h-full">
+                        <div className="space-y-2 pr-4">
+                          {script.suggested_titles.length === 0 ? (
+                            <p className="text-sm text-muted-foreground text-center py-4">
+                              Clique em "Gerar" para criar títulos
+                            </p>
+                          ) : (
+                            script.suggested_titles.map((t, i) => (
+                              <div key={i} className="flex items-center gap-1">
+                                <Button
+                                  variant={t === title ? "secondary" : "ghost"}
+                                  className="flex-1 justify-start h-auto py-2 px-3 text-left"
+                                  onClick={() => handleSelectTitle(t)}
+                                >
+                                  <span className="line-clamp-2 text-sm">{t}</span>
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 shrink-0"
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    await navigator.clipboard.writeText(t);
+                                    toast({ title: "Título copiado!" });
+                                  }}
+                                >
+                                  <Copy className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </ScrollArea>
+                    </CardContent>
+                  </Card>
+                </ResizablePanel>
+
+                <ResizableHandle withHandle />
+
+                {/* Chat com IA */}
+                <ResizablePanel defaultSize={sizes.chat} minSize={15}>
+                  <Card className="h-full flex flex-col overflow-hidden mt-2">
+                    <CardHeader className="pb-3 flex-shrink-0">
+                      <CardTitle className="text-base">Chat com IA</CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden pb-4">
+                      <ScrollArea className="flex-1 pr-4">
+                        <div className="space-y-4">
+                          {messages.map((msg) => (
+                            <div
+                              key={msg.id}
+                              className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                            >
+                              <div
+                                className={`max-w-[85%] rounded-lg px-3 py-2 text-sm ${
+                                  msg.role === "user"
+                                    ? "bg-primary text-primary-foreground"
+                                    : "bg-muted"
+                                }`}
+                              >
+                                <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:mb-2 [&>p:last-child]:mb-0">
+                                  <ReactMarkdown>{msg.content}</ReactMarkdown>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                          {sending && (
+                            <div className="flex justify-start">
+                              <div className="bg-muted rounded-lg px-3 py-2">
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              </div>
+                            </div>
+                          )}
+                          <div ref={messagesEndRef} />
+                        </div>
+                      </ScrollArea>
+                      <div className="flex gap-2 mt-4 pt-4 border-t flex-shrink-0">
+                        <Input
+                          value={chatInput}
+                          onChange={(e) => setChatInput(e.target.value)}
+                          placeholder="Peça ajustes no roteiro..."
+                          onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSendMessage()}
+                          disabled={sending}
+                        />
+                        <Button size="icon" onClick={handleSendMessage} disabled={sending || !chatInput.trim()}>
+                          <Send className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </ResizablePanel>
+
+                <ResizableHandle withHandle />
+
                 {/* Descrição SEO */}
                 <ResizablePanel defaultSize={sizes.description} minSize={10}>
                   <Card className="h-full flex flex-col overflow-hidden mt-2">
@@ -568,121 +683,6 @@ export function YouTubeScriptBuilder({
                           <p className="text-sm text-muted-foreground">Clique para gerar descrição SEO</p>
                         </div>
                       )}
-                    </CardContent>
-                  </Card>
-                </ResizablePanel>
-
-                <ResizableHandle withHandle />
-
-                {/* Chat */}
-                <ResizablePanel defaultSize={sizes.chat} minSize={15}>
-                  <Card className="h-full flex flex-col overflow-hidden mt-2">
-                    <CardHeader className="pb-3 flex-shrink-0">
-                      <CardTitle className="text-base">Chat com IA</CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden pb-4">
-                      <ScrollArea className="flex-1 pr-4">
-                        <div className="space-y-4">
-                          {messages.map((msg) => (
-                            <div
-                              key={msg.id}
-                              className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-                            >
-                              <div
-                                className={`max-w-[85%] rounded-lg px-3 py-2 text-sm ${
-                                  msg.role === "user"
-                                    ? "bg-primary text-primary-foreground"
-                                    : "bg-muted"
-                                }`}
-                              >
-                                <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:mb-2 [&>p:last-child]:mb-0">
-                                  <ReactMarkdown>{msg.content}</ReactMarkdown>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                          {sending && (
-                            <div className="flex justify-start">
-                              <div className="bg-muted rounded-lg px-3 py-2">
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              </div>
-                            </div>
-                          )}
-                          <div ref={messagesEndRef} />
-                        </div>
-                      </ScrollArea>
-                      <div className="flex gap-2 mt-4 pt-4 border-t flex-shrink-0">
-                        <Input
-                          value={chatInput}
-                          onChange={(e) => setChatInput(e.target.value)}
-                          placeholder="Peça ajustes no roteiro..."
-                          onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSendMessage()}
-                          disabled={sending}
-                        />
-                        <Button size="icon" onClick={handleSendMessage} disabled={sending || !chatInput.trim()}>
-                          <Send className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </ResizablePanel>
-
-                <ResizableHandle withHandle />
-
-                {/* Titles */}
-                <ResizablePanel defaultSize={sizes.titles} minSize={10}>
-                  <Card className="h-full flex flex-col overflow-hidden mt-2">
-                    <CardHeader className="pb-3 flex-shrink-0">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-base">Títulos Sugeridos</CardTitle>
-                        <Select onValueChange={handleGenerateTitles} disabled={generatingTitles}>
-                          <SelectTrigger className="w-[120px] h-8">
-                            <SelectValue placeholder={generatingTitles ? "Gerando..." : "Gerar"} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="mixed">Variados</SelectItem>
-                            <SelectItem value="curiosity">Curiosidade</SelectItem>
-                            <SelectItem value="urgency">Urgência</SelectItem>
-                            <SelectItem value="benefit">Benefício</SelectItem>
-                            <SelectItem value="provocative">Provocativo</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="flex-1 overflow-hidden pb-4">
-                      <ScrollArea className="h-full">
-                        <div className="space-y-2 pr-4">
-                          {script.suggested_titles.length === 0 ? (
-                            <p className="text-sm text-muted-foreground text-center py-4">
-                              Clique em "Gerar" para criar títulos
-                            </p>
-                          ) : (
-                            script.suggested_titles.map((t, i) => (
-                              <div key={i} className="flex items-center gap-1">
-                                <Button
-                                  variant={t === title ? "secondary" : "ghost"}
-                                  className="flex-1 justify-start h-auto py-2 px-3 text-left"
-                                  onClick={() => handleSelectTitle(t)}
-                                >
-                                  <span className="line-clamp-2 text-sm">{t}</span>
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 shrink-0"
-                                  onClick={async (e) => {
-                                    e.stopPropagation();
-                                    await navigator.clipboard.writeText(t);
-                                    toast({ title: "Título copiado!" });
-                                  }}
-                                >
-                                  <Copy className="h-3.5 w-3.5" />
-                                </Button>
-                              </div>
-                            ))
-                          )}
-                        </div>
-                      </ScrollArea>
                     </CardContent>
                   </Card>
                 </ResizablePanel>
