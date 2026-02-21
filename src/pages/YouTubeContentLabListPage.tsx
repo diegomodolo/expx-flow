@@ -2,10 +2,20 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCompany } from "@/contexts/CompanyContext";
 import { useYouTubeContentLabs } from "@/hooks/useYouTubeContentLabs";
-import { Youtube, Plus, Loader2, Users, Beaker, Trash2 } from "lucide-react";
+import { Youtube, Plus, Loader2, Trash2, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -13,8 +23,6 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,6 +33,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useDebounce } from "@/hooks/useDebounce";
 
 export default function YouTubeContentLabListPage() {
   const navigate = useNavigate();
@@ -36,9 +45,12 @@ export default function YouTubeContentLabListPage() {
   const [newLabName, setNewLabName] = useState("");
   const [creating, setCreating] = useState(false);
   const [deleteLabId, setDeleteLabId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearch = useDebounce(searchQuery, 300);
 
-  const clientLabs = labs.filter(l => l.client_id);
-  const standaloneLabs = labs.filter(l => !l.client_id);
+  const filteredLabs = labs.filter(l =>
+    l.name.toLowerCase().includes(debouncedSearch.toLowerCase())
+  );
 
   const handleCreate = async () => {
     if (!newLabName.trim()) return;
@@ -87,98 +99,97 @@ export default function YouTubeContentLabListPage() {
         </Button>
       </div>
 
-      {/* Client Labs */}
-      {clientLabs.length > 0 && (
-        <div className="space-y-3">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <Users className="h-5 w-5 text-muted-foreground" />
-            Labs de Clientes
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {clientLabs.map(lab => (
-              <Card
-                key={lab.id}
-                className="cursor-pointer hover:shadow-md transition-shadow"
-                onClick={() => navigate(`/youtube-content-lab/${lab.id}`)}
-              >
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base flex items-center justify-between">
-                    <span className="truncate">{lab.name}</span>
-                    <Badge variant="secondary" className="ml-2 shrink-0">Cliente</Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Youtube className="h-3.5 w-3.5" />
-                      {lab.channels_count || 0} canais
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+      {/* Filters Card */}
+      <Card>
+        <CardContent className="pt-4 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar labs por nome..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <span className="text-sm text-muted-foreground">
+              {filteredLabs.length} {filteredLabs.length === 1 ? "lab" : "labs"}
+            </span>
           </div>
-        </div>
-      )}
+        </CardContent>
+      </Card>
 
-      {/* Standalone Labs */}
-      {standaloneLabs.length > 0 && (
-        <div className="space-y-3">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <Beaker className="h-5 w-5 text-muted-foreground" />
-            Meus Labs
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {standaloneLabs.map(lab => (
-              <Card
-                key={lab.id}
-                className="cursor-pointer hover:shadow-md transition-shadow group"
-                onClick={() => navigate(`/youtube-content-lab/${lab.id}`)}
-              >
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base flex items-center justify-between">
-                    <span className="truncate">{lab.name}</span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDeleteLabId(lab.id);
-                      }}
-                    >
-                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                    </Button>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Youtube className="h-3.5 w-3.5" />
-                      {lab.channels_count || 0} canais
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Empty state */}
-      {labs.length === 0 && (
+      {/* Table */}
+      {filteredLabs.length > 0 ? (
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nome</TableHead>
+                <TableHead>Tipo</TableHead>
+                <TableHead className="text-center">Canais</TableHead>
+                <TableHead className="text-center">Criado em</TableHead>
+                <TableHead className="w-[60px]" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredLabs.map(lab => (
+                <TableRow
+                  key={lab.id}
+                  className="cursor-pointer"
+                  onClick={() => navigate(`/youtube-content-lab/${lab.id}`)}
+                >
+                  <TableCell className="font-medium">{lab.name}</TableCell>
+                  <TableCell>
+                    <Badge variant={lab.client_id ? "secondary" : "outline"}>
+                      {lab.client_id ? "Cliente" : "Standalone"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {lab.channels_count || 0}
+                  </TableCell>
+                  <TableCell className="text-center text-muted-foreground">
+                    {new Date(lab.created_at).toLocaleDateString("pt-BR")}
+                  </TableCell>
+                  <TableCell>
+                    {!lab.client_id && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteLabId(lab.id);
+                        }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                      </Button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
+      ) : (
         <div className="text-center py-16 space-y-4">
           <Youtube className="h-12 w-12 mx-auto text-muted-foreground/50" />
           <div>
-            <h3 className="text-lg font-medium">Nenhum lab criado</h3>
+            <h3 className="text-lg font-medium">
+              {debouncedSearch ? "Nenhum lab encontrado" : "Nenhum lab criado"}
+            </h3>
             <p className="text-muted-foreground">
-              Crie seu primeiro YouTube Content Lab para começar a analisar canais e gerar roteiros.
+              {debouncedSearch
+                ? "Tente outro termo de busca."
+                : "Crie seu primeiro YouTube Content Lab para começar a analisar canais e gerar roteiros."}
             </p>
           </div>
-          <Button onClick={() => setCreateOpen(true)} className="gap-2">
-            <Plus className="h-4 w-4" />
-            Criar Lab
-          </Button>
+          {!debouncedSearch && (
+            <Button onClick={() => setCreateOpen(true)} className="gap-2">
+              <Plus className="h-4 w-4" />
+              Criar Lab
+            </Button>
+          )}
         </div>
       )}
 
