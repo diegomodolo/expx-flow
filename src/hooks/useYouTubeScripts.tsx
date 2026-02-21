@@ -19,6 +19,7 @@ export interface YouTubeScript {
   suggestion_id: string | null;
   title: string;
   script_content: string;
+  video_description: string;
   suggested_titles: string[];
   thumbnail_url: string | null;
   reference_thumbnails: string[];

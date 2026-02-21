@@ -14,6 +14,7 @@ interface PanelSizes {
   thumbnail: number;
   chat: number;
   titles: number;
+  description: number;
 }
 
 const DEFAULT_SIZES: PanelSizes = {
@@ -21,9 +22,10 @@ const DEFAULT_SIZES: PanelSizes = {
   rightColumn: 34,
   scriptEditor: 50,
   slidesSection: 50,
-  thumbnail: 30,
-  chat: 45,
-  titles: 25,
+  thumbnail: 25,
+  chat: 30,
+  titles: 20,
+  description: 25,
 };
 
 export function useScriptBuilderPanelSizes() {
@@ -84,8 +86,8 @@ export function useScriptBuilderPanelSizes() {
     saveSizes({ scriptEditor: script, slidesSection: slides });
   }, [saveSizes]);
 
-  const setRightColumnSizes = useCallback((thumbnail: number, chat: number, titles: number) => {
-    saveSizes({ thumbnail, chat, titles });
+  const setRightColumnSizes = useCallback((thumbnail: number, chat: number, titles: number, description: number) => {
+    saveSizes({ thumbnail, chat, titles, description });
   }, [saveSizes]);
 
   return {
