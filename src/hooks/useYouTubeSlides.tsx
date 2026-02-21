@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import PptxGenJS from "pptxgenjs";
 
 export interface YouTubeSlide {
   id: string;
@@ -245,49 +246,68 @@ export function useYouTubeSlides(scriptId: string | null) {
     }
   }, []);
 
-  const [exportingToGoogleSlides, setExportingToGoogleSlides] = useState(false);
+  const [exportingToPpt, setExportingToPpt] = useState(false);
 
-  const exportToGoogleSlides = useCallback(async (scriptTitle: string, shareWithEmail?: string) => {
-    if (!scriptId || slides.length === 0) return null;
+  const exportToPpt = useCallback(async (scriptTitle: string) => {
+    if (!scriptId || slides.length === 0) return;
 
-    const slidesWithImages = slides.filter(s => s.image_url);
-    if (slidesWithImages.length === 0) {
+    const slidesWithImgs = slides.filter(s => s.image_url);
+    if (slidesWithImgs.length === 0) {
       toast.error("Nenhum slide com imagem para exportar");
-      return null;
+      return;
     }
 
-    setExportingToGoogleSlides(true);
-    toast.info("Exportando para Google Slides...");
+    setExportingToPpt(true);
+    toast.info("Gerando arquivo PPT...");
 
     try {
-      const { data, error } = await supabase.functions.invoke("export-to-google-slides", {
-        body: {
-          scriptId,
-          scriptTitle,
-          slides: slidesWithImages.map(s => ({
-            id: s.id,
-            title: s.title,
-            image_url: s.image_url,
-            slide_order: s.slide_order,
-          })),
-          shareWithEmail,
-        },
-      });
+      const pptx = new PptxGenJS();
+      pptx.layout = "LAYOUT_WIDE"; // 13.33 x 7.5 inches (16:9)
+      pptx.title = scriptTitle;
 
-      if (error) throw error;
+      for (const slide of slidesWithImgs) {
+        const pptSlide = pptx.addSlide();
+        
+        // Convert image URL to base64 for reliable embedding
+        try {
+          const response = await fetch(slide.image_url!);
+          const blob = await response.blob();
+          const base64 = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.readAsDataURL(blob);
+          });
 
-      if (data?.presentationUrl) {
-        toast.success(`Apresentação criada com ${data.slidesCount} slides!`);
-        return data.presentationUrl;
+          pptSlide.addImage({
+            data: base64,
+            x: 0,
+            y: 0,
+            w: "100%",
+            h: "100%",
+          });
+        } catch (imgError) {
+          console.error("Error loading slide image:", imgError);
+          // Fallback: add title text if image fails
+          pptSlide.addText(slide.title, {
+            x: 0.5,
+            y: 3,
+            w: 12,
+            h: 1.5,
+            fontSize: 32,
+            align: "center",
+            color: "363636",
+          });
+        }
       }
 
-      throw new Error("Nenhuma URL retornada");
+      const fileName = `${scriptTitle.replace(/[^a-zA-Z0-9À-ÿ\s]/g, "").trim().substring(0, 50)}.pptx`;
+      await pptx.writeFile({ fileName });
+      toast.success(`PPT baixado com ${slidesWithImgs.length} slides!`);
     } catch (error: any) {
-      console.error("Error exporting to Google Slides:", error);
-      toast.error(error.message || "Erro ao exportar para Google Slides");
-      return null;
+      console.error("Error exporting to PPT:", error);
+      toast.error(error.message || "Erro ao gerar arquivo PPT");
     } finally {
-      setExportingToGoogleSlides(false);
+      setExportingToPpt(false);
     }
   }, [scriptId, slides]);
 
@@ -302,7 +322,7 @@ export function useYouTubeSlides(scriptId: string | null) {
     generatingStructure,
     generatingImages,
     generatingThumbnailFirst,
-    exportingToGoogleSlides,
+    exportingToPpt,
     hasSlides,
     allImagesGenerated,
     pendingImages,
@@ -314,6 +334,6 @@ export function useYouTubeSlides(scriptId: string | null) {
     generateAllImages,
     deleteSlide,
     reorderSlides,
-    exportToGoogleSlides,
+    exportToPpt,
   };
 }

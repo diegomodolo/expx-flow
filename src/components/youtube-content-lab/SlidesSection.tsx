@@ -15,7 +15,6 @@ import {
   RefreshCw,
   AlertCircle,
   FileUp,
-  ExternalLink,
 } from "lucide-react";
 import { SlideCarousel } from "./SlideCarousel";
 import { SlideStructureEditor } from "./SlideStructureEditor";
@@ -47,7 +46,7 @@ export function SlidesSection({
     generatingStructure,
     generatingImages,
     generatingThumbnailFirst,
-    exportingToGoogleSlides,
+    exportingToPpt,
     hasSlides,
     allImagesGenerated,
     pendingImages,
@@ -59,7 +58,7 @@ export function SlidesSection({
     generateAllImages,
     deleteSlide,
     reorderSlides,
-    exportToGoogleSlides,
+    exportToPpt,
   } = useYouTubeSlides(scriptId);
 
   const [numberOfSlides, setNumberOfSlides] = useState(10);
@@ -98,11 +97,8 @@ export function SlidesSection({
     setSlideToEdit(null);
   };
 
-  const handleExportToGoogleSlides = async () => {
-    const url = await exportToGoogleSlides(scriptTitle);
-    if (url) {
-      window.open(url, "_blank");
-    }
+  const handleExportToPpt = async () => {
+    await exportToPpt(scriptTitle);
   };
 
   const completedCount = slides.filter(s => s.status === "completed").length;
@@ -173,20 +169,19 @@ export function SlidesSection({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleExportToGoogleSlides}
-                disabled={exportingToGoogleSlides || isGenerating}
+                onClick={handleExportToPpt}
+                disabled={exportingToPpt || isGenerating}
                 className="gap-1"
               >
-                {exportingToGoogleSlides ? (
+                {exportingToPpt ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Exportando...
+                    Baixando...
                   </>
                 ) : (
                   <>
                     <FileUp className="h-4 w-4" />
-                    Google Slides
-                    <ExternalLink className="h-3 w-3 ml-1" />
+                    Baixar PPT
                   </>
                 )}
               </Button>
