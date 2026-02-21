@@ -12,6 +12,7 @@ import { YouTubeTrendAnalysis } from "./YouTubeTrendAnalysis";
 import { YouTubeDurationAnalysis } from "./YouTubeDurationAnalysis";
 import { YouTubePostingBehavior } from "./YouTubePostingBehavior";
 import { TranslatedTitle } from "./TranslatedTitle";
+import { YouTubeChannelRanking } from "./YouTubeChannelRanking";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 interface YouTubeVideoAnalyticsProps {
@@ -221,10 +222,14 @@ export function YouTubeVideoAnalytics({
 
       {/* Analysis Tabs */}
       <Tabs value={analysisTab} onValueChange={setAnalysisTab}>
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="ranking" className="flex items-center gap-2">
             <TrendingUp className="h-4 w-4" />
-            <span className="hidden sm:inline">Ranking</span>
+            <span className="hidden sm:inline">Ranking Vídeos</span>
+          </TabsTrigger>
+          <TabsTrigger value="ranking-channels" className="flex items-center gap-2">
+            <Youtube className="h-4 w-4" />
+            <span className="hidden sm:inline">Ranking Canais</span>
           </TabsTrigger>
           <TabsTrigger value="channels" className="flex items-center gap-2">
             <BarChart3 className="h-4 w-4" />
@@ -402,6 +407,11 @@ export function YouTubeVideoAnalytics({
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Channel Ranking Tab */}
+        <TabsContent value="ranking-channels" className="mt-6">
+          <YouTubeChannelRanking videos={videos} channels={channels} />
         </TabsContent>
 
         {/* Channel Comparison Tab */}
