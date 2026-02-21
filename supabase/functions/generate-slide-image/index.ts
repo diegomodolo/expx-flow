@@ -82,6 +82,9 @@ DESIGN REQUIREMENTS:
 - Modern gradient or solid color background
 - Icons or visual elements that support the message
 - Ultra high resolution, 16:9 aspect ratio presentation slide
+- NEVER include the words "Slide" followed by a number (e.g. "Slide 1", "Slide 2") anywhere in the image
+- NEVER include any slide numbering, pagination or slide count text on the image
+- The image must NOT contain any reference to its position in the presentation sequence
 
 VIDEO CONTEXT: This is for the video "${scriptInfo.title}"`;
 
