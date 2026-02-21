@@ -9,6 +9,7 @@ import * as LucideIcons from 'lucide-react';
 import { useRoteiros } from '@/hooks/useRoteiros';
 import { useRoteiroCategorias } from '@/hooks/useRoteiroCategorias';
 import { RoteiroDialog } from '@/components/roteiros/RoteiroDialog';
+import { RoteiroSourceDialog, type RoteiroSource } from '@/components/roteiros/RoteiroSourceDialog';
 import {
   Table,
   TableBody,
@@ -27,6 +28,8 @@ import {
 } from '@/components/ui/breadcrumb';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function Roteiros() {
   const navigate = useNavigate();
@@ -34,7 +37,10 @@ export default function Roteiros() {
   const { categorias } = useRoteiroCategorias();
   const [search, setSearch] = useState('');
   const [selectedCategoria, setSelectedCategoria] = useState('all');
+  const [sourceDialogOpen, setSourceDialogOpen] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [sourceLoading, setSourceLoading] = useState(false);
+  const [prefillData, setPrefillData] = useState<{ nome?: string; objetivo?: string } | null>(null);
 
   const filtered = useMemo(() => {
     return roteiros.filter(r => {
@@ -48,6 +54,37 @@ export default function Roteiros() {
     createRoteiro.mutate(data, {
       onSuccess: () => setDialogOpen(false),
     });
+  };
+
+  const handleSourceSelect = async (source: RoteiroSource) => {
+    if (source.type === 'scratch') {
+      setPrefillData(null);
+      setSourceDialogOpen(false);
+      setDialogOpen(true);
+      return;
+    }
+
+    setSourceLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('roteiro-from-source', {
+        body: { type: source.type, url: source.url },
+      });
+
+      if (error) throw error;
+
+      setPrefillData({
+        nome: data?.nome || '',
+        objetivo: data?.objetivo || '',
+      });
+      setSourceDialogOpen(false);
+      setDialogOpen(true);
+      toast.success('Conteúdo extraído com sucesso!');
+    } catch (err) {
+      console.error('Erro ao extrair conteúdo:', err);
+      toast.error('Erro ao extrair conteúdo da fonte. Tente novamente.');
+    } finally {
+      setSourceLoading(false);
+    }
   };
 
   return (
@@ -77,7 +114,7 @@ export default function Roteiros() {
               <p className="text-sm text-muted-foreground">Gerencie seus templates reutilizáveis de tarefas</p>
             </div>
           </div>
-          <Button onClick={() => setDialogOpen(true)}>
+          <Button onClick={() => setSourceDialogOpen(true)}>
             <Plus className="w-4 h-4 mr-2" />
             Novo Roteiro
           </Button>
@@ -117,7 +154,7 @@ export default function Roteiros() {
               <BookOpen className="w-12 h-12 mx-auto mb-3 text-muted-foreground/30" />
               <h3 className="text-lg font-medium text-foreground">Nenhum roteiro encontrado</h3>
               <p className="text-sm text-muted-foreground mt-1">Crie seu primeiro roteiro clicando no botão acima.</p>
-              <Button className="mt-4" onClick={() => setDialogOpen(true)}>
+              <Button className="mt-4" onClick={() => setSourceDialogOpen(true)}>
                 <Plus className="w-4 h-4 mr-2" /> Criar Roteiro
               </Button>
             </div>
@@ -168,11 +205,19 @@ export default function Roteiros() {
         </div>
       </div>
 
+      <RoteiroSourceDialog
+        open={sourceDialogOpen}
+        onOpenChange={setSourceDialogOpen}
+        onSelect={handleSourceSelect}
+        loading={sourceLoading}
+      />
+
       <RoteiroDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         onSave={handleCreate}
         loading={createRoteiro.isPending}
+        prefill={prefillData}
       />
     </DashboardLayout>
   );
