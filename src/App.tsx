@@ -1,5 +1,6 @@
 import React from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -791,12 +792,16 @@ const App = () => {
                  {/* YouTube Content Lab */}
                  <Route path="/youtube-content-lab" element={
                    <ProtectedRoute>
-                     <YouTubeContentLabListPage />
+                     <DashboardLayout>
+                       <YouTubeContentLabListPage />
+                     </DashboardLayout>
                    </ProtectedRoute>
                  } />
                  <Route path="/youtube-content-lab/:labId" element={
                    <ProtectedRoute>
-                     <YouTubeContentLabPage />
+                     <DashboardLayout>
+                       <YouTubeContentLabPage />
+                     </DashboardLayout>
                    </ProtectedRoute>
                  } />
 
