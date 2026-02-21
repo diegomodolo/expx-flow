@@ -22,6 +22,8 @@ import {
   Image,
   Pencil,
   RefreshCw,
+  FileText,
+  Sparkles,
 } from "lucide-react";
 import {
   Select,
@@ -36,6 +38,8 @@ import { GenerateThumbnailModal } from "./GenerateThumbnailModal";
 import { ImageEditorModal } from "@/components/image-editor/ImageEditorModal";
 import { SlidesSection } from "./SlidesSection";
 import { useScriptBuilderPanelSizes } from "@/hooks/useScriptBuilderPanelSizes";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface YouTubeScriptBuilderProps {
   script: YouTubeScript;
@@ -84,6 +88,11 @@ export function YouTubeScriptBuilder({
   const [showImageEditor, setShowImageEditor] = useState(false);
   const [imageToEdit, setImageToEdit] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [videoDescription, setVideoDescription] = useState(script.video_description || "");
+  const [generatingDescription, setGeneratingDescription] = useState(false);
+  const [descriptionCopied, setDescriptionCopied] = useState(false);
+  const [seoTips, setSeoTips] = useState<string[]>([]);
+  const { toast } = useToast();
 
   const {
     sizes,
@@ -112,10 +121,47 @@ export function YouTubeScriptBuilder({
       await onUpdate({
         title,
         script_content: content,
-      });
+        video_description: videoDescription,
+      } as any);
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleGenerateDescription = async () => {
+    setGeneratingDescription(true);
+    setSeoTips([]);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-youtube-description', {
+        body: { scriptId: script.id },
+      });
+
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Failed to generate description');
+
+      setVideoDescription(data.description);
+      setSeoTips(data.seo_tips || []);
+      
+      toast({
+        title: 'Descrição gerada!',
+        description: 'Descrição SEO criada com sucesso.',
+      });
+    } catch (error: any) {
+      console.error('Error generating description:', error);
+      toast({
+        title: 'Erro ao gerar descrição',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setGeneratingDescription(false);
+    }
+  };
+
+  const handleCopyDescription = async () => {
+    await navigator.clipboard.writeText(videoDescription);
+    setDescriptionCopied(true);
+    setTimeout(() => setDescriptionCopied(false), 2000);
   };
 
   const handleSendMessage = async () => {
@@ -400,13 +446,13 @@ export function YouTubeScriptBuilder({
                 direction="vertical"
                 className="h-full"
                 onLayout={(sizes) => {
-                  if (sizes.length === 3) {
-                    setRightColumnSizes(sizes[0], sizes[1], sizes[2]);
+                  if (sizes.length === 4) {
+                    setRightColumnSizes(sizes[0], sizes[1], sizes[2], sizes[3]);
                   }
                 }}
               >
                 {/* Thumbnail Preview */}
-                <ResizablePanel defaultSize={sizes.thumbnail} minSize={15}>
+                <ResizablePanel defaultSize={sizes.thumbnail} minSize={10}>
                   <Card className="h-full flex flex-col overflow-hidden">
                     <CardHeader className="pb-3 flex-shrink-0">
                       <div className="flex items-center justify-between">
@@ -464,8 +510,72 @@ export function YouTubeScriptBuilder({
 
                 <ResizableHandle withHandle />
 
+                {/* Descrição SEO */}
+                <ResizablePanel defaultSize={sizes.description} minSize={10}>
+                  <Card className="h-full flex flex-col overflow-hidden mt-2">
+                    <CardHeader className="pb-3 flex-shrink-0">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <FileText className="h-4 w-4" />
+                          Descrição SEO
+                        </CardTitle>
+                        <div className="flex gap-1">
+                          {videoDescription && (
+                            <Button variant="ghost" size="sm" onClick={handleCopyDescription}>
+                              {descriptionCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                            </Button>
+                          )}
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={handleGenerateDescription}
+                            disabled={generatingDescription}
+                          >
+                            {generatingDescription ? (
+                              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                            ) : (
+                              <Sparkles className="h-4 w-4 mr-1" />
+                            )}
+                            {videoDescription ? "Regerar" : "Gerar"}
+                          </Button>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="flex-1 overflow-hidden pb-4">
+                      {videoDescription ? (
+                        <ScrollArea className="h-full">
+                          <Textarea
+                            value={videoDescription}
+                            onChange={(e) => setVideoDescription(e.target.value)}
+                            className="min-h-[120px] text-sm resize-none border-none focus-visible:ring-0 p-0"
+                            placeholder="Descrição do vídeo..."
+                          />
+                          {seoTips.length > 0 && (
+                            <div className="mt-3 pt-3 border-t space-y-1">
+                              <p className="text-xs font-medium text-muted-foreground">💡 Dicas SEO:</p>
+                              {seoTips.map((tip, i) => (
+                                <p key={i} className="text-xs text-muted-foreground">• {tip}</p>
+                              ))}
+                            </div>
+                          )}
+                        </ScrollArea>
+                      ) : (
+                        <div 
+                          className="h-full bg-muted rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-muted/80 transition-colors"
+                          onClick={handleGenerateDescription}
+                        >
+                          <FileText className="h-8 w-8 text-muted-foreground mb-2" />
+                          <p className="text-sm text-muted-foreground">Clique para gerar descrição SEO</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </ResizablePanel>
+
+                <ResizableHandle withHandle />
+
                 {/* Chat */}
-                <ResizablePanel defaultSize={sizes.chat} minSize={20}>
+                <ResizablePanel defaultSize={sizes.chat} minSize={15}>
                   <Card className="h-full flex flex-col overflow-hidden mt-2">
                     <CardHeader className="pb-3 flex-shrink-0">
                       <CardTitle className="text-base">Chat com IA</CardTitle>
@@ -520,7 +630,7 @@ export function YouTubeScriptBuilder({
                 <ResizableHandle withHandle />
 
                 {/* Titles */}
-                <ResizablePanel defaultSize={sizes.titles} minSize={15}>
+                <ResizablePanel defaultSize={sizes.titles} minSize={10}>
                   <Card className="h-full flex flex-col overflow-hidden mt-2">
                     <CardHeader className="pb-3 flex-shrink-0">
                       <div className="flex items-center justify-between">

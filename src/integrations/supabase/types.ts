@@ -16080,6 +16080,7 @@ export type Database = {
           thumbnail_url: string | null
           title: string
           updated_at: string
+          video_description: string | null
           video_duration_target: number | null
         }
         Insert: {
@@ -16098,6 +16099,7 @@ export type Database = {
           thumbnail_url?: string | null
           title: string
           updated_at?: string
+          video_description?: string | null
           video_duration_target?: number | null
         }
         Update: {
@@ -16116,6 +16118,7 @@ export type Database = {
           thumbnail_url?: string | null
           title?: string
           updated_at?: string
+          video_description?: string | null
           video_duration_target?: number | null
         }
         Relationships: [
