@@ -72,6 +72,7 @@ const MENU_ITEMS: Array<{ title: string; url: string; icon: LucideIcon; category
   { title: 'Geradores', url: '/geradores', icon: Wand2, category: 'Conteúdo & Social' },
   { title: 'Planejador de Conteúdo', url: '/geradores/planejamento-conteudo', icon: FileText, category: 'Conteúdo & Social' },
   { title: 'Repositório de Criativos', url: '/repositorio-criativos', icon: Sparkles, category: 'Conteúdo & Social' },
+  { title: 'YouTube Content Lab', url: '/youtube-content-lab', icon: Sparkles, category: 'Conteúdo & Social' },
   // Equipe
   { title: 'Colaboradores', url: '/colaboradores', icon: UserCheck, category: 'Equipe' },
   { title: 'Backlog Center', url: '/backlog-command-center', icon: Inbox, category: 'Equipe' },

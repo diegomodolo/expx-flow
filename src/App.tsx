@@ -158,6 +158,8 @@ import TaskFlowEditorPage from "./pages/TaskFlowEditorPage";
 import MapasMentais from "./pages/MapasMentais";
 import MapaMentalEditor from "./pages/MapaMentalEditor";
 import Reunioes from "./pages/Reunioes";
+import YouTubeContentLabListPage from "./pages/YouTubeContentLabListPage";
+import YouTubeContentLabPage from "./pages/YouTubeContentLabPage";
 import { AuthProvider } from "@/hooks/useAuth";
 import { CompanyProvider } from "@/contexts/CompanyContext";
 import { CRMAuthProvider } from "@/contexts/CRMAuthContext";
@@ -783,6 +785,18 @@ const App = () => {
                  <Route path="/tarefas-tv" element={
                    <ProtectedRoute>
                      <TaskTvDashboard />
+                   </ProtectedRoute>
+                 } />
+
+                 {/* YouTube Content Lab */}
+                 <Route path="/youtube-content-lab" element={
+                   <ProtectedRoute>
+                     <YouTubeContentLabListPage />
+                   </ProtectedRoute>
+                 } />
+                 <Route path="/youtube-content-lab/:labId" element={
+                   <ProtectedRoute>
+                     <YouTubeContentLabPage />
                    </ProtectedRoute>
                  } />
 
