@@ -15775,6 +15775,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          lab_id: string | null
           name: string
           updated_at: string
         }
@@ -15785,6 +15786,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          lab_id?: string | null
           name: string
           updated_at?: string
         }
@@ -15795,6 +15797,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          lab_id?: string | null
           name?: string
           updated_at?: string
         }
@@ -15811,6 +15814,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "youtube_channel_categories_lab_id_fkey"
+            columns: ["lab_id"]
+            isOneToOne: false
+            referencedRelation: "youtube_content_labs"
             referencedColumns: ["id"]
           },
         ]
@@ -15851,6 +15861,51 @@ export type Database = {
           },
         ]
       }
+      youtube_content_labs: {
+        Row: {
+          client_id: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          client_id?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "youtube_content_labs_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "youtube_content_labs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       youtube_content_suggestions: {
         Row: {
           based_on_videos: Json | null
@@ -15861,6 +15916,7 @@ export type Database = {
           description: string | null
           estimated_engagement: string | null
           id: string
+          lab_id: string | null
           status: string
           theme_category: string | null
           title: string
@@ -15875,6 +15931,7 @@ export type Database = {
           description?: string | null
           estimated_engagement?: string | null
           id?: string
+          lab_id?: string | null
           status?: string
           theme_category?: string | null
           title: string
@@ -15889,6 +15946,7 @@ export type Database = {
           description?: string | null
           estimated_engagement?: string | null
           id?: string
+          lab_id?: string | null
           status?: string
           theme_category?: string | null
           title?: string
@@ -15916,6 +15974,13 @@ export type Database = {
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "youtube_content_suggestions_lab_id_fkey"
+            columns: ["lab_id"]
+            isOneToOne: false
+            referencedRelation: "youtube_content_labs"
+            referencedColumns: ["id"]
+          },
         ]
       }
       youtube_monitored_channels: {
@@ -15930,6 +15995,7 @@ export type Database = {
           created_by: string | null
           id: string
           is_active: boolean
+          lab_id: string | null
           last_analyzed_at: string | null
           subscriber_count: number | null
           thumbnail_url: string | null
@@ -15946,6 +16012,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           is_active?: boolean
+          lab_id?: string | null
           last_analyzed_at?: string | null
           subscriber_count?: number | null
           thumbnail_url?: string | null
@@ -15962,6 +16029,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           is_active?: boolean
+          lab_id?: string | null
           last_analyzed_at?: string | null
           subscriber_count?: number | null
           thumbnail_url?: string | null
@@ -15980,6 +16048,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "youtube_monitored_channels_lab_id_fkey"
+            columns: ["lab_id"]
+            isOneToOne: false
+            referencedRelation: "youtube_content_labs"
             referencedColumns: ["id"]
           },
         ]
@@ -16071,6 +16146,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           id: string
+          lab_id: string | null
           reference_thumbnails: Json | null
           script_content: string
           source_video_id: string | null
@@ -16090,6 +16166,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          lab_id?: string | null
           reference_thumbnails?: Json | null
           script_content?: string
           source_video_id?: string | null
@@ -16109,6 +16186,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          lab_id?: string | null
           reference_thumbnails?: Json | null
           script_content?: string
           source_video_id?: string | null
@@ -16144,6 +16222,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "youtube_scripts_lab_id_fkey"
+            columns: ["lab_id"]
+            isOneToOne: false
+            referencedRelation: "youtube_content_labs"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "youtube_scripts_suggestion_id_fkey"
             columns: ["suggestion_id"]
             isOneToOne: false
@@ -16158,6 +16243,7 @@ export type Database = {
           company_id: string
           created_at: string | null
           id: string
+          lab_id: string | null
           model_photos: Json | null
           reference_thumbnails: Json | null
           style_notes: string | null
@@ -16168,6 +16254,7 @@ export type Database = {
           company_id: string
           created_at?: string | null
           id?: string
+          lab_id?: string | null
           model_photos?: Json | null
           reference_thumbnails?: Json | null
           style_notes?: string | null
@@ -16178,6 +16265,7 @@ export type Database = {
           company_id?: string
           created_at?: string | null
           id?: string
+          lab_id?: string | null
           model_photos?: Json | null
           reference_thumbnails?: Json | null
           style_notes?: string | null
@@ -16196,6 +16284,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "youtube_thumbnail_configs_lab_id_fkey"
+            columns: ["lab_id"]
+            isOneToOne: false
+            referencedRelation: "youtube_content_labs"
             referencedColumns: ["id"]
           },
         ]

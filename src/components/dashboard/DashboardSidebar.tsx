@@ -116,7 +116,7 @@ const menuCategories: MenuCategory[] = [
         { title: "Geradores", url: "/geradores", icon: Wand2, permission: "geradores" as MenuItemType },
         { title: "Planejador de Conteúdo", url: "/geradores/planejamento-conteudo", icon: FileText, permission: "planejador-conteudo" as MenuItemType },
         { title: "Repositório de Criativos", url: "/repositorio-criativos", icon: Images, permission: "repositorio-criativos" as MenuItemType },
-        
+        { title: "YouTube Content Lab", url: "/youtube-content-lab", icon: Video, permission: "geradores" as MenuItemType },
       ].sort((a, b) => a.title.localeCompare(b.title, 'pt-BR')),
     },
     {
