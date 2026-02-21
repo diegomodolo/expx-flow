@@ -1951,7 +1951,7 @@ export type Database = {
           campaign_id: string | null
           change_source: string
           change_type: string
-          changed_by: string
+          changed_by: string | null
           changed_fields: string[] | null
           client_id: string | null
           company_id: string
@@ -1967,7 +1967,7 @@ export type Database = {
           campaign_id?: string | null
           change_source?: string
           change_type: string
-          changed_by: string
+          changed_by?: string | null
           changed_fields?: string[] | null
           client_id?: string | null
           company_id: string
@@ -1983,7 +1983,7 @@ export type Database = {
           campaign_id?: string | null
           change_source?: string
           change_type?: string
-          changed_by?: string
+          changed_by?: string | null
           changed_fields?: string[] | null
           client_id?: string | null
           company_id?: string
