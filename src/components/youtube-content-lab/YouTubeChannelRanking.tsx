@@ -17,6 +17,8 @@ interface ChannelAggregated {
   totalComments: number;
   avgEngagement: number;
   videoCount: number;
+  shortsCount: number;
+  longCount: number;
   channelUrl?: string;
 }
 
@@ -39,6 +41,8 @@ export function YouTubeChannelRanking({ videos, channels }: YouTubeChannelRankin
 
     for (const video of videos) {
       const key = video.channel_id;
+      const duration = video.duration_seconds ?? 0;
+      const isShort = duration > 0 && duration <= 180;
       const existing = map.get(key);
       if (existing) {
         existing.totalViews += video.view_count;
@@ -46,6 +50,8 @@ export function YouTubeChannelRanking({ videos, channels }: YouTubeChannelRankin
         existing.totalComments += video.comment_count;
         existing.avgEngagement += video.engagement_rate || 0;
         existing.videoCount += 1;
+        if (isShort) existing.shortsCount += 1;
+        else existing.longCount += 1;
       } else {
         const ch = channels.find((c) => c.id === key);
         map.set(key, {
@@ -57,6 +63,8 @@ export function YouTubeChannelRanking({ videos, channels }: YouTubeChannelRankin
           totalComments: video.comment_count,
           avgEngagement: video.engagement_rate || 0,
           videoCount: 1,
+          shortsCount: isShort ? 1 : 0,
+          longCount: isShort ? 0 : 1,
           channelUrl: ch?.channel_url,
         });
       }
@@ -164,7 +172,9 @@ export function YouTubeChannelRanking({ videos, channels }: YouTubeChannelRankin
 
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate">{ch.channelName}</p>
-                  <p className="text-xs text-muted-foreground">{ch.videoCount} vídeos no período</p>
+                  <p className="text-xs text-muted-foreground">
+                    {ch.videoCount} vídeos · {ch.longCount} longos · {ch.shortsCount} shorts
+                  </p>
                   <div className="flex items-center gap-4 mt-1.5 text-sm text-muted-foreground">
                     <span className={`flex items-center gap-1 ${sortBy === "views" ? "text-primary font-semibold" : ""}`}>
                       <Eye className="h-3.5 w-3.5" />
