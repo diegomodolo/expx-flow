@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { InlineSearchableSelect } from './InlineSearchableSelect';
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -88,6 +88,8 @@ function saveZoom(userId: string, zoom: number) {
 export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, defaultBoardUserId, mode = 'kanban', loading, onDelete }: TaskDialogProps) {
   const isRoteiro = mode === 'roteiro';
   const [activeTab, setActiveTab] = useState<SidebarTab>('principal');
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [outputExpanded, setOutputExpanded] = useState(false);
   const [zoomWidth, setZoomWidth] = useState(1024);
   const [authUserId, setAuthUserId] = useState<string | null>(null);
@@ -834,18 +836,18 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
 
             <div className="flex-1" />
 
-            {isRoteiro && onDelete && task && (
+            {task && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
-                    onClick={onDelete}
+                    onClick={() => setDeleteConfirmOpen(true)}
                     className="flex flex-col items-center gap-1 px-2 py-3 rounded-lg w-16 text-destructive hover:bg-destructive/10 transition-colors text-xs"
                   >
                     <Trash2 className="w-5 h-5" />
                     <span className="leading-tight">Excluir</span>
                   </button>
                 </TooltipTrigger>
-                <TooltipContent side="right">Excluir atividade</TooltipContent>
+                <TooltipContent side="right">Excluir tarefa</TooltipContent>
               </Tooltip>
             )}
           </div>
@@ -1622,6 +1624,42 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
         }));
       }}
     />
+
+    {/* Delete Confirmation Dialog */}
+    <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Excluir Tarefa</DialogTitle>
+          <DialogDescription>
+            Tem certeza que deseja excluir a tarefa <strong>{formData.title}</strong>? Esta ação não pode ser desfeita.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setDeleteConfirmOpen(false)}>
+            Cancelar
+          </Button>
+          <Button
+            variant="destructive"
+            disabled={deleting}
+            onClick={async () => {
+              if (!task?.id) return;
+              setDeleting(true);
+              try {
+                await supabase.from('tasks').delete().eq('id', task.id);
+                setDeleteConfirmOpen(false);
+                onOpenChange(false);
+              } catch (err) {
+                console.error('Error deleting task:', err);
+              } finally {
+                setDeleting(false);
+              }
+            }}
+          >
+            {deleting ? 'Excluindo...' : 'Excluir'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
     </>
   );
 }
