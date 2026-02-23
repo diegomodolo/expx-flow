@@ -7,6 +7,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 
 // Import the real pages
 import LandingPage from "./pages/LandingPage";
+import ClipsPage from "./pages/Clips";
 import AuthPage from "./pages/AuthPage";
 import DashboardPage from "./pages/DashboardPage";
 import IAChat from "./pages/IAChat";
@@ -554,6 +555,12 @@ const App = () => {
                     <RepositorioCriativos />
                   </PermissionProtectedRoute>
                 } />
+                 {/* Gerador de Clipes Virais */}
+                 <Route path="/clips" element={
+                   <ProtectedRoute>
+                     <ClipsPage />
+                   </ProtectedRoute>
+                 } />
                  {/* Editor de Imagens - Acesso direto ao editor visual */}
                  <Route path="/editor-imagens" element={
                   <PermissionProtectedRoute requiredPermission="geradores">
