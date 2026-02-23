@@ -4,8 +4,10 @@ import { ChatFlow } from '@/components/comm-hub/ChatFlow';
 import { MyDayPanel } from '@/components/comm-hub/MyDayPanel';
 import { useInternalChat } from '@/hooks/useInternalChat';
 import { useChannelUnread } from '@/hooks/useChannelUnread';
+import { TaskDialog } from '@/components/tasks/TaskDialog';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function CommunicationDashboard() {
   const {
@@ -23,6 +25,8 @@ export default function CommunicationDashboard() {
 
   const { unreadCounts, markAsRead } = useChannelUnread();
   const [focusMode, setFocusMode] = useState(false);
+  const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<any>(null);
 
   // Mark channel as read when switching
   useEffect(() => {
@@ -37,6 +41,18 @@ export default function CommunicationDashboard() {
       setActiveChannelId(channelId);
     } else {
       toast.error('Não foi possível abrir a conversa');
+    }
+  };
+
+  const handleOpenTask = async (taskId: string) => {
+    const { data } = await supabase
+      .from('tasks')
+      .select('*')
+      .eq('id', taskId)
+      .maybeSingle();
+    if (data) {
+      setSelectedTask(data);
+      setTaskDialogOpen(true);
     }
   };
 
@@ -59,8 +75,23 @@ export default function CommunicationDashboard() {
           focusMode={focusMode}
           onToggleFocusMode={() => setFocusMode(prev => !prev)}
         />
-        <MyDayPanel onOpenDM={handleOpenDM} />
+        <MyDayPanel onOpenDM={handleOpenDM} onOpenTask={handleOpenTask} />
       </div>
+
+      {taskDialogOpen && (
+        <TaskDialog
+          open={taskDialogOpen}
+          onOpenChange={(open) => {
+            setTaskDialogOpen(open);
+            if (!open) setSelectedTask(null);
+          }}
+          task={selectedTask}
+          onSave={() => {
+            setTaskDialogOpen(false);
+            setSelectedTask(null);
+          }}
+        />
+      )}
     </DashboardLayout>
   );
 }
