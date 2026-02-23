@@ -558,7 +558,7 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.create-clip-job]
-verify_jwt = true
+verify_jwt = false
 
 [functions.get-clip-job-status]
-verify_jwt = true
+verify_jwt = false
