@@ -71,17 +71,28 @@ const TASK_TYPES = [
   { value: 'Ticket', label: 'Ticket' },
 ];
 
-function getStoredZoom(userId: string): number {
+async function getStoredZoom(userId: string): Promise<number> {
   try {
-    const stored = localStorage.getItem(`${ZOOM_STORAGE_KEY}-${userId}`);
-    if (stored) return parseInt(stored, 10);
+    const { data } = await (supabase as any)
+      .from('user_ui_settings')
+      .select('setting_value')
+      .eq('user_id', userId)
+      .eq('setting_key', 'task-dialog-zoom')
+      .maybeSingle();
+    if (data?.setting_value?.zoomWidth) return data.setting_value.zoomWidth;
   } catch {}
   return 1024;
 }
 
-function saveZoom(userId: string, zoom: number) {
+async function saveZoom(userId: string, zoom: number) {
   try {
-    localStorage.setItem(`${ZOOM_STORAGE_KEY}-${userId}`, String(zoom));
+    await (supabase as any)
+      .from('user_ui_settings')
+      .upsert({
+        user_id: userId,
+        setting_key: 'task-dialog-zoom',
+        setting_value: { zoomWidth: zoom },
+      }, { onConflict: 'user_id,setting_key' });
   } catch {}
 }
 
@@ -290,7 +301,8 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
       const { data: { user: u } } = await supabase.auth.getUser();
       if (u) {
         setAuthUserId(u.id);
-        setZoomWidth(getStoredZoom(u.id));
+        const zoom = await getStoredZoom(u.id);
+        setZoomWidth(zoom);
       }
     };
     loadUser();
