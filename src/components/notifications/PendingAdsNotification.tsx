@@ -102,7 +102,7 @@ export function PendingAdsNotification() {
                   <div
                     key={ad.id}
                     className="p-3 hover:bg-muted/50 cursor-pointer transition-colors"
-                    onClick={() => navigate('/geradores/fila-revisao')}
+                    onClick={() => navigate('/geradores/fabrica-anuncios/revisao-diaria')}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
@@ -134,7 +134,7 @@ export function PendingAdsNotification() {
             <Button 
               variant="ghost" 
               className="w-full text-sm"
-              onClick={() => navigate('/geradores/fila-revisao')}
+              onClick={() => navigate('/geradores/fabrica-anuncios/revisao-diaria')}
             >
               Ver todos os pendentes
             </Button>
