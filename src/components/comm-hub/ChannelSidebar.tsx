@@ -15,9 +15,10 @@ interface ChannelSidebarProps {
   onSelectChannel: (id: string) => void;
   loading?: boolean;
   unreadCounts?: Record<string, number>;
+  mentionCounts?: Record<string, number>;
 }
 
-export function ChannelSidebar({ channels, activeChannelId, onSelectChannel, loading, unreadCounts = {} }: ChannelSidebarProps) {
+export function ChannelSidebar({ channels, activeChannelId, onSelectChannel, loading, unreadCounts = {}, mentionCounts = {} }: ChannelSidebarProps) {
   const { user } = useAuth();
   const [search, setSearch] = useState('');
 
@@ -69,6 +70,7 @@ export function ChannelSidebar({ channels, activeChannelId, onSelectChannel, loa
     const Icon = getIcon(channel.channel_type);
     const isActive = channel.id === activeChannelId;
     const unread = unreadCounts[channel.id] || 0;
+    const mentions = mentionCounts[channel.id] || 0;
 
     // For DM channels, show partner's name and avatar
     let displayName = channel.name;
@@ -101,7 +103,12 @@ export function ChannelSidebar({ channels, activeChannelId, onSelectChannel, loa
           <Icon className="w-4 h-4 shrink-0" />
         )}
         <span className="truncate flex-1 text-left">{displayName}</span>
-        {unread > 0 && !isActive && (
+        {mentions > 0 && !isActive && (
+          <Badge className="h-5 min-w-[20px] rounded-full px-1.5 text-[10px] shrink-0 bg-destructive text-destructive-foreground">
+            @{mentions > 99 ? '99+' : mentions}
+          </Badge>
+        )}
+        {unread > 0 && !isActive && mentions === 0 && (
           <Badge className="h-5 min-w-[20px] rounded-full px-1.5 text-[10px] shrink-0">
             {unread > 99 ? '99+' : unread}
           </Badge>

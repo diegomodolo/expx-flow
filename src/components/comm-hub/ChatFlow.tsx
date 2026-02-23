@@ -11,6 +11,7 @@ import { CreateTopicDialog } from './CreateTopicDialog';
 import { CreatePollDialog } from './CreatePollDialog';
 import { EmojiGifPicker } from './EmojiGifPicker';
 import { SlashCommandMenu, SlashCommand } from './SlashCommandMenu';
+import { MentionMenu } from './MentionMenu';
 import { HandRaiseButton } from './HandRaiseButton';
 import { FocusModeToggle } from './FocusModeToggle';
 import { toast } from 'sonner';
@@ -41,6 +42,9 @@ export function ChatFlow({ channel, messages, loading, onSendMessage, sendingMes
   const [pollDialogOpen, setPollDialogOpen] = useState(false);
   const [slashMenuOpen, setSlashMenuOpen] = useState(false);
   const [slashQuery, setSlashQuery] = useState('');
+  const [mentionMenuOpen, setMentionMenuOpen] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState('');
+  const [mentionStartPos, setMentionStartPos] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -127,9 +131,10 @@ export function ChatFlow({ channel, messages, loading, onSendMessage, sendingMes
     }
   };
 
-  // Slash command input detection
+  // Slash command and @mention input detection
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value;
+    const cursorPos = e.target.selectionStart || 0;
     setInputValue(val);
 
     // Detect slash commands at the start of input
@@ -140,6 +145,41 @@ export function ChatFlow({ channel, messages, loading, onSendMessage, sendingMes
       setSlashMenuOpen(false);
       setSlashQuery('');
     }
+
+    // Detect @mention: find last @ before cursor
+    const textBeforeCursor = val.slice(0, cursorPos);
+    const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+    if (lastAtIndex >= 0) {
+      const charBefore = lastAtIndex > 0 ? val[lastAtIndex - 1] : ' ';
+      const textAfterAt = textBeforeCursor.slice(lastAtIndex + 1);
+      // Only trigger if @ is at start or preceded by whitespace, and no space in query
+      if ((charBefore === ' ' || charBefore === '\n' || lastAtIndex === 0) && !/\s/.test(textAfterAt)) {
+        setMentionMenuOpen(true);
+        setMentionQuery(textAfterAt);
+        setMentionStartPos(lastAtIndex);
+        return;
+      }
+    }
+    setMentionMenuOpen(false);
+    setMentionQuery('');
+    setMentionStartPos(null);
+  };
+
+  const handleMentionSelect = (mentionUser: { user_id: string; full_name: string }) => {
+    if (mentionStartPos === null) return;
+    const before = inputValue.slice(0, mentionStartPos);
+    const cursorPos = inputRef.current?.selectionStart || inputValue.length;
+    const after = inputValue.slice(cursorPos);
+    const newValue = `${before}@${mentionUser.full_name} ${after}`;
+    setInputValue(newValue);
+    setMentionMenuOpen(false);
+    setMentionQuery('');
+    setMentionStartPos(null);
+    setTimeout(() => {
+      const newPos = before.length + mentionUser.full_name.length + 2; // +2 for @ and space
+      inputRef.current?.setSelectionRange(newPos, newPos);
+      inputRef.current?.focus();
+    }, 0);
   };
 
   const handleSlashSelect = (cmd: SlashCommand) => {
@@ -168,8 +208,8 @@ export function ChatFlow({ channel, messages, loading, onSendMessage, sendingMes
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    // Let SlashCommandMenu handle arrow keys/enter/tab when open
-    if (slashMenuOpen) return;
+    // Let SlashCommandMenu or MentionMenu handle arrow keys/enter/tab when open
+    if (slashMenuOpen || mentionMenuOpen) return;
 
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -461,6 +501,12 @@ export function ChatFlow({ channel, messages, loading, onSendMessage, sendingMes
               onSelect={handleSlashSelect}
               onClose={() => setSlashMenuOpen(false)}
               visible={slashMenuOpen}
+            />
+            <MentionMenu
+              query={mentionQuery}
+              visible={mentionMenuOpen}
+              onSelect={handleMentionSelect}
+              onClose={() => { setMentionMenuOpen(false); setMentionStartPos(null); }}
             />
             <Textarea
               ref={inputRef}
