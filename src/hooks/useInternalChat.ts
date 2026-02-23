@@ -51,7 +51,7 @@ export function useInternalChat() {
     queryFn: async () => {
       if (!companyId) return [];
 
-      // Check if channels exist
+      // Fetch existing channels
       const { data: existing, error } = await supabase
         .from('internal_channels')
         .select('*')
@@ -61,11 +61,25 @@ export function useInternalChat() {
 
       if (error) throw error;
 
-      if (existing && existing.length > 0) {
-        return existing as InternalChannel[];
-      }
+      const existingChannels = (existing || []) as InternalChannel[];
 
-      // Auto-create channels from teams and clients
+      // Build a set of existing client channel reference_ids
+      const existingClientRefs = new Set(
+        existingChannels
+          .filter(c => c.channel_type === 'client')
+          .map(c => c.reference_id)
+      );
+
+      // Fetch ALL clients for this company
+      const { data: allClients } = await supabase
+        .from('clients')
+        .select('id, name')
+        .eq('company_id', companyId);
+
+      // Find clients that don't have a channel yet
+      const missingClients = (allClients || []).filter(c => !existingClientRefs.has(c.id));
+
+      // If no channels exist at all, also create general channel
       const channelsToCreate: Array<{
         company_id: string;
         name: string;
@@ -74,60 +88,62 @@ export function useInternalChat() {
         icon?: string;
       }> = [];
 
-      // General channel
-      channelsToCreate.push({
-        company_id: companyId,
-        name: 'Geral',
-        channel_type: 'general',
-        icon: '💬',
-      });
+      if (existingChannels.length === 0) {
+        channelsToCreate.push({
+          company_id: companyId,
+          name: 'Geral',
+          channel_type: 'general',
+          icon: '💬',
+        });
 
-      // Squad channels from teams
-      const { data: teams } = await supabase
-        .from('teams')
-        .select('id, name')
-        .eq('company_id', companyId);
+        // Also create squad channels if none exist
+        const { data: teams } = await supabase
+          .from('teams')
+          .select('id, name')
+          .eq('company_id', companyId);
 
-      if (teams) {
-        for (const team of teams) {
-          channelsToCreate.push({
-            company_id: companyId,
-            name: team.name,
-            channel_type: 'squad',
-            reference_id: team.id,
-            icon: '👥',
-          });
+        if (teams) {
+          for (const team of teams) {
+            channelsToCreate.push({
+              company_id: companyId,
+              name: team.name,
+              channel_type: 'squad',
+              reference_id: team.id,
+              icon: '👥',
+            });
+          }
         }
       }
 
-      // Client channels
-      const { data: clients } = await supabase
-        .from('clients')
-        .select('id, name')
-        .eq('company_id', companyId)
-        .limit(20);
-
-      if (clients) {
-        for (const client of clients) {
-          channelsToCreate.push({
-            company_id: companyId,
-            name: client.name,
-            channel_type: 'client',
-            reference_id: client.id,
-            icon: '🏢',
-          });
-        }
+      // Add missing client channels
+      for (const client of missingClients) {
+        channelsToCreate.push({
+          company_id: companyId,
+          name: client.name,
+          channel_type: 'client',
+          reference_id: client.id,
+          icon: '🏢',
+        });
       }
 
-      if (channelsToCreate.length === 0) return [];
+      // Create any missing channels
+      if (channelsToCreate.length > 0) {
+        const { data: created, error: createError } = await supabase
+          .from('internal_channels')
+          .insert(channelsToCreate)
+          .select();
 
-      const { data: created, error: createError } = await supabase
-        .from('internal_channels')
-        .insert(channelsToCreate)
-        .select();
+        if (createError) console.error('Failed to create missing channels:', createError);
 
-      if (createError) throw createError;
-      return (created || []) as InternalChannel[];
+        // Return combined list
+        const newChannels = (created || []) as InternalChannel[];
+        return [...existingChannels, ...newChannels].sort((a, b) => {
+          if (a.channel_type !== b.channel_type) return a.channel_type.localeCompare(b.channel_type);
+          return a.name.localeCompare(b.name);
+        });
+      }
+
+      return existingChannels;
     },
     enabled: !!companyId,
   });
