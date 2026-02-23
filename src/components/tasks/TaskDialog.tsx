@@ -175,6 +175,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
   const [responsibleSearch, setResponsibleSearch] = useState('');
   const [responsibleDropdownOpen, setResponsibleDropdownOpen] = useState(false);
   const [clientSearch, setClientSearch] = useState('');
+  const [clientDropdownOpen, setClientDropdownOpen] = useState(false);
   const [categoriaSearch, setCategoriaSearch] = useState('');
   const [classificacaoSearch, setClassificacaoSearch] = useState('');
   const [newCategoriaName, setNewCategoriaName] = useState('');
@@ -1302,52 +1303,64 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                         <div className="grid grid-cols-2 gap-4">
                           <div>
                             <Label className="text-sm font-semibold">Cliente (opcional)</Label>
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <Button variant="outline" role="combobox" className="w-full justify-between font-normal mt-1.5">
-                                  {formData.related_client_id
-                                    ? clients?.find(c => c.id === formData.related_client_id)?.name || "Selecione..."
-                                    : "Nenhum cliente"}
-                                  <CalendarIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-[300px] p-0" align="start">
-                                <div className="p-2 border-b">
-                                  <Input
-                                    placeholder="Buscar cliente..."
-                                    value={clientSearch}
-                                    onChange={(e) => setClientSearch(e.target.value)}
-                                    className="h-8"
-                                  />
-                                </div>
-                                <div className="max-h-[200px] overflow-y-auto">
-                                  <div
-                                    className="px-2 py-1.5 text-sm cursor-pointer hover:bg-muted"
-                                    onClick={() => {
-                                      setFormData(prev => ({ ...prev, related_client_id: '', related_campaign_id: '' }));
-                                      setClientSearch('');
-                                    }}
-                                  >
-                                    Nenhum cliente
+                            <div className="relative mt-1.5">
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                type="button"
+                                className="w-full justify-between font-normal"
+                                onClick={() => setClientDropdownOpen(prev => !prev)}
+                              >
+                                {formData.related_client_id
+                                  ? clients?.find(c => c.id === formData.related_client_id)?.name || "Selecione..."
+                                  : "Nenhum cliente"}
+                                <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                              {clientDropdownOpen && (
+                                <div className="absolute z-[9999] mt-1 w-full rounded-md border bg-popover shadow-lg">
+                                  <div className="p-2 border-b">
+                                    <Input
+                                      placeholder="Buscar cliente..."
+                                      value={clientSearch}
+                                      onChange={(e) => setClientSearch(e.target.value)}
+                                      className="h-8"
+                                      autoFocus
+                                      onClick={(e) => e.stopPropagation()}
+                                    />
                                   </div>
-                                  {sortedFilteredClients.map((client) => (
+                                  <div className="max-h-[200px] overflow-y-auto">
                                     <div
-                                      key={client.id}
-                                      className={`px-2 py-1.5 text-sm cursor-pointer hover:bg-muted ${formData.related_client_id === client.id ? 'bg-primary/10 text-primary' : ''}`}
-                                      onClick={() => {
-                                        setFormData(prev => ({ ...prev, related_client_id: client.id, related_campaign_id: '' }));
+                                      className="px-2 py-1.5 text-sm cursor-pointer hover:bg-muted"
+                                      onMouseDown={(e) => {
+                                        e.preventDefault();
+                                        setFormData(prev => ({ ...prev, related_client_id: '', related_campaign_id: '' }));
                                         setClientSearch('');
+                                        setClientDropdownOpen(false);
                                       }}
                                     >
-                                      {client.name}
+                                      Nenhum cliente
                                     </div>
-                                  ))}
-                                  {sortedFilteredClients.length === 0 && clientSearch && (
-                                    <div className="px-2 py-4 text-sm text-muted-foreground text-center">Nenhum cliente encontrado</div>
-                                  )}
+                                    {sortedFilteredClients.map((client) => (
+                                      <div
+                                        key={client.id}
+                                        className={`px-2 py-1.5 text-sm cursor-pointer hover:bg-muted ${formData.related_client_id === client.id ? 'bg-primary/10 text-primary' : ''}`}
+                                        onMouseDown={(e) => {
+                                          e.preventDefault();
+                                          setFormData(prev => ({ ...prev, related_client_id: client.id, related_campaign_id: '' }));
+                                          setClientSearch('');
+                                          setClientDropdownOpen(false);
+                                        }}
+                                      >
+                                        {client.name}
+                                      </div>
+                                    ))}
+                                    {sortedFilteredClients.length === 0 && clientSearch && (
+                                      <div className="px-2 py-4 text-sm text-muted-foreground text-center">Nenhum cliente encontrado</div>
+                                    )}
+                                  </div>
                                 </div>
-                              </PopoverContent>
-                            </Popover>
+                              )}
+                            </div>
                           </div>
                           <div>
                             <Label className="text-sm font-semibold">Campanha (opcional)</Label>
