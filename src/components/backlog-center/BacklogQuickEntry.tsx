@@ -125,14 +125,12 @@ export function BacklogQuickEntry({ clients, companyId }: Props) {
     if (activeToken.type === "@") {
       return clients
         .filter((c: any) => c.name.toLowerCase().includes(q))
-        .slice(0, 8)
         .map((c: any) => ({ id: c.id, label: c.name, icon: "user" as const }));
     }
 
     if (activeToken.type === "#") {
       return categorias
         .filter((cat) => cat.nome.toLowerCase().includes(q))
-        .slice(0, 8)
         .map((cat) => ({ id: cat.id, label: cat.nome, icon: "hash" as const }));
     }
 
@@ -240,16 +238,33 @@ export function BacklogQuickEntry({ clients, companyId }: Props) {
     }
   };
 
+  const scrollToItem = useCallback((index: number) => {
+    const container = dropdownRef.current?.querySelector('[data-suggestions]');
+    if (!container) return;
+    const items = container.querySelectorAll('button');
+    if (items[index]) {
+      items[index].scrollIntoView({ block: 'nearest' });
+    }
+  }, []);
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (isOpen) {
       if (e.key === "ArrowDown") {
         e.preventDefault();
-        setSelectedIndex((prev) => (prev + 1) % suggestions.length);
+        setSelectedIndex((prev) => {
+          const next = (prev + 1) % suggestions.length;
+          scrollToItem(next);
+          return next;
+        });
         return;
       }
       if (e.key === "ArrowUp") {
         e.preventDefault();
-        setSelectedIndex((prev) => (prev - 1 + suggestions.length) % suggestions.length);
+        setSelectedIndex((prev) => {
+          const next = (prev - 1 + suggestions.length) % suggestions.length;
+          scrollToItem(next);
+          return next;
+        });
         return;
       }
       if (e.key === "Tab" || (e.key === "Enter" && suggestions.length > 0)) {
@@ -291,7 +306,7 @@ export function BacklogQuickEntry({ clients, companyId }: Props) {
             {activeToken.type === "/" && "Tempo estimado"}
             {activeToken.type === "!" && "Prioridade"}
           </div>
-          <div className="max-h-48 overflow-y-auto">
+          <div data-suggestions className="max-h-48 overflow-y-auto">
             {suggestions.map((s, i) => (
               <button
                 key={s.id}
