@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Dialog,
@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import {
   Users,
@@ -30,6 +31,7 @@ import {
   Loader2,
   UserPlus,
   UserMinus,
+  Search,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/CompanyContext";
@@ -67,6 +69,7 @@ export function SquadMembersDialog({
   const [whatsappResponsibleId, setWhatsappResponsibleId] = useState<string | null>(null);
   const [authorizerId, setAuthorizerId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Fetch all employees in the company
   const { data: allEmployees = [], isLoading: isLoadingEmployees } = useQuery({
@@ -192,6 +195,11 @@ export function SquadMembersDialog({
 
   const isLoading = isLoadingEmployees || isLoadingSquad;
 
+  const filteredEmployees = useMemo(() => {
+    if (!searchTerm.trim()) return allEmployees;
+    const q = searchTerm.toLowerCase();
+    return allEmployees.filter((emp) => emp.name.toLowerCase().includes(q));
+  }, [allEmployees, searchTerm]);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-hidden flex flex-col">
@@ -336,9 +344,18 @@ export function SquadMembersDialog({
                 </Label>
               </div>
 
+              <div className="relative mb-2">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar colaborador..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-8 h-9"
+                />
+              </div>
               <ScrollArea className="h-[280px] border rounded-md p-2">
                 <div className="space-y-1">
-                  {allEmployees.map((employee) => {
+                  {filteredEmployees.map((employee) => {
                     const isSelected = selectedMembers.includes(employee.id);
                     const isInAnotherSquad =
                       employee.team_id && employee.team_id !== squad.id;
@@ -395,12 +412,11 @@ export function SquadMembersDialog({
                     );
                   })}
 
-                  {allEmployees.length === 0 && (
+                  {filteredEmployees.length === 0 && (
                     <div className="text-center py-8 text-muted-foreground">
                       <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                      <p className="text-sm">Nenhum colaborador encontrado</p>
-                      <p className="text-xs">
-                        Adicione colaboradores em Configurações → Colaboradores
+                      <p className="text-sm">
+                        {searchTerm ? "Nenhum resultado encontrado" : "Nenhum colaborador encontrado"}
                       </p>
                     </div>
                   )}
