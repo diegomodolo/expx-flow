@@ -16,51 +16,58 @@ import { Plus, Trash2, Users, Shield, ChevronDown, ChevronRight, Pencil, UserPlu
 import { Textarea } from "@/components/ui/textarea";
 
 const MENU_ITEMS: { key: MenuItemType; label: string; category: string }[] = [
+  // Visão Geral
   { key: 'dashboard', label: 'Dashboard', category: 'Visão Geral' },
   { key: 'radar-saude', label: 'Radar de Saúde', category: 'Visão Geral' },
   { key: 'rotinas', label: 'Rotinas Diárias', category: 'Visão Geral' },
-  { key: 'clientes', label: 'Clientes', category: 'Clientes & Leads' },
-  { key: 'editor-funil', label: 'Funis', category: 'Clientes & Leads' },
-  { key: 'lead-intelligence', label: 'Lead Intelligence', category: 'Clientes & Leads' },
+  // Clientes
+  { key: 'clientes', label: 'Clientes', category: 'Clientes' },
+  // Customer Success
   { key: 'cs-cockpit', label: 'CS Cockpit', category: 'Customer Success' },
   { key: 'cs-carteira', label: 'CS Carteira', category: 'Customer Success' },
   { key: 'cs-jornada', label: 'CS Jornada', category: 'Customer Success' },
   { key: 'cs-acoes', label: 'CS Ações', category: 'Customer Success' },
   { key: 'cs-clientes', label: 'CS Clientes', category: 'Customer Success' },
   { key: 'cs-tv', label: 'CS TV', category: 'Customer Success' },
+  // Conteúdo & Social
   { key: 'agendamento', label: 'Agendamento', category: 'Conteúdo & Social' },
   { key: 'automatizadores', label: 'Automatizadores', category: 'Conteúdo & Social' },
   { key: 'social-tv', label: 'Dashboard TV Social', category: 'Conteúdo & Social' },
   { key: 'editor-imagens', label: 'Editor de Imagens', category: 'Conteúdo & Social' },
   { key: 'geradores', label: 'Geradores', category: 'Conteúdo & Social' },
-  { key: 'gerador-campanhas', label: 'Gerador de Campanhas', category: 'Conteúdo & Social' },
-  { key: 'gerador-conteudo', label: 'Gerador de Conteúdo', category: 'Conteúdo & Social' },
-  { key: 'gerador-criativos', label: 'Gerador de Criativos', category: 'Conteúdo & Social' },
   { key: 'planejador-conteudo', label: 'Planejador de Conteúdo', category: 'Conteúdo & Social' },
   { key: 'repositorio-criativos', label: 'Repositório de Criativos', category: 'Conteúdo & Social' },
-  { key: 'whatsapp', label: 'WhatsApp', category: 'Conteúdo & Social' },
-  { key: 'automacoes', label: 'Automações', category: 'Marketing & Tráfego' },
-  { key: 'campanhas', label: 'Campanhas', category: 'Marketing & Tráfego' },
-  { key: 'campanhas-unificadas', label: 'Campanhas Unificadas', category: 'Marketing & Tráfego' },
-  { key: 'marketing-tv', label: 'Dashboard TV Marketing', category: 'Marketing & Tráfego' },
-  { key: 'keyword-planner', label: 'Keyword Planner', category: 'Marketing & Tráfego' },
-  { key: 'radar-tv', label: 'Radar TV', category: 'Marketing & Tráfego' },
-  { key: 'relatorios-marketing', label: 'Relatórios Marketing', category: 'Marketing & Tráfego' },
+  // Equipe
+  { key: 'colaboradores', label: 'Colaboradores', category: 'Equipe' },
+  { key: 'command-center', label: 'Command Center', category: 'Equipe' },
+  { key: 'relatorios', label: 'Relatórios', category: 'Equipe' },
+  { key: 'squad', label: 'Squad', category: 'Equipe' },
+  // Rotina
+  { key: 'tarefas', label: 'Tarefas Diárias', category: 'Rotina' },
+  { key: 'roteiros', label: 'Roteiros', category: 'Rotina' },
+  { key: 'tarefas-recorrentes', label: 'Tarefas Recorrentes', category: 'Rotina' },
+  { key: 'workspace', label: 'Workspace', category: 'Rotina' },
+  // Inteligência Artificial
   { key: 'ia', label: 'IA Chat', category: 'Inteligência Artificial' },
   { key: 'agentes-ia', label: 'Agentes IA', category: 'Inteligência Artificial' },
   { key: 'editar-agentes', label: 'Editar Agentes', category: 'Inteligência Artificial' },
   { key: 'skills-ia', label: 'Skills', category: 'Inteligência Artificial' },
   { key: 'editar-skills', label: 'Editar Skills', category: 'Inteligência Artificial' },
-  { key: 'alertas', label: 'Alertas', category: 'Equipe & Sistema' },
-  { key: 'colaboradores', label: 'Colaboradores', category: 'Equipe & Sistema' },
-  { key: 'command-center', label: 'Command Center', category: 'Equipe & Sistema' },
-  { key: 'configuracoes', label: 'Configurações', category: 'Equipe & Sistema' },
-  { key: 'relatorios', label: 'Relatórios', category: 'Equipe & Sistema' },
-  { key: 'roteiros', label: 'Roteiros', category: 'Equipe & Sistema' },
-  { key: 'squad', label: 'Squad', category: 'Equipe & Sistema' },
-  { key: 'tarefas', label: 'Tarefas', category: 'Equipe & Sistema' },
-  { key: 'tarefas-recorrentes', label: 'Tarefas Recorrentes', category: 'Equipe & Sistema' },
-  { key: 'workspace', label: 'Workspace', category: 'Equipe & Sistema' },
+  // Marketing & Tráfego
+  { key: 'automacoes', label: 'Automações', category: 'Marketing & Tráfego' },
+  { key: 'campanhas', label: 'Campanhas', category: 'Marketing & Tráfego' },
+  { key: 'campanhas-unificadas', label: 'Campanhas Unificadas', category: 'Marketing & Tráfego' },
+  { key: 'editor-funil', label: 'Funis', category: 'Marketing & Tráfego' },
+  { key: 'keyword-planner', label: 'Keyword Planner', category: 'Marketing & Tráfego' },
+  { key: 'lead-intelligence', label: 'Lead Intelligence', category: 'Marketing & Tráfego' },
+  { key: 'marketing-tv', label: 'Dashboard TV Marketing', category: 'Marketing & Tráfego' },
+  { key: 'radar-tv', label: 'Radar TV', category: 'Marketing & Tráfego' },
+  { key: 'relatorios-marketing', label: 'Relatórios Marketing', category: 'Marketing & Tráfego' },
+  { key: 'whatsapp', label: 'WhatsApp', category: 'Marketing & Tráfego' },
+  // Sistema
+  { key: 'alertas', label: 'Alertas', category: 'Sistema' },
+  { key: 'configuracoes', label: 'Configurações', category: 'Sistema' },
+  // Especial
   { key: 'ver-quadros-outros', label: 'Ver Quadros de Outros', category: 'Especial' },
 ];
 
