@@ -99,6 +99,18 @@ export default function SquadCommandCenter() {
     }
   };
 
+  const handleDeleteSelected = async () => {
+    const ids = Array.from(backlogCenter.selectedTaskIds);
+    const { error } = await supabase.from('tasks').delete().in('id', ids);
+    if (error) {
+      toast({ title: "Erro ao excluir tarefas", variant: "destructive" });
+    } else {
+      toast({ title: `${ids.length} tarefa${ids.length > 1 ? 's' : ''} excluída${ids.length > 1 ? 's' : ''}` });
+      backlogCenter.clearSelection();
+      window.location.reload();
+    }
+  };
+
   const members: SquadMember[] = (selectedTeam?.members || []).map(m => ({
     ...m,
     discord_user_id: null,
@@ -451,6 +463,7 @@ export default function SquadCommandCenter() {
                       onRelease={handleRelease}
                       onClear={backlogCenter.clearSelection}
                       onSelectAll={backlogCenter.selectAll}
+                      onDeleteSelected={handleDeleteSelected}
                       releasing={releasing}
                     />
                   }
