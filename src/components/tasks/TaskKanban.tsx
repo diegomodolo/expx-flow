@@ -428,22 +428,25 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
     }
 
     const isRejected = !!task.last_rejected_at;
+    const isGhost = task.origin === 'ghost';
 
     return (
       <Card
         key={task.id}
         className={cn(
-          "shadow-sm hover:shadow-md transition-all border-l-4 bg-card group select-none",
-          "cursor-pointer",
-          !inModal && draggedTask?.id === task.id && 'opacity-50 rotate-2 scale-105',
+          "shadow-sm transition-all border-l-4 bg-card select-none",
+          isGhost
+            ? "opacity-40 cursor-default pointer-events-none"
+            : "hover:shadow-md cursor-pointer group",
+          !inModal && !isGhost && draggedTask?.id === task.id && 'opacity-50 rotate-2 scale-105',
           isCompactMode ? "p-2" : "p-3",
-          isRejected && "ring-1 ring-destructive/40"
+          isRejected && !isGhost && "ring-1 ring-destructive/40"
         )}
-        style={{ borderLeftColor: isRejected ? 'hsl(var(--destructive))' : priorityConf.color }}
-        draggable={!inModal}
-        onDragStart={!inModal ? (e) => { didDragRef.current = true; handleDragStart(e, task); } : undefined}
-        onDragEnd={!inModal ? () => { handleDragEnd(); didDragRef.current = false; } : undefined}
-        onClick={(e) => {
+        style={{ borderLeftColor: isRejected && !isGhost ? 'hsl(var(--destructive))' : priorityConf.color }}
+        draggable={!inModal && !isGhost}
+        onDragStart={!inModal && !isGhost ? (e) => { didDragRef.current = true; handleDragStart(e, task); } : undefined}
+        onDragEnd={!inModal && !isGhost ? () => { handleDragEnd(); didDragRef.current = false; } : undefined}
+        onClick={isGhost ? undefined : (e) => {
           if (didDragRef.current) { didDragRef.current = false; return; }
           const target = e.target as HTMLElement;
           if (target.closest('button, [role="menuitem"]')) return;
