@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { DragDropContext, DropResult } from "react-beautiful-dnd";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -54,6 +55,7 @@ export default function SquadCommandCenter() {
     setViewDate,
   } = useCommandCenter();
 
+  const navigate = useNavigate();
   const { schedules: workSchedules } = useWorkSchedules();
   const { toast } = useToast();
   const [editingTask, setEditingTask] = useState<CommandCenterTask | null>(null);
@@ -376,6 +378,15 @@ export default function SquadCommandCenter() {
             <h1 className="text-xl font-bold text-foreground tracking-tight">{activeView === 'backlog' ? 'Backlog' : 'Command Center'}</h1>
           </div>
           <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/backlog-command-center')}
+              className="gap-2"
+            >
+              <Inbox className="w-4 h-4" />
+              Backlog Center
+            </Button>
             <Button
               variant={activeView === 'backlog' ? 'default' : 'outline'}
               size="sm"

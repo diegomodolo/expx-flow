@@ -7,6 +7,9 @@ import { BacklogBucket } from "@/components/backlog-center/BacklogBucket";
 import { BacklogFooterBar } from "@/components/backlog-center/BacklogFooterBar";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Radar, Inbox } from "lucide-react";
 
 export default function BacklogCommandCenterPage() {
   const { activeCompany } = useCompany();
@@ -45,9 +48,28 @@ export default function BacklogCommandCenterPage() {
     }
   };
 
+  const navigate = useNavigate();
+
   return (
     <DashboardLayout>
       <div className="flex flex-col h-[calc(100vh-130px)] overflow-hidden">
+        {/* Top bar with nav to Command Center */}
+        <div className="flex items-center justify-between flex-shrink-0 pb-4">
+          <div className="flex items-center gap-3">
+            <Inbox className="w-6 h-6 text-primary" />
+            <h1 className="text-xl font-bold text-foreground tracking-tight">Backlog</h1>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate('/squad-command-center')}
+            className="gap-2"
+          >
+            <Radar className="w-4 h-4" />
+            Command Center
+          </Button>
+        </div>
+
         {/* Header */}
         <BacklogHeader
           totalStats={totalStats}
