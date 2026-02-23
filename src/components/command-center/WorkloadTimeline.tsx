@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from "react";
+import React, { useState, useCallback, useRef, useEffect } from "react";
 import { TimelineRow } from "./TimelineRow";
 import { SquadMember, CommandCenterTask } from "@/hooks/useCommandCenter";
 import { WorkSchedule } from "@/hooks/useWorkSchedules";
@@ -13,6 +13,63 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { format, addDays, subDays, isToday, isTomorrow, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { supabase } from "@/integrations/supabase/client";
+
+interface TimelineSettings {
+  slotDuration: number;
+  startHour: number;
+  endHour: number;
+}
+
+const SETTING_KEY = "cc-timeline-settings";
+
+function usePersistedTimelineSettings() {
+  const [settings, setSettings] = useState<TimelineSettings | null>(null);
+  const [loaded, setLoaded] = useState(false);
+
+  // Load from DB on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) { setLoaded(true); return; }
+
+        const { data } = await supabase
+          .from("user_ui_settings" as any)
+          .select("setting_value")
+          .eq("user_id", user.id)
+          .eq("setting_key", SETTING_KEY)
+          .maybeSingle() as any;
+
+        if ((data as any)?.setting_value) {
+          setSettings((data as any).setting_value as TimelineSettings);
+        }
+      } catch {
+        // fallback — no saved settings
+      }
+      setLoaded(true);
+    })();
+  }, []);
+
+  const save = useCallback(async (s: TimelineSettings) => {
+    setSettings(s);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      await supabase
+        .from("user_ui_settings" as any)
+        .upsert(
+          { user_id: user.id, setting_key: SETTING_KEY, setting_value: s as any, updated_at: new Date().toISOString() },
+          { onConflict: "user_id,setting_key" }
+        );
+    } catch (err) {
+      console.error("[TimelineSettings] Failed to persist:", err);
+    }
+  }, []);
+
+  return { settings, save, loaded };
+}
 
 interface Props {
   members: SquadMember[];
@@ -45,35 +102,33 @@ function formatDateLabel(date: Date): string {
   return format(date, "EEE, d 'de' MMM", { locale: ptBR });
 }
 
-const STORAGE_KEY = "cc-timeline-settings";
-
-function loadSettings() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch {}
-  return null;
-}
-
-function saveSettings(s: { slotDuration: number; startHour: number; endHour: number }) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch {}
-}
-
 export function WorkloadTimeline({ members, tasks, startHour: _startHourProp = 0, workSchedules = [], onRepositionTask, onResizeTask, onClickTask, onSendToBacklog, onSendToNextDay, onReassignTask, draggingTask, dropSlotRef, timelineContainerRef, selectedDate, onDateChange }: Props) {
-  const saved = React.useMemo(() => loadSettings(), []);
+  const { settings: savedSettings, save: persistSettings, loaded: settingsLoaded } = usePersistedTimelineSettings();
   const [slotWidth, setSlotWidth] = useState(56);
   const [rowHeight, setRowHeight] = useState(68);
-  const [slotDuration, setSlotDuration] = useState(saved?.slotDuration ?? DEFAULT_SLOT_DURATION);
+  const [slotDuration, setSlotDuration] = useState(DEFAULT_SLOT_DURATION);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [tempSlotDuration, setTempSlotDuration] = useState(slotDuration);
-  const [timelineStartHour, setTimelineStartHour] = useState(saved?.startHour ?? 0);
-  const [timelineEndHour, setTimelineEndHour] = useState(saved?.endHour ?? 23);
+  const [timelineStartHour, setTimelineStartHour] = useState(0);
+  const [timelineEndHour, setTimelineEndHour] = useState(23);
   const [tempStartHour, setTempStartHour] = useState(timelineStartHour);
   const [tempEndHour, setTempEndHour] = useState(timelineEndHour);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [mouseSlot, setMouseSlot] = useState<number | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const resizeRef = useRef<{ startY: number; startHeight: number } | null>(null);
+
+  // Apply persisted settings once loaded from DB
+  useEffect(() => {
+    if (settingsLoaded && savedSettings) {
+      setSlotDuration(savedSettings.slotDuration);
+      setTimelineStartHour(savedSettings.startHour);
+      setTimelineEndHour(savedSettings.endHour);
+      setTempSlotDuration(savedSettings.slotDuration);
+      setTempStartHour(savedSettings.startHour);
+      setTempEndHour(savedSettings.endHour);
+    }
+  }, [settingsLoaded, savedSettings]);
 
   const effectiveStartHour = timelineStartHour;
   const timelineMinutes = (timelineEndHour - timelineStartHour + 1) * 60;
@@ -391,7 +446,7 @@ export function WorkloadTimeline({ members, tasks, startHour: _startHourProp = 0
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setSettingsOpen(false)}>Cancelar</Button>
-            <Button onClick={() => { setSlotDuration(tempSlotDuration); setTimelineStartHour(tempStartHour); setTimelineEndHour(tempEndHour); saveSettings({ slotDuration: tempSlotDuration, startHour: tempStartHour, endHour: tempEndHour }); setSettingsOpen(false); }}>Aplicar</Button>
+            <Button onClick={() => { setSlotDuration(tempSlotDuration); setTimelineStartHour(tempStartHour); setTimelineEndHour(tempEndHour); persistSettings({ slotDuration: tempSlotDuration, startHour: tempStartHour, endHour: tempEndHour }); setSettingsOpen(false); }}>Aplicar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
