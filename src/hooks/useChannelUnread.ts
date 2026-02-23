@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -64,8 +65,41 @@ export function useChannelUnread() {
       return counts;
     },
     enabled: !!companyId && !!user?.id,
-    refetchInterval: 30000, // refresh every 30s
+    refetchInterval: 30000,
   });
+
+  // Global realtime subscription: listen to ALL new messages in the company's channels
+  // This updates unread counts AND the active channel's messages instantly
+  useEffect(() => {
+    if (!companyId || !user?.id) return;
+
+    const channel = supabase
+      .channel(`global-messages-${companyId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'internal_messages',
+        },
+        (payload) => {
+          const newMsg = payload.new as any;
+          // Skip own messages
+          if (newMsg.user_id === user.id) return;
+
+          // Invalidate unread counts so badge updates immediately
+          queryClient.invalidateQueries({ queryKey: ['channel-unread', companyId, user.id] });
+
+          // Also invalidate the messages query for that channel so if user is viewing it, it refreshes
+          queryClient.invalidateQueries({ queryKey: ['internal-messages', newMsg.channel_id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [companyId, user?.id, queryClient]);
 
   const markAsRead = useMutation({
     mutationFn: async (channelId: string) => {
