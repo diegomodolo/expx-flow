@@ -61,23 +61,35 @@ export function useInternalChat() {
 
       if (error) throw error;
 
-      const existingChannels = (existing || []) as InternalChannel[];
+      const allExistingChannels = (existing || []) as InternalChannel[];
 
       // Build a set of existing client channel reference_ids
       const existingClientRefs = new Set(
-        existingChannels
+        allExistingChannels
           .filter(c => c.channel_type === 'client')
           .map(c => c.reference_id)
       );
 
-      // Fetch ALL clients for this company
+      // Fetch ALL active (non-canceled) clients for this company
       const { data: allClients } = await supabase
         .from('clients')
         .select('id, name')
-        .eq('company_id', companyId);
+        .eq('company_id', companyId)
+        .eq('is_canceled', false);
 
       // Find clients that don't have a channel yet
       const missingClients = (allClients || []).filter(c => !existingClientRefs.has(c.id));
+
+      // Build set of active client IDs to filter the channel list
+      const activeClientIds = new Set((allClients || []).map(c => c.id));
+
+      // Filter out channels for canceled clients
+      const existingChannels = allExistingChannels.filter(c => {
+        if (c.channel_type === 'client' && c.reference_id) {
+          return activeClientIds.has(c.reference_id);
+        }
+        return true;
+      });
 
       // If no channels exist at all, also create general channel
       const channelsToCreate: Array<{
@@ -88,7 +100,7 @@ export function useInternalChat() {
         icon?: string;
       }> = [];
 
-      if (existingChannels.length === 0) {
+      if (allExistingChannels.length === 0) {
         channelsToCreate.push({
           company_id: companyId,
           name: 'Geral',
