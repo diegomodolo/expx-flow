@@ -29,6 +29,7 @@ const MENU_ITEMS: { key: MenuItemType; label: string; category: string }[] = [
   { key: 'cs-acoes', label: 'CS Ações', category: 'Customer Success' },
   { key: 'cs-clientes', label: 'CS Clientes', category: 'Customer Success' },
   { key: 'cs-tv', label: 'CS TV', category: 'Customer Success' },
+  { key: 'groupops', label: 'GroupOps', category: 'Customer Success' },
   // Conteúdo & Social
   { key: 'agendamento', label: 'Agendamento', category: 'Conteúdo & Social' },
   { key: 'automatizadores', label: 'Automatizadores', category: 'Conteúdo & Social' },
@@ -37,13 +38,20 @@ const MENU_ITEMS: { key: MenuItemType; label: string; category: string }[] = [
   { key: 'geradores', label: 'Geradores', category: 'Conteúdo & Social' },
   { key: 'planejador-conteudo', label: 'Planejador de Conteúdo', category: 'Conteúdo & Social' },
   { key: 'repositorio-criativos', label: 'Repositório de Criativos', category: 'Conteúdo & Social' },
+  { key: 'youtube-content-lab', label: 'YouTube Content Lab', category: 'Conteúdo & Social' },
   // Equipe
   { key: 'colaboradores', label: 'Colaboradores', category: 'Equipe' },
   { key: 'command-center', label: 'Command Center', category: 'Equipe' },
+  { key: 'dashboard-equipe', label: 'Dashboard Equipe', category: 'Equipe' },
   { key: 'relatorios', label: 'Relatórios', category: 'Equipe' },
+  { key: 'reunioes', label: 'Reuniões', category: 'Equipe' },
   { key: 'squad', label: 'Squad', category: 'Equipe' },
   // Rotina
   { key: 'tarefas', label: 'Tarefas Diárias', category: 'Rotina' },
+  { key: 'checklists', label: 'Checklists', category: 'Rotina' },
+  { key: 'fluxos', label: 'Fluxos', category: 'Rotina' },
+  { key: 'mapas-mentais', label: 'Mapas Mentais', category: 'Rotina' },
+  { key: 'planner', label: 'Planner', category: 'Rotina' },
   { key: 'roteiros', label: 'Roteiros', category: 'Rotina' },
   { key: 'tarefas-recorrentes', label: 'Tarefas Recorrentes', category: 'Rotina' },
   { key: 'workspace', label: 'Workspace', category: 'Rotina' },
@@ -53,6 +61,7 @@ const MENU_ITEMS: { key: MenuItemType; label: string; category: string }[] = [
   { key: 'editar-agentes', label: 'Editar Agentes', category: 'Inteligência Artificial' },
   { key: 'skills-ia', label: 'Skills', category: 'Inteligência Artificial' },
   { key: 'editar-skills', label: 'Editar Skills', category: 'Inteligência Artificial' },
+  { key: 'squads-ia', label: 'Squads de IA', category: 'Inteligência Artificial' },
   // Marketing & Tráfego
   { key: 'automacoes', label: 'Automações', category: 'Marketing & Tráfego' },
   { key: 'campanhas', label: 'Campanhas', category: 'Marketing & Tráfego' },
@@ -61,9 +70,10 @@ const MENU_ITEMS: { key: MenuItemType; label: string; category: string }[] = [
   { key: 'keyword-planner', label: 'Keyword Planner', category: 'Marketing & Tráfego' },
   { key: 'lead-intelligence', label: 'Lead Intelligence', category: 'Marketing & Tráfego' },
   { key: 'marketing-tv', label: 'Dashboard TV Marketing', category: 'Marketing & Tráfego' },
+  { key: 'parametros-performance', label: 'Parâmetros de Performance', category: 'Marketing & Tráfego' },
   { key: 'radar-tv', label: 'Radar TV', category: 'Marketing & Tráfego' },
   { key: 'relatorios-marketing', label: 'Relatórios Marketing', category: 'Marketing & Tráfego' },
-  { key: 'whatsapp', label: 'WhatsApp', category: 'Marketing & Tráfego' },
+  { key: 'whatsapp', label: 'Notificações WhatsApp', category: 'Marketing & Tráfego' },
   // Sistema
   { key: 'alertas', label: 'Alertas', category: 'Sistema' },
   { key: 'configuracoes', label: 'Configurações', category: 'Sistema' },
