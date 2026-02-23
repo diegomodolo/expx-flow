@@ -3123,6 +3123,141 @@ export type Database = {
           },
         ]
       }
+      clip_jobs: {
+        Row: {
+          client_id: string | null
+          company_id: string | null
+          created_at: string | null
+          error_message: string | null
+          format: string | null
+          id: string
+          input_storage_path: string | null
+          input_url: string | null
+          max_clips: number | null
+          progress: number | null
+          progress_message: string | null
+          status: string
+          updated_at: string | null
+          user_id: string
+          video_duration_seconds: number | null
+        }
+        Insert: {
+          client_id?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          format?: string | null
+          id?: string
+          input_storage_path?: string | null
+          input_url?: string | null
+          max_clips?: number | null
+          progress?: number | null
+          progress_message?: string | null
+          status?: string
+          updated_at?: string | null
+          user_id: string
+          video_duration_seconds?: number | null
+        }
+        Update: {
+          client_id?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          format?: string | null
+          id?: string
+          input_storage_path?: string | null
+          input_url?: string | null
+          max_clips?: number | null
+          progress?: number | null
+          progress_message?: string | null
+          status?: string
+          updated_at?: string | null
+          user_id?: string
+          video_duration_seconds?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clip_jobs_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clip_jobs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clips: {
+        Row: {
+          clip_type: string | null
+          company_id: string | null
+          created_at: string | null
+          duration_seconds: number | null
+          end_seconds: number | null
+          id: string
+          job_id: string | null
+          public_url: string | null
+          reason: string | null
+          start_seconds: number | null
+          storage_path: string | null
+          title: string | null
+          user_id: string
+          virality_score: number | null
+        }
+        Insert: {
+          clip_type?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          duration_seconds?: number | null
+          end_seconds?: number | null
+          id?: string
+          job_id?: string | null
+          public_url?: string | null
+          reason?: string | null
+          start_seconds?: number | null
+          storage_path?: string | null
+          title?: string | null
+          user_id: string
+          virality_score?: number | null
+        }
+        Update: {
+          clip_type?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          duration_seconds?: number | null
+          end_seconds?: number | null
+          id?: string
+          job_id?: string | null
+          public_url?: string | null
+          reason?: string | null
+          start_seconds?: number | null
+          storage_path?: string | null
+          title?: string | null
+          user_id?: string
+          virality_score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clips_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clips_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "clip_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cnae_lead_pool: {
         Row: {
           bairro: string | null
