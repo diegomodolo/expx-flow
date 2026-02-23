@@ -19,10 +19,8 @@ const MENU_ITEMS: { key: MenuItemType; label: string; description: string; categ
   { key: 'dashboard', label: 'Dashboard', description: 'Página inicial e visão geral', category: 'Visão Geral' },
   { key: 'radar-saude', label: 'Radar de Saúde', description: 'Monitoramento de saúde dos clientes', category: 'Visão Geral' },
   { key: 'rotinas', label: 'Rotinas Diárias', description: 'Checklists e rotinas operacionais', category: 'Visão Geral' },
-  // Clientes & Leads
-  { key: 'clientes', label: 'Clientes', description: 'Gestão de clientes', category: 'Clientes & Leads' },
-  { key: 'editor-funil', label: 'Funis', description: 'Editor e visualização de funis de conversão', category: 'Clientes & Leads' },
-  { key: 'lead-intelligence', label: 'Lead Intelligence', description: 'Inteligência e enriquecimento de leads', category: 'Clientes & Leads' },
+  // Clientes
+  { key: 'clientes', label: 'Clientes', description: 'Gestão de clientes', category: 'Clientes' },
   // Customer Success
   { key: 'cs-cockpit', label: 'CS Cockpit', description: 'Painel geral de Customer Success', category: 'Customer Success' },
   { key: 'cs-carteira', label: 'CS Carteira', description: 'Carteira de clientes do CS', category: 'Customer Success' },
@@ -36,38 +34,39 @@ const MENU_ITEMS: { key: MenuItemType; label: string; description: string; categ
   { key: 'social-tv', label: 'Dashboard TV Social', description: 'Dashboard TV de redes sociais', category: 'Conteúdo & Social' },
   { key: 'editor-imagens', label: 'Editor de Imagens', description: 'Edição e criação de imagens', category: 'Conteúdo & Social' },
   { key: 'geradores', label: 'Geradores', description: 'Menu de ferramentas de geração', category: 'Conteúdo & Social' },
-  { key: 'gerador-campanhas', label: 'Gerador de Campanhas', description: 'Criação de campanhas com IA', category: 'Conteúdo & Social' },
-  { key: 'gerador-conteudo', label: 'Gerador de Conteúdo', description: 'Criação de conteúdo com IA', category: 'Conteúdo & Social' },
-  { key: 'gerador-criativos', label: 'Gerador de Criativos', description: 'Criação de criativos visuais com IA', category: 'Conteúdo & Social' },
   { key: 'planejador-conteudo', label: 'Planejador de Conteúdo', description: 'Planejamento de conteúdo', category: 'Conteúdo & Social' },
   { key: 'repositorio-criativos', label: 'Repositório de Criativos', description: 'Biblioteca de criativos', category: 'Conteúdo & Social' },
-  { key: 'whatsapp', label: 'WhatsApp', description: 'Módulo de notificações WhatsApp', category: 'Conteúdo & Social' },
-  // Marketing & Tráfego
-  { key: 'automacoes', label: 'Automações', description: 'Automações de campanhas', category: 'Marketing & Tráfego' },
-  { key: 'campanhas', label: 'Campanhas', description: 'Gestão de campanhas publicitárias', category: 'Marketing & Tráfego' },
-  { key: 'campanhas-unificadas', label: 'Campanhas Unificadas', description: 'Visão unificada de campanhas', category: 'Marketing & Tráfego' },
-  { key: 'marketing-tv', label: 'Dashboard TV Marketing', description: 'Dashboard TV de marketing', category: 'Marketing & Tráfego' },
-  { key: 'keyword-planner', label: 'Keyword Planner', description: 'Planejador de palavras-chave', category: 'Marketing & Tráfego' },
-  { key: 'radar-tv', label: 'Radar TV', description: 'Dashboard TV de radar', category: 'Marketing & Tráfego' },
-  { key: 'relatorios-marketing', label: 'Relatórios Marketing', description: 'Relatórios de marketing', category: 'Marketing & Tráfego' },
+  // Equipe
+  { key: 'colaboradores', label: 'Colaboradores', description: 'Gestão de funcionários', category: 'Equipe' },
+  { key: 'command-center', label: 'Command Center', description: 'Backlog Center, Command Center e Histórias', category: 'Equipe' },
+  { key: 'relatorios', label: 'Relatórios', description: 'Relatórios e análises gerais', category: 'Equipe' },
+  { key: 'squad', label: 'Squad', description: 'Gestão de equipes', category: 'Equipe' },
+  // Rotina
+  { key: 'tarefas', label: 'Tarefas Diárias', description: 'Gerenciamento de tarefas diárias', category: 'Rotina' },
+  { key: 'roteiros', label: 'Roteiros', description: 'Criação e gestão de roteiros de atividades', category: 'Rotina' },
+  { key: 'tarefas-recorrentes', label: 'Tarefas Recorrentes', description: 'Tarefas repetitivas automáticas', category: 'Rotina' },
+  { key: 'workspace', label: 'Workspace', description: 'Área de trabalho e anotações', category: 'Rotina' },
   // Inteligência Artificial
   { key: 'ia', label: 'IA Chat', description: 'Chat com inteligência artificial', category: 'Inteligência Artificial' },
   { key: 'agentes-ia', label: 'Agentes IA', description: 'Acesso ao menu de Agentes de IA', category: 'Inteligência Artificial' },
   { key: 'editar-agentes', label: 'Editar Agentes', description: 'Criar, editar, duplicar e excluir agentes', category: 'Inteligência Artificial' },
   { key: 'skills-ia', label: 'Skills', description: 'Visualizar e acessar a Fábrica de Skills', category: 'Inteligência Artificial' },
   { key: 'editar-skills', label: 'Editar Skills', description: 'Criar, editar e excluir skills dos agentes', category: 'Inteligência Artificial' },
-  // Equipe & Sistema
-  { key: 'alertas', label: 'Alertas', description: 'Alertas e notificações do sistema', category: 'Equipe & Sistema' },
-  { key: 'colaboradores', label: 'Colaboradores', description: 'Gestão de funcionários', category: 'Equipe & Sistema' },
-  { key: 'command-center', label: 'Command Center', description: 'Backlog Center, Command Center e Histórias', category: 'Equipe & Sistema' },
-  { key: 'configuracoes', label: 'Configurações', description: 'Configurações do sistema', category: 'Equipe & Sistema' },
-  { key: 'relatorios', label: 'Relatórios', description: 'Relatórios e análises gerais', category: 'Equipe & Sistema' },
-  { key: 'roteiros', label: 'Roteiros', description: 'Criação e gestão de roteiros de atividades', category: 'Equipe & Sistema' },
-  { key: 'squad', label: 'Squad', description: 'Gestão de equipes', category: 'Equipe & Sistema' },
-  { key: 'tarefas', label: 'Tarefas', description: 'Gerenciamento de tarefas', category: 'Equipe & Sistema' },
-  { key: 'tarefas-recorrentes', label: 'Tarefas Recorrentes', description: 'Tarefas repetitivas automáticas', category: 'Equipe & Sistema' },
-  { key: 'workspace', label: 'Workspace', description: 'Área de trabalho e anotações', category: 'Equipe & Sistema' },
-  // Permissões especiais
+  // Marketing & Tráfego
+  { key: 'automacoes', label: 'Automações', description: 'Automações de campanhas', category: 'Marketing & Tráfego' },
+  { key: 'campanhas', label: 'Campanhas', description: 'Gestão de campanhas publicitárias', category: 'Marketing & Tráfego' },
+  { key: 'campanhas-unificadas', label: 'Campanhas Unificadas', description: 'Visão unificada de campanhas', category: 'Marketing & Tráfego' },
+  { key: 'editor-funil', label: 'Funis', description: 'Editor e visualização de funis de conversão', category: 'Marketing & Tráfego' },
+  { key: 'keyword-planner', label: 'Keyword Planner', description: 'Planejador de palavras-chave', category: 'Marketing & Tráfego' },
+  { key: 'lead-intelligence', label: 'Lead Intelligence', description: 'Inteligência e enriquecimento de leads', category: 'Marketing & Tráfego' },
+  { key: 'marketing-tv', label: 'Dashboard TV Marketing', description: 'Dashboard TV de marketing', category: 'Marketing & Tráfego' },
+  { key: 'radar-tv', label: 'Radar TV', description: 'Dashboard TV de radar', category: 'Marketing & Tráfego' },
+  { key: 'relatorios-marketing', label: 'Relatórios Marketing', description: 'Relatórios de marketing', category: 'Marketing & Tráfego' },
+  { key: 'whatsapp', label: 'WhatsApp', description: 'Módulo de notificações WhatsApp', category: 'Marketing & Tráfego' },
+  // Sistema
+  { key: 'alertas', label: 'Alertas', description: 'Alertas e notificações do sistema', category: 'Sistema' },
+  { key: 'configuracoes', label: 'Configurações', description: 'Configurações do sistema', category: 'Sistema' },
+  // Especial
   { key: 'ver-quadros-outros', label: 'Ver Quadros de Outros', description: 'Visualizar quadro de tarefas de outros colaboradores', category: 'Especial' },
 ];
 
