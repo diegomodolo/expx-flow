@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { SearchableClientSelect } from "@/components/ui/searchable-client-select";
 import { Settings, Brain, FileText, Bot, Puzzle, MessageCircle, Save, UserCheck } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
@@ -83,7 +84,7 @@ export function AgentEditContent({
       .maybeSingle();
     
     if (isCollaborator && !existingEmployee) {
-      await supabase.from('employees').insert({
+      const { error } = await supabase.from('employees').insert({
         company_id: activeCompany.company_id,
         name: `🤖 ${agentName}`,
         email: `agent-${agentId}@ai.internal`,
@@ -93,6 +94,10 @@ export function AgentEditContent({
         user_id: agentId,
         ia_agent_id: agentId,
       } as any);
+      if (error) {
+        console.error('Error creating collaborator employee:', error);
+        toast.error('Erro ao criar colaborador. Tente desativar e reativar.');
+      }
     } else if (!isCollaborator && existingEmployee) {
       await supabase.from('employees').delete().eq('id', existingEmployee.id);
     } else if (isCollaborator && existingEmployee) {
