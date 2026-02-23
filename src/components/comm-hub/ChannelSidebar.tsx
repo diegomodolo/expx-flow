@@ -1,7 +1,9 @@
+import { useState, useMemo } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { Hash, Users, Building2, MessageCircle, MessageSquare } from 'lucide-react';
+import { Hash, Users, Building2, MessageCircle, MessageSquare, Search } from 'lucide-react';
 import type { InternalChannel } from '@/hooks/useInternalChat';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -17,10 +19,18 @@ interface ChannelSidebarProps {
 
 export function ChannelSidebar({ channels, activeChannelId, onSelectChannel, loading, unreadCounts = {} }: ChannelSidebarProps) {
   const { user } = useAuth();
-  const squads = channels.filter(c => c.channel_type === 'squad');
-  const clients = channels.filter(c => c.channel_type === 'client');
-  const general = channels.filter(c => c.channel_type === 'general');
-  const dms = channels.filter(c => c.channel_type === 'dm');
+  const [search, setSearch] = useState('');
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return channels;
+    const q = search.toLowerCase();
+    return channels.filter(c => c.name.toLowerCase().includes(q));
+  }, [channels, search]);
+
+  const squads = filtered.filter(c => c.channel_type === 'squad');
+  const clients = filtered.filter(c => c.channel_type === 'client');
+  const general = filtered.filter(c => c.channel_type === 'general');
+  const dms = filtered.filter(c => c.channel_type === 'dm');
 
   // Fetch profiles to resolve DM partner names/avatars
   const dmUserIds = dms
@@ -112,11 +122,20 @@ export function ChannelSidebar({ channels, activeChannelId, onSelectChannel, loa
 
   return (
     <div className="w-60 border-r border-border bg-card/50 backdrop-blur-sm flex flex-col">
-      <div className="p-4 border-b border-border">
+      <div className="p-4 border-b border-border space-y-3">
         <h2 className="text-title-md text-foreground flex items-center gap-2">
           <Hash className="w-4 h-4 text-primary" />
           Canais
         </h2>
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+          <Input
+            placeholder="Buscar canal..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="h-8 pl-8 text-xs bg-muted/50 border-none focus-visible:ring-1"
+          />
+        </div>
       </div>
 
       <ScrollArea className="flex-1">
