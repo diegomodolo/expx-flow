@@ -28,6 +28,7 @@ const MENU_ITEMS: { key: MenuItemType; label: string; description: string; categ
   { key: 'cs-acoes', label: 'CS Ações', description: 'Ações de Customer Success', category: 'Customer Success' },
   { key: 'cs-clientes', label: 'CS Clientes', description: 'Lista de clientes CS', category: 'Customer Success' },
   { key: 'cs-tv', label: 'CS TV', description: 'Dashboard TV de Customer Success', category: 'Customer Success' },
+  { key: 'groupops', label: 'GroupOps', description: 'Operações em grupo de CS', category: 'Customer Success' },
   // Conteúdo & Social
   { key: 'agendamento', label: 'Agendamento', description: 'Agendamento de publicações', category: 'Conteúdo & Social' },
   { key: 'automatizadores', label: 'Automatizadores', description: 'Automações de conteúdo', category: 'Conteúdo & Social' },
@@ -36,13 +37,20 @@ const MENU_ITEMS: { key: MenuItemType; label: string; description: string; categ
   { key: 'geradores', label: 'Geradores', description: 'Menu de ferramentas de geração', category: 'Conteúdo & Social' },
   { key: 'planejador-conteudo', label: 'Planejador de Conteúdo', description: 'Planejamento de conteúdo', category: 'Conteúdo & Social' },
   { key: 'repositorio-criativos', label: 'Repositório de Criativos', description: 'Biblioteca de criativos', category: 'Conteúdo & Social' },
+  { key: 'youtube-content-lab', label: 'YouTube Content Lab', description: 'Laboratório de conteúdo YouTube', category: 'Conteúdo & Social' },
   // Equipe
   { key: 'colaboradores', label: 'Colaboradores', description: 'Gestão de funcionários', category: 'Equipe' },
   { key: 'command-center', label: 'Command Center', description: 'Backlog Center, Command Center e Histórias', category: 'Equipe' },
+  { key: 'dashboard-equipe', label: 'Dashboard Equipe', description: 'Dashboard e TV da equipe', category: 'Equipe' },
   { key: 'relatorios', label: 'Relatórios', description: 'Relatórios e análises gerais', category: 'Equipe' },
+  { key: 'reunioes', label: 'Reuniões', description: 'Gestão de reuniões da equipe', category: 'Equipe' },
   { key: 'squad', label: 'Squad', description: 'Gestão de equipes', category: 'Equipe' },
   // Rotina
   { key: 'tarefas', label: 'Tarefas Diárias', description: 'Gerenciamento de tarefas diárias', category: 'Rotina' },
+  { key: 'checklists', label: 'Checklists', description: 'Templates de checklists', category: 'Rotina' },
+  { key: 'fluxos', label: 'Fluxos', description: 'Fluxos de trabalho visuais', category: 'Rotina' },
+  { key: 'mapas-mentais', label: 'Mapas Mentais', description: 'Mapas mentais e organização de ideias', category: 'Rotina' },
+  { key: 'planner', label: 'Planner', description: 'Planejamento e calendário de tarefas', category: 'Rotina' },
   { key: 'roteiros', label: 'Roteiros', description: 'Criação e gestão de roteiros de atividades', category: 'Rotina' },
   { key: 'tarefas-recorrentes', label: 'Tarefas Recorrentes', description: 'Tarefas repetitivas automáticas', category: 'Rotina' },
   { key: 'workspace', label: 'Workspace', description: 'Área de trabalho e anotações', category: 'Rotina' },
@@ -52,6 +60,7 @@ const MENU_ITEMS: { key: MenuItemType; label: string; description: string; categ
   { key: 'editar-agentes', label: 'Editar Agentes', description: 'Criar, editar, duplicar e excluir agentes', category: 'Inteligência Artificial' },
   { key: 'skills-ia', label: 'Skills', description: 'Visualizar e acessar a Fábrica de Skills', category: 'Inteligência Artificial' },
   { key: 'editar-skills', label: 'Editar Skills', description: 'Criar, editar e excluir skills dos agentes', category: 'Inteligência Artificial' },
+  { key: 'squads-ia', label: 'Squads de IA', description: 'Gestão de squads de agentes de IA', category: 'Inteligência Artificial' },
   // Marketing & Tráfego
   { key: 'automacoes', label: 'Automações', description: 'Automações de campanhas', category: 'Marketing & Tráfego' },
   { key: 'campanhas', label: 'Campanhas', description: 'Gestão de campanhas publicitárias', category: 'Marketing & Tráfego' },
@@ -60,9 +69,10 @@ const MENU_ITEMS: { key: MenuItemType; label: string; description: string; categ
   { key: 'keyword-planner', label: 'Keyword Planner', description: 'Planejador de palavras-chave', category: 'Marketing & Tráfego' },
   { key: 'lead-intelligence', label: 'Lead Intelligence', description: 'Inteligência e enriquecimento de leads', category: 'Marketing & Tráfego' },
   { key: 'marketing-tv', label: 'Dashboard TV Marketing', description: 'Dashboard TV de marketing', category: 'Marketing & Tráfego' },
+  { key: 'parametros-performance', label: 'Parâmetros de Performance', description: 'Configuração de parâmetros de performance', category: 'Marketing & Tráfego' },
   { key: 'radar-tv', label: 'Radar TV', description: 'Dashboard TV de radar', category: 'Marketing & Tráfego' },
   { key: 'relatorios-marketing', label: 'Relatórios Marketing', description: 'Relatórios de marketing', category: 'Marketing & Tráfego' },
-  { key: 'whatsapp', label: 'WhatsApp', description: 'Módulo de notificações WhatsApp', category: 'Marketing & Tráfego' },
+  { key: 'whatsapp', label: 'Notificações WhatsApp', description: 'Módulo de notificações WhatsApp', category: 'Marketing & Tráfego' },
   // Sistema
   { key: 'alertas', label: 'Alertas', description: 'Alertas e notificações do sistema', category: 'Sistema' },
   { key: 'configuracoes', label: 'Configurações', description: 'Configurações do sistema', category: 'Sistema' },

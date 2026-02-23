@@ -49,7 +49,17 @@ export type MenuItemType =
   | 'skills-ia'
   | 'editar-skills'
   | 'roteiros'
-  | 'command-center';
+  | 'command-center'
+  | 'reunioes'
+  | 'planner'
+  | 'checklists'
+  | 'fluxos'
+  | 'mapas-mentais'
+  | 'dashboard-equipe'
+  | 'groupops'
+  | 'youtube-content-lab'
+  | 'squads-ia'
+  | 'parametros-performance';
 
 export interface EmployeePermission {
   id: string;

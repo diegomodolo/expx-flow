@@ -16698,6 +16698,16 @@ export type Database = {
         | "editar-skills"
         | "roteiros"
         | "command-center"
+        | "reunioes"
+        | "planner"
+        | "checklists"
+        | "fluxos"
+        | "mapas-mentais"
+        | "dashboard-equipe"
+        | "groupops"
+        | "youtube-content-lab"
+        | "squads-ia"
+        | "parametros-performance"
       payment_type: "prepaid" | "postpaid"
       routine_category:
         | "saldo"
@@ -16909,6 +16919,16 @@ export const Constants = {
         "editar-skills",
         "roteiros",
         "command-center",
+        "reunioes",
+        "planner",
+        "checklists",
+        "fluxos",
+        "mapas-mentais",
+        "dashboard-equipe",
+        "groupops",
+        "youtube-content-lab",
+        "squads-ia",
+        "parametros-performance",
       ],
       payment_type: ["prepaid", "postpaid"],
       routine_category: [
