@@ -194,24 +194,27 @@ export function BacklogQuickEntry({ clients, companyId }: Props) {
       const parsed = parseQuickEntry(value, clients);
       const defaultTeam = teams[0];
 
+      const insertPayload = {
+        title: parsed.title,
+        description: "",
+        status: "todo" as any,
+        priority: parsed.priority as any,
+        task_type: "Tarefa",
+        task_state: "backlog" as any,
+        ai_estimated_minutes: parsed.minutes,
+        responsible_name: user.user_metadata?.full_name || "Admin",
+        user_id: user.id,
+        team_id: defaultTeam?.id || null,
+        company_id: companyId,
+        deadline: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
+        progress: 0,
+        related_client_id: parsed.clientId || null,
+      };
+      console.log("Insert payload:", JSON.stringify(insertPayload));
+
       const { data: task, error } = await supabase
         .from("tasks")
-        .insert({
-          title: parsed.title,
-          description: "",
-          status: "todo" as any,
-          priority: parsed.priority as any,
-          task_type: "Tarefa",
-          task_state: "backlog" as any,
-          ai_estimated_minutes: parsed.minutes,
-          responsible_name: user.user_metadata?.full_name || "Admin",
-          user_id: user.id,
-          team_id: defaultTeam?.id || null,
-          company_id: companyId,
-          deadline: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
-          progress: 0,
-          related_client_id: parsed.clientId,
-        })
+        .insert(insertPayload)
         .select()
         .single();
 
