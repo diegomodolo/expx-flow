@@ -23,7 +23,7 @@ export default function CommunicationDashboard() {
     getOrCreateDMChannel,
   } = useInternalChat();
 
-  const { unreadCounts, markAsRead } = useChannelUnread();
+  const { unreadCounts, mentionCounts, markAsRead } = useChannelUnread();
   const [focusMode, setFocusMode] = useState(false);
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<any>(null);
@@ -65,6 +65,7 @@ export default function CommunicationDashboard() {
           onSelectChannel={setActiveChannelId}
           loading={channelsLoading}
           unreadCounts={unreadCounts}
+          mentionCounts={mentionCounts}
         />
         <ChatFlow
           channel={activeChannel}

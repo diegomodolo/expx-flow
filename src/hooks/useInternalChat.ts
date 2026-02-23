@@ -272,11 +272,93 @@ export function useInternalChat() {
         insertData.thread_parent_id = threadParentId;
       }
 
-      const { error } = await supabase
+      const { data: inserted, error } = await supabase
         .from('internal_messages')
-        .insert(insertData);
+        .insert(insertData)
+        .select('id')
+        .single();
 
       if (error) throw error;
+
+      // Extract @mentions from content and resolve to user IDs
+      if (inserted && companyId) {
+        const mentionRegex = /@([^\s@]+(?:\s[^\s@]+)*?)(?=\s@|\s*$|\s[^@])/g;
+        const mentionNames: string[] = [];
+        let match;
+        while ((match = mentionRegex.exec(content)) !== null) {
+          mentionNames.push(match[1].trim());
+        }
+
+        if (mentionNames.length > 0) {
+          // Fetch all employees to resolve names to user IDs
+          const { data: employees } = await supabase
+            .from('employees')
+            .select('user_id, name')
+            .eq('company_id', companyId)
+            .eq('status', 'active')
+            .not('user_id', 'is', null);
+
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('user_id, full_name')
+            .in('user_id', (employees || []).map(e => e.user_id).filter(Boolean) as string[]);
+
+          const nameToUserId = new Map<string, string>();
+          for (const emp of (employees || [])) {
+            if (emp.user_id && emp.name) nameToUserId.set(emp.name.toLowerCase(), emp.user_id);
+          }
+          for (const p of (profiles || [])) {
+            if (p.full_name) nameToUserId.set(p.full_name.toLowerCase(), p.user_id);
+          }
+
+          const mentionInserts: Array<{
+            message_id: string;
+            channel_id: string;
+            mentioned_user_id: string;
+            mentioner_user_id: string;
+          }> = [];
+
+          const mentionedUserIds = new Set<string>();
+
+          for (const name of mentionNames) {
+            const userId = nameToUserId.get(name.toLowerCase());
+            if (userId && userId !== user.id && !mentionedUserIds.has(userId)) {
+              mentionedUserIds.add(userId);
+              mentionInserts.push({
+                message_id: inserted.id,
+                channel_id: activeChannelId,
+                mentioned_user_id: userId,
+                mentioner_user_id: user.id,
+              });
+            }
+          }
+
+          if (mentionInserts.length > 0) {
+            // Insert mention records
+            await supabase
+              .from('internal_message_mentions' as any)
+              .insert(mentionInserts);
+
+            // Create notifications for mentioned users
+            const senderName = user.user_metadata?.full_name || 'Alguém';
+            const channelName = activeChannel?.name || 'canal';
+            const notifInserts = Array.from(mentionedUserIds).map(uid => ({
+              user_id: uid,
+              company_id: companyId,
+              type: 'mention',
+              title: `${senderName} mencionou você`,
+              message: `Você foi mencionado em #${channelName}: "${content.slice(0, 100)}${content.length > 100 ? '...' : ''}"`,
+              reference_id: activeChannelId,
+              reference_type: 'channel',
+              is_read: false,
+            }));
+
+            await supabase
+              .from('user_notifications' as any)
+              .insert(notifInserts);
+          }
+        }
+      }
 
       // Trigger AI notification for other channel members (fire-and-forget)
       if (activeChannel && user?.id) {
@@ -287,9 +369,9 @@ export function useInternalChat() {
             channel_name: activeChannel.name,
             channel_type: activeChannel.channel_type,
             company_id: companyId,
-            user_id: user.id, // This will be replaced server-side per recipient
+            user_id: user.id,
             channel_id: activeChannelId,
-            message_id: null, // Would need the inserted message id
+            message_id: inserted?.id || null,
           },
         }).catch(err => console.warn('Notification trigger failed:', err));
       }

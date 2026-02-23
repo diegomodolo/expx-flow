@@ -8,6 +8,10 @@ interface UnreadCounts {
   [channelId: string]: number;
 }
 
+interface MentionCounts {
+  [channelId: string]: number;
+}
+
 export function useChannelUnread() {
   const { user } = useAuth();
   const { activeCompany } = useCompany();
@@ -68,6 +72,30 @@ export function useChannelUnread() {
     refetchInterval: 30000,
   });
 
+  // Query unread @mention counts per channel
+  const { data: mentionCounts = {} } = useQuery<MentionCounts>({
+    queryKey: ['channel-mention-unread', companyId, user?.id],
+    queryFn: async () => {
+      if (!companyId || !user?.id) return {};
+
+      const { data } = await supabase
+        .from('internal_message_mentions' as any)
+        .select('channel_id')
+        .eq('mentioned_user_id', user.id)
+        .eq('is_read', false);
+
+      if (!data) return {};
+
+      const counts: MentionCounts = {};
+      for (const row of data as any[]) {
+        counts[row.channel_id] = (counts[row.channel_id] || 0) + 1;
+      }
+      return counts;
+    },
+    enabled: !!companyId && !!user?.id,
+    refetchInterval: 30000,
+  });
+
   // Global realtime subscription: listen to ALL new messages in the company's channels
   // This updates unread counts AND the active channel's messages instantly
   useEffect(() => {
@@ -89,6 +117,7 @@ export function useChannelUnread() {
 
           // Invalidate unread counts so badge updates immediately
           queryClient.invalidateQueries({ queryKey: ['channel-unread', companyId, user.id] });
+          queryClient.invalidateQueries({ queryKey: ['channel-mention-unread', companyId, user.id] });
 
           // Also invalidate the messages query for that channel so if user is viewing it, it refreshes
           queryClient.invalidateQueries({ queryKey: ['internal-messages', newMsg.channel_id] });
@@ -105,6 +134,7 @@ export function useChannelUnread() {
     mutationFn: async (channelId: string) => {
       if (!user?.id) return;
 
+      // Mark channel messages as read
       const { error } = await supabase
         .from('channel_read_status' as any)
         .upsert(
@@ -113,14 +143,24 @@ export function useChannelUnread() {
         );
 
       if (error) throw error;
+
+      // Mark all unread mentions in this channel as read
+      await supabase
+        .from('internal_message_mentions' as any)
+        .update({ is_read: true })
+        .eq('mentioned_user_id', user.id)
+        .eq('channel_id', channelId)
+        .eq('is_read', false);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['channel-unread', companyId, user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['channel-mention-unread', companyId, user?.id] });
     },
   });
 
   return {
     unreadCounts,
+    mentionCounts,
     markAsRead: (channelId: string) => markAsRead.mutate(channelId),
   };
 }

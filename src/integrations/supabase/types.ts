@@ -9188,6 +9188,51 @@ export type Database = {
           },
         ]
       }
+      internal_message_mentions: {
+        Row: {
+          channel_id: string
+          created_at: string
+          id: string
+          is_read: boolean
+          mentioned_user_id: string
+          mentioner_user_id: string
+          message_id: string
+        }
+        Insert: {
+          channel_id: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          mentioned_user_id: string
+          mentioner_user_id: string
+          message_id: string
+        }
+        Update: {
+          channel_id?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          mentioned_user_id?: string
+          mentioner_user_id?: string
+          message_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "internal_message_mentions_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "internal_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_message_mentions_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "internal_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       internal_messages: {
         Row: {
           channel_id: string
