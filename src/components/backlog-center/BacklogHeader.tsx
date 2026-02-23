@@ -16,7 +16,37 @@ interface Props {
 
 export function BacklogHeader({ totalStats, squads = [], selectedSquadId, onSquadChange }: Props) {
   return (
-    <div className="border-b bg-card px-6 py-4 flex items-center justify-end gap-4">
+    <div className="border-b bg-card px-6 py-4 flex items-center justify-between gap-4">
+      {/* Squad filter */}
+      <div className="flex items-center gap-2">
+        <Users className="w-4 h-4 text-muted-foreground" />
+        <Select
+          value={selectedSquadId || "all"}
+          onValueChange={(val) => onSquadChange(val === "all" ? null : val)}
+        >
+          <SelectTrigger className="w-[200px] h-9 text-sm">
+            <SelectValue placeholder="Todas as Squads" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas as Squads</SelectItem>
+            {squads.map((squad) => (
+              <SelectItem key={squad.id} value={squad.id}>
+                <div className="flex items-center gap-2">
+                  {squad.color && (
+                    <div
+                      className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: squad.color }}
+                    />
+                  )}
+                  <span>{squad.name}</span>
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Stats */}
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2 bg-muted rounded-lg px-3 py-2">
           <Inbox className="w-4 h-4 text-muted-foreground" />
