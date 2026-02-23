@@ -27,7 +27,7 @@ export function BacklogTaskCard({ task, selected, onToggle, onEdit, readiness, a
       style={{ minHeight: `${cardMinHeight}px` }}
       className={cn(
         "relative rounded-lg border p-3 cursor-pointer transition-all group",
-        "hover:shadow-sm",
+        "hover:shadow-sm border-border/40 dark:border-border/30",
         selected && "ring-2 ring-primary border-primary/40 bg-primary/5",
         isUrgent && "border-destructive/50"
       )}
