@@ -208,7 +208,7 @@ export function BacklogQuickEntry({ clients, companyId }: Props) {
           ai_estimated_minutes: parsed.minutes,
           responsible_name: user.user_metadata?.full_name || "Admin",
           user_id: user.id,
-          team_id: defaultTeam?.id || "",
+          team_id: defaultTeam?.id || null,
           company_id: companyId,
           deadline: new Date(Date.now() + 7 * 86400000).toISOString(),
           progress: 0,

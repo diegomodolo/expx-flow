@@ -13363,7 +13363,7 @@ export type Database = {
           task_quality_score: number
           task_state: Database["public"]["Enums"]["task_state"]
           task_type: string
-          team_id: string
+          team_id: string | null
           title: string
           updated_at: string
           user_id: string
@@ -13406,7 +13406,7 @@ export type Database = {
           task_quality_score?: number
           task_state?: Database["public"]["Enums"]["task_state"]
           task_type?: string
-          team_id: string
+          team_id?: string | null
           title: string
           updated_at?: string
           user_id: string
@@ -13449,7 +13449,7 @@ export type Database = {
           task_quality_score?: number
           task_state?: Database["public"]["Enums"]["task_state"]
           task_type?: string
-          team_id?: string
+          team_id?: string | null
           title?: string
           updated_at?: string
           user_id?: string
