@@ -59,8 +59,10 @@ const MENU_ITEMS: { key: MenuItemType; label: string; description: string; categ
   // Equipe & Sistema
   { key: 'alertas', label: 'Alertas', description: 'Alertas e notificações do sistema', category: 'Equipe & Sistema' },
   { key: 'colaboradores', label: 'Colaboradores', description: 'Gestão de funcionários', category: 'Equipe & Sistema' },
+  { key: 'command-center', label: 'Command Center', description: 'Backlog Center, Command Center e Histórias', category: 'Equipe & Sistema' },
   { key: 'configuracoes', label: 'Configurações', description: 'Configurações do sistema', category: 'Equipe & Sistema' },
   { key: 'relatorios', label: 'Relatórios', description: 'Relatórios e análises gerais', category: 'Equipe & Sistema' },
+  { key: 'roteiros', label: 'Roteiros', description: 'Criação e gestão de roteiros de atividades', category: 'Equipe & Sistema' },
   { key: 'squad', label: 'Squad', description: 'Gestão de equipes', category: 'Equipe & Sistema' },
   { key: 'tarefas', label: 'Tarefas', description: 'Gerenciamento de tarefas', category: 'Equipe & Sistema' },
   { key: 'tarefas-recorrentes', label: 'Tarefas Recorrentes', description: 'Tarefas repetitivas automáticas', category: 'Equipe & Sistema' },
