@@ -1,5 +1,6 @@
 import { Clock, Inbox, TrendingUp, Users } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import React from "react";
 
 interface Squad {
   id: string;
@@ -12,13 +13,43 @@ interface Props {
   squads?: Squad[];
   selectedSquadId: string | null;
   onSquadChange: (id: string | null) => void;
+  /** Optional leading element (e.g. nav button) rendered before the task count badge */
+  leading?: React.ReactNode;
+  /** Optional page title rendered before the squad selector */
+  title?: React.ReactNode;
 }
 
-export function BacklogHeader({ totalStats, squads = [], selectedSquadId, onSquadChange }: Props) {
+export function BacklogHeader({ totalStats, squads = [], selectedSquadId, onSquadChange, leading, title }: Props) {
   return (
-    <div className="border-b bg-card px-6 py-4 flex items-center justify-between gap-4">
-      {/* Squad filter */}
-      <div className="flex items-center gap-2">
+    <div className="border-b bg-card px-6 py-3 flex items-center justify-between gap-4">
+      {/* Left: leading action + stats */}
+      <div className="flex items-center gap-3">
+        {leading}
+
+        <div className="flex items-center gap-2 bg-muted rounded-lg px-3 py-1.5">
+          <Inbox className="w-4 h-4 text-muted-foreground" />
+          <span className="text-sm font-medium">{totalStats.totalTasks}</span>
+          <span className="text-xs text-muted-foreground">tarefas</span>
+        </div>
+
+        <div className="flex items-center gap-2 bg-muted rounded-lg px-3 py-1.5">
+          <Clock className="w-4 h-4 text-muted-foreground" />
+          <span className="text-sm font-medium">{totalStats.totalHours}h</span>
+          <span className="text-xs text-muted-foreground">acumuladas</span>
+        </div>
+
+        <div className="flex items-center gap-2 bg-muted rounded-lg px-3 py-1.5">
+          <TrendingUp className="w-4 h-4 text-muted-foreground" />
+          <span className="text-sm font-medium">
+            {totalStats.totalHours > 0 ? Math.ceil(totalStats.totalMinutes / 360) : 0}
+          </span>
+          <span className="text-xs text-muted-foreground">dias/pessoa</span>
+        </div>
+      </div>
+
+      {/* Right: title + squad filter */}
+      <div className="flex items-center gap-3">
+        {title}
         <Users className="w-4 h-4 text-muted-foreground" />
         <Select
           value={selectedSquadId || "all"}
@@ -44,29 +75,6 @@ export function BacklogHeader({ totalStats, squads = [], selectedSquadId, onSqua
             ))}
           </SelectContent>
         </Select>
-      </div>
-
-      {/* Stats */}
-      <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2 bg-muted rounded-lg px-3 py-2">
-          <Inbox className="w-4 h-4 text-muted-foreground" />
-          <span className="text-sm font-medium">{totalStats.totalTasks}</span>
-          <span className="text-xs text-muted-foreground">tarefas</span>
-        </div>
-
-        <div className="flex items-center gap-2 bg-muted rounded-lg px-3 py-2">
-          <Clock className="w-4 h-4 text-muted-foreground" />
-          <span className="text-sm font-medium">{totalStats.totalHours}h</span>
-          <span className="text-xs text-muted-foreground">acumuladas</span>
-        </div>
-
-        <div className="flex items-center gap-2 bg-muted rounded-lg px-3 py-2">
-          <TrendingUp className="w-4 h-4 text-muted-foreground" />
-          <span className="text-sm font-medium">
-            {totalStats.totalHours > 0 ? Math.ceil(totalStats.totalMinutes / 360) : 0}
-          </span>
-          <span className="text-xs text-muted-foreground">dias/pessoa</span>
-        </div>
       </div>
     </div>
   );

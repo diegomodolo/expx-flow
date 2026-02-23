@@ -53,29 +53,29 @@ export default function BacklogCommandCenterPage() {
   return (
     <DashboardLayout>
       <div className="flex flex-col h-[calc(100vh-130px)] overflow-hidden">
-        {/* Top bar with nav to Command Center */}
-        <div className="flex items-center justify-between flex-shrink-0 pb-4">
-          <div className="flex items-center gap-3">
-            <Inbox className="w-6 h-6 text-primary" />
-            <h1 className="text-xl font-bold text-foreground tracking-tight">Backlog</h1>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate('/squad-command-center')}
-            className="gap-2"
-          >
-            <Radar className="w-4 h-4" />
-            Command Center
-          </Button>
-        </div>
-
-        {/* Header */}
+        {/* Header (single row: nav button + stats | title + squad) */}
         <BacklogHeader
           totalStats={totalStats}
           squads={squads}
           selectedSquadId={selectedSquadId}
           onSquadChange={setSelectedSquadId}
+          leading={
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/squad-command-center')}
+              className="gap-2"
+            >
+              <Radar className="w-4 h-4" />
+              Command Center
+            </Button>
+          }
+          title={
+            <div className="flex items-center gap-2">
+              <Inbox className="w-5 h-5 text-primary" />
+              <span className="text-base font-bold text-foreground tracking-tight">Backlog</span>
+            </div>
+          }
         />
 
         {/* Main content: Sidebar + Bucket */}
