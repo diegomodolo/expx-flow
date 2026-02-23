@@ -173,6 +173,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
   const [previewSlot, setPreviewSlot] = useState('');
   const [importChecklistOpen, setImportChecklistOpen] = useState(false);
   const [responsibleSearch, setResponsibleSearch] = useState('');
+  const [responsibleDropdownOpen, setResponsibleDropdownOpen] = useState(false);
   const [clientSearch, setClientSearch] = useState('');
   const [categoriaSearch, setCategoriaSearch] = useState('');
   const [classificacaoSearch, setClassificacaoSearch] = useState('');
@@ -1187,58 +1188,73 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                           </div>
                           <div>
                             <Label className="text-sm font-semibold">Responsável</Label>
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <Button variant="outline" role="combobox" className="w-full justify-between font-normal mt-1.5">
-                                  {formData.responsible_name || "Selecione..."}
-                                  <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-[280px] p-2" align="start">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <Search className="h-4 w-4 text-muted-foreground" />
-                                  <Input
-                                    placeholder="Buscar responsável..."
-                                    value={responsibleSearch}
-                                    onChange={(e) => setResponsibleSearch(e.target.value)}
-                                    className="h-8 text-sm"
-                                    autoFocus
-                                  />
+                            <div className="relative">
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                className="w-full justify-between font-normal mt-1.5"
+                                type="button"
+                                onClick={() => setResponsibleDropdownOpen(prev => !prev)}
+                              >
+                                {formData.responsible_name || "Selecione..."}
+                                <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                              {responsibleDropdownOpen && (
+                                <div
+                                  className="absolute left-0 right-0 top-full mt-1 z-[9999] bg-popover border rounded-md shadow-lg"
+                                  onFocus={(e) => e.stopPropagation()}
+                                  onBlur={(e) => e.stopPropagation()}
+                                  onKeyDown={(e) => e.stopPropagation()}
+                                >
+                                  <div className="p-2 border-b">
+                                    <input
+                                      placeholder="Buscar responsável..."
+                                      value={responsibleSearch}
+                                      onChange={(e) => { e.stopPropagation(); setResponsibleSearch(e.target.value); }}
+                                      onFocus={(e) => e.stopPropagation()}
+                                      onBlur={(e) => { e.stopPropagation(); e.preventDefault(); }}
+                                      onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Escape') { setResponsibleDropdownOpen(false); setResponsibleSearch(''); } }}
+                                      className="flex h-8 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                      autoFocus
+                                    />
+                                  </div>
+                                  <div className="max-h-[200px] overflow-y-auto p-1">
+                                    {(employees || [])
+                                      .filter(emp => {
+                                        if (formData.team_id && emp.team_id !== formData.team_id) return false;
+                                        if (responsibleSearch && !emp.name.toLowerCase().includes(responsibleSearch.toLowerCase())) return false;
+                                        return true;
+                                      })
+                                      .map((employee) => (
+                                        <div
+                                          key={employee.id}
+                                          className={cn(
+                                            "px-2 py-1.5 text-sm cursor-pointer hover:bg-muted rounded-sm",
+                                            formData.responsible_user_id === employee.user_id && "bg-primary/10 text-primary"
+                                          )}
+                                          onMouseDown={(e) => {
+                                            e.preventDefault();
+                                            const empUserId = employee.user_id || '';
+                                            setFormData(prev => ({
+                                              ...prev,
+                                              responsible_name: employee.name,
+                                              responsible_avatar: employee.avatar || employee.profile_avatar_url || '',
+                                              responsible_user_id: empUserId,
+                                              quadro_user_id: empUserId,
+                                              quadro_column_id: '',
+                                            }));
+                                            setResponsibleSearch('');
+                                            setResponsibleDropdownOpen(false);
+                                          }}
+                                        >
+                                          {employee.name}
+                                        </div>
+                                      ))
+                                    }
+                                  </div>
                                 </div>
-                                <ScrollArea className="max-h-[200px]">
-                                  {(employees || [])
-                                    .filter(emp => {
-                                      // Filtrar por squad selecionada
-                                      if (formData.team_id && emp.team_id !== formData.team_id) return false;
-                                      // Filtrar por busca
-                                      if (responsibleSearch && !emp.name.toLowerCase().includes(responsibleSearch.toLowerCase())) return false;
-                                      return true;
-                                    })
-                                    .map((employee) => (
-                                      <Button
-                                        key={employee.id}
-                                        variant="ghost"
-                                        className="w-full justify-start text-sm h-8 px-2"
-                                        onClick={() => {
-                                          const empUserId = employee.user_id || '';
-                                          setFormData(prev => ({
-                                            ...prev,
-                                            responsible_name: employee.name,
-                                            responsible_avatar: employee.avatar || employee.profile_avatar_url || '',
-                                            responsible_user_id: empUserId,
-                                            quadro_user_id: empUserId,
-                                            quadro_column_id: '',
-                                          }));
-                                          setResponsibleSearch('');
-                                        }}
-                                      >
-                                        {employee.name}
-                                      </Button>
-                                    ))
-                                  }
-                                </ScrollArea>
-                              </PopoverContent>
-                            </Popover>
+                              )}
+                            </div>
                           </div>
                         </div>
 
