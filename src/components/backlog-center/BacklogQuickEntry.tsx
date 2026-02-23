@@ -208,7 +208,7 @@ export function BacklogQuickEntry({ clients, companyId }: Props) {
           user_id: user.id,
           team_id: defaultTeam?.id || null,
           company_id: companyId,
-          deadline: new Date(Date.now() + 7 * 86400000).toISOString(),
+          deadline: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
           progress: 0,
           related_client_id: parsed.clientId,
         })
@@ -230,9 +230,9 @@ export function BacklogQuickEntry({ clients, companyId }: Props) {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       setValue("");
       toast({ title: "Tarefa criada", description: `"${parsed.title}" adicionada ao backlog.` });
-    } catch (err) {
-      console.error("Quick entry error:", err);
-      toast({ title: "Erro", description: "Falha ao criar tarefa.", variant: "destructive" });
+    } catch (err: any) {
+      console.error("Quick entry error:", err?.message || err?.code || err);
+      toast({ title: "Erro", description: `Falha ao criar tarefa: ${err?.message || 'erro desconhecido'}`, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
