@@ -214,8 +214,8 @@ export default function Notificacoes() {
 
     const fallbackRoutes: Record<string, string> = {
       lead_disqualified: "/clientes",
-      ad_pending_approval: "/geradores/revisao-diaria",
-      creative_pending: "/geradores/revisao-diaria",
+      ad_pending_approval: "/geradores/fabrica-anuncios/revisao-diaria",
+      creative_pending: "/geradores/fabrica-criativos/revisao-diaria",
       client_alert: "/clientes",
       campaign_alert: "/campanhas",
     };
