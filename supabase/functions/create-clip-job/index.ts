@@ -417,9 +417,14 @@ async function tryResolveWithInvidious(youtubeUrl: string): Promise<ResolveResul
 
   for (const instance of instances) {
     try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 12000);
+
       const response = await fetch(`${instance}/api/v1/videos/${videoId}`, {
         headers: { Accept: "application/json" },
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
 
       const rawBody = await response.text();
       const host = instance.replace("https://", "");
@@ -581,6 +586,8 @@ async function tryResolveWithPiped(youtubeUrl: string): Promise<ResolveResult> {
     "https://api.piped.yt",
     "https://pipedapi.adminforge.de",
     "https://pipedapi.in.projectsegfau.lt",
+    "https://pipedapi.leptons.xyz",
+    "https://pipedapi.r4fo.com",
   ];
 
   for (const instance of pipedInstances) {
@@ -638,106 +645,35 @@ async function tryResolveWithPiped(youtubeUrl: string): Promise<ResolveResult> {
   return { url: null, diagnostics };
 }
 
-function extractWorkerDirectUrl(payload: any): string | null {
-  const candidates = [
-    payload?.url,
-    payload?.downloadUrl,
-    payload?.directUrl,
-    payload?.videoUrl,
-    payload?.data?.url,
-    payload?.data?.downloadUrl,
-    payload?.data?.directUrl,
-    payload?.result?.url,
-    payload?.result?.downloadUrl,
-    payload?.output?.url,
-    payload?.video?.url,
-  ];
-
-  for (const candidate of candidates) {
-    if (typeof candidate === "string" && candidate.startsWith("http")) {
-      return normalizeCandidateUrl(candidate);
-    }
-  }
-
-  const streams = Array.isArray(payload?.streams) ? payload.streams : [];
-  const preferredStream =
-    streams.find(
-      (stream: any) =>
-        typeof stream?.url === "string" &&
-        /mp4/i.test(String(stream?.mimeType ?? stream?.type ?? "")) &&
-        /720|480|360/.test(String(stream?.quality ?? stream?.qualityLabel ?? ""))
-    ) ??
-    streams.find(
-      (stream: any) =>
-        typeof stream?.url === "string" &&
-        /mp4/i.test(String(stream?.mimeType ?? stream?.type ?? ""))
-    ) ??
-    streams.find((stream: any) => typeof stream?.url === "string");
-
-  if (preferredStream?.url) {
-    return normalizeCandidateUrl(preferredStream.url);
-  }
-
-  return null;
-}
-
-async function tryResolveWithExternalWorker(youtubeUrl: string): Promise<ResolveResult> {
+async function tryResolveWithCobalt(youtubeUrl: string): Promise<ResolveResult> {
   const diagnostics: string[] = [];
 
-  const baseUrlRaw = Deno.env.get("PROCESSING_SERVICE_URL")?.trim();
-  const serviceSecret = Deno.env.get("PROCESSING_SERVICE_SECRET")?.trim();
+  // Cobalt instances verified with YouTube support (from instances.cobalt.best)
+  const cobaltInstances = [
+    "https://cobalt-backend.canine.tools",
+    "https://cobalt-api.meowing.de",
+    "https://capi.3kh0.net",
+  ];
 
-  if (!baseUrlRaw) {
-    diagnostics.push("worker: PROCESSING_SERVICE_URL ausente");
-    return { url: null, diagnostics };
-  }
-
-  if (!serviceSecret) {
-    diagnostics.push("worker: PROCESSING_SERVICE_SECRET ausente");
-    return { url: null, diagnostics };
-  }
-
-  const baseUrl = baseUrlRaw.replace(/\/+$/, "");
-  const endpointCandidates = Array.from(
-    new Set([
-      baseUrl,
-      `${baseUrl}/resolve`,
-      `${baseUrl}/youtube/resolve`,
-      `${baseUrl}/api/resolve`,
-      `${baseUrl}/api/youtube/resolve`,
-      `${baseUrl}/youtube/download`,
-      `${baseUrl}/yt-dlp/resolve`,
-      `${baseUrl}/api/json`,
-    ])
-  );
-
-  const workerPayload = {
-    url: youtubeUrl,
-    youtubeUrl,
-    inputUrl: youtubeUrl,
-    platform: "youtube",
-    provider: "yt-dlp",
-    format: "mp4",
-    quality: "720",
-    returnDirectUrl: true,
-  };
-
-  for (const endpoint of endpointCandidates) {
+  for (const instance of cobaltInstances) {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 18000);
+    const timeout = setTimeout(() => controller.abort(), 15000);
 
     try {
-      const response = await fetch(endpoint, {
+      const host = instance.replace("https://", "");
+
+      const response = await fetch(instance, {
         method: "POST",
         headers: {
           Accept: "application/json",
           "Content-Type": "application/json",
-          Authorization: `Bearer ${serviceSecret}`,
-          "x-api-key": serviceSecret,
-          "x-processing-secret": serviceSecret,
           "User-Agent": "Mozilla/5.0",
         },
-        body: JSON.stringify(workerPayload),
+        body: JSON.stringify({
+          url: youtubeUrl,
+          videoQuality: "720",
+          filenameStyle: "basic",
+        }),
         signal: controller.signal,
       });
 
@@ -749,101 +685,31 @@ async function tryResolveWithExternalWorker(youtubeUrl: string): Promise<Resolve
         data = null;
       }
 
-      const endpointLabel = endpoint.replace(/^https?:\/\//, "");
-
       if (!response.ok) {
-        diagnostics.push(`worker ${endpointLabel}: HTTP ${response.status}`);
-        console.error(`External worker failed (${endpointLabel}) [${response.status}]:`, rawBody.substring(0, 300));
+        diagnostics.push(`cobalt ${host}: HTTP ${response.status}`);
+        console.error(`Cobalt failed (${host}) [${response.status}]:`, rawBody.substring(0, 300));
         continue;
       }
 
-      const resolvedUrl = extractWorkerDirectUrl(data);
-      if (resolvedUrl) {
-        diagnostics.push(`worker ${endpointLabel}: ok`);
-        return { url: resolvedUrl, diagnostics };
+      if (data?.url && typeof data.url === "string" && data.url.startsWith("http")) {
+        diagnostics.push(`cobalt ${host}: ok (${data.status || "redirect"})`);
+        return { url: normalizeCandidateUrl(data.url), diagnostics };
       }
 
-      diagnostics.push(`worker ${endpointLabel}: sem url`);
+      if (data?.status === "picker" && Array.isArray(data.picker) && data.picker.length > 0) {
+        const videoItem = data.picker.find((p: any) => p.type === "video" && p.url) || data.picker[0];
+        if (videoItem?.url) {
+          diagnostics.push(`cobalt ${host}: ok (picker)`);
+          return { url: normalizeCandidateUrl(videoItem.url), diagnostics };
+        }
+      }
+
+      diagnostics.push(`cobalt ${host}: sem url (status: ${data?.status || "unknown"})`);
     } catch (error: any) {
-      const endpointLabel = endpoint.replace(/^https?:\/\//, "");
-      diagnostics.push(`worker ${endpointLabel}: ${error?.name === "AbortError" ? "timeout" : "indisponível"}`);
+      const host = instance.replace("https://", "");
+      diagnostics.push(`cobalt ${host}: ${error?.name === "AbortError" ? "timeout" : "indisponível"}`);
     } finally {
       clearTimeout(timeout);
-    }
-  }
-
-  return { url: null, diagnostics };
-}
-
-async function tryResolveWithCobalt(youtubeUrl: string): Promise<ResolveResult> {
-  const diagnostics: string[] = [];
-
-  // Cobalt community instances (wraps yt-dlp internally)
-  const cobaltInstances = [
-    "https://cobalt-api.hyper.lol",
-    "https://cobalt.api.timelessnesses.me",
-    "https://cobalt-api.kwiatekmiki.com",
-  ];
-
-  for (const baseInstance of cobaltInstances) {
-    const requestTargets = Array.from(new Set([baseInstance, `${baseInstance}/api/json`]));
-
-    for (const endpoint of requestTargets) {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 12000);
-
-      try {
-        const host = endpoint.replace("https://", "");
-
-        const response = await fetch(endpoint, {
-          method: "POST",
-          headers: {
-            Accept: "application/json",
-            "Content-Type": "application/json",
-            "User-Agent": "Mozilla/5.0",
-          },
-          body: JSON.stringify({
-            url: youtubeUrl,
-            videoQuality: "720",
-            filenameStyle: "basic",
-          }),
-          signal: controller.signal,
-        });
-
-        const rawBody = await response.text();
-        let data: any = null;
-        try {
-          data = rawBody ? JSON.parse(rawBody) : null;
-        } catch {
-          data = null;
-        }
-
-        if (!response.ok) {
-          diagnostics.push(`cobalt ${host}: HTTP ${response.status}`);
-          console.error(`Cobalt failed (${host}) [${response.status}]:`, rawBody.substring(0, 300));
-          continue;
-        }
-
-        if (data?.url && typeof data.url === "string" && data.url.startsWith("http")) {
-          diagnostics.push(`cobalt ${host}: ok (${data.status || "redirect"})`);
-          return { url: normalizeCandidateUrl(data.url), diagnostics };
-        }
-
-        if (data?.status === "picker" && Array.isArray(data.picker) && data.picker.length > 0) {
-          const videoItem = data.picker.find((p: any) => p.type === "video" && p.url) || data.picker[0];
-          if (videoItem?.url) {
-            diagnostics.push(`cobalt ${host}: ok (picker)`);
-            return { url: normalizeCandidateUrl(videoItem.url), diagnostics };
-          }
-        }
-
-        diagnostics.push(`cobalt ${host}: sem url (status: ${data?.status || "unknown"})`);
-      } catch (error: any) {
-        const host = endpoint.replace("https://", "");
-        diagnostics.push(`cobalt ${host}: ${error?.name === "AbortError" ? "timeout" : "indisponível"}`);
-      } finally {
-        clearTimeout(timeout);
-      }
     }
   }
 
@@ -856,68 +722,42 @@ async function resolveYouTubeToDirectUrl(
 ): Promise<ResolveResult> {
   const diagnostics: string[] = [];
 
-  // 1. External worker (yt-dlp) - preferred
-  console.log("Trying external yt-dlp worker resolver...");
-  const workerResult = await tryResolveWithExternalWorker(youtubeUrl);
-  diagnostics.push(...workerResult.diagnostics);
-  if (workerResult.url) {
-    return {
-      url: workerResult.url,
-      diagnostics: Array.from(new Set(diagnostics)).slice(0, 12),
-    };
-  }
-
-  // 2. Cobalt fallback
+  // 1. Cobalt (instâncias com YouTube habilitado)
   console.log("Trying Cobalt resolver...");
   const cobaltResult = await tryResolveWithCobalt(youtubeUrl);
   diagnostics.push(...cobaltResult.diagnostics);
   if (cobaltResult.url) {
-    return {
-      url: cobaltResult.url,
-      diagnostics: Array.from(new Set(diagnostics)).slice(0, 12),
-    };
+    return { url: cobaltResult.url, diagnostics: Array.from(new Set(diagnostics)).slice(0, 12) };
   }
 
-  // 3. Piped fallback
+  // 2. Piped
   console.log("Trying Piped resolver...");
   const pipedResult = await tryResolveWithPiped(youtubeUrl);
   diagnostics.push(...pipedResult.diagnostics);
   if (pipedResult.url) {
-    return {
-      url: pipedResult.url,
-      diagnostics: Array.from(new Set(diagnostics)).slice(0, 12),
-    };
+    return { url: pipedResult.url, diagnostics: Array.from(new Set(diagnostics)).slice(0, 12) };
   }
 
-  // 4. Invidious fallback
+  // 3. Invidious
   console.log("Trying Invidious resolver...");
   const invidiousResult = await tryResolveWithInvidious(youtubeUrl);
   diagnostics.push(...invidiousResult.diagnostics);
   if (invidiousResult.url) {
-    return {
-      url: invidiousResult.url,
-      diagnostics: Array.from(new Set(diagnostics)).slice(0, 12),
-    };
+    return { url: invidiousResult.url, diagnostics: Array.from(new Set(diagnostics)).slice(0, 12) };
   }
 
-  // 5. Apify (last resort)
+  // 4. Apify (último recurso)
   if (apifyToken) {
     console.log("Trying Apify resolver...");
     const apifyResult = await tryResolveWithApify(youtubeUrl, apifyToken);
     diagnostics.push(...apifyResult.diagnostics);
     if (apifyResult.url) {
-      return {
-        url: apifyResult.url,
-        diagnostics: Array.from(new Set(diagnostics)).slice(0, 12),
-      };
+      return { url: apifyResult.url, diagnostics: Array.from(new Set(diagnostics)).slice(0, 12) };
     }
   } else {
     diagnostics.push("apify: token ausente");
   }
 
-  return {
-    url: null,
-    diagnostics: Array.from(new Set(diagnostics)).slice(0, 12),
-  };
+  return { url: null, diagnostics: Array.from(new Set(diagnostics)).slice(0, 12) };
 }
 
