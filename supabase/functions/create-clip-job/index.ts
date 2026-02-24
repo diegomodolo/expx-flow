@@ -33,8 +33,12 @@ serve(async (req) => {
     const {
       inputUrl,
       inputStoragePath,
-      maxClips = 3,
+      maxClips = 30,
       format = "9:16",
+      maxDurationSeconds = 60,
+      timeStartSeconds,
+      timeEndSeconds,
+      contextDescription,
       companyId,
       clientId,
     } = await req.json();
@@ -63,7 +67,7 @@ serve(async (req) => {
       }
     }
 
-    // Create job
+    // Create job with all config
     const { data: job, error: insertError } = await supabase
       .from("clip_jobs")
       .insert({
@@ -77,6 +81,10 @@ serve(async (req) => {
         progress_message: "Job criado, enviando vídeo para transcrição...",
         max_clips: maxClips,
         format: format,
+        max_duration_seconds: maxDurationSeconds,
+        time_start_seconds: timeStartSeconds ?? null,
+        time_end_seconds: timeEndSeconds ?? null,
+        context_description: contextDescription ?? null,
       })
       .select()
       .single();
@@ -93,11 +101,10 @@ serve(async (req) => {
     let videoUrl = inputUrl;
 
     if (!videoUrl && inputStoragePath) {
-      // Generate signed URL from Supabase Storage
       const { data: signedUrlData, error: signedUrlError } =
         await supabase.storage
           .from("clips-input")
-          .createSignedUrl(inputStoragePath, 3600); // 1 hour expiry
+          .createSignedUrl(inputStoragePath, 3600);
 
       if (signedUrlError || !signedUrlData?.signedUrl) {
         console.error("Error generating signed URL:", signedUrlError);
@@ -183,7 +190,6 @@ serve(async (req) => {
       });
     }
 
-    // Save Shotstack source ID and update status
     const sourceId = ingestData.data?.id || ingestData.id || "";
     await supabase
       .from("clip_jobs")

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -31,17 +32,37 @@ import {
 const CLIP_TYPE_LABELS: Record<string, { label: string; icon: string }> = {
   insight: { label: "Insight", icon: "💡" },
   story: { label: "História", icon: "📖" },
+  storytelling: { label: "Storytelling", icon: "📖" },
   humor: { label: "Humor", icon: "😂" },
   controversy: { label: "Polêmica", icon: "🔥" },
+  polêmica: { label: "Polêmica", icon: "🔥" },
   value: { label: "Valor", icon: "✅" },
+  hook: { label: "Hook", icon: "🎣" },
+  tutorial: { label: "Tutorial", icon: "🎓" },
+  motivacional: { label: "Motivacional", icon: "💪" },
 };
+
+const DURATION_OPTIONS = [
+  { value: "30", label: "Até 30 segundos" },
+  { value: "60", label: "Até 1 minuto" },
+  { value: "90", label: "Até 1 min 30s" },
+  { value: "180", label: "Até 3 minutos" },
+  { value: "300", label: "Até 5 minutos" },
+  { value: "600", label: "Até 10 minutos" },
+  { value: "900", label: "Até 15 minutos" },
+  { value: "1200", label: "Até 20 minutos" },
+  { value: "1800", label: "Até 30 minutos" },
+];
 
 export default function ClipsPage() {
   const { activeCompany } = useCompany();
   const [url, setUrl] = useState("");
-  const [maxClips, setMaxClips] = useState("3");
   const [format, setFormat] = useState("9:16");
-  const [inputMode, setInputMode] = useState<"url" | "upload">("url");
+  const [maxDuration, setMaxDuration] = useState("60");
+  const [timeStart, setTimeStart] = useState("");
+  const [timeEnd, setTimeEnd] = useState("");
+  const [context, setContext] = useState("");
+  const [inputMode, setInputMode] = useState<"url" | "upload">("upload");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
@@ -56,23 +77,25 @@ export default function ClipsPage() {
     isProcessing,
   } = useClipGenerator();
 
+  const buildOptions = () => ({
+    maxClips: 30,
+    format,
+    maxDurationSeconds: Number(maxDuration),
+    timeStartSeconds: timeStart ? parseTimeToSeconds(timeStart) : undefined,
+    timeEndSeconds: timeEnd ? parseTimeToSeconds(timeEnd) : undefined,
+    contextDescription: context.trim() || undefined,
+    companyId: activeCompany?.company_id || undefined,
+  });
+
   const handleSubmitUrl = async () => {
     if (!url.trim()) return;
-    await processUrl(url, {
-      maxClips: Number(maxClips),
-      format,
-      companyId: activeCompany?.company_id || undefined,
-    });
+    await processUrl(url, buildOptions());
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    await uploadAndProcess(file, {
-      maxClips: Number(maxClips),
-      format,
-      companyId: activeCompany?.company_id || undefined,
-    });
+    await uploadAndProcess(file, buildOptions());
   };
 
   const showForm = !job;
@@ -99,31 +122,35 @@ export default function ClipsPage() {
             <CardHeader>
               <CardTitle className="text-lg">Novo Processamento</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-5">
+              {/* Input Mode */}
               <Tabs
                 value={inputMode}
                 onValueChange={(v) => setInputMode(v as "url" | "upload")}
               >
                 <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="url" className="gap-2">
-                    <Link className="h-4 w-4" />
-                    URL do YouTube
-                  </TabsTrigger>
                   <TabsTrigger value="upload" className="gap-2">
                     <Upload className="h-4 w-4" />
                     Upload de Arquivo
+                  </TabsTrigger>
+                  <TabsTrigger value="url" className="gap-2">
+                    <Link className="h-4 w-4" />
+                    URL direta do vídeo
                   </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="url" className="space-y-4">
                   <div>
-                    <Label>URL do YouTube</Label>
+                    <Label>URL direta do vídeo (.mp4)</Label>
                     <Input
                       value={url}
                       onChange={(e) => setUrl(e.target.value)}
-                      placeholder="https://www.youtube.com/watch?v=..."
+                      placeholder="https://exemplo.com/video.mp4"
                       className="mt-1"
                     />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Cole a URL direta do arquivo de vídeo. URLs do YouTube não são suportadas.
+                    </p>
                   </div>
                 </TabsContent>
 
@@ -153,24 +180,10 @@ export default function ClipsPage() {
                 </TabsContent>
               </Tabs>
 
-              {/* Options */}
+              {/* Options Row 1: Format & Duration */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label>Número de clipes</Label>
-                  <Select value={maxClips} onValueChange={setMaxClips}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1">1 clipe</SelectItem>
-                      <SelectItem value="2">2 clipes</SelectItem>
-                      <SelectItem value="3">3 clipes</SelectItem>
-                      <SelectItem value="5">5 clipes</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Formato</Label>
+                  <Label>Formato do clipe</Label>
                   <Select value={format} onValueChange={setFormat}>
                     <SelectTrigger className="mt-1">
                       <SelectValue />
@@ -182,6 +195,66 @@ export default function ClipsPage() {
                     </SelectContent>
                   </Select>
                 </div>
+                <div>
+                  <Label>Duração máxima do clipe</Label>
+                  <Select value={maxDuration} onValueChange={setMaxDuration}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DURATION_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Options Row 2: Time Intervals */}
+              <div>
+                <Label>Intervalo de tempo (opcional)</Label>
+                <p className="text-xs text-muted-foreground mb-2">
+                  Analise apenas um trecho específico do vídeo. Formato: mm:ss ou hh:mm:ss
+                </p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Input
+                      value={timeStart}
+                      onChange={(e) => setTimeStart(e.target.value)}
+                      placeholder="Início (ex: 02:30)"
+                    />
+                  </div>
+                  <div>
+                    <Input
+                      value={timeEnd}
+                      onChange={(e) => setTimeEnd(e.target.value)}
+                      placeholder="Fim (ex: 15:00)"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Context Description */}
+              <div>
+                <Label>Contexto desejado para os clipes (opcional)</Label>
+                <Textarea
+                  value={context}
+                  onChange={(e) => setContext(e.target.value)}
+                  placeholder="Descreva o tipo de conteúdo que procura. Ex: momentos de ensinamento, perguntas e respostas, quando a pessoa fala com entusiasmo, insights práticos, momentos engraçados..."
+                  className="mt-1 min-h-[80px]"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  A IA usará essas instruções para filtrar os melhores trechos da transcrição.
+                </p>
+              </div>
+
+              {/* Info */}
+              <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground">
+                <p>
+                  <strong>💡 Como funciona:</strong> O sistema analisa a transcrição do vídeo e determina automaticamente quantos clipes extrair (até 30), com base na qualidade do conteúdo e nas configurações definidas.
+                </p>
               </div>
 
               {inputMode === "url" && (
@@ -282,8 +355,8 @@ function ClipsGrid({ clips }: { clips: Clip[] }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {clips.map((clip) => {
-        const typeInfo = CLIP_TYPE_LABELS[clip.clip_type] ?? {
-          label: clip.clip_type,
+        const typeInfo = CLIP_TYPE_LABELS[clip.clip_type?.toLowerCase()] ?? {
+          label: clip.clip_type || "Clip",
           icon: "📎",
         };
         return (
@@ -308,7 +381,7 @@ function ClipsGrid({ clips }: { clips: Clip[] }) {
 
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Clock className="h-3 w-3" />
-                <span>{Math.round(clip.duration_seconds)}s</span>
+                <span>{formatDuration(clip.duration_seconds)}</span>
               </div>
 
               {clip.public_url && (
@@ -330,4 +403,19 @@ function ClipsGrid({ clips }: { clips: Clip[] }) {
       })}
     </div>
   );
+}
+
+function parseTimeToSeconds(time: string): number {
+  const parts = time.split(":").map(Number);
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  if (parts.length === 2) return parts[0] * 60 + parts[1];
+  return parts[0] || 0;
+}
+
+function formatDuration(seconds: number): string {
+  if (!seconds) return "0s";
+  const m = Math.floor(seconds / 60);
+  const s = Math.round(seconds % 60);
+  if (m === 0) return `${s}s`;
+  return s > 0 ? `${m}m ${s}s` : `${m}m`;
 }

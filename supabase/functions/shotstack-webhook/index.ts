@@ -17,11 +17,10 @@ serve(async (req) => {
     const secret = url.searchParams.get("secret");
     const jobId = url.searchParams.get("jobId");
     const clipIndex = url.searchParams.get("clipIndex");
-    const callbackType = url.searchParams.get("type"); // "ingest" or "edit"
+    const callbackType = url.searchParams.get("type");
 
     const shotstackApiKey = Deno.env.get("SHOTSTACK_API_KEY")!;
 
-    // Validate secret
     if (secret !== shotstackApiKey) {
       console.error("Invalid webhook secret");
       return new Response(JSON.stringify({ error: "Forbidden" }), {
@@ -47,7 +46,7 @@ serve(async (req) => {
     if (callbackType === "ingest") {
       await handleIngestCallback(supabase, jobId, body, shotstackApiKey, supabaseUrl);
     } else if (callbackType === "edit") {
-      await handleEditCallback(supabase, jobId, body, clipIndex);
+      await handleEditCallback(supabase, jobId, body, clipIndex, url);
     } else {
       console.error("Unknown callback type:", callbackType);
     }
@@ -96,7 +95,6 @@ async function handleIngestCallback(
     return;
   }
 
-  // Update progress
   await supabase
     .from("clip_jobs")
     .update({
@@ -105,24 +103,20 @@ async function handleIngestCallback(
     })
     .eq("id", jobId);
 
-  // Get source info to find transcription URL and original video URL
   const sourceId = body.id;
   let transcriptionUrl = "";
   let sourceVideoUrl = "";
 
-  // Extract transcription URL from outputs
   if (body.outputs?.transcription?.url) {
     transcriptionUrl = body.outputs.transcription.url;
   }
 
-  // Extract source video URL
   if (body.attributes?.url) {
     sourceVideoUrl = body.attributes.url;
   } else if (body.url) {
     sourceVideoUrl = body.url;
   }
 
-  // If no transcription URL in callback, fetch from API
   if (!transcriptionUrl) {
     const sourceResponse = await fetch(
       `https://api.shotstack.io/ingest/v1/sources/${sourceId}`,
@@ -149,22 +143,24 @@ async function handleIngestCallback(
     return;
   }
 
-  // Fetch VTT content
   const vttResponse = await fetch(transcriptionUrl);
   const vttContent = await vttResponse.text();
   console.log("VTT content length:", vttContent.length);
 
-  // Get job details for maxClips
+  // Get job details including new config fields
   const { data: job } = await supabase
     .from("clip_jobs")
-    .select("max_clips, format, user_id, company_id, client_id")
+    .select("max_clips, format, max_duration_seconds, time_start_seconds, time_end_seconds, context_description, user_id, company_id, client_id")
     .eq("id", jobId)
     .single();
 
-  const maxClips = job?.max_clips || 3;
+  const maxClips = job?.max_clips || 30;
   const format = job?.format || "9:16";
+  const maxDurationSeconds = job?.max_duration_seconds || 60;
+  const timeStartSeconds = job?.time_start_seconds;
+  const timeEndSeconds = job?.time_end_seconds;
+  const contextDescription = job?.context_description;
 
-  // Analyze with OpenAI
   const openAIApiKey = Deno.env.get("OPENAI_API_KEY");
   if (!openAIApiKey) {
     await supabase
@@ -182,6 +178,10 @@ async function handleIngestCallback(
   const viralMoments = await analyzeTranscriptionWithOpenAI(
     vttContent,
     maxClips,
+    maxDurationSeconds,
+    timeStartSeconds,
+    timeEndSeconds,
+    contextDescription,
     openAIApiKey
   );
 
@@ -200,7 +200,6 @@ async function handleIngestCallback(
 
   console.log(`Found ${viralMoments.length} viral moments`);
 
-  // Update job with expected clips count
   await supabase
     .from("clip_jobs")
     .update({
@@ -211,10 +210,8 @@ async function handleIngestCallback(
     })
     .eq("id", jobId);
 
-  // Build webhook base URL
   const webhookBaseUrl = `${supabaseUrl}/functions/v1/shotstack-webhook?secret=${encodeURIComponent(shotstackApiKey)}&jobId=${jobId}&type=edit`;
 
-  // Send each clip to Shotstack Edit API
   const renderIds: string[] = [];
 
   for (let i = 0; i < viralMoments.length; i++) {
@@ -269,7 +266,6 @@ async function handleIngestCallback(
     }
   }
 
-  // Save render IDs
   await supabase
     .from("clip_jobs")
     .update({
@@ -282,18 +278,13 @@ async function handleEditCallback(
   supabase: any,
   jobId: string,
   body: any,
-  clipIndex: string | null
+  clipIndex: string | null,
+  reqUrl: URL
 ) {
-  const url = new URL(`http://dummy?${new URLSearchParams()}`);
-  
-  // Get clip metadata from the original request URL params
-  const reqUrl = new URL(`http://dummy`);
-  
   const status = body.status;
 
   if (status === "failed") {
     console.error(`Clip render failed for job ${jobId}, index ${clipIndex}`);
-    // Don't fail the whole job for one clip
     return;
   }
 
@@ -302,19 +293,12 @@ async function handleEditCallback(
     return;
   }
 
-  // Get clip info from callback URL query params (passed when creating the render)
-  // These are in the original webhook URL, available from req.url
-  const reqUrlFull = new URL(`http://dummy?jobId=${jobId}&clipIndex=${clipIndex}`);
-  
-  // Extract metadata from the callback body
   const clipUrl = body.url || body.data?.attributes?.url || "";
-  const renderId = body.id || body.data?.id || "";
+  const title = reqUrl.searchParams.get("title") || `Clip ${(parseInt(clipIndex || "0") || 0) + 1}`;
+  const clipType = reqUrl.searchParams.get("clipType") || "viral";
+  const score = parseInt(reqUrl.searchParams.get("score") || "0") || 0;
+  const reason = reqUrl.searchParams.get("reason") || "";
 
-  // Get the clip metadata from the original request's query params
-  // We need to get these from the webhook URL that was called
-  // They were appended when creating the render
-
-  // Get job to find user_id, company_id, client_id
   const { data: job } = await supabase
     .from("clip_jobs")
     .select("user_id, company_id, client_id, total_expected_clips, format")
@@ -326,17 +310,16 @@ async function handleEditCallback(
     return;
   }
 
-  // Insert clip into clips table
   const { error: clipError } = await supabase.from("clips").insert({
     job_id: jobId,
     user_id: job.user_id,
     company_id: job.company_id || null,
     client_id: job.client_id || null,
     clip_url: clipUrl,
-    title: "Clip " + ((parseInt(clipIndex || "0") || 0) + 1),
-    clip_type: "viral",
-    virality_score: 0,
-    reason: "",
+    title: title,
+    clip_type: clipType,
+    virality_score: score,
+    reason: reason,
     format: job.format || "9:16",
     status: "ready",
   });
@@ -345,7 +328,6 @@ async function handleEditCallback(
     console.error("Error inserting clip:", clipError);
   }
 
-  // Check if all clips are done
   const { count } = await supabase
     .from("clips")
     .select("id", { count: "exact", head: true })
@@ -354,7 +336,6 @@ async function handleEditCallback(
   const totalExpected = job.total_expected_clips || 1;
 
   if ((count || 0) >= totalExpected) {
-    // All clips done
     await supabase
       .from("clip_jobs")
       .update({
@@ -364,7 +345,6 @@ async function handleEditCallback(
       })
       .eq("id", jobId);
   } else {
-    // Update progress
     const progressPct = 50 + Math.round(((count || 0) / totalExpected) * 50);
     await supabase
       .from("clip_jobs")
@@ -379,6 +359,10 @@ async function handleEditCallback(
 async function analyzeTranscriptionWithOpenAI(
   vttContent: string,
   maxClips: number,
+  maxDurationSeconds: number,
+  timeStartSeconds: number | null,
+  timeEndSeconds: number | null,
+  contextDescription: string | null,
   apiKey: string
 ): Promise<
   Array<{
@@ -390,7 +374,24 @@ async function analyzeTranscriptionWithOpenAI(
     end_seconds: number;
   }>
 > {
-  const prompt = `Você é um especialista em conteúdo viral para redes sociais. Analise a transcrição VTT abaixo e identifique os ${maxClips} melhores momentos para clipes virais curtos (15-60 segundos cada).
+  let timeConstraint = "";
+  if (timeStartSeconds != null || timeEndSeconds != null) {
+    const start = timeStartSeconds != null ? `${timeStartSeconds}s` : "início";
+    const end = timeEndSeconds != null ? `${timeEndSeconds}s` : "fim";
+    timeConstraint = `\n- IMPORTANTE: Considere APENAS trechos entre ${start} e ${end} do vídeo.`;
+  }
+
+  let contextConstraint = "";
+  if (contextDescription) {
+    contextConstraint = `\n- CONTEXTO DESEJADO PELO USUÁRIO: "${contextDescription}". Priorize trechos que se encaixem nesse critério.`;
+  }
+
+  const prompt = `Você é um especialista em conteúdo viral para redes sociais. Analise a transcrição VTT abaixo e identifique os melhores momentos para clipes virais.
+
+INSTRUÇÕES:
+- Gere QUANTOS clipes forem necessários com base na qualidade do conteúdo (mínimo 1, máximo ${maxClips})
+- NÃO force gerar ${maxClips} clipes se o conteúdo não justificar. Prefira qualidade a quantidade.
+- Cada clipe deve ter entre 15 e ${maxDurationSeconds} segundos${timeConstraint}${contextConstraint}
 
 Para cada momento, retorne:
 - title: título curto e chamativo para o clipe
@@ -401,10 +402,11 @@ Para cada momento, retorne:
 - end_seconds: segundo de fim do trecho
 
 REGRAS:
-- Cada clipe deve ter entre 15 e 60 segundos
 - Priorize trechos com hooks fortes, frases de impacto, histórias envolventes ou insights valiosos
 - Evite trechos com pausas longas ou conteúdo genérico
 - Os trechos NÃO devem se sobrepor
+- Cada clipe deve ter no MÁXIMO ${maxDurationSeconds} segundos de duração
+- Só inclua clipes com virality_score >= 40
 
 Retorne APENAS um JSON array, sem markdown, sem explicação adicional.
 
@@ -428,7 +430,7 @@ ${vttContent}`;
         { role: "user", content: prompt },
       ],
       temperature: 0.7,
-      max_tokens: 2000,
+      max_tokens: 8000,
     }),
   });
 
@@ -436,7 +438,6 @@ ${vttContent}`;
   const content = data.choices?.[0]?.message?.content || "[]";
 
   try {
-    // Clean potential markdown wrapping
     const cleaned = content
       .replace(/```json\n?/g, "")
       .replace(/```\n?/g, "")

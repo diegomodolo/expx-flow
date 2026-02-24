@@ -24,6 +24,17 @@ export interface Clip {
   end_seconds: number;
 }
 
+export interface ClipOptions {
+  maxClips?: number;
+  format?: string;
+  maxDurationSeconds?: number;
+  timeStartSeconds?: number;
+  timeEndSeconds?: number;
+  contextDescription?: string;
+  companyId?: string;
+  clientId?: string;
+}
+
 export function useClipGenerator() {
   const { toast } = useToast();
   const [jobId, setJobId] = useState<string | null>(null);
@@ -92,15 +103,7 @@ export function useClipGenerator() {
   }, [jobId, toast]);
 
   const processUrl = useCallback(
-    async (
-      url: string,
-      options: {
-        maxClips?: number;
-        format?: string;
-        companyId?: string;
-        clientId?: string;
-      } = {}
-    ) => {
+    async (url: string, options: ClipOptions = {}) => {
       setIsLoading(true);
       setClips([]);
       setJob(null);
@@ -111,8 +114,12 @@ export function useClipGenerator() {
           {
             body: {
               inputUrl: url,
-              maxClips: options.maxClips ?? 3,
+              maxClips: options.maxClips ?? 30,
               format: options.format ?? "9:16",
+              maxDurationSeconds: options.maxDurationSeconds ?? 60,
+              timeStartSeconds: options.timeStartSeconds,
+              timeEndSeconds: options.timeEndSeconds,
+              contextDescription: options.contextDescription,
               companyId: options.companyId,
               clientId: options.clientId,
             },
@@ -151,15 +158,7 @@ export function useClipGenerator() {
   );
 
   const uploadAndProcess = useCallback(
-    async (
-      file: File,
-      options: {
-        maxClips?: number;
-        format?: string;
-        companyId?: string;
-        clientId?: string;
-      } = {}
-    ) => {
+    async (file: File, options: ClipOptions = {}) => {
       setIsLoading(true);
       setClips([]);
       setJob(null);
@@ -182,8 +181,12 @@ export function useClipGenerator() {
           {
             body: {
               inputStoragePath: storagePath,
-              maxClips: options.maxClips ?? 3,
+              maxClips: options.maxClips ?? 30,
               format: options.format ?? "9:16",
+              maxDurationSeconds: options.maxDurationSeconds ?? 60,
+              timeStartSeconds: options.timeStartSeconds,
+              timeEndSeconds: options.timeEndSeconds,
+              contextDescription: options.contextDescription,
               companyId: options.companyId,
               clientId: options.clientId,
             },
