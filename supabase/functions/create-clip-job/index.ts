@@ -144,7 +144,7 @@ serve(async (req) => {
         const { url: resolvedDirectUrl, diagnostics } = await resolveYouTubeToDirectUrl(videoUrl, apifyToken);
 
         if (!resolvedDirectUrl) {
-          const diagnosticSummary = diagnostics.slice(0, 6).join(" | ");
+          const diagnosticSummary = diagnostics.slice(0, 10).join(" | ");
 
           await supabase
             .from("clip_jobs")
@@ -370,6 +370,77 @@ async function fetchInvidiousInstances(): Promise<string[]> {
   }
 }
 
+async function fetchPipedInstances(): Promise<string[]> {
+  try {
+    const response = await fetch(
+      "https://raw.githubusercontent.com/TeamPiped/documentation/refs/heads/main/content/docs/public-instances/index.md",
+      {
+        headers: {
+          "User-Agent": "clip-job-resolver/1.0 (+https://lovable.dev)",
+        },
+      }
+    );
+
+    if (!response.ok) {
+      console.error(`Piped instance list failed [${response.status}]`);
+      return [];
+    }
+
+    const markdown = await response.text();
+    const instanceMatches = markdown.match(/\|\s*(https:\/\/[^\s|]+)\s*\|/g) ?? [];
+
+    const parsedInstances = instanceMatches
+      .map((match) => {
+        const candidate = match.match(/https:\/\/[^\s|]+/)?.[0];
+        return candidate ?? null;
+      })
+      .filter((value: string | null): value is string => Boolean(value));
+
+    return Array.from(new Set(parsedInstances)).slice(0, 16);
+  } catch (error) {
+    console.error("Piped instance discovery error:", error);
+    return [];
+  }
+}
+
+async function fetchCobaltInstances(): Promise<string[]> {
+  try {
+    const response = await fetch("https://instances.cobalt.best/instances.json", {
+      headers: {
+        "User-Agent": "clip-job-resolver/1.0 (+https://lovable.dev)",
+      },
+    });
+
+    if (!response.ok) {
+      console.error(`Cobalt instance list failed [${response.status}]`);
+      return [];
+    }
+
+    const payload = await response.json();
+    if (!Array.isArray(payload)) return [];
+
+    const instances = payload
+      .map((entry: any) => {
+        const apiHost = entry?.api;
+        const protocol = entry?.protocol ?? "https";
+        const online = entry?.online === true;
+        const youtubeEnabled = entry?.services?.youtube === true;
+        const authRequired = entry?.info?.auth === true;
+
+        if (!online || !youtubeEnabled || authRequired) return null;
+        if (typeof apiHost !== "string" || !apiHost.trim()) return null;
+
+        return `${protocol}://${apiHost}`;
+      })
+      .filter((value: string | null): value is string => Boolean(value));
+
+    return Array.from(new Set(instances)).slice(0, 8);
+  } catch (error) {
+    console.error("Cobalt instance discovery error:", error);
+    return [];
+  }
+}
+
 function extractInvidiousDownloadUrl(payload: any): string | null {
   const streamCollections = [
     ...(Array.isArray(payload?.formatStreams) ? payload.formatStreams : []),
@@ -426,9 +497,48 @@ async function tryResolveWithInvidious(youtubeUrl: string): Promise<ResolveResul
   const discoveredInstances = await fetchInvidiousInstances();
   const instances = Array.from(
     new Set([...DEFAULT_INVIDIOUS_INSTANCES, ...discoveredInstances])
-  ).slice(0, 10);
+  ).slice(0, 12);
 
   for (const instance of instances) {
+    const host = instance.replace("https://", "");
+
+    for (const itag of ["18", "22"]) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 9000);
+
+      try {
+        const latestVersionUrl = `${instance}/latest_version?id=${videoId}&itag=${itag}`;
+        const response = await fetch(latestVersionUrl, {
+          method: "HEAD",
+          redirect: "manual",
+          signal: controller.signal,
+          headers: { "User-Agent": "Mozilla/5.0" },
+        });
+
+        if ([301, 302, 303, 307, 308].includes(response.status)) {
+          const location = response.headers.get("location");
+          if (location && /^https?:\/\//i.test(location)) {
+            diagnostics.push(`invidious ${host} (latest_version ${itag}): ok`);
+            return { url: normalizeCandidateUrl(location, instance), diagnostics };
+          }
+        }
+
+        if (response.ok) {
+          const contentType = (response.headers.get("content-type") || "").toLowerCase();
+          if (/video|octet-stream|mpegurl|mp2t/.test(contentType)) {
+            diagnostics.push(`invidious ${host} (latest_version ${itag}): ok (proxy)`);
+            return { url: latestVersionUrl, diagnostics };
+          }
+        } else if (response.status !== 404) {
+          diagnostics.push(`invidious ${host} (latest_version ${itag}): HTTP ${response.status}`);
+        }
+      } catch {
+        // ignora e tenta o endpoint JSON tradicional
+      } finally {
+        clearTimeout(timeout);
+      }
+    }
+
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 12000);
@@ -440,7 +550,6 @@ async function tryResolveWithInvidious(youtubeUrl: string): Promise<ResolveResul
       clearTimeout(timeout);
 
       const rawBody = await response.text();
-      const host = instance.replace("https://", "");
 
       if (!response.ok) {
         diagnostics.push(`invidious ${host}: HTTP ${response.status}`);
@@ -464,7 +573,7 @@ async function tryResolveWithInvidious(youtubeUrl: string): Promise<ResolveResul
       diagnostics.push(`invidious ${host}: sem stream`);
     } catch (error) {
       console.error(`Invidious resolver error (${instance}):`, error);
-      diagnostics.push(`invidious ${instance.replace("https://", "")}: indisponível`);
+      diagnostics.push(`invidious ${host}: indisponível`);
     }
   }
 
@@ -594,14 +703,22 @@ async function tryResolveWithPiped(youtubeUrl: string): Promise<ResolveResult> {
     return { url: null, diagnostics };
   }
 
-  const pipedInstances = [
-    "https://api.piped.yt",
-    "https://pipedapi.kavin.rocks",
-    "https://pipedapi.adminforge.de",
-    "https://pipedapi.in.projectsegfau.lt",
-    "https://pipedapi.leptons.xyz",
-    "https://pipedapi.r4fo.com",
-  ];
+  const discoveredInstances = await fetchPipedInstances();
+  const pipedInstances = Array.from(
+    new Set([
+      ...discoveredInstances,
+      "https://pipedapi.kavin.rocks",
+      "https://pipedapi.nosebs.ru",
+      "https://pipedapi-libre.kavin.rocks",
+      "https://piped-api.privacy.com.de",
+      "https://pipedapi.adminforge.de",
+      "https://api.piped.yt",
+      "https://pipedapi.drgns.space",
+      "https://pipedapi.reallyaweso.me",
+      "https://api.piped.private.coffee",
+      "https://pipedapi.darkness.services",
+    ])
+  ).slice(0, 14);
 
   const isRetryableStatus = (status: number) =>
     [408, 425, 429, 500, 502, 503, 504, 520, 521, 522, 523, 524].includes(status);
@@ -682,12 +799,15 @@ async function tryResolveWithPiped(youtubeUrl: string): Promise<ResolveResult> {
 async function tryResolveWithCobalt(youtubeUrl: string): Promise<ResolveResult> {
   const diagnostics: string[] = [];
 
-  const cobaltInstances = [
-    "https://cobalt-backend.canine.tools",
-    "https://cobalt-api.meowing.de",
-    "https://capi.3kh0.net",
-    "https://api.cobalt.tools",
-  ];
+  const discoveredInstances = await fetchCobaltInstances();
+  const cobaltInstances = Array.from(
+    new Set([
+      ...discoveredInstances,
+      "https://cobalt-api.meowing.de",
+      "https://cobalt-backend.canine.tools",
+      "https://capi.3kh0.net",
+    ])
+  ).slice(0, 8);
 
   const payloadVariants = [
     {
@@ -702,8 +822,8 @@ async function tryResolveWithCobalt(youtubeUrl: string): Promise<ResolveResult> 
       url: youtubeUrl,
       videoQuality: "720",
       filenameStyle: "basic",
+      audioBitrate: "192",
     },
-    { url: youtubeUrl },
   ];
 
   const isRetryableStatus = (status: number) =>
@@ -750,6 +870,11 @@ async function tryResolveWithCobalt(youtubeUrl: string): Promise<ResolveResult> 
             if (!response.ok) {
               const errorCode = data?.error?.code || data?.error || data?.message;
               if (errorCode) lastError = String(errorCode);
+
+              const authBlocked = /jwt|auth/i.test(String(errorCode || ""));
+              if (authBlocked) {
+                break;
+              }
 
               if (attempt < 2 && isRetryableStatus(response.status)) {
                 await new Promise((resolve) => setTimeout(resolve, 450 * attempt));
