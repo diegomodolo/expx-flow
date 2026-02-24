@@ -282,15 +282,28 @@ interface ResolveResult {
 }
 
 const DEFAULT_INVIDIOUS_INSTANCES = [
-  "https://iv.ggtyler.dev",
-  "https://invidious.privacyredirect.com",
+  "https://inv.nadeko.net",
   "https://invidious.fdn.fr",
   "https://invidious.nerdvpn.de",
   "https://invidious.jing.rocks",
+  "https://inv.tux.pizza",
 ];
 
-function normalizeCandidateUrl(candidate: string): string {
-  return candidate.replace(/\\u0026/g, "&").replace(/^\/\//, "https://");
+function normalizeCandidateUrl(candidate: string, baseUrl?: string): string {
+  const normalized = candidate.replace(/\\u0026/g, "&");
+
+  if (/^https?:\/\//i.test(normalized)) return normalized;
+  if (normalized.startsWith("//")) return `https:${normalized}`;
+
+  if (baseUrl && normalized.startsWith("/")) {
+    try {
+      return new URL(normalized, baseUrl).toString();
+    } catch {
+      return normalized;
+    }
+  }
+
+  return normalized;
 }
 
 function getYouTubeVideoId(youtubeUrl: string): string | null {
@@ -582,63 +595,84 @@ async function tryResolveWithPiped(youtubeUrl: string): Promise<ResolveResult> {
   }
 
   const pipedInstances = [
-    "https://pipedapi.kavin.rocks",
     "https://api.piped.yt",
+    "https://pipedapi.kavin.rocks",
     "https://pipedapi.adminforge.de",
     "https://pipedapi.in.projectsegfau.lt",
     "https://pipedapi.leptons.xyz",
     "https://pipedapi.r4fo.com",
   ];
 
+  const isRetryableStatus = (status: number) =>
+    [408, 425, 429, 500, 502, 503, 504, 520, 521, 522, 523, 524].includes(status);
+
   for (const instance of pipedInstances) {
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 15000);
+    const host = instance.replace("https://", "");
+    const endpoints = [`${instance}/streams/${videoId}`, `${instance}/api/v1/videos/${videoId}`];
 
-      const response = await fetch(`${instance}/streams/${videoId}`, {
-        headers: { Accept: "application/json" },
-        signal: controller.signal,
-      });
-      clearTimeout(timeout);
+    for (const endpoint of endpoints) {
+      let lastStatus: number | null = null;
+      let lastError: string | null = null;
 
-      const host = instance.replace("https://", "");
-      if (!response.ok) {
-        diagnostics.push(`piped ${host}: HTTP ${response.status}`);
-        await response.text(); // consume body
-        continue;
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 12000);
+
+        try {
+          const response = await fetch(endpoint, {
+            headers: { Accept: "application/json", "User-Agent": "Mozilla/5.0" },
+            signal: controller.signal,
+          });
+
+          const rawBody = await response.text();
+          lastStatus = response.status;
+
+          if (!response.ok) {
+            if (attempt < 2 && isRetryableStatus(response.status)) {
+              await new Promise((resolve) => setTimeout(resolve, 400 * attempt));
+              continue;
+            }
+
+            break;
+          }
+
+          let data: any = null;
+          try {
+            data = rawBody ? JSON.parse(rawBody) : null;
+          } catch {
+            lastError = "json";
+            break;
+          }
+
+          const resolvedUrl =
+            extractInvidiousDownloadUrl(data) ??
+            (typeof data?.hls === "string" ? data.hls : null);
+
+          if (resolvedUrl) {
+            diagnostics.push(`piped ${host}: ok`);
+            return { url: normalizeCandidateUrl(resolvedUrl, instance), diagnostics };
+          }
+
+          lastError = "sem stream";
+          break;
+        } catch (error: any) {
+          lastError = error?.name === "AbortError" ? "timeout" : "indisponível";
+          if (attempt < 2) {
+            await new Promise((resolve) => setTimeout(resolve, 400 * attempt));
+            continue;
+          }
+        } finally {
+          clearTimeout(timeout);
+        }
       }
 
-      const data = await response.json();
+      const endpointLabel = endpoint.includes("/api/v1/videos/") ? "videos" : "streams";
 
-      // Try videoStreams first (adaptive), then audioStreams
-      const streams = [
-        ...(Array.isArray(data?.videoStreams) ? data.videoStreams : []),
-      ];
-
-      // Filter for mp4 video streams with both audio and video, or just video
-      const mp4Streams = streams.filter(
-        (s: any) => s.url && s.mimeType?.includes("video/mp4")
-      );
-
-      const preferred =
-        mp4Streams.find((s: any) => /720p|480p|360p/.test(s.quality || "")) ??
-        mp4Streams[0];
-
-      if (preferred?.url) {
-        diagnostics.push(`piped ${host}: ok`);
-        return { url: normalizeCandidateUrl(preferred.url), diagnostics };
+      if (lastStatus) {
+        diagnostics.push(`piped ${host} (${endpointLabel}): HTTP ${lastStatus}`);
+      } else if (lastError) {
+        diagnostics.push(`piped ${host} (${endpointLabel}): ${lastError}`);
       }
-
-      // Fallback: HLS
-      if (data?.hls && typeof data.hls === "string" && data.hls.startsWith("http")) {
-        diagnostics.push(`piped ${host}: ok (hls)`);
-        return { url: data.hls, diagnostics };
-      }
-
-      diagnostics.push(`piped ${host}: sem stream`);
-    } catch (error: any) {
-      const host = instance.replace("https://", "");
-      diagnostics.push(`piped ${host}: ${error?.name === "AbortError" ? "timeout" : "indisponível"}`);
     }
   }
 
@@ -648,68 +682,117 @@ async function tryResolveWithPiped(youtubeUrl: string): Promise<ResolveResult> {
 async function tryResolveWithCobalt(youtubeUrl: string): Promise<ResolveResult> {
   const diagnostics: string[] = [];
 
-  // Cobalt instances verified with YouTube support (from instances.cobalt.best)
   const cobaltInstances = [
     "https://cobalt-backend.canine.tools",
     "https://cobalt-api.meowing.de",
     "https://capi.3kh0.net",
+    "https://api.cobalt.tools",
   ];
 
-  for (const instance of cobaltInstances) {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
+  const payloadVariants = [
+    {
+      url: youtubeUrl,
+      vCodec: "h264",
+      vQuality: "720",
+      isAudioOnly: false,
+      disableMetadata: true,
+      filenamePattern: "basic",
+    },
+    {
+      url: youtubeUrl,
+      videoQuality: "720",
+      filenameStyle: "basic",
+    },
+    { url: youtubeUrl },
+  ];
 
-    try {
-      const host = instance.replace("https://", "");
+  const isRetryableStatus = (status: number) =>
+    [408, 425, 429, 500, 502, 503, 504, 520, 521, 522, 523, 524].includes(status);
 
-      const response = await fetch(instance, {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-          "User-Agent": "Mozilla/5.0",
-        },
-        body: JSON.stringify({
-          url: youtubeUrl,
-          videoQuality: "720",
-          filenameStyle: "basic",
-        }),
-        signal: controller.signal,
-      });
+  for (const baseInstance of cobaltInstances) {
+    const instance = baseInstance.replace(/\/+$/, "");
+    const host = instance.replace("https://", "");
+    const endpoints = [instance, `${instance}/api/json`];
 
-      const rawBody = await response.text();
-      let data: any = null;
-      try {
-        data = rawBody ? JSON.parse(rawBody) : null;
-      } catch {
-        data = null;
-      }
+    for (const endpoint of endpoints) {
+      const endpointLabel = endpoint.endsWith("/api/json") ? "api/json" : "root";
 
-      if (!response.ok) {
-        diagnostics.push(`cobalt ${host}: HTTP ${response.status}`);
-        console.error(`Cobalt failed (${host}) [${response.status}]:`, rawBody.substring(0, 300));
-        continue;
-      }
+      for (const payload of payloadVariants) {
+        let lastStatus: number | null = null;
+        let lastError: string | null = null;
 
-      if (data?.url && typeof data.url === "string" && data.url.startsWith("http")) {
-        diagnostics.push(`cobalt ${host}: ok (${data.status || "redirect"})`);
-        return { url: normalizeCandidateUrl(data.url), diagnostics };
-      }
+        for (let attempt = 1; attempt <= 2; attempt++) {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 12000);
 
-      if (data?.status === "picker" && Array.isArray(data.picker) && data.picker.length > 0) {
-        const videoItem = data.picker.find((p: any) => p.type === "video" && p.url) || data.picker[0];
-        if (videoItem?.url) {
-          diagnostics.push(`cobalt ${host}: ok (picker)`);
-          return { url: normalizeCandidateUrl(videoItem.url), diagnostics };
+          try {
+            const response = await fetch(endpoint, {
+              method: "POST",
+              headers: {
+                Accept: "application/json",
+                "Content-Type": "application/json",
+                "User-Agent": "Mozilla/5.0",
+              },
+              body: JSON.stringify(payload),
+              signal: controller.signal,
+            });
+
+            const rawBody = await response.text();
+            lastStatus = response.status;
+
+            let data: any = null;
+            try {
+              data = rawBody ? JSON.parse(rawBody) : null;
+            } catch {
+              data = null;
+            }
+
+            if (!response.ok) {
+              const errorCode = data?.error?.code || data?.error || data?.message;
+              if (errorCode) lastError = String(errorCode);
+
+              if (attempt < 2 && isRetryableStatus(response.status)) {
+                await new Promise((resolve) => setTimeout(resolve, 450 * attempt));
+                continue;
+              }
+
+              break;
+            }
+
+            if (data?.url && typeof data.url === "string" && data.url.startsWith("http")) {
+              diagnostics.push(`cobalt ${host} (${endpointLabel}): ok (${data.status || "stream"})`);
+              return { url: normalizeCandidateUrl(data.url, instance), diagnostics };
+            }
+
+            if (data?.status === "picker" && Array.isArray(data.picker) && data.picker.length > 0) {
+              const videoItem = data.picker.find((p: any) => p.type === "video" && p.url) || data.picker[0];
+              if (videoItem?.url) {
+                diagnostics.push(`cobalt ${host} (${endpointLabel}): ok (picker)`);
+                return { url: normalizeCandidateUrl(videoItem.url, instance), diagnostics };
+              }
+            }
+
+            lastError = `sem url (${data?.status || "unknown"})`;
+            break;
+          } catch (error: any) {
+            lastError = error?.name === "AbortError" ? "timeout" : "indisponível";
+            if (attempt < 2) {
+              await new Promise((resolve) => setTimeout(resolve, 450 * attempt));
+              continue;
+            }
+          } finally {
+            clearTimeout(timeout);
+          }
+        }
+
+        if (lastStatus) {
+          diagnostics.push(
+            `cobalt ${host} (${endpointLabel}): HTTP ${lastStatus}${lastError ? ` (${lastError})` : ""}`
+          );
+        } else if (lastError) {
+          diagnostics.push(`cobalt ${host} (${endpointLabel}): ${lastError}`);
         }
       }
-
-      diagnostics.push(`cobalt ${host}: sem url (status: ${data?.status || "unknown"})`);
-    } catch (error: any) {
-      const host = instance.replace("https://", "");
-      diagnostics.push(`cobalt ${host}: ${error?.name === "AbortError" ? "timeout" : "indisponível"}`);
-    } finally {
-      clearTimeout(timeout);
     }
   }
 
