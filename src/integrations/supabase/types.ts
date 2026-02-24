@@ -3136,7 +3136,10 @@ export type Database = {
           max_clips: number | null
           progress: number | null
           progress_message: string | null
+          shotstack_render_ids: string[] | null
+          shotstack_source_id: string | null
           status: string
+          total_expected_clips: number | null
           updated_at: string | null
           user_id: string
           video_duration_seconds: number | null
@@ -3153,7 +3156,10 @@ export type Database = {
           max_clips?: number | null
           progress?: number | null
           progress_message?: string | null
+          shotstack_render_ids?: string[] | null
+          shotstack_source_id?: string | null
           status?: string
+          total_expected_clips?: number | null
           updated_at?: string | null
           user_id: string
           video_duration_seconds?: number | null
@@ -3170,7 +3176,10 @@ export type Database = {
           max_clips?: number | null
           progress?: number | null
           progress_message?: string | null
+          shotstack_render_ids?: string[] | null
+          shotstack_source_id?: string | null
           status?: string
+          total_expected_clips?: number | null
           updated_at?: string | null
           user_id?: string
           video_duration_seconds?: number | null
