@@ -184,6 +184,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
   const [categoriaPopoverOpen, setCategoriaPopoverOpen] = useState(false);
   const [classificacaoPopoverOpen, setClassificacaoPopoverOpen] = useState(false);
   const [statusPopoverOpen, setStatusPopoverOpen] = useState(false);
+  const statusMenuRef = React.useRef<HTMLDivElement | null>(null);
   const { teams } = useTeams();
   const { employees } = useEmployees();
   const { timeSlots } = usePlannerSlots();
@@ -318,6 +319,20 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
     };
     loadUser();
   }, []);
+
+  useEffect(() => {
+    if (!statusPopoverOpen) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node | null;
+      if (statusMenuRef.current && target && !statusMenuRef.current.contains(target)) {
+        setStatusPopoverOpen(false);
+      }
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => document.removeEventListener('pointerdown', handlePointerDown);
+  }, [statusPopoverOpen]);
 
   const handleZoomIn = () => {
     const idx = ZOOM_LEVELS.indexOf(zoomWidth);
@@ -830,42 +845,45 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
               ];
               const current = statusOptions.find(s => s.value === formData.status) || statusOptions[0];
               return (
-                <Popover open={statusPopoverOpen} onOpenChange={setStatusPopoverOpen}>
-                  <PopoverTrigger asChild>
-                    <button
-                      type="button"
-                      className="flex flex-col items-center gap-1 px-2 py-3 rounded-lg w-16 transition-colors text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
-                    >
-                      <span className={`w-5 h-5 rounded-full ${current.color} shrink-0`} />
-                      <span className="leading-tight text-center text-[10px]">{current.label}</span>
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent
-                    side="right"
-                    align="start"
-                    className="w-52 p-1 z-[90] bg-popover pointer-events-auto"
+                <div className="relative" ref={statusMenuRef}>
+                  <button
+                    type="button"
+                    onClick={() => setStatusPopoverOpen((prev) => !prev)}
+                    className="flex flex-col items-center gap-1 px-2 py-3 rounded-lg w-16 transition-colors text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+                    aria-haspopup="menu"
+                    aria-expanded={statusPopoverOpen}
                   >
-                    <div className="text-xs font-semibold text-muted-foreground px-2 py-1.5">Alterar Status</div>
-                    {statusOptions.map((s) => (
-                      <button
-                        key={s.value}
-                        type="button"
-                        onClick={() => {
-                          setFormData(prev => ({ ...prev, status: s.value }));
-                          setStatusPopoverOpen(false);
-                        }}
-                        className={`w-full flex cursor-pointer items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors ${
-                          formData.status === s.value
-                            ? 'bg-accent text-accent-foreground font-medium'
-                            : 'hover:bg-muted text-foreground'
-                        }`}
-                      >
-                        <span className={`w-2.5 h-2.5 rounded-full ${s.color} shrink-0`} />
-                        {s.label}
-                      </button>
-                    ))}
-                  </PopoverContent>
-                </Popover>
+                    <span className={`w-5 h-5 rounded-full ${current.color} shrink-0`} />
+                    <span className="leading-tight text-center text-[10px]">{current.label}</span>
+                  </button>
+
+                  {statusPopoverOpen && (
+                    <div
+                      role="menu"
+                      className="absolute left-full top-0 ml-2 w-52 p-1 rounded-md border bg-popover text-popover-foreground shadow-md z-[90]"
+                    >
+                      <div className="text-xs font-semibold text-muted-foreground px-2 py-1.5">Alterar Status</div>
+                      {statusOptions.map((s) => (
+                        <button
+                          key={s.value}
+                          type="button"
+                          onClick={() => {
+                            setFormData(prev => ({ ...prev, status: s.value }));
+                            setStatusPopoverOpen(false);
+                          }}
+                          className={`w-full flex cursor-pointer items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors ${
+                            formData.status === s.value
+                              ? 'bg-accent text-accent-foreground font-medium'
+                              : 'hover:bg-muted text-foreground'
+                          }`}
+                        >
+                          <span className={`w-2.5 h-2.5 rounded-full ${s.color} shrink-0`} />
+                          {s.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               );
             })()}
 
