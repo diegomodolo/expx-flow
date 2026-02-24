@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
-import { useClipGenerator, Clip } from "@/hooks/useClipGenerator";
+import { useClipGenerator, Clip, ProcessingStep } from "@/hooks/useClipGenerator";
 import { useCompany } from "@/contexts/CompanyContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,10 @@ import {
   Clock,
   TrendingUp,
   AlertCircle,
+  CheckCircle2,
+  Circle,
+  Loader2,
+  XCircle,
 } from "lucide-react";
 
 const CLIP_TYPE_LABELS: Record<string, { label: string; icon: string }> = {
@@ -68,6 +72,7 @@ export default function ClipsPage() {
   const {
     job,
     clips,
+    steps,
     isLoading,
     processUrl,
     uploadAndProcess,
@@ -272,23 +277,73 @@ export default function ClipsPage() {
         )}
 
         {/* Progress */}
-        {isProcessing && job && (
-          <Card>
+        {(isProcessing || isError) && job && (
+          <Card className={isError ? "border-destructive/30" : ""}>
             <CardContent className="pt-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="animate-spin">
-                    <Sparkles className="h-4 w-4 text-primary" />
+              {/* Step-by-step progress */}
+              <div className="space-y-1">
+                {steps.map((step) => (
+                  <div key={step.id} className="flex items-center gap-3 py-1.5">
+                    {step.status === "done" && (
+                      <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
+                    )}
+                    {step.status === "active" && (
+                      <Loader2 className="h-4 w-4 text-primary animate-spin shrink-0" />
+                    )}
+                    {step.status === "error" && (
+                      <XCircle className="h-4 w-4 text-destructive shrink-0" />
+                    )}
+                    {step.status === "pending" && (
+                      <Circle className="h-4 w-4 text-muted-foreground/40 shrink-0" />
+                    )}
+                    <span
+                      className={`text-sm ${
+                        step.status === "done"
+                          ? "text-muted-foreground line-through"
+                          : step.status === "active"
+                          ? "font-medium text-foreground"
+                          : step.status === "error"
+                          ? "font-medium text-destructive"
+                          : "text-muted-foreground/60"
+                      }`}
+                    >
+                      {step.label}
+                    </span>
                   </div>
-                  <span className="text-sm font-medium">
-                    {job.progress_message || "Processando..."}
-                  </span>
-                </div>
-                <span className="text-sm font-bold text-primary">
-                  {job.progress}%
-                </span>
+                ))}
               </div>
-              <Progress value={job.progress} />
+
+              {/* Progress bar */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>{job.progress_message || "Processando..."}</span>
+                  <span className="font-bold text-primary">{job.progress}%</span>
+                </div>
+                <Progress value={job.progress} />
+              </div>
+
+              {/* Error details */}
+              {isError && job.error_message && (
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-destructive/5 border border-destructive/20">
+                  <AlertCircle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-sm text-destructive font-medium">Erro no processamento</p>
+                    <p className="text-xs text-muted-foreground mt-1">{job.error_message}</p>
+                  </div>
+                </div>
+              )}
+
+              {(isError) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={reset}
+                  className="gap-2"
+                >
+                  <RotateCcw className="h-3 w-3" />
+                  Tentar novamente
+                </Button>
+              )}
 
               {clips.length > 0 && (
                 <div className="pt-2">
@@ -298,34 +353,6 @@ export default function ClipsPage() {
                   <ClipsGrid clips={clips} />
                 </div>
               )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Error */}
-        {isError && job && (
-          <Card className="border-destructive/50">
-            <CardContent className="pt-6">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="h-5 w-5 text-destructive mt-0.5" />
-                <div className="flex-1">
-                  <p className="font-medium text-destructive">
-                    Erro no processamento
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {job.error_message}
-                  </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={reset}
-                    className="mt-3 gap-2"
-                  >
-                    <RotateCcw className="h-3 w-3" />
-                    Tentar novamente
-                  </Button>
-                </div>
-              </div>
             </CardContent>
           </Card>
         )}
