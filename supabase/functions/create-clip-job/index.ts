@@ -127,13 +127,13 @@ serve(async (req) => {
       videoUrl = signedUrlData.signedUrl;
     }
 
-    // If YouTube URL, resolve to a direct file URL before Shotstack ingest
+    // If YouTube URL, resolve to direct URL, download, and upload to storage
     if (isYouTubeUrl && videoUrl) {
       await supabase
         .from("clip_jobs")
         .update({
           progress: 5,
-          progress_message: "Preparando vídeo do YouTube...",
+          progress_message: "Obtendo URL direta do YouTube...",
         })
         .eq("id", job.id);
 
@@ -144,30 +144,78 @@ serve(async (req) => {
 
         if (!resolvedDirectUrl) {
           const diagnosticSummary = diagnostics.slice(0, 10).join(" | ");
-
           await supabase
             .from("clip_jobs")
             .update({
               status: "error",
-              error_message:
-                `Não foi possível obter URL direta do YouTube. Detalhes: ${diagnosticSummary || "sem detalhes"}. Tente upload manual do vídeo.`,
+              error_message: `Não foi possível obter URL direta do YouTube. Detalhes: ${diagnosticSummary || "sem detalhes"}. Tente upload manual do vídeo.`,
+              progress_message: "Erro ao obter URL do YouTube",
             })
             .eq("id", job.id);
-
           return new Response(
             JSON.stringify({ error: "Erro ao baixar vídeo do YouTube" }),
             { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
 
-        videoUrl = resolvedDirectUrl;
-        console.log("Resolved YouTube URL to direct URL:", videoUrl.substring(0, 100));
+        console.log("Resolved YouTube URL to direct URL:", resolvedDirectUrl.substring(0, 100));
+
+        // Download video from direct URL and upload to Supabase Storage
+        // This is needed because Google video URLs are IP-restricted
+        await supabase
+          .from("clip_jobs")
+          .update({
+            progress: 6,
+            progress_message: "Baixando vídeo do YouTube...",
+          })
+          .eq("id", job.id);
+
+        console.log("Downloading video from direct URL...");
+        const videoResponse = await fetch(resolvedDirectUrl);
+        if (!videoResponse.ok) {
+          throw new Error(`Falha ao baixar vídeo: HTTP ${videoResponse.status}`);
+        }
+
+        const videoBlob = await videoResponse.blob();
+        const storagePath = `yt-downloads/${job.id}.mp4`;
+        console.log(`Video downloaded: ${videoBlob.size} bytes, uploading to storage...`);
+
+        await supabase
+          .from("clip_jobs")
+          .update({
+            progress: 7,
+            progress_message: "Fazendo upload do vídeo para o servidor...",
+          })
+          .eq("id", job.id);
+
+        const { error: uploadError } = await supabase.storage
+          .from("videos-input")
+          .upload(storagePath, videoBlob, {
+            contentType: "video/mp4",
+            upsert: true,
+          });
+
+        if (uploadError) {
+          throw new Error(`Falha no upload: ${uploadError.message}`);
+        }
+
+        // Generate a signed URL valid for 1 hour
+        const { data: signedData, error: signedError } = await supabase.storage
+          .from("videos-input")
+          .createSignedUrl(storagePath, 3600);
+
+        if (signedError || !signedData?.signedUrl) {
+          throw new Error(`Falha ao gerar URL assinada: ${signedError?.message || "sem URL"}`);
+        }
+
+        videoUrl = signedData.signedUrl;
+        console.log("Video uploaded to storage, signed URL ready");
 
         await supabase
           .from("clip_jobs")
           .update({
             progress: 8,
-            progress_message: "Vídeo do YouTube resolvido, enviando para transcrição...",
+            progress_message: "Vídeo pronto, enviando para transcrição...",
           })
           .eq("id", job.id);
       } catch (ytError: any) {
@@ -177,6 +225,7 @@ serve(async (req) => {
           .update({
             status: "error",
             error_message: `Erro ao processar YouTube: ${ytError?.message || "erro desconhecido"}`,
+            progress_message: "Erro ao processar vídeo do YouTube",
           })
           .eq("id", job.id);
         return new Response(
