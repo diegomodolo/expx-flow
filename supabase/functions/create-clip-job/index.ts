@@ -278,11 +278,11 @@ async function resolveYouTubeToDirectUrl(youtubeUrl: string): Promise<{ url: str
   const diagnostics: string[] = [];
 
   try {
-    console.log("Resolving YouTube via yt-dlp API:", youtubeUrl);
+    console.log("Resolving YouTube via yt-dlp API /direct-url:", youtubeUrl);
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 30000);
+    const timeout = setTimeout(() => controller.abort(), 60000);
 
-    const response = await fetch("https://refreshing-beauty-production-f560.up.railway.app/download", {
+    const response = await fetch("https://refreshing-beauty-production-f560.up.railway.app/direct-url", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ url: youtubeUrl }),
@@ -293,7 +293,7 @@ async function resolveYouTubeToDirectUrl(youtubeUrl: string): Promise<{ url: str
     const rawBody = await response.text();
 
     if (!response.ok) {
-      diagnostics.push(`yt-dlp-api: HTTP ${response.status} - ${rawBody.substring(0, 200)}`);
+      diagnostics.push(`yt-dlp-api /direct-url: HTTP ${response.status} - ${rawBody.substring(0, 200)}`);
       return { url: null, diagnostics };
     }
 
@@ -301,21 +301,24 @@ async function resolveYouTubeToDirectUrl(youtubeUrl: string): Promise<{ url: str
     try {
       data = JSON.parse(rawBody);
     } catch {
-      diagnostics.push("yt-dlp-api: JSON inválido");
+      diagnostics.push("yt-dlp-api /direct-url: JSON inválido");
       return { url: null, diagnostics };
     }
 
-    const downloadUrl = data?.download_url;
-    if (typeof downloadUrl === "string" && downloadUrl.startsWith("http")) {
-      diagnostics.push("yt-dlp-api: ok");
-      return { url: downloadUrl, diagnostics };
+    const directUrl = data?.url;
+    const ext = data?.ext || "mp4";
+    console.log(`yt-dlp /direct-url response: ext=${ext}, resolution=${data?.resolution}, filesize=${data?.filesize}`);
+
+    if (typeof directUrl === "string" && directUrl.startsWith("http")) {
+      diagnostics.push(`yt-dlp-api /direct-url: ok (ext=${ext})`);
+      return { url: directUrl, diagnostics };
     }
 
-    diagnostics.push(`yt-dlp-api: sem download_url (${JSON.stringify(data).substring(0, 200)})`);
+    diagnostics.push(`yt-dlp-api /direct-url: sem url (${JSON.stringify(data).substring(0, 200)})`);
     return { url: null, diagnostics };
   } catch (error: any) {
-    const msg = error?.name === "AbortError" ? "timeout (30s)" : (error?.message || "indisponível");
-    diagnostics.push(`yt-dlp-api: ${msg}`);
+    const msg = error?.name === "AbortError" ? "timeout (60s)" : (error?.message || "indisponível");
+    diagnostics.push(`yt-dlp-api /direct-url: ${msg}`);
     return { url: null, diagnostics };
   }
 }
