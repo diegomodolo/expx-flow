@@ -127,7 +127,7 @@ serve(async (req) => {
       videoUrl = signedUrlData.signedUrl;
     }
 
-    // If YouTube URL, resolve to direct URL, download, and upload to storage
+    // If YouTube URL, resolve to direct URL via yt-dlp API and pass to Shotstack
     if (isYouTubeUrl && videoUrl) {
       await supabase
         .from("clip_jobs")
@@ -158,68 +158,18 @@ serve(async (req) => {
           );
         }
 
-        console.log("Resolved YouTube URL to direct URL:", resolvedDirectUrl.substring(0, 100));
-
-        // Download video from direct URL and upload to Supabase Storage
-        // This is needed because Google video URLs are IP-restricted
-        await supabase
-          .from("clip_jobs")
-          .update({
-            progress: 6,
-            progress_message: "Baixando vídeo do YouTube...",
-          })
-          .eq("id", job.id);
-
-        console.log("Downloading video from direct URL...");
-        const videoResponse = await fetch(resolvedDirectUrl);
-        if (!videoResponse.ok) {
-          throw new Error(`Falha ao baixar vídeo: HTTP ${videoResponse.status}`);
-        }
-
-        const videoBlob = await videoResponse.blob();
-        const storagePath = `yt-downloads/${job.id}.mp4`;
-        console.log(`Video downloaded: ${videoBlob.size} bytes, uploading to storage...`);
-
-        await supabase
-          .from("clip_jobs")
-          .update({
-            progress: 7,
-            progress_message: "Fazendo upload do vídeo para o servidor...",
-          })
-          .eq("id", job.id);
-
-        const { error: uploadError } = await supabase.storage
-          .from("videos-input")
-          .upload(storagePath, videoBlob, {
-            contentType: "video/mp4",
-            upsert: true,
-          });
-
-        if (uploadError) {
-          throw new Error(`Falha no upload: ${uploadError.message}`);
-        }
-
-        // Generate a signed URL valid for 1 hour
-        const { data: signedData, error: signedError } = await supabase.storage
-          .from("videos-input")
-          .createSignedUrl(storagePath, 3600);
-
-        if (signedError || !signedData?.signedUrl) {
-          throw new Error(`Falha ao gerar URL assinada: ${signedError?.message || "sem URL"}`);
-        }
-
-        videoUrl = signedData.signedUrl;
-        console.log("Video uploaded to storage, signed URL ready");
+        videoUrl = resolvedDirectUrl;
+        console.log("Resolved YouTube URL to direct URL:", videoUrl.substring(0, 120));
 
         await supabase
           .from("clip_jobs")
           .update({
             progress: 8,
-            progress_message: "Vídeo pronto, enviando para transcrição...",
+            progress_message: "URL do vídeo obtida, enviando para transcrição...",
           })
           .eq("id", job.id);
       } catch (ytError: any) {
-        console.error("YouTube download error:", ytError);
+        console.error("YouTube resolve error:", ytError);
         await supabase
           .from("clip_jobs")
           .update({
