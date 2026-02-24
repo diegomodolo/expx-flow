@@ -77,13 +77,15 @@ async function handleIngestCallback(
   const status = body.status;
 
   if (status === "failed") {
+    const errorDetail = body.error || "Erro desconhecido";
+    console.error(`Ingest failed for job ${jobId}: ${errorDetail}`);
     await supabase
       .from("clip_jobs")
       .update({
         status: "error",
-        error_message: "Falha na transcrição do vídeo pelo Shotstack",
+        error_message: `Falha na transcrição: ${errorDetail}. O Shotstack não suporta URLs do YouTube diretamente — use um link direto para o arquivo de vídeo (.mp4) ou faça upload do vídeo.`,
         progress: 0,
-        progress_message: "Erro na transcrição",
+        progress_message: "Erro na transcrição do vídeo",
       })
       .eq("id", jobId);
     return;
