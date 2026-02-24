@@ -49,6 +49,20 @@ serve(async (req) => {
       );
     }
 
+    // Validate: Shotstack doesn't support YouTube URLs
+    if (inputUrl) {
+      const urlLower = inputUrl.toLowerCase();
+      if (urlLower.includes("youtube.com") || urlLower.includes("youtu.be")) {
+        return new Response(
+          JSON.stringify({ error: "URLs do YouTube não são suportadas. Faça o upload do vídeo diretamente ou use um link direto para o arquivo de vídeo (.mp4)." }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+    }
+
     // Create job
     const { data: job, error: insertError } = await supabase
       .from("clip_jobs")
