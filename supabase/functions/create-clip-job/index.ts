@@ -60,7 +60,7 @@ serve(async (req) => {
         input_storage_path: inputStoragePath ?? null,
         status: "pending",
         progress: 0,
-        progress_message: "Job criado, aguardando processamento...",
+        progress_message: "Job criado, enviando vídeo para transcrição...",
         max_clips: maxClips,
         format: format,
       })
@@ -75,41 +75,111 @@ serve(async (req) => {
       });
     }
 
-    // Trigger external processing service (fire and forget)
-    const processingServiceUrl = Deno.env.get("PROCESSING_SERVICE_URL");
-    const processingServiceSecret = Deno.env.get("PROCESSING_SERVICE_SECRET");
+    // Determine video URL
+    let videoUrl = inputUrl;
 
-    if (processingServiceUrl) {
-      fetch(`${processingServiceUrl}/process`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${processingServiceSecret}`,
-        },
-        body: JSON.stringify({
-          jobId: job.id,
-          userId: user.id,
-          inputUrl,
-          inputStoragePath,
-          maxClips,
-          format,
-          supabaseUrl,
-          supabaseServiceKey,
-        }),
-      }).catch((err) => {
-        console.error("Failed to trigger processing service:", err);
-      });
-    } else {
-      // If no processing service, update job to error
+    if (!videoUrl && inputStoragePath) {
+      // Generate signed URL from Supabase Storage
+      const { data: signedUrlData, error: signedUrlError } =
+        await supabase.storage
+          .from("clips-input")
+          .createSignedUrl(inputStoragePath, 3600); // 1 hour expiry
+
+      if (signedUrlError || !signedUrlData?.signedUrl) {
+        console.error("Error generating signed URL:", signedUrlError);
+        await supabase
+          .from("clip_jobs")
+          .update({
+            status: "error",
+            error_message: "Erro ao gerar URL do vídeo no storage",
+          })
+          .eq("id", job.id);
+        return new Response(
+          JSON.stringify({ error: "Erro ao gerar URL do vídeo" }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      videoUrl = signedUrlData.signedUrl;
+    }
+
+    // Send to Shotstack Ingest API
+    const shotstackApiKey = Deno.env.get("SHOTSTACK_API_KEY");
+    if (!shotstackApiKey) {
       await supabase
         .from("clip_jobs")
         .update({
           status: "error",
-          error_message:
-            "Serviço de processamento não configurado (PROCESSING_SERVICE_URL)",
+          error_message: "SHOTSTACK_API_KEY não configurada",
         })
         .eq("id", job.id);
+      return new Response(
+        JSON.stringify({ error: "Shotstack API key não configurada" }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
+
+    const callbackUrl = `${supabaseUrl}/functions/v1/shotstack-webhook?secret=${encodeURIComponent(shotstackApiKey)}&jobId=${job.id}&type=ingest`;
+
+    const ingestPayload = {
+      url: videoUrl,
+      outputs: {
+        transcription: {
+          format: "vtt",
+        },
+      },
+      callback: callbackUrl,
+    };
+
+    console.log("Sending to Shotstack Ingest API:", JSON.stringify({ url: videoUrl, callback: "..." }));
+
+    const ingestResponse = await fetch(
+      "https://api.shotstack.io/ingest/v1/sources",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": shotstackApiKey,
+        },
+        body: JSON.stringify(ingestPayload),
+      }
+    );
+
+    const ingestData = await ingestResponse.json();
+    console.log("Shotstack Ingest response:", JSON.stringify(ingestData).substring(0, 500));
+
+    if (!ingestResponse.ok) {
+      const errorMsg = ingestData.message || ingestData.error || "Erro ao enviar para Shotstack";
+      await supabase
+        .from("clip_jobs")
+        .update({
+          status: "error",
+          error_message: `Shotstack Ingest error: ${errorMsg}`,
+        })
+        .eq("id", job.id);
+      return new Response(JSON.stringify({ error: errorMsg }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Save Shotstack source ID and update status
+    const sourceId = ingestData.data?.id || ingestData.id || "";
+    await supabase
+      .from("clip_jobs")
+      .update({
+        status: "processing",
+        progress: 10,
+        progress_message: "Vídeo enviado, aguardando transcrição...",
+        shotstack_source_id: sourceId,
+      })
+      .eq("id", job.id);
 
     return new Response(JSON.stringify({ jobId: job.id, success: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
