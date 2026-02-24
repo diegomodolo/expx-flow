@@ -276,13 +276,27 @@ serve(async (req) => {
 
 async function resolveYouTubeToDirectUrl(youtubeUrl: string): Promise<{ url: string | null; diagnostics: string[] }> {
   const diagnostics: string[] = [];
+  const apiBase = "https://refreshing-beauty-production-f560.up.railway.app";
+
+  const normalizeYouTubeUrl = (raw: string) => {
+    try {
+      const u = new URL(raw);
+      u.searchParams.delete("t");
+      u.searchParams.delete("start");
+      return u.toString();
+    } catch {
+      return raw;
+    }
+  };
+
+  const normalizedUrl = normalizeYouTubeUrl(youtubeUrl);
 
   const callEndpoint = async (endpoint: string, payload: Record<string, unknown>) => {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 60000);
 
     try {
-      const response = await fetch(`https://refreshing-beauty-production-f560.up.railway.app${endpoint}`, {
+      const response = await fetch(`${apiBase}${endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -290,7 +304,6 @@ async function resolveYouTubeToDirectUrl(youtubeUrl: string): Promise<{ url: str
       });
 
       const rawBody = await response.text();
-
       let data: any = null;
       try {
         data = rawBody ? JSON.parse(rawBody) : null;
@@ -307,41 +320,118 @@ async function resolveYouTubeToDirectUrl(youtubeUrl: string): Promise<{ url: str
     }
   };
 
-  // 1) Preferred endpoint: /direct-url (returns ext + filename)
-  const directRes = await callEndpoint("/direct-url", { url: youtubeUrl, format: "best" });
-  if (directRes.ok && typeof directRes.data?.url === "string" && directRes.data.url.startsWith("http")) {
-    const ext = directRes.data?.ext || "unknown";
-    diagnostics.push(`yt-dlp-api /direct-url: ok (ext=${ext})`);
-    return { url: directRes.data.url, diagnostics };
-  }
-  diagnostics.push(`yt-dlp-api /direct-url: HTTP ${directRes.status} - ${(directRes.rawBody || "").substring(0, 200)}`);
+  const getHost = (candidateUrl: string) => {
+    try {
+      return new URL(candidateUrl).hostname;
+    } catch {
+      return "invalid-url";
+    }
+  };
 
-  // 2) Fallback endpoint: /info (returns metadata + direct URL + formats)
-  const infoRes = await callEndpoint("/info", { url: youtubeUrl });
-  if (infoRes.ok && infoRes.data) {
-    const infoUrl = infoRes.data?.url;
-    const formatUrl = Array.isArray(infoRes.data?.formats)
-      ? infoRes.data.formats.find((f: any) => typeof f?.url === "string" && f.url.startsWith("http"))?.url
-      : null;
+  const isDirectMediaCandidate = (candidateUrl: string) => {
+    try {
+      const parsed = new URL(candidateUrl);
+      const host = parsed.hostname.toLowerCase();
+      if (host.includes("youtube.com") || host.includes("youtu.be")) return false;
+      return parsed.protocol === "https:" || parsed.protocol === "http:";
+    } catch {
+      return false;
+    }
+  };
 
-    const resolvedUrl = typeof infoUrl === "string" && infoUrl.startsWith("http") ? infoUrl : formatUrl;
-    if (typeof resolvedUrl === "string" && resolvedUrl.startsWith("http")) {
-      diagnostics.push("yt-dlp-api /info: ok");
-      return { url: resolvedUrl, diagnostics };
+  const checkUrlReachableFromEdge = async (candidateUrl: string) => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20000);
+
+    try {
+      const response = await fetch(candidateUrl, {
+        method: "GET",
+        headers: { Range: "bytes=0-1" },
+        signal: controller.signal,
+      });
+
+      const ok = response.status === 200 || response.status === 206;
+      return { ok, status: response.status };
+    } catch (error: any) {
+      const msg = error?.name === "AbortError" ? "timeout (20s)" : (error?.message || "indisponível");
+      return { ok: false, status: 0, message: msg };
+    } finally {
+      clearTimeout(timeout);
+    }
+  };
+
+  const evaluateCandidate = async (candidateUrl: string, sourceLabel: string) => {
+    if (!isDirectMediaCandidate(candidateUrl)) {
+      diagnostics.push(`${sourceLabel}: URL não é mídia direta`);
+      return null;
     }
 
-    diagnostics.push(`yt-dlp-api /info: sem url (${JSON.stringify(infoRes.data).substring(0, 200)})`);
-  } else {
-    diagnostics.push(`yt-dlp-api /info: HTTP ${infoRes.status} - ${(infoRes.rawBody || "").substring(0, 200)}`);
+    const reachability = await checkUrlReachableFromEdge(candidateUrl);
+    if (!reachability.ok) {
+      const host = getHost(candidateUrl);
+      diagnostics.push(`${sourceLabel}: URL inacessível do edge (host=${host}, status=${reachability.status || reachability.message || "n/a"})`);
+      return null;
+    }
+
+    diagnostics.push(`${sourceLabel}: ok (host=${getHost(candidateUrl)})`);
+    return candidateUrl;
+  };
+
+  // 1) Preferred endpoint: /direct-url with format fallbacks
+  const directFormats = ["best[ext=mp4]", "18", "22", "best"];
+  for (const format of directFormats) {
+    const directRes = await callEndpoint("/direct-url", { url: normalizedUrl, format });
+
+    if (!directRes.ok) {
+      diagnostics.push(`yt-dlp-api /direct-url (${format}): HTTP ${directRes.status} - ${(directRes.rawBody || "").substring(0, 120)}`);
+      continue;
+    }
+
+    const directUrl = directRes.data?.url;
+    if (typeof directUrl === "string" && directUrl.startsWith("http")) {
+      const accepted = await evaluateCandidate(directUrl, `yt-dlp-api /direct-url (${format})`);
+      if (accepted) return { url: accepted, diagnostics };
+      continue;
+    }
+
+    diagnostics.push(`yt-dlp-api /direct-url (${format}): sem campo url`);
   }
 
-  // 3) Last fallback: /download (legacy response)
-  const downloadRes = await callEndpoint("/download", { url: youtubeUrl });
-  if (downloadRes.ok && typeof downloadRes.data?.download_url === "string" && downloadRes.data.download_url.startsWith("http")) {
-    diagnostics.push("yt-dlp-api /download: ok");
-    return { url: downloadRes.data.download_url, diagnostics };
+  // 2) Fallback endpoint: /info (use main url + formats list)
+  const infoRes = await callEndpoint("/info", { url: normalizedUrl });
+  if (infoRes.ok && infoRes.data) {
+    const candidates: string[] = [];
+
+    if (typeof infoRes.data?.url === "string") {
+      candidates.push(infoRes.data.url);
+    }
+
+    if (Array.isArray(infoRes.data?.formats)) {
+      for (const f of infoRes.data.formats) {
+        if (typeof f?.url === "string") candidates.push(f.url);
+      }
+    }
+
+    const uniqueCandidates = [...new Set(candidates)].slice(0, 20);
+    for (const candidate of uniqueCandidates) {
+      const accepted = await evaluateCandidate(candidate, "yt-dlp-api /info");
+      if (accepted) return { url: accepted, diagnostics };
+    }
+
+    diagnostics.push("yt-dlp-api /info: nenhum candidato utilizável");
+  } else {
+    diagnostics.push(`yt-dlp-api /info: HTTP ${infoRes.status} - ${(infoRes.rawBody || "").substring(0, 120)}`);
   }
-  diagnostics.push(`yt-dlp-api /download: HTTP ${downloadRes.status} - ${(downloadRes.rawBody || "").substring(0, 200)}`);
+
+  // 3) Last fallback: /download (legacy)
+  const downloadRes = await callEndpoint("/download", { url: normalizedUrl });
+  if (downloadRes.ok && typeof downloadRes.data?.download_url === "string") {
+    const accepted = await evaluateCandidate(downloadRes.data.download_url, "yt-dlp-api /download");
+    if (accepted) return { url: accepted, diagnostics };
+    diagnostics.push("yt-dlp-api /download: URL recebida, mas não acessível");
+  } else {
+    diagnostics.push(`yt-dlp-api /download: HTTP ${downloadRes.status} - ${(downloadRes.rawBody || "").substring(0, 120)}`);
+  }
 
   return { url: null, diagnostics };
 }
