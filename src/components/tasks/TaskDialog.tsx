@@ -830,7 +830,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
               ];
               const current = statusOptions.find(s => s.value === formData.status) || statusOptions[0];
               return (
-                <Popover open={statusPopoverOpen} onOpenChange={setStatusPopoverOpen} modal>
+                <Popover open={statusPopoverOpen} onOpenChange={setStatusPopoverOpen}>
                   <PopoverTrigger asChild>
                     <button
                       type="button"
@@ -843,27 +843,18 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                   <PopoverContent
                     side="right"
                     align="start"
-                    className="w-52 p-1 z-[70] bg-popover"
-                    onOpenAutoFocus={(e) => e.preventDefault()}
-                    onPointerDown={(e) => e.stopPropagation()}
-                    onClick={(e) => e.stopPropagation()}
+                    className="w-52 p-1 z-[90] bg-popover pointer-events-auto"
                   >
                     <div className="text-xs font-semibold text-muted-foreground px-2 py-1.5">Alterar Status</div>
                     {statusOptions.map((s) => (
                       <button
                         key={s.value}
                         type="button"
-                        onPointerDown={(e) => {
-                          e.stopPropagation();
-                          e.preventDefault();
+                        onClick={() => {
                           setFormData(prev => ({ ...prev, status: s.value }));
                           setStatusPopoverOpen(false);
                         }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          e.preventDefault();
-                        }}
-                        className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors ${
+                        className={`w-full flex cursor-pointer items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors ${
                           formData.status === s.value
                             ? 'bg-accent text-accent-foreground font-medium'
                             : 'hover:bg-muted text-foreground'
