@@ -841,7 +841,11 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                     {statusOptions.map((s) => (
                       <button
                         key={s.value}
-                        onClick={() => setFormData(prev => ({ ...prev, status: s.value }))}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          setFormData(prev => ({ ...prev, status: s.value }));
+                        }}
                         className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors ${
                           formData.status === s.value
                             ? 'bg-accent text-accent-foreground font-medium'
