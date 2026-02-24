@@ -3127,6 +3127,7 @@ export type Database = {
         Row: {
           client_id: string | null
           company_id: string | null
+          context_description: string | null
           created_at: string | null
           error_message: string | null
           format: string | null
@@ -3134,11 +3135,14 @@ export type Database = {
           input_storage_path: string | null
           input_url: string | null
           max_clips: number | null
+          max_duration_seconds: number | null
           progress: number | null
           progress_message: string | null
           shotstack_render_ids: string[] | null
           shotstack_source_id: string | null
           status: string
+          time_end_seconds: number | null
+          time_start_seconds: number | null
           total_expected_clips: number | null
           updated_at: string | null
           user_id: string
@@ -3147,6 +3151,7 @@ export type Database = {
         Insert: {
           client_id?: string | null
           company_id?: string | null
+          context_description?: string | null
           created_at?: string | null
           error_message?: string | null
           format?: string | null
@@ -3154,11 +3159,14 @@ export type Database = {
           input_storage_path?: string | null
           input_url?: string | null
           max_clips?: number | null
+          max_duration_seconds?: number | null
           progress?: number | null
           progress_message?: string | null
           shotstack_render_ids?: string[] | null
           shotstack_source_id?: string | null
           status?: string
+          time_end_seconds?: number | null
+          time_start_seconds?: number | null
           total_expected_clips?: number | null
           updated_at?: string | null
           user_id: string
@@ -3167,6 +3175,7 @@ export type Database = {
         Update: {
           client_id?: string | null
           company_id?: string | null
+          context_description?: string | null
           created_at?: string | null
           error_message?: string | null
           format?: string | null
@@ -3174,11 +3183,14 @@ export type Database = {
           input_storage_path?: string | null
           input_url?: string | null
           max_clips?: number | null
+          max_duration_seconds?: number | null
           progress?: number | null
           progress_message?: string | null
           shotstack_render_ids?: string[] | null
           shotstack_source_id?: string | null
           status?: string
+          time_end_seconds?: number | null
+          time_start_seconds?: number | null
           total_expected_clips?: number | null
           updated_at?: string | null
           user_id?: string
