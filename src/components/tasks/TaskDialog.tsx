@@ -61,6 +61,7 @@ type SidebarTab = 'principal' | 'clientes' | 'equipe' | 'checklist' | 'subtarefa
 
 const ZOOM_STORAGE_KEY = 'task-dialog-zoom';
 const ZOOM_LEVELS = [640, 768, 896, 1024, 1152, 1280, 1408, 1536];
+const MIN_SAFE_ZOOM = 768; // minimum width that guarantees controls remain visible
 
 const TASK_TYPES = [
   { value: 'Criativo', label: 'Criativo' },
@@ -303,8 +304,15 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
       const { data: { user: u } } = await supabase.auth.getUser();
       if (u) {
         setAuthUserId(u.id);
-        const zoom = await getStoredZoom(u.id);
-        setZoomWidth(zoom);
+        let zoom = await getStoredZoom(u.id);
+        // Clamp: if stored zoom is too small for the screen, reset to safe default
+        const screenW = typeof window !== 'undefined' ? window.innerWidth : 1024;
+        if (zoom > screenW - 40) zoom = Math.min(1024, screenW - 40);
+        if (zoom < MIN_SAFE_ZOOM) zoom = MIN_SAFE_ZOOM;
+        // Snap to nearest valid level
+        const nearest = ZOOM_LEVELS.reduce((prev, curr) => Math.abs(curr - zoom) < Math.abs(prev - zoom) ? curr : prev);
+        setZoomWidth(nearest);
+        if (nearest !== zoom) saveZoom(u.id, nearest);
       }
     };
     loadUser();
@@ -323,6 +331,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
     const idx = ZOOM_LEVELS.indexOf(zoomWidth);
     if (idx > 0) {
       const newZoom = ZOOM_LEVELS[idx - 1];
+      if (newZoom < MIN_SAFE_ZOOM) return; // prevent shrinking below safe minimum
       setZoomWidth(newZoom);
       if (authUserId) saveZoom(authUserId, newZoom);
     }
@@ -947,22 +956,22 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
               <div className="flex items-center gap-1">
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleZoomOut} disabled={ZOOM_LEVELS.indexOf(zoomWidth) <= 0}>
-                      <ZoomOut className="w-4 h-4" />
+                    <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={handleZoomOut} disabled={ZOOM_LEVELS.indexOf(zoomWidth) <= 0}>
+                      <ZoomOut className="w-3.5 h-3.5" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>Diminuir</TooltipContent>
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleZoomIn} disabled={ZOOM_LEVELS.indexOf(zoomWidth) >= ZOOM_LEVELS.length - 1}>
-                      <ZoomIn className="w-4 h-4" />
+                    <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={handleZoomIn} disabled={ZOOM_LEVELS.indexOf(zoomWidth) >= ZOOM_LEVELS.length - 1}>
+                      <ZoomIn className="w-3.5 h-3.5" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>Aumentar</TooltipContent>
                 </Tooltip>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onOpenChange(false)}>
-                  <X className="w-4 h-4" />
+                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => onOpenChange(false)}>
+                  <X className="w-3.5 h-3.5" />
                 </Button>
               </div>
               </div>
