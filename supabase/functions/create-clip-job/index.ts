@@ -638,23 +638,93 @@ async function tryResolveWithPiped(youtubeUrl: string): Promise<ResolveResult> {
   return { url: null, diagnostics };
 }
 
+async function tryResolveWithCobalt(youtubeUrl: string): Promise<ResolveResult> {
+  const diagnostics: string[] = [];
+
+  // Cobalt community instances (wraps yt-dlp internally)
+  const cobaltInstances = [
+    { url: "https://cobalt-api.kwiatekmiki.com", version: "new" },
+    { url: "https://cobalt.api.timelessnesses.me", version: "new" },
+    { url: "https://cobalt-api.hyper.lol", version: "new" },
+    { url: "https://api.cobalt.tools", version: "new" },
+  ];
+
+  for (const instance of cobaltInstances) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 20000);
+
+      const host = instance.url.replace("https://", "");
+
+      // New cobalt API format (v10+)
+      const response = await fetch(instance.url, {
+        method: "POST",
+        headers: {
+          "Accept": "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          url: youtubeUrl,
+          videoQuality: "720",
+          filenameStyle: "basic",
+        }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+
+      if (!response.ok) {
+        const body = await response.text();
+        diagnostics.push(`cobalt ${host}: HTTP ${response.status}`);
+        console.error(`Cobalt failed (${host}) [${response.status}]:`, body.substring(0, 300));
+        continue;
+      }
+
+      const data = await response.json();
+
+      // Cobalt returns { status: "redirect"|"stream"|"tunnel", url: "..." }
+      if (data?.url && typeof data.url === "string" && data.url.startsWith("http")) {
+        diagnostics.push(`cobalt ${host}: ok (${data.status || "redirect"})`);
+        return { url: data.url, diagnostics };
+      }
+
+      // Some instances return { status: "picker", picker: [{ url }] }
+      if (data?.status === "picker" && Array.isArray(data.picker) && data.picker.length > 0) {
+        const videoItem = data.picker.find((p: any) => p.type === "video" && p.url) || data.picker[0];
+        if (videoItem?.url) {
+          diagnostics.push(`cobalt ${host}: ok (picker)`);
+          return { url: videoItem.url, diagnostics };
+        }
+      }
+
+      diagnostics.push(`cobalt ${host}: sem url (status: ${data?.status || "unknown"})`);
+    } catch (error: any) {
+      const host = instance.url.replace("https://", "");
+      diagnostics.push(`cobalt ${host}: ${error?.name === "AbortError" ? "timeout" : "indisponível"}`);
+    }
+  }
+
+  return { url: null, diagnostics };
+}
+
 async function resolveYouTubeToDirectUrl(
   youtubeUrl: string,
   apifyToken?: string
 ): Promise<ResolveResult> {
   const diagnostics: string[] = [];
 
-  // 1. Invidious
-  const invidiousResult = await tryResolveWithInvidious(youtubeUrl);
-  diagnostics.push(...invidiousResult.diagnostics);
-  if (invidiousResult.url) {
+  // 1. Cobalt (yt-dlp wrapper) - most reliable
+  console.log("Trying Cobalt resolver...");
+  const cobaltResult = await tryResolveWithCobalt(youtubeUrl);
+  diagnostics.push(...cobaltResult.diagnostics);
+  if (cobaltResult.url) {
     return {
-      url: invidiousResult.url,
+      url: cobaltResult.url,
       diagnostics: Array.from(new Set(diagnostics)).slice(0, 12),
     };
   }
 
   // 2. Piped
+  console.log("Trying Piped resolver...");
   const pipedResult = await tryResolveWithPiped(youtubeUrl);
   diagnostics.push(...pipedResult.diagnostics);
   if (pipedResult.url) {
@@ -664,8 +734,20 @@ async function resolveYouTubeToDirectUrl(
     };
   }
 
-  // 3. Apify
+  // 3. Invidious
+  console.log("Trying Invidious resolver...");
+  const invidiousResult = await tryResolveWithInvidious(youtubeUrl);
+  diagnostics.push(...invidiousResult.diagnostics);
+  if (invidiousResult.url) {
+    return {
+      url: invidiousResult.url,
+      diagnostics: Array.from(new Set(diagnostics)).slice(0, 12),
+    };
+  }
+
+  // 4. Apify (last resort)
   if (apifyToken) {
+    console.log("Trying Apify resolver...");
     const apifyResult = await tryResolveWithApify(youtubeUrl, apifyToken);
     diagnostics.push(...apifyResult.diagnostics);
     if (apifyResult.url) {
