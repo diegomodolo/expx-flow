@@ -18,7 +18,14 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Auth
-    const authHeader = req.headers.get("Authorization")!;
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const token = authHeader.replace("Bearer ", "");
     const {
       data: { user },
@@ -120,128 +127,40 @@ serve(async (req) => {
       videoUrl = signedUrlData.signedUrl;
     }
 
-    // If YouTube URL, resolve to direct URL via Apify
+    // If YouTube URL, resolve to a direct file URL before Shotstack ingest
     if (isYouTubeUrl && videoUrl) {
       await supabase
         .from("clip_jobs")
         .update({
           progress: 5,
-          progress_message: "Baixando vídeo do YouTube...",
+          progress_message: "Preparando vídeo do YouTube...",
         })
         .eq("id", job.id);
 
-      const apifyToken = Deno.env.get("APIFY_API_TOKEN");
-      if (!apifyToken) {
-        await supabase
-          .from("clip_jobs")
-          .update({
-            status: "error",
-            error_message: "APIFY_API_TOKEN não configurada para download do YouTube",
-          })
-          .eq("id", job.id);
-        return new Response(
-          JSON.stringify({ error: "APIFY_API_TOKEN não configurada" }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
       try {
-        console.log("Resolving YouTube URL via Apify:", videoUrl);
+        console.log("Resolving YouTube URL:", videoUrl);
 
-        // Use scrapearchitect/youtube-video-downloader which returns direct links
-        const apifyResponse = await fetch(
-          `https://api.apify.com/v2/acts/scrapearchitect~youtube-video-downloader/run-sync-get-dataset-items?token=${apifyToken}&timeout=120`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              urls: [videoUrl],
-              quality: "720p",
-              type: "video",
-            }),
-          }
-        );
+        const apifyToken = Deno.env.get("APIFY_API_TOKEN") ?? undefined;
+        const resolvedDirectUrl = await resolveYouTubeToDirectUrl(videoUrl, apifyToken);
 
-        if (!apifyResponse.ok) {
-          const errorText = await apifyResponse.text();
-          console.error("Apify actor failed:", errorText);
-          
-          // Fallback: try tazy/youtube-converter
-          console.log("Trying fallback actor: tazy~youtube-converter");
-          const fallbackResponse = await fetch(
-            `https://api.apify.com/v2/acts/tazy~youtube-converter/run-sync-get-dataset-items?token=${apifyToken}&timeout=120`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                url: videoUrl,
-                format: "mp4",
-                quality: "720",
-              }),
-            }
+        if (!resolvedDirectUrl) {
+          await supabase
+            .from("clip_jobs")
+            .update({
+              status: "error",
+              error_message:
+                "Não foi possível obter URL direta do YouTube. Tente um link direto .mp4 ou faça upload manual do vídeo.",
+            })
+            .eq("id", job.id);
+
+          return new Response(
+            JSON.stringify({ error: "Erro ao baixar vídeo do YouTube" }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
-
-          if (!fallbackResponse.ok) {
-            const fallbackError = await fallbackResponse.text();
-            console.error("Fallback actor also failed:", fallbackError);
-            await supabase
-              .from("clip_jobs")
-              .update({
-                status: "error",
-                error_message: `Erro ao baixar vídeo do YouTube. Tente fazer upload do vídeo manualmente.`,
-              })
-              .eq("id", job.id);
-            return new Response(
-              JSON.stringify({ error: "Erro ao baixar vídeo do YouTube" }),
-              { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-            );
-          }
-
-          const fallbackItems = await fallbackResponse.json();
-          console.log("Fallback Apify response:", JSON.stringify(fallbackItems).substring(0, 800));
-          
-          const fallbackUrl = extractDownloadUrl(fallbackItems);
-          if (fallbackUrl) {
-            videoUrl = fallbackUrl;
-          } else {
-            await supabase
-              .from("clip_jobs")
-              .update({
-                status: "error",
-                error_message: "Não foi possível obter URL direta do YouTube. Tente fazer upload do vídeo manualmente.",
-              })
-              .eq("id", job.id);
-            return new Response(
-              JSON.stringify({ error: "Não foi possível obter URL direta do YouTube" }),
-              { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-            );
-          }
-        } else {
-          const apifyItems = await apifyResponse.json();
-          console.log("Apify response items:", JSON.stringify(apifyItems).substring(0, 800));
-
-          const directUrl = extractDownloadUrl(apifyItems);
-
-          if (!directUrl) {
-            console.error("No download URL in Apify response");
-            await supabase
-              .from("clip_jobs")
-              .update({
-                status: "error",
-                error_message: "Não foi possível obter URL direta do YouTube. Tente fazer upload do vídeo manualmente.",
-              })
-              .eq("id", job.id);
-            return new Response(
-              JSON.stringify({ error: "Não foi possível obter URL direta do YouTube" }),
-              { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-            );
-          }
-
-          videoUrl = directUrl;
         }
 
-        console.log("Resolved YouTube URL to direct URL:", directUrl.substring(0, 100));
-        videoUrl = directUrl;
+        videoUrl = resolvedDirectUrl;
+        console.log("Resolved YouTube URL to direct URL:", videoUrl.substring(0, 100));
 
         await supabase
           .from("clip_jobs")
@@ -250,13 +169,13 @@ serve(async (req) => {
             progress_message: "Vídeo do YouTube resolvido, enviando para transcrição...",
           })
           .eq("id", job.id);
-      } catch (ytError) {
+      } catch (ytError: any) {
         console.error("YouTube download error:", ytError);
         await supabase
           .from("clip_jobs")
           .update({
             status: "error",
-            error_message: `Erro ao processar YouTube: ${ytError.message || "erro desconhecido"}`,
+            error_message: `Erro ao processar YouTube: ${ytError?.message || "erro desconhecido"}`,
           })
           .eq("id", job.id);
         return new Response(
@@ -358,10 +277,9 @@ serve(async (req) => {
 // Helper to extract download URL from various Apify actor response formats
 function extractDownloadUrl(items: any[]): string | null {
   if (!items || !Array.isArray(items) || items.length === 0) return null;
-  
+
   const item = items[0];
-  
-  // Try common field names used by different YouTube downloader actors
+
   const candidates = [
     item?.downloadUrl,
     item?.download_url,
@@ -376,28 +294,174 @@ function extractDownloadUrl(items: any[]): string | null {
     item?.file_url,
     item?.mp4Url,
     item?.link,
-    // Nested formats
     item?.video?.url,
     item?.video?.downloadUrl,
     item?.media?.url,
     item?.result?.url,
     item?.output?.url,
   ];
-  
+
   for (const candidate of candidates) {
-    if (candidate && typeof candidate === "string" && candidate.startsWith("http")) {
+    if (typeof candidate === "string" && candidate.startsWith("http")) {
       return candidate;
     }
   }
-  
-  // Try to find any URL-like string in the first item
+
   const itemStr = JSON.stringify(item);
-  const urlMatch = itemStr.match(/"(https?:\/\/[^"]+\.mp4[^"]*)"/);
-  if (urlMatch) return urlMatch[1];
-  
-  // Try any URL that looks like a video
-  const videoUrlMatch = itemStr.match(/"(https?:\/\/[^"]+(?:video|download|stream|media)[^"]*)"/);
-  if (videoUrlMatch) return videoUrlMatch[1];
-  
+  const mp4Match = itemStr.match(/"(https?:\/\/[^\"]+\.mp4[^\"]*)"/i);
+  if (mp4Match) return mp4Match[1];
+
+  const videoLikeMatch = itemStr.match(/"(https?:\/\/[^\"]+(?:video|download|stream|media)[^\"]*)"/i);
+  if (videoLikeMatch) return videoLikeMatch[1];
+
+  return null;
+}
+
+function extractCobaltUrl(payload: any): string | null {
+  if (!payload || typeof payload !== "object") return null;
+
+  const directCandidates = [
+    payload.url,
+    payload?.data?.url,
+    payload?.result?.url,
+    payload?.output?.url,
+  ];
+
+  for (const candidate of directCandidates) {
+    if (typeof candidate === "string" && candidate.startsWith("http")) {
+      return candidate;
+    }
+  }
+
+  if (Array.isArray(payload.picker)) {
+    for (const item of payload.picker) {
+      if (typeof item?.url === "string" && item.url.startsWith("http")) {
+        return item.url;
+      }
+    }
+  }
+
+  return null;
+}
+
+async function tryResolveWithCobalt(youtubeUrl: string, endpoint: string): Promise<string | null> {
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        url: youtubeUrl,
+        videoQuality: "720",
+        vCodec: "h264",
+      }),
+    });
+
+    const rawBody = await response.text();
+    let payload: any = null;
+
+    try {
+      payload = JSON.parse(rawBody);
+    } catch {
+      payload = null;
+    }
+
+    if (!response.ok) {
+      console.error(`Cobalt resolver failed [${response.status}] (${endpoint}):`, rawBody.substring(0, 500));
+      return null;
+    }
+
+    const resolvedUrl = extractCobaltUrl(payload);
+    if (!resolvedUrl) {
+      console.error(`Cobalt returned no downloadable URL (${endpoint}):`, rawBody.substring(0, 500));
+      return null;
+    }
+
+    return resolvedUrl;
+  } catch (error) {
+    console.error(`Cobalt resolver error (${endpoint}):`, error);
+    return null;
+  }
+}
+
+async function tryResolveWithApify(youtubeUrl: string, apifyToken: string): Promise<string | null> {
+  const cookiesText = Deno.env.get("YOUTUBE_COOKIES_TEXT") ?? undefined;
+
+  const actors: Array<{ id: string; input: Record<string, unknown> }> = [
+    {
+      id: "scrapearchitect~youtube-video-downloader",
+      input: {
+        urls: [youtubeUrl],
+        quality: "720p",
+        type: "video",
+      },
+    },
+    {
+      id: "tazy~youtube-converter",
+      input: {
+        url: youtubeUrl,
+        format: "mp4",
+        quality: "720",
+        ...(cookiesText ? { cookiesText } : {}),
+      },
+    },
+  ];
+
+  for (const actor of actors) {
+    try {
+      const response = await fetch(
+        `https://api.apify.com/v2/acts/${actor.id}/run-sync-get-dataset-items?token=${apifyToken}&timeout=120`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(actor.input),
+        }
+      );
+
+      const rawBody = await response.text();
+      if (!response.ok) {
+        console.error(`Apify actor failed (${actor.id}) [${response.status}]:`, rawBody.substring(0, 500));
+        continue;
+      }
+
+      let items: any[] = [];
+      try {
+        items = JSON.parse(rawBody);
+      } catch {
+        items = [];
+      }
+
+      const resolvedUrl = extractDownloadUrl(items);
+      if (resolvedUrl) {
+        return resolvedUrl;
+      }
+
+      console.error(`Apify actor returned no downloadable URL (${actor.id}):`, rawBody.substring(0, 500));
+    } catch (error) {
+      console.error(`Apify actor resolver error (${actor.id}):`, error);
+    }
+  }
+
+  return null;
+}
+
+async function resolveYouTubeToDirectUrl(youtubeUrl: string, apifyToken?: string): Promise<string | null> {
+  const cobaltEndpoints = [
+    "https://api.cobalt.tools/api/json",
+    "https://co.wuk.sh/api/json",
+  ];
+
+  for (const endpoint of cobaltEndpoints) {
+    const directUrl = await tryResolveWithCobalt(youtubeUrl, endpoint);
+    if (directUrl) return directUrl;
+  }
+
+  if (apifyToken) {
+    const directUrl = await tryResolveWithApify(youtubeUrl, apifyToken);
+    if (directUrl) return directUrl;
+  }
+
   return null;
 }
