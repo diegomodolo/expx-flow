@@ -133,26 +133,26 @@ export default function ClipsPage() {
                     <Upload className="h-4 w-4" />
                     Upload de Arquivo
                   </TabsTrigger>
-                  <TabsTrigger value="url" className="gap-2">
-                    <Link className="h-4 w-4" />
-                    URL direta do vídeo
-                  </TabsTrigger>
-                </TabsList>
+                   <TabsTrigger value="url" className="gap-2">
+                     <Link className="h-4 w-4" />
+                     URL do vídeo
+                   </TabsTrigger>
+                 </TabsList>
 
-                <TabsContent value="url" className="space-y-4">
-                  <div>
-                    <Label>URL direta do vídeo (.mp4)</Label>
-                    <Input
-                      value={url}
-                      onChange={(e) => setUrl(e.target.value)}
-                      placeholder="https://exemplo.com/video.mp4"
-                      className="mt-1"
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Cole a URL direta do arquivo de vídeo. URLs do YouTube não são suportadas.
-                    </p>
-                  </div>
-                </TabsContent>
+                 <TabsContent value="url" className="space-y-4">
+                   <div>
+                     <Label>URL do vídeo (YouTube ou link direto)</Label>
+                     <Input
+                       value={url}
+                       onChange={(e) => setUrl(e.target.value)}
+                       placeholder="https://www.youtube.com/watch?v=... ou link direto .mp4"
+                       className="mt-1"
+                     />
+                     <p className="text-xs text-muted-foreground mt-1">
+                       Cole a URL do YouTube ou link direto do arquivo de vídeo. Vídeos do YouTube serão baixados automaticamente.
+                     </p>
+                   </div>
+                 </TabsContent>
 
                 <TabsContent value="upload" className="space-y-4">
                   <div>

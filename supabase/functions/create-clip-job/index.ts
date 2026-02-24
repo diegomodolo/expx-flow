@@ -53,18 +53,11 @@ serve(async (req) => {
       );
     }
 
-    // Validate: Shotstack doesn't support YouTube URLs
+    // Check if it's a YouTube URL - will be resolved later
+    let isYouTubeUrl = false;
     if (inputUrl) {
       const urlLower = inputUrl.toLowerCase();
-      if (urlLower.includes("youtube.com") || urlLower.includes("youtu.be")) {
-        return new Response(
-          JSON.stringify({ error: "URLs do YouTube não são suportadas. Faça o upload do vídeo diretamente ou use um link direto para o arquivo de vídeo (.mp4)." }),
-          {
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
-        );
-      }
+      isYouTubeUrl = urlLower.includes("youtube.com") || urlLower.includes("youtu.be");
     }
 
     // Create job with all config
@@ -127,6 +120,110 @@ serve(async (req) => {
       videoUrl = signedUrlData.signedUrl;
     }
 
+    // If YouTube URL, resolve to direct URL via Apify
+    if (isYouTubeUrl && videoUrl) {
+      await supabase
+        .from("clip_jobs")
+        .update({
+          progress: 5,
+          progress_message: "Baixando vídeo do YouTube...",
+        })
+        .eq("id", job.id);
+
+      const apifyToken = Deno.env.get("APIFY_API_TOKEN");
+      if (!apifyToken) {
+        await supabase
+          .from("clip_jobs")
+          .update({
+            status: "error",
+            error_message: "APIFY_API_TOKEN não configurada para download do YouTube",
+          })
+          .eq("id", job.id);
+        return new Response(
+          JSON.stringify({ error: "APIFY_API_TOKEN não configurada" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      try {
+        console.log("Resolving YouTube URL via Apify:", videoUrl);
+
+        // Start the Apify YouTube downloader actor synchronously
+        const apifyResponse = await fetch(
+          `https://api.apify.com/v2/acts/YDfrederikhbb~youtube-downloader/run-sync-get-dataset-items?token=${apifyToken}&timeout=120`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              urls: [videoUrl],
+              quality: "720",
+              format: "mp4",
+            }),
+          }
+        );
+
+        if (!apifyResponse.ok) {
+          const errorText = await apifyResponse.text();
+          console.error("Apify actor failed:", errorText);
+          await supabase
+            .from("clip_jobs")
+            .update({
+              status: "error",
+              error_message: `Erro ao baixar vídeo do YouTube: ${errorText.substring(0, 200)}`,
+            })
+            .eq("id", job.id);
+          return new Response(
+            JSON.stringify({ error: "Erro ao baixar vídeo do YouTube" }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        const apifyItems = await apifyResponse.json();
+        console.log("Apify response items:", JSON.stringify(apifyItems).substring(0, 500));
+
+        const directUrl = apifyItems?.[0]?.downloadUrl || apifyItems?.[0]?.url || apifyItems?.[0]?.videoUrl;
+
+        if (!directUrl) {
+          console.error("No download URL in Apify response:", JSON.stringify(apifyItems).substring(0, 500));
+          await supabase
+            .from("clip_jobs")
+            .update({
+              status: "error",
+              error_message: "Não foi possível obter URL direta do YouTube. Tente fazer upload do vídeo manualmente.",
+            })
+            .eq("id", job.id);
+          return new Response(
+            JSON.stringify({ error: "Não foi possível obter URL direta do YouTube" }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        console.log("Resolved YouTube URL to direct URL:", directUrl.substring(0, 100));
+        videoUrl = directUrl;
+
+        await supabase
+          .from("clip_jobs")
+          .update({
+            progress: 8,
+            progress_message: "Vídeo do YouTube resolvido, enviando para transcrição...",
+          })
+          .eq("id", job.id);
+      } catch (ytError) {
+        console.error("YouTube download error:", ytError);
+        await supabase
+          .from("clip_jobs")
+          .update({
+            status: "error",
+            error_message: `Erro ao processar YouTube: ${ytError.message || "erro desconhecido"}`,
+          })
+          .eq("id", job.id);
+        return new Response(
+          JSON.stringify({ error: "Erro ao processar vídeo do YouTube" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     // Send to Shotstack Ingest API
     const shotstackApiKey = Deno.env.get("SHOTSTACK_API_KEY");
     if (!shotstackApiKey) {
@@ -158,7 +255,7 @@ serve(async (req) => {
       callback: callbackUrl,
     };
 
-    console.log("Sending to Shotstack Ingest API:", JSON.stringify({ url: videoUrl, callback: "..." }));
+    console.log("Sending to Shotstack Ingest API:", JSON.stringify({ url: videoUrl?.substring(0, 100), callback: "..." }));
 
     const ingestResponse = await fetch(
       "https://api.shotstack.io/ingest/v1/sources",
