@@ -512,6 +512,7 @@ async function tryResolveWithApify(
         urls: [youtubeUrl],
         quality: "720p",
         type: "video",
+        ...(cookiesText ? { cookiesText } : {}),
       },
     },
     {
@@ -567,28 +568,110 @@ async function tryResolveWithApify(
   return { url: null, diagnostics };
 }
 
+async function tryResolveWithPiped(youtubeUrl: string): Promise<ResolveResult> {
+  const diagnostics: string[] = [];
+  const videoId = getYouTubeVideoId(youtubeUrl);
+  if (!videoId) {
+    diagnostics.push("piped: URL inválida");
+    return { url: null, diagnostics };
+  }
+
+  const pipedInstances = [
+    "https://pipedapi.kavin.rocks",
+    "https://api.piped.yt",
+    "https://pipedapi.adminforge.de",
+    "https://pipedapi.in.projectsegfau.lt",
+  ];
+
+  for (const instance of pipedInstances) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+
+      const response = await fetch(`${instance}/streams/${videoId}`, {
+        headers: { Accept: "application/json" },
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+
+      const host = instance.replace("https://", "");
+      if (!response.ok) {
+        diagnostics.push(`piped ${host}: HTTP ${response.status}`);
+        await response.text(); // consume body
+        continue;
+      }
+
+      const data = await response.json();
+
+      // Try videoStreams first (adaptive), then audioStreams
+      const streams = [
+        ...(Array.isArray(data?.videoStreams) ? data.videoStreams : []),
+      ];
+
+      // Filter for mp4 video streams with both audio and video, or just video
+      const mp4Streams = streams.filter(
+        (s: any) => s.url && s.mimeType?.includes("video/mp4")
+      );
+
+      const preferred =
+        mp4Streams.find((s: any) => /720p|480p|360p/.test(s.quality || "")) ??
+        mp4Streams[0];
+
+      if (preferred?.url) {
+        diagnostics.push(`piped ${host}: ok`);
+        return { url: normalizeCandidateUrl(preferred.url), diagnostics };
+      }
+
+      // Fallback: HLS
+      if (data?.hls && typeof data.hls === "string" && data.hls.startsWith("http")) {
+        diagnostics.push(`piped ${host}: ok (hls)`);
+        return { url: data.hls, diagnostics };
+      }
+
+      diagnostics.push(`piped ${host}: sem stream`);
+    } catch (error: any) {
+      const host = instance.replace("https://", "");
+      diagnostics.push(`piped ${host}: ${error?.name === "AbortError" ? "timeout" : "indisponível"}`);
+    }
+  }
+
+  return { url: null, diagnostics };
+}
+
 async function resolveYouTubeToDirectUrl(
   youtubeUrl: string,
   apifyToken?: string
 ): Promise<ResolveResult> {
   const diagnostics: string[] = [];
 
+  // 1. Invidious
   const invidiousResult = await tryResolveWithInvidious(youtubeUrl);
   diagnostics.push(...invidiousResult.diagnostics);
   if (invidiousResult.url) {
     return {
       url: invidiousResult.url,
-      diagnostics: Array.from(new Set(diagnostics)).slice(0, 8),
+      diagnostics: Array.from(new Set(diagnostics)).slice(0, 12),
     };
   }
 
+  // 2. Piped
+  const pipedResult = await tryResolveWithPiped(youtubeUrl);
+  diagnostics.push(...pipedResult.diagnostics);
+  if (pipedResult.url) {
+    return {
+      url: pipedResult.url,
+      diagnostics: Array.from(new Set(diagnostics)).slice(0, 12),
+    };
+  }
+
+  // 3. Apify
   if (apifyToken) {
     const apifyResult = await tryResolveWithApify(youtubeUrl, apifyToken);
     diagnostics.push(...apifyResult.diagnostics);
     if (apifyResult.url) {
       return {
         url: apifyResult.url,
-        diagnostics: Array.from(new Set(diagnostics)).slice(0, 8),
+        diagnostics: Array.from(new Set(diagnostics)).slice(0, 12),
       };
     }
   } else {
@@ -597,7 +680,7 @@ async function resolveYouTubeToDirectUrl(
 
   return {
     url: null,
-    diagnostics: Array.from(new Set(diagnostics)).slice(0, 8),
+    diagnostics: Array.from(new Set(diagnostics)).slice(0, 12),
   };
 }
 
