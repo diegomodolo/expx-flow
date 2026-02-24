@@ -183,6 +183,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
   const [newClassificacaoName, setNewClassificacaoName] = useState('');
   const [categoriaPopoverOpen, setCategoriaPopoverOpen] = useState(false);
   const [classificacaoPopoverOpen, setClassificacaoPopoverOpen] = useState(false);
+  const [statusPopoverOpen, setStatusPopoverOpen] = useState(false);
   const { teams } = useTeams();
   const { employees } = useEmployees();
   const { timeSlots } = usePlannerSlots();
@@ -829,22 +830,38 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
               ];
               const current = statusOptions.find(s => s.value === formData.status) || statusOptions[0];
               return (
-                <Popover>
+                <Popover open={statusPopoverOpen} onOpenChange={setStatusPopoverOpen} modal>
                   <PopoverTrigger asChild>
-                    <button className="flex flex-col items-center gap-1 px-2 py-3 rounded-lg w-16 transition-colors text-xs text-muted-foreground hover:bg-muted hover:text-foreground">
+                    <button
+                      type="button"
+                      className="flex flex-col items-center gap-1 px-2 py-3 rounded-lg w-16 transition-colors text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+                    >
                       <span className={`w-5 h-5 rounded-full ${current.color} shrink-0`} />
                       <span className="leading-tight text-center text-[10px]">{current.label}</span>
                     </button>
                   </PopoverTrigger>
-                  <PopoverContent side="right" align="start" className="w-52 p-1">
+                  <PopoverContent
+                    side="right"
+                    align="start"
+                    className="w-52 p-1 z-[70] bg-popover"
+                    onOpenAutoFocus={(e) => e.preventDefault()}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <div className="text-xs font-semibold text-muted-foreground px-2 py-1.5">Alterar Status</div>
                     {statusOptions.map((s) => (
                       <button
                         key={s.value}
-                        onClick={(e) => {
+                        type="button"
+                        onPointerDown={(e) => {
                           e.stopPropagation();
                           e.preventDefault();
                           setFormData(prev => ({ ...prev, status: s.value }));
+                          setStatusPopoverOpen(false);
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
                         }}
                         className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors ${
                           formData.status === s.value
