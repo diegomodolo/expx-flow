@@ -1,104 +1,113 @@
 
-# Proposta de Enriquecimento do Dashboard TV de Tarefas (/tarefas-tv)
 
-## O que o sistema já possui e pode ser aproveitado
+## Plano: Integrar Shotstack para Substituir Modal.com no Pipeline de Clipes Virais
 
-O sistema tem dados ricos disponíveis nas tabelas `tasks`, `task_time_tracking`, `teams` (squads) e `profiles`, além do hook `useSquadDashboard` com métricas completas de produtividade por squad. O dashboard atual exibe KPIs básicos, indicadores de regularidade/qualidade/eficiência, sessões ativas e ranking de colaboradores.
+### Resumo
 
-## O que falta e seria muito valioso
-
-### 1. Ranking de Squads (Comparativo em Tempo Real)
-O sistema já calcula `productivityScore` por squad no `useSquadDashboard`, mas o dashboard TV não exibe nada sobre squads. Seria a seção mais impactante visualmente para uma TV de operações.
-
-Exibição: Cards horizontais em ranking com barra de score colorida (verde > amarelo > vermelho), nome do squad, membros ativos agora, tarefas em atraso e taxa de conclusão.
-
-### 2. Gráfico de Velocidade de Conclusão (Últimos 14 dias)
-O banco já tem `completed_at` nas tarefas. Os dados mostram variação diária real: 22 tarefas em 16/02, 10 em 17/02, 5 em 18/02, 2 em 19/02. Um gráfico de barras com `recharts` (já instalado) mostrando esse ritmo de entrega diária é altamente informativo para equipes.
-
-### 3. KPI de Horas Trabalhadas (Time Tracking Agregado)
-A tabela `task_time_tracking` tem `duration_minutes` e `started_at/ended_at`. O sistema registrou 3.336 minutos (~55,6 horas) de trabalho rastreado nos últimos 7 dias em 28 sessões. Adicionar um card "Horas Trabalhadas (7d)" com média por colaborador é um diferencial real.
-
-### 4. Seção "Em Revisão" (status = review)
-Atualmente o dashboard ignora tarefas com status `review`. Há 8 tarefas nesse status. Uma coluna ou card para "Aguardando Revisão" aumenta a visibilidade do gargalo mais comum no fluxo de trabalho.
-
-### 5. Alertas Visuais Automáticos (Celebração / Alerta Crítico)
-O dashboard CS-TV já tem `CSTVCelebrationOverlay` e `CSTVCriticalAlertOverlay`. Trazer o mesmo padrão para o dashboard de tarefas: quando uma tarefa de alta prioridade é concluída, exibir uma animação de celebração por alguns segundos. Quando uma tarefa de alta prioridade entra em atraso, exibir um alerta pulsante.
+Substituir o serviço externo Modal.com (que nunca respondeu) pelo Shotstack, usando a **Ingest API** para transcrever o video e a **Edit API** para cortar os clipes. O fluxo usara a OpenAI (ja configurada) para analisar a transcricao e identificar os melhores momentos virais.
 
 ---
 
-## Plano de Implementação
-
-### Fase 1 — Novos KPIs e seção "Em Revisão"
-
-**Arquivo: `src/hooks/useTaskTvDashboard.ts`**
-- Adicionar busca de tarefas com status `review` na query principal
-- Adicionar cálculo de `hoursTrackedLast7Days` (soma de `duration_minutes` dos últimos 7 dias)
-- Adicionar `reviewTasksList: TaskItem[]` para o modal de drill-down
-- Expandir a interface `TaskTvData` com os novos campos
-
-**Arquivo: `src/pages/TaskTvDashboard.tsx`**
-- Adicionar um 5º card KPI "Em Revisão" na linha de KPIs (grid de 5 colunas)
-- Adicionar um 5º card KPI "Horas Trabalhadas" na segunda linha ou substituindo uma das métricas menos relevantes
-- Adicionar modal para a lista de tarefas em revisão
-
-### Fase 2 — Gráfico de Velocidade de Conclusão (Ritmo Diário)
-
-**Arquivo: `src/hooks/useTaskTvDashboard.ts`**
-- Adicionar busca das últimas 14 dias com `GROUP BY DATE(updated_at)` para tarefas concluídas
-- Adicionar campo `completionTrend: { day: string; count: number }[]` ao retorno
-
-**Arquivo: `src/pages/TaskTvDashboard.tsx`**
-- Adicionar componente `CompletionTrendChart` usando `BarChart` do recharts (já instalado)
-- Exibir gráfico de barras verticais com gradiente verde, mostrando o ritmo dos últimos 14 dias
-- Estilizado no tema dark do dashboard (fundo transparente, eixos em cinza)
-
-### Fase 3 — Ranking de Squads
-
-**Arquivo: `src/hooks/useTaskTvDashboard.ts`**
-- Adicionar busca por `team_id` nas tasks, cruzando com tabela `teams`
-- Calcular por squad: `productivityScore`, `activeSessions`, `overdueTasks`, `completionRate`
-- Adicionar campo `squadRankings: SquadTvRanking[]` ao retorno
-
-**Arquivo: `src/pages/TaskTvDashboard.tsx`**
-- Adicionar seção "Performance por Squad" com cards horizontais em ranking
-- Cada card: cor do squad à esquerda, nome, membros executando agora (com ícone pulsante), barra de progresso colorida por score
-- Ordenado por `productivityScore` decrescente
-
-### Fase 4 — Alertas Visuais Automáticos
-
-**Arquivo: `src/pages/TaskTvDashboard.tsx`**
-- Implementar `useEffect` que observa mudanças em `data.completedTodayList` e detecta novas conclusões de tarefas de alta prioridade
-- Exibir overlay de celebração por 5 segundos (animação CSS de confetti simples ou ícone de troféu animado)
-- Observar `data.overdueTasksList` para alertas: quando uma tarefa de alta prioridade entra em atraso, exibir banner pulsante vermelho no topo por 8 segundos
-
----
-
-## Resultado Visual Esperado
+### Novo Fluxo de Processamento
 
 ```text
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  Dashboard de Tarefas · Ao Vivo                              10:42:33        │
-├──────────┬──────────┬──────────┬──────────┬──────────┬──────────────────────┤
-│ Em Aberto│Em Atraso │Concl. Hoje│Em Revisão│Executando│  Horas Trabalhadas   │
-│    12    │    3     │    5     │    8     │    2     │      55.6h / 7d      │
-├──────────┴──────────┴──────────┴──────────┴──────────┴──────────────────────┤
-│  Regularidade 87%  │  Qualidade 92%  │  Eficiência 89%                      │
-├─────────────────────────────────────────────────────────────────────────────┤
-│  Ritmo de Conclusão (14 dias) ─ BarChart                                    │
-│  ████ ███ ██ █ ████ ███ ██ ██ ██ ██ ██ ██ ██ ██                             │
-├─────────────────────────────────────────────────────────────────────────────┤
-│  Ranking de Squads            │  Executando Agora  │  Top Performers        │
-│  🥇 Squad #02  ████████ 78   │  ● João · Tarefa X │  1. Maria · 94%        │
-│  🥈 Squad #01  ██████   62   │  ● Ana · Tarefa Y  │  2. Pedro · 87%        │
-│  🥉 Squad #03  ████     41   │                    │  3. Lucas · 82%        │
-└─────────────────────────────────────────────────────────────────────────────┘
++------------------+     +-------------------+     +------------------+
+| 1. create-clip-  |     | 2. shotstack-     |     | 3. shotstack-    |
+|    job            |---->|    webhook         |---->|    webhook       |
+| (cria job +       |     | (recebe VTT,       |     | (recebe clips    |
+|  envia p/ Ingest) |     |  analisa c/ OpenAI,|     |  renderizados,   |
+|                   |     |  envia p/ Edit API)|     |  salva no DB)    |
++------------------+     +-------------------+     +------------------+
 ```
 
-## Resumo dos Arquivos a Modificar
+1. **create-clip-job** (modificada): Cria o job no DB e envia o video para a Shotstack Ingest API com transcricao VTT + callback
+2. **shotstack-webhook** (nova): Recebe callbacks da Ingest (transcricao pronta) e Edit API (clips renderizados). Quando a transcricao chega, usa OpenAI para analisar e envia os cortes para a Edit API. Quando os renders chegam, salva os clipes no banco.
 
-| Arquivo | Mudança |
+---
+
+### Etapas de Implementacao
+
+#### Etapa 1: Configurar Secret
+- Adicionar `SHOTSTACK_API_KEY` como secret do projeto (necessario para autenticacao nas APIs)
+
+#### Etapa 2: Criar Edge Function `shotstack-webhook`
+Nova edge function que:
+- Recebe POST de callback do Shotstack (tipo `ingest` ou `edit`)
+- **Quando tipo = ingest** (transcricao pronta):
+  - Busca o VTT da URL retornada
+  - Envia a transcricao para OpenAI pedindo os N melhores momentos virais (com start/end seconds, titulo, tipo, score, justificativa)
+  - Para cada momento identificado, envia um render para a Edit API (trim do video original com start/length)
+  - Atualiza progresso do job no DB
+- **Quando tipo = edit** (clip renderizado):
+  - Salva o clip na tabela `clips` com a URL publica, titulo, score, etc.
+  - Quando todos os clips de um job estiverem prontos, marca o job como `done`
+- Configurar `verify_jwt = false` no config.toml (webhook publico, validado por secret no body/header)
+
+#### Etapa 3: Modificar Edge Function `create-clip-job`
+- Remover a chamada ao `PROCESSING_SERVICE_URL` (Modal.com)
+- Adicionar logica para enviar o video para a **Shotstack Ingest API**:
+  - Se `inputUrl` fornecido: POST para `https://api.shotstack.io/ingest/v1/sources` com a URL + `outputs.transcription.format: "vtt"`
+  - Se `inputStoragePath` fornecido: gerar signed URL do Supabase Storage e enviar como URL
+  - Incluir `callback` apontando para a edge function `shotstack-webhook`
+  - Incluir metadata com `jobId` para rastrear o callback
+- Atualizar progresso: "Enviando video para transcricao..."
+
+#### Etapa 4: Adicionar colunas na tabela `clip_jobs` (migracao SQL)
+- `shotstack_source_id` (text, nullable) - ID do source no Ingest API
+- `shotstack_render_ids` (text[], nullable) - IDs dos renders no Edit API
+- `total_expected_clips` (int, nullable) - para saber quando todos os clips chegaram
+
+#### Etapa 5: Ajustar o frontend (minimo)
+- Nenhuma alteracao necessaria no frontend. O hook `useClipGenerator` ja escuta via Realtime as atualizacoes do `clip_jobs` e insercoes em `clips`. O fluxo permanece identico para o usuario.
+
+---
+
+### Detalhes Tecnicos
+
+**Shotstack Ingest API - POST /ingest/v1/sources**
+```json
+{
+  "url": "https://video-url.mp4",
+  "outputs": {
+    "transcription": { "format": "vtt" }
+  },
+  "callback": "https://ejwpfztkspbvmuwwiwmk.supabase.co/functions/v1/shotstack-webhook?secret=XXX&jobId=YYY"
+}
+```
+
+**Shotstack Edit API - POST /edit/v1/render**
+```json
+{
+  "timeline": {
+    "tracks": [{
+      "clips": [{
+        "asset": { "type": "video", "src": "shotstack-source-url", "trim": 30 },
+        "start": 0,
+        "length": 45
+      }]
+    }]
+  },
+  "output": {
+    "format": "mp4",
+    "resolution": "hd",
+    "aspectRatio": "9:16"
+  },
+  "callback": "https://ejwpfztkspbvmuwwiwmk.supabase.co/functions/v1/shotstack-webhook?secret=XXX&jobId=YYY&clipIndex=0"
+}
+```
+
+**Analise com OpenAI** (mesmo padrao ja usado no projeto):
+- Enviar transcricao VTT + prompt solicitando N momentos virais
+- Resposta esperada: array de `{ title, clip_type, virality_score, reason, start_seconds, end_seconds }`
+
+**Seguranca do Webhook**:
+- Validar um `secret` nos query params do callback (comparar com `SHOTSTACK_API_KEY` ou um hash dedicado)
+
+### Arquivos Impactados
+| Arquivo | Acao |
 |---|---|
-| `src/hooks/useTaskTvDashboard.ts` | Adicionar dados de revisão, horas rastreadas, trend de conclusão e ranking de squads |
-| `src/pages/TaskTvDashboard.tsx` | Adicionar novos KPI cards, gráfico de tendência, seção de squads e alertas visuais |
+| `supabase/functions/shotstack-webhook/index.ts` | Criar (novo) |
+| `supabase/functions/create-clip-job/index.ts` | Modificar |
+| `supabase/config.toml` | Adicionar config do webhook |
+| Migracao SQL | Adicionar colunas em `clip_jobs` |
 
-Nenhuma migração de banco de dados é necessária — todos os dados já existem.
