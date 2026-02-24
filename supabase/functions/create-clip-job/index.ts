@@ -277,49 +277,72 @@ serve(async (req) => {
 async function resolveYouTubeToDirectUrl(youtubeUrl: string): Promise<{ url: string | null; diagnostics: string[] }> {
   const diagnostics: string[] = [];
 
-  try {
-    console.log("Resolving YouTube via yt-dlp API /direct-url:", youtubeUrl);
+  const callEndpoint = async (endpoint: string, payload: Record<string, unknown>) => {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 60000);
 
-    const response = await fetch("https://refreshing-beauty-production-f560.up.railway.app/direct-url", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url: youtubeUrl }),
-      signal: controller.signal,
-    });
-    clearTimeout(timeout);
-
-    const rawBody = await response.text();
-
-    if (!response.ok) {
-      diagnostics.push(`yt-dlp-api /direct-url: HTTP ${response.status} - ${rawBody.substring(0, 200)}`);
-      return { url: null, diagnostics };
-    }
-
-    let data: any;
     try {
-      data = JSON.parse(rawBody);
-    } catch {
-      diagnostics.push("yt-dlp-api /direct-url: JSON inválido");
-      return { url: null, diagnostics };
+      const response = await fetch(`https://refreshing-beauty-production-f560.up.railway.app${endpoint}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+
+      const rawBody = await response.text();
+
+      let data: any = null;
+      try {
+        data = rawBody ? JSON.parse(rawBody) : null;
+      } catch {
+        data = null;
+      }
+
+      return { ok: response.ok, status: response.status, data, rawBody };
+    } catch (error: any) {
+      const msg = error?.name === "AbortError" ? "timeout (60s)" : (error?.message || "indisponível");
+      return { ok: false, status: 0, data: null, rawBody: msg };
+    } finally {
+      clearTimeout(timeout);
     }
+  };
 
-    const directUrl = data?.url;
-    const ext = data?.ext || "mp4";
-    console.log(`yt-dlp /direct-url response: ext=${ext}, resolution=${data?.resolution}, filesize=${data?.filesize}`);
-
-    if (typeof directUrl === "string" && directUrl.startsWith("http")) {
-      diagnostics.push(`yt-dlp-api /direct-url: ok (ext=${ext})`);
-      return { url: directUrl, diagnostics };
-    }
-
-    diagnostics.push(`yt-dlp-api /direct-url: sem url (${JSON.stringify(data).substring(0, 200)})`);
-    return { url: null, diagnostics };
-  } catch (error: any) {
-    const msg = error?.name === "AbortError" ? "timeout (60s)" : (error?.message || "indisponível");
-    diagnostics.push(`yt-dlp-api /direct-url: ${msg}`);
-    return { url: null, diagnostics };
+  // 1) Preferred endpoint: /direct-url (returns ext + filename)
+  const directRes = await callEndpoint("/direct-url", { url: youtubeUrl, format: "best" });
+  if (directRes.ok && typeof directRes.data?.url === "string" && directRes.data.url.startsWith("http")) {
+    const ext = directRes.data?.ext || "unknown";
+    diagnostics.push(`yt-dlp-api /direct-url: ok (ext=${ext})`);
+    return { url: directRes.data.url, diagnostics };
   }
+  diagnostics.push(`yt-dlp-api /direct-url: HTTP ${directRes.status} - ${(directRes.rawBody || "").substring(0, 200)}`);
+
+  // 2) Fallback endpoint: /info (returns metadata + direct URL + formats)
+  const infoRes = await callEndpoint("/info", { url: youtubeUrl });
+  if (infoRes.ok && infoRes.data) {
+    const infoUrl = infoRes.data?.url;
+    const formatUrl = Array.isArray(infoRes.data?.formats)
+      ? infoRes.data.formats.find((f: any) => typeof f?.url === "string" && f.url.startsWith("http"))?.url
+      : null;
+
+    const resolvedUrl = typeof infoUrl === "string" && infoUrl.startsWith("http") ? infoUrl : formatUrl;
+    if (typeof resolvedUrl === "string" && resolvedUrl.startsWith("http")) {
+      diagnostics.push("yt-dlp-api /info: ok");
+      return { url: resolvedUrl, diagnostics };
+    }
+
+    diagnostics.push(`yt-dlp-api /info: sem url (${JSON.stringify(infoRes.data).substring(0, 200)})`);
+  } else {
+    diagnostics.push(`yt-dlp-api /info: HTTP ${infoRes.status} - ${(infoRes.rawBody || "").substring(0, 200)}`);
+  }
+
+  // 3) Last fallback: /download (legacy response)
+  const downloadRes = await callEndpoint("/download", { url: youtubeUrl });
+  if (downloadRes.ok && typeof downloadRes.data?.download_url === "string" && downloadRes.data.download_url.startsWith("http")) {
+    diagnostics.push("yt-dlp-api /download: ok");
+    return { url: downloadRes.data.download_url, diagnostics };
+  }
+  diagnostics.push(`yt-dlp-api /download: HTTP ${downloadRes.status} - ${(downloadRes.rawBody || "").substring(0, 200)}`);
+
+  return { url: null, diagnostics };
 }
 
