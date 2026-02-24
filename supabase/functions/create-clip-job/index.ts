@@ -141,15 +141,17 @@ serve(async (req) => {
         console.log("Resolving YouTube URL:", videoUrl);
 
         const apifyToken = Deno.env.get("APIFY_API_TOKEN") ?? undefined;
-        const resolvedDirectUrl = await resolveYouTubeToDirectUrl(videoUrl, apifyToken);
+        const { url: resolvedDirectUrl, diagnostics } = await resolveYouTubeToDirectUrl(videoUrl, apifyToken);
 
         if (!resolvedDirectUrl) {
+          const diagnosticSummary = diagnostics.slice(0, 3).join(" | ");
+
           await supabase
             .from("clip_jobs")
             .update({
               status: "error",
               error_message:
-                "Não foi possível obter URL direta do YouTube. Tente um link direto .mp4 ou faça upload manual do vídeo.",
+                `Não foi possível obter URL direta do YouTube. Detalhes: ${diagnosticSummary || "sem detalhes"}. Tente upload manual do vídeo.`,
             })
             .eq("id", job.id);
 
@@ -274,6 +276,183 @@ serve(async (req) => {
   }
 });
 
+interface ResolveResult {
+  url: string | null;
+  diagnostics: string[];
+}
+
+const DEFAULT_INVIDIOUS_INSTANCES = [
+  "https://iv.ggtyler.dev",
+  "https://invidious.privacyredirect.com",
+  "https://invidious.fdn.fr",
+  "https://invidious.nerdvpn.de",
+  "https://invidious.jing.rocks",
+];
+
+function normalizeCandidateUrl(candidate: string): string {
+  return candidate.replace(/\\u0026/g, "&").replace(/^\/\//, "https://");
+}
+
+function getYouTubeVideoId(youtubeUrl: string): string | null {
+  try {
+    const parsed = new URL(youtubeUrl);
+    const host = parsed.hostname.replace(/^www\./, "");
+
+    if (host === "youtu.be") {
+      return parsed.pathname.split("/").filter(Boolean)[0] ?? null;
+    }
+
+    if (host.endsWith("youtube.com")) {
+      const queryVideoId = parsed.searchParams.get("v");
+      if (queryVideoId) return queryVideoId;
+
+      const pathParts = parsed.pathname.split("/").filter(Boolean);
+      const markerIndex = pathParts.findIndex((part) =>
+        ["shorts", "embed", "live"].includes(part)
+      );
+
+      if (markerIndex >= 0 && pathParts[markerIndex + 1]) {
+        return pathParts[markerIndex + 1];
+      }
+    }
+  } catch {
+    // fallback para regex abaixo
+  }
+
+  const fallbackMatch = youtubeUrl.match(
+    /(?:v=|\/shorts\/|youtu\.be\/|\/embed\/)([a-zA-Z0-9_-]{11})/
+  );
+  return fallbackMatch?.[1] ?? null;
+}
+
+async function fetchInvidiousInstances(): Promise<string[]> {
+  try {
+    const response = await fetch("https://api.invidious.io/instances.json?sort_by=health");
+
+    if (!response.ok) {
+      console.error(`Invidious instance list failed [${response.status}]`);
+      return [];
+    }
+
+    const payload = await response.json();
+    if (!Array.isArray(payload)) return [];
+
+    const instances = payload
+      .map((entry: any) => {
+        const host = entry?.[0];
+        const metadata = entry?.[1];
+
+        if (typeof host !== "string") return null;
+        if (metadata?.type !== "https") return null;
+        if (metadata?.api !== true) return null;
+
+        return `https://${host}`;
+      })
+      .filter((value: string | null): value is string => Boolean(value));
+
+    return instances.slice(0, 12);
+  } catch (error) {
+    console.error("Invidious instance discovery error:", error);
+    return [];
+  }
+}
+
+function extractInvidiousDownloadUrl(payload: any): string | null {
+  const streamCollections = [
+    ...(Array.isArray(payload?.formatStreams) ? payload.formatStreams : []),
+    ...(Array.isArray(payload?.adaptiveFormats) ? payload.adaptiveFormats : []),
+    ...(Array.isArray(payload?.videoStreams) ? payload.videoStreams : []),
+  ];
+
+  const streamCandidates = streamCollections
+    .map((stream: any) => ({
+      url: stream?.url ?? stream?.downloadUrl ?? stream?.streamUrl ?? null,
+      mime: String(stream?.type ?? stream?.mimeType ?? ""),
+      quality: String(stream?.qualityLabel ?? stream?.quality ?? ""),
+    }))
+    .filter(
+      (stream: any) => typeof stream.url === "string" && stream.url.startsWith("http")
+    );
+
+  const mp4Candidates = streamCandidates.filter((stream: any) => /mp4/i.test(stream.mime));
+
+  const preferredCandidate =
+    mp4Candidates.find((stream: any) => /720|480|360/.test(stream.quality)) ??
+    mp4Candidates[0] ??
+    streamCandidates[0];
+
+  if (preferredCandidate?.url) {
+    return normalizeCandidateUrl(preferredCandidate.url);
+  }
+
+  const directCandidates = [
+    payload?.hlsUrl,
+    payload?.dashUrl,
+    payload?.formatStreams?.[0]?.url,
+    payload?.adaptiveFormats?.[0]?.url,
+  ];
+
+  for (const candidate of directCandidates) {
+    if (typeof candidate === "string" && candidate.startsWith("http")) {
+      return normalizeCandidateUrl(candidate);
+    }
+  }
+
+  return null;
+}
+
+async function tryResolveWithInvidious(youtubeUrl: string): Promise<ResolveResult> {
+  const diagnostics: string[] = [];
+  const videoId = getYouTubeVideoId(youtubeUrl);
+
+  if (!videoId) {
+    diagnostics.push("invidious: URL inválida");
+    return { url: null, diagnostics };
+  }
+
+  const discoveredInstances = await fetchInvidiousInstances();
+  const instances = Array.from(
+    new Set([...DEFAULT_INVIDIOUS_INSTANCES, ...discoveredInstances])
+  ).slice(0, 10);
+
+  for (const instance of instances) {
+    try {
+      const response = await fetch(`${instance}/api/v1/videos/${videoId}`, {
+        headers: { Accept: "application/json" },
+      });
+
+      const rawBody = await response.text();
+      const host = instance.replace("https://", "");
+
+      if (!response.ok) {
+        diagnostics.push(`invidious ${host}: HTTP ${response.status}`);
+        continue;
+      }
+
+      let payload: any = null;
+      try {
+        payload = JSON.parse(rawBody);
+      } catch {
+        diagnostics.push(`invidious ${host}: JSON inválido`);
+        continue;
+      }
+
+      const resolvedUrl = extractInvidiousDownloadUrl(payload);
+      if (resolvedUrl) {
+        diagnostics.push(`invidious ${host}: ok`);
+        return { url: resolvedUrl, diagnostics };
+      }
+
+      diagnostics.push(`invidious ${host}: sem stream`);
+    } catch (error) {
+      console.error(`Invidious resolver error (${instance}):`, error);
+      diagnostics.push(`invidious ${instance.replace("https://", "")}: indisponível`);
+    }
+  }
+
+  return { url: null, diagnostics };
+}
+
 // Helper to extract download URL from various Apify actor response formats
 function extractDownloadUrl(items: any[]): string | null {
   if (!items || !Array.isArray(items) || items.length === 0) return null;
@@ -303,90 +482,27 @@ function extractDownloadUrl(items: any[]): string | null {
 
   for (const candidate of candidates) {
     if (typeof candidate === "string" && candidate.startsWith("http")) {
-      return candidate;
+      return normalizeCandidateUrl(candidate);
     }
   }
 
   const itemStr = JSON.stringify(item);
-  const mp4Match = itemStr.match(/"(https?:\/\/[^\"]+\.mp4[^\"]*)"/i);
-  if (mp4Match) return mp4Match[1];
+  const mp4Match = itemStr.match(/"(https?:\/\/[^"]+\.mp4[^"]*)"/i);
+  if (mp4Match) return normalizeCandidateUrl(mp4Match[1]);
 
-  const videoLikeMatch = itemStr.match(/"(https?:\/\/[^\"]+(?:video|download|stream|media)[^\"]*)"/i);
-  if (videoLikeMatch) return videoLikeMatch[1];
-
-  return null;
-}
-
-function extractCobaltUrl(payload: any): string | null {
-  if (!payload || typeof payload !== "object") return null;
-
-  const directCandidates = [
-    payload.url,
-    payload?.data?.url,
-    payload?.result?.url,
-    payload?.output?.url,
-  ];
-
-  for (const candidate of directCandidates) {
-    if (typeof candidate === "string" && candidate.startsWith("http")) {
-      return candidate;
-    }
-  }
-
-  if (Array.isArray(payload.picker)) {
-    for (const item of payload.picker) {
-      if (typeof item?.url === "string" && item.url.startsWith("http")) {
-        return item.url;
-      }
-    }
-  }
+  const videoLikeMatch = itemStr.match(
+    /"(https?:\/\/[^"]+(?:video|download|stream|media)[^"]*)"/i
+  );
+  if (videoLikeMatch) return normalizeCandidateUrl(videoLikeMatch[1]);
 
   return null;
 }
 
-async function tryResolveWithCobalt(youtubeUrl: string, endpoint: string): Promise<string | null> {
-  try {
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        url: youtubeUrl,
-        videoQuality: "720",
-        vCodec: "h264",
-      }),
-    });
-
-    const rawBody = await response.text();
-    let payload: any = null;
-
-    try {
-      payload = JSON.parse(rawBody);
-    } catch {
-      payload = null;
-    }
-
-    if (!response.ok) {
-      console.error(`Cobalt resolver failed [${response.status}] (${endpoint}):`, rawBody.substring(0, 500));
-      return null;
-    }
-
-    const resolvedUrl = extractCobaltUrl(payload);
-    if (!resolvedUrl) {
-      console.error(`Cobalt returned no downloadable URL (${endpoint}):`, rawBody.substring(0, 500));
-      return null;
-    }
-
-    return resolvedUrl;
-  } catch (error) {
-    console.error(`Cobalt resolver error (${endpoint}):`, error);
-    return null;
-  }
-}
-
-async function tryResolveWithApify(youtubeUrl: string, apifyToken: string): Promise<string | null> {
+async function tryResolveWithApify(
+  youtubeUrl: string,
+  apifyToken: string
+): Promise<ResolveResult> {
+  const diagnostics: string[] = [];
   const cookiesText = Deno.env.get("YOUTUBE_COOKIES_TEXT") ?? undefined;
 
   const actors: Array<{ id: string; input: Record<string, unknown> }> = [
@@ -422,6 +538,7 @@ async function tryResolveWithApify(youtubeUrl: string, apifyToken: string): Prom
 
       const rawBody = await response.text();
       if (!response.ok) {
+        diagnostics.push(`apify ${actor.id}: HTTP ${response.status}`);
         console.error(`Apify actor failed (${actor.id}) [${response.status}]:`, rawBody.substring(0, 500));
         continue;
       }
@@ -435,33 +552,52 @@ async function tryResolveWithApify(youtubeUrl: string, apifyToken: string): Prom
 
       const resolvedUrl = extractDownloadUrl(items);
       if (resolvedUrl) {
-        return resolvedUrl;
+        diagnostics.push(`apify ${actor.id}: ok`);
+        return { url: resolvedUrl, diagnostics };
       }
 
+      diagnostics.push(`apify ${actor.id}: sem url`);
       console.error(`Apify actor returned no downloadable URL (${actor.id}):`, rawBody.substring(0, 500));
     } catch (error) {
+      diagnostics.push(`apify ${actor.id}: indisponível`);
       console.error(`Apify actor resolver error (${actor.id}):`, error);
     }
   }
 
-  return null;
+  return { url: null, diagnostics };
 }
 
-async function resolveYouTubeToDirectUrl(youtubeUrl: string, apifyToken?: string): Promise<string | null> {
-  const cobaltEndpoints = [
-    "https://api.cobalt.tools/api/json",
-    "https://co.wuk.sh/api/json",
-  ];
+async function resolveYouTubeToDirectUrl(
+  youtubeUrl: string,
+  apifyToken?: string
+): Promise<ResolveResult> {
+  const diagnostics: string[] = [];
 
-  for (const endpoint of cobaltEndpoints) {
-    const directUrl = await tryResolveWithCobalt(youtubeUrl, endpoint);
-    if (directUrl) return directUrl;
+  const invidiousResult = await tryResolveWithInvidious(youtubeUrl);
+  diagnostics.push(...invidiousResult.diagnostics);
+  if (invidiousResult.url) {
+    return {
+      url: invidiousResult.url,
+      diagnostics: Array.from(new Set(diagnostics)).slice(0, 8),
+    };
   }
 
   if (apifyToken) {
-    const directUrl = await tryResolveWithApify(youtubeUrl, apifyToken);
-    if (directUrl) return directUrl;
+    const apifyResult = await tryResolveWithApify(youtubeUrl, apifyToken);
+    diagnostics.push(...apifyResult.diagnostics);
+    if (apifyResult.url) {
+      return {
+        url: apifyResult.url,
+        diagnostics: Array.from(new Set(diagnostics)).slice(0, 8),
+      };
+    }
+  } else {
+    diagnostics.push("apify: token ausente");
   }
 
-  return null;
+  return {
+    url: null,
+    diagnostics: Array.from(new Set(diagnostics)).slice(0, 8),
+  };
 }
+
