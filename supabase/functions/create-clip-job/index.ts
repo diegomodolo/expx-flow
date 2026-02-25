@@ -182,9 +182,20 @@ serve(async (req) => {
           throw new Error(`Falha ao baixar vídeo: HTTP ${videoResponse.status}`);
         }
 
+        // Validate content-type is video
+        const contentType = (videoResponse.headers.get("content-type") || "").toLowerCase();
+        if (contentType.includes("image/") || contentType.includes("text/html")) {
+          throw new Error(`URL retornou conteúdo inválido (${contentType}). A API não conseguiu obter o vídeo real do YouTube. Tente fazer upload manual do vídeo.`);
+        }
+
         const videoBlob = await videoResponse.blob();
         const storagePath = `yt-downloads/${job.id}.mp4`;
-        console.log(`Video downloaded: ${videoBlob.size} bytes, uploading to storage...`);
+        console.log(`Video downloaded: ${videoBlob.size} bytes (type: ${contentType}), uploading to storage...`);
+
+        // Reject files smaller than 500KB — likely not a real video
+        if (videoBlob.size < 500_000) {
+          throw new Error(`Arquivo muito pequeno (${(videoBlob.size / 1024).toFixed(0)}KB). Provavelmente não é o vídeo real. Tente fazer upload manual do vídeo.`);
+        }
 
         // Step 3: Upload to our Supabase Storage bucket
         await supabase
@@ -401,6 +412,15 @@ async function resolveYouTubeToDirectUrl(youtubeUrl: string): Promise<{ url: str
     const timeout = setTimeout(() => controller.abort(), 20000);
 
     try {
+      // Reject obvious non-video URLs (thumbnails, storyboards, images)
+      const urlLower = candidateUrl.toLowerCase();
+      if (urlLower.match(/\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?|$)/)) {
+        return { ok: false, status: 0, message: "URL is an image, not a video" };
+      }
+      if (urlLower.includes("storyboard") || urlLower.includes("thumbnail") || urlLower.includes("ytimg.com")) {
+        return { ok: false, status: 0, message: "URL is a thumbnail/storyboard, not a video" };
+      }
+
       const response = await fetch(candidateUrl, {
         method: "GET",
         headers: { Range: "bytes=0-1" },
@@ -408,6 +428,15 @@ async function resolveYouTubeToDirectUrl(youtubeUrl: string): Promise<{ url: str
       });
 
       const ok = response.status === 200 || response.status === 206;
+      
+      // Check Content-Type — must be video or octet-stream
+      if (ok) {
+        const contentType = (response.headers.get("content-type") || "").toLowerCase();
+        if (contentType.includes("image/") || contentType.includes("text/html")) {
+          return { ok: false, status: response.status, message: `Wrong content-type: ${contentType}` };
+        }
+      }
+
       return { ok, status: response.status };
     } catch (error: any) {
       const msg = error?.name === "AbortError" ? "timeout (20s)" : (error?.message || "indisponível");
