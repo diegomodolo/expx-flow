@@ -140,121 +140,31 @@ serve(async (req) => {
       try {
         const apiBase = "https://refreshing-beauty-production-f560.up.railway.app";
         const normalizedUrl = normalizeYouTubeUrl(videoUrl);
-        console.log("Downloading YouTube video via proxy:", normalizedUrl);
+        console.log("Downloading YouTube video via /stream proxy:", normalizedUrl);
 
-        // Try to stream the video through Railway (which has the correct IP for googlevideo)
-        let videoBlob: Blob | null = null;
-        let downloadMethod = "";
+        // Use GET /stream endpoint - proxies the video through Railway's server
+        const encodedUrl = encodeURIComponent(normalizedUrl);
+        const streamUrl = `${apiBase}/stream?url=${encodedUrl}`;
 
-        // Method 1: Use /download endpoint as a proxy stream
-        const proxyFormats = ["best[ext=mp4]", "18", "22", "best"];
-        for (const fmt of proxyFormats) {
-          try {
-            const controller = new AbortController();
-            const timeout = setTimeout(() => controller.abort(), 150000); // 2.5min
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 180000); // 3min timeout
 
-            const response = await fetch(`${apiBase}/download`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ url: normalizedUrl, format: fmt }),
-              signal: controller.signal,
-            });
-            clearTimeout(timeout);
+        const streamResponse = await fetch(streamUrl, { signal: controller.signal });
+        clearTimeout(timeout);
 
-            const ct = (response.headers.get("content-type") || "").toLowerCase();
-            console.log(`/download (${fmt}): status=${response.status}, content-type=${ct}, content-length=${response.headers.get("content-length")}`);
-
-            // If the server returns actual video bytes (not JSON)
-            if (response.ok && (ct.includes("video/") || ct.includes("octet-stream"))) {
-              videoBlob = await response.blob();
-              downloadMethod = `/download stream (${fmt})`;
-              console.log(`Got video blob via stream: ${videoBlob.size} bytes`);
-              break;
-            }
-
-            // If it returns JSON with a download_url, we need to try differently
-            if (response.ok && ct.includes("application/json")) {
-              const jsonData = await response.json();
-              // If there's a file_path or download_url served from the Railway server itself
-              if (jsonData.file_url && !jsonData.file_url.includes("googlevideo.com")) {
-                console.log("Got non-googlevideo file_url from /download:", jsonData.file_url.substring(0, 100));
-                const fileResp = await fetch(jsonData.file_url);
-                if (fileResp.ok) {
-                  videoBlob = await fileResp.blob();
-                  downloadMethod = `/download file_url (${fmt})`;
-                  console.log(`Got video blob via file_url: ${videoBlob.size} bytes`);
-                  break;
-                }
-              }
-              // If download_url is googlevideo, skip (IP-restricted)
-              const dlUrl = jsonData.download_url || jsonData.url;
-              if (dlUrl && !dlUrl.includes("googlevideo.com") && !dlUrl.includes("ytimg.com")) {
-                console.log("Trying non-google download_url:", dlUrl.substring(0, 100));
-                const dlResp = await fetch(dlUrl, { headers: { "User-Agent": "Mozilla/5.0" } });
-                if (dlResp.ok) {
-                  const dlCt = (dlResp.headers.get("content-type") || "").toLowerCase();
-                  if (dlCt.includes("video/") || dlCt.includes("octet-stream")) {
-                    videoBlob = await dlResp.blob();
-                    downloadMethod = `/download url (${fmt})`;
-                    console.log(`Got video blob via download_url: ${videoBlob.size} bytes`);
-                    break;
-                  }
-                }
-              }
-              console.log(`/download (${fmt}): JSON response, no usable stream - ${JSON.stringify(jsonData).substring(0, 200)}`);
-            }
-          } catch (e: any) {
-            console.log(`/download (${fmt}) error: ${e?.message || e}`);
-          }
+        if (!streamResponse.ok) {
+          const errText = await streamResponse.text().catch(() => "");
+          throw new Error(`/stream retornou ${streamResponse.status}: ${errText.substring(0, 200)}`);
         }
 
-        // Method 2: Try /direct-url and download (for non-googlevideo URLs)
-        if (!videoBlob || videoBlob.size < 500_000) {
-          console.log("Stream method failed, trying /direct-url for non-googlevideo URLs...");
-          const directFormats = ["best[ext=mp4]", "18", "22", "best"];
-          for (const fmt of directFormats) {
-            try {
-              const res = await fetch(`${apiBase}/direct-url`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ url: normalizedUrl, format: fmt }),
-              });
-              if (!res.ok) continue;
-              const data = await res.json();
-              const directUrl = data?.url;
-              if (!directUrl || typeof directUrl !== "string") continue;
-              
-              // Skip googlevideo URLs (IP-restricted)
-              if (directUrl.includes("googlevideo.com")) {
-                console.log(`/direct-url (${fmt}): googlevideo URL, skipping (IP-restricted)`);
-                continue;
-              }
+        const videoBlob = await streamResponse.blob();
+        console.log(`Video streamed successfully: ${videoBlob.size} bytes, type: ${streamResponse.headers.get("content-type")}`);
 
-              console.log(`/direct-url (${fmt}): trying non-google URL: ${directUrl.substring(0, 100)}`);
-              const dlResp = await fetch(directUrl, { headers: { "User-Agent": "Mozilla/5.0" } });
-              if (dlResp.ok) {
-                const blob = await dlResp.blob();
-                if (blob.size >= 500_000) {
-                  videoBlob = blob;
-                  downloadMethod = `/direct-url (${fmt})`;
-                  console.log(`Got video via direct-url: ${blob.size} bytes`);
-                  break;
-                }
-              }
-            } catch (e: any) {
-              console.log(`/direct-url (${fmt}) error: ${e?.message}`);
-            }
-          }
-        }
-
-        if (!videoBlob || videoBlob.size < 500_000) {
+        if (videoBlob.size < 500_000) {
           throw new Error(
-            `Não foi possível baixar o vídeo do YouTube. URLs do googlevideo são restritas por IP e não podem ser acessadas de nossos servidores. ` +
-            `Faça upload manual do vídeo (.mp4). Método tentado: ${downloadMethod || "nenhum funcionou"}, tamanho: ${videoBlob ? (videoBlob.size / 1024).toFixed(0) + "KB" : "0"}`
+            `Arquivo muito pequeno (${(videoBlob.size / 1024).toFixed(0)}KB). Provavelmente não é o vídeo real. Faça upload manual do vídeo (.mp4).`
           );
         }
-
-        console.log(`YouTube video downloaded successfully via ${downloadMethod}: ${videoBlob.size} bytes`);
 
         // Upload to our bucket
         await supabase
