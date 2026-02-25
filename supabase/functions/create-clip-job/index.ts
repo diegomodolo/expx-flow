@@ -127,77 +127,136 @@ serve(async (req) => {
       videoUrl = signedUrlData.signedUrl;
     }
 
-    // If YouTube URL, resolve → download → upload to our bucket → signed URL for Shotstack
+    // If YouTube URL, download via Railway proxy → upload to our bucket → signed URL for Shotstack
     if (isYouTubeUrl && videoUrl) {
       await supabase
         .from("clip_jobs")
         .update({
           progress: 5,
-          progress_message: "Obtendo URL direta do YouTube...",
+          progress_message: "Baixando vídeo do YouTube via proxy...",
         })
         .eq("id", job.id);
 
       try {
-        console.log("Resolving YouTube URL:", videoUrl);
+        const apiBase = "https://refreshing-beauty-production-f560.up.railway.app";
+        const normalizedUrl = normalizeYouTubeUrl(videoUrl);
+        console.log("Downloading YouTube video via proxy:", normalizedUrl);
 
-        const { url: resolvedDirectUrl, diagnostics } = await resolveYouTubeToDirectUrl(videoUrl);
+        // Try to stream the video through Railway (which has the correct IP for googlevideo)
+        let videoBlob: Blob | null = null;
+        let downloadMethod = "";
 
-        if (!resolvedDirectUrl) {
-          const diagnosticSummary = diagnostics.slice(0, 10).join(" | ");
-          await supabase
-            .from("clip_jobs")
-            .update({
-              status: "error",
-              error_message: `Não foi possível obter URL direta do YouTube. Detalhes: ${diagnosticSummary || "sem detalhes"}. Tente upload manual do vídeo.`,
-              progress_message: "Erro ao obter URL do YouTube",
-            })
-            .eq("id", job.id);
-          return new Response(
-            JSON.stringify({ error: "Erro ao baixar vídeo do YouTube" }),
-            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        // Method 1: Use /download endpoint as a proxy stream
+        const proxyFormats = ["best[ext=mp4]", "18", "22", "best"];
+        for (const fmt of proxyFormats) {
+          try {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 150000); // 2.5min
+
+            const response = await fetch(`${apiBase}/download`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ url: normalizedUrl, format: fmt }),
+              signal: controller.signal,
+            });
+            clearTimeout(timeout);
+
+            const ct = (response.headers.get("content-type") || "").toLowerCase();
+            console.log(`/download (${fmt}): status=${response.status}, content-type=${ct}, content-length=${response.headers.get("content-length")}`);
+
+            // If the server returns actual video bytes (not JSON)
+            if (response.ok && (ct.includes("video/") || ct.includes("octet-stream"))) {
+              videoBlob = await response.blob();
+              downloadMethod = `/download stream (${fmt})`;
+              console.log(`Got video blob via stream: ${videoBlob.size} bytes`);
+              break;
+            }
+
+            // If it returns JSON with a download_url, we need to try differently
+            if (response.ok && ct.includes("application/json")) {
+              const jsonData = await response.json();
+              // If there's a file_path or download_url served from the Railway server itself
+              if (jsonData.file_url && !jsonData.file_url.includes("googlevideo.com")) {
+                console.log("Got non-googlevideo file_url from /download:", jsonData.file_url.substring(0, 100));
+                const fileResp = await fetch(jsonData.file_url);
+                if (fileResp.ok) {
+                  videoBlob = await fileResp.blob();
+                  downloadMethod = `/download file_url (${fmt})`;
+                  console.log(`Got video blob via file_url: ${videoBlob.size} bytes`);
+                  break;
+                }
+              }
+              // If download_url is googlevideo, skip (IP-restricted)
+              const dlUrl = jsonData.download_url || jsonData.url;
+              if (dlUrl && !dlUrl.includes("googlevideo.com") && !dlUrl.includes("ytimg.com")) {
+                console.log("Trying non-google download_url:", dlUrl.substring(0, 100));
+                const dlResp = await fetch(dlUrl, { headers: { "User-Agent": "Mozilla/5.0" } });
+                if (dlResp.ok) {
+                  const dlCt = (dlResp.headers.get("content-type") || "").toLowerCase();
+                  if (dlCt.includes("video/") || dlCt.includes("octet-stream")) {
+                    videoBlob = await dlResp.blob();
+                    downloadMethod = `/download url (${fmt})`;
+                    console.log(`Got video blob via download_url: ${videoBlob.size} bytes`);
+                    break;
+                  }
+                }
+              }
+              console.log(`/download (${fmt}): JSON response, no usable stream - ${JSON.stringify(jsonData).substring(0, 200)}`);
+            }
+          } catch (e: any) {
+            console.log(`/download (${fmt}) error: ${e?.message || e}`);
+          }
+        }
+
+        // Method 2: Try /direct-url and download (for non-googlevideo URLs)
+        if (!videoBlob || videoBlob.size < 500_000) {
+          console.log("Stream method failed, trying /direct-url for non-googlevideo URLs...");
+          const directFormats = ["best[ext=mp4]", "18", "22", "best"];
+          for (const fmt of directFormats) {
+            try {
+              const res = await fetch(`${apiBase}/direct-url`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ url: normalizedUrl, format: fmt }),
+              });
+              if (!res.ok) continue;
+              const data = await res.json();
+              const directUrl = data?.url;
+              if (!directUrl || typeof directUrl !== "string") continue;
+              
+              // Skip googlevideo URLs (IP-restricted)
+              if (directUrl.includes("googlevideo.com")) {
+                console.log(`/direct-url (${fmt}): googlevideo URL, skipping (IP-restricted)`);
+                continue;
+              }
+
+              console.log(`/direct-url (${fmt}): trying non-google URL: ${directUrl.substring(0, 100)}`);
+              const dlResp = await fetch(directUrl, { headers: { "User-Agent": "Mozilla/5.0" } });
+              if (dlResp.ok) {
+                const blob = await dlResp.blob();
+                if (blob.size >= 500_000) {
+                  videoBlob = blob;
+                  downloadMethod = `/direct-url (${fmt})`;
+                  console.log(`Got video via direct-url: ${blob.size} bytes`);
+                  break;
+                }
+              }
+            } catch (e: any) {
+              console.log(`/direct-url (${fmt}) error: ${e?.message}`);
+            }
+          }
+        }
+
+        if (!videoBlob || videoBlob.size < 500_000) {
+          throw new Error(
+            `Não foi possível baixar o vídeo do YouTube. URLs do googlevideo são restritas por IP e não podem ser acessadas de nossos servidores. ` +
+            `Faça upload manual do vídeo (.mp4). Método tentado: ${downloadMethod || "nenhum funcionou"}, tamanho: ${videoBlob ? (videoBlob.size / 1024).toFixed(0) + "KB" : "0"}`
           );
         }
 
-        console.log("Resolved YouTube URL, downloading to our storage...", resolvedDirectUrl.substring(0, 120));
+        console.log(`YouTube video downloaded successfully via ${downloadMethod}: ${videoBlob.size} bytes`);
 
-        // Step 2: Download the video from the direct URL
-        await supabase
-          .from("clip_jobs")
-          .update({
-            progress: 6,
-            progress_message: "Baixando vídeo do YouTube...",
-          })
-          .eq("id", job.id);
-
-        const downloadController = new AbortController();
-        const downloadTimeout = setTimeout(() => downloadController.abort(), 120000); // 2min timeout
-
-        const videoResponse = await fetch(resolvedDirectUrl, {
-          signal: downloadController.signal,
-          headers: { "User-Agent": "Mozilla/5.0" },
-        });
-        clearTimeout(downloadTimeout);
-
-        if (!videoResponse.ok) {
-          throw new Error(`Falha ao baixar vídeo: HTTP ${videoResponse.status}`);
-        }
-
-        // Validate content-type is video
-        const contentType = (videoResponse.headers.get("content-type") || "").toLowerCase();
-        if (contentType.includes("image/") || contentType.includes("text/html")) {
-          throw new Error(`URL retornou conteúdo inválido (${contentType}). A API não conseguiu obter o vídeo real do YouTube. Tente fazer upload manual do vídeo.`);
-        }
-
-        const videoBlob = await videoResponse.blob();
-        const storagePath = `yt-downloads/${job.id}.mp4`;
-        console.log(`Video downloaded: ${videoBlob.size} bytes (type: ${contentType}), uploading to storage...`);
-
-        // Reject files smaller than 500KB — likely not a real video
-        if (videoBlob.size < 500_000) {
-          throw new Error(`Arquivo muito pequeno (${(videoBlob.size / 1024).toFixed(0)}KB). Provavelmente não é o vídeo real. Tente fazer upload manual do vídeo.`);
-        }
-
-        // Step 3: Upload to our Supabase Storage bucket
+        // Upload to our bucket
         await supabase
           .from("clip_jobs")
           .update({
@@ -206,6 +265,7 @@ serve(async (req) => {
           })
           .eq("id", job.id);
 
+        const storagePath = `yt-downloads/${job.id}.mp4`;
         const { error: uploadError } = await supabase.storage
           .from("videos-input")
           .upload(storagePath, videoBlob, {
@@ -217,7 +277,7 @@ serve(async (req) => {
           throw new Error(`Falha no upload: ${uploadError.message}`);
         }
 
-        // Step 4: Generate a signed URL valid for 1 hour
+        // Generate signed URL
         const { data: signedData, error: signedError } = await supabase.storage
           .from("videos-input")
           .createSignedUrl(storagePath, 3600);
@@ -342,183 +402,15 @@ serve(async (req) => {
   }
 });
 
-async function resolveYouTubeToDirectUrl(youtubeUrl: string): Promise<{ url: string | null; diagnostics: string[] }> {
-  const diagnostics: string[] = [];
-  const apiBase = "https://refreshing-beauty-production-f560.up.railway.app";
-
-  const normalizeYouTubeUrl = (raw: string) => {
-    try {
-      const u = new URL(raw);
-      u.searchParams.delete("t");
-      u.searchParams.delete("start");
-      return u.toString();
-    } catch {
-      return raw;
-    }
-  };
-
-  const normalizedUrl = normalizeYouTubeUrl(youtubeUrl);
-
-  const callEndpoint = async (endpoint: string, payload: Record<string, unknown>) => {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 60000);
-
-    try {
-      const response = await fetch(`${apiBase}${endpoint}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-        signal: controller.signal,
-      });
-
-      const rawBody = await response.text();
-      let data: any = null;
-      try {
-        data = rawBody ? JSON.parse(rawBody) : null;
-      } catch {
-        data = null;
-      }
-
-      return { ok: response.ok, status: response.status, data, rawBody };
-    } catch (error: any) {
-      const msg = error?.name === "AbortError" ? "timeout (60s)" : (error?.message || "indisponível");
-      return { ok: false, status: 0, data: null, rawBody: msg };
-    } finally {
-      clearTimeout(timeout);
-    }
-  };
-
-  const getHost = (candidateUrl: string) => {
-    try {
-      return new URL(candidateUrl).hostname;
-    } catch {
-      return "invalid-url";
-    }
-  };
-
-  const isDirectMediaCandidate = (candidateUrl: string) => {
-    try {
-      const parsed = new URL(candidateUrl);
-      const host = parsed.hostname.toLowerCase();
-      if (host.includes("youtube.com") || host.includes("youtu.be")) return false;
-      return parsed.protocol === "https:" || parsed.protocol === "http:";
-    } catch {
-      return false;
-    }
-  };
-
-  const checkUrlReachableFromEdge = async (candidateUrl: string) => {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 20000);
-
-    try {
-      // Reject obvious non-video URLs (thumbnails, storyboards, images)
-      const urlLower = candidateUrl.toLowerCase();
-      if (urlLower.match(/\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?|$)/)) {
-        return { ok: false, status: 0, message: "URL is an image, not a video" };
-      }
-      if (urlLower.includes("storyboard") || urlLower.includes("thumbnail") || urlLower.includes("ytimg.com")) {
-        return { ok: false, status: 0, message: "URL is a thumbnail/storyboard, not a video" };
-      }
-
-      const response = await fetch(candidateUrl, {
-        method: "GET",
-        headers: { Range: "bytes=0-1" },
-        signal: controller.signal,
-      });
-
-      const ok = response.status === 200 || response.status === 206;
-      
-      // Check Content-Type — must be video or octet-stream
-      if (ok) {
-        const contentType = (response.headers.get("content-type") || "").toLowerCase();
-        if (contentType.includes("image/") || contentType.includes("text/html")) {
-          return { ok: false, status: response.status, message: `Wrong content-type: ${contentType}` };
-        }
-      }
-
-      return { ok, status: response.status };
-    } catch (error: any) {
-      const msg = error?.name === "AbortError" ? "timeout (20s)" : (error?.message || "indisponível");
-      return { ok: false, status: 0, message: msg };
-    } finally {
-      clearTimeout(timeout);
-    }
-  };
-
-  const evaluateCandidate = async (candidateUrl: string, sourceLabel: string) => {
-    if (!isDirectMediaCandidate(candidateUrl)) {
-      diagnostics.push(`${sourceLabel}: URL não é mídia direta`);
-      return null;
-    }
-
-    const reachability = await checkUrlReachableFromEdge(candidateUrl);
-    if (!reachability.ok) {
-      const host = getHost(candidateUrl);
-      diagnostics.push(`${sourceLabel}: URL inacessível do edge (host=${host}, status=${reachability.status || reachability.message || "n/a"})`);
-      return null;
-    }
-
-    diagnostics.push(`${sourceLabel}: ok (host=${getHost(candidateUrl)})`);
-    return candidateUrl;
-  };
-
-  // 1) Preferred endpoint: /direct-url with format fallbacks
-  const directFormats = ["best[ext=mp4]", "18", "22", "best"];
-  for (const format of directFormats) {
-    const directRes = await callEndpoint("/direct-url", { url: normalizedUrl, format });
-
-    if (!directRes.ok) {
-      diagnostics.push(`yt-dlp-api /direct-url (${format}): HTTP ${directRes.status} - ${(directRes.rawBody || "").substring(0, 120)}`);
-      continue;
-    }
-
-    const directUrl = directRes.data?.url;
-    if (typeof directUrl === "string" && directUrl.startsWith("http")) {
-      const accepted = await evaluateCandidate(directUrl, `yt-dlp-api /direct-url (${format})`);
-      if (accepted) return { url: accepted, diagnostics };
-      continue;
-    }
-
-    diagnostics.push(`yt-dlp-api /direct-url (${format}): sem campo url`);
+function normalizeYouTubeUrl(raw: string): string {
+  try {
+    const u = new URL(raw);
+    u.searchParams.delete("t");
+    u.searchParams.delete("start");
+    return u.toString();
+  } catch {
+    return raw;
   }
-
-  // 2) Fallback endpoint: /info (use main url + formats list)
-  const infoRes = await callEndpoint("/info", { url: normalizedUrl });
-  if (infoRes.ok && infoRes.data) {
-    const candidates: string[] = [];
-
-    if (typeof infoRes.data?.url === "string") {
-      candidates.push(infoRes.data.url);
-    }
-
-    if (Array.isArray(infoRes.data?.formats)) {
-      for (const f of infoRes.data.formats) {
-        if (typeof f?.url === "string") candidates.push(f.url);
-      }
-    }
-
-    const uniqueCandidates = [...new Set(candidates)].slice(0, 20);
-    for (const candidate of uniqueCandidates) {
-      const accepted = await evaluateCandidate(candidate, "yt-dlp-api /info");
-      if (accepted) return { url: accepted, diagnostics };
-    }
-
-    diagnostics.push("yt-dlp-api /info: nenhum candidato utilizável");
-  } else {
-    diagnostics.push(`yt-dlp-api /info: HTTP ${infoRes.status} - ${(infoRes.rawBody || "").substring(0, 120)}`);
-  }
-
-  // 3) Last fallback: /download (legacy)
-  const downloadRes = await callEndpoint("/download", { url: normalizedUrl });
-  if (downloadRes.ok && typeof downloadRes.data?.download_url === "string") {
-    const accepted = await evaluateCandidate(downloadRes.data.download_url, "yt-dlp-api /download");
-    if (accepted) return { url: accepted, diagnostics };
-    diagnostics.push("yt-dlp-api /download: URL recebida, mas não acessível");
-  } else {
-    diagnostics.push(`yt-dlp-api /download: HTTP ${downloadRes.status} - ${(downloadRes.rawBody || "").substring(0, 120)}`);
-  }
-
-  return { url: null, diagnostics };
 }
+
 
