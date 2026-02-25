@@ -142,27 +142,100 @@ serve(async (req) => {
         const normalizedUrl = normalizeYouTubeUrl(videoUrl);
         console.log("Downloading YouTube video via /stream proxy:", normalizedUrl);
 
-        // Use GET /stream endpoint - proxies the video through Railway's server
-        const encodedUrl = encodeURIComponent(normalizedUrl);
-        const streamUrl = `${apiBase}/stream?url=${encodedUrl}`;
+        let videoBlob: Blob | null = null;
 
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 180000); // 3min timeout
+        // Method 1: GET /stream - proxies the full video through Railway
+        try {
+          const encodedUrl = encodeURIComponent(normalizedUrl);
+          const streamUrl = `${apiBase}/stream?url=${encodedUrl}`;
 
-        const streamResponse = await fetch(streamUrl, { signal: controller.signal });
-        clearTimeout(timeout);
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 180000); // 3min timeout
 
-        if (!streamResponse.ok) {
-          const errText = await streamResponse.text().catch(() => "");
-          throw new Error(`/stream retornou ${streamResponse.status}: ${errText.substring(0, 200)}`);
+          const streamResponse = await fetch(streamUrl, { signal: controller.signal });
+          clearTimeout(timeout);
+
+          if (streamResponse.ok) {
+            videoBlob = await streamResponse.blob();
+            console.log(`/stream success: ${videoBlob.size} bytes`);
+          } else {
+            const errText = await streamResponse.text().catch(() => "");
+            console.log(`/stream failed (${streamResponse.status}): ${errText.substring(0, 300)}`);
+          }
+        } catch (streamErr: any) {
+          console.log(`/stream error: ${streamErr?.message || streamErr}`);
         }
 
-        const videoBlob = await streamResponse.blob();
-        console.log(`Video streamed successfully: ${videoBlob.size} bytes, type: ${streamResponse.headers.get("content-type")}`);
+        // Method 2: POST /info to get direct URL, then download
+        if (!videoBlob || videoBlob.size < 500_000) {
+          console.log("Trying /info fallback...");
+          try {
+            const infoResp = await fetch(`${apiBase}/info`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ url: normalizedUrl }),
+            });
+            if (infoResp.ok) {
+              const infoData = await infoResp.json();
+              const directUrl = infoData?.url;
+              if (directUrl && typeof directUrl === "string") {
+                console.log(`/info got URL: ${directUrl.substring(0, 100)}`);
+                const dlResp = await fetch(directUrl, {
+                  headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" },
+                });
+                if (dlResp.ok) {
+                  const blob = await dlResp.blob();
+                  if (blob.size >= 500_000) {
+                    videoBlob = blob;
+                    console.log(`/info download success: ${blob.size} bytes`);
+                  } else {
+                    console.log(`/info download too small: ${blob.size} bytes`);
+                  }
+                }
+              }
+            } else {
+              const errText = await infoResp.text().catch(() => "");
+              console.log(`/info failed: ${errText.substring(0, 200)}`);
+            }
+          } catch (infoErr: any) {
+            console.log(`/info error: ${infoErr?.message}`);
+          }
+        }
 
-        if (videoBlob.size < 500_000) {
+        // Method 3: POST /direct-url
+        if (!videoBlob || videoBlob.size < 500_000) {
+          console.log("Trying /direct-url fallback...");
+          try {
+            const duResp = await fetch(`${apiBase}/direct-url`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ url: normalizedUrl }),
+            });
+            if (duResp.ok) {
+              const duData = await duResp.json();
+              const duUrl = duData?.url;
+              if (duUrl && typeof duUrl === "string") {
+                console.log(`/direct-url got URL: ${duUrl.substring(0, 100)}`);
+                const dlResp = await fetch(duUrl, {
+                  headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" },
+                });
+                if (dlResp.ok) {
+                  const blob = await dlResp.blob();
+                  if (blob.size >= 500_000) {
+                    videoBlob = blob;
+                    console.log(`/direct-url download success: ${blob.size} bytes`);
+                  }
+                }
+              }
+            }
+          } catch (duErr: any) {
+            console.log(`/direct-url error: ${duErr?.message}`);
+          }
+        }
+
+        if (!videoBlob || videoBlob.size < 500_000) {
           throw new Error(
-            `Arquivo muito pequeno (${(videoBlob.size / 1024).toFixed(0)}KB). Provavelmente não é o vídeo real. Faça upload manual do vídeo (.mp4).`
+            `Não foi possível baixar o vídeo do YouTube. O servidor de download não conseguiu processar este vídeo. Tente outro vídeo ou faça upload manual do .mp4.`
           );
         }
 
