@@ -89,7 +89,7 @@ export default function Roteiros() {
 
   return (
     <DashboardLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-4 sm:p-6 space-y-6 min-w-0 overflow-hidden">
         {/* Breadcrumb */}
         <Breadcrumb>
           <BreadcrumbList>
@@ -121,10 +121,10 @@ export default function Roteiros() {
         </div>
 
         {/* Card container */}
-        <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+        <div className="rounded-xl border border-border bg-card p-3 sm:p-5 space-y-4 min-w-0 overflow-hidden">
           {/* Search + Category filter */}
           <div className="flex items-center gap-3 flex-wrap">
-            <div className="relative flex-1 max-w-sm">
+            <div className="relative flex-1 min-w-0">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 value={search}
@@ -197,7 +197,7 @@ export default function Roteiros() {
               </div>
 
               {/* Desktop: Table layout */}
-              <div className="hidden md:block rounded-lg border border-border overflow-hidden">
+              <div className="hidden md:block rounded-lg border border-border overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
