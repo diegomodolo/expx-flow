@@ -33,32 +33,46 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Use YouTube oEmbed to get title
-      const oembedRes = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`);
-      if (oembedRes.ok) {
-        const oembed = await oembedRes.json();
-        suggestedName = oembed.title || '';
-        contentToAnalyze = `Título do vídeo: ${oembed.title}\nAutor: ${oembed.author_name}`;
-      }
+      const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
+      const API_BASE = 'https://refreshing-beauty-production-f560.up.railway.app';
 
-      // Try to get transcript/captions via a public endpoint
+      // Try Railway /info endpoint first for richer data
       try {
-        const transcriptRes = await fetch(`https://www.youtube.com/watch?v=${videoId}`);
-        const html = await transcriptRes.text();
-        
-        // Extract description from meta tags
-        const descMatch = html.match(/<meta name="description" content="([^"]*)">/);
-        if (descMatch) {
-          contentToAnalyze += `\nDescrição: ${descMatch[1]}`;
-        }
+        const infoRes = await fetch(`${API_BASE}/info`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: youtubeUrl }),
+        });
 
-        // Extract keywords
-        const kwMatch = html.match(/<meta name="keywords" content="([^"]*)">/);
-        if (kwMatch) {
-          contentToAnalyze += `\nPalavras-chave: ${kwMatch[1]}`;
+        if (infoRes.ok) {
+          const info = await infoRes.json();
+          suggestedName = info.title || '';
+          contentToAnalyze = `Título do vídeo: ${info.title || ''}\nCanal: ${info.channel || ''}\nDuração: ${info.duration_string || ''}\nVisualizações: ${info.view_count || ''}\nDescrição: ${info.description || ''}`;
+          console.log('Got video info from Railway API:', suggestedName);
         }
       } catch (e) {
-        console.log('Could not fetch YouTube page details:', e);
+        console.log('Railway /info failed, falling back to oEmbed:', e);
+      }
+
+      // Fallback: oEmbed + page scraping
+      if (!suggestedName) {
+        const oembedRes = await fetch(`https://www.youtube.com/oembed?url=${youtubeUrl}&format=json`);
+        if (oembedRes.ok) {
+          const oembed = await oembedRes.json();
+          suggestedName = oembed.title || '';
+          contentToAnalyze = `Título do vídeo: ${oembed.title}\nAutor: ${oembed.author_name}`;
+        }
+
+        try {
+          const transcriptRes = await fetch(youtubeUrl);
+          const html = await transcriptRes.text();
+          const descMatch = html.match(/<meta name="description" content="([^"]*)">/);
+          if (descMatch) contentToAnalyze += `\nDescrição: ${descMatch[1]}`;
+          const kwMatch = html.match(/<meta name="keywords" content="([^"]*)">/);
+          if (kwMatch) contentToAnalyze += `\nPalavras-chave: ${kwMatch[1]}`;
+        } catch (e) {
+          console.log('Could not fetch YouTube page details:', e);
+        }
       }
     } else if (type === 'url') {
       // Try Firecrawl first if available

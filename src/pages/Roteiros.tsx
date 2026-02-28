@@ -104,17 +104,17 @@ export default function Roteiros() {
         </Breadcrumb>
 
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
               <BookOpen className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h1 className="text-2xl font-semibold text-foreground">Roteiros</h1>
-              <p className="text-sm text-muted-foreground">Gerencie seus templates reutilizáveis de tarefas</p>
+              <h1 className="text-xl sm:text-2xl font-semibold text-foreground">Roteiros</h1>
+              <p className="text-xs sm:text-sm text-muted-foreground">Gerencie seus templates reutilizáveis</p>
             </div>
           </div>
-          <Button onClick={() => setSourceDialogOpen(true)}>
+          <Button onClick={() => setSourceDialogOpen(true)} className="w-full sm:w-auto">
             <Plus className="w-4 h-4 mr-2" />
             Novo Roteiro
           </Button>
@@ -146,7 +146,7 @@ export default function Roteiros() {
             </Tabs>
           )}
 
-          {/* Content */}
+         {/* Content */}
           {isLoading ? (
             <div className="text-center py-12 text-muted-foreground">Carregando...</div>
           ) : filtered.length === 0 ? (
@@ -159,48 +159,87 @@ export default function Roteiros() {
               </Button>
             </div>
           ) : (
-            <div className="rounded-lg border border-border overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[300px]">Nome</TableHead>
-                    <TableHead>Categoria</TableHead>
-                    <TableHead>Objetivo</TableHead>
-                    <TableHead className="w-[160px]">Criado em</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.map(roteiro => {
-                    const Icon = (LucideIcons as any)[roteiro.icone || 'BookOpen'] || LucideIcons.BookOpen;
-                    return (
-                      <TableRow
-                        key={roteiro.id}
-                        className="hover:bg-muted/30 cursor-pointer"
-                        onClick={() => navigate(`/roteiros/${roteiro.id}`)}
-                      >
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
-                              <Icon className="w-4 h-4 text-primary" />
-                            </div>
-                            <span className="font-medium text-foreground">{roteiro.nome}</span>
+            <>
+              {/* Mobile: Card layout */}
+              <div className="md:hidden space-y-2">
+                {filtered.map(roteiro => {
+                  const Icon = (LucideIcons as any)[roteiro.icone || 'BookOpen'] || LucideIcons.BookOpen;
+                  return (
+                    <div
+                      key={roteiro.id}
+                      className="p-3 rounded-lg border border-border hover:bg-muted/30 cursor-pointer transition-colors"
+                      onClick={() => navigate(`/roteiros/${roteiro.id}`)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="h-9 w-9 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                          <Icon className="w-4 h-4 text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-foreground text-sm truncate">{roteiro.nome}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            {roteiro.roteiro_categorias?.nome && (
+                              <span className="text-xs text-primary/80 bg-primary/10 px-1.5 py-0.5 rounded">
+                                {roteiro.roteiro_categorias.nome}
+                              </span>
+                            )}
+                            <span className="text-xs text-muted-foreground">
+                              {format(new Date(roteiro.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                            </span>
                           </div>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">
-                          {roteiro.roteiro_categorias?.nome || '—'}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm max-w-[300px] truncate">
-                          {roteiro.objetivo || '—'}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">
-                          {format(new Date(roteiro.created_at), "dd 'de' MMM, yyyy", { locale: ptBR })}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
+                        </div>
+                      </div>
+                      {roteiro.objetivo && (
+                        <p className="text-xs text-muted-foreground mt-2 line-clamp-2 pl-12">{roteiro.objetivo}</p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Desktop: Table layout */}
+              <div className="hidden md:block rounded-lg border border-border overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[300px]">Nome</TableHead>
+                      <TableHead>Categoria</TableHead>
+                      <TableHead>Objetivo</TableHead>
+                      <TableHead className="w-[160px]">Criado em</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filtered.map(roteiro => {
+                      const Icon = (LucideIcons as any)[roteiro.icone || 'BookOpen'] || LucideIcons.BookOpen;
+                      return (
+                        <TableRow
+                          key={roteiro.id}
+                          className="hover:bg-muted/30 cursor-pointer"
+                          onClick={() => navigate(`/roteiros/${roteiro.id}`)}
+                        >
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                                <Icon className="w-4 h-4 text-primary" />
+                              </div>
+                              <span className="font-medium text-foreground">{roteiro.nome}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground text-sm">
+                            {roteiro.roteiro_categorias?.nome || '—'}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground text-sm max-w-[300px] truncate">
+                            {roteiro.objetivo || '—'}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground text-sm">
+                            {format(new Date(roteiro.created_at), "dd 'de' MMM, yyyy", { locale: ptBR })}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </div>
       </div>
