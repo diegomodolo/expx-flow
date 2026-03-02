@@ -7,6 +7,7 @@ import { HealthInactiveClients } from "@/components/health-dashboard/HealthInact
 import { HealthSyncAlerts } from "@/components/health-dashboard/HealthSyncAlerts";
 import { HealthWorstClients } from "@/components/health-dashboard/HealthWorstClients";
 import { HealthDisqualifiedLeads } from "@/components/health-dashboard/HealthDisqualifiedLeads";
+import { HealthAccountMismatches } from "@/components/health-dashboard/HealthAccountMismatches";
 import { Button } from "@/components/ui/button";
 
 const RadarSaudeDashboard = () => {
@@ -93,6 +94,11 @@ const RadarSaudeDashboard = () => {
         />
         <HealthWorstClients clients={data.worstClients} />
         <HealthDisqualifiedLeads clients={data.disqualifiedLeadClients} />
+      </div>
+
+      {/* Row 3: Account Mismatches */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <HealthAccountMismatches />
       </div>
     </div>
   );
