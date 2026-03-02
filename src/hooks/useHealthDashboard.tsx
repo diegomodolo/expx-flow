@@ -52,6 +52,21 @@ export interface DisqualifiedLeadClient {
   reportCount: number;
 }
 
+export interface AdSetAccountMismatch {
+  clientId: string;
+  clientName: string;
+  clientAvatar: string | null;
+  adSetName: string;
+  adSetFacebookId: string;
+  campaignName: string;
+  campaignFacebookId: string;
+  mismatchType: "instagram" | "facebook_page" | "both";
+  expectedInstagram: string | null;
+  actualInstagram: string | null;
+  expectedPage: string | null;
+  actualPage: string | null;
+}
+
 export interface HealthDashboardData {
   totalClients: number;
   criticalCount: number;
@@ -65,6 +80,7 @@ export interface HealthDashboardData {
   syncAlerts: ClientHealthData[];
   worstClients: ClientHealthData[];
   disqualifiedLeadClients: DisqualifiedLeadClient[];
+  accountMismatches: AdSetAccountMismatch[];
   pendingTasks: HealthTask[];
   allClients: ClientHealthData[];
   lastUpdate: string;
@@ -526,6 +542,20 @@ export function useHealthDashboard() {
         };
       });
 
+      // Check account mismatches via edge function
+      let accountMismatches: AdSetAccountMismatch[] = [];
+      try {
+        const { data: mismatchData, error: mismatchError } = await supabase.functions.invoke(
+          "check-adset-account-mismatches",
+          { body: { companyId: activeCompany.company_id } }
+        );
+        if (!mismatchError && mismatchData?.mismatches) {
+          accountMismatches = mismatchData.mismatches;
+        }
+      } catch (err) {
+        console.error("Error checking account mismatches:", err);
+      }
+
       return {
         totalClients: processedClients.length,
         criticalCount,
@@ -539,6 +569,7 @@ export function useHealthDashboard() {
         syncAlerts,
         worstClients,
         disqualifiedLeadClients,
+        accountMismatches,
         pendingTasks,
         allClients: processedClients,
         lastUpdate: new Date().toISOString(),
