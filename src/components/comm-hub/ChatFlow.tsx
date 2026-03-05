@@ -335,7 +335,7 @@ export function ChatFlow({ channel, messages, loading, onSendMessage, sendingMes
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-background/50 backdrop-blur-sm min-w-0">
+    <div className="flex-1 flex flex-col bg-background/50 backdrop-blur-sm min-w-0 h-full">
       {/* Channel Header */}
       <div className="h-14 border-b border-border flex items-center px-4 gap-3 shrink-0">
         <Hash className="w-5 h-5 text-primary" />
