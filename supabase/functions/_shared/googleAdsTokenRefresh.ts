@@ -38,7 +38,7 @@ export async function refreshGoogleAdsToken(
   refreshToken: string,
   clientId: string,
   clientSecret: string
-): Promise<{ accessToken: string; expiresIn: number }> {
+): Promise<{ accessToken: string; expiresIn: number; newRefreshToken?: string }> {
   console.log('Refreshing Google Ads access token...');
   
   const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
@@ -61,11 +61,12 @@ export async function refreshGoogleAdsToken(
   }
 
   const tokens = await tokenResponse.json();
-  console.log('Token refreshed successfully');
+  console.log('Token refreshed successfully. New refresh_token received:', !!tokens.refresh_token);
   
   return {
     accessToken: tokens.access_token,
     expiresIn: tokens.expires_in,
+    newRefreshToken: tokens.refresh_token || undefined,
   };
 }
 
@@ -95,7 +96,7 @@ export async function forceRefreshGoogleAdsToken(
   }
 
   // Renovar o token incondicionalmente
-  const { accessToken, expiresIn } = await refreshGoogleAdsToken(
+  const { accessToken, expiresIn, newRefreshToken } = await refreshGoogleAdsToken(
     integration.refresh_token,
     clientId,
     clientSecret
@@ -103,13 +104,19 @@ export async function forceRefreshGoogleAdsToken(
 
   const newExpiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
 
-  // Atualizar no banco de dados
+  // Atualizar no banco de dados (incluindo novo refresh_token se retornado)
+  const updateData: Record<string, string> = {
+    access_token: accessToken,
+    expires_at: newExpiresAt,
+  };
+  if (newRefreshToken) {
+    updateData.refresh_token = newRefreshToken;
+    console.log('✅ Novo refresh_token recebido e salvo!');
+  }
+
   const { error: updateError } = await supabaseClient
     .from('google_ads_integrations')
-    .update({
-      access_token: accessToken,
-      expires_at: newExpiresAt,
-    })
+    .update(updateData)
     .eq('id', integration.id);
 
   if (updateError) {
@@ -156,7 +163,7 @@ export async function getValidGoogleAdsToken(
   }
 
   // Renovar o token
-  const { accessToken, expiresIn } = await refreshGoogleAdsToken(
+  const { accessToken, expiresIn, newRefreshToken } = await refreshGoogleAdsToken(
     integration.refresh_token,
     clientId,
     clientSecret
@@ -165,18 +172,23 @@ export async function getValidGoogleAdsToken(
   // Calcular nova data de expiração
   const newExpiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
 
-  // Atualizar no banco de dados
+  // Atualizar no banco de dados (incluindo novo refresh_token se retornado)
+  const updateData: Record<string, string> = {
+    access_token: accessToken,
+    expires_at: newExpiresAt,
+  };
+  if (newRefreshToken) {
+    updateData.refresh_token = newRefreshToken;
+    console.log('✅ Novo refresh_token recebido e salvo!');
+  }
+
   const { error: updateError } = await supabaseClient
     .from('google_ads_integrations')
-    .update({
-      access_token: accessToken,
-      expires_at: newExpiresAt,
-    })
+    .update(updateData)
     .eq('id', integration.id);
 
   if (updateError) {
     console.error('Failed to update token in database:', updateError);
-    // Mesmo que falhe ao salvar, retornamos o token para a operação atual
   } else {
     console.log('Token updated in database, new expiry:', newExpiresAt);
   }
