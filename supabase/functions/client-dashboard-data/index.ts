@@ -717,7 +717,7 @@ async function fetchGoogleAdsData(
     const maxPages = 10; // Safety limit
 
     do {
-      const requestBody: any = { query: gaqlQuery, pageSize: 1000 };
+      const requestBody: any = { query: gaqlQuery };
       if (nextPageToken) {
         requestBody.pageToken = nextPageToken;
       }
@@ -826,7 +826,7 @@ async function fetchGoogleAdsData(
     console.log('Fetching Google Ads timeline data...');
 
     do {
-      const timelineRequestBody: any = { query: timelineQuery, pageSize: 1000 };
+      const timelineRequestBody: any = { query: timelineQuery };
       if (timelineNextPageToken) {
         timelineRequestBody.pageToken = timelineNextPageToken;
       }
