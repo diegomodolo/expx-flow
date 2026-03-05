@@ -700,7 +700,6 @@ async function fetchGoogleAdsData(
         metrics.cost_micros
       FROM campaign
       WHERE segments.date BETWEEN '${period.since}' AND '${period.until}'
-      ORDER BY metrics.cost_micros DESC
     `;
 
     // Use googleAds:search (v22) instead of searchStream (v18) - aligned with sync-google-ads-campaigns
