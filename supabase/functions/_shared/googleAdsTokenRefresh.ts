@@ -38,7 +38,7 @@ export async function refreshGoogleAdsToken(
   refreshToken: string,
   clientId: string,
   clientSecret: string
-): Promise<{ accessToken: string; expiresIn: number }> {
+): Promise<{ accessToken: string; expiresIn: number; newRefreshToken?: string }> {
   console.log('Refreshing Google Ads access token...');
   
   const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
