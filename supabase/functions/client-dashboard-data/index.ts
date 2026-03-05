@@ -1339,6 +1339,48 @@ Deno.serve(async (req) => {
 
     const daysDiff = Math.ceil((new Date(until).getTime() - new Date(since).getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
+    // Per-platform metrics breakdown
+    const metaMetrics = facebookResult ? {
+      spend: facebookResult.totalSpend,
+      leads: facebookResult.totalConversions,
+      messages: facebookResult.totalMessages,
+      impressions: facebookResult.totalImpressions,
+      clicks: facebookResult.totalClicks,
+      cpl: (facebookResult.totalConversions + facebookResult.totalMessages) > 0
+        ? facebookResult.totalSpend / (facebookResult.totalConversions + facebookResult.totalMessages) : 0,
+      leads_per_1k: facebookResult.totalSpend > 0
+        ? ((facebookResult.totalConversions + facebookResult.totalMessages) / facebookResult.totalSpend) * 1000 : 0,
+      cpm: facebookResult.totalImpressions > 0
+        ? (facebookResult.totalSpend / facebookResult.totalImpressions) * 1000 : 0,
+      cpc: facebookResult.totalClicks > 0
+        ? facebookResult.totalSpend / facebookResult.totalClicks : 0,
+      ctr: facebookResult.totalImpressions > 0
+        ? (facebookResult.totalClicks / facebookResult.totalImpressions) * 100 : 0,
+      frequency: facebookResult.totalReach > 0
+        ? facebookResult.totalImpressions / facebookResult.totalReach : 0,
+      reach: facebookResult.totalReach,
+    } : null;
+
+    const googleMetrics = googleResult ? {
+      spend: googleResult.totalSpend,
+      leads: googleResult.totalConversions,
+      messages: 0,
+      impressions: googleResult.totalImpressions,
+      clicks: googleResult.totalClicks,
+      cpl: googleResult.totalConversions > 0
+        ? googleResult.totalSpend / googleResult.totalConversions : 0,
+      leads_per_1k: googleResult.totalSpend > 0
+        ? (googleResult.totalConversions / googleResult.totalSpend) * 1000 : 0,
+      cpm: googleResult.totalImpressions > 0
+        ? (googleResult.totalSpend / googleResult.totalImpressions) * 1000 : 0,
+      cpc: googleResult.totalClicks > 0
+        ? googleResult.totalSpend / googleResult.totalClicks : 0,
+      ctr: googleResult.totalImpressions > 0
+        ? (googleResult.totalClicks / googleResult.totalImpressions) * 100 : 0,
+      frequency: 0,
+      reach: 0,
+    } : null;
+
     const response: any = {
       client: {
         name: client.name,
@@ -1352,6 +1394,8 @@ Deno.serve(async (req) => {
         preset: preset || null,
       },
       metrics,
+      meta_metrics: metaMetrics,
+      google_metrics: googleMetrics,
       timeline,
       top_campaigns: topCampaigns,
       campaigns_table: campaignsTable,
