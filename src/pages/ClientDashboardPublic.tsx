@@ -314,8 +314,8 @@ const ClientDashboardPublic = () => {
         )}
 
         <div className={`grid grid-cols-1 gap-3 ${hasTopPosts ? 'lg:grid-cols-3' : 'lg:grid-cols-2'}`}>
-          <FunnelVisualization metrics={data.metrics} />
-          <PerformanceMetrics metrics={data.metrics} />
+          <FunnelVisualization metrics={data.metrics} metaMetrics={data.meta_metrics} googleMetrics={data.google_metrics} />
+          <PerformanceMetrics metrics={data.metrics} metaMetrics={data.meta_metrics} googleMetrics={data.google_metrics} />
           {hasTopPosts && (
             <TopEngagementPostsCard posts={data.social_metrics!.instagram!.top_posts!} />
           )}
