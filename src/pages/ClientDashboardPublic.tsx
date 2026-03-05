@@ -313,9 +313,11 @@ const ClientDashboardPublic = () => {
           <SocialMetricsCard socialMetrics={data.social_metrics} />
         )}
 
-        <div className={`grid grid-cols-1 gap-3 ${hasTopPosts ? 'lg:grid-cols-3' : 'lg:grid-cols-2'}`}>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
           <FunnelVisualization metrics={data.metrics} metaMetrics={data.meta_metrics} googleMetrics={data.google_metrics} />
-          <PerformanceMetrics metrics={data.metrics} metaMetrics={data.meta_metrics} googleMetrics={data.google_metrics} />
+          <div className={hasTopPosts ? 'lg:col-span-1' : 'lg:col-span-2'}>
+            <PerformanceMetrics metrics={data.metrics} metaMetrics={data.meta_metrics} googleMetrics={data.google_metrics} />
+          </div>
           {hasTopPosts && (
             <TopEngagementPostsCard posts={data.social_metrics!.instagram!.top_posts!} />
           )}
