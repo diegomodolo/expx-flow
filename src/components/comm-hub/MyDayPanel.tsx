@@ -129,7 +129,7 @@ export function MyDayPanel({ onOpenDM, onOpenTask }: MyDayPanelProps) {
   );
 
   return (
-    <div className="w-60 border-l border-border bg-card/50 backdrop-blur-sm flex flex-col">
+    <div className="w-full h-full border-l border-border bg-card/50 backdrop-blur-sm flex flex-col">
       {/* Header */}
       <div className="p-4 border-b border-border">
         <h2 className="text-title-md text-foreground flex items-center gap-2">

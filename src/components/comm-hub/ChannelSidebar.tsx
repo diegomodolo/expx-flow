@@ -119,7 +119,7 @@ export function ChannelSidebar({ channels, activeChannelId, onSelectChannel, loa
 
   if (loading) {
     return (
-      <div className="w-60 border-r border-border bg-card/50 backdrop-blur-sm p-4 space-y-3">
+      <div className="w-full h-full border-r border-border bg-card/50 backdrop-blur-sm p-4 space-y-3">
         {[...Array(6)].map((_, i) => (
           <div key={i} className="h-8 rounded-lg bg-muted/50 animate-pulse" />
         ))}
@@ -128,7 +128,7 @@ export function ChannelSidebar({ channels, activeChannelId, onSelectChannel, loa
   }
 
   return (
-    <div className="w-60 border-r border-border bg-card/50 backdrop-blur-sm flex flex-col">
+    <div className="w-full h-full border-r border-border bg-card/50 backdrop-blur-sm flex flex-col">
       <div className="p-4 border-b border-border space-y-3">
         <h2 className="text-title-md text-foreground flex items-center gap-2">
           <Hash className="w-4 h-4 text-primary" />
