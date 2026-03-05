@@ -152,7 +152,41 @@ export function useChannelUnread() {
         .eq('channel_id', channelId)
         .eq('is_read', false);
     },
-    onSuccess: () => {
+    onMutate: async (channelId: string) => {
+      // Cancel outgoing refetches so they don't overwrite our optimistic update
+      await queryClient.cancelQueries({ queryKey: ['channel-unread', companyId, user?.id] });
+      await queryClient.cancelQueries({ queryKey: ['channel-mention-unread', companyId, user?.id] });
+
+      // Snapshot previous values
+      const prevUnread = queryClient.getQueryData<UnreadCounts>(['channel-unread', companyId, user?.id]);
+      const prevMentions = queryClient.getQueryData<MentionCounts>(['channel-mention-unread', companyId, user?.id]);
+
+      // Optimistically set this channel's counts to 0
+      queryClient.setQueryData<UnreadCounts>(['channel-unread', companyId, user?.id], (old) => {
+        if (!old) return {};
+        const next = { ...old };
+        delete next[channelId];
+        return next;
+      });
+      queryClient.setQueryData<MentionCounts>(['channel-mention-unread', companyId, user?.id], (old) => {
+        if (!old) return {};
+        const next = { ...old };
+        delete next[channelId];
+        return next;
+      });
+
+      return { prevUnread, prevMentions };
+    },
+    onError: (_err, _channelId, context) => {
+      // Rollback on error
+      if (context?.prevUnread) {
+        queryClient.setQueryData(['channel-unread', companyId, user?.id], context.prevUnread);
+      }
+      if (context?.prevMentions) {
+        queryClient.setQueryData(['channel-mention-unread', companyId, user?.id], context.prevMentions);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['channel-unread', companyId, user?.id] });
       queryClient.invalidateQueries({ queryKey: ['channel-mention-unread', companyId, user?.id] });
     },
