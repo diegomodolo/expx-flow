@@ -54,63 +54,72 @@ export function BudgetAlerts({ clients }: BudgetAlertsProps) {
     );
   }
 
+  const gridCols = criticalClients.length === 1
+    ? 'grid-cols-1'
+    : criticalClients.length === 2
+    ? 'grid-cols-1 md:grid-cols-2'
+    : criticalClients.length === 3
+    ? 'grid-cols-1 md:grid-cols-3'
+    : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4';
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base flex items-center gap-2">
-          <AlertTriangle className="h-4 w-4 text-amber-600" />
-          Alertas Críticos ({criticalClients.length})
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {criticalClients.map((client) => (
-            <div key={client.id} className="flex items-start gap-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-              <Avatar className="h-10 w-10">
-                <AvatarImage src={client.avatar} alt={client.name} />
-                <AvatarFallback>{client.name.substring(0, 2).toUpperCase()}</AvatarFallback>
-              </Avatar>
-              
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <h4 className="font-medium text-sm truncate">{client.name}</h4>
-                  {getStatusBadge(client)}
-                </div>
+    <div className="space-y-3">
+      <h3 className="text-base font-semibold flex items-center gap-2">
+        <AlertTriangle className="h-4 w-4 text-amber-600" />
+        Alertas Críticos ({criticalClients.length})
+      </h3>
+      <div className={`grid ${gridCols} gap-4`}>
+        {criticalClients.map((client) => (
+          <Card key={client.id} className="hover:bg-muted/50 transition-colors">
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3">
+                <Avatar className="h-10 w-10 shrink-0">
+                  <AvatarImage src={client.avatar} alt={client.name} />
+                  <AvatarFallback>{client.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                </Avatar>
                 
-                <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground mb-2">
-                  <div>
-                    <span className="font-medium">Orçamento:</span> {formatCurrency(client.monthlyBudget)}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h4 className="font-medium text-sm truncate">{client.name}</h4>
+                    {getStatusBadge(client)}
                   </div>
-                  <div>
-                    <span className="font-medium">Gasto:</span> {formatCurrency(client.currentSpend)}
+                  
+                  <div className="grid grid-cols-2 gap-1 text-xs text-muted-foreground mb-2">
+                    <div>
+                      <span className="font-medium">Orçamento:</span> {formatCurrency(client.monthlyBudget)}
+                    </div>
+                    <div>
+                      <span className="font-medium">Gasto:</span> {formatCurrency(client.currentSpend)}
+                    </div>
+                    <div>
+                      <span className="font-medium">Utilização:</span> {client.utilizationPercentage.toFixed(1)}%
+                    </div>
+                    <div>
+                      <span className="font-medium">Período:</span> {client.syncPeriod} dias
+                    </div>
                   </div>
-                  <div>
-                    <span className="font-medium">Utilização:</span> {client.utilizationPercentage.toFixed(1)}%
-                  </div>
-                  <div>
-                    <span className="font-medium">Período:</span> {client.syncPeriod} dias
-                  </div>
+
+                  {client.willExceedBudget && (
+                    <p className="text-xs text-red-600 font-medium">
+                      ⚠️ Projeção: {formatCurrency(client.projectedMonthSpend)} 
+                      ({formatCurrency(client.projectedOverage)} acima)
+                    </p>
+                  )}
                 </div>
 
-                {client.willExceedBudget && (
-                  <p className="text-xs text-red-600 font-medium">
-                    ⚠️ Projeção: {formatCurrency(client.projectedMonthSpend)} 
-                    ({formatCurrency(client.projectedOverage)} acima do orçamento)
-                  </p>
-                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="shrink-0"
+                  onClick={() => navigate(`/cliente/${client.id}`)}
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </Button>
               </div>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate(`/cliente/${client.id}`)}
-              >
-                <ExternalLink className="h-4 w-4" />
-              </Button>
-            </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
   );
 }
