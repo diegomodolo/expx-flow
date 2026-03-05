@@ -165,6 +165,7 @@ import YouTubeContentLabPage from "./pages/YouTubeContentLabPage";
 import { AuthProvider } from "@/hooks/useAuth";
 import { CompanyProvider } from "@/contexts/CompanyContext";
 import { CRMAuthProvider } from "@/contexts/CRMAuthContext";
+import { DMNotificationListener } from "@/components/dm-notification/DMNotificationListener";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { PermissionProtectedRoute } from "@/components/PermissionProtectedRoute";
 import SuperAdmin from "@/pages/SuperAdmin";
@@ -188,6 +189,7 @@ const App = () => {
           <AuthProvider>
             <CompanyProvider>
               <CRMAuthProvider>
+                <DMNotificationListener />
                 <Routes>
               {/* Public routes */}
               <Route path="/" element={<LandingPage />} />
