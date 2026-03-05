@@ -84,9 +84,9 @@ export const PerformanceMetrics = ({ metrics, metaMetrics, googleMetrics }: Perf
         {googleMetrics && (
           <PlatformCard
             title="Google Ads"
-            icon={<FaGoogle className="w-5 h-5 text-[#4285F4]" />}
+            icon={<FaGoogle className="w-5 h-5 text-[#34A853]" />}
             metrics={googleMetrics}
-            borderColor="border-[#4285F4]"
+            borderColor="border-[#34A853]"
             animateKey={animateKey}
           />
         )}
