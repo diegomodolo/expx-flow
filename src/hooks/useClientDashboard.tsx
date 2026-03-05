@@ -161,10 +161,16 @@ export interface DashboardData {
     days: number;
   };
   metrics: DashboardMetrics;
+  meta_metrics?: PlatformMetrics | null;
+  google_metrics?: PlatformMetrics | null;
   timeline: TimelineDataPoint[];
   top_campaigns: TopCampaign[];
   campaigns_table: CampaignTableRow[];
   social_metrics?: SocialMetrics;
+  platforms?: {
+    facebook: boolean;
+    google: boolean;
+  };
 }
 
 export const useClientDashboard = (
