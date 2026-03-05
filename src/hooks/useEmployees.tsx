@@ -14,6 +14,7 @@ export interface Employee {
   role: string;
   status: string;
   team_id?: string;
+  ia_agent_id?: string | null;
   start_date: string;
   skills?: string;
   avatar?: string;
