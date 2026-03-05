@@ -19,6 +19,21 @@ export interface DashboardMetrics {
   frequency: number;
 }
 
+export interface PlatformMetrics {
+  spend: number;
+  leads: number;
+  messages: number;
+  impressions: number;
+  clicks: number;
+  cpl: number;
+  leads_per_1k: number;
+  cpm: number;
+  cpc: number;
+  ctr: number;
+  frequency: number;
+  reach: number;
+}
+
 export interface TimelineDataPoint {
   date: string;
   leads: number;
@@ -146,10 +161,16 @@ export interface DashboardData {
     days: number;
   };
   metrics: DashboardMetrics;
+  meta_metrics?: PlatformMetrics | null;
+  google_metrics?: PlatformMetrics | null;
   timeline: TimelineDataPoint[];
   top_campaigns: TopCampaign[];
   campaigns_table: CampaignTableRow[];
   social_metrics?: SocialMetrics;
+  platforms?: {
+    facebook: boolean;
+    google: boolean;
+  };
 }
 
 export const useClientDashboard = (
