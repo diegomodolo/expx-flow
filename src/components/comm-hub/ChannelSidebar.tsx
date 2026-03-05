@@ -29,7 +29,6 @@ export function ChannelSidebar({ channels, activeChannelId, onSelectChannel, loa
   }, [channels, search]);
 
   const squads = filtered.filter(c => c.channel_type === 'squad');
-  const clients = filtered.filter(c => c.channel_type === 'client');
   const general = filtered.filter(c => c.channel_type === 'general');
   const dms = filtered.filter(c => c.channel_type === 'dm');
 
@@ -60,7 +59,7 @@ export function ChannelSidebar({ channels, activeChannelId, onSelectChannel, loa
   const getIcon = (type: string) => {
     switch (type) {
       case 'squad': return Users;
-      case 'client': return Building2;
+      
       case 'dm': return MessageSquare;
       default: return MessageCircle;
     }
@@ -168,12 +167,6 @@ export function ChannelSidebar({ channels, activeChannelId, onSelectChannel, loa
             </div>
           )}
 
-          {clients.length > 0 && (
-            <div>
-              <p className="text-label-sm text-muted-foreground uppercase tracking-wider px-3 mb-1.5">Clientes</p>
-              <div className="space-y-0.5">{clients.map(renderChannel)}</div>
-            </div>
-          )}
         </div>
       </ScrollArea>
     </div>
