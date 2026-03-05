@@ -61,11 +61,12 @@ export async function refreshGoogleAdsToken(
   }
 
   const tokens = await tokenResponse.json();
-  console.log('Token refreshed successfully');
+  console.log('Token refreshed successfully. New refresh_token received:', !!tokens.refresh_token);
   
   return {
     accessToken: tokens.access_token,
     expiresIn: tokens.expires_in,
+    newRefreshToken: tokens.refresh_token || undefined,
   };
 }
 
