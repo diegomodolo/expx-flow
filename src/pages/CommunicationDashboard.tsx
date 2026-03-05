@@ -29,6 +29,25 @@ export default function CommunicationDashboard() {
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<any>(null);
 
+  // Handle DM navigation from notification click
+  useEffect(() => {
+    const storedChannel = sessionStorage.getItem('dm-navigate-channel');
+    if (storedChannel && channels.length > 0) {
+      sessionStorage.removeItem('dm-navigate-channel');
+      setActiveChannelId(storedChannel);
+    }
+  }, [channels]);
+
+  // Listen for dm-switch-channel event (when already on dashboard)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const channelId = (e as CustomEvent).detail;
+      if (channelId) setActiveChannelId(channelId);
+    };
+    window.addEventListener('dm-switch-channel', handler);
+    return () => window.removeEventListener('dm-switch-channel', handler);
+  }, [setActiveChannelId]);
+
   // Mark channel as read when switching
   useEffect(() => {
     if (activeChannelId) {
