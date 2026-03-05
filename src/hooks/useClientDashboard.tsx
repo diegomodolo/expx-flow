@@ -19,6 +19,21 @@ export interface DashboardMetrics {
   frequency: number;
 }
 
+export interface PlatformMetrics {
+  spend: number;
+  leads: number;
+  messages: number;
+  impressions: number;
+  clicks: number;
+  cpl: number;
+  leads_per_1k: number;
+  cpm: number;
+  cpc: number;
+  ctr: number;
+  frequency: number;
+  reach: number;
+}
+
 export interface TimelineDataPoint {
   date: string;
   leads: number;
