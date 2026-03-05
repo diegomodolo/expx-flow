@@ -707,6 +707,8 @@ async function fetchGoogleAdsData(
     const apiEndpoint = `https://googleads.googleapis.com/${apiVersion}/customers/${customerId}/googleAds:search`;
     
     console.log('Calling Google Ads API for campaigns using googleAds:search v22...');
+    console.log('GAQL Query:', gaqlQuery.replace(/\s+/g, ' ').trim());
+    console.log('Headers:', JSON.stringify({ ...headers, Authorization: 'Bearer ***', 'developer-token': '***' }));
 
     // Fetch campaigns with pagination support
     const campaignsMap = new Map<string, any>();
@@ -741,7 +743,9 @@ async function fetchGoogleAdsData(
           customerId: customerId.slice(0, 4) + '***',
           errorCode: errorJson?.error?.code,
           errorStatus: errorJson?.error?.status,
-          errorMessage: errorJson?.error?.message?.substring(0, 200),
+          errorMessage: errorJson?.error?.message?.substring(0, 500),
+          errorDetails: JSON.stringify(errorJson?.error?.details || []).substring(0, 500),
+          fullErrorMessage: errorJson?.error?.message,
         });
         return null;
       }
