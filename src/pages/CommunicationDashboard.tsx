@@ -8,6 +8,7 @@ import { TaskDialog } from '@/components/tasks/TaskDialog';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 
 export default function CommunicationDashboard() {
   const {
@@ -58,25 +59,35 @@ export default function CommunicationDashboard() {
 
   return (
     <DashboardLayout>
-      <div className="flex h-[calc(100vh-4rem)] -m-8 rounded-none overflow-hidden relative">
-        <ChannelSidebar
-          channels={channels}
-          activeChannelId={activeChannelId}
-          onSelectChannel={setActiveChannelId}
-          loading={channelsLoading}
-          unreadCounts={unreadCounts}
-          mentionCounts={mentionCounts}
-        />
-        <ChatFlow
-          channel={activeChannel}
-          messages={messages}
-          loading={messagesLoading}
-          onSendMessage={(content, threadParentId) => sendMessage(content, threadParentId)}
-          sendingMessage={sendingMessage}
-          focusMode={focusMode}
-          onToggleFocusMode={() => setFocusMode(prev => !prev)}
-        />
-        <MyDayPanel onOpenDM={handleOpenDM} onOpenTask={handleOpenTask} />
+      <div className="h-[calc(100vh-4rem)] -m-8 rounded-none overflow-hidden relative">
+        <ResizablePanelGroup direction="horizontal" className="h-full">
+          <ResizablePanel defaultSize={20} minSize={15} maxSize={35}>
+            <ChannelSidebar
+              channels={channels}
+              activeChannelId={activeChannelId}
+              onSelectChannel={setActiveChannelId}
+              loading={channelsLoading}
+              unreadCounts={unreadCounts}
+              mentionCounts={mentionCounts}
+            />
+          </ResizablePanel>
+          <ResizableHandle withHandle />
+          <ResizablePanel defaultSize={60} minSize={30}>
+            <ChatFlow
+              channel={activeChannel}
+              messages={messages}
+              loading={messagesLoading}
+              onSendMessage={(content, threadParentId) => sendMessage(content, threadParentId)}
+              sendingMessage={sendingMessage}
+              focusMode={focusMode}
+              onToggleFocusMode={() => setFocusMode(prev => !prev)}
+            />
+          </ResizablePanel>
+          <ResizableHandle withHandle />
+          <ResizablePanel defaultSize={20} minSize={15} maxSize={35}>
+            <MyDayPanel onOpenDM={handleOpenDM} onOpenTask={handleOpenTask} />
+          </ResizablePanel>
+        </ResizablePanelGroup>
       </div>
 
       {taskDialogOpen && (
