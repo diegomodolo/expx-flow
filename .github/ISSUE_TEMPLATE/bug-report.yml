@@ -1,0 +1,53 @@
+name: "Bug Report"
+description: "Reportar bug para a IA analisar e corrigir automaticamente"
+labels: ["bug", "claude-analyze"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A IA vai analisar este bug, implementar a correcao e abrir um PR automaticamente.
+
+  - type: input
+    id: url
+    attributes:
+      label: URL onde o erro ocorre
+      placeholder: "https://app.expxflow.com/pagina"
+    validations:
+      required: false
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Descricao do bug
+      description: O que acontece vs. o que deveria acontecer
+      placeholder: |
+        **Comportamento atual:**
+        O botao X nao responde ao clique.
+
+        **Comportamento esperado:**
+        Deveria abrir o modal de confirmacao.
+    validations:
+      required: true
+
+  - type: textarea
+    id: stack-trace
+    attributes:
+      label: Stack trace / erro no console
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Passos para reproduzir
+    validations:
+      required: false
+
+  - type: input
+    id: file
+    attributes:
+      label: Arquivo suspeito (se souber)
+      placeholder: "src/pages/Dashboard.tsx"
+    validations:
+      required: false

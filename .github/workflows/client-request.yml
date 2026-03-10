@@ -1,0 +1,91 @@
+name: Client Request Triage
+
+on:
+  issues:
+    types: [labeled]
+
+jobs:
+  triage:
+    if: contains(github.event.issue.labels.*.name, 'client-request')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          label_trigger: client-request
+          claude_args: "--max-turns 50 --allowedTools Bash,Write,Edit,Read,Glob,Grep"
+          prompt: |
+            Voce e o arquiteto de produto do Expx Flow.
+            Um cliente fez uma solicitacao.
+
+            ## FASE 1 — Avaliacao
+            1. Leia CLAUDE.md na raiz
+            2. Leia o corpo da issue para entender o pedido
+            3. Avalie:
+               - Viabilidade tecnica (React + Supabase + stack atual)
+               - Alinhamento com produto (beneficia outros clientes?)
+               - Escopo (max 5 arquivos novos/modificados)
+               - Seguranca (nao comprometer auth/permissoes)
+
+            ## FASE 2 — Decisao
+
+            NAO viavel:
+            - Comentar na issue explicando por que
+            - Adicionar label: wont-implement
+            - Fechar issue: gh issue close ${{ github.event.issue.number }} --reason "not_planned"
+            - PARAR aqui
+
+            Viavel:
+            - Adicionar label: approved
+            - Continuar para Fases 3-6
+
+            ## FASE 3 — Implementar
+            Siga padroes do CLAUDE.md:
+            - Imports com @/
+            - UI em Portugues
+            - Componentes shadcn/ui
+            - Data fetching com useQuery/useMutation + Supabase
+            - Toasts via Sonner em Portugues
+            - Nunca editar types.ts ou components/ui/
+
+            ## FASE 4 — Build
+            npm run build — deve passar sem erros
+
+            ## FASE 5 — PR
+            Branch: claude/client-request-${{ github.event.issue.number }}
+            Commit: feat: <descricao> (Fixes #${{ github.event.issue.number }})
+
+            ## FASE 6 — Fechar
+            gh issue comment + gh issue close --reason "completed"
+
+            REGRA: Na duvida, NAO implemente. Rejeite com justificativa.
+
+      - name: Notificar Telegram
+        if: always()
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            EMOJI="✅"; STATUS="Concluido"
+          else
+            EMOJI="❌"; STATUS="Falhou"
+          fi
+          ISSUE_TITLE="${{ github.event.issue.title || 'N/A' }}"
+          ISSUE_NUMBER="${{ github.event.issue.number || '?' }}"
+          ISSUE_URL="${{ github.event.issue.html_url || '' }}"
+
+          MESSAGE="${EMOJI} *Client Request — ${STATUS}*
+
+          📋 *Issue:* [#${ISSUE_NUMBER} — ${ISSUE_TITLE}](${ISSUE_URL})"
+
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d parse_mode="Markdown" \
+            -d disable_web_page_preview="true" \
+            -d text="$MESSAGE"

@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-ssr/
+
+# Lock files
+package-lock.json
+bun.lock
+bun.lockb
+yarn.lock
+pnpm-lock.yaml
+
+# Supabase migrations (490+ files, rarely needed for context)
+supabase/migrations/
+
+# Auto-generated types (regenerate via Supabase CLI)
+# src/integrations/supabase/types.ts
+
+# Static assets
+public/
+
+# Environment secrets
+.env
+.env.*
+
+# Editor/IDE
+.vscode/
+.idea/
+.jules/
+
+# Lovable metadata
+.lovable/
+
+# Logs and temp
+*.log
+*.local
+*.sw?
+.DS_Store

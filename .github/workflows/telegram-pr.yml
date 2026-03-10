@@ -1,0 +1,51 @@
+name: Telegram PR Notifications
+
+on:
+  pull_request:
+    types: [opened]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Notificar Telegram
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PR_BRANCH: ${{ github.event.pull_request.head.ref }}
+          PR_BASE: ${{ github.event.pull_request.base.ref }}
+          PR_ADDITIONS: ${{ github.event.pull_request.additions }}
+          PR_DELETIONS: ${{ github.event.pull_request.deletions }}
+          PR_FILES: ${{ github.event.pull_request.changed_files }}
+          LABELS_JSON: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+          RAW_PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          LABELS=$(echo "$LABELS_JSON" | tr -d '[]"' | sed 's/,/, /g')
+          PR_BODY=$(echo "$RAW_PR_BODY" | head -c 500)
+
+          # Detectar se e agente IA ou humano
+          if echo "${PR_AUTHOR}" | grep -qE "github-actions|claude"; then
+            AGENT="🤖 Claude"
+          else
+            AGENT="👤 ${PR_AUTHOR}"
+          fi
+
+          MESSAGE="🔀 *Novo Pull Request*
+
+          📋 *PR:* [#${PR_NUMBER} — ${PR_TITLE}](${PR_URL})
+          ${AGENT}
+          🌿 *Branch:* ${PR_BRANCH} → ${PR_BASE}
+          🏷️ *Labels:* ${LABELS:-nenhum}
+          📊 *Alteracoes:* +${PR_ADDITIONS} / -${PR_DELETIONS} (${PR_FILES} arquivos)
+
+          📝 *Descricao:*
+          ${PR_BODY:-Sem descricao}"
+
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d parse_mode="Markdown" \
+            -d disable_web_page_preview="true" \
+            -d text="$MESSAGE"

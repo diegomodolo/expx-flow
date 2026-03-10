@@ -1,0 +1,54 @@
+name: "Feature Suggestion"
+description: "Sugestao de nova funcionalidade"
+labels: ["feature-suggestion"]
+body:
+  - type: input
+    id: feature-name
+    attributes:
+      label: Nome da Feature
+    validations:
+      required: true
+  - type: dropdown
+    id: category
+    attributes:
+      label: Categoria
+      options:
+        - Competitiva
+        - Automacao
+        - IA / Agentes
+        - Integracao
+        - UX / Interface
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problema que resolve
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposta de implementacao
+    validations:
+      required: true
+  - type: dropdown
+    id: impact
+    attributes:
+      label: Impacto estimado
+      options:
+        - Alto
+        - Medio
+        - Baixo
+    validations:
+      required: true
+  - type: dropdown
+    id: complexity
+    attributes:
+      label: Complexidade estimada
+      options:
+        - Alta
+        - Media
+        - Baixa
+    validations:
+      required: true

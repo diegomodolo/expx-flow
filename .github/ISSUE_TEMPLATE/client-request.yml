@@ -1,0 +1,61 @@
+name: "Solicitacao de Cliente"
+description: "Pedido de cliente avaliado e implementado por IA"
+labels: ["client-request"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A IA vai avaliar esta solicitacao. Se fizer sentido, implementa automaticamente.
+
+  - type: input
+    id: client
+    attributes:
+      label: Cliente / Organizacao
+    validations:
+      required: false
+
+  - type: textarea
+    id: request
+    attributes:
+      label: O que o cliente esta pedindo?
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Contexto / Motivacao
+    validations:
+      required: false
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area do sistema
+      options:
+        - Dashboard
+        - Campanhas
+        - Clientes
+        - CRM
+        - WhatsApp
+        - IA / Agentes
+        - Customer Success
+        - Relatorios
+        - Geradores (Conteudo/Criativos/Campanhas)
+        - Automacoes
+        - Tarefas
+        - Lead Intelligence
+        - Configuracoes
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Prioridade
+      options:
+        - Baixa (seria legal ter)
+        - Media (importante para o fluxo)
+        - Alta (bloqueia o uso)
+    validations:
+      required: true

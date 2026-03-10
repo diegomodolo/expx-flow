@@ -1,0 +1,161 @@
+name: Claude Code
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  issues:
+    types: [labeled]
+
+jobs:
+  claude:
+    if: |
+      (github.event_name == 'issues' && contains(github.event.issue.labels.*.name, 'claude-analyze')) ||
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+      statuses: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: anthropics/claude-code-action@v1
+        id: claude
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          label_trigger: claude-analyze
+          claude_args: "--max-turns 100 --allowedTools Bash,Write,Edit,Read,Glob,Grep"
+          prompt: |
+            Voce e um agente de desenvolvimento automatico do Expx Flow.
+
+            ## PASSO 0 — Detectar tipo de issue
+
+            Verifique as labels da issue:
+            ```bash
+            gh issue view ${{ github.event.issue.number }} --json labels --jq '.labels[].name'
+            ```
+            - Se tem label `feature-suggestion` → fluxo de FEATURE (Secao A)
+            - Caso contrario → fluxo de BUG FIX (Secao B)
+
+            ---
+
+            # SECAO A — FEATURE
+
+            ## A1 — Carregar contexto
+            1. Leia CLAUDE.md na raiz (regras, padroes, convencoes)
+            2. Leia o sub-agente relevante em .claude/agents/ (frontend.md, backend.md, auth.md)
+            3. Se o diretorio alvo tiver CLAUDE.md local, leia tambem
+
+            ## A2 — Entender a feature
+            - Leia o corpo da issue completo
+            - Analise o codebase para entender onde a feature se encaixa
+            - Verifique se algo similar ja existe
+
+            ## A3 — Implementar
+            Siga TODOS os padroes do CLAUDE.md:
+            - Sempre usar imports com @/ (path alias para src/)
+            - UI em Portugues (textos, toasts, labels)
+            - Componentes shadcn/ui (nao HTML raw)
+            - Data fetching com useQuery/useMutation do React Query + Supabase
+            - Hooks nomeados como use<Entidade><Acao>
+            - Estilo com Tailwind + cn() de @/lib/utils
+            - Toasts via Sonner (toast.success/toast.error) em Portugues
+            - Nunca editar src/integrations/supabase/types.ts (auto-gerado)
+            - Nunca editar components/ui/ diretamente
+
+            ## A4 — Testes (SE INFRA DISPONIVEL)
+            1. Se existir infra de testes (vitest/jest), crie testes
+            2. Execute: npm run build — sem erros
+            3. Se falhar, corrija ANTES de continuar
+
+            ## A5 — Criar PR
+            1. Branch: claude/feature-issue-${{ github.event.issue.number }}
+            2. Commit: feat: <descricao> (Fixes #${{ github.event.issue.number }})
+            3. PR com: o que foi feito + resultado de build
+            4. Comente na issue com status
+            5. Feche a issue: gh issue close ${{ github.event.issue.number }} --reason "completed"
+
+            ---
+
+            # SECAO B — BUG FIX
+
+            ## B1 — Carregar contexto (mesmo que A1)
+            ## B2 — Analise (localizar bug, verificar se ja corrigido)
+            ## B3 — Decisao
+            - Ja corrigido → comentar + fechar issue
+            - Fix necessario → implementar + testar + PR
+
+            ## B4-B6 — Implementar, testar, criar PR (mesmo fluxo que A3-A5)
+            Branch: claude/fix-issue-${{ github.event.issue.number }}
+            Commit: fix: <descricao>
+
+            ---
+
+            ## CHECKLIST FINAL
+            - [ ] gh issue comment executado
+            - [ ] gh issue close executado
+            - [ ] PR criado (se houve implementacao)
+            - [ ] npm run build passou
+
+      # Disparar Auto PR Review apos criar PR
+      - name: Trigger Auto PR Review
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ISSUE_NUM="${{ github.event.issue.number }}"
+          PR_NUMBER=$(gh pr list --state open --head "claude/fix-issue-${ISSUE_NUM}" --json number --jq '.[0].number' 2>/dev/null || echo "")
+          if [ -z "$PR_NUMBER" ] || [ "$PR_NUMBER" = "null" ]; then
+            PR_NUMBER=$(gh pr list --state open --head "claude/feature-issue-${ISSUE_NUM}" --json number --jq '.[0].number' 2>/dev/null || echo "")
+          fi
+
+          if [ -n "$PR_NUMBER" ] && [ "$PR_NUMBER" != "null" ]; then
+            # Reportar status de testes (Claude ja rodou build)
+            SHA=$(gh pr view "$PR_NUMBER" --json headRefOid --jq '.headRefOid')
+            gh api repos/${{ github.repository }}/statuses/$SHA \
+              -f state=success \
+              -f context="test-and-build" \
+              -f description="Tests passed in Claude Code workflow" \
+              -f target_url="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+            # Disparar review
+            HEAD_BRANCH=$(gh pr view "$PR_NUMBER" --json headRefName --jq '.headRefName')
+            gh api repos/${{ github.repository }}/dispatches \
+              -f event_type="review-pr" \
+              -f "client_payload[pr_number]=$PR_NUMBER" \
+              -f "client_payload[head_branch]=$HEAD_BRANCH"
+          fi
+
+      # Notificacao Telegram
+      - name: Notificar Telegram
+        if: always()
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            EMOJI="✅"; STATUS="Concluido"
+          else
+            EMOJI="❌"; STATUS="Falhou"
+          fi
+          ISSUE_TITLE="${{ github.event.issue.title || 'N/A' }}"
+          ISSUE_NUMBER="${{ github.event.issue.number || '?' }}"
+          ISSUE_URL="${{ github.event.issue.html_url || '' }}"
+
+          MESSAGE="${EMOJI} *Claude Code — ${STATUS}*
+
+          📋 *Issue:* [#${ISSUE_NUMBER} — ${ISSUE_TITLE}](${ISSUE_URL})
+
+          [Ver no GitHub](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d parse_mode="Markdown" \
+            -d disable_web_page_preview="true" \
+            -d text="$MESSAGE"
