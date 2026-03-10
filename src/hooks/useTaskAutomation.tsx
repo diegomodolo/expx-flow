@@ -11,6 +11,26 @@ interface CreateTaskFromAlertParams {
   alertId?: string;
 }
 
+interface AlertInput {
+  type: string;
+  description: string;
+  campaign_id?: string;
+  client_id?: string;
+  id?: string;
+}
+
+export function mapAlertTypeToTaskType(alertType: string): string {
+  if (alertType === "danger" || alertType === "critical") {
+    return "high_cpa";
+  } else if (alertType === "warning") {
+    return "performance_issue";
+  } else if (alertType === "opportunity") {
+    return "scale_opportunity";
+  } else {
+    return "general_issue";
+  }
+}
+
 export const useTaskAutomation = () => {
   const { activeCompany } = useCompany();
   const { toast } = useToast();
@@ -19,10 +39,10 @@ export const useTaskAutomation = () => {
   const createTaskFromAlert = useMutation({
     mutationFn: async (params: CreateTaskFromAlertParams) => {
       if (!activeCompany?.company_id) {
-        throw new Error('No company selected');
+        throw new Error("No company selected");
       }
 
-      const { data, error } = await supabase.rpc('create_task_from_alert', {
+      const { data, error } = await supabase.rpc("create_task_from_alert", {
         _company_id: activeCompany.company_id,
         _alert_type: params.alertType,
         _alert_description: params.alertDescription,
@@ -32,22 +52,22 @@ export const useTaskAutomation = () => {
       });
 
       if (error) {
-        console.error('Error creating task from alert:', error);
+        console.error("Error creating task from alert:", error);
         throw error;
       }
 
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['task-stats'] });
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["task-stats"] });
       toast({
         title: "Tarefa criada",
         description: "Tarefa automática criada com base no alerta.",
       });
     },
     onError: (error) => {
-      console.error('Error creating task:', error);
+      console.error("Error creating task:", error);
       toast({
         title: "Erro",
         description: "Erro ao criar tarefa automática.",
@@ -56,20 +76,9 @@ export const useTaskAutomation = () => {
     },
   });
 
-  const convertAlertToTask = (alert: any) => {
-    let alertType: string;
-    
-    // Mapear corretamente os tipos de alerta
-    if (alert.type === 'danger' || alert.type === 'critical') {
-      alertType = 'high_cpa';
-    } else if (alert.type === 'warning') {
-      alertType = 'performance_issue';
-    } else if (alert.type === 'opportunity') {
-      alertType = 'scale_opportunity';
-    } else {
-      alertType = 'general_issue';
-    }
-    
+  const convertAlertToTask = (alert: AlertInput) => {
+    const alertType = mapAlertTypeToTaskType(alert.type);
+
     createTaskFromAlert.mutate({
       alertType,
       alertDescription: alert.description,

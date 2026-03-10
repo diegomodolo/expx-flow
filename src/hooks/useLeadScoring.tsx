@@ -1,9 +1,13 @@
-import { useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useCompany } from '@/contexts/CompanyContext';
-import { QualificationRule, QualificationWeights, useLeadQualificationRules } from './useLeadQualificationRules';
+import { useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useCompany } from "@/contexts/CompanyContext";
+import {
+  QualificationRule,
+  QualificationWeights,
+  useLeadQualificationRules,
+} from "./useLeadQualificationRules";
 
-export type LeadClassification = 'ouro' | 'prata' | 'bronze' | 'descartado';
+export type LeadClassification = "ouro" | "prata" | "bronze" | "descartado";
 
 export interface LeadScoreResult {
   globalScore: number;
@@ -19,49 +23,64 @@ export interface LeadScoreResult {
 }
 
 const DIMENSION_LABELS: Record<string, string> = {
-  company_fit: 'Perfil de Empresa',
-  authority: 'Autoridade do Contato',
-  contact_quality: 'Qualidade do Contato',
-  purchase_intent: 'Intenção de Compra',
-  digital_maturity: 'Maturidade Digital',
+  company_fit: "Perfil de Empresa",
+  authority: "Autoridade do Contato",
+  contact_quality: "Qualidade do Contato",
+  purchase_intent: "Intenção de Compra",
+  digital_maturity: "Maturidade Digital",
 };
 
-function evaluateRule(rule: QualificationRule, leadData: Record<string, any>): boolean {
+export function evaluateRule(
+  rule: QualificationRule,
+  leadData: Record<string, unknown>,
+): boolean {
   const fieldValue = leadData[rule.field];
   const ruleValue = rule.value;
 
   switch (rule.operator) {
-    case 'not_null':
-      return fieldValue !== null && fieldValue !== undefined && fieldValue !== '';
-    case 'is_null':
-      return fieldValue === null || fieldValue === undefined || fieldValue === '';
-    case '=':
-      return String(fieldValue).toLowerCase() === String(ruleValue).toLowerCase();
-    case '!=':
-      return String(fieldValue).toLowerCase() !== String(ruleValue).toLowerCase();
-    case '>':
+    case "not_null":
+      return (
+        fieldValue !== null && fieldValue !== undefined && fieldValue !== ""
+      );
+    case "is_null":
+      return (
+        fieldValue === null || fieldValue === undefined || fieldValue === ""
+      );
+    case "=":
+      return (
+        String(fieldValue).toLowerCase() === String(ruleValue).toLowerCase()
+      );
+    case "!=":
+      return (
+        String(fieldValue).toLowerCase() !== String(ruleValue).toLowerCase()
+      );
+    case ">":
       return Number(fieldValue) > Number(ruleValue);
-    case '<':
+    case "<":
       return Number(fieldValue) < Number(ruleValue);
-    case '>=':
+    case ">=":
       return Number(fieldValue) >= Number(ruleValue);
-    case '<=':
+    case "<=":
       return Number(fieldValue) <= Number(ruleValue);
-    case 'contains':
-      return String(fieldValue).toLowerCase().includes(String(ruleValue).toLowerCase());
+    case "contains":
+      return String(fieldValue)
+        .toLowerCase()
+        .includes(String(ruleValue).toLowerCase());
     default:
       return false;
   }
 }
 
-function calculateDimensionScore(
+export function calculateDimensionScore(
   dimension: string,
   rules: QualificationRule[],
-  leadData: Record<string, any>
+  leadData: Record<string, unknown>,
 ): number {
-  const dimensionRules = rules.filter(r => r.dimension === dimension && r.is_active);
+  const dimensionRules = rules.filter(
+    (r) => r.dimension === dimension && r.is_active,
+  );
   let score = 0;
-  
+
   for (const rule of dimensionRules) {
     if (evaluateRule(rule, leadData)) {
       score += rule.score_contribution;
@@ -74,136 +93,219 @@ function calculateDimensionScore(
 
 // Generic email domains that should NOT qualify as business emails
 const GENERIC_EMAIL_DOMAINS = [
-  'gmail.com', 'gmail.com.br', 'googlemail.com',
-  'hotmail.com', 'hotmail.com.br', 'outlook.com', 'outlook.com.br', 'live.com', 'msn.com',
-  'yahoo.com', 'yahoo.com.br', 'ymail.com',
-  'icloud.com', 'me.com', 'mac.com',
-  'aol.com', 'uol.com.br', 'bol.com.br', 'terra.com.br', 'ig.com.br', 'globo.com', 'globomail.com',
-  'protonmail.com', 'zoho.com', 'mail.com', 'email.com',
-  'oi.com.br', 'r7.com', 'zipmail.com.br'
+  "gmail.com",
+  "gmail.com.br",
+  "googlemail.com",
+  "hotmail.com",
+  "hotmail.com.br",
+  "outlook.com",
+  "outlook.com.br",
+  "live.com",
+  "msn.com",
+  "yahoo.com",
+  "yahoo.com.br",
+  "ymail.com",
+  "icloud.com",
+  "me.com",
+  "mac.com",
+  "aol.com",
+  "uol.com.br",
+  "bol.com.br",
+  "terra.com.br",
+  "ig.com.br",
+  "globo.com",
+  "globomail.com",
+  "protonmail.com",
+  "zoho.com",
+  "mail.com",
+  "email.com",
+  "oi.com.br",
+  "r7.com",
+  "zipmail.com.br",
 ];
 
 // Test/fake email patterns to reject
 const FAKE_EMAIL_PATTERNS = [
-  /^teste?[0-9]*@/i,        // teste, test, teste1, test123
-  /^temp[0-9]*@/i,          // temp, temp1
-  /^fake[0-9]*@/i,          // fake, fake1
-  /^exemplo[0-9]*@/i,       // exemplo
-  /^sample[0-9]*@/i,        // sample
-  /^admin[0-9]*@/i,         // admin (common fake)
-  /^info[0-9]*@/i,          // info (generic)
-  /^contato[0-9]*@/i,       // contato (generic)
-  /^noreply@/i,             // noreply
-  /^no-reply@/i,            // no-reply
+  /^teste?[0-9]*@/i, // teste, test, teste1, test123
+  /^temp[0-9]*@/i, // temp, temp1
+  /^fake[0-9]*@/i, // fake, fake1
+  /^exemplo[0-9]*@/i, // exemplo
+  /^sample[0-9]*@/i, // sample
+  /^admin[0-9]*@/i, // admin (common fake)
+  /^info[0-9]*@/i, // info (generic)
+  /^contato[0-9]*@/i, // contato (generic)
+  /^noreply@/i, // noreply
+  /^no-reply@/i, // no-reply
 ];
 
 // Keyboard sequence patterns (qwerty, asdf, etc)
-const KEYBOARD_SEQUENCES = ['qwerty', 'asdfgh', 'zxcvbn', 'qazwsx', 'asdf', 'qwer', 'zxcv'];
+const KEYBOARD_SEQUENCES = [
+  "qwerty",
+  "asdfgh",
+  "zxcvbn",
+  "qazwsx",
+  "asdf",
+  "qwer",
+  "zxcv",
+];
 
 // Validação de email FLEXÍVEL - aceita qualquer email válido (incluindo genéricos)
 // Apenas rejeita emails claramente falsos/teste
-function isValidEmail(email: string | null | undefined): boolean {
-  if (!email || typeof email !== 'string') return false;
-  
+export function isValidEmail(email: string | null | undefined): boolean {
+  if (!email || typeof email !== "string") return false;
+
   const emailLower = email.toLowerCase().trim();
-  
+
   // Basic email validation
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(emailLower)) return false;
-  
+
   // Extract local part and domain
-  const [localPart, domain] = emailLower.split('@');
+  const [localPart, domain] = emailLower.split("@");
   if (!domain || !localPart) return false;
-  
+
   // Check for fake/test email patterns ONLY
   for (const pattern of FAKE_EMAIL_PATTERNS) {
     if (pattern.test(emailLower)) return false;
   }
-  
+
   // Local part too short (a@, ab@)
   if (localPart.length < 2) return false;
-  
+
   // Check for repeated characters (aaa@, bbb@, xxx@, 111@)
   if (/^(.)\1{2,}$/.test(localPart)) return false;
-  
+
   return true;
 }
 
 // Valid Brazilian DDD codes
 const VALID_DDDS = [
-  11, 12, 13, 14, 15, 16, 17, 18, 19, // São Paulo
-  21, 22, 24, // Rio de Janeiro
-  27, 28, // Espírito Santo
-  31, 32, 33, 34, 35, 37, 38, // Minas Gerais
-  41, 42, 43, 44, 45, 46, // Paraná
-  47, 48, 49, // Santa Catarina
-  51, 53, 54, 55, // Rio Grande do Sul
+  11,
+  12,
+  13,
+  14,
+  15,
+  16,
+  17,
+  18,
+  19, // São Paulo
+  21,
+  22,
+  24, // Rio de Janeiro
+  27,
+  28, // Espírito Santo
+  31,
+  32,
+  33,
+  34,
+  35,
+  37,
+  38, // Minas Gerais
+  41,
+  42,
+  43,
+  44,
+  45,
+  46, // Paraná
+  47,
+  48,
+  49, // Santa Catarina
+  51,
+  53,
+  54,
+  55, // Rio Grande do Sul
   61, // Distrito Federal
-  62, 64, // Goiás
+  62,
+  64, // Goiás
   63, // Tocantins
-  65, 66, // Mato Grosso
+  65,
+  66, // Mato Grosso
   67, // Mato Grosso do Sul
   68, // Acre
   69, // Rondônia
-  71, 73, 74, 75, 77, // Bahia
+  71,
+  73,
+  74,
+  75,
+  77, // Bahia
   79, // Sergipe
-  81, 87, // Pernambuco
+  81,
+  87, // Pernambuco
   82, // Alagoas
   83, // Paraíba
   84, // Rio Grande do Norte
-  85, 88, // Ceará
-  86, 89, // Piauí
-  91, 93, 94, // Pará
-  92, 97, // Amazonas
+  85,
+  88, // Ceará
+  86,
+  89, // Piauí
+  91,
+  93,
+  94, // Pará
+  92,
+  97, // Amazonas
   95, // Roraima
   96, // Amapá
-  98, 99, // Maranhão
+  98,
+  99, // Maranhão
 ];
 
-function isValidBrazilianPhone(phone: string | null | undefined): boolean {
-  if (!phone || typeof phone !== 'string') return false;
-  
+export function isValidBrazilianPhone(
+  phone: string | null | undefined,
+): boolean {
+  if (!phone || typeof phone !== "string") return false;
+
   // Remove all non-numeric characters
-  const cleanPhone = phone.replace(/\D/g, '');
-  
+  const cleanPhone = phone.replace(/\D/g, "");
+
   // Must be 10 (landline) or 11 (mobile) digits
   if (cleanPhone.length < 10 || cleanPhone.length > 11) return false;
-  
+
   // Extract DDD
   const ddd = parseInt(cleanPhone.substring(0, 2), 10);
   if (!VALID_DDDS.includes(ddd)) return false;
-  
+
   // Get the phone number without DDD
   const phoneNumber = cleanPhone.substring(2);
-  
+
   // Mobile phones (11 digits total) must start with 9 after DDD
-  if (cleanPhone.length === 11 && phoneNumber[0] !== '9') return false;
-  
+  if (cleanPhone.length === 11 && phoneNumber[0] !== "9") return false;
+
   // Check for obviously fake numbers (all same digit)
   if (/^(\d)\1+$/.test(phoneNumber)) return false;
-  
+
   // Check for sequential numbers (12345678, 87654321)
-  const sequentialUp = '123456789';
-  const sequentialDown = '987654321';
-  if (sequentialUp.includes(phoneNumber) || sequentialDown.includes(phoneNumber)) return false;
-  
+  const sequentialUp = "123456789";
+  const sequentialDown = "987654321";
+  if (
+    sequentialUp.includes(phoneNumber) ||
+    sequentialDown.includes(phoneNumber)
+  )
+    return false;
+
   // Check for common fake patterns
-  const fakePatterns = ['00000000', '11111111', '22222222', '99999999', '12345678', '98765432'];
+  const fakePatterns = [
+    "00000000",
+    "11111111",
+    "22222222",
+    "99999999",
+    "12345678",
+    "98765432",
+  ];
   for (const pattern of fakePatterns) {
     if (phoneNumber.includes(pattern)) return false;
   }
-  
+
   return true;
 }
 
 function generateClassificationReason(
   classification: LeadClassification,
-  dimensionScores: LeadScoreResult['dimensionScores'],
+  dimensionScores: LeadScoreResult["dimensionScores"],
   globalScore: number,
-  hasValidContact?: boolean
+  hasValidContact?: boolean,
 ): string {
   // Handle discarded leads first
-  if (classification === 'descartado') {
+  if (classification === "descartado") {
     return `Lead DESCARTADO: E-mail e telefone inválidos ou suspeitos. Dados de contato insuficientes para trabalho comercial.`;
   }
 
@@ -218,15 +320,17 @@ function generateClassificationReason(
     }
   });
 
-  const contactNote = hasValidContact ? ' E-mail empresarial e telefone válidos.' : '';
-  
+  const contactNote = hasValidContact
+    ? " E-mail empresarial e telefone válidos."
+    : "";
+
   switch (classification) {
-    case 'ouro':
-      return `Lead OURO (${globalScore} pts): ${strongDimensions.length > 0 ? `Forte em ${strongDimensions.join(', ')}.` : ''} Alta probabilidade de conversão.${contactNote}`;
-    case 'prata':
-      return `Lead PRATA (${globalScore} pts): ${strongDimensions.length > 0 ? `Destaque em ${strongDimensions.join(', ')}.` : ''} ${weakDimensions.length > 0 ? `Pode melhorar em ${weakDimensions.join(', ')}.` : ''}${contactNote} Potencial com trabalho comercial.`;
-    case 'bronze':
-      return `Lead BRONZE (${globalScore} pts): ${weakDimensions.length > 0 ? `Pontos fracos em ${weakDimensions.join(', ')}.` : ''} Baixo valor comercial imediato.`;
+    case "ouro":
+      return `Lead OURO (${globalScore} pts): ${strongDimensions.length > 0 ? `Forte em ${strongDimensions.join(", ")}.` : ""} Alta probabilidade de conversão.${contactNote}`;
+    case "prata":
+      return `Lead PRATA (${globalScore} pts): ${strongDimensions.length > 0 ? `Destaque em ${strongDimensions.join(", ")}.` : ""} ${weakDimensions.length > 0 ? `Pode melhorar em ${weakDimensions.join(", ")}.` : ""}${contactNote} Potencial com trabalho comercial.`;
+    case "bronze":
+      return `Lead BRONZE (${globalScore} pts): ${weakDimensions.length > 0 ? `Pontos fracos em ${weakDimensions.join(", ")}.` : ""} Baixo valor comercial imediato.`;
     default:
       return `Lead não classificado.`;
   }
@@ -236,160 +340,193 @@ export function useLeadScoring() {
   const { activeCompany } = useCompany();
   const { rules, weights } = useLeadQualificationRules();
 
-  const calculateScore = useCallback((leadData: Record<string, any>): LeadScoreResult => {
-    // Calculate dimension scores
-    const dimensionScores = {
-      company_fit: calculateDimensionScore('company_fit', rules, leadData),
-      authority: calculateDimensionScore('authority', rules, leadData),
-      contact_quality: calculateDimensionScore('contact_quality', rules, leadData),
-      purchase_intent: calculateDimensionScore('purchase_intent', rules, leadData),
-      digital_maturity: calculateDimensionScore('digital_maturity', rules, leadData),
-    };
+  const calculateScore = useCallback(
+    (leadData: Record<string, unknown>): LeadScoreResult => {
+      // Calculate dimension scores
+      const dimensionScores = {
+        company_fit: calculateDimensionScore("company_fit", rules, leadData),
+        authority: calculateDimensionScore("authority", rules, leadData),
+        contact_quality: calculateDimensionScore(
+          "contact_quality",
+          rules,
+          leadData,
+        ),
+        purchase_intent: calculateDimensionScore(
+          "purchase_intent",
+          rules,
+          leadData,
+        ),
+        digital_maturity: calculateDimensionScore(
+          "digital_maturity",
+          rules,
+          leadData,
+        ),
+      };
 
-    // Calculate weighted global score
-    const globalScore = Math.round(
-      dimensionScores.company_fit * weights.weight_company_fit +
-      dimensionScores.authority * weights.weight_authority +
-      dimensionScores.contact_quality * weights.weight_contact_quality +
-      dimensionScores.purchase_intent * weights.weight_purchase_intent +
-      dimensionScores.digital_maturity * weights.weight_digital_maturity
-    );
+      // Calculate weighted global score
+      const globalScore = Math.round(
+        dimensionScores.company_fit * weights.weight_company_fit +
+          dimensionScores.authority * weights.weight_authority +
+          dimensionScores.contact_quality * weights.weight_contact_quality +
+          dimensionScores.purchase_intent * weights.weight_purchase_intent +
+          dimensionScores.digital_maturity * weights.weight_digital_maturity,
+      );
 
-    // Check if lead has valid email AND valid phone (flexível para ListaCNAE)
-    const hasValidEmailData = isValidEmail(leadData.email);
-    const hasValidPhone = isValidBrazilianPhone(leadData.phone || leadData.whatsapp);
-    const hasValidContact = hasValidEmailData && hasValidPhone;
+      // Check if lead has valid email AND valid phone (flexível para ListaCNAE)
+      const hasValidEmailData = isValidEmail(leadData.email);
+      const hasValidPhone = isValidBrazilianPhone(
+        leadData.phone || leadData.whatsapp,
+      );
+      const hasValidContact = hasValidEmailData && hasValidPhone;
 
-    // Check for invalid/fake contact data
-    const hasInvalidEmail = !hasValidEmailData && leadData.email;
-    const hasInvalidPhone = !hasValidPhone && (leadData.phone || leadData.whatsapp);
-    const hasBothInvalidContacts = hasInvalidEmail && hasInvalidPhone;
+      // Check for invalid/fake contact data
+      const hasInvalidEmail = !hasValidEmailData && leadData.email;
+      const hasInvalidPhone =
+        !hasValidPhone && (leadData.phone || leadData.whatsapp);
+      const hasBothInvalidContacts = hasInvalidEmail && hasInvalidPhone;
 
-    // Determine classification - AJUSTADO: removido requisito de authority mínimo
-    let classification: LeadClassification = 'bronze';
-    
-    // FIRST: Check if both email and phone are invalid/fake = DESCARTADO
-    // Mas só descarta se AMBOS existem e são inválidos (não penaliza campos ausentes)
-    if (hasBothInvalidContacts) {
-      classification = 'descartado';
-    } else if (globalScore >= weights.threshold_gold) {
-      // AJUSTADO: Removido requisito de authority >= 40 (não temos esses dados do ListaCNAE)
-      classification = 'ouro';
-    } else if (globalScore >= weights.threshold_silver) {
-      classification = 'prata';
-    }
+      // Determine classification - AJUSTADO: removido requisito de authority mínimo
+      let classification: LeadClassification = "bronze";
 
-    // Valid contact guarantee: valid business email + valid phone = minimum prata
-    // (only applies if not already discarded)
-    if (classification === 'bronze' && hasValidContact) {
-      classification = 'prata';
-    }
-
-    const reason = generateClassificationReason(classification, dimensionScores, globalScore, hasValidContact);
-
-    return {
-      globalScore,
-      dimensionScores,
-      classification,
-      reason,
-    };
-  }, [rules, weights]);
-
-  const scoreAndSaveLead = useCallback(async (leadId: string, leadData: Record<string, any>) => {
-    const result = calculateScore(leadData);
-
-    const { error } = await supabase
-      .from('lead_master_pool')
-      .update({
-        score_company_fit: result.dimensionScores.company_fit,
-        score_authority: result.dimensionScores.authority,
-        score_contact_quality: result.dimensionScores.contact_quality,
-        score_purchase_intent: result.dimensionScores.purchase_intent,
-        score_digital_maturity: result.dimensionScores.digital_maturity,
-        global_score: result.globalScore,
-        lead_classification: result.classification,
-        classification_reason: result.reason,
-        last_scored_at: new Date().toISOString(),
-      })
-      .eq('id', leadId);
-
-    if (error) throw error;
-    return result;
-  }, [calculateScore]);
-
-  const scoreMultipleLeads = useCallback(async (leadIds: string[]): Promise<number> => {
-    if (!activeCompany?.company_id) {
-      console.warn("scoreMultipleLeads: No active company");
-      return 0;
-    }
-
-    if (leadIds.length === 0) {
-      console.log("scoreMultipleLeads: No leads to score");
-      return 0;
-    }
-
-    console.log(`scoreMultipleLeads: Processing ${leadIds.length} leads`);
-
-    // Process in batches of 100 to avoid Supabase limits
-    const BATCH_SIZE = 100;
-    let totalProcessed = 0;
-
-    for (let i = 0; i < leadIds.length; i += BATCH_SIZE) {
-      const batchIds = leadIds.slice(i, i + BATCH_SIZE);
-
-      // Fetch leads data for this batch
-      const { data: leads, error: fetchError } = await supabase
-        .from('lead_master_pool')
-        .select('*')
-        .in('id', batchIds);
-
-      if (fetchError) {
-        console.error("Error fetching leads batch:", fetchError);
-        throw fetchError;
+      // FIRST: Check if both email and phone are invalid/fake = DESCARTADO
+      // Mas só descarta se AMBOS existem e são inválidos (não penaliza campos ausentes)
+      if (hasBothInvalidContacts) {
+        classification = "descartado";
+      } else if (globalScore >= weights.threshold_gold) {
+        // AJUSTADO: Removido requisito de authority >= 40 (não temos esses dados do ListaCNAE)
+        classification = "ouro";
+      } else if (globalScore >= weights.threshold_silver) {
+        classification = "prata";
       }
 
-      if (!leads || leads.length === 0) {
-        console.warn(`Batch ${i / BATCH_SIZE + 1}: No leads found`);
-        continue;
+      // Valid contact guarantee: valid business email + valid phone = minimum prata
+      // (only applies if not already discarded)
+      if (classification === "bronze" && hasValidContact) {
+        classification = "prata";
       }
 
-      console.log(`Batch ${i / BATCH_SIZE + 1}: Scoring ${leads.length} leads`);
+      const reason = generateClassificationReason(
+        classification,
+        dimensionScores,
+        globalScore,
+        hasValidContact,
+      );
 
-      // Score and update each lead in the batch
-      for (const lead of leads) {
-        try {
-          const result = calculateScore(lead);
+      return {
+        globalScore,
+        dimensionScores,
+        classification,
+        reason,
+      };
+    },
+    [rules, weights],
+  );
 
-          const { error: updateError } = await supabase
-            .from('lead_master_pool')
-            .update({
-              score_company_fit: result.dimensionScores.company_fit,
-              score_authority: result.dimensionScores.authority,
-              score_contact_quality: result.dimensionScores.contact_quality,
-              score_purchase_intent: result.dimensionScores.purchase_intent,
-              score_digital_maturity: result.dimensionScores.digital_maturity,
-              global_score: result.globalScore,
-              lead_classification: result.classification,
-              classification_reason: result.reason,
-              last_scored_at: new Date().toISOString(),
-            })
-            .eq('id', lead.id);
+  const scoreAndSaveLead = useCallback(
+    async (leadId: string, leadData: Record<string, unknown>) => {
+      const result = calculateScore(leadData);
 
-          if (updateError) {
-            console.error(`Error updating lead ${lead.id}:`, updateError);
-            continue;
+      const { error } = await supabase
+        .from("lead_master_pool")
+        .update({
+          score_company_fit: result.dimensionScores.company_fit,
+          score_authority: result.dimensionScores.authority,
+          score_contact_quality: result.dimensionScores.contact_quality,
+          score_purchase_intent: result.dimensionScores.purchase_intent,
+          score_digital_maturity: result.dimensionScores.digital_maturity,
+          global_score: result.globalScore,
+          lead_classification: result.classification,
+          classification_reason: result.reason,
+          last_scored_at: new Date().toISOString(),
+        })
+        .eq("id", leadId);
+
+      if (error) throw error;
+      return result;
+    },
+    [calculateScore],
+  );
+
+  const scoreMultipleLeads = useCallback(
+    async (leadIds: string[]): Promise<number> => {
+      if (!activeCompany?.company_id) {
+        console.warn("scoreMultipleLeads: No active company");
+        return 0;
+      }
+
+      if (leadIds.length === 0) {
+        console.log("scoreMultipleLeads: No leads to score");
+        return 0;
+      }
+
+      console.log(`scoreMultipleLeads: Processing ${leadIds.length} leads`);
+
+      // Process in batches of 100 to avoid Supabase limits
+      const BATCH_SIZE = 100;
+      let totalProcessed = 0;
+
+      for (let i = 0; i < leadIds.length; i += BATCH_SIZE) {
+        const batchIds = leadIds.slice(i, i + BATCH_SIZE);
+
+        // Fetch leads data for this batch
+        const { data: leads, error: fetchError } = await supabase
+          .from("lead_master_pool")
+          .select("*")
+          .in("id", batchIds);
+
+        if (fetchError) {
+          console.error("Error fetching leads batch:", fetchError);
+          throw fetchError;
+        }
+
+        if (!leads || leads.length === 0) {
+          console.warn(`Batch ${i / BATCH_SIZE + 1}: No leads found`);
+          continue;
+        }
+
+        console.log(
+          `Batch ${i / BATCH_SIZE + 1}: Scoring ${leads.length} leads`,
+        );
+
+        // Score and update each lead in the batch
+        for (const lead of leads) {
+          try {
+            const result = calculateScore(lead);
+
+            const { error: updateError } = await supabase
+              .from("lead_master_pool")
+              .update({
+                score_company_fit: result.dimensionScores.company_fit,
+                score_authority: result.dimensionScores.authority,
+                score_contact_quality: result.dimensionScores.contact_quality,
+                score_purchase_intent: result.dimensionScores.purchase_intent,
+                score_digital_maturity: result.dimensionScores.digital_maturity,
+                global_score: result.globalScore,
+                lead_classification: result.classification,
+                classification_reason: result.reason,
+                last_scored_at: new Date().toISOString(),
+              })
+              .eq("id", lead.id);
+
+            if (updateError) {
+              console.error(`Error updating lead ${lead.id}:`, updateError);
+              continue;
+            }
+
+            totalProcessed++;
+          } catch (err) {
+            console.error(`Error scoring lead ${lead.id}:`, err);
           }
-
-          totalProcessed++;
-        } catch (err) {
-          console.error(`Error scoring lead ${lead.id}:`, err);
         }
       }
-    }
 
-    console.log(`scoreMultipleLeads: Completed. Processed ${totalProcessed} leads`);
-    return totalProcessed;
-  }, [activeCompany?.company_id, calculateScore]);
+      console.log(
+        `scoreMultipleLeads: Completed. Processed ${totalProcessed} leads`,
+      );
+      return totalProcessed;
+    },
+    [activeCompany?.company_id, calculateScore],
+  );
 
   const scoreAllCompanyLeads = useCallback(async (): Promise<number> => {
     const companyId = activeCompany?.company_id;
@@ -398,7 +535,9 @@ export function useLeadScoring() {
       return 0;
     }
 
-    console.log(`scoreAllCompanyLeads: Fetching leads for company ${companyId}`);
+    console.log(
+      `scoreAllCompanyLeads: Fetching leads for company ${companyId}`,
+    );
 
     // Fetch all lead IDs for company (handle pagination for large datasets)
     let allLeadIds: string[] = [];
@@ -407,9 +546,9 @@ export function useLeadScoring() {
 
     while (true) {
       const { data: leads, error: fetchError } = await supabase
-        .from('lead_master_pool')
-        .select('id')
-        .eq('company_id', companyId)
+        .from("lead_master_pool")
+        .select("id")
+        .eq("company_id", companyId)
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
       if (fetchError) {
@@ -419,13 +558,15 @@ export function useLeadScoring() {
 
       if (!leads || leads.length === 0) break;
 
-      allLeadIds = [...allLeadIds, ...leads.map(l => l.id)];
+      allLeadIds = [...allLeadIds, ...leads.map((l) => l.id)];
 
       if (leads.length < PAGE_SIZE) break;
       page++;
     }
 
-    console.log(`scoreAllCompanyLeads: Found ${allLeadIds.length} leads to score`);
+    console.log(
+      `scoreAllCompanyLeads: Found ${allLeadIds.length} leads to score`,
+    );
 
     if (allLeadIds.length === 0) return 0;
 
