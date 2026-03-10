@@ -163,7 +163,7 @@ serve(async (req) => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "google/gemini-3-flash-preview",
+            model: "x-ai/grok-4.1-fast",
             messages: [
               { role: "system", content: systemPrompt },
               {
@@ -254,7 +254,7 @@ serve(async (req) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
+          model: "x-ai/grok-4.1-fast",
           messages,
           stream: false,
         }),

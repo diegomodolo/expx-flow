@@ -78,6 +78,7 @@ verify_jwt = true
 [functions.configure-uazapi-webhook]
 verify_jwt = true
 
+[api]
 enabled = true
 port = 54321
 schemas = ["public", "graphql_public"]
@@ -96,7 +97,7 @@ max_client_conn = 100
 
 [realtime]
 enabled = true
-ip_version = "ipv6"
+ip_version = "IPv6"
 
 [studio]
 enabled = true
@@ -112,23 +113,18 @@ pop3_port = 54326
 [storage]
 enabled = true
 file_size_limit = "50MiB"
-public_buckets = ["avatars", "client-avatars", "company-logos", "visual-creatives"]
 
 [auth]
 enabled = true
 site_url = "https://controledetrafego.com.br"
 additional_redirect_urls = ["https://controledetrafego.com.br/**", "https://expxflow.com.br/**"]
 jwt_expiry = 3600
-refresh_token_rotation_enabled = true
-security_update_password_require_reauthentication = false
 
 [auth.email]
 enable_signup = true
 double_confirm_changes = true
 enable_confirmations = false
 
-[edge_functions]
-enabled = true
 
 [functions.check-user]
 verify_jwt = true
@@ -549,10 +545,6 @@ verify_jwt = true
 
 [functions.google-meet-oauth]
 verify_jwt = false
-
-[functions.dm-agent-responder]
-verify_jwt = false
-verify_jwt = true
 
 [functions.agent-task-executor]
 verify_jwt = false
