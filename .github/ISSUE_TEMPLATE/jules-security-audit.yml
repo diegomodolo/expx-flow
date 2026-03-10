@@ -1,0 +1,38 @@
+name: "Security Audit (Jules)"
+description: "Solicitar auditoria de seguranca via Jules"
+labels: ["security", "jules"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        O Jules vai auditar o codigo buscando vulnerabilidades e aplicar correcoes automaticamente.
+
+  - type: input
+    id: target
+    attributes:
+      label: Arquivo, diretorio ou feature alvo
+      placeholder: "src/pages/admin/ ou 'sistema de autenticacao'"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: O que verificar
+      options:
+        - label: "select('*') expondo colunas sensiveis"
+        - label: "Dados de outros usuarios/empresas acessiveis sem verificacao de company_id"
+        - label: "Tokens ou secrets hardcoded"
+        - label: "dangerouslySetInnerHTML sem sanitizacao"
+        - label: "Inputs do usuario usados em URLs (open redirect)"
+        - label: "RLS policies ausentes ou permissivas"
+        - label: "Edge Functions sem CORS ou verify_jwt"
+        - label: "iframes sem sandbox attribute"
+        - label: "Verificacao completa (todos acima)"
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Contexto adicional
+    validations:
+      required: false

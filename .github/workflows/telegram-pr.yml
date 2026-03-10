@@ -27,8 +27,11 @@ jobs:
           PR_BODY=$(echo "$RAW_PR_BODY" | head -c 500)
 
           # Detectar se e agente IA ou humano
+          PR_BODY_CHECK=$(echo "$RAW_PR_BODY" | head -c 2000)
           if echo "${PR_AUTHOR}" | grep -qE "github-actions|claude"; then
             AGENT="🤖 Claude"
+          elif echo "${PR_BODY_CHECK}" | grep -qE "jules.google.com|automatically by Jules"; then
+            AGENT="🤖 Jules"
           else
             AGENT="👤 ${PR_AUTHOR}"
           fi

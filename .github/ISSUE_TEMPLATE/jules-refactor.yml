@@ -1,0 +1,45 @@
+name: "Refactor (Jules)"
+description: "Solicitar refatoracao de codigo via Jules"
+labels: ["refactor", "jules"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        O Jules vai analisar o codigo e implementar a refatoracao automaticamente.
+
+  - type: input
+    id: target-file
+    attributes:
+      label: Arquivo ou diretorio alvo
+      placeholder: "src/pages/admin/AdminPortalEdit.tsx"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: Tipo de refatoracao
+      options:
+        - Extrair componentes (arquivo muito grande)
+        - Migrar useEffect para useQuery
+        - Remover codigo morto
+        - Melhorar tipagem TypeScript (remover any)
+        - Otimizar queries Supabase
+        - Melhorar tratamento de erros/loading
+        - Outro
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Descricao do que precisa mudar
+    validations:
+      required: true
+
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Restricoes (o que NAO alterar)
+    validations:
+      required: false

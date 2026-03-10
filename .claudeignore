@@ -28,7 +28,9 @@ public/
 # Editor/IDE
 .vscode/
 .idea/
-.jules/
+
+# Jules learnings (memoria do agente Jules)
+.Jules/
 
 # Logs and temp
 *.log

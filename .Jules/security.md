@@ -1,0 +1,16 @@
+# Security Learnings — Expx Flow
+
+## 2026-03-10 - Supabase RLS policies required for all tables
+
+**Learning:** All tables with user data must have Row Level Security (RLS) enabled. Tables like `clients`, `campaigns`, `employees` are scoped by `company_id`.
+**Prevention:** Always verify RLS is active when creating new tables. Use `company_id` in policies to isolate tenant data.
+
+## 2026-03-10 - Edge Functions must validate CORS and auth
+
+**Vulnerability:** Edge Functions without CORS headers or JWT verification can be called from unauthorized origins.
+**Prevention:** Always include `corsHeaders` and OPTIONS handler. Set `verify_jwt = true` in config.toml for authenticated endpoints. Use `verify_jwt = false` only for webhooks and scheduled tasks.
+
+## 2026-03-10 - Service Role Key restricted to backend only
+
+**Learning:** `SUPABASE_SERVICE_ROLE_KEY` bypasses RLS and should never be exposed to the frontend.
+**Prevention:** Only use service role key in Edge Functions. Frontend uses `SUPABASE_ANON_KEY` with user session tokens.

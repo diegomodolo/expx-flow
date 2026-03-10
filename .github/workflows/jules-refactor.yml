@@ -1,0 +1,73 @@
+name: Jules Refactor
+
+on:
+  issues:
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Arquivo ou diretorio alvo"
+        required: true
+        type: string
+
+jobs:
+  refactor:
+    if: |
+      (github.event_name == 'workflow_dispatch') ||
+      (github.event_name == 'issues' && github.event.label.name == 'jules' && contains(github.event.issue.labels.*.name, 'refactor'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Check user allowlist
+        if: github.event_name == 'issues'
+        run: |
+          ALLOWED='["bittencourtthulio"]'
+          USER="${{ github.event.issue.user.login }}"
+          if ! echo "$ALLOWED" | jq -e "index(\"$USER\")" > /dev/null; then
+            echo "::error::Usuario $USER nao autorizado para trigger Jules"
+            exit 1
+          fi
+
+      - uses: google-labs-code/jules-invoke@v1
+        with:
+          jules_api_key: ${{ secrets.JULES_API_KEY }}
+          prompt: |
+            Voce e um engenheiro de refatoracao.
+
+            ## Contexto
+            Leia AGENTS.md na raiz para entender o projeto.
+
+            ## Tarefa
+            Refatore o codigo conforme solicitado na issue.
+
+            Tipos comuns de refatoracao:
+            1. Extrair componentes (arquivo > 300 linhas)
+            2. Migrar useEffect + useState para useQuery do React Query
+            3. Remover codigo morto
+            4. Melhorar tipagem TypeScript (remover any, usar unknown)
+            5. Otimizar queries Supabase (select("*") → colunas especificas)
+            6. Melhorar tratamento de erros (error: unknown + instanceof Error)
+
+            ## Regras
+            - NAO altere comportamento externo (mesmas props/APIs)
+            - NAO quebre testes existentes
+            - Rode: npm run build
+            - Se a issue especificar restricoes, respeite-as
+            - Use imports com alias @/ (mapeado para ./src/)
+            - UI em portugues (pt-BR)
+            - Crie PR com descricao do que mudou e por que
+
+      - name: Notificar Telegram
+        if: always()
+        run: |
+          STATUS="${{ job.status == 'success' && '✅ Concluido' || '❌ Falhou' }}"
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d parse_mode="Markdown" \
+            -d text="🔧 *Jules Refactor — ${STATUS}*
+
+          [Ver execucao](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})"

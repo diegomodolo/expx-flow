@@ -1,0 +1,71 @@
+name: Jules Performance Audit
+
+on:
+  issues:
+    types: [labeled]
+  schedule:
+    - cron: "0 3 * * 1" # Toda segunda 03:00 UTC
+  workflow_dispatch:
+
+jobs:
+  performance:
+    if: |
+      (github.event_name == 'schedule') ||
+      (github.event_name == 'workflow_dispatch') ||
+      (github.event_name == 'issues' && github.event.label.name == 'jules' && contains(github.event.issue.labels.*.name, 'performance'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Check user allowlist
+        if: github.event_name == 'issues'
+        run: |
+          ALLOWED='["bittencourtthulio"]'
+          USER="${{ github.event.issue.user.login }}"
+          if ! echo "$ALLOWED" | jq -e "index(\"$USER\")" > /dev/null; then
+            echo "::error::Usuario $USER nao autorizado para trigger Jules"
+            exit 1
+          fi
+
+      - uses: google-labs-code/jules-invoke@v1
+        with:
+          jules_api_key: ${{ secrets.JULES_API_KEY }}
+          prompt: |
+            Voce e um engenheiro de performance.
+
+            ## Contexto
+            Leia AGENTS.md na raiz para entender o projeto.
+            Leia .Jules/performance.md para ver learnings anteriores.
+
+            ## Tarefa
+            Analise o codigo buscando problemas de performance:
+            1. Queries N+1 (multiplas queries quando uma bastaria)
+            2. select("*") em vez de colunas especificas no Supabase
+            3. Componentes sem memo() que re-renderizam desnecessariamente
+            4. Bundles grandes que poderiam ser lazy-loaded com React.lazy()
+            5. Imagens sem otimizacao
+            6. useEffect + useState para data fetching (migrar para useQuery do React Query)
+
+            ## Regras
+            - Foque nos 3 problemas mais criticos
+            - Implemente as correcoes
+            - Rode o build: npm run build
+            - Crie PR apenas se build passar
+            - Maximo 100 linhas alteradas por PR
+            - Nao altere APIs publicas
+            - Use imports com alias @/ (mapeado para ./src/)
+            - Atualize .Jules/performance.md com novos learnings
+
+      - name: Notificar Telegram
+        if: always()
+        run: |
+          STATUS="${{ job.status == 'success' && '✅ Concluido' || '❌ Falhou' }}"
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d parse_mode="Markdown" \
+            -d text="⚡ *Jules Performance — ${STATUS}*
+
+          [Ver execucao](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})"

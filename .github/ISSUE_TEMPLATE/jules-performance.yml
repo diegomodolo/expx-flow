@@ -1,0 +1,47 @@
+name: "Performance (Jules)"
+description: "Solicitar otimizacao de performance via Jules"
+labels: ["performance", "jules"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        O Jules vai analisar o codigo e aplicar otimizacoes de performance automaticamente.
+
+  - type: input
+    id: target
+    attributes:
+      label: Pagina ou componente alvo
+      placeholder: "src/pages/Dashboard.tsx"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: Tipo de problema
+      options:
+        - Pagina carrega lentamente
+        - Muitas queries ao banco (N+1)
+        - Re-renders excessivos
+        - Bundle/chunk muito grande
+        - Imagens nao otimizadas
+        - select("*") em queries Supabase
+        - useEffect para data fetching (migrar para useQuery)
+        - Outro
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Descricao do problema
+    validations:
+      required: true
+
+  - type: textarea
+    id: metrics
+    attributes:
+      label: Metricas observadas (se disponivel)
+      description: Tempo de carregamento, numero de requests, tamanho do bundle, etc.
+    validations:
+      required: false

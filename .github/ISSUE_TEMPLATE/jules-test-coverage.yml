@@ -1,0 +1,41 @@
+name: "Test Coverage (Jules)"
+description: "Solicitar criacao de testes via Jules"
+labels: ["tests", "jules"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        O Jules vai analisar o arquivo, identificar funcoes sem cobertura e criar testes automaticamente.
+
+  - type: input
+    id: target
+    attributes:
+      label: Arquivo ou modulo alvo
+      placeholder: "src/hooks/useAuth.tsx"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Escopo dos testes
+      options:
+        - Arquivo especifico
+        - Diretorio inteiro
+        - Auditoria completa de cobertura
+    validations:
+      required: true
+
+  - type: textarea
+    id: focus
+    attributes:
+      label: Cenarios prioritarios
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Contexto adicional (dependencias, mocks)
+    validations:
+      required: false
