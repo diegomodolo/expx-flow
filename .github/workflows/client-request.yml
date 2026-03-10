@@ -6,7 +6,7 @@ on:
 
 jobs:
   triage:
-    if: contains(github.event.issue.labels.*.name, 'client-request')
+    if: github.event.label.name == 'client-request'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
