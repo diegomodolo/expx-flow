@@ -1,44 +1,72 @@
 // Deno.serve is available natively in modern Deno
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.53.0';
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.53.0";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { tasks, timeSlots, startDate, daysToOrganize = 7, scope, employees = [] } = await req.json();
-    
-    console.log(`🤖 Organizing ${tasks.length} tasks across ${timeSlots.length} slots for ${daysToOrganize} days`);
-    console.log(`📊 Scope: ${scope?.type || 'all'}, Employees: ${employees.length}, Include unassigned: ${scope?.includeUnassigned}`);
-    console.log('📝 Tasks details:', tasks.map(t => ({ id: t.id, title: t.title, user_id: t.user_id, deadline: t.deadline })));
-    console.log('⏰ Time slots:', timeSlots.map(s => ({ id: s.id, name: s.name, start_time: s.start_time, end_time: s.end_time })));
+    const {
+      tasks,
+      timeSlots,
+      startDate,
+      daysToOrganize = 7,
+      scope,
+      employees = [],
+    } = await req.json();
 
-    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+    console.log(
+      `🤖 Organizing ${tasks.length} tasks across ${timeSlots.length} slots for ${daysToOrganize} days`,
+    );
+    console.log(
+      `📊 Scope: ${scope?.type || "all"}, Employees: ${employees.length}, Include unassigned: ${scope?.includeUnassigned}`,
+    );
+    console.log(
+      "📝 Tasks details:",
+      tasks.map((t) => ({
+        id: t.id,
+        title: t.title,
+        user_id: t.user_id,
+        deadline: t.deadline,
+      })),
+    );
+    console.log(
+      "⏰ Time slots:",
+      timeSlots.map((s) => ({
+        id: s.id,
+        name: s.name,
+        start_time: s.start_time,
+        end_time: s.end_time,
+      })),
+    );
+
+    const openAIApiKey = Deno.env.get("OPENAI_API_KEY");
     if (!openAIApiKey) {
-      throw new Error('OpenAI API key not configured');
+      throw new Error("OpenAI API key not configured");
     }
 
     const endDate = new Date(startDate);
     endDate.setDate(endDate.getDate() + (daysToOrganize - 1));
-    const endDateStr = endDate.toISOString().split('T')[0];
+    const endDateStr = endDate.toISOString().split("T")[0];
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
+        Authorization: `Bearer ${openAIApiKey}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: "openai/gpt-4o-mini",
         messages: [
           {
-            role: 'system',
+            role: "system",
             content: `Você é um organizador de tarefas inteligente para agência de marketing. RESPONDA APENAS JSON VÁLIDO NO FORMATO EXATO ABAIXO:
 
 {
@@ -118,44 +146,71 @@ IMPORTANTE:
 - Retorne APENAS o JSON válido, sem texto adicional ou marcações markdown
 - startOffsetMinutes e endOffsetMinutes são OBRIGATÓRIOS para cada tarefa
 - Calcule offsets considerando a duração real estimada de cada tarefa
-- Deixe margem de segurança nos slots longos`
+- Deixe margem de segurança nos slots longos`,
           },
           {
-            role: 'user',
+            role: "user",
             content: `TAREFAS PARA ${startDate}:
-${tasks.map(task => {
-  const taskTypes = [];
-  const title = task.title.toLowerCase();
-  if (title.includes('otimizar') || title.includes('cpa') || title.includes('verificar')) taskTypes.push('análise');
-  if (title.includes('criar') || title.includes('anúncio') || title.includes('produção')) taskTypes.push('produção');
-  if (title.includes('reunião') || title.includes('pauta') || title.includes('meeting')) taskTypes.push('reunião');
-  if (title.includes('monitorar') || title.includes('conferir')) taskTypes.push('monitoramento');
-  if (title.includes('registrar') || title.includes('documentar')) taskTypes.push('atualização');
-  if (title.includes('escalar') || title.includes('implementar')) taskTypes.push('implementação');
-  
-  const compatibleSlots = [];
-  if (taskTypes.includes('análise')) compatibleSlots.push('Check', 'Monitoramento Final');
-  if (taskTypes.includes('produção')) compatibleSlots.push('Produção Clientes Críticos', 'Retomada');
-  if (taskTypes.includes('reunião')) compatibleSlots.push('Reuniao de Pauta');
-  if (taskTypes.includes('monitoramento')) compatibleSlots.push('Monitoramento Final', 'Check');
-  if (taskTypes.includes('atualização')) compatibleSlots.push('Atualização', 'Fechamento');
-  if (taskTypes.includes('implementação')) compatibleSlots.push('Retomada', 'Produção Clientes Críticos');
-  
-  return `${task.id}: "${task.title}" (${task.priority || 'medium'}, deadline: ${task.deadline || 'sem deadline'}) [Compatível com: ${compatibleSlots.join(', ') || 'Retomada'}]`;
-}).join('\n')}
+${tasks
+  .map((task) => {
+    const taskTypes = [];
+    const title = task.title.toLowerCase();
+    if (
+      title.includes("otimizar") ||
+      title.includes("cpa") ||
+      title.includes("verificar")
+    )
+      taskTypes.push("análise");
+    if (
+      title.includes("criar") ||
+      title.includes("anúncio") ||
+      title.includes("produção")
+    )
+      taskTypes.push("produção");
+    if (
+      title.includes("reunião") ||
+      title.includes("pauta") ||
+      title.includes("meeting")
+    )
+      taskTypes.push("reunião");
+    if (title.includes("monitorar") || title.includes("conferir"))
+      taskTypes.push("monitoramento");
+    if (title.includes("registrar") || title.includes("documentar"))
+      taskTypes.push("atualização");
+    if (title.includes("escalar") || title.includes("implementar"))
+      taskTypes.push("implementação");
+
+    const compatibleSlots = [];
+    if (taskTypes.includes("análise"))
+      compatibleSlots.push("Check", "Monitoramento Final");
+    if (taskTypes.includes("produção"))
+      compatibleSlots.push("Produção Clientes Críticos", "Retomada");
+    if (taskTypes.includes("reunião")) compatibleSlots.push("Reuniao de Pauta");
+    if (taskTypes.includes("monitoramento"))
+      compatibleSlots.push("Monitoramento Final", "Check");
+    if (taskTypes.includes("atualização"))
+      compatibleSlots.push("Atualização", "Fechamento");
+    if (taskTypes.includes("implementação"))
+      compatibleSlots.push("Retomada", "Produção Clientes Críticos");
+
+    return `${task.id}: "${task.title}" (${task.priority || "medium"}, deadline: ${task.deadline || "sem deadline"}) [Compatível com: ${compatibleSlots.join(", ") || "Retomada"}]`;
+  })
+  .join("\n")}
 
 COLABORADORES:
-${employees.map(emp => `${emp.user_id}: ${emp.name}`).join('\n')}
+${employees.map((emp) => `${emp.user_id}: ${emp.name}`).join("\n")}
 
 SLOTS DISPONÍVEIS ${startDate}:
-${timeSlots.map(slot => {
-  const duration = (() => {
-    const [startH, startM] = slot.start_time.split(':').map(Number);
-    const [endH, endM] = slot.end_time.split(':').map(Number);
-    return (endH * 60 + endM) - (startH * 60 + startM);
-  })();
-  return `${slot.id}: "${slot.name}" (${slot.start_time}-${slot.end_time}, ${duration}min máx)`;
-}).join('\n')}
+${timeSlots
+  .map((slot) => {
+    const duration = (() => {
+      const [startH, startM] = slot.start_time.split(":").map(Number);
+      const [endH, endM] = slot.end_time.split(":").map(Number);
+      return endH * 60 + endM - (startH * 60 + startM);
+    })();
+    return `${slot.id}: "${slot.name}" (${slot.start_time}-${slot.end_time}, ${duration}min máx)`;
+  })
+  .join("\n")}
 
 IMPORTANTE: 
 - Só aloque tarefas compatíveis com o objetivo do slot
@@ -166,8 +221,8 @@ IMPORTANTE:
 - Priorize tarefas por deadline e prioridade
 - Distribua tarefas até ocupar ~90% da capacidade do slot
 
-RETORNE APENAS JSON:`
-          }
+RETORNE APENAS JSON:`,
+          },
         ],
         temperature: 0.2,
         max_tokens: 4000,
@@ -175,169 +230,221 @@ RETORNE APENAS JSON:`
     });
 
     if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
+      throw new Error(
+        `OpenAI API error: ${response.status} ${response.statusText}`,
+      );
     }
 
     const data = await response.json();
     const aiResponse = data.choices[0].message.content;
-    
-    console.log('🤖 AI Response:', aiResponse);
+
+    console.log("🤖 AI Response:", aiResponse);
 
     // Tentar parsear a resposta JSON com validação robusta
     let organizationPlan;
     try {
       // Remover possíveis marcadores de código markdown e limpar a resposta
-      let cleanResponse = aiResponse.replace(/```json\n?|\n?```/g, '').trim();
-      
+      let cleanResponse = aiResponse.replace(/```json\n?|\n?```/g, "").trim();
+
       // Verificar se a resposta parece estar truncada
-      if (!cleanResponse.endsWith('}') && !cleanResponse.endsWith(']')) {
-        console.warn('⚠️ Response appears to be truncated:', cleanResponse.slice(-100));
-        throw new Error('AI response appears to be truncated');
+      if (!cleanResponse.endsWith("}") && !cleanResponse.endsWith("]")) {
+        console.warn(
+          "⚠️ Response appears to be truncated:",
+          cleanResponse.slice(-100),
+        );
+        throw new Error("AI response appears to be truncated");
       }
-      
+
       // Tentar encontrar JSON válido dentro da resposta
       const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         cleanResponse = jsonMatch[0];
       }
-      
-      console.log('🧹 Cleaned response length:', cleanResponse.length);
+
+      console.log("🧹 Cleaned response length:", cleanResponse.length);
       organizationPlan = JSON.parse(cleanResponse);
-      
     } catch (parseError) {
-      console.error('❌ Error parsing AI response:', parseError);
-      console.error('📝 Raw response:', aiResponse.slice(0, 500) + '...');
-      throw new Error(`Failed to parse AI response as JSON: ${parseError.message}`);
+      console.error("❌ Error parsing AI response:", parseError);
+      console.error("📝 Raw response:", aiResponse.slice(0, 500) + "...");
+      throw new Error(
+        `Failed to parse AI response as JSON: ${parseError.message}`,
+      );
     }
 
     // Validar estrutura do plano de organização
-    console.log('🔍 Validating organization plan structure...');
-    console.log('📊 Plan keys:', Object.keys(organizationPlan));
-    
-    if (!organizationPlan || typeof organizationPlan !== 'object') {
-      console.error('❌ Organization plan is not an object:', organizationPlan);
-      throw new Error('Organization plan must be an object');
+    console.log("🔍 Validating organization plan structure...");
+    console.log("📊 Plan keys:", Object.keys(organizationPlan));
+
+    if (!organizationPlan || typeof organizationPlan !== "object") {
+      console.error("❌ Organization plan is not an object:", organizationPlan);
+      throw new Error("Organization plan must be an object");
     }
-    
+
     if (!organizationPlan.organizedTasks) {
-      console.error('❌ Missing organizedTasks property:', organizationPlan);
-      throw new Error('Organization plan must have organizedTasks property');
+      console.error("❌ Missing organizedTasks property:", organizationPlan);
+      throw new Error("Organization plan must have organizedTasks property");
     }
-    
+
     if (!Array.isArray(organizationPlan.organizedTasks)) {
-      console.error('❌ organizedTasks is not an array:', typeof organizationPlan.organizedTasks);
-      throw new Error('organizedTasks must be an array');
+      console.error(
+        "❌ organizedTasks is not an array:",
+        typeof organizationPlan.organizedTasks,
+      );
+      throw new Error("organizedTasks must be an array");
     }
-    
+
     // Validar estrutura de cada tarefa organizada
     for (const [index, task] of organizationPlan.organizedTasks.entries()) {
       if (!task.taskId || !task.slotId || !task.date) {
         console.error(`❌ Invalid task at index ${index}:`, task);
-        throw new Error(`Task at index ${index} is missing required fields (taskId, slotId, date)`);
+        throw new Error(
+          `Task at index ${index} is missing required fields (taskId, slotId, date)`,
+        );
       }
-      
+
       // Validar novos campos obrigatórios
-      if (typeof task.startOffsetMinutes !== 'number' || typeof task.endOffsetMinutes !== 'number') {
+      if (
+        typeof task.startOffsetMinutes !== "number" ||
+        typeof task.endOffsetMinutes !== "number"
+      ) {
         console.error(`❌ Task at index ${index} missing time offsets:`, task);
-        throw new Error(`Task at index ${index} must have startOffsetMinutes and endOffsetMinutes as numbers`);
+        throw new Error(
+          `Task at index ${index} must have startOffsetMinutes and endOffsetMinutes as numbers`,
+        );
       }
-      
-      if (task.startOffsetMinutes < 0 || task.endOffsetMinutes <= task.startOffsetMinutes) {
-        console.error(`❌ Task at index ${index} has invalid time offsets:`, task);
-        throw new Error(`Task at index ${index} has invalid time offsets (start: ${task.startOffsetMinutes}, end: ${task.endOffsetMinutes})`);
+
+      if (
+        task.startOffsetMinutes < 0 ||
+        task.endOffsetMinutes <= task.startOffsetMinutes
+      ) {
+        console.error(
+          `❌ Task at index ${index} has invalid time offsets:`,
+          task,
+        );
+        throw new Error(
+          `Task at index ${index} has invalid time offsets (start: ${task.startOffsetMinutes}, end: ${task.endOffsetMinutes})`,
+        );
       }
     }
-    
-    console.log('✅ Organization plan structure validated successfully');
+
+    console.log("✅ Organization plan structure validated successfully");
 
     // Adicionar informações adicionais para cada tarefa organizada
     const enrichedPlan = {
       ...organizationPlan,
-      organizedTasks: organizationPlan.organizedTasks.map(item => {
-        const task = tasks.find(t => t.id === item.taskId);
-        const slot = timeSlots.find(s => s.id === item.slotId);
-        
-        console.log(`🔍 Processing task ${item.taskId}, assignedTo: "${item.assignedTo}"`);
-        
+      organizedTasks: organizationPlan.organizedTasks.map((item) => {
+        const task = tasks.find((t) => t.id === item.taskId);
+        const slot = timeSlots.find((s) => s.id === item.slotId);
+
+        console.log(
+          `🔍 Processing task ${item.taskId}, assignedTo: "${item.assignedTo}"`,
+        );
+
         // Busca melhorada do colaborador
         let assignedEmployee = null;
         if (item.assignedTo) {
           // Primeiro, tenta buscar por user_id
-          assignedEmployee = employees.find(e => e.user_id === item.assignedTo);
-          
+          assignedEmployee = employees.find(
+            (e) => e.user_id === item.assignedTo,
+          );
+
           // Se não encontrar, tenta buscar por nome
           if (!assignedEmployee) {
-            assignedEmployee = employees.find(e => 
-              e.name && (
-                e.name.toLowerCase().includes(item.assignedTo.toLowerCase()) ||
-                item.assignedTo.toLowerCase().includes(e.name.toLowerCase()) ||
-                e.name.toLowerCase() === item.assignedTo.toLowerCase()
-              )
+            assignedEmployee = employees.find(
+              (e) =>
+                e.name &&
+                (e.name.toLowerCase().includes(item.assignedTo.toLowerCase()) ||
+                  item.assignedTo
+                    .toLowerCase()
+                    .includes(e.name.toLowerCase()) ||
+                  e.name.toLowerCase() === item.assignedTo.toLowerCase()),
             );
           }
         }
-        
+
         // Se ainda não encontrou e há colaboradores disponíveis, usa o primeiro
         if (!assignedEmployee && employees.length > 0) {
           assignedEmployee = employees[0];
-          console.log(`🔄 Using fallback employee: ${assignedEmployee.name} for task ${item.taskId}`);
+          console.log(
+            `🔄 Using fallback employee: ${assignedEmployee.name} for task ${item.taskId}`,
+          );
         }
-        
+
         const result = {
           ...item,
-          taskTitle: task?.title || 'Tarefa não encontrada',
-          slotName: slot?.name || 'Slot não encontrado',
-          slotTime: slot ? `${slot.start_time} - ${slot.end_time}` : 'Horário não definido',
-          priority: task?.priority || 'medium',
-          assignedToName: assignedEmployee?.name || task?.responsible_name || 'Não atribuído',
-          assignedTo: assignedEmployee?.user_id || item.assignedTo || null
+          taskTitle: task?.title || "Tarefa não encontrada",
+          slotName: slot?.name || "Slot não encontrado",
+          slotTime: slot
+            ? `${slot.start_time} - ${slot.end_time}`
+            : "Horário não definido",
+          priority: task?.priority || "medium",
+          assignedToName:
+            assignedEmployee?.name || task?.responsible_name || "Não atribuído",
+          assignedTo: assignedEmployee?.user_id || item.assignedTo || null,
         };
-        
-        console.log(`✅ Final assignment for task ${item.taskId}: ${result.assignedToName}`);
+
+        console.log(
+          `✅ Final assignment for task ${item.taskId}: ${result.assignedToName}`,
+        );
         return result;
-      })
+      }),
     };
 
-    console.log('✅ Organization plan created successfully');
+    console.log("✅ Organization plan created successfully");
 
     return new Response(JSON.stringify(enrichedPlan), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-
   } catch (error) {
-    console.error('Error in organize-tasks-with-ai function:', error);
+    console.error("Error in organize-tasks-with-ai function:", error);
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         error: error.message,
-        details: 'Failed to organize tasks with AI'
-      }), 
+        details: "Failed to organize tasks with AI",
+      }),
       {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 });
 
 // Função auxiliar para identificar tipo de slot baseado no nome e descrição
 function getSlotType(slot: any): string {
-  const name = slot.name?.toLowerCase() || '';
-  const description = slot.description?.toLowerCase() || '';
+  const name = slot.name?.toLowerCase() || "";
+  const description = slot.description?.toLowerCase() || "";
   const combined = `${name} ${description}`;
 
-  if (combined.includes('reunião') || combined.includes('meeting') || combined.includes('alinhamento')) {
-    return 'Reunião/Comunicação';
+  if (
+    combined.includes("reunião") ||
+    combined.includes("meeting") ||
+    combined.includes("alinhamento")
+  ) {
+    return "Reunião/Comunicação";
   }
-  if (combined.includes('foco') || combined.includes('desenvolvimento') || combined.includes('operacional')) {
-    return 'Foco/Operacional';
+  if (
+    combined.includes("foco") ||
+    combined.includes("desenvolvimento") ||
+    combined.includes("operacional")
+  ) {
+    return "Foco/Operacional";
   }
-  if (combined.includes('revisão') || combined.includes('validação') || combined.includes('correção')) {
-    return 'Revisão/Controle';
+  if (
+    combined.includes("revisão") ||
+    combined.includes("validação") ||
+    combined.includes("correção")
+  ) {
+    return "Revisão/Controle";
   }
-  if (combined.includes('planejamento') || combined.includes('estratégico') || combined.includes('organização')) {
-    return 'Planejamento/Estratégia';
+  if (
+    combined.includes("planejamento") ||
+    combined.includes("estratégico") ||
+    combined.includes("organização")
+  ) {
+    return "Planejamento/Estratégia";
   }
-  return 'Geral';
+  return "Geral";
 }
 
 function getSlotTypeFunction(): string {

@@ -3,7 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 interface VariationOptions {
@@ -31,53 +32,58 @@ async function generateImage(
   apiKey: string,
   prompt: string,
   contentArray: any[],
-  model: string
+  model: string,
 ): Promise<string | null> {
   console.log(`Calling Gemini API with model: ${model}`);
-  
+
   try {
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
+    const response = await fetch(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            {
+              role: "user",
+              content: contentArray,
+            },
+          ],
+          modalities: ["image", "text"],
+        }),
       },
-      body: JSON.stringify({
-        model,
-        messages: [
-          {
-            role: "user",
-            content: contentArray,
-          },
-        ],
-        modalities: ["image", "text"],
-      }),
-    });
+    );
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`Gemini API error: ${response.status}`, errorText);
-      
+
       if (response.status === 429) {
         throw new Error("Rate limit exceeded. Please try again later.");
       }
       if (response.status === 402) {
-        throw new Error("Payment required. Please add credits to your account.");
+        throw new Error(
+          "Payment required. Please add credits to your account.",
+        );
       }
-      
+
       return null;
     }
 
     let data: any;
     try {
       const responseText = await response.text();
-      if (!responseText || responseText.trim() === '') {
-        console.error('Empty response from Gemini API');
+      if (!responseText || responseText.trim() === "") {
+        console.error("Empty response from Gemini API");
         return null;
       }
       data = JSON.parse(responseText);
     } catch (parseError) {
-      console.error('Failed to parse Gemini response:', parseError);
+      console.error("Failed to parse Gemini response:", parseError);
       return null;
     }
 
@@ -106,28 +112,35 @@ async function generateWithRetry(
   prompts: string[],
   contentArrays: any[][],
   model: string,
-  maxRetries: number = 2
+  maxRetries: number = 2,
 ): Promise<string | null> {
   for (let promptIndex = 0; promptIndex < prompts.length; promptIndex++) {
     const prompt = prompts[promptIndex];
     const contentArray = contentArrays[promptIndex];
-    
+
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      console.log(`Prompt ${promptIndex + 1}/${prompts.length}, Attempt ${attempt}/${maxRetries}...`);
-      
+      console.log(
+        `Prompt ${promptIndex + 1}/${prompts.length}, Attempt ${attempt}/${maxRetries}...`,
+      );
+
       try {
         const result = await generateImage(apiKey, prompt, contentArray, model);
         if (result) {
-          console.log(`Success on prompt ${promptIndex + 1}, attempt ${attempt}`);
+          console.log(
+            `Success on prompt ${promptIndex + 1}, attempt ${attempt}`,
+          );
           return result;
         }
       } catch (error: any) {
-        if (error.message?.includes("Rate limit") || error.message?.includes("Payment required")) {
+        if (
+          error.message?.includes("Rate limit") ||
+          error.message?.includes("Payment required")
+        ) {
           throw error;
         }
         console.error(`Attempt ${attempt} failed:`, error);
       }
-      
+
       if (attempt < maxRetries) {
         const delay = Math.pow(2, attempt) * 500;
         console.log(`Waiting ${delay}ms before retry...`);
@@ -135,7 +148,7 @@ async function generateWithRetry(
       }
     }
   }
-  
+
   return null;
 }
 
@@ -145,9 +158,9 @@ serve(async (req) => {
   }
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY not configured");
+    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
+    if (!OPENROUTER_API_KEY) {
+      throw new Error("OPENROUTER_API_KEY not configured");
     }
 
     const body: VariationRequest = await req.json();
@@ -164,7 +177,9 @@ serve(async (req) => {
       companyId,
     } = body;
 
-    console.log(`Generating variation ${variationIndex + 1} for format: ${format}, model: ${modelType}`);
+    console.log(
+      `Generating variation ${variationIndex + 1} for format: ${format}, model: ${modelType}`,
+    );
 
     // Fetch client context if clientId is provided
     let clientContext = "";
@@ -183,15 +198,17 @@ serve(async (req) => {
         const parts: string[] = [];
         parts.push(`Cliente: ${clientData.name}`);
         if (clientData.segment) parts.push(`Segmento: ${clientData.segment}`);
-        if (clientData.ai_briefing) parts.push(`Briefing do cliente: ${clientData.ai_briefing}`);
+        if (clientData.ai_briefing)
+          parts.push(`Briefing do cliente: ${clientData.ai_briefing}`);
         clientContext = parts.join("\n");
         console.log(`Client context loaded: ${clientData.name}`);
       }
     }
 
-    const model = modelType === "pro" 
-      ? "google/gemini-3-pro-image-preview"
-      : "google/gemini-2.5-flash-image";
+    const model =
+      modelType === "pro"
+        ? "google/gemini-3-pro-image-preview"
+        : "google/gemini-2.5-flash-image";
 
     console.log(`Using model: ${model}`);
 
@@ -211,7 +228,7 @@ serve(async (req) => {
 
     // Build variation instructions
     const variationInstructions: string[] = [];
-    
+
     const uniqueSeed = Math.random().toString(36).substring(2, 10);
     variationInstructions.push(`UNIQUE VARIATION SEED: ${uniqueSeed}`);
 
@@ -281,11 +298,11 @@ REGRA MAIS IMPORTANTE — PRESERVAÇÃO DE TEXTOS (OBRIGATÓRIO):
    Sem os textos, a imagem perde completamente seu propósito.
 ═══════════════════════════════════════════════════════════`;
 
-    const clientContextInstruction = clientContext 
+    const clientContextInstruction = clientContext
       ? `\nCONTEXTO DO CLIENTE (use para manter coerência):\n${clientContext}\n`
       : "";
 
-    const designInstruction = designGuidance 
+    const designInstruction = designGuidance
       ? `\nORIENTAÇÃO DE DESIGN: ${designGuidance}`
       : "";
 
@@ -303,7 +320,7 @@ ${clientContextInstruction}
 ${textPreservationInstruction}
 
 INSTRUÇÕES DE VARIAÇÃO:
-${variationInstructions.join('\n\n')}
+${variationInstructions.join("\n\n")}
 
 ${designInstruction}
 
@@ -339,7 +356,10 @@ A variação deve parecer uma versão alternativa do mesmo anúncio, com todos o
       { type: "image_url", image_url: { url: baseImage } },
     ];
     if (personImage) {
-      fallbackContent.push({ type: "image_url", image_url: { url: personImage } });
+      fallbackContent.push({
+        type: "image_url",
+        image_url: { url: personImage },
+      });
     }
 
     const minimalContent: any[] = [
@@ -348,11 +368,11 @@ A variação deve parecer uma versão alternativa do mesmo anúncio, com todos o
     ];
 
     const base64Url = await generateWithRetry(
-      LOVABLE_API_KEY,
+      OPENROUTER_API_KEY,
       [mainPrompt, fallbackPrompt, minimalPrompt],
       [baseContent, fallbackContent, minimalContent],
       model,
-      2
+      2,
     );
 
     if (!base64Url) {
@@ -365,7 +385,7 @@ A variação deve parecer uma versão alternativa do mesmo anúncio, com todos o
         {
           status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
@@ -375,7 +395,9 @@ A variação deve parecer uma versão alternativa do mesmo anúncio, com todos o
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const base64Data = base64Url.replace(/^data:image\/\w+;base64,/, "");
-    const imageBytes = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
+    const imageBytes = Uint8Array.from(atob(base64Data), (c) =>
+      c.charCodeAt(0),
+    );
 
     const fileName = `variations/${Date.now()}-${variationIndex}-${format}.png`;
 
@@ -398,7 +420,7 @@ A variação deve parecer uma versão alternativa do mesmo anúncio, com todos o
         {
           status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
@@ -418,7 +440,7 @@ A variação deve parecer uma versão alternativa do mesmo anúncio, com todos o
       {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      },
     );
   } catch (error) {
     console.error("Error in generate-creative-variations:", error);
@@ -430,7 +452,7 @@ A variação deve parecer uma versão alternativa do mesmo anúncio, com todos o
       {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      },
     );
   }
 });

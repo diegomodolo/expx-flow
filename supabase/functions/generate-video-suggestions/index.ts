@@ -1,50 +1,54 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY')!;
+const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const openAIApiKey = Deno.env.get("OPENAI_API_KEY")!;
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const { clientId, companyId, clientContext, count = 5 } = await req.json();
 
-    console.log('Generating video suggestions for client:', clientId);
+    console.log("Generating video suggestions for client:", clientId);
 
     if (!clientId || !companyId) {
-      throw new Error('Client ID and Company ID are required');
+      throw new Error("Client ID and Company ID are required");
     }
 
     // Fetch top performing videos from monitored channels
     const { data: topVideos } = await supabase
-      .from('youtube_video_analyses')
-      .select('*')
-      .eq('client_id', clientId)
-      .order('engagement_rate', { ascending: false })
+      .from("youtube_video_analyses")
+      .select("*")
+      .eq("client_id", clientId)
+      .order("engagement_rate", { ascending: false })
       .limit(20);
 
     if (!topVideos || topVideos.length === 0) {
-      return new Response(JSON.stringify({
-        success: true,
-        suggestions: [],
-        message: 'No analyzed videos found. Add and analyze channels first.',
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return new Response(
+        JSON.stringify({
+          success: true,
+          suggestions: [],
+          message: "No analyzed videos found. Add and analyze channels first.",
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
     // Analyze themes and patterns
-    const videoSummary = topVideos.map(v => ({
+    const videoSummary = topVideos.map((v) => ({
       title: v.title,
       engagement: v.engagement_rate,
       views: v.view_count,
@@ -54,9 +58,9 @@ Deno.serve(async (req) => {
     const prompt = `Analise os vídeos de maior sucesso e gere ${count} sugestões de vídeos para criar.
 
 VÍDEOS DE ALTO ENGAJAMENTO ANALISADOS:
-${videoSummary.map(v => `- "${v.title}" (${v.views?.toLocaleString()} views, ${v.engagement?.toFixed(2)}% engajamento)${v.theme ? ` - Tema: ${v.theme}` : ''}`).join('\n')}
+${videoSummary.map((v) => `- "${v.title}" (${v.views?.toLocaleString()} views, ${v.engagement?.toFixed(2)}% engajamento)${v.theme ? ` - Tema: ${v.theme}` : ""}`).join("\n")}
 
-${clientContext ? `CONTEXTO DO CLIENTE/CANAL:\n${clientContext}` : ''}
+${clientContext ? `CONTEXTO DO CLIENTE/CANAL:\n${clientContext}` : ""}
 
 Gere ${count} sugestões de vídeos que:
 1. Aproveitem os temas de maior sucesso identificados
@@ -80,21 +84,22 @@ Retorne em JSON:
   ]
 }`;
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
+        Authorization: `Bearer ${openAIApiKey}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: 'gpt-4.1-mini-2025-04-14',
+        model: "openai/gpt-4.1-mini-2025-04-14",
         messages: [
           {
-            role: 'system',
-            content: 'Você é um estrategista de conteúdo especializado em YouTube. Analise padrões de sucesso e sugira vídeos com alto potencial de engajamento. Retorne apenas JSON válido.',
+            role: "system",
+            content:
+              "Você é um estrategista de conteúdo especializado em YouTube. Analise padrões de sucesso e sugira vídeos com alto potencial de engajamento. Retorne apenas JSON válido.",
           },
           {
-            role: 'user',
+            role: "user",
             content: prompt,
           },
         ],
@@ -106,20 +111,20 @@ Retorne em JSON:
 
     if (!response.ok) {
       const error = await response.json();
-      console.error('OpenAI error:', error);
-      throw new Error('Failed to generate suggestions');
+      console.error("OpenAI error:", error);
+      throw new Error("Failed to generate suggestions");
     }
 
     const data = await response.json();
     const result = JSON.parse(data.choices[0].message.content);
 
-    console.log('Generated', result.suggestions?.length || 0, 'suggestions');
+    console.log("Generated", result.suggestions?.length || 0, "suggestions");
 
     // Save suggestions to database
     const savedSuggestions = [];
     for (const suggestion of result.suggestions || []) {
       const { data: saved, error } = await supabase
-        .from('youtube_content_suggestions')
+        .from("youtube_content_suggestions")
         .insert({
           client_id: clientId,
           company_id: companyId,
@@ -128,7 +133,7 @@ Retorne em JSON:
           based_on_videos: suggestion.based_on || [],
           theme_category: suggestion.theme_category,
           estimated_engagement: suggestion.estimated_engagement,
-          status: 'pending',
+          status: "pending",
         })
         .select()
         .single();
@@ -141,23 +146,28 @@ Retorne em JSON:
       }
     }
 
-    return new Response(JSON.stringify({
-      success: true,
-      analysis: result.analysis,
-      suggestions: savedSuggestions,
-      analyzedVideosCount: topVideos.length,
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-
+    return new Response(
+      JSON.stringify({
+        success: true,
+        analysis: result.analysis,
+        suggestions: savedSuggestions,
+        analyzedVideosCount: topVideos.length,
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   } catch (error: any) {
-    console.error('Error in generate-video-suggestions:', error);
-    return new Response(JSON.stringify({
-      success: false,
-      error: error.message,
-    }), {
-      status: 400,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    console.error("Error in generate-video-suggestions:", error);
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: error.message,
+      }),
+      {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   }
 });

@@ -3,7 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
   "Access-Control-Max-Age": "86400",
 };
@@ -45,7 +46,12 @@ interface ClientData {
 }
 
 type StreamEvent =
-  | { type: "started"; carousel_id: string; missing_count: number; missing_indices: number[] }
+  | {
+      type: "started";
+      carousel_id: string;
+      missing_count: number;
+      missing_indices: number[];
+    }
   | { type: "slide_start"; index: number; total: number }
   | { type: "slide_done"; index: number; total: number; image_url: string }
   | { type: "slide_error"; index: number; total: number; message: string }
@@ -72,13 +78,19 @@ serve(async (req) => {
   const { carousel_id } = await req.json();
 
   if (!carousel_id) {
-    return new Response(JSON.stringify({ error: "carousel_id é obrigatório" }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ error: "carousel_id é obrigatório" }),
+      {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   }
 
-  console.log("[regenerate-carousel-images] Starting for carousel:", carousel_id);
+  console.log(
+    "[regenerate-carousel-images] Starting for carousel:",
+    carousel_id,
+  );
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -93,7 +105,10 @@ serve(async (req) => {
           .single();
 
         if (carouselError || !carousel) {
-          console.error("[regenerate-carousel-images] Carousel not found:", carouselError);
+          console.error(
+            "[regenerate-carousel-images] Carousel not found:",
+            carouselError,
+          );
           send({ type: "failed", message: "Carrossel não encontrado" });
           controller.enqueue(sseDone());
           controller.close();
@@ -118,13 +133,16 @@ serve(async (req) => {
           return;
         }
 
-        console.log("[regenerate-carousel-images] Missing images at indices:", missingIndices);
+        console.log(
+          "[regenerate-carousel-images] Missing images at indices:",
+          missingIndices,
+        );
 
         send({
           type: "started",
           carousel_id,
           missing_count: missingIndices.length,
-          missing_indices: missingIndices.map(i => i + 1),
+          missing_indices: missingIndices.map((i) => i + 1),
         });
 
         // Fetch schedule for style settings
@@ -134,9 +152,9 @@ serve(async (req) => {
           .eq("client_id", carousel.client_id)
           .maybeSingle();
 
-        const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-        if (!LOVABLE_API_KEY) {
-          throw new Error("LOVABLE_API_KEY not configured");
+        const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
+        if (!OPENROUTER_API_KEY) {
+          throw new Error("OPENROUTER_API_KEY not configured");
         }
 
         const styleContext = buildImageStylePrompt(schedule, client);
@@ -149,7 +167,11 @@ serve(async (req) => {
           const slideIdx = missingIndices[i];
           const slide = slides[slideIdx];
 
-          send({ type: "slide_start", index: slideIdx + 1, total: slides.length });
+          send({
+            type: "slide_start",
+            index: slideIdx + 1,
+            total: slides.length,
+          });
 
           try {
             const hasReferences = referenceImages.length > 0;
@@ -168,13 +190,21 @@ REGRAS OBRIGATÓRIAS:
 - Texto legível, grande e bem posicionado
 - Design moderno, clean e profissional
 - NÃO incluir textos longos, apenas a headline curta e impactante
-${hasReferences ? `- MUITO IMPORTANTE: Siga EXATAMENTE o estilo visual das imagens de referência anexadas
+${
+  hasReferences
+    ? `- MUITO IMPORTANTE: Siga EXATAMENTE o estilo visual das imagens de referência anexadas
 - REPRODUZA o logotipo/marca IDÊNTICO ao das referências (mesma fonte, cores, posição)
 - MANTENHA a paleta de cores e estética das referências
-- COPIE o estilo de layout, tipografia e composição` : ''}
+- COPIE o estilo de layout, tipografia e composição`
+    : ""
+}
 - Ultra high resolution`;
 
-            const dataUrl = await generateImageWithNanoBanana(imagePrompt, LOVABLE_API_KEY, referenceImages);
+            const dataUrl = await generateImageWithNanoBanana(
+              imagePrompt,
+              OPENROUTER_API_KEY,
+              referenceImages,
+            );
             if (!dataUrl) throw new Error("No image returned");
 
             const publicUrl = await uploadDataUrlToStorage({
@@ -199,15 +229,28 @@ ${hasReferences ? `- MUITO IMPORTANTE: Siga EXATAMENTE o estilo visual das image
               })
               .eq("id", carousel_id);
 
-            send({ type: "slide_done", index: slideIdx + 1, total: slides.length, image_url: publicUrl });
+            send({
+              type: "slide_done",
+              index: slideIdx + 1,
+              total: slides.length,
+              image_url: publicUrl,
+            });
 
             // Small delay to avoid rate limits
             if (i < missingIndices.length - 1) {
               await new Promise((r) => setTimeout(r, 300));
             }
           } catch (e: any) {
-            console.error("[regenerate-carousel-images] Slide error", { slideIdx: slideIdx + 1, err: e?.message });
-            send({ type: "slide_error", index: slideIdx + 1, total: slides.length, message: e?.message || "Erro ao gerar imagem" });
+            console.error("[regenerate-carousel-images] Slide error", {
+              slideIdx: slideIdx + 1,
+              err: e?.message,
+            });
+            send({
+              type: "slide_error",
+              index: slideIdx + 1,
+              total: slides.length,
+              message: e?.message || "Erro ao gerar imagem",
+            });
           }
         }
 
@@ -243,7 +286,10 @@ ${hasReferences ? `- MUITO IMPORTANTE: Siga EXATAMENTE o estilo visual das image
   });
 });
 
-function buildImageStylePrompt(schedule: CarouselSchedule | null, client: ClientData): string {
+function buildImageStylePrompt(
+  schedule: CarouselSchedule | null,
+  client: ClientData,
+): string {
   const styles: string[] = [];
 
   styles.push(`Marca: ${client.company}`);
@@ -261,7 +307,9 @@ function buildImageStylePrompt(schedule: CarouselSchedule | null, client: Client
     }
 
     if (schedule.include_proof_social) {
-      styles.push("Incluir elementos de prova social (ícones, números, badges)");
+      styles.push(
+        "Incluir elementos de prova social (ícones, números, badges)",
+      );
     }
 
     if (schedule.include_save_bait) {
@@ -280,7 +328,7 @@ function buildImageStylePrompt(schedule: CarouselSchedule | null, client: Client
 
 function getReferenceImages(schedule: CarouselSchedule | null): string[] {
   if (!schedule) return [];
-  
+
   const refs: string[] = [];
   if (schedule.reference_image_1) refs.push(schedule.reference_image_1);
   if (schedule.reference_image_2) refs.push(schedule.reference_image_2);
@@ -292,7 +340,7 @@ function getReferenceImages(schedule: CarouselSchedule | null): string[] {
   if (schedule.reference_image_8) refs.push(schedule.reference_image_8);
   if (schedule.reference_image_9) refs.push(schedule.reference_image_9);
   if (schedule.reference_image_10) refs.push(schedule.reference_image_10);
-  
+
   return refs;
 }
 
@@ -315,7 +363,10 @@ async function uploadDataUrlToStorage({
     .upload(path, bytes, { contentType, upsert: true });
 
   if (uploadError) {
-    console.error("[regenerate-carousel-images] Storage upload error:", uploadError);
+    console.error(
+      "[regenerate-carousel-images] Storage upload error:",
+      uploadError,
+    );
     throw new Error("Falha ao salvar imagem no Storage");
   }
 
@@ -324,7 +375,9 @@ async function uploadDataUrlToStorage({
   return data.publicUrl;
 }
 
-function parseDataUrl(dataUrl: string): { bytes: Uint8Array; contentType: string } | null {
+function parseDataUrl(
+  dataUrl: string,
+): { bytes: Uint8Array; contentType: string } | null {
   if (!dataUrl.startsWith("data:")) return null;
   const commaIdx = dataUrl.indexOf(",");
   if (commaIdx < 0) return null;
@@ -345,12 +398,18 @@ function parseDataUrl(dataUrl: string): { bytes: Uint8Array; contentType: string
 async function generateImageWithNanoBanana(
   prompt: string,
   apiKey: string,
-  referenceImages: string[] = []
+  referenceImages: string[] = [],
 ): Promise<string | null> {
   try {
-    console.log("[regenerate-carousel-images] Calling Nano Banana for image generation...");
+    console.log(
+      "[regenerate-carousel-images] Calling Nano Banana for image generation...",
+    );
 
-    const messageContent: Array<{ type: string; text?: string; image_url?: { url: string } }> = [];
+    const messageContent: Array<{
+      type: string;
+      text?: string;
+      image_url?: { url: string };
+    }> = [];
 
     for (const imgUrl of referenceImages) {
       if (imgUrl) {
@@ -361,8 +420,9 @@ async function generateImageWithNanoBanana(
       }
     }
 
-    const enhancedPrompt = referenceImages.length > 0
-      ? `${prompt}
+    const enhancedPrompt =
+      referenceImages.length > 0
+        ? `${prompt}
 
 REFERÊNCIAS VISUAIS OBRIGATÓRIAS (veja as imagens anexadas):
 - SIGA FIELMENTE o estilo visual das imagens de referência anexadas
@@ -371,32 +431,41 @@ REFERÊNCIAS VISUAIS OBRIGATÓRIAS (veja as imagens anexadas):
 - COPIE o estilo de layout e composição das referências
 - USE a mesma tipografia ou estilo tipográfico das referências
 - O logotipo deve aparecer no mesmo local e tamanho das referências`
-      : prompt;
+        : prompt;
 
     messageContent.push({
       type: "text",
       text: enhancedPrompt,
     });
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
+    const response = await fetch(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-3-pro-image-preview",
+          messages: [{ role: "user", content: messageContent }],
+          modalities: ["image", "text"],
+        }),
       },
-      body: JSON.stringify({
-        model: "google/gemini-3-pro-image-preview",
-        messages: [{ role: "user", content: messageContent }],
-        modalities: ["image", "text"],
-      }),
-    });
+    );
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("[regenerate-carousel-images] Image generation API error:", response.status, errorText);
+      console.error(
+        "[regenerate-carousel-images] Image generation API error:",
+        response.status,
+        errorText,
+      );
 
-      if (response.status === 429) throw new Error("Rate limit (429). Tente novamente em alguns minutos.");
-      if (response.status === 402) throw new Error("Créditos de IA esgotados (402). Adicione créditos.");
+      if (response.status === 429)
+        throw new Error("Rate limit (429). Tente novamente em alguns minutos.");
+      if (response.status === 402)
+        throw new Error("Créditos de IA esgotados (402). Adicione créditos.");
       throw new Error(`Erro na geração de imagem (${response.status})`);
     }
 
@@ -408,7 +477,10 @@ REFERÊNCIAS VISUAIS OBRIGATÓRIAS (veja as imagens anexadas):
 
     return null;
   } catch (error: any) {
-    console.error("[regenerate-carousel-images] Error calling image generation API:", error);
+    console.error(
+      "[regenerate-carousel-images] Error calling image generation API:",
+      error,
+    );
     throw error;
   }
 }

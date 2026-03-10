@@ -1,21 +1,23 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
     const { prompt } = await req.json();
     if (!prompt) throw new Error("Prompt é obrigatório");
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
+    if (!OPENROUTER_API_KEY)
+      throw new Error("OPENROUTER_API_KEY not configured");
 
     const systemPrompt = `Você é um especialista em criar skills para agentes de IA que rodam como Supabase Edge Functions (Deno/TypeScript).
 
@@ -31,85 +33,116 @@ O código deve:
 
 Responda SOMENTE com a chamada da função generate_skill.`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: prompt },
-        ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "generate_skill",
-              description: "Gera a configuração completa de uma skill incluindo o código da Edge Function",
-              parameters: {
-                type: "object",
-                properties: {
-                  id: {
-                    type: "string",
-                    description: "ID slug único em snake_case (ex: analyze_competitors)"
+    const response = await fetch(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: prompt },
+          ],
+          tools: [
+            {
+              type: "function",
+              function: {
+                name: "generate_skill",
+                description:
+                  "Gera a configuração completa de uma skill incluindo o código da Edge Function",
+                parameters: {
+                  type: "object",
+                  properties: {
+                    id: {
+                      type: "string",
+                      description:
+                        "ID slug único em snake_case (ex: analyze_competitors)",
+                    },
+                    name: {
+                      type: "string",
+                      description:
+                        "Nome legível da skill (ex: Analisar Concorrentes)",
+                    },
+                    description: {
+                      type: "string",
+                      description: "Descrição curta do que a skill faz",
+                    },
+                    category: {
+                      type: "string",
+                      enum: [
+                        "data",
+                        "action",
+                        "generation",
+                        "communication",
+                        "analysis",
+                        "content",
+                      ],
+                      description: "Categoria da skill",
+                    },
+                    edge_function: {
+                      type: "string",
+                      description:
+                        "Nome da edge function em kebab-case (ex: get-current-datetime)",
+                    },
+                    edge_function_code: {
+                      type: "string",
+                      description:
+                        "Código TypeScript completo da Edge Function Deno que implementa a skill. Deve incluir serve(), CORS headers, e tratamento de erros.",
+                    },
+                    requires_client: {
+                      type: "boolean",
+                      description: "Se a skill precisa de um cliente vinculado",
+                    },
+                    model: {
+                      type: "string",
+                      description:
+                        "Modelo de IA sugerido ou null se não usa IA",
+                    },
+                    system_prompt: {
+                      type: "string",
+                      description:
+                        "System prompt para a IA executar esta skill, ou null se não usa IA",
+                    },
+                    temperature: {
+                      type: "number",
+                      description:
+                        "Temperatura do modelo (0 a 2), ou 0.7 como padrão",
+                    },
+                    max_tokens: {
+                      type: "integer",
+                      description: "Limite de tokens na resposta",
+                    },
+                    tool_parameters: {
+                      type: "object",
+                      description:
+                        "JSON Schema dos parâmetros que a skill aceita, com properties e required",
+                    },
                   },
-                  name: {
-                    type: "string",
-                    description: "Nome legível da skill (ex: Analisar Concorrentes)"
-                  },
-                  description: {
-                    type: "string",
-                    description: "Descrição curta do que a skill faz"
-                  },
-                  category: {
-                    type: "string",
-                    enum: ["data", "action", "generation", "communication", "analysis", "content"],
-                    description: "Categoria da skill"
-                  },
-                  edge_function: {
-                    type: "string",
-                    description: "Nome da edge function em kebab-case (ex: get-current-datetime)"
-                  },
-                  edge_function_code: {
-                    type: "string",
-                    description: "Código TypeScript completo da Edge Function Deno que implementa a skill. Deve incluir serve(), CORS headers, e tratamento de erros."
-                  },
-                  requires_client: {
-                    type: "boolean",
-                    description: "Se a skill precisa de um cliente vinculado"
-                  },
-                  model: {
-                    type: "string",
-                    description: "Modelo de IA sugerido ou null se não usa IA"
-                  },
-                  system_prompt: {
-                    type: "string",
-                    description: "System prompt para a IA executar esta skill, ou null se não usa IA"
-                  },
-                  temperature: {
-                    type: "number",
-                    description: "Temperatura do modelo (0 a 2), ou 0.7 como padrão"
-                  },
-                  max_tokens: {
-                    type: "integer",
-                    description: "Limite de tokens na resposta"
-                  },
-                  tool_parameters: {
-                    type: "object",
-                    description: "JSON Schema dos parâmetros que a skill aceita, com properties e required"
-                  }
+                  required: [
+                    "id",
+                    "name",
+                    "description",
+                    "category",
+                    "edge_function",
+                    "edge_function_code",
+                    "requires_client",
+                    "tool_parameters",
+                  ],
                 },
-                required: ["id", "name", "description", "category", "edge_function", "edge_function_code", "requires_client", "tool_parameters"],
-              }
-            }
-          }
-        ],
-        tool_choice: { type: "function", function: { name: "generate_skill" } },
-      }),
-    });
+              },
+            },
+          ],
+          tool_choice: {
+            type: "function",
+            function: { name: "generate_skill" },
+          },
+        }),
+      },
+    );
 
     if (!response.ok) {
       const errText = await response.text();
@@ -119,16 +152,22 @@ Responda SOMENTE com a chamada da função generate_skill.`;
 
     const data = await response.json();
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
-    
+
     if (!toolCall?.function?.arguments) {
       throw new Error("IA não retornou a skill estruturada");
     }
 
-    const skillData = typeof toolCall.function.arguments === 'string' 
-      ? JSON.parse(toolCall.function.arguments) 
-      : toolCall.function.arguments;
+    const skillData =
+      typeof toolCall.function.arguments === "string"
+        ? JSON.parse(toolCall.function.arguments)
+        : toolCall.function.arguments;
 
-    console.log("[generate-skill-ai] Generated skill:", skillData.id, "with code:", !!skillData.edge_function_code);
+    console.log(
+      "[generate-skill-ai] Generated skill:",
+      skillData.id,
+      "with code:",
+      !!skillData.edge_function_code,
+    );
 
     return new Response(JSON.stringify({ success: true, skill: skillData }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -137,7 +176,10 @@ Responda SOMENTE com a chamada da função generate_skill.`;
     console.error("Error generating skill:", error);
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 });

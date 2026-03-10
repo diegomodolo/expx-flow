@@ -3,7 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 serve(async (req) => {
@@ -12,20 +13,30 @@ serve(async (req) => {
   }
 
   try {
-    const { scriptId, scriptContent, title, numberOfSlides = 10 } = await req.json();
+    const {
+      scriptId,
+      scriptContent,
+      title,
+      numberOfSlides = 10,
+    } = await req.json();
 
     if (!scriptId || !scriptContent) {
       return new Response(
         JSON.stringify({ error: "scriptId and scriptContent are required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
-    console.log(`[generate-presentation-slides] Generating slides for script: ${scriptId}`);
+    console.log(
+      `[generate-presentation-slides] Generating slides for script: ${scriptId}`,
+    );
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
+    if (!OPENROUTER_API_KEY) {
+      throw new Error("OPENROUTER_API_KEY is not configured");
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -82,22 +93,27 @@ ${scriptContent}
 
 Crie a estrutura de ${numberOfSlides} slides para este roteiro.`;
 
-    console.log(`[generate-presentation-slides] Calling AI to generate slide structure...`);
+    console.log(
+      `[generate-presentation-slides] Calling AI to generate slide structure...`,
+    );
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
+    const response = await fetch(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+        }),
       },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-      }),
-    });
+    );
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -112,7 +128,9 @@ Crie a estrutura de ${numberOfSlides} slides para este roteiro.`;
       throw new Error("No content from AI");
     }
 
-    console.log(`[generate-presentation-slides] AI response received, parsing...`);
+    console.log(
+      `[generate-presentation-slides] AI response received, parsing...`,
+    );
 
     // Parse JSON from AI response
     let slidesData;
@@ -133,7 +151,9 @@ Crie a estrutura de ${numberOfSlides} slides para este roteiro.`;
       throw new Error("Invalid slides data structure");
     }
 
-    console.log(`[generate-presentation-slides] Parsed ${slidesData.slides.length} slides`);
+    console.log(
+      `[generate-presentation-slides] Parsed ${slidesData.slides.length} slides`,
+    );
 
     // Delete existing slides for this script
     await supabase
@@ -142,14 +162,16 @@ Crie a estrutura de ${numberOfSlides} slides para este roteiro.`;
       .eq("script_id", scriptId);
 
     // Insert new slides
-    const slidesToInsert = slidesData.slides.map((slide: any, index: number) => ({
-      script_id: scriptId,
-      slide_order: index + 1,
-      title: slide.title || `Slide ${index + 1}`,
-      content: slide.content || "",
-      visual_suggestion: slide.visual_suggestion || "",
-      status: "draft",
-    }));
+    const slidesToInsert = slidesData.slides.map(
+      (slide: any, index: number) => ({
+        script_id: scriptId,
+        slide_order: index + 1,
+        title: slide.title || `Slide ${index + 1}`,
+        content: slide.content || "",
+        visual_suggestion: slide.visual_suggestion || "",
+        status: "draft",
+      }),
+    );
 
     const { data: insertedSlides, error: insertError } = await supabase
       .from("youtube_script_slides")
@@ -157,25 +179,33 @@ Crie a estrutura de ${numberOfSlides} slides para este roteiro.`;
       .select();
 
     if (insertError) {
-      console.error("[generate-presentation-slides] Insert error:", insertError);
+      console.error(
+        "[generate-presentation-slides] Insert error:",
+        insertError,
+      );
       throw new Error("Failed to save slides");
     }
 
-    console.log(`[generate-presentation-slides] Successfully saved ${insertedSlides?.length} slides`);
+    console.log(
+      `[generate-presentation-slides] Successfully saved ${insertedSlides?.length} slides`,
+    );
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         slides: insertedSlides,
-        count: insertedSlides?.length 
+        count: insertedSlides?.length,
       }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (error: any) {
     console.error("[generate-presentation-slides] Error:", error);
     return new Response(
       JSON.stringify({ error: error.message || "Internal server error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 });

@@ -1,36 +1,43 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { messages, clientId, companyId, systemPrompt: customSystemPrompt, useCustomSystemPrompt } = await req.json();
+    const {
+      messages,
+      clientId,
+      companyId,
+      systemPrompt: customSystemPrompt,
+      useCustomSystemPrompt,
+    } = await req.json();
 
     if (!messages || !Array.isArray(messages)) {
-      throw new Error('Messages array is required');
+      throw new Error("Messages array is required");
     }
 
     // Initialize Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Build comprehensive client context
-    let clientContext = '';
+    let clientContext = "";
 
     if (clientId) {
       // 1. Fetch client data
       const { data: client } = await supabase
-        .from('clients')
-        .select('*')
-        .eq('id', clientId)
+        .from("clients")
+        .select("*")
+        .eq("id", clientId)
         .single();
 
       if (client) {
@@ -39,16 +46,16 @@ Deno.serve(async (req) => {
 - Nome: ${client.name}
 - Empresa: ${client.company}
 - Setor: ${client.sector}
-- Orçamento Mensal: R$ ${client.monthly_budget || 'Não definido'}
-- Público-Alvo: ${client.target_audience || 'Não definido'}
-- Produto/Serviço: ${client.product_name || 'Não definido'}
-- Tom de Voz: ${client.voice_tone || 'Não definido'}
-- Objetivos: ${client.objectives || 'Não definidos'}
-- Plataformas Preferidas: ${client.preferred_platforms?.join(', ') || 'Não definidas'}
-- Website: ${client.website_url || 'Não definido'}
+- Orçamento Mensal: R$ ${client.monthly_budget || "Não definido"}
+- Público-Alvo: ${client.target_audience || "Não definido"}
+- Produto/Serviço: ${client.product_name || "Não definido"}
+- Tom de Voz: ${client.voice_tone || "Não definido"}
+- Objetivos: ${client.objectives || "Não definidos"}
+- Plataformas Preferidas: ${client.preferred_platforms?.join(", ") || "Não definidas"}
+- Website: ${client.website_url || "Não definido"}
 
 ### Briefing Completo:
-${client.ai_briefing || 'Sem briefing configurado'}
+${client.ai_briefing || "Sem briefing configurado"}
 `;
       }
 
@@ -57,11 +64,11 @@ ${client.ai_briefing || 'Sem briefing configurado'}
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
       const { data: campaigns } = await supabase
-        .from('campaigns')
-        .select('*')
-        .eq('client_id', clientId)
-        .eq('is_active', true)
-        .order('spend', { ascending: false })
+        .from("campaigns")
+        .select("*")
+        .eq("client_id", clientId)
+        .eq("is_active", true)
+        .order("spend", { ascending: false })
         .limit(10);
 
       if (campaigns && campaigns.length > 0) {
@@ -72,45 +79,47 @@ ${client.ai_briefing || 'Sem briefing configurado'}
           clientContext += `
 ### ${i + 1}. ${camp.name}
 - Status: ${camp.status}
-- Objetivo: ${camp.objective || 'N/A'}
-- Investimento: R$ ${camp.spend?.toFixed(2) || '0'}
-- Impressões: ${camp.impressions?.toLocaleString() || '0'}
-- Cliques: ${camp.clicks?.toLocaleString() || '0'}
-- CTR: ${camp.ctr?.toFixed(2) || '0'}%
-- CPC: R$ ${camp.cpc?.toFixed(2) || '0'}
-- Conversões: ${camp.conversions || '0'}
-- CPA: R$ ${camp.cpa?.toFixed(2) || 'N/A'}
+- Objetivo: ${camp.objective || "N/A"}
+- Investimento: R$ ${camp.spend?.toFixed(2) || "0"}
+- Impressões: ${camp.impressions?.toLocaleString() || "0"}
+- Cliques: ${camp.clicks?.toLocaleString() || "0"}
+- CTR: ${camp.ctr?.toFixed(2) || "0"}%
+- CPC: R$ ${camp.cpc?.toFixed(2) || "0"}
+- Conversões: ${camp.conversions || "0"}
+- CPA: R$ ${camp.cpa?.toFixed(2) || "N/A"}
 `;
         });
       }
 
       // 3. Build a map of campaign IDs to names for reference
       const campaignMap: Record<string, string> = {};
-      campaigns?.forEach(c => {
+      campaigns?.forEach((c) => {
         campaignMap[c.id] = c.name;
       });
 
       // 4. Fetch ALL campaigns (not just active) for better context
       const { data: allCampaigns } = await supabase
-        .from('campaigns')
-        .select('id, name, status, objective, spend, impressions, clicks, ctr, conversions, cpa')
-        .eq('client_id', clientId)
-        .order('spend', { ascending: false })
+        .from("campaigns")
+        .select(
+          "id, name, status, objective, spend, impressions, clicks, ctr, conversions, cpa",
+        )
+        .eq("client_id", clientId)
+        .order("spend", { ascending: false })
         .limit(50);
 
       if (allCampaigns) {
-        allCampaigns.forEach(c => {
+        allCampaigns.forEach((c) => {
           campaignMap[c.id] = c.name;
         });
       }
 
       // 5. Fetch top performing ads with campaign context
       const { data: topAds } = await supabase
-        .from('ads')
-        .select('*')
-        .eq('client_id', clientId)
-        .eq('is_active', true)
-        .order('conversions', { ascending: false })
+        .from("ads")
+        .select("*")
+        .eq("client_id", clientId)
+        .eq("is_active", true)
+        .order("conversions", { ascending: false })
         .limit(10);
 
       if (topAds && topAds.length > 0) {
@@ -118,26 +127,27 @@ ${client.ai_briefing || 'Sem briefing configurado'}
 ## TOP 10 CRIATIVOS COM MELHOR PERFORMANCE (por conversões)
 `;
         topAds.forEach((ad, i) => {
-          const campaignName = campaignMap[ad.campaign_id] || `Campaign ID: ${ad.campaign_id}`;
+          const campaignName =
+            campaignMap[ad.campaign_id] || `Campaign ID: ${ad.campaign_id}`;
           clientContext += `
 ### ${i + 1}. ${ad.name}
 - **CAMPANHA**: ${campaignName}
 - Campaign ID: ${ad.campaign_id}
-- Tipo: ${ad.creative_type || 'N/A'}
+- Tipo: ${ad.creative_type || "N/A"}
 - Status: ${ad.status}
-- Texto Principal: ${ad.creative_body?.substring(0, 200) || 'N/A'}${ad.creative_body && ad.creative_body.length > 200 ? '...' : ''}
-- Título: ${ad.creative_title || 'N/A'}
-- Descrição: ${ad.creative_description || 'N/A'}
-- CTA: ${ad.call_to_action || 'N/A'}
-- Link: ${ad.link_url || 'N/A'}
-- Investimento: R$ ${ad.spend?.toFixed(2) || '0'}
-- Impressões: ${ad.impressions?.toLocaleString() || '0'}
-- Cliques: ${ad.clicks?.toLocaleString() || '0'}
-- CTR: ${ad.ctr?.toFixed(2) || '0'}%
-- Conversões: ${ad.conversions || '0'}
-- CPA: R$ ${ad.cpa?.toFixed(2) || 'N/A'}
-- Ranking de Qualidade: ${ad.quality_ranking || 'N/A'}
-- Likes: ${ad.likes || '0'} | Comentários: ${ad.comments || '0'} | Compartilhamentos: ${ad.shares || '0'}
+- Texto Principal: ${ad.creative_body?.substring(0, 200) || "N/A"}${ad.creative_body && ad.creative_body.length > 200 ? "..." : ""}
+- Título: ${ad.creative_title || "N/A"}
+- Descrição: ${ad.creative_description || "N/A"}
+- CTA: ${ad.call_to_action || "N/A"}
+- Link: ${ad.link_url || "N/A"}
+- Investimento: R$ ${ad.spend?.toFixed(2) || "0"}
+- Impressões: ${ad.impressions?.toLocaleString() || "0"}
+- Cliques: ${ad.clicks?.toLocaleString() || "0"}
+- CTR: ${ad.ctr?.toFixed(2) || "0"}%
+- Conversões: ${ad.conversions || "0"}
+- CPA: R$ ${ad.cpa?.toFixed(2) || "N/A"}
+- Ranking de Qualidade: ${ad.quality_ranking || "N/A"}
+- Likes: ${ad.likes || "0"} | Comentários: ${ad.comments || "0"} | Compartilhamentos: ${ad.shares || "0"}
 `;
         });
       }
@@ -149,11 +159,11 @@ ${client.ai_briefing || 'Sem briefing configurado'}
 `;
         for (const camp of campaigns.slice(0, 5)) {
           const { data: campaignAds } = await supabase
-            .from('ads')
-            .select('*')
-            .eq('campaign_id', camp.id)
-            .eq('is_active', true)
-            .order('conversions', { ascending: false })
+            .from("ads")
+            .select("*")
+            .eq("campaign_id", camp.id)
+            .eq("is_active", true)
+            .order("conversions", { ascending: false })
             .limit(3);
 
           if (campaignAds && campaignAds.length > 0) {
@@ -163,8 +173,8 @@ ${client.ai_briefing || 'Sem briefing configurado'}
             campaignAds.forEach((ad, i) => {
               clientContext += `
 ${i + 1}. **${ad.name}**
-   - Conversões: ${ad.conversions || 0} | CTR: ${ad.ctr?.toFixed(2) || 0}% | CPA: R$ ${ad.cpa?.toFixed(2) || 'N/A'}
-   - Texto: ${ad.creative_body?.substring(0, 100) || 'N/A'}${ad.creative_body && ad.creative_body.length > 100 ? '...' : ''}
+   - Conversões: ${ad.conversions || 0} | CTR: ${ad.ctr?.toFixed(2) || 0}% | CPA: R$ ${ad.cpa?.toFixed(2) || "N/A"}
+   - Texto: ${ad.creative_body?.substring(0, 100) || "N/A"}${ad.creative_body && ad.creative_body.length > 100 ? "..." : ""}
 `;
             });
           }
@@ -173,12 +183,12 @@ ${i + 1}. **${ad.name}**
 
       // 7. Fetch top ads by CTR
       const { data: topCtrAds } = await supabase
-        .from('ads')
-        .select('*')
-        .eq('client_id', clientId)
-        .eq('is_active', true)
-        .gt('impressions', 100)
-        .order('ctr', { ascending: false })
+        .from("ads")
+        .select("*")
+        .eq("client_id", clientId)
+        .eq("is_active", true)
+        .gt("impressions", 100)
+        .order("ctr", { ascending: false })
         .limit(5);
 
       if (topCtrAds && topCtrAds.length > 0) {
@@ -186,25 +196,26 @@ ${i + 1}. **${ad.name}**
 ## TOP 5 CRIATIVOS POR CTR (Taxa de Clique)
 `;
         topCtrAds.forEach((ad, i) => {
-          const campaignName = campaignMap[ad.campaign_id] || `Campaign ID: ${ad.campaign_id}`;
+          const campaignName =
+            campaignMap[ad.campaign_id] || `Campaign ID: ${ad.campaign_id}`;
           clientContext += `
 ### ${i + 1}. ${ad.name} - CTR: ${ad.ctr?.toFixed(2)}%
 - **CAMPANHA**: ${campaignName}
-- Texto: ${ad.creative_body?.substring(0, 150) || 'N/A'}${ad.creative_body && ad.creative_body.length > 150 ? '...' : ''}
-- Título: ${ad.creative_title || 'N/A'}
-- Cliques: ${ad.clicks?.toLocaleString() || '0'}
-- Conversões: ${ad.conversions || '0'}
+- Texto: ${ad.creative_body?.substring(0, 150) || "N/A"}${ad.creative_body && ad.creative_body.length > 150 ? "..." : ""}
+- Título: ${ad.creative_title || "N/A"}
+- Cliques: ${ad.clicks?.toLocaleString() || "0"}
+- Conversões: ${ad.conversions || "0"}
 `;
         });
       }
 
       // 8. Fetch top ads by engagement (likes + comments + shares)
       const { data: engagementAds } = await supabase
-        .from('ads')
-        .select('*')
-        .eq('client_id', clientId)
-        .eq('is_active', true)
-        .order('likes', { ascending: false })
+        .from("ads")
+        .select("*")
+        .eq("client_id", clientId)
+        .eq("is_active", true)
+        .order("likes", { ascending: false })
         .limit(5);
 
       if (engagementAds && engagementAds.length > 0) {
@@ -212,60 +223,66 @@ ${i + 1}. **${ad.name}**
 ## TOP 5 CRIATIVOS POR ENGAJAMENTO
 `;
         engagementAds.forEach((ad, i) => {
-          const totalEngagement = (ad.likes || 0) + (ad.comments || 0) + (ad.shares || 0);
-          const campaignName = campaignMap[ad.campaign_id] || `Campaign ID: ${ad.campaign_id}`;
+          const totalEngagement =
+            (ad.likes || 0) + (ad.comments || 0) + (ad.shares || 0);
+          const campaignName =
+            campaignMap[ad.campaign_id] || `Campaign ID: ${ad.campaign_id}`;
           clientContext += `
 ### ${i + 1}. ${ad.name} - Total: ${totalEngagement} interações
 - **CAMPANHA**: ${campaignName}
-- Likes: ${ad.likes || '0'} | Comentários: ${ad.comments || '0'} | Compartilhamentos: ${ad.shares || '0'}
-- Texto: ${ad.creative_body?.substring(0, 150) || 'N/A'}${ad.creative_body && ad.creative_body.length > 150 ? '...' : ''}
+- Likes: ${ad.likes || "0"} | Comentários: ${ad.comments || "0"} | Compartilhamentos: ${ad.shares || "0"}
+- Texto: ${ad.creative_body?.substring(0, 150) || "N/A"}${ad.creative_body && ad.creative_body.length > 150 ? "..." : ""}
 `;
         });
       }
 
       // 9. Fetch themes from creative_generation_queue
       const { data: themes } = await supabase
-        .from('creative_generation_queue')
-        .select('theme')
-        .eq('client_id', clientId)
-        .not('theme', 'is', null)
+        .from("creative_generation_queue")
+        .select("theme")
+        .eq("client_id", clientId)
+        .not("theme", "is", null)
         .limit(50);
 
       if (themes && themes.length > 0) {
-        const uniqueThemes = [...new Set(themes.map(t => t.theme).filter(Boolean))];
+        const uniqueThemes = [
+          ...new Set(themes.map((t) => t.theme).filter(Boolean)),
+        ];
         if (uniqueThemes.length > 0) {
           clientContext += `
 ## TEMAS CADASTRADOS PARA CRIATIVOS
-${uniqueThemes.map((theme, i) => `${i + 1}. ${theme}`).join('\n')}
+${uniqueThemes.map((theme, i) => `${i + 1}. ${theme}`).join("\n")}
 `;
         }
       }
 
       // 10. Fetch themes from visual_creatives
       const { data: visualThemes } = await supabase
-        .from('visual_creatives')
-        .select('theme, title, objective')
-        .eq('client_id', clientId)
-        .not('theme', 'is', null)
+        .from("visual_creatives")
+        .select("theme, title, objective")
+        .eq("client_id", clientId)
+        .not("theme", "is", null)
         .limit(50);
 
       if (visualThemes && visualThemes.length > 0) {
-        const uniqueVisualThemes = [...new Set(visualThemes.map(t => t.theme).filter(Boolean))];
+        const uniqueVisualThemes = [
+          ...new Set(visualThemes.map((t) => t.theme).filter(Boolean)),
+        ];
         if (uniqueVisualThemes.length > 0) {
           clientContext += `
 ## TEMAS DE CRIATIVOS VISUAIS
-${uniqueVisualThemes.map((theme, i) => `${i + 1}. ${theme}`).join('\n')}
+${uniqueVisualThemes.map((theme, i) => `${i + 1}. ${theme}`).join("\n")}
 `;
         }
       }
 
       // 11. Fetch recent scheduled posts performance
       const { data: recentPosts } = await supabase
-        .from('scheduled_posts')
-        .select('*')
-        .eq('client_id', clientId)
-        .eq('status', 'published')
-        .order('published_at', { ascending: false })
+        .from("scheduled_posts")
+        .select("*")
+        .eq("client_id", clientId)
+        .eq("status", "published")
+        .order("published_at", { ascending: false })
         .limit(10);
 
       if (recentPosts && recentPosts.length > 0) {
@@ -274,21 +291,21 @@ ${uniqueVisualThemes.map((theme, i) => `${i + 1}. ${theme}`).join('\n')}
 `;
         recentPosts.forEach((post, i) => {
           clientContext += `
-### ${i + 1}. Publicado em: ${new Date(post.published_at).toLocaleDateString('pt-BR')}
-- Tipo: ${post.content_type || 'N/A'}
-- Plataformas: ${post.platforms?.join(', ') || 'N/A'}
-- Legenda: ${post.caption?.substring(0, 200) || 'N/A'}${post.caption && post.caption.length > 200 ? '...' : ''}
+### ${i + 1}. Publicado em: ${new Date(post.published_at).toLocaleDateString("pt-BR")}
+- Tipo: ${post.content_type || "N/A"}
+- Plataformas: ${post.platforms?.join(", ") || "N/A"}
+- Legenda: ${post.caption?.substring(0, 200) || "N/A"}${post.caption && post.caption.length > 200 ? "..." : ""}
 `;
         });
       }
 
       // 12. Fetch Instagram auto posts
       const { data: instaPosts } = await supabase
-        .from('instagram_auto_posts')
-        .select('*')
-        .eq('client_id', clientId)
-        .eq('status', 'published')
-        .order('published_at', { ascending: false })
+        .from("instagram_auto_posts")
+        .select("*")
+        .eq("client_id", clientId)
+        .eq("status", "published")
+        .order("published_at", { ascending: false })
         .limit(10);
 
       if (instaPosts && instaPosts.length > 0) {
@@ -297,26 +314,36 @@ ${uniqueVisualThemes.map((theme, i) => `${i + 1}. ${theme}`).join('\n')}
 `;
         instaPosts.forEach((post, i) => {
           clientContext += `
-### ${i + 1}. Publicado em: ${new Date(post.published_at).toLocaleDateString('pt-BR')}
-- Tipo: ${post.post_type || 'N/A'}
-- Legenda: ${post.caption?.substring(0, 200) || 'N/A'}${post.caption && post.caption.length > 200 ? '...' : ''}
+### ${i + 1}. Publicado em: ${new Date(post.published_at).toLocaleDateString("pt-BR")}
+- Tipo: ${post.post_type || "N/A"}
+- Legenda: ${post.caption?.substring(0, 200) || "N/A"}${post.caption && post.caption.length > 200 ? "..." : ""}
 `;
         });
       }
 
       // 13. Calculate overall performance metrics
       const { data: allAds } = await supabase
-        .from('ads')
-        .select('spend, impressions, clicks, conversions, cpa, ctr')
-        .eq('client_id', clientId)
-        .eq('is_active', true);
+        .from("ads")
+        .select("spend, impressions, clicks, conversions, cpa, ctr")
+        .eq("client_id", clientId)
+        .eq("is_active", true);
 
       if (allAds && allAds.length > 0) {
         const totalSpend = allAds.reduce((sum, ad) => sum + (ad.spend || 0), 0);
-        const totalImpressions = allAds.reduce((sum, ad) => sum + (ad.impressions || 0), 0);
-        const totalClicks = allAds.reduce((sum, ad) => sum + (ad.clicks || 0), 0);
-        const totalConversions = allAds.reduce((sum, ad) => sum + (ad.conversions || 0), 0);
-        const avgCtr = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
+        const totalImpressions = allAds.reduce(
+          (sum, ad) => sum + (ad.impressions || 0),
+          0,
+        );
+        const totalClicks = allAds.reduce(
+          (sum, ad) => sum + (ad.clicks || 0),
+          0,
+        );
+        const totalConversions = allAds.reduce(
+          (sum, ad) => sum + (ad.conversions || 0),
+          0,
+        );
+        const avgCtr =
+          totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
         const avgCpa = totalConversions > 0 ? totalSpend / totalConversions : 0;
 
         clientContext += `
@@ -334,7 +361,7 @@ ${uniqueVisualThemes.map((theme, i) => `${i + 1}. ${theme}`).join('\n')}
 
     // Use custom system prompt if provided, otherwise use the comprehensive one
     let finalSystemPrompt: string;
-    
+
     if (useCustomSystemPrompt && customSystemPrompt) {
       finalSystemPrompt = customSystemPrompt;
     } else {
@@ -364,63 +391,76 @@ Você tem acesso a todos os dados do cliente acima e pode:
     }
 
     const formattedMessages = [
-      { role: 'system', content: finalSystemPrompt },
+      { role: "system", content: finalSystemPrompt },
       ...messages.map((msg: { role: string; content: string }) => ({
         role: msg.role,
-        content: msg.content
-      }))
+        content: msg.content,
+      })),
     ];
 
-    // Call Lovable AI
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY not configured');
+    // Call OpenRouter AI
+    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
+
+    if (!OPENROUTER_API_KEY) {
+      throw new Error("OPENROUTER_API_KEY not configured");
     }
 
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
+    const aiResponse = await fetch(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: useCustomSystemPrompt
+            ? "google/gemini-2.5-flash-lite"
+            : "google/gemini-2.5-flash",
+          messages: formattedMessages,
+        }),
       },
-      body: JSON.stringify({
-        model: useCustomSystemPrompt ? 'google/gemini-2.5-flash-lite' : 'google/gemini-2.5-flash',
-        messages: formattedMessages,
-      }),
-    });
+    );
 
     if (!aiResponse.ok) {
       if (aiResponse.status === 429) {
         return new Response(
-          JSON.stringify({ error: 'Rate limit excedido, tente novamente em alguns segundos.' }),
-          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          JSON.stringify({
+            error: "Rate limit excedido, tente novamente em alguns segundos.",
+          }),
+          {
+            status: 429,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
         );
       }
       if (aiResponse.status === 402) {
         return new Response(
-          JSON.stringify({ error: 'Créditos esgotados, adicione mais créditos ao workspace.' }),
-          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          JSON.stringify({
+            error: "Créditos esgotados, adicione mais créditos ao workspace.",
+          }),
+          {
+            status: 402,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
         );
       }
       const errorText = await aiResponse.text();
-      console.error('AI Gateway error:', aiResponse.status, errorText);
+      console.error("AI Gateway error:", aiResponse.status, errorText);
       throw new Error(`AI Gateway error: ${aiResponse.status}`);
     }
 
     const aiData = await aiResponse.json();
     const assistantMessage = aiData.choices[0].message.content;
 
-    return new Response(
-      JSON.stringify({ content: assistantMessage }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-
+    return new Response(JSON.stringify({ content: assistantMessage }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (error) {
-    console.error('Error in content-plan-chat:', error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    console.error("Error in content-plan-chat:", error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });

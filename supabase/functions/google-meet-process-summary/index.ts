@@ -2,41 +2,53 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS")
+    return new Response(null, { headers: corsHeaders });
 
   try {
     const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     );
 
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) throw new Error('Missing authorization header');
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
-    if (userError || !user) throw new Error('Unauthorized');
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) throw new Error("Missing authorization header");
+    const token = authHeader.replace("Bearer ", "");
+    const {
+      data: { user },
+      error: userError,
+    } = await supabaseClient.auth.getUser(token);
+    if (userError || !user) throw new Error("Unauthorized");
 
     const { meetingId } = await req.json();
-    if (!meetingId) throw new Error('Missing meetingId');
+    if (!meetingId) throw new Error("Missing meetingId");
 
     const { data: meeting, error: meetingError } = await supabaseClient
-      .from('google_meet_meetings')
-      .select('*')
-      .eq('id', meetingId)
+      .from("google_meet_meetings")
+      .select("*")
+      .eq("id", meetingId)
       .single();
 
-    if (meetingError || !meeting) throw new Error('Meeting not found');
-    if (!meeting.raw_transcript) throw new Error('No transcript available for this meeting');
+    if (meetingError || !meeting) throw new Error("Meeting not found");
+    if (!meeting.raw_transcript)
+      throw new Error("No transcript available for this meeting");
 
-    console.log('Processing summary for meeting:', meeting.id, 'transcript length:', meeting.raw_transcript.length);
+    console.log(
+      "Processing summary for meeting:",
+      meeting.id,
+      "transcript length:",
+      meeting.raw_transcript.length,
+    );
 
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY not configured');
+    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
+    if (!OPENROUTER_API_KEY)
+      throw new Error("OPENROUTER_API_KEY not configured");
 
     const systemPrompt = `Você é um assistente especializado em analisar transcrições de reuniões de negócios. 
 Analise a transcrição fornecida e extraia as seguintes informações de forma estruturada:
@@ -51,78 +63,104 @@ Responda em português brasileiro. Seja objetivo e profissional.`;
     const userPrompt = `Aqui está a transcrição da reunião "${meeting.title}":\n\n${meeting.raw_transcript}`;
 
     // Call AI for summary
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
+    const aiResponse = await fetch(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+        }),
       },
-      body: JSON.stringify({
-        model: 'google/gemini-3-flash-preview',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
-      }),
-    });
+    );
 
     if (!aiResponse.ok) {
       const errText = await aiResponse.text();
-      console.error('AI gateway error:', aiResponse.status, errText);
-      if (aiResponse.status === 429) throw new Error('Rate limit exceeded. Try again later.');
-      if (aiResponse.status === 402) throw new Error('AI credits exhausted. Please add credits.');
-      throw new Error('AI processing failed');
+      console.error("AI gateway error:", aiResponse.status, errText);
+      if (aiResponse.status === 429)
+        throw new Error("Rate limit exceeded. Try again later.");
+      if (aiResponse.status === 402)
+        throw new Error("AI credits exhausted. Please add credits.");
+      throw new Error("AI processing failed");
     }
 
     const aiData = await aiResponse.json();
-    const aiSummary = aiData.choices?.[0]?.message?.content || '';
+    const aiSummary = aiData.choices?.[0]?.message?.content || "";
 
-    console.log('AI summary generated, length:', aiSummary.length);
+    console.log("AI summary generated, length:", aiSummary.length);
 
     // Extract action items using tool calling
-    const actionItemsResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-3-flash-preview',
-        messages: [
-          { role: 'system', content: 'Extraia as tarefas/ações mencionadas na transcrição da reunião. Retorne como uma lista estruturada.' },
-          { role: 'user', content: meeting.raw_transcript },
-        ],
-        tools: [{
-          type: 'function',
-          function: {
-            name: 'extract_action_items',
-            description: 'Extract action items from meeting transcript',
-            parameters: {
-              type: 'object',
-              properties: {
-                items: {
-                  type: 'array',
-                  items: {
-                    type: 'object',
-                    properties: {
-                      title: { type: 'string', description: 'Task title' },
-                      responsible: { type: 'string', description: 'Person responsible' },
-                      priority: { type: 'string', enum: ['low', 'medium', 'high'] },
-                      deadline: { type: 'string', description: 'Deadline if mentioned' },
+    const actionItemsResponse = await fetch(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages: [
+            {
+              role: "system",
+              content:
+                "Extraia as tarefas/ações mencionadas na transcrição da reunião. Retorne como uma lista estruturada.",
+            },
+            { role: "user", content: meeting.raw_transcript },
+          ],
+          tools: [
+            {
+              type: "function",
+              function: {
+                name: "extract_action_items",
+                description: "Extract action items from meeting transcript",
+                parameters: {
+                  type: "object",
+                  properties: {
+                    items: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          title: { type: "string", description: "Task title" },
+                          responsible: {
+                            type: "string",
+                            description: "Person responsible",
+                          },
+                          priority: {
+                            type: "string",
+                            enum: ["low", "medium", "high"],
+                          },
+                          deadline: {
+                            type: "string",
+                            description: "Deadline if mentioned",
+                          },
+                        },
+                        required: ["title", "priority"],
+                        additionalProperties: false,
+                      },
                     },
-                    required: ['title', 'priority'],
-                    additionalProperties: false,
                   },
+                  required: ["items"],
+                  additionalProperties: false,
                 },
               },
-              required: ['items'],
-              additionalProperties: false,
             },
+          ],
+          tool_choice: {
+            type: "function",
+            function: { name: "extract_action_items" },
           },
-        }],
-        tool_choice: { type: 'function', function: { name: 'extract_action_items' } },
-      }),
-    });
+        }),
+      },
+    );
 
     let actionItems = [];
     if (actionItemsResponse.ok) {
@@ -133,20 +171,21 @@ Responda em português brasileiro. Seja objetivo e profissional.`;
           const parsed = JSON.parse(toolCall.function.arguments);
           actionItems = parsed.items || [];
         } catch (e) {
-          console.warn('Failed to parse action items:', e);
+          console.warn("Failed to parse action items:", e);
         }
       }
     }
 
     // Save to database
-    await supabaseClient.from('google_meet_meetings')
+    await supabaseClient
+      .from("google_meet_meetings")
       .update({
         ai_summary: aiSummary,
         ai_action_items: actionItems,
       })
-      .eq('id', meetingId);
+      .eq("id", meetingId);
 
-    console.log('Summary and action items saved for meeting:', meetingId);
+    console.log("Summary and action items saved for meeting:", meetingId);
 
     return new Response(
       JSON.stringify({
@@ -154,13 +193,13 @@ Responda em português brasileiro. Seja objetivo e profissional.`;
         summary: aiSummary,
         actionItems,
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (error) {
-    console.error('Error in google-meet-process-summary:', error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    console.error("Error in google-meet-process-summary:", error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });

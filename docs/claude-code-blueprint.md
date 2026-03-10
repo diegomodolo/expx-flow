@@ -324,7 +324,6 @@ build/
 .vscode/
 .idea/
 .jules/
-.lovable/
 
 # Audit/report files (nao sao codigo-fonte)
 # AUDIT_*.md

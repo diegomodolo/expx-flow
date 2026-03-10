@@ -3,7 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
   "Access-Control-Max-Age": "86400",
 };
@@ -85,12 +86,23 @@ interface GeneratedCarousel {
   cover_image_url?: string;
 }
 
-const CAROUSEL_TYPES = ["tutorial", "comparison", "behind_scenes", "curated_list"] as const;
+const CAROUSEL_TYPES = [
+  "tutorial",
+  "comparison",
+  "behind_scenes",
+  "curated_list",
+] as const;
 
 type CarouselType = (typeof CAROUSEL_TYPES)[number];
 
 type StreamEvent =
-  | { type: "started"; carousel_id: string; carousel_type: CarouselType; slides_total: number; slides: Array<{ slide_number: number; headline: string }> }
+  | {
+      type: "started";
+      carousel_id: string;
+      carousel_type: CarouselType;
+      slides_total: number;
+      slides: Array<{ slide_number: number; headline: string }>;
+    }
   | { type: "slide_start"; index: number; total: number }
   | { type: "slide_done"; index: number; total: number; image_url: string }
   | { type: "slide_error"; index: number; total: number; message: string }
@@ -157,7 +169,15 @@ serve(async (req) => {
     });
   }
 
-  const { client_id, company_id, user_id, carousel_type, reference_carousel_images, pre_generated_slides, visual_variations } = body ?? {};
+  const {
+    client_id,
+    company_id,
+    user_id,
+    carousel_type,
+    reference_carousel_images,
+    pre_generated_slides,
+    visual_variations,
+  } = body ?? {};
   if (!client_id || !company_id || !user_id) {
     return new Response(JSON.stringify({ error: "Missing required fields" }), {
       status: 400,
@@ -165,15 +185,18 @@ serve(async (req) => {
     });
   }
 
-  console.log("[daily-carousel-generator-stream] Start", { 
-    client_id, 
-    company_id, 
-    user_id, 
-    carousel_type: carousel_type || "NOT PROVIDED (will pick from schedule)", 
+  console.log("[daily-carousel-generator-stream] Start", {
+    client_id,
+    company_id,
+    user_id,
+    carousel_type: carousel_type || "NOT PROVIDED (will pick from schedule)",
     reference_carousel_images_count: reference_carousel_images?.length || 0,
     pre_generated_slides_count: pre_generated_slides?.length || 0,
-    pre_generated_slides_provided: !!pre_generated_slides && Array.isArray(pre_generated_slides) && pre_generated_slides.length > 0,
-    visual_variations: visual_variations || "NOT PROVIDED"
+    pre_generated_slides_provided:
+      !!pre_generated_slides &&
+      Array.isArray(pre_generated_slides) &&
+      pre_generated_slides.length > 0,
+    visual_variations: visual_variations || "NOT PROVIDED",
   });
 
   const stream = new ReadableStream({
@@ -198,16 +221,32 @@ serve(async (req) => {
           .single();
 
         // Use pre-generated slides count if available, otherwise use schedule or default
-        const slidesPerCarousel = pre_generated_slides?.length || schedule?.slides_per_carousel || 8;
-        const pickedType = (carousel_type as CarouselType | undefined) || pickTypeFromSchedule(schedule);
+        const slidesPerCarousel =
+          pre_generated_slides?.length || schedule?.slides_per_carousel || 8;
+        const pickedType =
+          (carousel_type as CarouselType | undefined) ||
+          pickTypeFromSchedule(schedule);
 
         // If pre-generated slides are provided, use them instead of generating new content
         let carousel: GeneratedCarousel;
         if (pre_generated_slides && pre_generated_slides.length > 0) {
-          carousel = buildCarouselFromPreGenerated(pre_generated_slides, pickedType, client);
-          console.log("[daily-carousel-generator-stream] Using pre-generated slides:", pre_generated_slides.length);
+          carousel = buildCarouselFromPreGenerated(
+            pre_generated_slides,
+            pickedType,
+            client,
+          );
+          console.log(
+            "[daily-carousel-generator-stream] Using pre-generated slides:",
+            pre_generated_slides.length,
+          );
         } else {
-          const generated = await generateCarousel(supabase, client, schedule, pickedType, slidesPerCarousel);
+          const generated = await generateCarousel(
+            supabase,
+            client,
+            schedule,
+            pickedType,
+            slidesPerCarousel,
+          );
           if (!generated) throw new Error("Failed to generate carousel");
           carousel = generated;
         }
@@ -237,7 +276,10 @@ serve(async (req) => {
           .single();
 
         if (insertError || !saved?.id) {
-          console.error("[daily-carousel-generator-stream] Insert error:", insertError);
+          console.error(
+            "[daily-carousel-generator-stream] Insert error:",
+            insertError,
+          );
           throw new Error("Failed to save carousel stub");
         }
 
@@ -248,30 +290,44 @@ serve(async (req) => {
           carousel_id: carouselId,
           carousel_type: pickedType,
           slides_total: carousel.slides.length,
-          slides: carousel.slides.map((s) => ({ slide_number: s.slide_number, headline: s.headline })),
+          slides: carousel.slides.map((s) => ({
+            slide_number: s.slide_number,
+            headline: s.headline,
+          })),
         });
 
         const updatedSlides: CarouselSlide[] = [];
         let coverImageUrl: string | undefined;
 
-        const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-        if (!LOVABLE_API_KEY) {
-          throw new Error("LOVABLE_API_KEY not configured");
+        const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
+        if (!OPENROUTER_API_KEY) {
+          throw new Error("OPENROUTER_API_KEY not configured");
         }
 
         const styleContext = buildImageStylePrompt(schedule, client);
         const scheduleReferenceImages = getReferenceImages(schedule);
-        
+
         // Combine schedule references with user-provided carousel references
         const allReferenceImages = [
           ...(reference_carousel_images || []),
           ...scheduleReferenceImages,
         ].filter(Boolean);
-        
-        console.log("[daily-carousel-generator-stream] Found reference images:", allReferenceImages.length, { fromCarousel: reference_carousel_images?.length || 0, fromSchedule: scheduleReferenceImages.length });
+
+        console.log(
+          "[daily-carousel-generator-stream] Found reference images:",
+          allReferenceImages.length,
+          {
+            fromCarousel: reference_carousel_images?.length || 0,
+            fromSchedule: scheduleReferenceImages.length,
+          },
+        );
 
         for (let i = 0; i < carousel.slides.length; i++) {
-          send({ type: "slide_start", index: i + 1, total: carousel.slides.length });
+          send({
+            type: "slide_start",
+            index: i + 1,
+            total: carousel.slides.length,
+          });
 
           const slide = carousel.slides[i];
           try {
@@ -279,26 +335,32 @@ serve(async (req) => {
             const slideReferenceImage = reference_carousel_images?.[i] || null;
             const hasSpecificReference = slideReferenceImage !== null;
             const hasAnyReferences = allReferenceImages.length > 0;
-            
+
             // For this slide, use ONLY its specific reference if available
-            const slideReferences = hasSpecificReference ? [slideReferenceImage] : allReferenceImages;
-            
+            const slideReferences = hasSpecificReference
+              ? [slideReferenceImage]
+              : allReferenceImages;
+
             // Get suggested element from pre-generated slides if available
-            const preGenSlide = pre_generated_slides?.[i] as PreGeneratedSlide | undefined;
+            const preGenSlide = pre_generated_slides?.[i] as
+              | PreGeneratedSlide
+              | undefined;
             const suggestedElement = preGenSlide?.suggestedElement;
-            
+
             // Build visual variation instructions
             const variationInstructions = buildVisualVariationInstructions(
-              visual_variations as VisualVariations | undefined, 
+              visual_variations as VisualVariations | undefined,
               hasAnyReferences,
               hasSpecificReference,
-              suggestedElement
+              suggestedElement,
             );
 
             console.log("[daily-carousel-generator-stream] Generating slide", {
               slideNumber: i + 1,
               hasSpecificReference,
-              referenceUrl: slideReferenceImage ? slideReferenceImage.substring(0, 80) + "..." : "none",
+              referenceUrl: slideReferenceImage
+                ? slideReferenceImage.substring(0, 80) + "..."
+                : "none",
               headline: slide.headline.substring(0, 40) + "...",
               variationsApplied: visual_variations,
               suggestedElement: suggestedElement || "none",
@@ -309,14 +371,14 @@ serve(async (req) => {
 
             if (hasSpecificReference) {
               // Check if any variations are enabled
-              const hasVariations = visual_variations && (
-                visual_variations.alterColorPalette || 
-                visual_variations.alterCharacters || 
-                visual_variations.alterBackground || 
-                visual_variations.replaceMainElement ||
-                visual_variations.alterLayout
-              );
-              
+              const hasVariations =
+                visual_variations &&
+                (visual_variations.alterColorPalette ||
+                  visual_variations.alterCharacters ||
+                  visual_variations.alterBackground ||
+                  visual_variations.replaceMainElement ||
+                  visual_variations.alterLayout);
+
               if (hasVariations) {
                 // MODE: EDIT WITH VARIATIONS - Apply selected changes while keeping structure
                 imagePrompt = `EDITE a imagem de referência anexada aplicando VARIAÇÕES ESPECÍFICAS.
@@ -377,28 +439,39 @@ ${variationInstructions}
             }
 
             // Auto-retry logic for replaceMainElement
-            const shouldAutoRetry = visual_variations?.replaceMainElement && suggestedElement;
+            const shouldAutoRetry =
+              visual_variations?.replaceMainElement && suggestedElement;
             const MAX_RETRIES = shouldAutoRetry ? 2 : 1;
             let dataUrl: string | null = null;
             let attempts = 0;
-            
+
             while (attempts < MAX_RETRIES && !dataUrl) {
               attempts++;
-              const retryPrompt = attempts > 1 
-                ? `${imagePrompt}\n\n⚠️ CRÍTICO - SEGUNDA TENTATIVA: Você DEVE incluir "${suggestedElement}" como elemento principal da imagem. O elemento atual está ERRADO. SUBSTITUA o ícone/objeto central por "${suggestedElement}". Esta instrução é OBRIGATÓRIA.`
-                : imagePrompt;
-              
+              const retryPrompt =
+                attempts > 1
+                  ? `${imagePrompt}\n\n⚠️ CRÍTICO - SEGUNDA TENTATIVA: Você DEVE incluir "${suggestedElement}" como elemento principal da imagem. O elemento atual está ERRADO. SUBSTITUA o ícone/objeto central por "${suggestedElement}". Esta instrução é OBRIGATÓRIA.`
+                  : imagePrompt;
+
               try {
-                dataUrl = await generateImageWithNanoBanana(retryPrompt, LOVABLE_API_KEY, slideReferences);
+                dataUrl = await generateImageWithNanoBanana(
+                  retryPrompt,
+                  OPENROUTER_API_KEY,
+                  slideReferences,
+                );
                 if (dataUrl && attempts > 1) {
-                  console.log(`[daily-carousel-generator-stream] Auto-retry succeeded on attempt ${attempts}`);
+                  console.log(
+                    `[daily-carousel-generator-stream] Auto-retry succeeded on attempt ${attempts}`,
+                  );
                 }
               } catch (retryError: any) {
-                console.log(`[daily-carousel-generator-stream] Attempt ${attempts} failed:`, retryError?.message);
+                console.log(
+                  `[daily-carousel-generator-stream] Attempt ${attempts} failed:`,
+                  retryError?.message,
+                );
                 if (attempts >= MAX_RETRIES) throw retryError;
               }
             }
-            
+
             if (!dataUrl) throw new Error("No image returned");
 
             const publicUrl = await uploadDataUrlToStorage({
@@ -426,16 +499,29 @@ ${variationInstructions}
               })
               .eq("id", carouselId);
 
-            send({ type: "slide_done", index: i + 1, total: carousel.slides.length, image_url: publicUrl });
+            send({
+              type: "slide_done",
+              index: i + 1,
+              total: carousel.slides.length,
+              image_url: publicUrl,
+            });
 
             // Tiny spacing to reduce 429 bursts (sem alongar demais)
             if (i < carousel.slides.length - 1) {
               await new Promise((r) => setTimeout(r, 300));
             }
           } catch (e: any) {
-            console.error("[daily-carousel-generator-stream] Slide error", { i: i + 1, err: e?.message });
+            console.error("[daily-carousel-generator-stream] Slide error", {
+              i: i + 1,
+              err: e?.message,
+            });
             updatedSlides.push(slide);
-            send({ type: "slide_error", index: i + 1, total: carousel.slides.length, message: e?.message || "Erro ao gerar imagem" });
+            send({
+              type: "slide_error",
+              index: i + 1,
+              total: carousel.slides.length,
+              message: e?.message || "Erro ao gerar imagem",
+            });
           }
         }
 
@@ -500,29 +586,30 @@ function pickTypeFromSchedule(schedule: CarouselSchedule | null): CarouselType {
 /**
  * Build visual variation instructions for the image prompt based on user selections.
  * If no variations are selected, instructs AI to faithfully reproduce the reference image.
- * 
+ *
  * @param variations - User-selected visual variations
  * @param hasReferences - Whether there are any reference images available
  * @param hasSpecificReference - Whether this slide has its OWN specific reference image
  */
 function buildVisualVariationInstructions(
-  variations: VisualVariations | undefined, 
+  variations: VisualVariations | undefined,
   hasReferences: boolean,
   hasSpecificReference: boolean = false,
-  suggestedElement?: string
+  suggestedElement?: string,
 ): string {
   if (!hasReferences) {
-    return '';
+    return "";
   }
-  
+
   // Check if any variation is selected
-  const noVariations = !variations || 
-    (!variations.alterColorPalette && 
-     !variations.alterCharacters && 
-     !variations.alterBackground && 
-     !variations.replaceMainElement &&
-     !variations.alterLayout);
-  
+  const noVariations =
+    !variations ||
+    (!variations.alterColorPalette &&
+      !variations.alterCharacters &&
+      !variations.alterBackground &&
+      !variations.replaceMainElement &&
+      !variations.alterLayout);
+
   if (noVariations) {
     // When we have a SPECIFIC reference for this slide, use even stricter copy mode
     if (hasSpecificReference) {
@@ -536,7 +623,7 @@ MODO CÓPIA EXATA (OBRIGATÓRIO):
 - PRESERVE: posição exata de todos elementos, tipografia, espaçamentos, sombras
 - NÃO adicione ou remova nenhum elemento visual`;
     }
-    
+
     // Faithful copy mode for general references
     return `MODO CÓPIA FIEL (siga as imagens de referência anexadas):
 - REPRODUZA EXATAMENTE a imagem de referência anexada
@@ -546,67 +633,88 @@ MODO CÓPIA EXATA (OBRIGATÓRIO):
 - O resultado deve ser visualmente IDÊNTICO à referência, só mudando o conteúdo textual
 - COPIE fielmente a tipografia, composição e estética`;
   }
-  
+
   // Build instructions based on selected variations
   // Identify which elements should NOT be changed - be VERY explicit
   const elementsToPreserve: string[] = [];
   const elementsToChange: string[] = [];
-  
+
   if (!variations.alterColorPalette) {
-    elementsToPreserve.push("CORES DE FUNDO", "PALETA DE CORES", "tons e matizes", "cores dos textos e elementos");
+    elementsToPreserve.push(
+      "CORES DE FUNDO",
+      "PALETA DE CORES",
+      "tons e matizes",
+      "cores dos textos e elementos",
+    );
   } else {
-    elementsToChange.push("ALTERE A PALETA DE CORES: inverta/troque as cores principais (ex: onde tem azul, coloque vermelho)");
+    elementsToChange.push(
+      "ALTERE A PALETA DE CORES: inverta/troque as cores principais (ex: onde tem azul, coloque vermelho)",
+    );
   }
-  
+
   if (!variations.alterCharacters) {
-    elementsToPreserve.push("PERSONAGENS/PESSOAS (aparência, gênero, etnia, roupa)");
+    elementsToPreserve.push(
+      "PERSONAGENS/PESSOAS (aparência, gênero, etnia, roupa)",
+    );
   } else {
-    elementsToChange.push("SUBSTITUA OS PERSONAGENS/PESSOAS: coloque pessoas diferentes (aparência, gênero, etnia, estilo diferentes)");
+    elementsToChange.push(
+      "SUBSTITUA OS PERSONAGENS/PESSOAS: coloque pessoas diferentes (aparência, gênero, etnia, estilo diferentes)",
+    );
   }
-  
+
   if (!variations.alterBackground) {
-    elementsToPreserve.push("ELEMENTOS DECORATIVOS DE FUNDO (ícones pequenos, formas geométricas, padrões no fundo)");
+    elementsToPreserve.push(
+      "ELEMENTOS DECORATIVOS DE FUNDO (ícones pequenos, formas geométricas, padrões no fundo)",
+    );
   } else {
-    elementsToChange.push("TROQUE ELEMENTOS DECORATIVOS DE FUNDO: substitua ícones pequenos, formas e padrões do fundo por outros diferentes (NÃO o elemento central/principal)");
+    elementsToChange.push(
+      "TROQUE ELEMENTOS DECORATIVOS DE FUNDO: substitua ícones pequenos, formas e padrões do fundo por outros diferentes (NÃO o elemento central/principal)",
+    );
   }
-  
+
   // NEW: Handle replaceMainElement separately from alterBackground
   if (variations.replaceMainElement && suggestedElement) {
     elementsToChange.push(
       `🎯 SUBSTITUIÇÃO DO ELEMENTO PRINCIPAL (OBRIGATÓRIO): ` +
-      `Identifique o OBJETO/ÍCONE MAIS DESTACADO da imagem (ex: computador, dado, roleta, placa) ` +
-      `e SUBSTITUA-O COMPLETAMENTE por "${suggestedElement}". ` +
-      `MANTENHA a mesma posição, escala e integração visual do elemento original. ` +
-      `O novo elemento "${suggestedElement}" deve ser o foco central da imagem.`
+        `Identifique o OBJETO/ÍCONE MAIS DESTACADO da imagem (ex: computador, dado, roleta, placa) ` +
+        `e SUBSTITUA-O COMPLETAMENTE por "${suggestedElement}". ` +
+        `MANTENHA a mesma posição, escala e integração visual do elemento original. ` +
+        `O novo elemento "${suggestedElement}" deve ser o foco central da imagem.`,
     );
   } else if (!variations.replaceMainElement) {
-    elementsToPreserve.push("ELEMENTO PRINCIPAL/CENTRAL (o objeto ou ícone mais destacado da imagem)");
+    elementsToPreserve.push(
+      "ELEMENTO PRINCIPAL/CENTRAL (o objeto ou ícone mais destacado da imagem)",
+    );
   }
-  
+
   if (!variations.alterLayout) {
-    elementsToPreserve.push("DISPOSIÇÃO/LAYOUT (posição dos textos, alinhamentos, blocos visuais)");
+    elementsToPreserve.push(
+      "DISPOSIÇÃO/LAYOUT (posição dos textos, alinhamentos, blocos visuais)",
+    );
   } else {
-    elementsToChange.push("ALTERE A DISPOSIÇÃO DOS ELEMENTOS: reposicione textos, mude alinhamentos, reorganize blocos visuais");
+    elementsToChange.push(
+      "ALTERE A DISPOSIÇÃO DOS ELEMENTOS: reposicione textos, mude alinhamentos, reorganize blocos visuais",
+    );
   }
-  
+
   let instructions = `VARIAÇÕES VISUAIS (baseie-se na imagem de referência anexada):
 - REPRODUZA o logotipo/marca IDÊNTICO ao da referência (mesma fonte, cores, posição)
 - MANTENHA o estilo geral e profissionalismo da referência
 
 ⚠️ ELEMENTOS A PRESERVAR ABSOLUTAMENTE (NÃO ALTERE DE FORMA ALGUMA):
-${elementsToPreserve.map(e => `- ${e}`).join('\n')}`;
+${elementsToPreserve.map((e) => `- ${e}`).join("\n")}`;
 
   if (elementsToChange.length > 0) {
     instructions += `
 
 ✅ ELEMENTOS A ALTERAR (APENAS ESTES):
-${elementsToChange.map(e => `- ${e}`).join('\n')}`;
+${elementsToChange.map((e) => `- ${e}`).join("\n")}`;
   }
-  
+
   instructions += `
 
 REGRA CRÍTICA: Se um elemento está na lista "A PRESERVAR", ele deve ser IDÊNTICO à referência. Não faça nenhuma alteração, nem sutil.`;
-  
+
   return instructions;
 }
 
@@ -629,7 +737,10 @@ async function uploadDataUrlToStorage({
     .upload(path, bytes, { contentType, upsert: true });
 
   if (uploadError) {
-    console.error("[daily-carousel-generator-stream] Storage upload error:", uploadError);
+    console.error(
+      "[daily-carousel-generator-stream] Storage upload error:",
+      uploadError,
+    );
     throw new Error("Falha ao salvar imagem no Storage");
   }
 
@@ -638,7 +749,9 @@ async function uploadDataUrlToStorage({
   return data.publicUrl;
 }
 
-function parseDataUrl(dataUrl: string): { bytes: Uint8Array; contentType: string } | null {
+function parseDataUrl(
+  dataUrl: string,
+): { bytes: Uint8Array; contentType: string } | null {
   if (!dataUrl.startsWith("data:")) return null;
   const commaIdx = dataUrl.indexOf(",");
   if (commaIdx < 0) return null;
@@ -659,14 +772,23 @@ function parseDataUrl(dataUrl: string): { bytes: Uint8Array; contentType: string
 async function generateImageWithNanoBanana(
   prompt: string,
   apiKey: string,
-  referenceImages: string[] = []
+  referenceImages: string[] = [],
 ): Promise<string | null> {
   try {
-    console.log("[daily-carousel-generator-stream] Calling Nano Banana for image generation...");
-    console.log("[daily-carousel-generator-stream] Reference images count:", referenceImages.length);
+    console.log(
+      "[daily-carousel-generator-stream] Calling Nano Banana for image generation...",
+    );
+    console.log(
+      "[daily-carousel-generator-stream] Reference images count:",
+      referenceImages.length,
+    );
 
     // Build the message content - text prompt + reference images
-    const messageContent: Array<{ type: string; text?: string; image_url?: { url: string } }> = [];
+    const messageContent: Array<{
+      type: string;
+      text?: string;
+      image_url?: { url: string };
+    }> = [];
 
     // Add reference images first (if any) - the AI should use these as style/visual reference
     for (const imgUrl of referenceImages) {
@@ -679,8 +801,9 @@ async function generateImageWithNanoBanana(
     }
 
     // Enhanced prompt with strong reference instructions
-    const enhancedPrompt = referenceImages.length > 0
-      ? `${prompt}
+    const enhancedPrompt =
+      referenceImages.length > 0
+        ? `${prompt}
 
 REFERÊNCIAS VISUAIS OBRIGATÓRIAS (veja as imagens anexadas):
 - SIGA FIELMENTE o estilo visual das imagens de referência anexadas
@@ -689,33 +812,42 @@ REFERÊNCIAS VISUAIS OBRIGATÓRIAS (veja as imagens anexadas):
 - COPIE o estilo de layout e composição das referências
 - USE a mesma tipografia ou estilo tipográfico das referências
 - O logotipo deve aparecer no mesmo local e tamanho das referências`
-      : prompt;
+        : prompt;
 
     messageContent.push({
       type: "text",
       text: enhancedPrompt,
     });
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
+    const response = await fetch(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          // Usando o modelo mais avançado para melhor qualidade de texto em português
+          model: "google/gemini-3-pro-image-preview",
+          messages: [{ role: "user", content: messageContent }],
+          modalities: ["image", "text"],
+        }),
       },
-      body: JSON.stringify({
-        // Usando o modelo mais avançado para melhor qualidade de texto em português
-        model: "google/gemini-3-pro-image-preview",
-        messages: [{ role: "user", content: messageContent }],
-        modalities: ["image", "text"],
-      }),
-    });
+    );
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("[daily-carousel-generator-stream] Image generation API error:", response.status, errorText);
+      console.error(
+        "[daily-carousel-generator-stream] Image generation API error:",
+        response.status,
+        errorText,
+      );
 
-      if (response.status === 429) throw new Error("Rate limit (429). Tente novamente em alguns minutos.");
-      if (response.status === 402) throw new Error("Créditos de IA esgotados (402). Adicione créditos.");
+      if (response.status === 429)
+        throw new Error("Rate limit (429). Tente novamente em alguns minutos.");
+      if (response.status === 402)
+        throw new Error("Créditos de IA esgotados (402). Adicione créditos.");
       throw new Error(`Erro na geração de imagem (${response.status})`);
     }
 
@@ -727,12 +859,18 @@ REFERÊNCIAS VISUAIS OBRIGATÓRIAS (veja as imagens anexadas):
 
     return null;
   } catch (error: any) {
-    console.error("[daily-carousel-generator-stream] Error calling image generation API:", error);
+    console.error(
+      "[daily-carousel-generator-stream] Error calling image generation API:",
+      error,
+    );
     throw error;
   }
 }
 
-function buildImageStylePrompt(schedule: CarouselSchedule | null, client: ClientData): string {
+function buildImageStylePrompt(
+  schedule: CarouselSchedule | null,
+  client: ClientData,
+): string {
   const styles: string[] = [];
 
   styles.push(`Marca: ${client.company}`);
@@ -750,7 +888,9 @@ function buildImageStylePrompt(schedule: CarouselSchedule | null, client: Client
     }
 
     if (schedule.include_proof_social) {
-      styles.push("Incluir elementos de prova social (ícones, números, badges)");
+      styles.push(
+        "Incluir elementos de prova social (ícones, números, badges)",
+      );
     }
 
     if (schedule.include_save_bait) {
@@ -769,7 +909,7 @@ function buildImageStylePrompt(schedule: CarouselSchedule | null, client: Client
 
 function getReferenceImages(schedule: CarouselSchedule | null): string[] {
   if (!schedule) return [];
-  
+
   const refs: string[] = [];
   if (schedule.reference_image_1) refs.push(schedule.reference_image_1);
   if (schedule.reference_image_2) refs.push(schedule.reference_image_2);
@@ -781,14 +921,14 @@ function getReferenceImages(schedule: CarouselSchedule | null): string[] {
   if (schedule.reference_image_8) refs.push(schedule.reference_image_8);
   if (schedule.reference_image_9) refs.push(schedule.reference_image_9);
   if (schedule.reference_image_10) refs.push(schedule.reference_image_10);
-  
+
   return refs;
 }
 
 function buildCarouselFromPreGenerated(
   preSlides: PreGeneratedSlide[],
   carouselType: CarouselType,
-  client: ClientData
+  client: ClientData,
 ): GeneratedCarousel {
   const slides: CarouselSlide[] = preSlides.map((s, idx) => ({
     slide_number: s.slideNumber || idx + 1,
@@ -799,13 +939,13 @@ function buildCarouselFromPreGenerated(
   }));
 
   const firstSlide = slides[0];
-  
+
   return {
     carousel_type: carouselType,
     theme: firstSlide?.headline || "Carrossel personalizado",
     cover_headline: firstSlide?.headline || "",
     slides,
-    caption: `${firstSlide?.headline || ""}\n\n${slides.map(s => `✅ ${s.headline}`).join("\n")}\n\n📌 Salve este post para consultar depois!\n\n#${client.sector?.replace(/\s+/g, "") || "conteudo"} #dicas #carrossel`,
+    caption: `${firstSlide?.headline || ""}\n\n${slides.map((s) => `✅ ${s.headline}`).join("\n")}\n\n📌 Salve este post para consultar depois!\n\n#${client.sector?.replace(/\s+/g, "") || "conteudo"} #dicas #carrossel`,
     hashtags: `#${client.sector?.replace(/\s+/g, "") || "conteudo"} #marketing #dicas #estrategia #negocios #empreendedorismo`,
     cta_text: "Salve este post!",
   };
@@ -816,10 +956,10 @@ async function generateCarousel(
   client: ClientData,
   schedule: CarouselSchedule | null,
   carouselType: CarouselType,
-  slidesCount: number
+  slidesCount: number,
 ): Promise<GeneratedCarousel | null> {
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+  const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
+  if (!OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY not configured");
 
   const { data: themes } = await supabase
     .from("market_research_insights")
@@ -827,7 +967,10 @@ async function generateCarousel(
     .eq("client_id", client.id)
     .limit(10);
 
-  const theme = themes && themes.length > 0 ? themes[Math.floor(Math.random() * themes.length)] : null;
+  const theme =
+    themes && themes.length > 0
+      ? themes[Math.floor(Math.random() * themes.length)]
+      : null;
 
   const themeContext = theme
     ? `TEMA DE PESQUISA PARA BASEAR O CONTEÚDO:\nTítulo: ${theme.title || theme.topic}\nInsight: ${theme.insight || theme.description || ""}`
@@ -840,29 +983,40 @@ async function generateCarousel(
 
   const userPrompt = `Crie um carrossel para a marca "${client.company}" (${client.sector}).\n\n${typePrompt}\n\n${themeContext}\n\nBRIEFING DA MARCA: ${client.ai_briefing || "Criar conteúdo relevante e engajante"}\nPÚBLICO-ALVO: ${client.target_audience || "Público geral interessado no setor"}\nTOM DE VOZ: ${client.voice_tone || "Profissional mas acessível"}\nPRODUTO/SERVIÇO: ${client.product_name || client.company}\n\n${visualStyle}\n\nQUANTIDADE DE SLIDES: ${slidesCount}\n\nResponda APENAS em JSON válido com esta estrutura:\n{\n  "theme": "Tema principal do carrossel",\n  "cover_headline": "Headline chamativa para o primeiro slide",\n  "slides": [\n    {\n      "slide_number": 1,\n      "headline": "Headline do slide",\n      "body_text": "Texto complementar curto",\n      "visual_description": "Descrição do visual/imagem do slide",\n      "cta": "CTA se for o último slide"\n    }\n  ],\n  "caption": "Legenda completa para o post (máx 400 caracteres)",\n  "hashtags": "10-15 hashtags relevantes separadas por espaço",\n  "cta_text": "Texto do CTA principal"\n}`;
 
-  console.log("[daily-carousel-generator-stream] Calling AI for carousel generation...");
+  console.log(
+    "[daily-carousel-generator-stream] Calling AI for carousel generation...",
+  );
 
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${LOVABLE_API_KEY}`,
-      "Content-Type": "application/json",
+  const response = await fetch(
+    "https://openrouter.ai/api/v1/chat/completions",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+      }),
     },
-    body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-    }),
-  });
+  );
 
   if (!response.ok) {
     const t = await response.text();
-    console.error("[daily-carousel-generator-stream] AI API error:", response.status, t);
+    console.error(
+      "[daily-carousel-generator-stream] AI API error:",
+      response.status,
+      t,
+    );
 
-    if (response.status === 429) throw new Error("Rate limit (429). Tente novamente em alguns minutos.");
-    if (response.status === 402) throw new Error("Créditos de IA esgotados (402). Adicione créditos.");
+    if (response.status === 429)
+      throw new Error("Rate limit (429). Tente novamente em alguns minutos.");
+    if (response.status === 402)
+      throw new Error("Créditos de IA esgotados (402). Adicione créditos.");
     throw new Error(`AI API error: ${response.status}`);
   }
 
@@ -875,7 +1029,8 @@ async function generateCarousel(
   const carousel = JSON.parse(jsonMatch[0]) as GeneratedCarousel;
   carousel.carousel_type = carouselType;
 
-  if (!carousel.slides || carousel.slides.length === 0) throw new Error("No slides generated");
+  if (!carousel.slides || carousel.slides.length === 0)
+    throw new Error("No slides generated");
 
   return carousel;
 }
@@ -898,11 +1053,15 @@ function buildVisualStyleContext(schedule: CarouselSchedule | null): string {
   }
 
   if (schedule.include_proof_social) {
-    styles.push("Incluir elementos de prova social (números, depoimentos, logos)");
+    styles.push(
+      "Incluir elementos de prova social (números, depoimentos, logos)",
+    );
   }
 
   if (schedule.include_save_bait) {
-    styles.push("Incluir elementos 'save bait' (dicas práticas, listas, templates)");
+    styles.push(
+      "Incluir elementos 'save bait' (dicas práticas, listas, templates)",
+    );
   }
 
   if (schedule.custom_image_prompt) {

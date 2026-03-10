@@ -2,8 +2,9 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 interface CreativeGenerationSchedule {
@@ -36,12 +37,12 @@ interface ClientData {
 }
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, supabaseKey);
 
   let historyId: string | null = null;
@@ -58,27 +59,35 @@ serve(async (req) => {
     const generation_type = body.generation_type; // 'concept' or 'iteration' or null for all
     const count = body.count;
 
-    console.log('[daily-creative-generator] Starting generation:', { client_id, company_id, generation_type, count });
+    console.log("[daily-creative-generator] Starting generation:", {
+      client_id,
+      company_id,
+      generation_type,
+      count,
+    });
 
     // Fetch client data
     const { data: client, error: clientError } = await supabase
-      .from('clients')
-      .select('*')
-      .eq('id', client_id)
+      .from("clients")
+      .select("*")
+      .eq("id", client_id)
       .single();
 
     if (clientError || !client) {
-      console.error('[daily-creative-generator] Client not found:', clientError);
-      throw new Error('Client not found');
+      console.error(
+        "[daily-creative-generator] Client not found:",
+        clientError,
+      );
+      throw new Error("Client not found");
     }
 
-    console.log('[daily-creative-generator] Client data loaded:', client.name);
+    console.log("[daily-creative-generator] Client data loaded:", client.name);
 
     // Get generation schedule or use defaults
     const { data: scheduleData } = await supabase
-      .from('creative_generation_schedules')
-      .select('*')
-      .eq('client_id', client_id)
+      .from("creative_generation_schedules")
+      .select("*")
+      .eq("client_id", client_id)
       .single();
 
     schedule = scheduleData;
@@ -87,24 +96,32 @@ serve(async (req) => {
     const conceptPercentage = schedule?.concept_percentage ?? 70;
     const iterationPercentage = schedule?.iteration_percentage ?? 30;
 
-    console.log('[daily-creative-generator] Percentages:', { conceptPercentage, iterationPercentage });
+    console.log("[daily-creative-generator] Percentages:", {
+      conceptPercentage,
+      iterationPercentage,
+    });
 
     // Calculate distribution
-    const conceptCount = Math.round(creativesToGenerate * conceptPercentage / 100);
+    const conceptCount = Math.round(
+      (creativesToGenerate * conceptPercentage) / 100,
+    );
     const iterationCount = creativesToGenerate - conceptCount;
 
-    console.log('[daily-creative-generator] Distribution:', { conceptCount, iterationCount });
+    console.log("[daily-creative-generator] Distribution:", {
+      conceptCount,
+      iterationCount,
+    });
 
     // Update last_generation_at to prevent re-execution
     if (schedule) {
       await supabase
-        .from('creative_generation_schedules')
+        .from("creative_generation_schedules")
         .update({
           last_generation_at: new Date().toISOString(),
           next_generation_at: getNextGenerationTime(schedule.generation_time),
         })
-        .eq('id', schedule.id);
-      console.log('[daily-creative-generator] Updated last_generation_at');
+        .eq("id", schedule.id);
+      console.log("[daily-creative-generator] Updated last_generation_at");
     }
 
     // Create history entry
@@ -114,8 +131,8 @@ serve(async (req) => {
       schedule_id: schedule?.id || null,
       creatives_requested: creativesToGenerate,
       creatives_generated: 0,
-      execution_type: generation_type ? 'manual' : 'scheduled',
-      status: 'in_progress',
+      execution_type: generation_type ? "manual" : "scheduled",
+      status: "in_progress",
       error_message: null,
       execution_details: {
         distribution: { concepts: 0, iterations: 0 },
@@ -125,16 +142,22 @@ serve(async (req) => {
     };
 
     const { data: historyData, error: historyError } = await supabase
-      .from('creative_generation_history')
+      .from("creative_generation_history")
       .insert(historyEntry)
       .select()
       .single();
 
     if (historyError) {
-      console.error('[daily-creative-generator] Error creating history:', historyError);
+      console.error(
+        "[daily-creative-generator] Error creating history:",
+        historyError,
+      );
     } else {
       historyId = historyData.id;
-      console.log('[daily-creative-generator] Created history entry:', historyId);
+      console.log(
+        "[daily-creative-generator] Created history entry:",
+        historyId,
+      );
     }
 
     const generatedCreatives: any[] = [];
@@ -148,7 +171,7 @@ serve(async (req) => {
         company_id,
         user_id,
         generation_type: creative.type,
-        creative_type: creative.creative_type || 'post_unico',
+        creative_type: creative.creative_type || "post_unico",
         image_url: creative.image_url || null,
         video_url: creative.video_url || null,
         caption: creative.caption || null,
@@ -158,27 +181,36 @@ serve(async (req) => {
         source_creative_id: creative.source_creative_id || null,
         research_theme_id: creative.research_theme_id || null,
         quality_score: null,
-        status: 'pending',
+        status: "pending",
       };
 
       const { data: savedCreative, error: insertError } = await supabase
-        .from('creative_generation_queue')
+        .from("creative_generation_queue")
         .insert(creativeToInsert)
-        .select('id')
+        .select("id")
         .single();
 
       if (insertError) {
-        console.error('[daily-creative-generator] Error inserting creative:', insertError);
+        console.error(
+          "[daily-creative-generator] Error inserting creative:",
+          insertError,
+        );
         return false;
       }
 
-      console.log('[daily-creative-generator] Saved creative:', savedCreative?.id, 'type:', creative.type);
+      console.log(
+        "[daily-creative-generator] Saved creative:",
+        savedCreative?.id,
+        "type:",
+        creative.type,
+      );
 
       // Update history
       if (historyId) {
-        const totalGenerated = currentDistribution.concepts + currentDistribution.iterations;
+        const totalGenerated =
+          currentDistribution.concepts + currentDistribution.iterations;
         await supabase
-          .from('creative_generation_history')
+          .from("creative_generation_history")
           .update({
             creatives_generated: totalGenerated,
             execution_details: {
@@ -188,45 +220,61 @@ serve(async (req) => {
               last_update: new Date().toISOString(),
             },
           })
-          .eq('id', historyId);
+          .eq("id", historyId);
       }
 
       return true;
     };
 
     // Generate concept creatives (based on research themes)
-    if (!generation_type || generation_type === 'concept') {
-      const targetCount = generation_type === 'concept' ? (count || 1) : conceptCount;
-      
+    if (!generation_type || generation_type === "concept") {
+      const targetCount =
+        generation_type === "concept" ? count || 1 : conceptCount;
+
       for (let i = 0; i < targetCount; i++) {
         try {
-          const creative = await generateConceptCreative(supabase, client, schedule);
+          const creative = await generateConceptCreative(
+            supabase,
+            client,
+            schedule,
+          );
           if (creative) {
             currentDistribution.concepts++;
             await saveCreativeAndUpdateHistory(creative);
             generatedCreatives.push(creative);
           }
         } catch (error: any) {
-          console.error('[daily-creative-generator] Error generating concept:', error);
+          console.error(
+            "[daily-creative-generator] Error generating concept:",
+            error,
+          );
           errors.push(`Concept ${i + 1}: ${error.message}`);
         }
       }
     }
 
     // Generate iteration creatives (based on previous successful creatives)
-    if (!generation_type || generation_type === 'iteration') {
-      const targetCount = generation_type === 'iteration' ? (count || 1) : iterationCount;
-      
+    if (!generation_type || generation_type === "iteration") {
+      const targetCount =
+        generation_type === "iteration" ? count || 1 : iterationCount;
+
       for (let i = 0; i < targetCount; i++) {
         try {
-          const creative = await generateIterationCreative(supabase, client, schedule);
+          const creative = await generateIterationCreative(
+            supabase,
+            client,
+            schedule,
+          );
           if (creative) {
             currentDistribution.iterations++;
             await saveCreativeAndUpdateHistory(creative);
             generatedCreatives.push(creative);
           }
         } catch (error: any) {
-          console.error('[daily-creative-generator] Error generating iteration:', error);
+          console.error(
+            "[daily-creative-generator] Error generating iteration:",
+            error,
+          );
           errors.push(`Iteration ${i + 1}: ${error.message}`);
         }
       }
@@ -234,13 +282,18 @@ serve(async (req) => {
 
     // Final history update
     if (historyId) {
-      const finalStatus = generatedCreatives.length === creativesToGenerate ? 'completed' : (generatedCreatives.length > 0 ? 'partial' : 'failed');
+      const finalStatus =
+        generatedCreatives.length === creativesToGenerate
+          ? "completed"
+          : generatedCreatives.length > 0
+            ? "partial"
+            : "failed";
       await supabase
-        .from('creative_generation_history')
+        .from("creative_generation_history")
         .update({
           creatives_generated: generatedCreatives.length,
           status: finalStatus,
-          error_message: errors.length > 0 ? errors.join('; ') : null,
+          error_message: errors.length > 0 ? errors.join("; ") : null,
           execution_details: {
             distribution: currentDistribution,
             requested_distribution: { conceptCount, iterationCount },
@@ -248,11 +301,11 @@ serve(async (req) => {
             completed_at: new Date().toISOString(),
           },
         })
-        .eq('id', historyId);
-      console.log('[daily-creative-generator] Final status:', finalStatus);
+        .eq("id", historyId);
+      console.log("[daily-creative-generator] Final status:", finalStatus);
     }
 
-    console.log('[daily-creative-generator] Generation completed');
+    console.log("[daily-creative-generator] Generation completed");
 
     return new Response(
       JSON.stringify({
@@ -261,43 +314,45 @@ serve(async (req) => {
         errors: errors.length > 0 ? errors : undefined,
         distribution: currentDistribution,
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (error: any) {
-    console.error('[daily-creative-generator] Error:', error);
+    console.error("[daily-creative-generator] Error:", error);
 
     if (historyId) {
       await supabase
-        .from('creative_generation_history')
+        .from("creative_generation_history")
         .update({
-          status: 'failed',
+          status: "failed",
           error_message: error.message,
         })
-        .eq('id', historyId);
+        .eq("id", historyId);
     }
 
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
 
 function getNextGenerationTime(generationTime: string): string {
   const now = new Date();
-  const [hours, minutes] = generationTime.split(':').map(Number);
-  
+  const [hours, minutes] = generationTime.split(":").map(Number);
+
   const next = new Date(now);
   next.setUTCHours(hours + 3, minutes, 0, 0); // Convert BRT to UTC
-  
+
   if (next <= now) {
     next.setDate(next.getDate() + 1);
   }
-  
+
   return next.toISOString();
 }
 
-function getScheduleReferenceImages(schedule: CreativeGenerationSchedule | null): string[] {
+function getScheduleReferenceImages(
+  schedule: CreativeGenerationSchedule | null,
+): string[] {
   const images: string[] = [];
   if (schedule?.reference_image_1) images.push(schedule.reference_image_1);
   if (schedule?.reference_image_2) images.push(schedule.reference_image_2);
@@ -308,48 +363,55 @@ function getScheduleReferenceImages(schedule: CreativeGenerationSchedule | null)
   return images;
 }
 
-async function generateConceptCreative(supabase: any, client: ClientData, schedule: CreativeGenerationSchedule | null): Promise<any> {
-  const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-  
+async function generateConceptCreative(
+  supabase: any,
+  client: ClientData,
+  schedule: CreativeGenerationSchedule | null,
+): Promise<any> {
+  const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
+
   // Get a random research theme
   const { data: themes } = await supabase
-    .from('market_research_insights')
-    .select('*')
-    .eq('client_id', client.id)
+    .from("market_research_insights")
+    .select("*")
+    .eq("client_id", client.id)
     .limit(10);
 
-  const theme = themes && themes.length > 0 
-    ? themes[Math.floor(Math.random() * themes.length)]
-    : null;
+  const theme =
+    themes && themes.length > 0
+      ? themes[Math.floor(Math.random() * themes.length)]
+      : null;
 
-  const themeContext = theme 
-    ? `TEMA DE PESQUISA: ${theme.title || theme.topic}\nINSIGHT: ${theme.insight || theme.description || ''}`
-    : '';
+  const themeContext = theme
+    ? `TEMA DE PESQUISA: ${theme.title || theme.topic}\nINSIGHT: ${theme.insight || theme.description || ""}`
+    : "";
 
   // Generate caption and hashtags using AI
-  const captionResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'google/gemini-2.5-flash',
-      messages: [
-        {
-          role: 'system',
-          content: `Você é um especialista em social media e criação de conteúdo para Instagram e Facebook.
+  const captionResponse = await fetch(
+    "https://openrouter.ai/api/v1/chat/completions",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          {
+            role: "system",
+            content: `Você é um especialista em social media e criação de conteúdo para Instagram e Facebook.
 Crie conteúdo envolvente e autêntico para posts orgânicos.`,
-        },
-        {
-          role: 'user',
-          content: `Crie um post para Instagram/Facebook para a marca "${client.company}" (${client.sector}).
+          },
+          {
+            role: "user",
+            content: `Crie um post para Instagram/Facebook para a marca "${client.company}" (${client.sector}).
 
 ${themeContext}
 
-BRIEFING: ${client.ai_briefing || 'Criar conteúdo relevante para a marca'}
-PÚBLICO-ALVO: ${client.target_audience || 'Público geral'}
-TOM DE VOZ: ${client.voice_tone || 'Profissional e amigável'}
+BRIEFING: ${client.ai_briefing || "Criar conteúdo relevante para a marca"}
+PÚBLICO-ALVO: ${client.target_audience || "Público geral"}
+TOM DE VOZ: ${client.voice_tone || "Profissional e amigável"}
 
 Responda APENAS em JSON válido:
 {
@@ -358,26 +420,27 @@ Responda APENAS em JSON válido:
   "creative_type": "post_unico ou carrossel ou reels",
   "image_prompt": "Descrição detalhada para gerar a imagem do post"
 }`,
-        },
-      ],
-    }),
-  });
+          },
+        ],
+      }),
+    },
+  );
 
   if (!captionResponse.ok) {
-    throw new Error('Failed to generate caption');
+    throw new Error("Failed to generate caption");
   }
 
   const captionData = await captionResponse.json();
   let content;
   try {
-    const responseText = captionData.choices?.[0]?.message?.content || '{}';
+    const responseText = captionData.choices?.[0]?.message?.content || "{}";
     const jsonMatch = responseText.match(/\{[\s\S]*\}/);
     content = JSON.parse(jsonMatch ? jsonMatch[0] : responseText);
   } catch {
     content = {
       caption: `Conteúdo especial da ${client.company}! 🎯`,
-      hashtags: '#marketing #digital #conteudo',
-      creative_type: 'post_unico',
+      hashtags: "#marketing #digital #conteudo",
+      creative_type: "post_unico",
       image_prompt: `Imagem profissional para ${client.company}`,
     };
   }
@@ -386,8 +449,8 @@ Responda APENAS em JSON válido:
   const imageUrl = await generateCreativeImage(client, content, schedule);
 
   return {
-    type: 'concept',
-    creative_type: content.creative_type || 'post_unico',
+    type: "concept",
+    creative_type: content.creative_type || "post_unico",
     image_url: imageUrl,
     caption: content.caption,
     hashtags: content.hashtags,
@@ -400,53 +463,60 @@ Responda APENAS em JSON válido:
   };
 }
 
-async function generateIterationCreative(supabase: any, client: ClientData, schedule: CreativeGenerationSchedule | null): Promise<any> {
-  const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-  
+async function generateIterationCreative(
+  supabase: any,
+  client: ClientData,
+  schedule: CreativeGenerationSchedule | null,
+): Promise<any> {
+  const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
+
   // Get a previous approved/published creative
   const { data: previousCreatives } = await supabase
-    .from('creative_generation_queue')
-    .select('*')
-    .eq('client_id', client.id)
-    .in('status', ['approved', 'published'])
-    .order('created_at', { ascending: false })
+    .from("creative_generation_queue")
+    .select("*")
+    .eq("client_id", client.id)
+    .in("status", ["approved", "published"])
+    .order("created_at", { ascending: false })
     .limit(10);
 
-  const sourceCreative = previousCreatives && previousCreatives.length > 0
-    ? previousCreatives[Math.floor(Math.random() * previousCreatives.length)]
-    : null;
+  const sourceCreative =
+    previousCreatives && previousCreatives.length > 0
+      ? previousCreatives[Math.floor(Math.random() * previousCreatives.length)]
+      : null;
 
   const sourceContext = sourceCreative
     ? `POST ANTERIOR DE SUCESSO:
 LEGENDA: ${sourceCreative.caption}
 HASHTAGS: ${sourceCreative.hashtags}
 TIPO: ${sourceCreative.creative_type}`
-    : '';
+    : "";
 
   // Generate improved version
-  const captionResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'google/gemini-2.5-flash',
-      messages: [
-        {
-          role: 'system',
-          content: `Você é um especialista em social media. Crie variações de posts de sucesso mantendo o que funciona.`,
-        },
-        {
-          role: 'user',
-          content: `Crie uma NOVA VERSÃO de post para "${client.company}" (${client.sector}).
+  const captionResponse = await fetch(
+    "https://openrouter.ai/api/v1/chat/completions",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          {
+            role: "system",
+            content: `Você é um especialista em social media. Crie variações de posts de sucesso mantendo o que funciona.`,
+          },
+          {
+            role: "user",
+            content: `Crie uma NOVA VERSÃO de post para "${client.company}" (${client.sector}).
 
 ${sourceContext}
 
-${sourceContext ? 'Crie uma variação que mantenha os elementos de sucesso mas seja ORIGINAL.' : 'Crie um post original e envolvente.'}
+${sourceContext ? "Crie uma variação que mantenha os elementos de sucesso mas seja ORIGINAL." : "Crie um post original e envolvente."}
 
-BRIEFING: ${client.ai_briefing || 'Criar conteúdo relevante'}
-TOM DE VOZ: ${client.voice_tone || 'Profissional'}
+BRIEFING: ${client.ai_briefing || "Criar conteúdo relevante"}
+TOM DE VOZ: ${client.voice_tone || "Profissional"}
 
 Responda APENAS em JSON válido:
 {
@@ -455,26 +525,27 @@ Responda APENAS em JSON válido:
   "creative_type": "post_unico ou carrossel ou reels",
   "image_prompt": "Descrição para gerar imagem"
 }`,
-        },
-      ],
-    }),
-  });
+          },
+        ],
+      }),
+    },
+  );
 
   if (!captionResponse.ok) {
-    throw new Error('Failed to generate iteration');
+    throw new Error("Failed to generate iteration");
   }
 
   const captionData = await captionResponse.json();
   let content;
   try {
-    const responseText = captionData.choices?.[0]?.message?.content || '{}';
+    const responseText = captionData.choices?.[0]?.message?.content || "{}";
     const jsonMatch = responseText.match(/\{[\s\S]*\}/);
     content = JSON.parse(jsonMatch ? jsonMatch[0] : responseText);
   } catch {
     content = {
       caption: `Novidade da ${client.company}! ✨`,
-      hashtags: '#novidade #lancamento #destaque',
-      creative_type: 'post_unico',
+      hashtags: "#novidade #lancamento #destaque",
+      creative_type: "post_unico",
       image_prompt: `Nova imagem para ${client.company}`,
     };
   }
@@ -483,8 +554,8 @@ Responda APENAS em JSON válido:
   const imageUrl = await generateCreativeImage(client, content, schedule);
 
   return {
-    type: 'iteration',
-    creative_type: content.creative_type || 'post_unico',
+    type: "iteration",
+    creative_type: content.creative_type || "post_unico",
     image_url: imageUrl,
     caption: content.caption,
     hashtags: content.hashtags,
@@ -497,14 +568,18 @@ Responda APENAS em JSON válido:
   };
 }
 
-async function generateCreativeImage(client: ClientData, content: any, schedule: CreativeGenerationSchedule | null): Promise<string | null> {
-  const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+async function generateCreativeImage(
+  client: ClientData,
+  content: any,
+  schedule: CreativeGenerationSchedule | null,
+): Promise<string | null> {
+  const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, supabaseKey);
-  
+
   const referenceImages = getScheduleReferenceImages(schedule);
-  const customPrompt = schedule?.custom_image_prompt || '';
+  const customPrompt = schedule?.custom_image_prompt || "";
 
   const imagePrompt = `
 Crie uma imagem publicitária profissional para um post de Instagram/Facebook.
@@ -519,7 +594,7 @@ MARCA: ${client.company}
 PRODUTO: ${client.product_name || client.company}
 SETOR: ${client.sector}
 
-CONCEITO DO POST: ${content.caption || ''}
+CONCEITO DO POST: ${content.caption || ""}
 
 === DIRETRIZES DE ESTILO ===
 - Cores vibrantes e profissionais
@@ -528,8 +603,8 @@ CONCEITO DO POST: ${content.caption || ''}
 - NÃO inclua texto na imagem
 - Ultra high resolution com detalhes nítidos
 
-${customPrompt ? `=== INSTRUÇÕES PERSONALIZADAS ===\n${customPrompt}` : ''}
-${content.image_prompt ? `=== SUGESTÃO ADICIONAL ===\n${content.image_prompt}` : ''}
+${customPrompt ? `=== INSTRUÇÕES PERSONALIZADAS ===\n${customPrompt}` : ""}
+${content.image_prompt ? `=== SUGESTÃO ADICIONAL ===\n${content.image_prompt}` : ""}
 
 Gere a imagem EXATAMENTE em 1080x1440 pixels (formato 3:4).
 `;
@@ -538,23 +613,25 @@ Gere a imagem EXATAMENTE em 1080x1440 pixels (formato 3:4).
     let imageData: string | null = null;
 
     if (referenceImages.length > 0) {
-      console.log('[daily-creative-generator] Generating with reference image');
-      
-      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'google/gemini-3-pro-image-preview',
-          messages: [
-            {
-              role: 'user',
-              content: [
-                {
-                  type: 'text',
-                  text: `Crie uma nova imagem publicitária inspirada nesta referência visual, mantendo o mesmo estilo, cores e identidade visual.
+      console.log("[daily-creative-generator] Generating with reference image");
+
+      const response = await fetch(
+        "https://openrouter.ai/api/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-3-pro-image-preview",
+            messages: [
+              {
+                role: "user",
+                content: [
+                  {
+                    type: "text",
+                    text: `Crie uma nova imagem publicitária inspirada nesta referência visual, mantendo o mesmo estilo, cores e identidade visual.
 
 ${imagePrompt}
 
@@ -562,77 +639,85 @@ IMPORTANTE:
 - Mantenha a consistência visual com a imagem de referência
 - Crie uma composição NOVA e ORIGINAL para o post
 - A imagem DEVE ser no formato 3:4 (1080x1440 pixels), NÃO quadrado`,
-                },
-                {
-                  type: 'image_url',
-                  image_url: { url: referenceImages[0] },
-                },
-              ],
-            },
-          ],
-          modalities: ['image', 'text'],
-        }),
-      });
+                  },
+                  {
+                    type: "image_url",
+                    image_url: { url: referenceImages[0] },
+                  },
+                ],
+              },
+            ],
+            modalities: ["image", "text"],
+          }),
+        },
+      );
 
       if (response.ok) {
         const data = await response.json();
         imageData = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
         if (imageData) {
-          console.log('[daily-creative-generator] Image generated with reference');
+          console.log(
+            "[daily-creative-generator] Image generated with reference",
+          );
         }
       }
     }
 
     // Fallback without reference
     if (!imageData) {
-      console.log('[daily-creative-generator] Generating without reference');
-      
-      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-          'Content-Type': 'application/json',
+      console.log("[daily-creative-generator] Generating without reference");
+
+      const response = await fetch(
+        "https://openrouter.ai/api/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-3-pro-image-preview",
+            messages: [
+              {
+                role: "user",
+                content: imagePrompt,
+              },
+            ],
+            modalities: ["image", "text"],
+          }),
         },
-        body: JSON.stringify({
-          model: 'google/gemini-3-pro-image-preview',
-          messages: [
-            {
-              role: 'user',
-              content: imagePrompt,
-            },
-          ],
-          modalities: ['image', 'text'],
-        }),
-      });
+      );
 
       if (response.ok) {
         const data = await response.json();
         imageData = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
         if (imageData) {
-          console.log('[daily-creative-generator] Image generated');
+          console.log("[daily-creative-generator] Image generated");
         }
       }
     }
 
     if (!imageData) {
-      console.log('[daily-creative-generator] No image data received');
+      console.log("[daily-creative-generator] No image data received");
       return null;
     }
 
     // Upload base64 image to Supabase Storage
-    if (imageData.startsWith('data:image')) {
-      console.log('[daily-creative-generator] Uploading base64 image to storage');
-      
+    if (imageData.startsWith("data:image")) {
+      console.log(
+        "[daily-creative-generator] Uploading base64 image to storage",
+      );
+
       // Extract base64 data and content type
       const matches = imageData.match(/^data:image\/(\w+);base64,(.+)$/);
       if (!matches) {
-        console.error('[daily-creative-generator] Invalid base64 format');
+        console.error("[daily-creative-generator] Invalid base64 format");
         return imageData; // Return as-is if we can't parse it
       }
 
-      const extension = matches[1] === 'jpeg' ? 'jpg' : matches[1];
+      const extension = matches[1] === "jpeg" ? "jpg" : matches[1];
       const base64Data = matches[2];
-      
+
       // Convert base64 to Uint8Array
       const binaryString = atob(base64Data);
       const bytes = new Uint8Array(binaryString.length);
@@ -645,31 +730,34 @@ IMPORTANTE:
 
       // Upload to Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('client-media')
+        .from("client-media")
         .upload(fileName, bytes, {
           contentType: `image/${matches[1]}`,
           upsert: false,
         });
 
       if (uploadError) {
-        console.error('[daily-creative-generator] Upload error:', uploadError);
+        console.error("[daily-creative-generator] Upload error:", uploadError);
         return imageData; // Return base64 as fallback
       }
 
       // Get public URL
       const { data: publicUrlData } = supabase.storage
-        .from('client-media')
+        .from("client-media")
         .getPublicUrl(fileName);
 
       if (publicUrlData?.publicUrl) {
-        console.log('[daily-creative-generator] Image uploaded to storage:', publicUrlData.publicUrl);
+        console.log(
+          "[daily-creative-generator] Image uploaded to storage:",
+          publicUrlData.publicUrl,
+        );
         return publicUrlData.publicUrl;
       }
     }
 
     return imageData;
   } catch (error) {
-    console.error('[daily-creative-generator] Image generation error:', error);
+    console.error("[daily-creative-generator] Image generation error:", error);
     return null;
   }
 }

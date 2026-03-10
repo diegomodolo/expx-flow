@@ -1,8 +1,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 interface SkillRecord {
@@ -15,37 +16,44 @@ interface SkillRecord {
 }
 
 const LOOKUP_CLIENT_TOOL = {
-  type: 'function' as const,
+  type: "function" as const,
   function: {
-    name: '_lookup_client',
-    description: 'Busca um cliente pelo nome na base de dados da empresa. Use quando precisar identificar qual cliente o usuário está se referindo. Retorna id, nome e empresa do cliente.',
+    name: "_lookup_client",
+    description:
+      "Busca um cliente pelo nome na base de dados da empresa. Use quando precisar identificar qual cliente o usuário está se referindo. Retorna id, nome e empresa do cliente.",
     parameters: {
-      type: 'object',
+      type: "object",
       properties: {
         search_query: {
-          type: 'string',
-          description: 'Nome ou parte do nome do cliente para buscar',
+          type: "string",
+          description: "Nome ou parte do nome do cliente para buscar",
         },
       },
-      required: ['search_query'],
+      required: ["search_query"],
     },
   },
 };
 
 function buildToolsFromSkills(skills: SkillRecord[], hasFixedClient: boolean) {
   const skillTools = skills.map((skill) => {
-    const params = JSON.parse(JSON.stringify(skill.tool_parameters || { type: 'object', properties: {} }));
+    const params = JSON.parse(
+      JSON.stringify(
+        skill.tool_parameters || { type: "object", properties: {} },
+      ),
+    );
     if (!hasFixedClient && skill.requires_client !== false) {
       if (!params.properties) params.properties = {};
       params.properties.client_id = {
-        type: 'string',
-        description: 'ID UUID do cliente. OBRIGATÓRIO. Use o client_id obtido via _lookup_client ou data_clients.',
+        type: "string",
+        description:
+          "ID UUID do cliente. OBRIGATÓRIO. Use o client_id obtido via _lookup_client ou data_clients.",
       };
       if (!params.required) params.required = [];
-      if (!params.required.includes('client_id')) params.required.push('client_id');
+      if (!params.required.includes("client_id"))
+        params.required.push("client_id");
     }
     return {
-      type: 'function' as const,
+      type: "function" as const,
       function: {
         name: skill.id,
         description: skill.description,
@@ -55,7 +63,7 @@ function buildToolsFromSkills(skills: SkillRecord[], hasFixedClient: boolean) {
   });
 
   // Add lookup_client tool if agent has no fixed client and has skills that need one
-  if (!hasFixedClient && skills.some(s => s.requires_client !== false)) {
+  if (!hasFixedClient && skills.some((s) => s.requires_client !== false)) {
     skillTools.push(LOOKUP_CLIENT_TOOL);
   }
 
@@ -66,21 +74,21 @@ async function executeSkill(
   skillId: string,
   skills: SkillRecord[],
   args: Record<string, unknown>,
-  agentContext: { client_id?: string; company_id?: string; user_id?: string }
+  agentContext: { client_id?: string; company_id?: string; user_id?: string },
 ) {
   const skill = skills.find((s) => s.id === skillId);
   if (!skill) return { error: `Skill "${skillId}" não encontrada` };
 
-  const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
   try {
     // Use the universal executor which handles both edge functions and JS skills
     const response = await fetch(`${supabaseUrl}/functions/v1/execute-skill`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${serviceRoleKey}`,
-        'Content-Type': 'application/json',
+        Authorization: `Bearer ${serviceRoleKey}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         skill_id: skillId,
@@ -110,24 +118,29 @@ async function executeSkill(
 
 async function handleLookupClient(
   args: Record<string, unknown>,
-  companyId: string
+  companyId: string,
 ): Promise<Record<string, unknown>> {
-  const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
   const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-  const query = (args.search_query as string || '').trim();
-  if (!query) return { error: 'Nenhum termo de busca informado' };
+  const query = ((args.search_query as string) || "").trim();
+  if (!query) return { error: "Nenhum termo de busca informado" };
 
   const { data, error } = await supabase
-    .from('clients')
-    .select('id, name, company, sector, status')
-    .eq('company_id', companyId)
+    .from("clients")
+    .select("id, name, company, sector, status")
+    .eq("company_id", companyId)
     .or(`name.ilike.%${query}%,company.ilike.%${query}%`)
     .limit(5);
 
   if (error) return { error: error.message };
-  if (!data || data.length === 0) return { clients: [], message: 'Nenhum cliente encontrado com esse nome. Peça ao usuário para informar o nome correto.' };
+  if (!data || data.length === 0)
+    return {
+      clients: [],
+      message:
+        "Nenhum cliente encontrado com esse nome. Peça ao usuário para informar o nome correto.",
+    };
 
   return { clients: data };
 }
@@ -136,34 +149,56 @@ async function handleBuiltinQuery(
   skillId: string,
   args: Record<string, unknown>,
   companyId: string,
-  clientId?: string
+  clientId?: string,
 ): Promise<Record<string, unknown>> {
-  const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
   const supabase = createClient(supabaseUrl, serviceRoleKey);
   const limit = Math.min(Number(args.limit) || 20, 50);
 
   try {
     switch (skillId) {
-      case 'data_clients': {
-        let q = supabase.from('clients').select('id, name, company, sector, status, monthly_budget, leads_generated, last_sync_at, created_at, ai_briefing').eq('company_id', companyId);
-        if (args.search) q = q.or(`name.ilike.%${args.search}%,company.ilike.%${args.search}%`);
-        if (args.status) q = q.eq('status', args.status);
-        const { data, error } = await q.order('name').limit(limit);
+      case "data_clients": {
+        let q = supabase
+          .from("clients")
+          .select(
+            "id, name, company, sector, status, monthly_budget, leads_generated, last_sync_at, created_at, ai_briefing",
+          )
+          .eq("company_id", companyId);
+        if (args.search)
+          q = q.or(
+            `name.ilike.%${args.search}%,company.ilike.%${args.search}%`,
+          );
+        if (args.status) q = q.eq("status", args.status);
+        const { data, error } = await q.order("name").limit(limit);
         if (error) return { error: error.message };
         return { clients: data, total: data?.length };
       }
 
-      case 'data_client_details': {
-        const cid = clientId || args.client_id as string;
+      case "data_client_details": {
+        const cid = clientId || (args.client_id as string);
         if (!cid && args.client_name) {
-          const { data } = await supabase.from('clients').select('id').eq('company_id', companyId).ilike('name', `%${args.client_name}%`).limit(1);
-          if (data?.[0]) return handleBuiltinQuery(skillId, { ...args, client_id: data[0].id }, companyId, data[0].id);
-          return { error: 'Cliente não encontrado' };
+          const { data } = await supabase
+            .from("clients")
+            .select("id")
+            .eq("company_id", companyId)
+            .ilike("name", `%${args.client_name}%`)
+            .limit(1);
+          if (data?.[0])
+            return handleBuiltinQuery(
+              skillId,
+              { ...args, client_id: data[0].id },
+              companyId,
+              data[0].id,
+            );
+          return { error: "Cliente não encontrado" };
         }
-        if (!cid) return { error: 'client_id necessário' };
+        if (!cid) return { error: "client_id necessário" };
         const [clientRes, campaignsRes] = await Promise.all([
-          supabase.from('clients').select(`
+          supabase
+            .from("clients")
+            .select(
+              `
             *,
             instagram_accounts!instagram_account_id (
               id, instagram_id, username, profile_picture_url, followers_count
@@ -177,125 +212,211 @@ async function handleBuiltinQuery(
             google_ads_accounts!google_account_id (
               id, google_customer_id, account_name, status
             )
-          `).eq('id', cid).single(),
-          supabase.from('campaigns').select('id, name, status, spend, cpc, ctr, conversions, cpa').eq('client_id', cid).eq('status', 'active').order('spend', { ascending: false }).limit(10),
+          `,
+            )
+            .eq("id", cid)
+            .single(),
+          supabase
+            .from("campaigns")
+            .select("id, name, status, spend, cpc, ctr, conversions, cpa")
+            .eq("client_id", cid)
+            .eq("status", "active")
+            .order("spend", { ascending: false })
+            .limit(10),
         ]);
         const clientData = clientRes.data;
         // Flatten social accounts for easier agent consumption
         const socialAccounts = {
-          instagram: clientData?.instagram_accounts ? {
-            id: clientData.instagram_accounts.id,
-            username: clientData.instagram_accounts.username,
-            instagram_id: clientData.instagram_accounts.instagram_id,
-            followers_count: clientData.instagram_accounts.followers_count,
-            profile_picture_url: clientData.instagram_accounts.profile_picture_url,
-          } : null,
-          facebook_page: clientData?.facebook_pages ? {
-            id: clientData.facebook_pages.id,
-            page_id: clientData.facebook_pages.page_id,
-            page_name: clientData.facebook_pages.page_name,
-          } : null,
-          ad_account: clientData?.facebook_ad_accounts ? {
-            id: clientData.facebook_ad_accounts.id,
-            account_name: clientData.facebook_ad_accounts.account_name,
-            currency: clientData.facebook_ad_accounts.currency,
-          } : null,
-          google_ads: clientData?.google_ads_accounts ? {
-            id: clientData.google_ads_accounts.id,
-            account_name: clientData.google_ads_accounts.account_name,
-          } : null,
+          instagram: clientData?.instagram_accounts
+            ? {
+                id: clientData.instagram_accounts.id,
+                username: clientData.instagram_accounts.username,
+                instagram_id: clientData.instagram_accounts.instagram_id,
+                followers_count: clientData.instagram_accounts.followers_count,
+                profile_picture_url:
+                  clientData.instagram_accounts.profile_picture_url,
+              }
+            : null,
+          facebook_page: clientData?.facebook_pages
+            ? {
+                id: clientData.facebook_pages.id,
+                page_id: clientData.facebook_pages.page_id,
+                page_name: clientData.facebook_pages.page_name,
+              }
+            : null,
+          ad_account: clientData?.facebook_ad_accounts
+            ? {
+                id: clientData.facebook_ad_accounts.id,
+                account_name: clientData.facebook_ad_accounts.account_name,
+                currency: clientData.facebook_ad_accounts.currency,
+              }
+            : null,
+          google_ads: clientData?.google_ads_accounts
+            ? {
+                id: clientData.google_ads_accounts.id,
+                account_name: clientData.google_ads_accounts.account_name,
+              }
+            : null,
         };
-        return { client: clientData, social_accounts: socialAccounts, active_campaigns: campaignsRes.data };
+        return {
+          client: clientData,
+          social_accounts: socialAccounts,
+          active_campaigns: campaignsRes.data,
+        };
       }
 
-      case 'data_campaigns': {
-        if (!clientId) return { error: 'client_id necessário' };
-        let q = supabase.from('campaigns').select('id, name, status, objective, spend, cpc, ctr, conversions, cpa, impressions, clicks, daily_budget, created_at').eq('client_id', clientId);
-        if (args.status) q = q.eq('status', args.status);
-        const { data, error } = await q.order('spend', { ascending: false }).limit(limit);
+      case "data_campaigns": {
+        if (!clientId) return { error: "client_id necessário" };
+        let q = supabase
+          .from("campaigns")
+          .select(
+            "id, name, status, objective, spend, cpc, ctr, conversions, cpa, impressions, clicks, daily_budget, created_at",
+          )
+          .eq("client_id", clientId);
+        if (args.status) q = q.eq("status", args.status);
+        const { data, error } = await q
+          .order("spend", { ascending: false })
+          .limit(limit);
         if (error) return { error: error.message };
         return { campaigns: data, total: data?.length };
       }
 
-      case 'data_ads': {
-        if (!clientId) return { error: 'client_id necessário' };
-        let q = supabase.from('ads').select('id, name, status, spend, cpc, ctr, impressions, clicks, conversions, cpa, creative_title, creative_body, image_url, call_to_action').eq('client_id', clientId);
-        if (args.campaign_id) q = q.eq('campaign_id', args.campaign_id as string);
-        const { data, error } = await q.order('spend', { ascending: false }).limit(limit);
+      case "data_ads": {
+        if (!clientId) return { error: "client_id necessário" };
+        let q = supabase
+          .from("ads")
+          .select(
+            "id, name, status, spend, cpc, ctr, impressions, clicks, conversions, cpa, creative_title, creative_body, image_url, call_to_action",
+          )
+          .eq("client_id", clientId);
+        if (args.campaign_id)
+          q = q.eq("campaign_id", args.campaign_id as string);
+        const { data, error } = await q
+          .order("spend", { ascending: false })
+          .limit(limit);
         if (error) return { error: error.message };
         return { ads: data, total: data?.length };
       }
 
-      case 'data_client_health': {
-        if (!clientId) return { error: 'client_id necessário' };
-        const { data, error } = await supabase.from('client_health_config').select('*').eq('client_id', clientId).single();
+      case "data_client_health": {
+        if (!clientId) return { error: "client_id necessário" };
+        const { data, error } = await supabase
+          .from("client_health_config")
+          .select("*")
+          .eq("client_id", clientId)
+          .single();
         if (error) return { error: error.message };
         return { health: data };
       }
 
-      case 'data_client_milestones': {
-        if (!clientId) return { error: 'client_id necessário' };
-        const { data, error } = await supabase.from('client_milestones').select('*').eq('client_id', clientId).order('milestone_order');
+      case "data_client_milestones": {
+        if (!clientId) return { error: "client_id necessário" };
+        const { data, error } = await supabase
+          .from("client_milestones")
+          .select("*")
+          .eq("client_id", clientId)
+          .order("milestone_order");
         if (error) return { error: error.message };
         return { milestones: data };
       }
 
-      case 'data_leads': {
-        let q = supabase.from('lead_master_pool').select('id, full_name, email, phone, city, state, lead_score, conversion_status, created_at').eq('company_id', companyId);
-        if (args.min_score) q = q.gte('lead_score', args.min_score);
-        const { data, error } = await q.order('lead_score', { ascending: false }).limit(limit);
+      case "data_leads": {
+        let q = supabase
+          .from("lead_master_pool")
+          .select(
+            "id, full_name, email, phone, city, state, lead_score, conversion_status, created_at",
+          )
+          .eq("company_id", companyId);
+        if (args.min_score) q = q.gte("lead_score", args.min_score);
+        const { data, error } = await q
+          .order("lead_score", { ascending: false })
+          .limit(limit);
         if (error) return { error: error.message };
         return { leads: data, total: data?.length };
       }
 
-      case 'data_lead_segments': {
-        const { data, error } = await supabase.from('lead_segments').select('*').eq('company_id', companyId).order('name');
+      case "data_lead_segments": {
+        const { data, error } = await supabase
+          .from("lead_segments")
+          .select("*")
+          .eq("company_id", companyId)
+          .order("name");
         if (error) return { error: error.message };
         return { segments: data };
       }
 
-      case 'data_automation_rules': {
-        let q = supabase.from('campaign_automation_rules').select('id, rule_name, rule_description, entity_type, action_type, is_active, execution_count, last_execution_at').eq('company_id', companyId);
-        if (args.is_active !== undefined) q = q.eq('is_active', args.is_active);
-        if (args.client_id) q = q.eq('client_id', args.client_id as string);
-        const { data, error } = await q.order('rule_order').limit(limit);
+      case "data_automation_rules": {
+        let q = supabase
+          .from("campaign_automation_rules")
+          .select(
+            "id, rule_name, rule_description, entity_type, action_type, is_active, execution_count, last_execution_at",
+          )
+          .eq("company_id", companyId);
+        if (args.is_active !== undefined) q = q.eq("is_active", args.is_active);
+        if (args.client_id) q = q.eq("client_id", args.client_id as string);
+        const { data, error } = await q.order("rule_order").limit(limit);
         if (error) return { error: error.message };
         return { rules: data, total: data?.length };
       }
 
-      case 'data_automation_logs': {
-        let q = supabase.from('campaign_automation_logs').select('id, rule_id, action_type, action_result, entity_type, old_status, new_status, old_budget, new_budget, executed_at, error_message').eq('company_id', companyId);
-        if (args.client_id) q = q.eq('client_id', args.client_id as string);
-        const { data, error } = await q.order('executed_at', { ascending: false }).limit(limit);
+      case "data_automation_logs": {
+        let q = supabase
+          .from("campaign_automation_logs")
+          .select(
+            "id, rule_id, action_type, action_result, entity_type, old_status, new_status, old_budget, new_budget, executed_at, error_message",
+          )
+          .eq("company_id", companyId);
+        if (args.client_id) q = q.eq("client_id", args.client_id as string);
+        const { data, error } = await q
+          .order("executed_at", { ascending: false })
+          .limit(limit);
         if (error) return { error: error.message };
         return { logs: data, total: data?.length };
       }
 
-      case 'data_competitors': {
-        if (!clientId) return { error: 'client_id necessário' };
-        const { data, error } = await supabase.from('competitors').select('*').eq('client_id', clientId);
+      case "data_competitors": {
+        if (!clientId) return { error: "client_id necessário" };
+        const { data, error } = await supabase
+          .from("competitors")
+          .select("*")
+          .eq("client_id", clientId);
         if (error) return { error: error.message };
         return { competitors: data };
       }
 
-      case 'data_scheduled_posts': {
-        if (!clientId) return { error: 'client_id necessário' };
-        let q = supabase.from('scheduled_posts').select('id, title, platform, status, scheduled_for, published_at, post_type, caption').eq('client_id', clientId);
-        if (args.status) q = q.eq('status', args.status as string);
-        const { data, error } = await q.order('scheduled_for', { ascending: false }).limit(limit);
+      case "data_scheduled_posts": {
+        if (!clientId) return { error: "client_id necessário" };
+        let q = supabase
+          .from("scheduled_posts")
+          .select(
+            "id, title, platform, status, scheduled_for, published_at, post_type, caption",
+          )
+          .eq("client_id", clientId);
+        if (args.status) q = q.eq("status", args.status as string);
+        const { data, error } = await q
+          .order("scheduled_for", { ascending: false })
+          .limit(limit);
         if (error) return { error: error.message };
         return { posts: data, total: data?.length };
       }
 
-      case 'data_activity_feed': {
-        const { data, error } = await supabase.from('activity_feed').select('*').eq('company_id', companyId).order('created_at', { ascending: false }).limit(limit);
+      case "data_activity_feed": {
+        const { data, error } = await supabase
+          .from("activity_feed")
+          .select("*")
+          .eq("company_id", companyId)
+          .order("created_at", { ascending: false })
+          .limit(limit);
         if (error) return { error: error.message };
         return { activities: data };
       }
 
-      case 'data_benchmarks': {
-        if (!clientId) return { error: 'client_id necessário' };
-        const { data, error } = await supabase.from('client_metric_benchmarks').select('*').eq('client_id', clientId);
+      case "data_benchmarks": {
+        if (!clientId) return { error: "client_id necessário" };
+        const { data, error } = await supabase
+          .from("client_metric_benchmarks")
+          .select("*")
+          .eq("client_id", clientId);
         if (error) return { error: error.message };
         return { benchmarks: data };
       }
@@ -309,15 +430,14 @@ async function handleBuiltinQuery(
   }
 }
 
-
 async function chatWithToolCalling(
   messages: Array<{ role: string; content: string }>,
   tools: ReturnType<typeof buildToolsFromSkills>,
   skills: SkillRecord[],
   agentContext: { client_id?: string; company_id?: string; user_id?: string },
-  model: string
+  model: string,
 ): Promise<string> {
-  const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+  const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
   const maxIterations = 5;
 
   let currentMessages = [...messages];
@@ -334,26 +454,33 @@ async function chatWithToolCalling(
 
     // Filter out generate_image tool if already generated to prevent duplicates
     const activeTools = imageAlreadyGenerated
-      ? tools.filter((t: any) => t.function?.name !== 'generate_image_ai' && t.function?.name !== 'generate_image')
+      ? tools.filter(
+          (t: any) =>
+            t.function?.name !== "generate_image_ai" &&
+            t.function?.name !== "generate_image",
+        )
       : tools;
 
     if (activeTools.length > 0) {
       requestBody.tools = activeTools;
-      requestBody.tool_choice = 'auto';
+      requestBody.tool_choice = "auto";
     }
 
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
+    const aiResponse = await fetch(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
       },
-      body: JSON.stringify(requestBody),
-    });
+    );
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
-      console.error('AI Gateway error:', aiResponse.status, errorText);
+      console.error("AI Gateway error:", aiResponse.status, errorText);
       throw new Error(`AI Gateway error: ${aiResponse.status}`);
     }
 
@@ -361,7 +488,7 @@ async function chatWithToolCalling(
     const choice = aiData.choices[0];
 
     if (!choice.message.tool_calls || choice.message.tool_calls.length === 0) {
-      return choice.message.content || '';
+      return choice.message.content || "";
     }
 
     currentMessages.push(choice.message);
@@ -370,71 +497,113 @@ async function chatWithToolCalling(
       const fnName = toolCall.function.name;
       let fnArgs: Record<string, unknown> = {};
       try {
-        fnArgs = JSON.parse(toolCall.function.arguments || '{}');
-      } catch { /* empty args */ }
+        fnArgs = JSON.parse(toolCall.function.arguments || "{}");
+      } catch {
+        /* empty args */
+      }
 
       // Skip duplicate image generation within same iteration
-      const isImageSkill = fnName === 'generate_image_ai' || fnName === 'generate_image';
+      const isImageSkill =
+        fnName === "generate_image_ai" || fnName === "generate_image";
       if (isImageSkill && imageAlreadyGenerated) {
         console.log(`[ia-agent-chat] Skipping duplicate image generation call`);
         currentMessages.push({
-          role: 'tool',
+          role: "tool",
           tool_call_id: toolCall.id,
-          content: JSON.stringify({ success: true, message: 'Imagem já foi gerada nesta sessão. Use a URL já fornecida.', image_url: lastGeneratedImageUrl }),
+          content: JSON.stringify({
+            success: true,
+            message:
+              "Imagem já foi gerada nesta sessão. Use a URL já fornecida.",
+            image_url: lastGeneratedImageUrl,
+          }),
         } as any);
         continue;
       }
 
       let result: Record<string, unknown>;
 
-      if (fnName === '_lookup_client') {
-        result = await handleLookupClient(fnArgs, mutableContext.company_id || '');
+      if (fnName === "_lookup_client") {
+        result = await handleLookupClient(
+          fnArgs,
+          mutableContext.company_id || "",
+        );
         const clients = result.clients as Array<{ id: string }> | undefined;
         if (clients && clients.length === 1) {
           mutableContext.client_id = clients[0].id;
-          console.log('Client auto-set from lookup:', mutableContext.client_id);
+          console.log("Client auto-set from lookup:", mutableContext.client_id);
         }
-      } else if (fnName.startsWith('data_')) {
+      } else if (fnName.startsWith("data_")) {
         // Built-in data query
         if (fnArgs.client_id && !mutableContext.client_id) {
           mutableContext.client_id = fnArgs.client_id as string;
         }
-        result = await handleBuiltinQuery(fnName, fnArgs, mutableContext.company_id || '', mutableContext.client_id);
+        result = await handleBuiltinQuery(
+          fnName,
+          fnArgs,
+          mutableContext.company_id || "",
+          mutableContext.client_id,
+        );
       } else {
         if (fnArgs.client_id && !mutableContext.client_id) {
           mutableContext.client_id = fnArgs.client_id as string;
         }
         // Auto-resolve client_name to client_id if client_id is missing
-        if (!mutableContext.client_id && (fnArgs.client_name || fnArgs.clientName)) {
-          const clientName = (fnArgs.client_name || fnArgs.clientName) as string;
-          console.log(`[ia-agent-chat] Auto-resolving client_name "${clientName}" to client_id`);
-          const lookupResult = await handleLookupClient({ search_query: clientName }, mutableContext.company_id || '');
-          const foundClients = lookupResult.clients as Array<{ id: string }> | undefined;
+        if (
+          !mutableContext.client_id &&
+          (fnArgs.client_name || fnArgs.clientName)
+        ) {
+          const clientName = (fnArgs.client_name ||
+            fnArgs.clientName) as string;
+          console.log(
+            `[ia-agent-chat] Auto-resolving client_name "${clientName}" to client_id`,
+          );
+          const lookupResult = await handleLookupClient(
+            { search_query: clientName },
+            mutableContext.company_id || "",
+          );
+          const foundClients = lookupResult.clients as
+            | Array<{ id: string }>
+            | undefined;
           if (foundClients && foundClients.length > 0) {
             mutableContext.client_id = foundClients[0].id;
             fnArgs.client_id = foundClients[0].id;
-            console.log(`[ia-agent-chat] Auto-resolved client_id: ${mutableContext.client_id}`);
+            console.log(
+              `[ia-agent-chat] Auto-resolved client_id: ${mutableContext.client_id}`,
+            );
           }
         }
         // Auto-inject last generated image URL into schedule_post if not provided
-        if (fnName === 'schedule_post' && !fnArgs.image_url && !fnArgs.media_urls && lastGeneratedImageUrl) {
+        if (
+          fnName === "schedule_post" &&
+          !fnArgs.image_url &&
+          !fnArgs.media_urls &&
+          lastGeneratedImageUrl
+        ) {
           fnArgs.image_url = lastGeneratedImageUrl;
-          console.log(`[ia-agent-chat] Auto-injected image_url into schedule_post: ${lastGeneratedImageUrl}`);
+          console.log(
+            `[ia-agent-chat] Auto-injected image_url into schedule_post: ${lastGeneratedImageUrl}`,
+          );
         }
         result = await executeSkill(fnName, skills, fnArgs, mutableContext);
         // Track generated image URLs for later use
-        if (result.success && result.image_url && typeof result.image_url === 'string') {
+        if (
+          result.success &&
+          result.image_url &&
+          typeof result.image_url === "string"
+        ) {
           const imgUrl = result.image_url as string;
-          if (imgUrl.startsWith('http')) {
+          if (imgUrl.startsWith("http")) {
             lastGeneratedImageUrl = imgUrl;
             imageAlreadyGenerated = true;
-            console.log(`[ia-agent-chat] Saved lastGeneratedImageUrl: ${lastGeneratedImageUrl}`);
+            console.log(
+              `[ia-agent-chat] Saved lastGeneratedImageUrl: ${lastGeneratedImageUrl}`,
+            );
           }
         }
       }
 
       currentMessages.push({
-        role: 'tool',
+        role: "tool",
         tool_call_id: toolCall.id,
         content: JSON.stringify(result),
       } as any);
@@ -442,150 +611,166 @@ async function chatWithToolCalling(
   }
 
   // If we exhausted iterations, do one final call without tools
-  const finalResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${Deno.env.get('LOVABLE_API_KEY')}`,
-      'Content-Type': 'application/json',
+  const finalResponse = await fetch(
+    "https://openrouter.ai/api/v1/chat/completions",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${Deno.env.get("OPENROUTER_API_KEY")}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ model, messages: currentMessages }),
     },
-    body: JSON.stringify({ model, messages: currentMessages }),
-  });
+  );
 
   const finalData = await finalResponse.json();
-  return finalData.choices[0].message.content || '';
+  return finalData.choices[0].message.content || "";
 }
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { conversationId, message, agentId, client_id: requestClientId } = await req.json();
+    const {
+      conversationId,
+      message,
+      agentId,
+      client_id: requestClientId,
+    } = await req.json();
 
     const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
       {
         global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
+          headers: { Authorization: req.headers.get("Authorization")! },
         },
-      }
+      },
     );
 
     // Service role client for skill execution context
     const serviceClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     );
 
     // Fetch agent using serviceClient to support both user and service-role calls (cron)
     const { data: agent, error: agentError } = await serviceClient
-      .from('ia_agents')
-      .select('*')
-      .eq('id', agentId)
+      .from("ia_agents")
+      .select("*")
+      .eq("id", agentId)
       .single();
 
     if (agentError || !agent) {
-      throw new Error('Agente não encontrado');
+      throw new Error("Agente não encontrado");
     }
 
     // Fetch knowledge docs, client data, and enabled skills in parallel
     const [knowledgeResult, enabledSkillsResult] = await Promise.all([
       serviceClient
-        .from('ia_agent_knowledge_documents')
-        .select('content_text, file_name')
-        .eq('agent_id', agentId),
+        .from("ia_agent_knowledge_documents")
+        .select("content_text, file_name")
+        .eq("agent_id", agentId),
       serviceClient
-        .from('ia_agent_enabled_skills')
-        .select('skill_id, ia_agent_skills(*)')
-        .eq('agent_id', agentId),
+        .from("ia_agent_enabled_skills")
+        .select("skill_id, ia_agent_skills(*)")
+        .eq("agent_id", agentId),
     ]);
 
     const knowledgeDocs = knowledgeResult.data;
     const knowledgeContext = knowledgeDocs
-      ?.filter(doc => doc.content_text)
-      .map(doc => `[Documento: ${doc.file_name}]\n${doc.content_text}`)
-      .join('\n\n---\n\n');
+      ?.filter((doc) => doc.content_text)
+      .map((doc) => `[Documento: ${doc.file_name}]\n${doc.content_text}`)
+      .join("\n\n---\n\n");
 
     // Client context
-    let clientContext = '';
+    let clientContext = "";
     const effectiveClientId = agent.client_id || requestClientId;
     if (effectiveClientId) {
       const { data: client } = await serviceClient
-        .from('clients')
-        .select(`
+        .from("clients")
+        .select(
+          `
           *,
           facebook_ad_accounts!ad_account_id (
             account_name, balance, account_status
           )
-        `)
-        .eq('id', effectiveClientId)
+        `,
+        )
+        .eq("id", effectiveClientId)
         .single();
 
       if (client) {
         const { data: campaigns } = await serviceClient
-          .from('campaigns')
-          .select('*')
-          .eq('client_id', effectiveClientId)
-          .eq('status', 'active')
-          .order('spend', { ascending: false })
+          .from("campaigns")
+          .select("*")
+          .eq("client_id", effectiveClientId)
+          .eq("status", "active")
+          .order("spend", { ascending: false })
           .limit(10);
 
         clientContext = `
 [INFORMAÇÕES DO CLIENTE ASSOCIADO]
 Nome: ${client.name}
-Empresa: ${client.company || 'Não informado'}
-Setor: ${client.sector || 'Não informado'}
-Website: ${client.website_url || 'Não informado'}
+Empresa: ${client.company || "Não informado"}
+Setor: ${client.sector || "Não informado"}
+Website: ${client.website_url || "Não informado"}
 
 [BRIEFING]
-Público-alvo: ${client.target_audience || 'Não definido'}
-Produto/Serviço: ${client.product_name || 'Não definido'}
-Tom de voz: ${client.voice_tone || 'Não definido'}
-Objetivos: ${client.objectives || 'Não definido'}
+Público-alvo: ${client.target_audience || "Não definido"}
+Produto/Serviço: ${client.product_name || "Não definido"}
+Tom de voz: ${client.voice_tone || "Não definido"}
+Objetivos: ${client.objectives || "Não definido"}
 
-${client.ai_briefing ? `\n[BRIEFING DETALHADO]\n${client.ai_briefing}\n` : ''}
+${client.ai_briefing ? `\n[BRIEFING DETALHADO]\n${client.ai_briefing}\n` : ""}
 
 [CAMPANHAS ATIVAS]
 Total de campanhas ativas: ${campaigns?.length || 0}
-${campaigns?.map(c => `
+${
+  campaigns
+    ?.map(
+      (c) => `
 - ${c.name}
   Gasto: R$ ${c.spend?.toFixed(2) || 0}
   CPC: R$ ${c.cpc?.toFixed(2) || 0}
   CTR: ${c.ctr?.toFixed(2) || 0}%
   Conversões: ${c.conversions || 0}
   CPA: R$ ${c.cpa?.toFixed(2) || 0}
-`).join('\n') || 'Nenhuma campanha ativa'}
+`,
+    )
+    .join("\n") || "Nenhuma campanha ativa"
+}
 
 [STATUS DA CONTA]
-Status: ${client.status || 'Não definido'}
-Budget Mensal: R$ ${client.monthly_budget || 'Não definido'}
+Status: ${client.status || "Não definido"}
+Budget Mensal: R$ ${client.monthly_budget || "Não definido"}
 Leads Gerados: ${client.leads_generated || 0}
-Última Sincronização: ${client.last_sync_at ? new Date(client.last_sync_at).toLocaleString('pt-BR') : 'Nunca'}
+Última Sincronização: ${client.last_sync_at ? new Date(client.last_sync_at).toLocaleString("pt-BR") : "Nunca"}
 `;
       }
     }
 
     // Save user message
     const { error: userMsgError } = await supabaseClient
-      .from('ia_agent_messages')
+      .from("ia_agent_messages")
       .insert({
         conversation_id: conversationId,
-        role: 'user',
-        content: message
+        role: "user",
+        content: message,
       });
 
     if (userMsgError) throw userMsgError;
 
     // Fetch message history (limit to last 30 messages to avoid polluted context)
     const { data: allMessages } = await supabaseClient
-      .from('ia_agent_messages')
-      .select('role, content')
-      .eq('conversation_id', conversationId)
-      .order('created_at', { ascending: false })
+      .from("ia_agent_messages")
+      .select("role, content")
+      .eq("conversation_id", conversationId)
+      .order("created_at", { ascending: false })
       .limit(30);
-    
+
     // Reverse to get chronological order
     const previousMessages = allMessages?.reverse() || [];
 
@@ -598,56 +783,83 @@ Leads Gerados: ${client.leads_generated || 0}
     const tools = buildToolsFromSkills(enabledSkills, hasFixedClient);
 
     // Build skill instructions for the system prompt
-    const clientLookupInstruction = !hasFixedClient && enabledSkills.length > 0
-      ? `\n- IMPORTANTE: Quando uma skill precisar de um cliente e nenhum cliente foi definido, use a ferramenta _lookup_client para buscar o cliente pelo nome. Se o usuário não informou qual cliente, PERGUNTE antes de executar a skill. Após encontrar o cliente, passe o client_id dele nas chamadas subsequentes.`
-      : '';
+    const clientLookupInstruction =
+      !hasFixedClient && enabledSkills.length > 0
+        ? `\n- IMPORTANTE: Quando uma skill precisar de um cliente e nenhum cliente foi definido, use a ferramenta _lookup_client para buscar o cliente pelo nome. Se o usuário não informou qual cliente, PERGUNTE antes de executar a skill. Após encontrar o cliente, passe o client_id dele nas chamadas subsequentes.`
+        : "";
 
-    const skillInstructions = enabledSkills.length > 0
-      ? `\n\n[SKILLS DISPONÍVEIS]
+    const skillInstructions =
+      enabledSkills.length > 0
+        ? `\n\n[SKILLS DISPONÍVEIS]
 Você tem acesso a ${enabledSkills.length} skills que pode executar quando o usuário pedir. Use-as chamando as funções disponíveis.
 As skills serão executadas automaticamente e você receberá o resultado para formular sua resposta.${clientLookupInstruction}
 `
-      : '';
+        : "";
 
     // Get current date/time in São Paulo timezone (UTC-3)
     const nowUTC = new Date();
     const spOffset = -3 * 60 * 60 * 1000; // UTC-3
     const nowSPDate = new Date(nowUTC.getTime() + spOffset);
     const year = nowSPDate.getUTCFullYear();
-    const month = String(nowSPDate.getUTCMonth() + 1).padStart(2, '0');
-    const day = String(nowSPDate.getUTCDate()).padStart(2, '0');
-    const hours = String(nowSPDate.getUTCHours()).padStart(2, '0');
-    const minutes = String(nowSPDate.getUTCMinutes()).padStart(2, '0');
+    const month = String(nowSPDate.getUTCMonth() + 1).padStart(2, "0");
+    const day = String(nowSPDate.getUTCDate()).padStart(2, "0");
+    const hours = String(nowSPDate.getUTCHours()).padStart(2, "0");
+    const minutes = String(nowSPDate.getUTCMinutes()).padStart(2, "0");
     const isoDateSP = `${year}-${month}-${day}`;
     const timeSP = `${hours}:${minutes}`;
-    const weekdays = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'];
-    const months = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+    const weekdays = [
+      "domingo",
+      "segunda-feira",
+      "terça-feira",
+      "quarta-feira",
+      "quinta-feira",
+      "sexta-feira",
+      "sábado",
+    ];
+    const months = [
+      "janeiro",
+      "fevereiro",
+      "março",
+      "abril",
+      "maio",
+      "junho",
+      "julho",
+      "agosto",
+      "setembro",
+      "outubro",
+      "novembro",
+      "dezembro",
+    ];
     const todaySP = `${weekdays[nowSPDate.getUTCDay()]}, ${parseInt(day)} de ${months[nowSPDate.getUTCMonth()]} de ${year}`;
-    console.log(`[ia-agent-chat] Current SP date: ${isoDateSP} ${timeSP}, todaySP: ${todaySP}`);
+    console.log(
+      `[ia-agent-chat] Current SP date: ${isoDateSP} ${timeSP}, todaySP: ${todaySP}`,
+    );
 
     // Build enriched system prompt - date at beginning for maximum visibility
     const dateBlock = `[SISTEMA - DATA ATUAL: ${isoDateSP}]
 A data e hora EXATA de agora é: ${todaySP}, ${timeSP} (horário de Brasília / UTC-3).
 Quando o usuário disser "hoje", a data é ${isoDateSP}. NUNCA invente ou adivinhe a data.`;
 
-    const outputInstructions = agent.output_instructions ? `\n\n[INSTRUÇÕES DE SAÍDA / OUTPUT]\n${agent.output_instructions}\nSempre siga estas instruções ao formatar sua resposta final.\n` : '';
+    const outputInstructions = agent.output_instructions
+      ? `\n\n[INSTRUÇÕES DE SAÍDA / OUTPUT]\n${agent.output_instructions}\nSempre siga estas instruções ao formatar sua resposta final.\n`
+      : "";
 
     const systemPrompt = `${dateBlock}
 
 ${agent.prompt_base}
 
-${agent.additional_instructions || ''}
+${agent.additional_instructions || ""}
 
-${knowledgeContext ? `\n\n[BIBLIOTECA DE CONHECIMENTO]\n${knowledgeContext}\n` : ''}
+${knowledgeContext ? `\n\n[BIBLIOTECA DE CONHECIMENTO]\n${knowledgeContext}\n` : ""}
 
-${clientContext ? `\n\n${clientContext}\n` : ''}
+${clientContext ? `\n\n${clientContext}\n` : ""}
 ${skillInstructions}
 ${outputInstructions}
 
 INSTRUÇÕES IMPORTANTES:
 - Use as informações da biblioteca de conhecimento quando relevante
-${agent.client_id ? '- Use os dados do cliente para contextualizar suas respostas' : ''}
-${agent.client_id ? '- Mencione métricas específicas quando pertinente' : ''}
+${agent.client_id ? "- Use os dados do cliente para contextualizar suas respostas" : ""}
+${agent.client_id ? "- Mencione métricas específicas quando pertinente" : ""}
 - Seja preciso e baseie suas respostas nos dados fornecidos
 - Seja DIRETO e CONCISO nas respostas. Evite textos longos e repetitivos
 - Não repita informações que o usuário já sabe
@@ -667,15 +879,17 @@ REGRA CRÍTICA DE AGENDAMENTO:
 `;
 
     const aiMessages = [
-      { role: 'system', content: systemPrompt },
-      ...(previousMessages || []).map(msg => ({
+      { role: "system", content: systemPrompt },
+      ...(previousMessages || []).map((msg) => ({
         role: msg.role,
-        content: msg.content
-      }))
+        content: msg.content,
+      })),
     ];
 
     // Get user info for context
-    const { data: { user } } = await supabaseClient.auth.getUser();
+    const {
+      data: { user },
+    } = await supabaseClient.auth.getUser();
 
     const assistantMessage = await chatWithToolCalling(
       aiMessages,
@@ -686,45 +900,48 @@ REGRA CRÍTICA DE AGENDAMENTO:
         company_id: agent.company_id,
         user_id: user?.id,
       },
-      agent.model || 'google/gemini-2.5-flash'
+      agent.model || "google/gemini-2.5-flash",
     );
 
     // Save assistant response
     const { error: assistantMsgError } = await supabaseClient
-      .from('ia_agent_messages')
+      .from("ia_agent_messages")
       .insert({
         conversation_id: conversationId,
-        role: 'assistant',
-        content: assistantMessage
+        role: "assistant",
+        content: assistantMessage,
       });
 
     if (assistantMsgError) throw assistantMsgError;
 
     // Update conversation title if first message
     if (previousMessages?.length === 1) {
-      const conversationTitle = message.slice(0, 50) + (message.length > 50 ? '...' : '');
+      const conversationTitle =
+        message.slice(0, 50) + (message.length > 50 ? "..." : "");
       await supabaseClient
-        .from('ia_agent_conversations')
+        .from("ia_agent_conversations")
         .update({ title: conversationTitle })
-        .eq('id', conversationId);
+        .eq("id", conversationId);
     }
 
     // Update conversation timestamp
     await supabaseClient
-      .from('ia_agent_conversations')
+      .from("ia_agent_conversations")
       .update({ updated_at: new Date().toISOString() })
-      .eq('id', conversationId);
+      .eq("id", conversationId);
 
     return new Response(
       JSON.stringify({ success: true, response: assistantMessage }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
-
   } catch (error) {
-    console.error('Error in ia-agent-chat:', error);
+    console.error("Error in ia-agent-chat:", error);
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 });

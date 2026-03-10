@@ -11,7 +11,7 @@ Plataforma SaaS de automacao de marketing e gestao de trafego em Portugues. Gere
 - **State**: TanStack React Query (servidor) + React Context (global)
 - **Routing**: React Router DOM v6 com route guards por permissao
 - **Forms**: React Hook Form + Zod
-- **Deploy**: Lovable (frontend) + Supabase (backend)
+- **Deploy**: Vercel (frontend) + Supabase (backend)
 
 ## Diretrizes de codigo
 

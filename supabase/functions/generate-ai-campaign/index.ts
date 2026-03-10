@@ -3,7 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 interface Audience {
@@ -43,9 +44,9 @@ serve(async (req) => {
   }
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
+    if (!OPENROUTER_API_KEY) {
+      throw new Error("OPENROUTER_API_KEY is not configured");
     }
 
     const body: RequestBody = await req.json();
@@ -69,17 +70,21 @@ serve(async (req) => {
     if (!briefing) {
       return new Response(
         JSON.stringify({ success: false, error: "Briefing não disponível" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
     // Use the available budget (monthlyBudget is already the remaining amount)
     // Calculate daily budget from available monthly budget (divide by 30 days)
-    const suggestedDailyBudget = monthlyBudget > 0 
-      ? Math.round(monthlyBudget / 30) 
-      : 10; // Minimum fallback
+    const suggestedDailyBudget =
+      monthlyBudget > 0 ? Math.round(monthlyBudget / 30) : 10; // Minimum fallback
 
-    console.log(`Budget calculation: Available=${monthlyBudget}, CurrentSpend=${currentSpend}, TotalMonthly=${totalMonthlyBudget}, SuggestedDaily=${suggestedDailyBudget}`);
+    console.log(
+      `Budget calculation: Available=${monthlyBudget}, CurrentSpend=${currentSpend}, TotalMonthly=${totalMonthlyBudget}, SuggestedDaily=${suggestedDailyBudget}`,
+    );
 
     // Build the prompt with custom instructions if provided
     const systemPrompt = `Você é um especialista em marketing digital e Meta Ads com vasta experiência em criar campanhas de alta performance. Seu objetivo é analisar o briefing do cliente e gerar uma campanha completa e otimizada.
@@ -93,14 +98,22 @@ REGRAS IMPORTANTES:
 6. Mantenha textos dentro dos limites: título (40 chars), texto principal (125 chars recomendado, max 500)
 7. Se houver pixel disponível, sempre use
 8. Escolha o evento de conversão adequado ao objetivo
-${customCopyPrompt ? `
+${
+  customCopyPrompt
+    ? `
 INSTRUÇÕES ESPECÍFICAS DO USUÁRIO PARA TEXTOS/COPY:
 ${customCopyPrompt}
-(Aplique essas instruções aos títulos, textos principais e descrições dos criativos)` : ''}
-${customImagePrompt ? `
+(Aplique essas instruções aos títulos, textos principais e descrições dos criativos)`
+    : ""
+}
+${
+  customImagePrompt
+    ? `
 INSTRUÇÕES ESPECÍFICAS DO USUÁRIO PARA IMAGENS:
 ${customImagePrompt}
-(Use essas instruções ao gerar o imagePrompt)` : ''}`;
+(Use essas instruções ao gerar o imagePrompt)`
+    : ""
+}`;
 
     const userPrompt = `BRIEFING DO CLIENTE:
 ${briefing}
@@ -118,14 +131,20 @@ DADOS ADICIONAIS:
 ${preferredObjective ? `- Objetivo preferido: ${preferredObjective}` : "- Objetivo: A IA deve decidir o melhor"}
 
 PÚBLICOS DISPONÍVEIS PARA INCLUSÃO:
-${availableAudiences.length > 0 
-  ? availableAudiences.map(a => `- ${a.name} (ID: ${a.id}, Tipo: ${a.type || 'custom'})`).join('\n')
-  : "Nenhum público customizado disponível"}
+${
+  availableAudiences.length > 0
+    ? availableAudiences
+        .map((a) => `- ${a.name} (ID: ${a.id}, Tipo: ${a.type || "custom"})`)
+        .join("\n")
+    : "Nenhum público customizado disponível"
+}
 
 PIXELS DISPONÍVEIS:
-${availablePixels.length > 0 
-  ? availablePixels.map(p => `- ${p.name} (ID: ${p.id})`).join('\n')
-  : "Nenhum pixel configurado"}
+${
+  availablePixels.length > 0
+    ? availablePixels.map((p) => `- ${p.name} (ID: ${p.id})`).join("\n")
+    : "Nenhum pixel configurado"
+}
 
 Gere uma campanha completa no seguinte formato JSON:
 
@@ -148,7 +167,9 @@ Gere uma campanha completa no seguinte formato JSON:
     "conversionEvent": "PURCHASE | LEAD | COMPLETE_REGISTRATION | ADD_TO_CART | INITIATE_CHECKOUT | SEARCH | VIEW_CONTENT | CONTACT | CUSTOMIZE_PRODUCT | DONATE | FIND_LOCATION | SCHEDULE | START_TRIAL | SUBMIT_APPLICATION | SUBSCRIBE"
   },
   "creatives": [
-    ${Array.from({ length: creativesCount }, (_, i) => `{
+    ${Array.from(
+      { length: creativesCount },
+      (_, i) => `{
       "body": "Texto principal do anúncio ${i + 1} (máximo 500 caracteres, ideal 125)",
       "title": "Título chamativo ${i + 1} (máximo 40 caracteres)",
       "description": "Descrição complementar ${i + 1}",
@@ -158,9 +179,10 @@ Gere uma campanha completa no seguinte formato JSON:
         "utm_medium": "paid",
         "utm_campaign": "nome-da-campanha"
       }
-    }`).join(',\n    ')}
+    }`,
+    ).join(",\n    ")}
   ],
-  "imagePrompt": "Descrição detalhada para gerar uma imagem de anúncio profissional${customImagePrompt ? ` seguindo as instruções do usuário: ${customImagePrompt}` : ''}"
+  "imagePrompt": "Descrição detalhada para gerar uma imagem de anúncio profissional${customImagePrompt ? ` seguindo as instruções do usuário: ${customImagePrompt}` : ""}"
 }
 
 IMPORTANTE: 
@@ -170,43 +192,59 @@ IMPORTANTE:
 - Use IDs reais dos públicos e pixels fornecidos
 - Para genders: [0] = todos, [1] = masculino, [2] = feminino, [1,2] = ambos especificamente
 - Escolha o conversionEvent baseado no objetivo da campanha
-- O imagePrompt deve descrever uma imagem de anúncio profissional que represente o produto/serviço${customImagePrompt ? ' E seguir as instruções específicas do usuário' : ''}
+- O imagePrompt deve descrever uma imagem de anúncio profissional que represente o produto/serviço${customImagePrompt ? " E seguir as instruções específicas do usuário" : ""}
 - GERE EXATAMENTE ${creativesCount} criativos diferentes no array "creatives", cada um com texto e título únicos`;
 
-    console.log("Calling Lovable AI for campaign generation...");
+    console.log("Calling OpenRouter AI for campaign generation...");
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
+    const aiResponse = await fetch(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+        }),
       },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-      }),
-    });
+    );
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
       console.error("AI API error:", aiResponse.status, errorText);
-      
+
       if (aiResponse.status === 429) {
         return new Response(
-          JSON.stringify({ success: false, error: "Limite de requisições excedido. Tente novamente em alguns minutos." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({
+            success: false,
+            error:
+              "Limite de requisições excedido. Tente novamente em alguns minutos.",
+          }),
+          {
+            status: 429,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
         );
       }
       if (aiResponse.status === 402) {
         return new Response(
-          JSON.stringify({ success: false, error: "Créditos insuficientes. Adicione créditos ao workspace." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({
+            success: false,
+            error: "Créditos insuficientes. Adicione créditos ao workspace.",
+          }),
+          {
+            status: 402,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
         );
       }
-      
+
       throw new Error(`AI API error: ${aiResponse.status}`);
     }
 
@@ -221,26 +259,32 @@ IMPORTANTE:
 
     // Extract JSON from the response (handle markdown code blocks)
     let jsonString = content.trim();
-    
+
     // Try to extract from markdown code blocks
     const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
     if (jsonMatch) {
       jsonString = jsonMatch[1].trim();
     }
-    
+
     // If still starts with ```, try to clean it up
-    if (jsonString.startsWith('```')) {
-      jsonString = jsonString.replace(/^```(?:json)?[\s\n]*/, '').replace(/```$/, '').trim();
+    if (jsonString.startsWith("```")) {
+      jsonString = jsonString
+        .replace(/^```(?:json)?[\s\n]*/, "")
+        .replace(/```$/, "")
+        .trim();
     }
-    
+
     // Try to find JSON object boundaries
-    const firstBrace = jsonString.indexOf('{');
-    const lastBrace = jsonString.lastIndexOf('}');
+    const firstBrace = jsonString.indexOf("{");
+    const lastBrace = jsonString.lastIndexOf("}");
     if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
       jsonString = jsonString.substring(firstBrace, lastBrace + 1);
     }
 
-    console.log("Cleaned JSON string (first 500 chars):", jsonString.substring(0, 500));
+    console.log(
+      "Cleaned JSON string (first 500 chars):",
+      jsonString.substring(0, 500),
+    );
 
     let parsedData;
     try {
@@ -253,39 +297,49 @@ IMPORTANTE:
 
     // Transform to the expected format
     // Handle both old format (single creative) and new format (creatives array)
-    const creativesArray = parsedData.creatives || (parsedData.creative ? [parsedData.creative] : []);
-    
-    const generatedCreatives = creativesArray.length > 0 
-      ? creativesArray.map((creative: any) => ({
-          id: crypto.randomUUID(),
-          type: "IMAGE" as const,
-          mediaUrls: [],
-          body: creative?.body || "",
-          title: creative?.title || "",
-          description: creative?.description || "",
-          linkUrl: websiteUrl || "",
-          callToAction: creative?.callToAction || "LEARN_MORE",
-          urlParameters: creative?.urlParameters || {
-            utm_source: "facebook",
-            utm_medium: "paid",
-            utm_campaign: parsedData.campaign?.name?.toLowerCase().replace(/\s+/g, "-") || "campanha-ia",
-          },
-        }))
-      : [{
-          id: crypto.randomUUID(),
-          type: "IMAGE" as const,
-          mediaUrls: [],
-          body: "",
-          title: "",
-          description: "",
-          linkUrl: websiteUrl || "",
-          callToAction: "LEARN_MORE",
-          urlParameters: {
-            utm_source: "facebook",
-            utm_medium: "paid",
-            utm_campaign: parsedData.campaign?.name?.toLowerCase().replace(/\s+/g, "-") || "campanha-ia",
-          },
-        }];
+    const creativesArray =
+      parsedData.creatives ||
+      (parsedData.creative ? [parsedData.creative] : []);
+
+    const generatedCreatives =
+      creativesArray.length > 0
+        ? creativesArray.map((creative: any) => ({
+            id: crypto.randomUUID(),
+            type: "IMAGE" as const,
+            mediaUrls: [],
+            body: creative?.body || "",
+            title: creative?.title || "",
+            description: creative?.description || "",
+            linkUrl: websiteUrl || "",
+            callToAction: creative?.callToAction || "LEARN_MORE",
+            urlParameters: creative?.urlParameters || {
+              utm_source: "facebook",
+              utm_medium: "paid",
+              utm_campaign:
+                parsedData.campaign?.name?.toLowerCase().replace(/\s+/g, "-") ||
+                "campanha-ia",
+            },
+          }))
+        : [
+            {
+              id: crypto.randomUUID(),
+              type: "IMAGE" as const,
+              mediaUrls: [],
+              body: "",
+              title: "",
+              description: "",
+              linkUrl: websiteUrl || "",
+              callToAction: "LEARN_MORE",
+              urlParameters: {
+                utm_source: "facebook",
+                utm_medium: "paid",
+                utm_campaign:
+                  parsedData.campaign?.name
+                    ?.toLowerCase()
+                    .replace(/\s+/g, "-") || "campanha-ia",
+              },
+            },
+          ];
 
     const generatedData = {
       campaign: {
@@ -304,14 +358,17 @@ IMPORTANTE:
           ageMin: parsedData.adSet?.ageMin || 18,
           ageMax: parsedData.adSet?.ageMax || 65,
           genders: parsedData.adSet?.genders || [0],
-          pixelId: parsedData.adSet?.pixelId || (availablePixels[0]?.id) || undefined,
+          pixelId:
+            parsedData.adSet?.pixelId || availablePixels[0]?.id || undefined,
           conversionEvent: parsedData.adSet?.conversionEvent || undefined,
           creatives: generatedCreatives,
         },
       ],
     };
 
-    console.log(`Campaign generated successfully with ${generatedCreatives.length} creatives`);
+    console.log(
+      `Campaign generated successfully with ${generatedCreatives.length} creatives`,
+    );
 
     return new Response(
       JSON.stringify({
@@ -319,9 +376,8 @@ IMPORTANTE:
         data: generatedData,
         imagePrompt: parsedData.imagePrompt,
       }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
-
   } catch (error) {
     console.error("Error in generate-ai-campaign:", error);
     return new Response(
@@ -329,7 +385,10 @@ IMPORTANTE:
         success: false,
         error: error instanceof Error ? error.message : "Erro desconhecido",
       }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 });

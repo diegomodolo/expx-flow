@@ -1,51 +1,52 @@
 // Deno.serve is available natively in modern Deno
 
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const openAIApiKey = Deno.env.get("OPENAI_API_KEY");
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { 
+    const {
       theme,
-      creativeType, 
-      clientBriefing, 
-      clientSector, 
-      targetAudience, 
-      voiceTone 
+      creativeType,
+      clientBriefing,
+      clientSector,
+      targetAudience,
+      voiceTone,
     } = await req.json();
 
-    console.log('Generating creative context for theme:', theme);
+    console.log("Generating creative context for theme:", theme);
 
     const creativeTypeNames: Record<string, string> = {
-      'instagram-feed': 'Post para Feed do Instagram',
-      'instagram-stories': 'Stories do Instagram',
-      'facebook-cover': 'Capa de Facebook',
-      'youtube-cover': 'Capa de YouTube',
-      'youtube-thumbnail': 'Thumbnail para vídeo do YouTube',
-      'facebook-ad': 'Criativo para Anúncio do Facebook',
-      'email-banner': 'Banner para E-mail',
-      'website-banner': 'Banner para Site',
-      'whatsapp-business': 'Imagem para WhatsApp Business',
-      'pinterest-pin': 'Pin do Pinterest',
-      'reels-cover': 'Capa para Reels',
-      'tiktok-cover': 'Capa para TikTok',
-      'linkedin-post': 'Post do LinkedIn',
-      'carousel-post': 'Carrossel',
-      'remarketing-ad': 'Criativo para Remarketing',
-      'awareness-campaign': 'Campanha de Conscientização',
-      'institutional-post': 'Post Institucional',
-      'event-promotion': 'Divulgação de Evento',
-      'seasonal-post': 'Post Comemorativo',
-      'product-mockup': 'Mockup de Produto',
+      "instagram-feed": "Post para Feed do Instagram",
+      "instagram-stories": "Stories do Instagram",
+      "facebook-cover": "Capa de Facebook",
+      "youtube-cover": "Capa de YouTube",
+      "youtube-thumbnail": "Thumbnail para vídeo do YouTube",
+      "facebook-ad": "Criativo para Anúncio do Facebook",
+      "email-banner": "Banner para E-mail",
+      "website-banner": "Banner para Site",
+      "whatsapp-business": "Imagem para WhatsApp Business",
+      "pinterest-pin": "Pin do Pinterest",
+      "reels-cover": "Capa para Reels",
+      "tiktok-cover": "Capa para TikTok",
+      "linkedin-post": "Post do LinkedIn",
+      "carousel-post": "Carrossel",
+      "remarketing-ad": "Criativo para Remarketing",
+      "awareness-campaign": "Campanha de Conscientização",
+      "institutional-post": "Post Institucional",
+      "event-promotion": "Divulgação de Evento",
+      "seasonal-post": "Post Comemorativo",
+      "product-mockup": "Mockup de Produto",
     };
 
     const creativeTypeName = creativeTypeNames[creativeType] || creativeType;
@@ -60,10 +61,10 @@ TEMA ESCOLHIDO: "${theme}"
 CONTEXTO DO CLIENTE:
 - Tipo de criativo: ${creativeTypeName}
 - Setor: ${clientSector}
-- Tom de voz: ${voiceTone || 'Não especificado'}
-- Público-alvo: ${targetAudience || 'Não especificado'}
+- Tom de voz: ${voiceTone || "Não especificado"}
+- Público-alvo: ${targetAudience || "Não especificado"}
 
-${clientBriefing ? `BRIEFING DO CLIENTE:\n${clientBriefing}` : ''}
+${clientBriefing ? `BRIEFING DO CLIENTE:\n${clientBriefing}` : ""}
 
 INSTRUÇÕES:
 1. Crie um título/headline impactante baseado no tema
@@ -93,20 +94,21 @@ Retorne EXATAMENTE neste formato JSON:
 
 Garanta que o JSON seja válido e todos os campos estejam preenchidos.`;
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
+        Authorization: `Bearer ${openAIApiKey}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: 'gpt-4.1-mini-2025-04-14',
+        model: "openai/gpt-4.1-mini-2025-04-14",
         messages: [
-          { 
-            role: 'system', 
-            content: 'Você é um especialista em marketing digital. Sempre responda em português brasileiro com JSON válido.' 
+          {
+            role: "system",
+            content:
+              "Você é um especialista em marketing digital. Sempre responda em português brasileiro com JSON válido.",
           },
-          { role: 'user', content: prompt }
+          { role: "user", content: prompt },
         ],
         temperature: 0.7,
         max_tokens: 1500,
@@ -124,47 +126,53 @@ Garanta que o JSON seja válido e todos os campos estejam preenchidos.`;
     let context;
     try {
       let cleanContent = content.trim();
-      
+
       // Remove markdown code blocks if present
-      if (cleanContent.startsWith('```json')) {
-        cleanContent = cleanContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-      } else if (cleanContent.startsWith('```')) {
-        cleanContent = cleanContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
+      if (cleanContent.startsWith("```json")) {
+        cleanContent = cleanContent
+          .replace(/^```json\s*/, "")
+          .replace(/\s*```$/, "");
+      } else if (cleanContent.startsWith("```")) {
+        cleanContent = cleanContent
+          .replace(/^```\s*/, "")
+          .replace(/\s*```$/, "");
       }
-      
+
       const parsed = JSON.parse(cleanContent);
       context = parsed.context;
     } catch (error) {
-      console.error('Error parsing OpenAI response:', content);
-      throw new Error('Invalid JSON response from AI');
+      console.error("Error parsing OpenAI response:", content);
+      throw new Error("Invalid JSON response from AI");
     }
 
     // Validate the response structure
-    if (!context || typeof context !== 'object') {
-      throw new Error('Invalid context format');
+    if (!context || typeof context !== "object") {
+      throw new Error("Invalid context format");
     }
 
-    console.log('Generated context successfully');
+    console.log("Generated context successfully");
 
     return new Response(JSON.stringify({ context }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-
   } catch (error: any) {
-    console.error('Error in generate-creative-context function:', error);
-    return new Response(JSON.stringify({ 
-      error: error.message,
-      context: {
-        title: "",
-        description: "",
-        objective: "",
-        targetAudience: "",
-        copy: "",
-        caption: ""
-      }
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    console.error("Error in generate-creative-context function:", error);
+    return new Response(
+      JSON.stringify({
+        error: error.message,
+        context: {
+          title: "",
+          description: "",
+          objective: "",
+          targetAudience: "",
+          copy: "",
+          caption: "",
+        },
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   }
 });

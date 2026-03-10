@@ -2,8 +2,9 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 interface ScoreBreakdown {
@@ -21,42 +22,42 @@ interface ScoreResult {
 }
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, supabaseKey);
-  const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+  const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
 
   try {
     const { ad_id } = await req.json();
 
     if (!ad_id) {
-      throw new Error('ad_id is required');
+      throw new Error("ad_id is required");
     }
 
-    console.log('[score-generated-ad] Scoring ad:', ad_id);
+    console.log("[score-generated-ad] Scoring ad:", ad_id);
 
     // Fetch the ad from the queue
     const { data: ad, error: fetchError } = await supabase
-      .from('ad_generation_queue')
-      .select('*')
-      .eq('id', ad_id)
+      .from("ad_generation_queue")
+      .select("*")
+      .eq("id", ad_id)
       .single();
 
     if (fetchError || !ad) {
-      console.error('[score-generated-ad] Ad not found:', fetchError);
-      throw new Error('Ad not found');
+      console.error("[score-generated-ad] Ad not found:", fetchError);
+      throw new Error("Ad not found");
     }
 
     const content = ad.generated_content as any;
-    
-    console.log('[score-generated-ad] Ad content:', {
+
+    console.log("[score-generated-ad] Ad content:", {
       headline: content?.headline?.substring(0, 50),
       hasImage: !!content?.image_url,
-      hasCta: !!content?.cta
+      hasCta: !!content?.cta,
     });
 
     // Build the scoring prompt
@@ -65,11 +66,11 @@ serve(async (req) => {
 Analise o seguinte anúncio e dê uma pontuação de 0 a 10 baseada nos critérios abaixo:
 
 === ANÚNCIO A AVALIAR ===
-Headline: ${content?.headline || 'Não informado'}
-Texto Principal (Body): ${content?.body || 'Não informado'}
-Call to Action (CTA): ${content?.cta || 'Não informado'}
-Conceito: ${ad.concept_description || content?.concept || 'Não informado'}
-${content?.image_url ? `Imagem: ${content.image_url}` : 'Sem imagem gerada ainda'}
+Headline: ${content?.headline || "Não informado"}
+Texto Principal (Body): ${content?.body || "Não informado"}
+Call to Action (CTA): ${content?.cta || "Não informado"}
+Conceito: ${ad.concept_description || content?.concept || "Não informado"}
+${content?.image_url ? `Imagem: ${content.image_url}` : "Sem imagem gerada ainda"}
 
 === CRITÉRIOS DE AVALIAÇÃO ===
 
@@ -110,81 +111,114 @@ ${content?.image_url ? `Imagem: ${content.image_url}` : 'Sem imagem gerada ainda
 
 Responda usando a função score_ad.`;
 
-    // Call Lovable AI with tool calling for structured output
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'user', content: scoringPrompt }
-        ],
-        tools: [
-          {
-            type: 'function',
-            function: {
-              name: 'score_ad',
-              description: 'Retorna a pontuação detalhada do anúncio',
-              parameters: {
-                type: 'object',
-                properties: {
-                  overall_score: {
-                    type: 'number',
-                    description: 'Nota final de 0 a 10 (pode ter decimal, ex: 7.5)'
-                  },
-                  breakdown: {
-                    type: 'object',
-                    properties: {
-                      visual: { type: 'number', description: 'Nota de 0 a 10 para Visual' },
-                      copy: { type: 'number', description: 'Nota de 0 a 10 para Copywriting' },
-                      headline_cta: { type: 'number', description: 'Nota de 0 a 10 para Headline/CTA' },
-                      conformidade: { type: 'number', description: 'Nota de 0 a 10 para Conformidade Técnica' }
+    // Call OpenRouter AI with tool calling for structured output
+    const response = await fetch(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [{ role: "user", content: scoringPrompt }],
+          tools: [
+            {
+              type: "function",
+              function: {
+                name: "score_ad",
+                description: "Retorna a pontuação detalhada do anúncio",
+                parameters: {
+                  type: "object",
+                  properties: {
+                    overall_score: {
+                      type: "number",
+                      description:
+                        "Nota final de 0 a 10 (pode ter decimal, ex: 7.5)",
                     },
-                    required: ['visual', 'copy', 'headline_cta', 'conformidade']
+                    breakdown: {
+                      type: "object",
+                      properties: {
+                        visual: {
+                          type: "number",
+                          description: "Nota de 0 a 10 para Visual",
+                        },
+                        copy: {
+                          type: "number",
+                          description: "Nota de 0 a 10 para Copywriting",
+                        },
+                        headline_cta: {
+                          type: "number",
+                          description: "Nota de 0 a 10 para Headline/CTA",
+                        },
+                        conformidade: {
+                          type: "number",
+                          description:
+                            "Nota de 0 a 10 para Conformidade Técnica",
+                        },
+                      },
+                      required: [
+                        "visual",
+                        "copy",
+                        "headline_cta",
+                        "conformidade",
+                      ],
+                    },
+                    explanation: {
+                      type: "string",
+                      description:
+                        "Explicação detalhada da nota em 2-3 frases, destacando pontos fortes e fracos",
+                    },
+                    flags: {
+                      type: "array",
+                      items: { type: "string" },
+                      description:
+                        "Lista de alertas ou avisos sobre o anúncio (pode ser vazia)",
+                    },
                   },
-                  explanation: {
-                    type: 'string',
-                    description: 'Explicação detalhada da nota em 2-3 frases, destacando pontos fortes e fracos'
-                  },
-                  flags: {
-                    type: 'array',
-                    items: { type: 'string' },
-                    description: 'Lista de alertas ou avisos sobre o anúncio (pode ser vazia)'
-                  }
+                  required: [
+                    "overall_score",
+                    "breakdown",
+                    "explanation",
+                    "flags",
+                  ],
                 },
-                required: ['overall_score', 'breakdown', 'explanation', 'flags']
-              }
-            }
-          }
-        ],
-        tool_choice: { type: 'function', function: { name: 'score_ad' } }
-      }),
-    });
+              },
+            },
+          ],
+          tool_choice: { type: "function", function: { name: "score_ad" } },
+        }),
+      },
+    );
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('[score-generated-ad] AI error:', errorText);
-      throw new Error('Failed to get AI scoring');
+      console.error("[score-generated-ad] AI error:", errorText);
+      throw new Error("Failed to get AI scoring");
     }
 
     const aiData = await response.json();
-    console.log('[score-generated-ad] AI response:', JSON.stringify(aiData).substring(0, 500));
+    console.log(
+      "[score-generated-ad] AI response:",
+      JSON.stringify(aiData).substring(0, 500),
+    );
 
     // Extract the tool call result
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall || toolCall.function.name !== 'score_ad') {
-      console.error('[score-generated-ad] Invalid tool call response');
-      throw new Error('Invalid AI response format');
+    if (!toolCall || toolCall.function.name !== "score_ad") {
+      console.error("[score-generated-ad] Invalid tool call response");
+      throw new Error("Invalid AI response format");
     }
 
     const scoreResult: ScoreResult = JSON.parse(toolCall.function.arguments);
-    console.log('[score-generated-ad] Score result:', scoreResult);
+    console.log("[score-generated-ad] Score result:", scoreResult);
 
     // Normalize quality_score to fit NUMERIC(3,2) - max value 9.99
-    const normalizedScore = Math.min(9.99, Math.max(0, scoreResult.overall_score));
+    const normalizedScore = Math.min(
+      9.99,
+      Math.max(0, scoreResult.overall_score),
+    );
     const roundedScore = Math.round(normalizedScore * 100) / 100;
 
     // Update the ad with scoring data
@@ -192,149 +226,197 @@ Responda usando a função score_ad.`;
       ...content,
       score_breakdown: scoreResult.breakdown,
       score_explanation: scoreResult.explanation,
-      score_flags: scoreResult.flags
+      score_flags: scoreResult.flags,
     };
 
     const { error: updateError } = await supabase
-      .from('ad_generation_queue')
+      .from("ad_generation_queue")
       .update({
         quality_score: roundedScore,
-        generated_content: updatedContent
+        generated_content: updatedContent,
       })
-      .eq('id', ad_id);
+      .eq("id", ad_id);
 
     if (updateError) {
-      console.error('[score-generated-ad] Update error:', updateError);
-      throw new Error('Failed to update ad with score');
+      console.error("[score-generated-ad] Update error:", updateError);
+      throw new Error("Failed to update ad with score");
     }
 
-    console.log('[score-generated-ad] Successfully scored ad:', ad_id, 'Score:', roundedScore);
+    console.log(
+      "[score-generated-ad] Successfully scored ad:",
+      ad_id,
+      "Score:",
+      roundedScore,
+    );
 
     // Check if autopilot should publish this ad automatically
     let autopublished = false;
     const { data: schedule } = await supabase
-      .from('ad_generation_schedules')
-      .select('autopilot_enabled, autopilot_min_quality_score, target_campaign_id, target_adset_id, company_id')
-      .eq('client_id', ad.client_id)
+      .from("ad_generation_schedules")
+      .select(
+        "autopilot_enabled, autopilot_min_quality_score, target_campaign_id, target_adset_id, company_id",
+      )
+      .eq("client_id", ad.client_id)
       .single();
 
-    if (schedule?.autopilot_enabled && schedule?.target_campaign_id && schedule?.target_adset_id) {
+    if (
+      schedule?.autopilot_enabled &&
+      schedule?.target_campaign_id &&
+      schedule?.target_adset_id
+    ) {
       const minScore = schedule.autopilot_min_quality_score ?? 7.5;
-      
-      console.log('[score-generated-ad] Autopilot check - Score:', roundedScore, 'Min required:', minScore);
-      
+
+      console.log(
+        "[score-generated-ad] Autopilot check - Score:",
+        roundedScore,
+        "Min required:",
+        minScore,
+      );
+
       if (roundedScore >= minScore) {
-        console.log('[score-generated-ad] Autopilot triggered! Publishing ad automatically...');
-        
+        console.log(
+          "[score-generated-ad] Autopilot triggered! Publishing ad automatically...",
+        );
+
         // Buscar o facebook_id do adset configurado
         const { data: adSetData, error: adSetError } = await supabase
-          .from('ad_sets')
-          .select('id, facebook_id, campaign_id')
-          .eq('id', schedule.target_adset_id)
+          .from("ad_sets")
+          .select("id, facebook_id, campaign_id")
+          .eq("id", schedule.target_adset_id)
           .single();
-        
+
         if (adSetError || !adSetData?.facebook_id) {
-          console.error('[score-generated-ad] Target adset does not have Facebook ID:', adSetError?.message || 'facebook_id is null');
+          console.error(
+            "[score-generated-ad] Target adset does not have Facebook ID:",
+            adSetError?.message || "facebook_id is null",
+          );
           // Não publica se o adset não tiver facebook_id
         } else {
           // Buscar o facebook_id da campanha
           const { data: campaignData } = await supabase
-            .from('campaigns')
-            .select('id, facebook_id, name')
-            .eq('id', schedule.target_campaign_id)
+            .from("campaigns")
+            .select("id, facebook_id, name")
+            .eq("id", schedule.target_campaign_id)
             .single();
-          
+
           if (!campaignData?.facebook_id) {
-            console.error('[score-generated-ad] Target campaign does not have Facebook ID');
+            console.error(
+              "[score-generated-ad] Target campaign does not have Facebook ID",
+            );
           } else {
             // Call publish-approved-ads with the correct format
             try {
-              const publishResponse = await fetch(`${supabaseUrl}/functions/v1/publish-approved-ads`, {
-                method: 'POST',
-                headers: {
-                  'Authorization': `Bearer ${supabaseKey}`,
-                  'Content-Type': 'application/json',
+              const publishResponse = await fetch(
+                `${supabaseUrl}/functions/v1/publish-approved-ads`,
+                {
+                  method: "POST",
+                  headers: {
+                    Authorization: `Bearer ${supabaseKey}`,
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    client_id: ad.client_id,
+                    company_id: schedule.company_id || ad.company_id,
+                    ad_id: ad.id, // Singular, formato correto
+                    destinations: [
+                      {
+                        campaignId: schedule.target_campaign_id,
+                        campaignName: campaignData.name || "Autopilot Campaign",
+                        adSetIds: [schedule.target_adset_id], // Array de IDs, formato correto
+                      },
+                    ],
+                  }),
                 },
-                body: JSON.stringify({
-                  client_id: ad.client_id,
-                  company_id: schedule.company_id || ad.company_id,
-                  ad_id: ad.id,  // Singular, formato correto
-                  destinations: [{
-                    campaignId: schedule.target_campaign_id,
-                    campaignName: campaignData.name || 'Autopilot Campaign',
-                    adSetIds: [schedule.target_adset_id]  // Array de IDs, formato correto
-                  }]
-                }),
-              });
-              
+              );
+
               const publishResult = await publishResponse.json();
-              console.log('[score-generated-ad] Publish response:', JSON.stringify(publishResult));
-              
+              console.log(
+                "[score-generated-ad] Publish response:",
+                JSON.stringify(publishResult),
+              );
+
               // Verificar sucesso REAL da publicação
-              if (publishResponse.ok && publishResult.success && publishResult.published > 0) {
+              if (
+                publishResponse.ok &&
+                publishResult.success &&
+                publishResult.published > 0
+              ) {
                 // Extrair o meta_ad_id da resposta
                 const metaAdId = publishResult.results?.[0]?.meta_ad_id || null;
-                
+
                 // Update ad status to published with autopilot note
                 await supabase
-                  .from('ad_generation_queue')
-                  .update({ 
-                    status: 'published',
+                  .from("ad_generation_queue")
+                  .update({
+                    status: "published",
                     published_at: new Date().toISOString(),
                     meta_ad_id: metaAdId,
                     generated_content: {
                       ...updatedContent,
                       autopilot_published: true,
-                      autopilot_note: `Publicado automaticamente via Autopilot (nota ${roundedScore} >= ${minScore})`
-                    }
+                      autopilot_note: `Publicado automaticamente via Autopilot (nota ${roundedScore} >= ${minScore})`,
+                    },
                   })
-                  .eq('id', ad_id);
-                
+                  .eq("id", ad_id);
+
                 autopublished = true;
-                console.log('[score-generated-ad] Ad autopublished successfully! Meta Ad ID:', metaAdId);
+                console.log(
+                  "[score-generated-ad] Ad autopublished successfully! Meta Ad ID:",
+                  metaAdId,
+                );
               } else {
                 // Publicação falhou - NÃO marca como publicado
-                console.error('[score-generated-ad] Autopublish failed - NOT marking as published. Response:', JSON.stringify(publishResult));
-                
+                console.error(
+                  "[score-generated-ad] Autopublish failed - NOT marking as published. Response:",
+                  JSON.stringify(publishResult),
+                );
+
                 // Salvar nota sobre falha no generated_content
                 await supabase
-                  .from('ad_generation_queue')
-                  .update({ 
+                  .from("ad_generation_queue")
+                  .update({
                     generated_content: {
                       ...updatedContent,
                       autopilot_failed: true,
-                      autopilot_error: publishResult.error || 'Falha ao publicar no Meta - verifique os logs'
-                    }
+                      autopilot_error:
+                        publishResult.error ||
+                        "Falha ao publicar no Meta - verifique os logs",
+                    },
                   })
-                  .eq('id', ad_id);
+                  .eq("id", ad_id);
               }
             } catch (publishError) {
-              console.error('[score-generated-ad] Autopublish error:', publishError);
-              
+              console.error(
+                "[score-generated-ad] Autopublish error:",
+                publishError,
+              );
+
               // Salvar erro no generated_content
               await supabase
-                .from('ad_generation_queue')
-                .update({ 
+                .from("ad_generation_queue")
+                .update({
                   generated_content: {
                     ...updatedContent,
                     autopilot_failed: true,
-                    autopilot_error: `Erro de conexão: ${publishError.message}`
-                  }
+                    autopilot_error: `Erro de conexão: ${publishError.message}`,
+                  },
                 })
-                .eq('id', ad_id);
+                .eq("id", ad_id);
             }
           }
         }
       } else {
-        console.log('[score-generated-ad] Score below minimum, not autopublishing');
+        console.log(
+          "[score-generated-ad] Score below minimum, not autopublishing",
+        );
       }
     } else {
       if (!schedule?.autopilot_enabled) {
-        console.log('[score-generated-ad] Autopilot not enabled');
+        console.log("[score-generated-ad] Autopilot not enabled");
       } else if (!schedule?.target_campaign_id) {
-        console.log('[score-generated-ad] No target campaign configured');
+        console.log("[score-generated-ad] No target campaign configured");
       } else if (!schedule?.target_adset_id) {
-        console.log('[score-generated-ad] No target adset configured');
+        console.log("[score-generated-ad] No target adset configured");
       }
     }
 
@@ -346,16 +428,15 @@ Responda usando a função score_ad.`;
         breakdown: scoreResult.breakdown,
         explanation: scoreResult.explanation,
         flags: scoreResult.flags,
-        autopublished
+        autopublished,
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
-
   } catch (error) {
-    console.error('[score-generated-ad] Error:', error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    console.error("[score-generated-ad] Error:", error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });

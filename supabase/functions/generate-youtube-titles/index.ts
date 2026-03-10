@@ -1,35 +1,36 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY')!;
+const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const openAIApiKey = Deno.env.get("OPENAI_API_KEY")!;
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { scriptId, topic, style = 'mixed' } = await req.json();
+    const { scriptId, topic, style = "mixed" } = await req.json();
 
-    console.log('Generating titles for:', topic || 'script');
+    console.log("Generating titles for:", topic || "script");
 
-    let scriptContent = '';
-    let scriptTitle = topic || '';
-    
+    let scriptContent = "";
+    let scriptTitle = topic || "";
+
     // Fetch script if provided
     if (scriptId) {
       const { data: script } = await supabase
-        .from('youtube_scripts')
-        .select('*')
-        .eq('id', scriptId)
+        .from("youtube_scripts")
+        .select("*")
+        .eq("id", scriptId)
         .single();
 
       if (script) {
@@ -39,11 +40,16 @@ Deno.serve(async (req) => {
     }
 
     const stylePrompts: Record<string, string> = {
-      curiosity: 'Foque em gatilhos de curiosidade: segredos, revelações, mistérios, "o que ninguém te conta"',
-      urgency: 'Foque em gatilhos de urgência: "agora", "hoje", "antes que", "não cometa esse erro"',
-      benefit: 'Foque em benefícios claros: resultados, transformações, "como conseguir", números específicos',
-      provocative: 'Foque em provocações: "pare de fazer isso", "nunca mais", "o maior erro"',
-      mixed: 'Use uma variedade de gatilhos: curiosidade, urgência, benefício e provocação',
+      curiosity:
+        'Foque em gatilhos de curiosidade: segredos, revelações, mistérios, "o que ninguém te conta"',
+      urgency:
+        'Foque em gatilhos de urgência: "agora", "hoje", "antes que", "não cometa esse erro"',
+      benefit:
+        'Foque em benefícios claros: resultados, transformações, "como conseguir", números específicos',
+      provocative:
+        'Foque em provocações: "pare de fazer isso", "nunca mais", "o maior erro"',
+      mixed:
+        "Use uma variedade de gatilhos: curiosidade, urgência, benefício e provocação",
     };
 
     const prompt = `Gere 8 títulos altamente engajantes para um vídeo do YouTube.
@@ -51,7 +57,7 @@ Deno.serve(async (req) => {
 TEMA/CONTEXTO:
 ${scriptTitle}
 
-${scriptContent ? `RESUMO DO ROTEIRO:\n${scriptContent.substring(0, 1500)}...` : ''}
+${scriptContent ? `RESUMO DO ROTEIRO:\n${scriptContent.substring(0, 1500)}...` : ""}
 
 ESTILO SOLICITADO:
 ${stylePrompts[style] || stylePrompts.mixed}
@@ -84,21 +90,22 @@ Retorne em formato JSON:
   ]
 }`;
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
+        Authorization: `Bearer ${openAIApiKey}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: 'gpt-4.1-mini-2025-04-14',
+        model: "openai/gpt-4.1-mini-2025-04-14",
         messages: [
           {
-            role: 'system',
-            content: 'Você é especialista em títulos virais para YouTube. Retorne apenas JSON válido.',
+            role: "system",
+            content:
+              "Você é especialista em títulos virais para YouTube. Retorne apenas JSON válido.",
           },
           {
-            role: 'user',
+            role: "user",
             content: prompt,
           },
         ],
@@ -110,8 +117,8 @@ Retorne em formato JSON:
 
     if (!response.ok) {
       const error = await response.json();
-      console.error('OpenAI error:', error);
-      throw new Error('Failed to generate titles');
+      console.error("OpenAI error:", error);
+      throw new Error("Failed to generate titles");
     }
 
     const data = await response.json();
@@ -120,39 +127,44 @@ Retorne em formato JSON:
     // Update script with new titles if provided
     if (scriptId && result.titles) {
       const newTitles = result.titles.map((t: any) => t.title);
-      
+
       const { data: currentScript } = await supabase
-        .from('youtube_scripts')
-        .select('suggested_titles')
-        .eq('id', scriptId)
+        .from("youtube_scripts")
+        .select("suggested_titles")
+        .eq("id", scriptId)
         .single();
 
       const existingTitles = currentScript?.suggested_titles || [];
       const allTitles = [...new Set([...existingTitles, ...newTitles])];
 
       await supabase
-        .from('youtube_scripts')
+        .from("youtube_scripts")
         .update({ suggested_titles: allTitles.slice(0, 20) }) // Keep max 20 titles
-        .eq('id', scriptId);
+        .eq("id", scriptId);
     }
 
-    console.log('Generated', result.titles?.length || 0, 'titles');
+    console.log("Generated", result.titles?.length || 0, "titles");
 
-    return new Response(JSON.stringify({
-      success: true,
-      titles: result.titles || [],
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-
+    return new Response(
+      JSON.stringify({
+        success: true,
+        titles: result.titles || [],
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   } catch (error: any) {
-    console.error('Error in generate-youtube-titles:', error);
-    return new Response(JSON.stringify({
-      success: false,
-      error: error.message,
-    }), {
-      status: 400,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    console.error("Error in generate-youtube-titles:", error);
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: error.message,
+      }),
+      {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   }
 });

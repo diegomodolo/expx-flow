@@ -33,7 +33,13 @@ const handler = async (req: Request): Promise<Response> => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const resend = new Resend(resendApiKey);
 
-    const { email, name, role, companyName, tempPassword }: InviteEmployeeRequest = await req.json();
+    const {
+      email,
+      name,
+      role,
+      companyName,
+      tempPassword,
+    }: InviteEmployeeRequest = await req.json();
 
     // Enviar email com credenciais
     const emailResponse = await resend.emails.send({
@@ -57,7 +63,7 @@ const handler = async (req: Request): Promise<Response> => {
           <p><strong>IMPORTANTE:</strong> Por favor, altere sua senha no primeiro acesso por motivos de segurança.</p>
           
           <p>Clique no link abaixo para acessar o sistema:</p>
-          <a href="${supabaseUrl.replace('supabase.co', 'lovableproject.com')}" 
+          <a href="https://expxflow.com.br"
              style="display: inline-block; background: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 20px 0;">
             Acessar Sistema
           </a>
@@ -80,13 +86,10 @@ const handler = async (req: Request): Promise<Response> => {
     });
   } catch (error: any) {
     console.error("Erro ao enviar convite:", error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
-    );
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
   }
 };
 

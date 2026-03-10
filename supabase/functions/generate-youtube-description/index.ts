@@ -1,18 +1,19 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY')!;
+const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const openAIApiKey = Deno.env.get("OPENAI_API_KEY")!;
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
@@ -20,21 +21,21 @@ Deno.serve(async (req) => {
     const { scriptId } = await req.json();
 
     if (!scriptId) {
-      throw new Error('scriptId is required');
+      throw new Error("scriptId is required");
     }
 
     // Fetch script
     const { data: script, error: scriptError } = await supabase
-      .from('youtube_scripts')
-      .select('*')
-      .eq('id', scriptId)
+      .from("youtube_scripts")
+      .select("*")
+      .eq("id", scriptId)
       .single();
 
     if (scriptError || !script) {
-      throw new Error('Script not found');
+      throw new Error("Script not found");
     }
 
-    console.log('Generating SEO description for:', script.title);
+    console.log("Generating SEO description for:", script.title);
 
     const prompt = `Gere uma descrição otimizada para SEO do YouTube baseada no roteiro abaixo.
 
@@ -42,7 +43,7 @@ TÍTULO DO VÍDEO:
 ${script.title}
 
 ROTEIRO DO VÍDEO (resumo):
-${(script.script_content || '').substring(0, 3000)}
+${(script.script_content || "").substring(0, 3000)}
 
 REGRAS DE SEO PARA YOUTUBE:
 1. Primeiras 2-3 linhas são CRUCIAIS — aparecem antes do "mostrar mais". Devem conter a palavra-chave principal e um gancho forte.
@@ -69,21 +70,22 @@ Retorne em formato JSON:
   "seo_score_tips": ["Dica 1 para melhorar SEO", "Dica 2"]
 }`;
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
+        Authorization: `Bearer ${openAIApiKey}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: 'gpt-4.1-mini-2025-04-14',
+        model: "openai/gpt-4.1-mini-2025-04-14",
         messages: [
           {
-            role: 'system',
-            content: 'Você é especialista em SEO para YouTube. Gere descrições que maximizam descoberta e engajamento. Retorne apenas JSON válido.',
+            role: "system",
+            content:
+              "Você é especialista em SEO para YouTube. Gere descrições que maximizam descoberta e engajamento. Retorne apenas JSON válido.",
           },
           {
-            role: 'user',
+            role: "user",
             content: prompt,
           },
         ],
@@ -95,8 +97,8 @@ Retorne em formato JSON:
 
     if (!response.ok) {
       const error = await response.json();
-      console.error('OpenAI error:', error);
-      throw new Error('Failed to generate description');
+      console.error("OpenAI error:", error);
+      throw new Error("Failed to generate description");
     }
 
     const data = await response.json();
@@ -105,30 +107,35 @@ Retorne em formato JSON:
     // Save description to script
     if (result.description) {
       await supabase
-        .from('youtube_scripts')
+        .from("youtube_scripts")
         .update({ video_description: result.description } as any)
-        .eq('id', scriptId);
+        .eq("id", scriptId);
     }
 
-    console.log('Description generated successfully');
+    console.log("Description generated successfully");
 
-    return new Response(JSON.stringify({
-      success: true,
-      description: result.description,
-      keywords: result.keywords || [],
-      seo_tips: result.seo_score_tips || [],
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-
+    return new Response(
+      JSON.stringify({
+        success: true,
+        description: result.description,
+        keywords: result.keywords || [],
+        seo_tips: result.seo_score_tips || [],
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   } catch (error: any) {
-    console.error('Error in generate-youtube-description:', error);
-    return new Response(JSON.stringify({
-      success: false,
-      error: error.message,
-    }), {
-      status: 400,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    console.error("Error in generate-youtube-description:", error);
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: error.message,
+      }),
+      {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   }
 });

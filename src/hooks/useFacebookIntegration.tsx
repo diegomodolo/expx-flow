@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { useCompany } from '@/contexts/CompanyContext';
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { useCompany } from "@/contexts/CompanyContext";
 
 interface FacebookAdAccount {
   id: string;
@@ -22,7 +22,9 @@ interface FacebookIntegration {
 
 export const useFacebookIntegration = () => {
   const [loading, setLoading] = useState(false);
-  const [integration, setIntegration] = useState<FacebookIntegration | null>(null);
+  const [integration, setIntegration] = useState<FacebookIntegration | null>(
+    null,
+  );
   const [adAccounts, setAdAccounts] = useState<FacebookAdAccount[]>([]);
   const { toast } = useToast();
   const { activeCompany } = useCompany();
@@ -32,32 +34,32 @@ export const useFacebookIntegration = () => {
       toast({
         title: "Erro",
         description: "Selecione uma empresa primeiro",
-        variant: "destructive"
+        variant: "destructive",
       });
       return null;
     }
 
-    const facebookAppId = '1118192076871259'; // Your Facebook App ID
-    
+    const facebookAppId = "1118192076871259"; // Your Facebook App ID
+
     // Determine redirect URI based on current domain
     const origin = window.location.origin;
-    let redirectUri = '';
-    
-    if (origin.includes('lovable.app') || origin.includes('lovableproject.com')) {
-      if (origin.includes('preview--')) {
-        redirectUri = `${origin}/auth/callback`;
-      } else {
-        redirectUri = 'https://multi-campaign-insight.lovable.app/auth/callback';
-      }
+    let redirectUri = "";
+
+    if (
+      origin.includes("expxflow.com.br") ||
+      origin.includes("controledetrafego.com.br")
+    ) {
+      redirectUri = `${origin}/auth/callback`;
     } else {
-      redirectUri = 'https://controledetrafego.com.br/auth/callback';
+      redirectUri = "https://expxflow.com.br/auth/callback";
     }
 
     const params = new URLSearchParams({
       client_id: facebookAppId,
       redirect_uri: redirectUri,
-      scope: 'email,public_profile,ads_read,ads_management,business_management,pages_show_list,pages_read_engagement,pages_manage_posts,instagram_basic,instagram_manage_insights,instagram_content_publish',
-      response_type: 'code',
+      scope:
+        "email,public_profile,ads_read,ads_management,business_management,pages_show_list,pages_read_engagement,pages_manage_posts,instagram_basic,instagram_manage_insights,instagram_content_publish",
+      response_type: "code",
       state: activeCompany.company_id, // Pass company ID as state
     });
 
@@ -75,13 +77,16 @@ export const useFacebookIntegration = () => {
     setLoading(true);
     try {
       console.log("Handling Facebook callback with code:", code);
-      
-      const { data, error } = await supabase.functions.invoke('facebook-oauth?action=exchange', {
-        body: { 
-          code, 
-          companyId
-        }
-      });
+
+      const { data, error } = await supabase.functions.invoke(
+        "facebook-oauth?action=exchange",
+        {
+          body: {
+            code,
+            companyId,
+          },
+        },
+      );
 
       if (error) {
         console.error("Edge function error:", error);
@@ -93,7 +98,7 @@ export const useFacebookIntegration = () => {
       }
 
       console.log("Facebook OAuth success:", data);
-      
+
       setIntegration(data.integration);
       setAdAccounts(data.adAccounts || []);
 
@@ -103,11 +108,12 @@ export const useFacebookIntegration = () => {
       });
 
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error handling Facebook callback:", error);
       toast({
         title: "Erro ao conectar Facebook",
-        description: error.message || "Ocorreu um erro inesperado",
+        description:
+          error instanceof Error ? error.message : "Ocorreu um erro inesperado",
         variant: "destructive",
       });
       return false;
@@ -121,15 +127,17 @@ export const useFacebookIntegration = () => {
     try {
       const { data: integrations, error } = await supabase
         .from("facebook_integrations")
-        .select(`
+        .select(
+          `
           *,
           facebook_ad_accounts(*)
-        `)
+        `,
+        )
         .eq("company_id", companyId)
         .eq("is_active", true)
         .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') {
+      if (error && error.code !== "PGRST116") {
         throw error;
       }
 
@@ -140,11 +148,12 @@ export const useFacebookIntegration = () => {
         setIntegration(null);
         setAdAccounts([]);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error loading integration:", error);
       toast({
         title: "Erro ao carregar integração",
-        description: error.message || "Ocorreu um erro inesperado",
+        description:
+          error instanceof Error ? error.message : "Ocorreu um erro inesperado",
         variant: "destructive",
       });
     } finally {
@@ -171,11 +180,12 @@ export const useFacebookIntegration = () => {
         title: "Facebook desconectado",
         description: "A integração foi removida com sucesso.",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error disconnecting Facebook:", error);
       toast({
         title: "Erro ao desconectar",
-        description: error.message || "Ocorreu um erro inesperado",
+        description:
+          error instanceof Error ? error.message : "Ocorreu um erro inesperado",
         variant: "destructive",
       });
     } finally {
@@ -188,12 +198,15 @@ export const useFacebookIntegration = () => {
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('facebook-oauth?action=refresh-accounts', {
-        body: { 
-          integrationId: integration.id,
-          companyId: activeCompany.company_id
-        }
-      });
+      const { data, error } = await supabase.functions.invoke(
+        "facebook-oauth?action=refresh-accounts",
+        {
+          body: {
+            integrationId: integration.id,
+            companyId: activeCompany.company_id,
+          },
+        },
+      );
 
       if (error) {
         console.error("Edge function error:", error);
@@ -205,7 +218,7 @@ export const useFacebookIntegration = () => {
       }
 
       console.log("Ad accounts refreshed:", data);
-      
+
       setAdAccounts(data.adAccounts || []);
 
       toast({
@@ -214,11 +227,12 @@ export const useFacebookIntegration = () => {
       });
 
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error refreshing ad accounts:", error);
       toast({
         title: "Erro ao atualizar contas",
-        description: error.message || "Ocorreu um erro inesperado",
+        description:
+          error instanceof Error ? error.message : "Ocorreu um erro inesperado",
         variant: "destructive",
       });
       return false;
@@ -230,17 +244,22 @@ export const useFacebookIntegration = () => {
   const checkScopes = async (companyId: string) => {
     try {
       setLoading(true);
-      
-      const { data, error } = await supabase.functions.invoke('check-facebook-scopes', {
-        body: { companyId },
-      });
+
+      const { data, error } = await supabase.functions.invoke(
+        "check-facebook-scopes",
+        {
+          body: { companyId },
+        },
+      );
 
       if (error) {
-        console.error('Error checking scopes:', error);
+        console.error("Error checking scopes:", error);
         toast({
           variant: "destructive",
           title: "Erro ao verificar permissões",
-          description: error.message || "Não foi possível verificar as permissões do Facebook.",
+          description:
+            error.message ||
+            "Não foi possível verificar as permissões do Facebook.",
         });
         return null;
       }
@@ -249,14 +268,16 @@ export const useFacebookIntegration = () => {
         toast({
           variant: "destructive",
           title: "Erro ao verificar permissões",
-          description: data.error || "Não foi possível verificar as permissões do Facebook.",
+          description:
+            data.error ||
+            "Não foi possível verificar as permissões do Facebook.",
         });
         return null;
       }
 
       return data;
     } catch (error) {
-      console.error('Error checking scopes:', error);
+      console.error("Error checking scopes:", error);
       toast({
         variant: "destructive",
         title: "Erro ao verificar permissões",

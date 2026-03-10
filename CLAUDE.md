@@ -2,7 +2,7 @@
 
 ## Visao Geral
 
-Expx Flow e uma plataforma SaaS de automacao de marketing e gestao de trafego (idioma Portugues). Gerencia campanhas em Facebook, Instagram, Google Ads, WhatsApp, YouTube e mais. Inclui CRM, gestao de tarefas, agentes IA, e dashboards de performance. Construido com Lovable (lovable.dev).
+Expx Flow e uma plataforma SaaS de automacao de marketing e gestao de trafego (idioma Portugues). Gerencia campanhas em Facebook, Instagram, Google Ads, WhatsApp, YouTube e mais. Inclui CRM, gestao de tarefas, agentes IA, e dashboards de performance. Deploy via Vercel (frontend) e Supabase (backend).
 
 ## Stack Tecnologico
 
@@ -15,7 +15,7 @@ Expx Flow e uma plataforma SaaS de automacao de marketing e gestao de trafego (i
 - **Backend:** Supabase (PostgreSQL, Edge Functions em Deno/TS, Auth, Realtime)
 - **Charts:** Recharts, Chart.js
 - **Export:** jsPDF, pptxgenjs, xlsx, html2canvas
-- **Deploy:** Lovable (frontend), Supabase (edge functions + DB)
+- **Deploy:** Vercel (frontend), Supabase (edge functions + DB)
 
 ## Comandos
 
@@ -27,7 +27,7 @@ npm run lint       # ESLint
 npm run preview    # Preview build
 ```
 
-Edge Functions: `supabase functions deploy <nome-funcao>` ou via Lovable.
+Edge Functions: `supabase functions deploy <nome-funcao>`.
 
 ## Estrutura do Projeto
 
@@ -227,7 +227,7 @@ Edge Functions usam `Deno.env.get()` para: `SUPABASE_URL`, `SUPABASE_SERVICE_ROL
 - `src/integrations/supabase/types.ts` e **auto-gerado** — nao editar manualmente
 - Edge Functions com `verify_jwt = false` em `config.toml` sao webhooks/agendados (sem auth)
 - `components/ui/` sao primitivos shadcn — usar CLI para adicionar novos
-- O projeto usa Lovable para deploy do frontend — commits vao direto para producao
+- O projeto usa Vercel para deploy do frontend — commits na main disparam deploy automatico
 - Migrations em `supabase/migrations/` sao sequenciais e incrementais
 
 ## Sub-agentes Especializados (.claude/agents/)

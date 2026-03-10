@@ -30,9 +30,6 @@ public/
 .idea/
 .jules/
 
-# Lovable metadata
-.lovable/
-
 # Logs and temp
 *.log
 *.local

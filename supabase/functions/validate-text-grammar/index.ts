@@ -1,35 +1,36 @@
 // Deno.serve is available natively in modern Deno
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const { text } = await req.json();
-    console.log('Validating text grammar:', text);
+    console.log("Validating text grammar:", text);
 
-    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+    const openaiApiKey = Deno.env.get("OPENAI_API_KEY");
     if (!openaiApiKey) {
-      throw new Error('OpenAI API key not configured');
+      throw new Error("OpenAI API key not configured");
     }
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${openaiApiKey}`,
-        'Content-Type': 'application/json',
+        Authorization: `Bearer ${openaiApiKey}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: 'gpt-4.1-2025-04-14',
+        model: "openai/gpt-4.1-2025-04-14",
         messages: [
           {
-            role: 'system',
+            role: "system",
             content: `Você é um especialista em português brasileiro. Sua função é corrigir e validar textos para uso em criativos visuais.
 
 REGRAS CRÍTICAS:
@@ -49,42 +50,49 @@ EXEMPLOS DE REJEIÇÃO:
 - "buy now" → TEXTO_REJEITADO: Contém palavras em inglês  
 - "xkjfkdsj" → TEXTO_REJEITADO: Contém palavras sem sentido
 
-Responda APENAS com o texto corrigido, sem explicações.`
+Responda APENAS com o texto corrigido, sem explicações.`,
           },
           {
-            role: 'user',
-            content: `Corrija apenas os erros de português neste texto:\n\n${text}`
-          }
+            role: "user",
+            content: `Corrija apenas os erros de português neste texto:\n\n${text}`,
+          },
         ],
-        max_completion_tokens: 500
+        max_completion_tokens: 500,
       }),
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error('OpenAI API error:', errorData);
-      throw new Error(`OpenAI API error: ${errorData.error?.message || 'Unknown error'}`);
+      console.error("OpenAI API error:", errorData);
+      throw new Error(
+        `OpenAI API error: ${errorData.error?.message || "Unknown error"}`,
+      );
     }
 
     const data = await response.json();
     const correctedText = data.choices[0].message.content.trim();
 
-    console.log('Text validated successfully');
-    
-    return new Response(JSON.stringify({ 
-      correctedText,
-      hasChanges: correctedText !== text
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    console.log("Text validated successfully");
 
+    return new Response(
+      JSON.stringify({
+        correctedText,
+        hasChanges: correctedText !== text,
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   } catch (error) {
-    console.error('Error in validate-text-grammar function:', error);
-    return new Response(JSON.stringify({ 
-      error: error.message 
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    console.error("Error in validate-text-grammar function:", error);
+    return new Response(
+      JSON.stringify({
+        error: error.message,
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   }
 });

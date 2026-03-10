@@ -3,7 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
   "Access-Control-Max-Age": "86400",
 };
@@ -68,7 +69,12 @@ interface GeneratedCarousel {
   cover_image_url?: string;
 }
 
-const CAROUSEL_TYPES = ['tutorial', 'comparison', 'behind_scenes', 'curated_list'] as const;
+const CAROUSEL_TYPES = [
+  "tutorial",
+  "comparison",
+  "behind_scenes",
+  "curated_list",
+] as const;
 
 const CAROUSEL_TYPE_PROMPTS = {
   tutorial: `Crie um carrossel EDUCATIVO no estilo "Tutorial" ou "Passo a Passo".
@@ -76,19 +82,19 @@ Estrutura recomendada:
 - Slide 1: Gancho forte com problema/dor do público
 - Slides 2-7: Passos práticos e acionáveis
 - Slide final: CTA e próximo passo`,
-  
+
   comparison: `Crie um carrossel de COMPARAÇÃO (Antes vs Depois, X vs Y, ou Mitos vs Verdades).
 Estrutura recomendada:
 - Slide 1: Apresentação do comparativo
 - Slides 2-7: Comparações lado a lado
 - Slide final: Conclusão e CTA`,
-  
+
   behind_scenes: `Crie um carrossel "Bastidores" ou "Por Trás das Cenas".
 Estrutura recomendada:
 - Slide 1: Introdução curiosa/pessoal
 - Slides 2-7: Revelações e insights exclusivos
 - Slide final: Conexão emocional e CTA`,
-  
+
   curated_list: `Crie um carrossel de LISTA CURADA (Top X, Melhores, Essenciais).
 Estrutura recomendada:
 - Slide 1: Título chamativo com número
@@ -97,86 +103,110 @@ Estrutura recomendada:
 };
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, supabaseKey);
 
   try {
     const body = await req.json();
     const { client_id, company_id, user_id, carousel_type, count } = body;
 
-    console.log('[daily-carousel-generator] Starting generation:', { client_id, company_id, carousel_type, count });
+    console.log("[daily-carousel-generator] Starting generation:", {
+      client_id,
+      company_id,
+      carousel_type,
+      count,
+    });
 
     // Fetch client data
     const { data: client, error: clientError } = await supabase
-      .from('clients')
-      .select('*')
-      .eq('id', client_id)
+      .from("clients")
+      .select("*")
+      .eq("id", client_id)
       .single();
 
     if (clientError || !client) {
-      console.error('[daily-carousel-generator] Client not found:', clientError);
-      throw new Error('Client not found');
+      console.error(
+        "[daily-carousel-generator] Client not found:",
+        clientError,
+      );
+      throw new Error("Client not found");
     }
 
-    console.log('[daily-carousel-generator] Client loaded:', client.name);
+    console.log("[daily-carousel-generator] Client loaded:", client.name);
 
     // Get generation schedule
     const { data: schedule } = await supabase
-      .from('carousel_generation_schedules')
-      .select('*')
-      .eq('client_id', client_id)
+      .from("carousel_generation_schedules")
+      .select("*")
+      .eq("client_id", client_id)
       .single();
 
     const carouselsToGenerate = count || schedule?.carousels_per_day || 3;
     const slidesPerCarousel = schedule?.slides_per_carousel || 8;
 
     // Calculate type distribution
-    const distribution = calculateDistribution(carouselsToGenerate, schedule, carousel_type);
-    console.log('[daily-carousel-generator] Distribution:', distribution);
+    const distribution = calculateDistribution(
+      carouselsToGenerate,
+      schedule,
+      carousel_type,
+    );
+    console.log("[daily-carousel-generator] Distribution:", distribution);
 
     // Update last_generation_at
     if (schedule && !carousel_type) {
       await supabase
-        .from('carousel_generation_schedules')
+        .from("carousel_generation_schedules")
         .update({
           last_generation_at: new Date().toISOString(),
           next_generation_at: getNextGenerationTime(schedule.generation_time),
         })
-        .eq('id', schedule.id);
+        .eq("id", schedule.id);
     }
 
     // Importante: NÃO retornar o conteúdo completo (inclui imagens em base64) na resposta,
     // senão o payload fica enorme e o navegador pode derrubar a conexão.
-    const generatedCarousels: Array<{ id: string; type: string; theme: string | null }> = [];
+    const generatedCarousels: Array<{
+      id: string;
+      type: string;
+      theme: string | null;
+    }> = [];
     const errors: string[] = [];
 
     // Generate carousels based on distribution
     for (const [type, typeCount] of Object.entries(distribution)) {
       for (let i = 0; i < typeCount; i++) {
         try {
-          console.log(`[daily-carousel-generator] Generating ${type} carousel ${i + 1}/${typeCount}`);
-          
+          console.log(
+            `[daily-carousel-generator] Generating ${type} carousel ${i + 1}/${typeCount}`,
+          );
+
           const carousel = await generateCarousel(
             supabase,
             client,
             schedule,
-            type as typeof CAROUSEL_TYPES[number],
-            slidesPerCarousel
+            type as (typeof CAROUSEL_TYPES)[number],
+            slidesPerCarousel,
           );
 
           if (carousel) {
             // Generate images for slides
-            console.log('[daily-carousel-generator] Generating images for carousel slides...');
-            const carouselWithImages = await generateCarouselImages(carousel, client, schedule);
+            console.log(
+              "[daily-carousel-generator] Generating images for carousel slides...",
+            );
+            const carouselWithImages = await generateCarouselImages(
+              carousel,
+              client,
+              schedule,
+            );
 
             // Save to queue
             const { data: savedCarousel, error: insertError } = await supabase
-              .from('carousel_generation_queue')
+              .from("carousel_generation_queue")
               .insert({
                 client_id,
                 company_id,
@@ -190,16 +220,24 @@ serve(async (req) => {
                 cover_image_url: carouselWithImages.cover_image_url || null,
                 generated_content: carouselWithImages,
                 schedule_id: schedule?.id || null,
-                status: 'pending',
+                status: "pending",
               })
-              .select('id')
+              .select("id")
               .single();
 
             if (insertError) {
-              console.error('[daily-carousel-generator] Error saving carousel:', insertError);
-              errors.push(`Failed to save ${type} carousel: ${insertError.message}`);
+              console.error(
+                "[daily-carousel-generator] Error saving carousel:",
+                insertError,
+              );
+              errors.push(
+                `Failed to save ${type} carousel: ${insertError.message}`,
+              );
             } else {
-              console.log('[daily-carousel-generator] Saved carousel:', savedCarousel?.id);
+              console.log(
+                "[daily-carousel-generator] Saved carousel:",
+                savedCarousel?.id,
+              );
               if (savedCarousel?.id) {
                 generatedCarousels.push({
                   id: savedCarousel.id,
@@ -210,13 +248,16 @@ serve(async (req) => {
             }
           }
         } catch (error: any) {
-          console.error(`[daily-carousel-generator] Error generating ${type}:`, error);
+          console.error(
+            `[daily-carousel-generator] Error generating ${type}:`,
+            error,
+          );
           errors.push(`${type}: ${error.message}`);
         }
       }
     }
 
-    console.log('[daily-carousel-generator] Generation completed:', {
+    console.log("[daily-carousel-generator] Generation completed:", {
       generated: generatedCarousels.length,
       errors: errors.length,
     });
@@ -228,21 +269,21 @@ serve(async (req) => {
         carousels: generatedCarousels,
         errors: errors.length > 0 ? errors : undefined,
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (error: any) {
-    console.error('[daily-carousel-generator] Error:', error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    console.error("[daily-carousel-generator] Error:", error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
 
 function calculateDistribution(
   total: number,
   schedule: CarouselSchedule | null,
-  specificType?: string
+  specificType?: string,
 ): Record<string, number> {
   if (specificType) {
     return { [specificType]: total };
@@ -267,10 +308,10 @@ function calculateDistribution(
   }
 
   // Weighted distribution based on percentages
-  const totalPercentage = 
-    schedule.tutorial_percentage + 
-    schedule.comparison_percentage + 
-    schedule.behind_scenes_percentage + 
+  const totalPercentage =
+    schedule.tutorial_percentage +
+    schedule.comparison_percentage +
+    schedule.behind_scenes_percentage +
     schedule.curated_list_percentage;
 
   if (totalPercentage === 0) {
@@ -279,17 +320,17 @@ function calculateDistribution(
 
   let remaining = total;
   const types = [
-    { key: 'tutorial', pct: schedule.tutorial_percentage },
-    { key: 'comparison', pct: schedule.comparison_percentage },
-    { key: 'behind_scenes', pct: schedule.behind_scenes_percentage },
-    { key: 'curated_list', pct: schedule.curated_list_percentage },
+    { key: "tutorial", pct: schedule.tutorial_percentage },
+    { key: "comparison", pct: schedule.comparison_percentage },
+    { key: "behind_scenes", pct: schedule.behind_scenes_percentage },
+    { key: "curated_list", pct: schedule.curated_list_percentage },
   ];
 
   for (let i = 0; i < types.length; i++) {
     if (i === types.length - 1) {
       distribution[types[i].key] = remaining;
     } else {
-      const count = Math.round(total * types[i].pct / totalPercentage);
+      const count = Math.round((total * types[i].pct) / totalPercentage);
       distribution[types[i].key] = Math.min(count, remaining);
       remaining -= distribution[types[i].key];
     }
@@ -300,27 +341,29 @@ function calculateDistribution(
 
 function getNextGenerationTime(generationTime: string): string {
   const now = new Date();
-  const [hours, minutes] = generationTime.split(':').map(Number);
-  
+  const [hours, minutes] = generationTime.split(":").map(Number);
+
   const next = new Date(now);
   next.setUTCHours(hours + 3, minutes, 0, 0); // Convert BRT to UTC
-  
+
   if (next <= now) {
     next.setDate(next.getDate() + 1);
   }
-  
+
   return next.toISOString();
 }
 
 async function generateCarouselImages(
   carousel: GeneratedCarousel,
   client: ClientData,
-  schedule: CarouselSchedule | null
+  schedule: CarouselSchedule | null,
 ): Promise<GeneratedCarousel> {
-  const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+  const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
 
-  if (!LOVABLE_API_KEY) {
-    console.warn('[daily-carousel-generator] LOVABLE_API_KEY not set, skipping image generation');
+  if (!OPENROUTER_API_KEY) {
+    console.warn(
+      "[daily-carousel-generator] OPENROUTER_API_KEY not set, skipping image generation",
+    );
     return carousel;
   }
 
@@ -332,10 +375,12 @@ async function generateCarouselImages(
 
   for (let i = 0; i < carousel.slides.length; i++) {
     const slide = carousel.slides[i];
-    
+
     try {
-      console.log(`[daily-carousel-generator] Generating image for slide ${i + 1}/${carousel.slides.length}`);
-      
+      console.log(
+        `[daily-carousel-generator] Generating image for slide ${i + 1}/${carousel.slides.length}`,
+      );
+
       const imagePrompt = `Crie uma imagem profissional para carrossel do Instagram no formato VERTICAL 3:4 (1080x1440 pixels).
 ${styleContext}
 
@@ -354,8 +399,11 @@ REGRAS OBRIGATÓRIAS:
 - Cores que combinem com a identidade da marca ${client.company}
 - Ultra high resolution`;
 
-      const imageUrl = await generateImageWithNanoBanana(imagePrompt, LOVABLE_API_KEY);
-      
+      const imageUrl = await generateImageWithNanoBanana(
+        imagePrompt,
+        OPENROUTER_API_KEY,
+      );
+
       updatedSlides.push({
         ...slide,
         image_url: imageUrl || undefined,
@@ -368,10 +416,13 @@ REGRAS OBRIGATÓRIAS:
 
       // Small delay between image generations to avoid rate limiting
       if (i < carousel.slides.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       }
     } catch (error) {
-      console.error(`[daily-carousel-generator] Error generating image for slide ${i + 1}:`, error);
+      console.error(
+        `[daily-carousel-generator] Error generating image for slide ${i + 1}:`,
+        error,
+      );
       updatedSlides.push(slide);
     }
   }
@@ -383,35 +434,49 @@ REGRAS OBRIGATÓRIAS:
   };
 }
 
-async function generateImageWithNanoBanana(prompt: string, apiKey: string): Promise<string | null> {
+async function generateImageWithNanoBanana(
+  prompt: string,
+  apiKey: string,
+): Promise<string | null> {
   try {
-    console.log('[daily-carousel-generator] Calling Nano Banana (gemini-3-pro-image-preview) for image generation...');
-    
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
+    console.log(
+      "[daily-carousel-generator] Calling Nano Banana (gemini-3-pro-image-preview) for image generation...",
+    );
+
+    const response = await fetch(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-3-pro-image-preview",
+          messages: [{ role: "user", content: prompt }],
+          modalities: ["image", "text"],
+        }),
       },
-      body: JSON.stringify({
-        model: 'google/gemini-3-pro-image-preview',
-        messages: [
-          { role: 'user', content: prompt }
-        ],
-        modalities: ['image', 'text'],
-      }),
-    });
+    );
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('[daily-carousel-generator] Image generation API error:', response.status, errorText);
-      
+      console.error(
+        "[daily-carousel-generator] Image generation API error:",
+        response.status,
+        errorText,
+      );
+
       if (response.status === 429) {
-        console.warn('[daily-carousel-generator] Rate limit hit for image generation');
+        console.warn(
+          "[daily-carousel-generator] Rate limit hit for image generation",
+        );
         return null;
       }
       if (response.status === 402) {
-        console.warn('[daily-carousel-generator] Payment required for image generation');
+        console.warn(
+          "[daily-carousel-generator] Payment required for image generation",
+        );
         return null;
       }
       return null;
@@ -419,83 +484,96 @@ async function generateImageWithNanoBanana(prompt: string, apiKey: string): Prom
 
     const data = await response.json();
     const images = data.choices?.[0]?.message?.images;
-    
+
     if (images && images.length > 0) {
       const imageUrl = images[0]?.image_url?.url;
       if (imageUrl) {
-        console.log('[daily-carousel-generator] Image generated successfully (base64)');
+        console.log(
+          "[daily-carousel-generator] Image generated successfully (base64)",
+        );
         return imageUrl;
       }
     }
 
-    console.warn('[daily-carousel-generator] No image returned from API');
+    console.warn("[daily-carousel-generator] No image returned from API");
     return null;
   } catch (error) {
-    console.error('[daily-carousel-generator] Error calling image generation API:', error);
+    console.error(
+      "[daily-carousel-generator] Error calling image generation API:",
+      error,
+    );
     return null;
   }
 }
 
-function buildImageStylePrompt(schedule: CarouselSchedule | null, client: ClientData): string {
+function buildImageStylePrompt(
+  schedule: CarouselSchedule | null,
+  client: ClientData,
+): string {
   const styles: string[] = [];
-  
+
   styles.push(`Marca: ${client.company}`);
   styles.push(`Setor: ${client.sector}`);
-  
+
   if (schedule) {
     if (schedule.use_dark_mode) {
-      styles.push('Estilo: Dark mode com fundo escuro (#1a1a2e ou similar) e texto claro');
+      styles.push(
+        "Estilo: Dark mode com fundo escuro (#1a1a2e ou similar) e texto claro",
+      );
     } else {
-      styles.push('Estilo: Light mode com fundo claro e texto escuro');
+      styles.push("Estilo: Light mode com fundo claro e texto escuro");
     }
 
     if (schedule.show_ui_screenshots) {
-      styles.push('Incluir elementos de interface/mockups quando apropriado');
+      styles.push("Incluir elementos de interface/mockups quando apropriado");
     }
 
     if (schedule.include_proof_social) {
-      styles.push('Incluir elementos de prova social (ícones de check, números, badges)');
+      styles.push(
+        "Incluir elementos de prova social (ícones de check, números, badges)",
+      );
     }
 
     if (schedule.custom_image_prompt) {
       styles.push(`Instrução adicional: ${schedule.custom_image_prompt}`);
     }
   } else {
-    styles.push('Estilo: Moderno, clean, com alto contraste');
+    styles.push("Estilo: Moderno, clean, com alto contraste");
   }
 
-  return styles.join('\n');
+  return styles.join("\n");
 }
 
 async function generateCarousel(
   supabase: any,
   client: ClientData,
   schedule: CarouselSchedule | null,
-  carouselType: typeof CAROUSEL_TYPES[number],
-  slidesCount: number
+  carouselType: (typeof CAROUSEL_TYPES)[number],
+  slidesCount: number,
 ): Promise<GeneratedCarousel | null> {
-  const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+  const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
 
-  if (!LOVABLE_API_KEY) {
-    throw new Error('LOVABLE_API_KEY not configured');
+  if (!OPENROUTER_API_KEY) {
+    throw new Error("OPENROUTER_API_KEY not configured");
   }
 
   // Get research theme for context
   const { data: themes } = await supabase
-    .from('market_research_insights')
-    .select('*')
-    .eq('client_id', client.id)
+    .from("market_research_insights")
+    .select("*")
+    .eq("client_id", client.id)
     .limit(10);
 
-  const theme = themes && themes.length > 0 
-    ? themes[Math.floor(Math.random() * themes.length)]
-    : null;
+  const theme =
+    themes && themes.length > 0
+      ? themes[Math.floor(Math.random() * themes.length)]
+      : null;
 
-  const themeContext = theme 
+  const themeContext = theme
     ? `TEMA DE PESQUISA PARA BASEAR O CONTEÚDO:
 Título: ${theme.title || theme.topic}
-Insight: ${theme.insight || theme.description || ''}`
-    : '';
+Insight: ${theme.insight || theme.description || ""}`
+    : "";
 
   // Build visual style context
   const visualStyle = buildVisualStyleContext(schedule);
@@ -519,9 +597,9 @@ ${typePrompt}
 
 ${themeContext}
 
-BRIEFING DA MARCA: ${client.ai_briefing || 'Criar conteúdo relevante e engajante'}
-PÚBLICO-ALVO: ${client.target_audience || 'Público geral interessado no setor'}
-TOM DE VOZ: ${client.voice_tone || 'Profissional mas acessível'}
+BRIEFING DA MARCA: ${client.ai_briefing || "Criar conteúdo relevante e engajante"}
+PÚBLICO-ALVO: ${client.target_audience || "Público geral interessado no setor"}
+TOM DE VOZ: ${client.voice_tone || "Profissional mas acessível"}
 PRODUTO/SERVIÇO: ${client.product_name || client.company}
 
 ${visualStyle}
@@ -546,45 +624,56 @@ Responda APENAS em JSON válido com esta estrutura:
   "cta_text": "Texto do CTA principal"
 }`;
 
-  console.log('[daily-carousel-generator] Calling AI for carousel generation...');
+  console.log(
+    "[daily-carousel-generator] Calling AI for carousel generation...",
+  );
 
-  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-      'Content-Type': 'application/json',
+  const response = await fetch(
+    "https://openrouter.ai/api/v1/chat/completions",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+      }),
     },
-    body: JSON.stringify({
-      model: 'google/gemini-2.5-flash',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
-      ],
-    }),
-  });
+  );
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('[daily-carousel-generator] AI API error:', response.status, errorText);
-    
+    console.error(
+      "[daily-carousel-generator] AI API error:",
+      response.status,
+      errorText,
+    );
+
     if (response.status === 429) {
-      throw new Error('Rate limit exceeded. Please try again later.');
+      throw new Error("Rate limit exceeded. Please try again later.");
     }
     if (response.status === 402) {
-      throw new Error('Payment required. Please add credits to your Lovable AI workspace.');
+      throw new Error(
+        "Payment required. Please add credits to your OpenRouter AI workspace.",
+      );
     }
     throw new Error(`AI API error: ${response.status}`);
   }
 
   const data = await response.json();
-  const responseText = data.choices?.[0]?.message?.content || '';
+  const responseText = data.choices?.[0]?.message?.content || "";
 
-  console.log('[daily-carousel-generator] AI response received, parsing...');
+  console.log("[daily-carousel-generator] AI response received, parsing...");
 
   try {
     const jsonMatch = responseText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      throw new Error('No JSON found in response');
+      throw new Error("No JSON found in response");
     }
 
     const carousel = JSON.parse(jsonMatch[0]) as GeneratedCarousel;
@@ -592,45 +681,56 @@ Responda APENAS em JSON válido com esta estrutura:
 
     // Validate slides
     if (!carousel.slides || carousel.slides.length === 0) {
-      throw new Error('No slides generated');
+      throw new Error("No slides generated");
     }
 
-    console.log('[daily-carousel-generator] Carousel parsed successfully:', carousel.theme);
+    console.log(
+      "[daily-carousel-generator] Carousel parsed successfully:",
+      carousel.theme,
+    );
     return carousel;
   } catch (parseError: any) {
-    console.error('[daily-carousel-generator] Parse error:', parseError, responseText);
+    console.error(
+      "[daily-carousel-generator] Parse error:",
+      parseError,
+      responseText,
+    );
     throw new Error(`Failed to parse carousel: ${parseError.message}`);
   }
 }
 
 function buildVisualStyleContext(schedule: CarouselSchedule | null): string {
   if (!schedule) {
-    return 'ESTILO VISUAL: Dark mode moderno com alto contraste';
+    return "ESTILO VISUAL: Dark mode moderno com alto contraste";
   }
 
   const styles: string[] = [];
-  
+
   if (schedule.use_dark_mode) {
-    styles.push('Dark mode com fundo escuro e texto claro');
+    styles.push("Dark mode com fundo escuro e texto claro");
   } else {
-    styles.push('Light mode com fundo claro e texto escuro');
+    styles.push("Light mode com fundo claro e texto escuro");
   }
 
   if (schedule.show_ui_screenshots) {
-    styles.push('Incluir mockups de interface/telas quando relevante');
+    styles.push("Incluir mockups de interface/telas quando relevante");
   }
 
   if (schedule.include_proof_social) {
-    styles.push('Incluir elementos de prova social (números, depoimentos, logos)');
+    styles.push(
+      "Incluir elementos de prova social (números, depoimentos, logos)",
+    );
   }
 
   if (schedule.include_save_bait) {
-    styles.push('Incluir elementos "save bait" (dicas práticas, listas, templates)');
+    styles.push(
+      'Incluir elementos "save bait" (dicas práticas, listas, templates)',
+    );
   }
 
   if (schedule.custom_image_prompt) {
     styles.push(`INSTRUÇÃO PERSONALIZADA: ${schedule.custom_image_prompt}`);
   }
 
-  return `ESTILO VISUAL:\n${styles.join('\n')}`;
+  return `ESTILO VISUAL:\n${styles.join("\n")}`;
 }

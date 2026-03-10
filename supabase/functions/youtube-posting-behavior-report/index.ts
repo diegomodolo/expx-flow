@@ -12,8 +12,9 @@ serve(async (req) => {
 
   try {
     const { summaryData } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
+    if (!OPENROUTER_API_KEY)
+      throw new Error("OPENROUTER_API_KEY is not configured");
 
     const systemPrompt = `Você é um analista especialista em YouTube e marketing de conteúdo.
 Receba os dados de comportamento de postagem de canais do YouTube e gere um relatório objetivo em português brasileiro.
@@ -29,11 +30,11 @@ O relatório deve conter:
 Seja direto, use dados numéricos e formate com Markdown.`;
 
     const response = await fetch(
-      "https://ai.gateway.lovable.dev/v1/chat/completions",
+      "https://openrouter.ai/api/v1/chat/completions",
       {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -46,20 +47,30 @@ Seja direto, use dados numéricos e formate com Markdown.`;
             },
           ],
         }),
-      }
+      },
     );
 
     if (!response.ok) {
       if (response.status === 429) {
         return new Response(
-          JSON.stringify({ error: "Rate limit excedido. Tente novamente em alguns segundos." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({
+            error: "Rate limit excedido. Tente novamente em alguns segundos.",
+          }),
+          {
+            status: 429,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
         );
       }
       if (response.status === 402) {
         return new Response(
-          JSON.stringify({ error: "Créditos insuficientes. Adicione créditos ao workspace." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({
+            error: "Créditos insuficientes. Adicione créditos ao workspace.",
+          }),
+          {
+            status: 402,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
         );
       }
       const errorText = await response.text();
@@ -68,7 +79,8 @@ Seja direto, use dados numéricos e formate com Markdown.`;
     }
 
     const data = await response.json();
-    const report = data.choices?.[0]?.message?.content || "Relatório não disponível.";
+    const report =
+      data.choices?.[0]?.message?.content || "Relatório não disponível.";
 
     return new Response(JSON.stringify({ report }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -76,8 +88,13 @@ Seja direto, use dados numéricos e formate com Markdown.`;
   } catch (e) {
     console.error("Error:", e);
     return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({
+        error: e instanceof Error ? e.message : "Unknown error",
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 });

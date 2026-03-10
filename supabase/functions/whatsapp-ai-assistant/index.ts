@@ -2,7 +2,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 // Department-specific analysis prompts
@@ -39,8 +40,9 @@ const departmentPrompts: Record<string, string> = {
 };
 
 function buildAnalysisPrompt(department: string, objective: string): string {
-  const basePrompt = departmentPrompts[department] || departmentPrompts.atendimento_geral;
-  
+  const basePrompt =
+    departmentPrompts[department] || departmentPrompts.atendimento_geral;
+
   return `${basePrompt}
 
 Objetivo principal do agente: ${objective || "Resolver a demanda do cliente"}
@@ -113,26 +115,35 @@ serve(async (req) => {
     if (!messages || !Array.isArray(messages)) {
       return new Response(
         JSON.stringify({ error: "Messages array is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      console.error("LOVABLE_API_KEY is not configured");
+    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
+    if (!OPENROUTER_API_KEY) {
+      console.error("OPENROUTER_API_KEY is not configured");
       return new Response(
         JSON.stringify({ error: "AI service not configured" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
     // Handle analysis mode
     if (mode === "analyze") {
-      console.log("[whatsapp-ai-assistant] Analysis mode - Department:", agentConfig?.department);
+      console.log(
+        "[whatsapp-ai-assistant] Analysis mode - Department:",
+        agentConfig?.department,
+      );
 
       const department = agentConfig?.department || "atendimento_geral";
       const objective = agentConfig?.primary_objective || "resolver_duvida";
-      
+
       const systemPrompt = buildAnalysisPrompt(department, objective);
 
       // Format conversation for analysis
@@ -143,30 +154,40 @@ serve(async (req) => {
         })
         .join("\n");
 
-      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
+      const response = await fetch(
+        "https://openrouter.ai/api/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-3-flash-preview",
+            messages: [
+              { role: "system", content: systemPrompt },
+              {
+                role: "user",
+                content: `Analise esta conversa:\n\n${conversationText}`,
+              },
+            ],
+            stream: false,
+          }),
         },
-        body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: `Analise esta conversa:\n\n${conversationText}` },
-          ],
-          stream: false,
-        }),
-      });
+      );
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("[whatsapp-ai-assistant] AI gateway error:", response.status, errorText);
-        
-        return new Response(
-          JSON.stringify({ error: "AI service error" }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        console.error(
+          "[whatsapp-ai-assistant] AI gateway error:",
+          response.status,
+          errorText,
         );
+
+        return new Response(JSON.stringify({ error: "AI service error" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
       const data = await response.json();
@@ -191,19 +212,22 @@ serve(async (req) => {
 
         const analysis = JSON.parse(cleanContent);
 
-        return new Response(
-          JSON.stringify({ analysis }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return new Response(JSON.stringify({ analysis }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       } catch (parseError) {
-        console.error("[whatsapp-ai-assistant] Failed to parse analysis:", parseError);
-        
+        console.error(
+          "[whatsapp-ai-assistant] Failed to parse analysis:",
+          parseError,
+        );
+
         // Return a fallback analysis
         return new Response(
           JSON.stringify({
             analysis: {
               temperature: "neutral",
-              interpretation: "Não foi possível interpretar o contexto completo.",
+              interpretation:
+                "Não foi possível interpretar o contexto completo.",
               suggestion: "Continue a conversa normalmente.",
               departmentInsight: {
                 type: department,
@@ -213,49 +237,66 @@ serve(async (req) => {
               alerts: [],
             },
           }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
     }
 
     // Default chat mode
-    console.log("[whatsapp-ai-assistant] Sending request to Lovable AI");
+    console.log("[whatsapp-ai-assistant] Sending request to OpenRouter AI");
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
+    const response = await fetch(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages,
+          stream: false,
+        }),
       },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages,
-        stream: false,
-      }),
-    });
+    );
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("[whatsapp-ai-assistant] AI gateway error:", response.status, errorText);
-      
+      console.error(
+        "[whatsapp-ai-assistant] AI gateway error:",
+        response.status,
+        errorText,
+      );
+
       if (response.status === 429) {
         return new Response(
-          JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({
+            error: "Rate limit exceeded. Please try again later.",
+          }),
+          {
+            status: 429,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
         );
       }
-      
+
       if (response.status === 402) {
         return new Response(
-          JSON.stringify({ error: "AI credits exhausted. Please add credits to continue." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({
+            error: "AI credits exhausted. Please add credits to continue.",
+          }),
+          {
+            status: 402,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
         );
       }
-      
-      return new Response(
-        JSON.stringify({ error: "AI service error" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+
+      return new Response(JSON.stringify({ error: "AI service error" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const data = await response.json();
@@ -263,15 +304,19 @@ serve(async (req) => {
 
     const content = data.choices?.[0]?.message?.content || "";
 
-    return new Response(
-      JSON.stringify({ content }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ content }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (error) {
     console.error("[whatsapp-ai-assistant] Error:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({
+        error: error instanceof Error ? error.message : "Unknown error",
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 });

@@ -3,7 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
   "Access-Control-Max-Age": "86400",
 };
@@ -37,13 +38,16 @@ serve(async (req) => {
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
 
-  if (!LOVABLE_API_KEY) {
-    return new Response(JSON.stringify({ error: "LOVABLE_API_KEY not configured" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+  if (!OPENROUTER_API_KEY) {
+    return new Response(
+      JSON.stringify({ error: "OPENROUTER_API_KEY not configured" }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   }
 
   const supabase = createClient(supabaseUrl, supabaseKey);
@@ -61,13 +65,22 @@ serve(async (req) => {
   const { clientId, images, selectedTheme } = body ?? {};
 
   if (!clientId || !images || !Array.isArray(images) || images.length === 0) {
-    return new Response(JSON.stringify({ error: "Missing required fields: clientId and images array" }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({
+        error: "Missing required fields: clientId and images array",
+      }),
+      {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   }
 
-  console.log("[analyze-carousel-slides] Start", { clientId, imagesCount: images.length, hasTheme: !!selectedTheme });
+  console.log("[analyze-carousel-slides] Start", {
+    clientId,
+    imagesCount: images.length,
+    hasTheme: !!selectedTheme,
+  });
 
   try {
     // Fetch client data for context
@@ -82,7 +95,11 @@ serve(async (req) => {
     }
 
     // Build the message content with all images
-    const messageContent: Array<{ type: string; text?: string; image_url?: { url: string } }> = [];
+    const messageContent: Array<{
+      type: string;
+      text?: string;
+      image_url?: { url: string };
+    }> = [];
 
     // Add all slide images
     for (const imgUrl of images) {
@@ -123,23 +140,34 @@ Responda APENAS em JSON válido:
 
       messageContent.push({ type: "text", text: analysisPrompt });
 
-      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
+      const response = await fetch(
+        "https://openrouter.ai/api/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash",
+            messages: [{ role: "user", content: messageContent }],
+          }),
         },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages: [{ role: "user", content: messageContent }],
-        }),
-      });
+      );
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("[analyze-carousel-slides] AI API error:", response.status, errorText);
-        if (response.status === 429) throw new Error("Rate limit (429). Tente novamente em alguns minutos.");
-        if (response.status === 402) throw new Error("Créditos de IA esgotados (402). Adicione créditos.");
+        console.error(
+          "[analyze-carousel-slides] AI API error:",
+          response.status,
+          errorText,
+        );
+        if (response.status === 429)
+          throw new Error(
+            "Rate limit (429). Tente novamente em alguns minutos.",
+          );
+        if (response.status === 402)
+          throw new Error("Créditos de IA esgotados (402). Adicione créditos.");
         throw new Error(`AI API error: ${response.status}`);
       }
 
@@ -151,14 +179,16 @@ Responda APENAS em JSON válido:
 
       const result = JSON.parse(jsonMatch[0]);
 
-      return new Response(JSON.stringify({
-        success: true,
-        slideAnalysis: result.slideAnalysis as SlideAnalysis[],
-        themeSuggestions: result.themeSuggestions as string[],
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-
+      return new Response(
+        JSON.stringify({
+          success: true,
+          slideAnalysis: result.slideAnalysis as SlideAnalysis[],
+          themeSuggestions: result.themeSuggestions as string[],
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     } else {
       // PHASE 2: Generate content for each slide based on selected theme
       const contentPrompt = `Você é um especialista em carrosseis para Instagram.
@@ -210,23 +240,34 @@ Responda APENAS em JSON válido:
 
       messageContent.push({ type: "text", text: contentPrompt });
 
-      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
+      const response = await fetch(
+        "https://openrouter.ai/api/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash",
+            messages: [{ role: "user", content: messageContent }],
+          }),
         },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages: [{ role: "user", content: messageContent }],
-        }),
-      });
+      );
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("[analyze-carousel-slides] AI API error:", response.status, errorText);
-        if (response.status === 429) throw new Error("Rate limit (429). Tente novamente em alguns minutos.");
-        if (response.status === 402) throw new Error("Créditos de IA esgotados (402). Adicione créditos.");
+        console.error(
+          "[analyze-carousel-slides] AI API error:",
+          response.status,
+          errorText,
+        );
+        if (response.status === 429)
+          throw new Error(
+            "Rate limit (429). Tente novamente em alguns minutos.",
+          );
+        if (response.status === 402)
+          throw new Error("Créditos de IA esgotados (402). Adicione créditos.");
         throw new Error(`AI API error: ${response.status}`);
       }
 
@@ -238,23 +279,28 @@ Responda APENAS em JSON válido:
 
       const result = JSON.parse(jsonMatch[0]);
 
-      return new Response(JSON.stringify({
-        success: true,
-        theme: result.theme,
-        slideContents: result.slideContents as SlideContent[],
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({
+          success: true,
+          theme: result.theme,
+          slideContents: result.slideContents as SlideContent[],
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
-
   } catch (error: any) {
     console.error("[analyze-carousel-slides] Error:", error);
-    return new Response(JSON.stringify({ 
-      success: false, 
-      error: error?.message || "Erro ao analisar slides" 
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: error?.message || "Erro ao analisar slides",
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   }
 });

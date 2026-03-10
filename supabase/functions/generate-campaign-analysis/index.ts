@@ -1,23 +1,24 @@
 // Deno.serve is available natively in modern Deno
 
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const openAIApiKey = Deno.env.get("OPENAI_API_KEY");
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const { clientData, campaigns } = await req.json();
 
-    console.log('Generating analysis for client:', clientData.name);
-    console.log('Campaigns data:', campaigns?.length || 0, 'campaigns');
+    console.log("Generating analysis for client:", clientData.name);
+    console.log("Campaigns data:", campaigns?.length || 0, "campaigns");
 
     // Preparar dados das campanhas para análise
     const campaignSummary = campaigns.map((campaign: any) => ({
@@ -35,9 +36,14 @@ Deno.serve(async (req) => {
     }));
 
     const totalSpend = campaignSummary.reduce((sum, c) => sum + c.spend, 0);
-    const totalConversions = campaignSummary.reduce((sum, c) => sum + c.conversions, 0);
+    const totalConversions = campaignSummary.reduce(
+      (sum, c) => sum + c.conversions,
+      0,
+    );
     const averageCPA = totalConversions > 0 ? totalSpend / totalConversions : 0;
-    const activeCampaigns = campaignSummary.filter(c => c.status === 'active').length;
+    const activeCampaigns = campaignSummary.filter(
+      (c) => c.status === "active",
+    ).length;
 
     const prompt = `
 Você é um especialista sênior em tráfego pago e marketing digital com mais de 10 anos de experiência em Meta Ads, Google Ads e estratégias de growth.
@@ -47,8 +53,8 @@ Analise os dados do cliente "${clientData.name}" do setor "${clientData.sector}"
 **DADOS DO CLIENTE:**
 - Nome: ${clientData.name}
 - Setor: ${clientData.sector}
-- Produto: ${clientData.product_name || 'Não informado'}
-- Orçamento Mensal: R$ ${clientData.monthly_budget || 'Não definido'}
+- Produto: ${clientData.product_name || "Não informado"}
+- Orçamento Mensal: R$ ${clientData.monthly_budget || "Não definido"}
 - Leads Gerados: ${clientData.leads_generated || 0}
 - Status Atual: ${clientData.status}
 
@@ -60,7 +66,9 @@ Analise os dados do cliente "${clientData.name}" do setor "${clientData.sector}"
 - CPA Médio: R$ ${averageCPA.toFixed(2)}
 
 **DETALHES DAS CAMPANHAS:**
-${campaignSummary.map((campaign, index) => `
+${campaignSummary
+  .map(
+    (campaign, index) => `
 ${index + 1}. ${campaign.name}
    - Status: ${campaign.status}
    - Objetivo: ${campaign.objective}
@@ -70,7 +78,9 @@ ${index + 1}. ${campaign.name}
    - CTR: ${campaign.ctr.toFixed(2)}%
    - CPC: R$ ${campaign.cpc.toFixed(2)}
    - Alcance: ${campaign.reach.toLocaleString()}
-`).join('\n')}
+`,
+  )
+  .join("\n")}
 
 **FORNEÇA UMA ANÁLISE DETALHADA EM FORMATO MARKDOWN COM:**
 
@@ -105,20 +115,21 @@ Seja específico, actionable e use termos técnicos apropriados. Baseie-se em fr
 Formate em markdown para melhor legibilidade.
 `;
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
+        Authorization: `Bearer ${openAIApiKey}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: 'gpt-4.1-2025-04-14',
+        model: "openai/gpt-4.1-2025-04-14",
         messages: [
-          { 
-            role: 'system', 
-            content: 'Você é um especialista em tráfego pago e marketing digital com vasta experiência em Meta Ads, Google Ads e growth marketing. Seja detalhado, técnico e estratégico em suas análises.' 
+          {
+            role: "system",
+            content:
+              "Você é um especialista em tráfego pago e marketing digital com vasta experiência em Meta Ads, Google Ads e growth marketing. Seja detalhado, técnico e estratégico em suas análises.",
           },
-          { role: 'user', content: prompt }
+          { role: "user", content: prompt },
         ],
         max_tokens: 4000,
         temperature: 0.7,
@@ -128,16 +139,16 @@ Formate em markdown para melhor legibilidade.
     const data = await response.json();
     const analysis = data.choices[0].message.content;
 
-    console.log('Generated analysis successfully');
+    console.log("Generated analysis successfully");
 
     return new Response(JSON.stringify({ analysis }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error('Error in generate-campaign-analysis function:', error);
+    console.error("Error in generate-campaign-analysis function:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });

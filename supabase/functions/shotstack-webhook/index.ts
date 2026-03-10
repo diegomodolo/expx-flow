@@ -41,10 +41,19 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const body = await req.json();
-    console.log(`Shotstack webhook received - type: ${callbackType}, jobId: ${jobId}`, JSON.stringify(body).substring(0, 500));
+    console.log(
+      `Shotstack webhook received - type: ${callbackType}, jobId: ${jobId}`,
+      JSON.stringify(body).substring(0, 500),
+    );
 
     if (callbackType === "ingest") {
-      await handleIngestCallback(supabase, jobId, body, shotstackApiKey, supabaseUrl);
+      await handleIngestCallback(
+        supabase,
+        jobId,
+        body,
+        shotstackApiKey,
+        supabaseUrl,
+      );
     } else if (callbackType === "edit") {
       await handleEditCallback(supabase, jobId, body, clipIndex, url);
     } else {
@@ -61,7 +70,7 @@ serve(async (req) => {
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      },
     );
   }
 });
@@ -71,7 +80,7 @@ async function handleIngestCallback(
   jobId: string,
   body: any,
   shotstackApiKey: string,
-  supabaseUrl: string
+  supabaseUrl: string,
 ) {
   const status = body.status;
 
@@ -122,11 +131,15 @@ async function handleIngestCallback(
       `https://api.shotstack.io/ingest/v1/sources/${sourceId}`,
       {
         headers: { "x-api-key": shotstackApiKey },
-      }
+      },
     );
     const sourceData = await sourceResponse.json();
-    console.log("Source data from API:", JSON.stringify(sourceData).substring(0, 500));
-    transcriptionUrl = sourceData.data?.attributes?.outputs?.transcription?.url || "";
+    console.log(
+      "Source data from API:",
+      JSON.stringify(sourceData).substring(0, 500),
+    );
+    transcriptionUrl =
+      sourceData.data?.attributes?.outputs?.transcription?.url || "";
     sourceVideoUrl = sourceVideoUrl || sourceData.data?.attributes?.url || "";
   }
 
@@ -135,7 +148,8 @@ async function handleIngestCallback(
       .from("clip_jobs")
       .update({
         status: "error",
-        error_message: "URL da transcrição não encontrada no callback do Shotstack",
+        error_message:
+          "URL da transcrição não encontrada no callback do Shotstack",
         progress: 0,
         progress_message: "Erro: transcrição não disponível",
       })
@@ -150,7 +164,9 @@ async function handleIngestCallback(
   // Get job details including new config fields
   const { data: job } = await supabase
     .from("clip_jobs")
-    .select("max_clips, format, max_duration_seconds, time_start_seconds, time_end_seconds, context_description, user_id, company_id, client_id")
+    .select(
+      "max_clips, format, max_duration_seconds, time_start_seconds, time_end_seconds, context_description, user_id, company_id, client_id",
+    )
     .eq("id", jobId)
     .single();
 
@@ -182,7 +198,7 @@ async function handleIngestCallback(
     timeStartSeconds,
     timeEndSeconds,
     contextDescription,
-    openAIApiKey
+    openAIApiKey,
   );
 
   if (!viralMoments || viralMoments.length === 0) {
@@ -253,11 +269,14 @@ async function handleIngestCallback(
           "x-api-key": shotstackApiKey,
         },
         body: JSON.stringify(renderPayload),
-      }
+      },
     );
 
     const renderData = await renderResponse.json();
-    console.log(`Render ${i} response:`, JSON.stringify(renderData).substring(0, 300));
+    console.log(
+      `Render ${i} response:`,
+      JSON.stringify(renderData).substring(0, 300),
+    );
 
     if (renderData.response?.id) {
       renderIds.push(renderData.response.id);
@@ -279,7 +298,7 @@ async function handleEditCallback(
   jobId: string,
   body: any,
   clipIndex: string | null,
-  reqUrl: URL
+  reqUrl: URL,
 ) {
   const status = body.status;
 
@@ -294,7 +313,9 @@ async function handleEditCallback(
   }
 
   const clipUrl = body.url || body.data?.attributes?.url || "";
-  const title = reqUrl.searchParams.get("title") || `Clip ${(parseInt(clipIndex || "0") || 0) + 1}`;
+  const title =
+    reqUrl.searchParams.get("title") ||
+    `Clip ${(parseInt(clipIndex || "0") || 0) + 1}`;
   const clipType = reqUrl.searchParams.get("clipType") || "viral";
   const score = parseInt(reqUrl.searchParams.get("score") || "0") || 0;
   const reason = reqUrl.searchParams.get("reason") || "";
@@ -363,7 +384,7 @@ async function analyzeTranscriptionWithOpenAI(
   timeStartSeconds: number | null,
   timeEndSeconds: number | null,
   contextDescription: string | null,
-  apiKey: string
+  apiKey: string,
 ): Promise<
   Array<{
     title: string;
@@ -420,7 +441,7 @@ ${vttContent}`;
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: "gpt-4o-mini",
+      model: "openai/gpt-4o-mini",
       messages: [
         {
           role: "system",

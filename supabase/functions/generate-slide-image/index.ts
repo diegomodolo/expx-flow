@@ -3,7 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 function base64ToUint8Array(base64: string): Uint8Array {
@@ -24,18 +25,22 @@ serve(async (req) => {
     const { slideId, companyId, thumbnailUrl } = await req.json();
 
     if (!slideId) {
-      return new Response(
-        JSON.stringify({ error: "slideId is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "slideId is required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    console.log(`[generate-slide-image] Generating image for slide: ${slideId}`);
-    console.log(`[generate-slide-image] Using thumbnail reference: ${thumbnailUrl ? "yes" : "no"}`);
+    console.log(
+      `[generate-slide-image] Generating image for slide: ${slideId}`,
+    );
+    console.log(
+      `[generate-slide-image] Using thumbnail reference: ${thumbnailUrl ? "yes" : "no"}`,
+    );
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
+    if (!OPENROUTER_API_KEY) {
+      throw new Error("OPENROUTER_API_KEY is not configured");
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -45,7 +50,9 @@ serve(async (req) => {
     // Get slide data
     const { data: slide, error: slideError } = await supabase
       .from("youtube_script_slides")
-      .select("*, youtube_scripts!inner(company_id, client_id, title, thumbnail_url)")
+      .select(
+        "*, youtube_scripts!inner(company_id, client_id, title, thumbnail_url)",
+      )
       .eq("id", slideId)
       .single();
 
@@ -61,7 +68,7 @@ serve(async (req) => {
       .eq("id", slideId);
 
     const scriptInfo = slide.youtube_scripts as any;
-    
+
     // Use the thumbnail URL from the request or from the script
     const referenceThumbnail = thumbnailUrl || scriptInfo.thumbnail_url;
 
@@ -119,7 +126,9 @@ The slide should look like it belongs to the same visual family as the thumbnail
       content: userContent,
     });
 
-    console.log(`[generate-slide-image] Generating image with Nano Banana Pro...`);
+    console.log(
+      `[generate-slide-image] Generating image with Nano Banana Pro...`,
+    );
 
     // Retry logic for AI generation
     const MAX_RETRIES = 3;
@@ -127,26 +136,35 @@ The slide should look like it belongs to the same visual family as the thumbnail
     let lastError: Error | null = null;
 
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-      console.log(`[generate-slide-image] Attempt ${attempt}/${MAX_RETRIES}...`);
-      
+      console.log(
+        `[generate-slide-image] Attempt ${attempt}/${MAX_RETRIES}...`,
+      );
+
       try {
-        const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${LOVABLE_API_KEY}`,
-            "Content-Type": "application/json",
+        const response = await fetch(
+          "https://openrouter.ai/api/v1/chat/completions",
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: "google/gemini-3-pro-image-preview",
+              messages,
+              modalities: ["image", "text"],
+            }),
           },
-          body: JSON.stringify({
-            model: "google/gemini-3-pro-image-preview",
-            messages,
-            modalities: ["image", "text"],
-          }),
-        });
+        );
 
         if (!response.ok) {
           const errorText = await response.text();
-          console.error(`[generate-slide-image] AI error (attempt ${attempt}):`, response.status, errorText);
-          
+          console.error(
+            `[generate-slide-image] AI error (attempt ${attempt}):`,
+            response.status,
+            errorText,
+          );
+
           if (response.status === 429) {
             await supabase
               .from("youtube_script_slides")
@@ -154,8 +172,13 @@ The slide should look like it belongs to the same visual family as the thumbnail
               .eq("id", slideId);
 
             return new Response(
-              JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
-              { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+              JSON.stringify({
+                error: "Rate limit exceeded. Please try again later.",
+              }),
+              {
+                status: 429,
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+              },
             );
           }
           if (response.status === 402) {
@@ -165,54 +188,73 @@ The slide should look like it belongs to the same visual family as the thumbnail
               .eq("id", slideId);
 
             return new Response(
-              JSON.stringify({ error: "Payment required. Please add credits to continue." }),
-              { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+              JSON.stringify({
+                error: "Payment required. Please add credits to continue.",
+              }),
+              {
+                status: 402,
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+              },
             );
           }
-          
+
           lastError = new Error(`API returned ${response.status}`);
           // Wait before retry with exponential backoff
           if (attempt < MAX_RETRIES) {
-            await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+            await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
             continue;
           }
         } else {
           const data = await response.json();
           imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-          
+
           if (imageUrl) {
-            console.log(`[generate-slide-image] Image generated successfully on attempt ${attempt}`);
+            console.log(
+              `[generate-slide-image] Image generated successfully on attempt ${attempt}`,
+            );
             break;
           } else {
-            console.warn(`[generate-slide-image] No image in response on attempt ${attempt}`);
+            console.warn(
+              `[generate-slide-image] No image in response on attempt ${attempt}`,
+            );
             lastError = new Error("No image in API response");
             // Wait before retry
             if (attempt < MAX_RETRIES) {
-              await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+              await new Promise((resolve) =>
+                setTimeout(resolve, 1000 * attempt),
+              );
             }
           }
         }
       } catch (fetchError: any) {
-        console.error(`[generate-slide-image] Fetch error (attempt ${attempt}):`, fetchError);
+        console.error(
+          `[generate-slide-image] Fetch error (attempt ${attempt}):`,
+          fetchError,
+        );
         lastError = fetchError;
         if (attempt < MAX_RETRIES) {
-          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+          await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
         }
       }
     }
 
     if (!imageUrl) {
-      console.error("[generate-slide-image] Failed to generate image after all retries:", lastError?.message);
-      
+      console.error(
+        "[generate-slide-image] Failed to generate image after all retries:",
+        lastError?.message,
+      );
+
       await supabase
         .from("youtube_script_slides")
         .update({ status: "error" })
         .eq("id", slideId);
-      
+
       throw new Error(lastError?.message || "No image generated after retries");
     }
 
-    console.log(`[generate-slide-image] Image generated, uploading to storage...`);
+    console.log(
+      `[generate-slide-image] Image generated, uploading to storage...`,
+    );
 
     // Extract base64 data
     const base64Match = imageUrl.match(/^data:image\/(\w+);base64,(.+)$/);
@@ -226,7 +268,7 @@ The slide should look like it belongs to the same visual family as the thumbnail
 
     // Upload to storage
     const fileName = `slides/${scriptInfo.company_id}/${slide.script_id}/${slideId}_${Date.now()}.${imageFormat}`;
-    
+
     const { error: uploadError } = await supabase.storage
       .from("ai-generated-images")
       .upload(fileName, imageBytes, {
@@ -236,12 +278,12 @@ The slide should look like it belongs to the same visual family as the thumbnail
 
     if (uploadError) {
       console.error("[generate-slide-image] Upload error:", uploadError);
-      
+
       await supabase
         .from("youtube_script_slides")
         .update({ status: "error" })
         .eq("id", slideId);
-      
+
       throw new Error("Failed to upload image");
     }
 
@@ -255,10 +297,10 @@ The slide should look like it belongs to the same visual family as the thumbnail
     // Update slide with image URL and completed status
     const { error: updateError } = await supabase
       .from("youtube_script_slides")
-      .update({ 
+      .update({
         image_url: publicUrl,
         status: "completed",
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq("id", slideId);
 
@@ -266,21 +308,26 @@ The slide should look like it belongs to the same visual family as the thumbnail
       console.error("[generate-slide-image] Update error:", updateError);
     }
 
-    console.log(`[generate-slide-image] Successfully generated image for slide ${slideId}`);
+    console.log(
+      `[generate-slide-image] Successfully generated image for slide ${slideId}`,
+    );
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         imageUrl: publicUrl,
-        slideId 
+        slideId,
       }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (error: any) {
     console.error("[generate-slide-image] Error:", error);
     return new Response(
       JSON.stringify({ error: error.message || "Internal server error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 });

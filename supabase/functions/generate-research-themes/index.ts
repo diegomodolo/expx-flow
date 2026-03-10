@@ -3,7 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 interface RequestBody {
@@ -19,13 +20,16 @@ serve(async (req) => {
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
 
-    if (!LOVABLE_API_KEY) {
-      console.error("LOVABLE_API_KEY not configured");
+    if (!OPENROUTER_API_KEY) {
+      console.error("OPENROUTER_API_KEY not configured");
       return new Response(
         JSON.stringify({ success: false, error: "API de IA não configurada" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -34,8 +38,14 @@ serve(async (req) => {
 
     if (!clientId || !companyId) {
       return new Response(
-        JSON.stringify({ success: false, error: "clientId e companyId são obrigatórios" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          success: false,
+          error: "clientId e companyId são obrigatórios",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -44,7 +54,9 @@ serve(async (req) => {
     // Fetch client data with briefing
     const { data: client, error: clientError } = await supabase
       .from("clients")
-      .select("id, name, company, sector, target_audience, objectives, product_name, voice_tone, ai_briefing, campaign_type")
+      .select(
+        "id, name, company, sector, target_audience, objectives, product_name, voice_tone, ai_briefing, campaign_type",
+      )
       .eq("id", clientId)
       .single();
 
@@ -52,7 +64,10 @@ serve(async (req) => {
       console.error("Error fetching client:", clientError);
       return new Response(
         JSON.stringify({ success: false, error: "Cliente não encontrado" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -61,11 +76,11 @@ serve(async (req) => {
 Cliente: ${client.name}
 Empresa: ${client.company}
 Setor: ${client.sector}
-Produto/Serviço: ${client.product_name || 'Não especificado'}
-Público-Alvo: ${client.target_audience || 'Não especificado'}
-Objetivos: ${client.objectives || 'Não especificado'}
-Tom de Voz: ${client.voice_tone || 'Não especificado'}
-Tipo de Campanha: ${client.campaign_type || 'Não especificado'}
+Produto/Serviço: ${client.product_name || "Não especificado"}
+Público-Alvo: ${client.target_audience || "Não especificado"}
+Objetivos: ${client.objectives || "Não especificado"}
+Tom de Voz: ${client.voice_tone || "Não especificado"}
+Tipo de Campanha: ${client.campaign_type || "Não especificado"}
 `;
 
     if (client.ai_briefing) {
@@ -106,39 +121,58 @@ Retorne um array JSON com exatamente 10 objetos, cada um com esta estrutura:
 
 IMPORTANTE: Retorne APENAS o array JSON, sem markdown, sem \`\`\`, sem explicações.`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
+    const response = await fetch(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+        }),
       },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-      }),
-    });
+    );
 
     if (!response.ok) {
       if (response.status === 429) {
         return new Response(
-          JSON.stringify({ success: false, error: "Limite de requisições excedido. Tente novamente em alguns minutos." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({
+            success: false,
+            error:
+              "Limite de requisições excedido. Tente novamente em alguns minutos.",
+          }),
+          {
+            status: 429,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
         );
       }
       if (response.status === 402) {
         return new Response(
-          JSON.stringify({ success: false, error: "Créditos de IA esgotados. Adicione créditos ao workspace." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({
+            success: false,
+            error: "Créditos de IA esgotados. Adicione créditos ao workspace.",
+          }),
+          {
+            status: 402,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
         );
       }
       const errorText = await response.text();
       console.error("AI gateway error:", response.status, errorText);
       return new Response(
         JSON.stringify({ success: false, error: "Erro ao comunicar com a IA" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -149,7 +183,10 @@ IMPORTANTE: Retorne APENAS o array JSON, sem markdown, sem \`\`\`, sem explicaç
       console.error("No content in AI response:", data);
       return new Response(
         JSON.stringify({ success: false, error: "Resposta vazia da IA" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -173,16 +210,28 @@ IMPORTANTE: Retorne APENAS o array JSON, sem markdown, sem \`\`\`, sem explicaç
       console.error("Failed to parse AI response:", parseError);
       console.error("Raw content:", content);
       return new Response(
-        JSON.stringify({ success: false, error: "Erro ao processar resposta da IA" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          success: false,
+          error: "Erro ao processar resposta da IA",
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
     if (!Array.isArray(themes)) {
       console.error("AI response is not an array:", themes);
       return new Response(
-        JSON.stringify({ success: false, error: "Formato de resposta inválido" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          success: false,
+          error: "Formato de resposta inválido",
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -201,7 +250,7 @@ IMPORTANTE: Retorne APENAS o array JSON, sem markdown, sem \`\`\`, sem explicaç
       score = Math.round(score * 10) / 10;
       return {
         ...theme,
-        relevance_score: score
+        relevance_score: score,
       };
     });
 
@@ -210,9 +259,8 @@ IMPORTANTE: Retorne APENAS o array JSON, sem markdown, sem \`\`\`, sem explicaç
         success: true,
         themes: normalizedThemes,
       }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
-
   } catch (error) {
     console.error("Error in generate-research-themes:", error);
     return new Response(
@@ -220,7 +268,10 @@ IMPORTANTE: Retorne APENAS o array JSON, sem markdown, sem \`\`\`, sem explicaç
         success: false,
         error: error instanceof Error ? error.message : "Erro ao gerar temas",
       }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 });
