@@ -1,0 +1,76 @@
+name: "Refactor"
+description: "Solicitar refatoracao de codigo para a IA executar"
+labels: ["refactor", "claude-analyze"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A IA vai analisar o codigo, refatorar seguindo os padroes do projeto e abrir um PR.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: O que precisa ser refatorado?
+      description: Descreva o problema atual e o resultado desejado
+      placeholder: |
+        **Situacao atual:**
+        O componente CampaignList tem 500 linhas e mistura logica de fetch com UI.
+
+        **Resultado desejado:**
+        Extrair logica para um hook useCampaignList e separar em subcomponentes.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: Tipo de refatoracao
+      options:
+        - Extrair componente
+        - Extrair hook
+        - Migrar pattern
+        - Simplificar logica
+        - Remover codigo morto
+        - Reorganizar arquivos
+        - Outro
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area do sistema
+      options:
+        - Dashboard
+        - Campanhas
+        - CRM / Leads
+        - Google Ads
+        - Facebook Ads
+        - WhatsApp
+        - Relatorios
+        - Agentes IA
+        - Chat IA
+        - Edge Functions
+        - Hooks
+        - Configuracoes
+        - Outro
+    validations:
+      required: true
+
+  - type: textarea
+    id: files
+    attributes:
+      label: Arquivos envolvidos
+      placeholder: |
+        - src/components/campaigns/CampaignList.tsx
+        - src/hooks/useCampaigns.tsx
+    validations:
+      required: false
+
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Restricoes ou cuidados
+      description: Algo que NAO deve ser alterado?
+    validations:
+      required: false

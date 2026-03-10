@@ -1,0 +1,78 @@
+name: "Test Coverage"
+description: "Solicitar criacao de testes para modulo existente"
+labels: ["tests", "claude-analyze"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A IA vai criar testes automatizados para os arquivos indicados e abrir um PR.
+        Testes seguem Vitest + React Testing Library com mocks de Supabase.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: O que precisa de testes?
+      description: Descreva os arquivos ou modulo que precisam de cobertura
+      placeholder: |
+        Criar testes para os hooks de campanhas:
+        - src/hooks/useCampaigns.tsx
+        - src/hooks/useCampaignMetrics.tsx
+    validations:
+      required: true
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: Tipo de teste
+      options:
+        - Hook (useQuery/useMutation)
+        - Componente (render + interacao)
+        - Utility (funcao pura)
+        - Integracao (fluxo completo)
+        - Edge Function
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area do sistema
+      options:
+        - Dashboard
+        - Campanhas
+        - CRM / Leads
+        - Google Ads
+        - Facebook Ads
+        - WhatsApp
+        - Relatorios
+        - Agentes IA
+        - Chat IA
+        - Hooks
+        - Utilities
+        - Edge Functions
+        - Outro
+    validations:
+      required: true
+
+  - type: textarea
+    id: files
+    attributes:
+      label: Arquivos que precisam de testes
+      description: Liste os caminhos dos arquivos
+      placeholder: |
+        - src/hooks/useCampaigns.tsx
+        - src/components/campaigns/CampaignList.tsx
+    validations:
+      required: true
+
+  - type: textarea
+    id: scenarios
+    attributes:
+      label: Cenarios especificos a testar (opcional)
+      description: Se tiver cenarios criticos que devem ser cobertos
+      placeholder: |
+        - Quando nao ha campanhas ativas
+        - Quando a API do Facebook retorna erro
+        - Filtro por plataforma
+    validations:
+      required: false

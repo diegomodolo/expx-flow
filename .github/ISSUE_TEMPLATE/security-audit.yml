@@ -1,0 +1,74 @@
+name: "Security Audit"
+description: "Solicitar auditoria de seguranca para a IA executar"
+labels: ["security", "claude-analyze"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A IA vai auditar o codigo em busca de vulnerabilidades e abrir um PR com as correcoes.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: O que precisa ser auditado?
+      description: Descreva a area ou preocupacao de seguranca
+      placeholder: |
+        Verificar se as Edge Functions de pagamento validam corretamente
+        os tokens de autenticacao antes de processar transacoes.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: Tipo de auditoria
+      options:
+        - Autenticacao / Autorizacao
+        - Validacao de input (XSS, injection)
+        - Exposicao de dados sensiveis
+        - CORS / Headers
+        - Rate limiting
+        - Permissoes RLS (Row Level Security)
+        - Edge Functions
+        - Auditoria geral
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area do sistema
+      options:
+        - Autenticacao (Auth)
+        - Edge Functions
+        - API / Supabase queries
+        - Frontend (componentes)
+        - Integracao Facebook
+        - Integracao Google Ads
+        - Integracao WhatsApp
+        - CRM
+        - Geral (todo o sistema)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severidade estimada
+      options:
+        - Critica (dados expostos, bypass de auth)
+        - Alta (vulnerabilidade exploravel)
+        - Media (risco moderado)
+        - Baixa (melhoria preventiva)
+    validations:
+      required: true
+
+  - type: textarea
+    id: files
+    attributes:
+      label: Arquivos ou funcoes suspeitas (se souber)
+      placeholder: |
+        - supabase/functions/process-payment/index.ts
+        - src/hooks/useAuth.tsx
+    validations:
+      required: false

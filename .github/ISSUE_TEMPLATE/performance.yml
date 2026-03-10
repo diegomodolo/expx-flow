@@ -1,0 +1,79 @@
+name: "Performance"
+description: "Reportar problema de performance para a IA analisar e otimizar"
+labels: ["performance", "claude-analyze"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A IA vai analisar o problema de performance, identificar a causa e abrir um PR com a otimizacao.
+
+  - type: input
+    id: url
+    attributes:
+      label: URL ou pagina afetada
+      placeholder: "https://app.expxflow.com/pagina"
+    validations:
+      required: false
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Descricao do problema
+      description: O que esta lento? Quanto tempo demora?
+      placeholder: |
+        **O que esta lento:**
+        A pagina de campanhas demora 8s para carregar.
+
+        **Comportamento esperado:**
+        Deveria carregar em menos de 2s.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area do sistema
+      options:
+        - Dashboard
+        - Campanhas
+        - CRM / Leads
+        - Google Ads
+        - Facebook Ads
+        - WhatsApp
+        - Relatorios
+        - Agentes IA
+        - Chat IA
+        - Configuracoes
+        - Outro
+    validations:
+      required: true
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: Tipo de problema
+      options:
+        - Carregamento lento de pagina
+        - Query lenta no banco
+        - Re-renders excessivos
+        - Bundle grande
+        - Edge Function lenta
+        - Outro
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidencia (screenshots, Network tab, console)
+      description: Cole screenshots ou dados do DevTools
+    validations:
+      required: false
+
+  - type: input
+    id: file
+    attributes:
+      label: Arquivo suspeito (se souber)
+      placeholder: "src/hooks/useCampaigns.tsx"
+    validations:
+      required: false
