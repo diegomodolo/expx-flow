@@ -209,7 +209,11 @@ const App = () => {
               <Route path="/radar-tv/:token" element={<DashboardRadarTVPublic />} />
               <Route path="/cs-tv/:token" element={<DashboardCSTVPublic />} />
               <Route path="/content-review" element={<PublicContentReview />} />
-              <Route path="/super-admin" element={<SuperAdmin />} />
+              <Route path="/super-admin" element={
+                <ProtectedRoute>
+                  <SuperAdmin />
+                </ProtectedRoute>
+              } />
               
                {/* Protected routes */}
                <Route path="/dashboard" element={

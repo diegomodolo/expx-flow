@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
@@ -546,7 +546,7 @@ async function handleReactionEvent(supabase: any, payload: any): Promise<Respons
       console.log("[whatsapp-webhook] No message ID in reaction event");
       return new Response(
         JSON.stringify({ success: true, message: "No message ID in reaction" }),
-        { status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
+        { status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br" } }
       );
     }
 
@@ -566,7 +566,7 @@ async function handleReactionEvent(supabase: any, payload: any): Promise<Respons
       console.log("[whatsapp-webhook] Message not found for reaction:", reactedMessageId);
       return new Response(
         JSON.stringify({ success: true, message: "Message not found" }),
-        { status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
+        { status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br" } }
       );
     }
 
@@ -585,13 +585,13 @@ async function handleReactionEvent(supabase: any, payload: any): Promise<Respons
 
     return new Response(
       JSON.stringify({ success: true, message: "Reaction updated" }),
-      { status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
+      { status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br" } }
     );
   } catch (error) {
     console.error("[whatsapp-webhook] Error handling reaction:", error);
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
-      { status: 500, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
+      { status: 500, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br" } }
     );
   }
 }
@@ -625,7 +625,7 @@ async function handleMessageEditEvent(supabase: any, payload: any): Promise<Resp
       console.log("[whatsapp-webhook] No original message ID in edit event");
       return new Response(
         JSON.stringify({ success: true, message: "No message ID in edit event" }),
-        { status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
+        { status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br" } }
       );
     }
 
@@ -663,7 +663,7 @@ async function handleMessageEditEvent(supabase: any, payload: any): Promise<Resp
       console.log("[whatsapp-webhook] Original message not found for edit:", fullOriginalExternalId, "or", originalMessageId);
       return new Response(
         JSON.stringify({ success: true, message: "Original message not found" }),
-        { status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
+        { status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br" } }
       );
     }
 
@@ -694,13 +694,13 @@ async function handleMessageEditEvent(supabase: any, payload: any): Promise<Resp
 
     return new Response(
       JSON.stringify({ success: true, message: "Message edited" }),
-      { status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
+      { status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br" } }
     );
   } catch (error) {
     console.error("[whatsapp-webhook] Error handling message edit:", error);
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
-      { status: 500, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
+      { status: 500, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br" } }
     );
   }
 }

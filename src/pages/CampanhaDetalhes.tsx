@@ -16,6 +16,7 @@ import { CampaignMetricsModal } from "@/components/campaigns/CampaignMetricsModa
 import { AdSetMetricsModal } from "@/components/adsets/AdSetMetricsModal";
 import { AdCreativeMetricsModal } from "@/components/ads/AdCreativeMetricsModal";
 import { supabase } from "@/integrations/supabase/client";
+import DOMPurify from "dompurify";
 // Fixed: Removed all isRefreshingData references
 
 // Interface local para compatibilidade
@@ -992,7 +993,7 @@ export default function CampanhaDetalhes() {
                   <div 
                     className="markdown-content"
                     dangerouslySetInnerHTML={{ 
-                      __html: campaignAnalysis.replace(/\n/g, '<br/>').replace(/##\s+(.+)/g, '<h2 class="text-xl font-semibold text-gray-900 mt-6 mb-3">$1</h2>').replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/- (.+)/g, '<li class="ml-4">• $1</li>') 
+                      __html: DOMPurify.sanitize(campaignAnalysis.replace(/\n/g, '<br/>').replace(/##\s+(.+)/g, '<h2 class="text-xl font-semibold text-gray-900 mt-6 mb-3">$1</h2>').replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/- (.+)/g, '<li class="ml-4">• $1</li>'))
                     }}
                   />
                 </div>
