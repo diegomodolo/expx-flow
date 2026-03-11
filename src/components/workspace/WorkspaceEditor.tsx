@@ -41,17 +41,26 @@ export function WorkspaceEditor({ document }: WorkspaceEditorProps) {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   // Create editor with initial content
+  const initialContent =
+    Array.isArray(document?.content) && document.content.length > 0
+      ? (document.content as Parameters<
+          typeof useCreateBlockNote
+        >[0]["initialContent"])
+      : undefined;
+
   const editor = useCreateBlockNote({
-    initialContent:
-      document?.content?.length > 0 ? document.content : undefined,
+    initialContent,
   });
 
   // Update editor content when document changes
   useEffect(() => {
     if (document && editor) {
       setTitle(document.title);
-      if (document.content && document.content.length > 0) {
-        editor.replaceBlocks(editor.document, document.content);
+      if (Array.isArray(document.content) && document.content.length > 0) {
+        editor.replaceBlocks(
+          editor.document,
+          document.content as Parameters<typeof editor.replaceBlocks>[1],
+        );
       } else {
         editor.replaceBlocks(editor.document, []);
       }

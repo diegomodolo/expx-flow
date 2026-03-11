@@ -30,11 +30,11 @@ export function useWorkspaceShares(
       if (!employees || employees.length === 0) return [];
 
       return employees
-        .filter((emp: unknown) => emp.user_id) // Only employees with linked user accounts
-        .map((emp: unknown) => ({
-          user_id: emp.user_id,
-          full_name: emp.name || "Usuário",
-          avatar_url: emp.avatar,
+        .filter((emp) => emp.user_id) // Only employees with linked user accounts
+        .map((emp) => ({
+          user_id: emp.user_id as string,
+          full_name: (emp.name as string | null) || "Usuário",
+          avatar_url: emp.avatar as string | null,
         }));
     },
     enabled: !!activeCompany?.company_id,
