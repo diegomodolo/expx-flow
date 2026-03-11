@@ -47,11 +47,11 @@ const handler = async (req: Request): Promise<Response> => {
 
   try {
     const githubPat = Deno.env.get("GITHUB_PAT");
-    const repoOwner = Deno.env.get("GITHUB_REPO_OWNER");
-    const repoName = Deno.env.get("GITHUB_REPO_NAME");
+    const repoOwner = Deno.env.get("GITHUB_REPO_OWNER") || "bittencourtthulio";
+    const repoName = Deno.env.get("GITHUB_REPO_NAME") || "controledetrafego";
 
-    if (!githubPat || !repoOwner || !repoName) {
-      throw new Error("Configuração do GitHub não encontrada");
+    if (!githubPat) {
+      throw new Error("GITHUB_PAT não configurado");
     }
 
     const supabase = createClient(

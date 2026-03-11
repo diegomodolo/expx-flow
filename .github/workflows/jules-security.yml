@@ -12,7 +12,7 @@ jobs:
     if: |
       (github.event_name == 'schedule') ||
       (github.event_name == 'workflow_dispatch') ||
-      (github.event_name == 'issues' && github.event.label.name == 'jules' && contains(github.event.issue.labels.*.name, 'security'))
+      (github.event_name == 'issues' && github.event.label.name == 'jules' && contains(github.event.issue.labels.*.name, 'security') && !contains(github.event.issue.labels.*.name, 'bug') && !contains(github.event.issue.labels.*.name, 'feature-suggestion'))
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
