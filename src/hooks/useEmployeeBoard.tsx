@@ -54,6 +54,7 @@ export function useEmployeeBoard(selectedUserId?: string | null | "all") {
           team:teams(name, color)
         `)
         .eq("company_id", activeCompany.company_id)
+        .order("start_date", { ascending: true, nullsFirst: false })
         .order("created_at", { ascending: false });
 
       // Se for "all", buscar todas as tarefas da empresa
