@@ -183,11 +183,7 @@ export function useBacklogCommandCenter() {
   // Build backlog clients with stats (only parent tasks, matching filteredTasks logic)
   const backlogClients = useMemo((): BacklogClient[] => {
     const clientMap = new Map<string, { minutes: number; count: number }>();
-    let parentTasks = backlogTasks.filter((t) => !t.parent_task_id);
-    // Apply same squad filter as filteredTasks so sidebar counts match right panel
-    if (selectedSquadId) {
-      parentTasks = parentTasks.filter((t) => t.team_id === selectedSquadId);
-    }
+    const parentTasks = backlogTasks.filter((t) => !t.parent_task_id);
 
     parentTasks.forEach((task) => {
       const clientIds = taskToClients.get(task.id) || [];
@@ -258,14 +254,15 @@ export function useBacklogCommandCenter() {
     }
 
     return result.sort((a, b) => b.totalMinutes - a.totalMinutes);
-  }, [backlogTasks, filteredClients, taskToClients, recentActivity, selectedSquadId]);
+  }, [backlogTasks, filteredClients, taskToClients, recentActivity]);
 
   // Filter tasks by selected client — exclude subtasks from top level
   const filteredTasks = useMemo(() => {
     let tasks = backlogTasks.filter((t) => !t.parent_task_id);
 
-    // Filter by squad
-    if (selectedSquadId) {
+    // Filter by squad only when no client is selected
+    // When a client is selected, show all their tasks regardless of squad
+    if (selectedSquadId && !selectedClientId) {
       tasks = tasks.filter((t) => t.team_id === selectedSquadId);
     }
 
@@ -393,14 +390,11 @@ export function useBacklogCommandCenter() {
 
   // Total backlog stats (only parent tasks, consistent with sidebar)
   const totalStats = useMemo(() => {
-    let parents = backlogTasks.filter((t) => !t.parent_task_id);
-    if (selectedSquadId) {
-      parents = parents.filter((t) => t.team_id === selectedSquadId);
-    }
+    const parents = backlogTasks.filter((t) => !t.parent_task_id);
     const totalMinutes = parents.reduce((sum, t) => sum + (t.ai_estimated_minutes || 18), 0);
     const totalHours = Math.round(totalMinutes / 60);
     return { totalTasks: parents.length, totalMinutes, totalHours };
-  }, [backlogTasks, selectedSquadId]);
+  }, [backlogTasks]);
 
   return {
     backlogClients,
