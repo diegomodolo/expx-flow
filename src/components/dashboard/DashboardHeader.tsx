@@ -20,6 +20,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useTheme } from "next-themes";
 import { useState, useEffect } from "react";
+import { TaskApprovalIndicator } from "@/components/tasks/TaskApprovalIndicator";
+import { TaskDialog } from "@/components/tasks/TaskDialog";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 
 export function DashboardHeader() {
   const navigate = useNavigate();
@@ -35,6 +39,27 @@ export function DashboardHeader() {
   const [mounted, setMounted] = useState(false);
   const [isWhatsAppOpen, setIsWhatsAppOpen] = useState(false);
   const { hasInstances: hasWhatsAppInstances } = useUserWhatsAppInstances();
+  const queryClient = useQueryClient();
+  const [approvalTaskOpen, setApprovalTaskOpen] = useState(false);
+  const [approvalTask, setApprovalTask] = useState<unknown>(null);
+
+  const handleOpenApprovalTask = async (taskId: string) => {
+    const { data } = await supabase
+      .from("tasks")
+      .select("*")
+      .eq("id", taskId)
+      .single();
+    if (data) {
+      setApprovalTask(data);
+      setApprovalTaskOpen(true);
+    }
+  };
+
+  const handleSaveApprovalTask = async (taskData: unknown) => {
+    setApprovalTaskOpen(false);
+    setApprovalTask(null);
+    queryClient.invalidateQueries({ queryKey: ["tasks-awaiting-approval"] });
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -87,6 +112,9 @@ export function DashboardHeader() {
         
         {/* Right side - Actions */}
         <div className="flex items-center gap-2">
+          {/* Task Approval Indicator */}
+          <TaskApprovalIndicator onOpenTask={handleOpenApprovalTask} />
+
           {/* Unified Notification Center */}
           <NotificationCenter />
 
@@ -185,6 +213,20 @@ export function DashboardHeader() {
       <WhatsAppInboxDrawer
         isOpen={isWhatsAppOpen}
         onClose={() => setIsWhatsAppOpen(false)}
+      />
+
+      {/* Task Approval Dialog */}
+      <TaskDialog
+        open={approvalTaskOpen}
+        onOpenChange={(open) => {
+          setApprovalTaskOpen(open);
+          if (!open) {
+            setApprovalTask(null);
+            queryClient.invalidateQueries({ queryKey: ["tasks-awaiting-approval"] });
+          }
+        }}
+        task={approvalTask}
+        onSave={handleSaveApprovalTask}
       />
     </header>
   );
