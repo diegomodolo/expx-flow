@@ -97,7 +97,7 @@ export function SocialTVControls({
   return (
     <>
       {/* Floating controls button */}
-      <Button
+      <Button aria-label="Fechar"
         variant="outline"
         size="icon"
         onClick={() => setIsOpen(!isOpen)}
@@ -114,7 +114,7 @@ export function SocialTVControls({
         <div className="fixed bottom-20 right-4 z-50 w-80 bg-card rounded-2xl elevation-3 border border-border p-6 space-y-6 max-h-[80vh] overflow-y-auto">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold text-lg text-foreground">Controles do Dashboard</h3>
-            <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)}>
+            <Button aria-label="Fechar" variant="ghost" size="icon" onClick={() => setIsOpen(false)}>
               <X className="h-4 w-4" />
             </Button>
           </div>
@@ -131,7 +131,7 @@ export function SocialTVControls({
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <Button
+              <Button aria-label="Fechar"
                 variant="outline"
                 size="icon"
                 className="h-8 w-8 shrink-0"
@@ -148,7 +148,7 @@ export function SocialTVControls({
                 step={5}
                 className="flex-1"
               />
-              <Button
+              <Button aria-label="Adicionar"
                 variant="outline"
                 size="icon"
                 className="h-8 w-8 shrink-0"

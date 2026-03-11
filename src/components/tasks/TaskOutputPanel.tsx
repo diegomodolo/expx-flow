@@ -389,7 +389,7 @@ export function TaskOutputPanel({ taskId, companyId, clientId, expanded, onToggl
               className="hidden"
               onChange={handleFileUpload}
             />
-            <Button
+            <Button aria-label="Fazer upload"
               variant="ghost"
               size="icon"
               className="h-8 w-8"

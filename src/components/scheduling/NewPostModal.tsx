@@ -282,7 +282,7 @@ export const NewPostModal: React.FC<NewPostModalProps> = ({
                 <div className="flex items-start gap-3">
                   <div className="relative group w-20 h-24 rounded-lg overflow-hidden bg-muted border">
                     <img src={thumbnailUrl} alt="Capa do Reels" className="w-full h-full object-cover" />
-                    <Button
+                    <Button aria-label="Avançar"
                       variant="destructive"
                       size="icon"
                       className="absolute top-1 right-1 h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"

@@ -365,7 +365,7 @@ export const LeadSegmentsManager = () => {
                       {seg.cnaes && seg.cnaes.length > 0 && (
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button 
+                            <Button aria-label="Fechar"
                               size="icon" 
                               variant="ghost"
                               onClick={() => setImportModalSegment({ id: seg.id, name: seg.name, cnaes: seg.cnaes })}
@@ -380,7 +380,7 @@ export const LeadSegmentsManager = () => {
                       )}
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button size="icon" variant="ghost" onClick={() => handleEdit(seg)}>
+                          <Button aria-label="Editar" size="icon" variant="ghost" onClick={() => handleEdit(seg)}>
                             <Edit className="h-4 w-4" />
                           </Button>
                         </TooltipTrigger>
@@ -391,7 +391,7 @@ export const LeadSegmentsManager = () => {
                     </TooltipProvider>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <Button size="icon" variant="ghost" className="text-destructive">
+                        <Button aria-label="Excluir" size="icon" variant="ghost" className="text-destructive">
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </AlertDialogTrigger>

@@ -272,7 +272,7 @@ export function EditableAdSetsSection({
                     </Badge>
                   </div>
                   <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                    <Button
+                    <Button aria-label="Copiar"
                       variant="ghost"
                       size="icon"
                       onClick={() => handleDuplicateAdSet(adSet.id)}
@@ -281,7 +281,7 @@ export function EditableAdSetsSection({
                       <Copy className="w-4 h-4" />
                     </Button>
                     {strategy.adSets.length > 1 && (
-                      <Button
+                      <Button aria-label="Excluir"
                         variant="ghost"
                         size="icon"
                         onClick={() => handleRemoveAdSet(adSet.id)}

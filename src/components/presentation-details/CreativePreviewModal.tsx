@@ -100,7 +100,7 @@ export function CreativePreviewModal({ creative, onClose }: CreativePreviewModal
             {/* Navigation arrows */}
             {media.length > 1 && (
               <>
-                <Button
+                <Button aria-label="Voltar"
                   variant="ghost"
                   size="icon"
                   className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full"
@@ -108,7 +108,7 @@ export function CreativePreviewModal({ creative, onClose }: CreativePreviewModal
                 >
                   <ChevronLeft className="w-6 h-6" />
                 </Button>
-                <Button
+                <Button aria-label="Avançar"
                   variant="ghost"
                   size="icon"
                   className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full"

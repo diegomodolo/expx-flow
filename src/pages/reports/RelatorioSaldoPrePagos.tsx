@@ -297,7 +297,7 @@ const RelatorioSaldoPrePagos = () => {
       <div className="flex flex-col space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/marketing/relatorios')}>
+          <Button aria-label="Voltar" variant="ghost" size="icon" onClick={() => navigate('/marketing/relatorios')}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div>

@@ -95,10 +95,10 @@ export function MeetingDetailsModal({
                     <p className="text-sm text-muted-foreground truncate max-w-md">{meeting.meeting_uri}</p>
                   </div>
                   <div className="flex gap-2">
-                    <Button variant="ghost" size="icon" onClick={() => handleCopy(meeting.meeting_uri)}>
+                    <Button aria-label="Copiar" variant="ghost" size="icon" onClick={() => handleCopy(meeting.meeting_uri)}>
                       <Copy className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={() => window.open(meeting.meeting_uri, '_blank')}>
+                    <Button aria-label="Fechar" variant="ghost" size="icon" onClick={() => window.open(meeting.meeting_uri, '_blank')}>
                       <ExternalLink className="h-4 w-4" />
                     </Button>
                   </div>
@@ -128,7 +128,7 @@ export function MeetingDetailsModal({
                         <Play className="h-4 w-4" />
                         Assistir Gravação
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleCopy(meeting.recording_url!)}>
+                      <Button aria-label="Copiar" variant="ghost" size="icon" onClick={() => handleCopy(meeting.recording_url!)}>
                         <Copy className="h-4 w-4" />
                       </Button>
                     </div>

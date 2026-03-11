@@ -120,7 +120,7 @@ export function ThreadPanel({ parentMessage, onClose }: ThreadPanelProps) {
           <MessageSquare className="w-4 h-4 text-primary" />
           <h3 className="text-sm font-medium text-foreground">Thread</h3>
         </div>
-        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={onClose}>
+        <Button aria-label="Fechar" size="icon" variant="ghost" className="h-7 w-7" onClick={onClose}>
           <X className="w-4 h-4" />
         </Button>
       </div>
@@ -187,7 +187,7 @@ export function ThreadPanel({ parentMessage, onClose }: ThreadPanelProps) {
             className="min-h-[36px] max-h-[80px] resize-none rounded-lg bg-muted/50 border-border text-xs"
             rows={1}
           />
-          <Button
+          <Button aria-label="Enviar"
             size="icon"
             onClick={handleSend}
             disabled={!inputValue.trim() || sendReply.isPending}

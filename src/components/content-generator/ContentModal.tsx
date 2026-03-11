@@ -85,7 +85,7 @@ export function ContentModal({ isOpen, onClose, contentType }: ContentModalProps
               {contentType.description}
             </p>
           </div>
-          <Button
+          <Button aria-label="Fechar"
             variant="ghost"
             size="icon"
             onClick={handleClose}

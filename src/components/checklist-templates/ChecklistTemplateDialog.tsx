@@ -87,7 +87,7 @@ export function ChecklistTemplateDialog({ open, onOpenChange, onSave, initialDat
                 onChange={e => setNewItem(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addItem())}
               />
-              <Button variant="outline" size="icon" onClick={addItem} disabled={!newItem.trim()}>
+              <Button aria-label="Adicionar" variant="outline" size="icon" onClick={addItem} disabled={!newItem.trim()}>
                 <Plus className="w-4 h-4" />
               </Button>
             </div>
@@ -100,7 +100,7 @@ export function ChecklistTemplateDialog({ open, onOpenChange, onSave, initialDat
                     <div key={index} className="flex items-center gap-2 p-2.5 rounded-lg border border-border bg-muted/20">
                       <GripVertical className="w-4 h-4 text-muted-foreground shrink-0" />
                       <span className="text-sm flex-1 truncate">{item}</span>
-                      <Button
+                      <Button aria-label="Excluir"
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7 text-destructive hover:text-destructive shrink-0"

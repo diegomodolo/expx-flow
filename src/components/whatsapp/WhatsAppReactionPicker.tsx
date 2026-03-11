@@ -90,7 +90,7 @@ export function WhatsAppReactionPicker({
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
-        <Button
+        <Button aria-label="Enviar"
           variant="ghost"
           size="icon"
           className={cn(
@@ -119,7 +119,7 @@ export function WhatsAppReactionPicker({
       >
         <div className="flex gap-1">
           {REACTIONS.map((emoji) => (
-            <Button
+            <Button aria-label="Enviar"
               key={emoji}
               variant="ghost"
               size="icon"

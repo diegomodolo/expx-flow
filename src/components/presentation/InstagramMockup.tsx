@@ -220,7 +220,7 @@ export function InstagramMockup({
         {/* Carousel navigation */}
         {isCarousel && media.length > 1 && (
           <>
-            <Button
+            <Button aria-label="Voltar"
               variant="secondary"
               size="icon"
               onClick={onPrev}
@@ -229,7 +229,7 @@ export function InstagramMockup({
             >
               <ChevronLeft className="w-5 h-5 text-gray-700" />
             </Button>
-            <Button
+            <Button aria-label="Avançar"
               variant="secondary"
               size="icon"
               onClick={onNext}

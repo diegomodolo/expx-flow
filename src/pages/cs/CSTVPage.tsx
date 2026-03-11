@@ -114,7 +114,7 @@ export default function CSTVPage() {
                     readOnly 
                     className="font-mono text-sm"
                   />
-                  <Button 
+                  <Button aria-label="Copiar"
                     variant="outline" 
                     size="icon"
                     onClick={handleCopyLink}
@@ -125,7 +125,7 @@ export default function CSTVPage() {
                       <Copy className="w-4 h-4" />
                     )}
                   </Button>
-                  <Button 
+                  <Button aria-label="Fechar"
                     variant="outline" 
                     size="icon"
                     onClick={handleOpenDashboard}

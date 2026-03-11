@@ -72,10 +72,10 @@ export function AtividadeList({ atividades, onEdit, onDelete, onReorder }: Ativi
                         </div>
                       </div>
                       <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(atividade)}>
+                        <Button aria-label="Editar" variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(atividade)}>
                           <Pencil className="w-3.5 h-3.5" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => onDelete(atividade.id)}>
+                        <Button aria-label="Excluir" variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => onDelete(atividade.id)}>
                           <Trash2 className="w-3.5 h-3.5" />
                         </Button>
                       </div>

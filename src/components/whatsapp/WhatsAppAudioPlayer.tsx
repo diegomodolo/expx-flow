@@ -317,7 +317,7 @@ export function WhatsAppAudioPlayer({
         )}
 
         {/* Play/Pause button */}
-        <Button
+        <Button aria-label="Reproduzir"
           size="icon"
           variant="ghost"
           className={cn(

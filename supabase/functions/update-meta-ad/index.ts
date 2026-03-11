@@ -79,7 +79,7 @@ serve(async (req) => {
     const adAccountId = client.facebook_ad_accounts?.account_id;
 
     // Track what was updated
-    const updatedFields: Record<string, any> = {};
+    const updatedFields: Record<string, string | boolean> = {};
 
     // Update name and/or status directly on Meta
     if (updates.name || updates.status) {
@@ -127,7 +127,7 @@ serve(async (req) => {
 
         if (pages && pages.length > 0) {
           const clientName = client.name?.toLowerCase().trim() || "";
-          const matchingPage = pages.find((p: any) => p.page_name?.toLowerCase().trim() === clientName);
+          const matchingPage = pages.find((p: { page_name?: string; page_id?: string }) => p.page_name?.toLowerCase().trim() === clientName);
 
           if (matchingPage) {
             metaPageId = matchingPage.page_id;
@@ -145,7 +145,7 @@ serve(async (req) => {
       const ctaType = creative.call_to_action || 'LEARN_MORE';
       const finalUrl = creative.link_url;
 
-      let creativeData: any;
+      let creativeData: { id?: string; error?: { message: string } };
 
       if (creative.type === 'CAROUSEL') {
         const childAttachments = creative.media_urls.map((url, index) => ({
@@ -331,10 +331,10 @@ serve(async (req) => {
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error in update-meta-ad:", error);
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
+      JSON.stringify({ success: false, error: error instanceof Error ? error.message : String(error) }),
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

@@ -413,7 +413,7 @@ export function RecurringTasksManager({ clientId }: RecurringTasksManagerProps) 
                       {/* Actions */}
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <Button
+                          <Button aria-label="Editar"
                             variant="ghost"
                             size="icon"
                             className="h-7 w-7"
@@ -421,7 +421,7 @@ export function RecurringTasksManager({ clientId }: RecurringTasksManagerProps) 
                           >
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
-                          <Button
+                          <Button aria-label="Excluir"
                             variant="ghost"
                             size="icon"
                             className="h-7 w-7 text-destructive hover:text-destructive"

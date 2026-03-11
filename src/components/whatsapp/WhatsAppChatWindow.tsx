@@ -575,7 +575,7 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
           <>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
+                <Button aria-label="Ação"
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8 md:h-9 md:w-9"
@@ -588,7 +588,7 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
+                <Button aria-label="Ação"
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8 md:h-9 md:w-9"
@@ -605,7 +605,7 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
         {/* Observação - sempre disponível (é por chat, não por cliente) */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button
+            <Button aria-label="Ação"
               variant="ghost"
               size="icon"
               className="h-8 w-8 md:h-9 md:w-9"
@@ -638,7 +638,7 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
         {/* AI Assistant button */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button
+            <Button aria-label="Fechar"
               variant={aiAssistantOpen ? "secondary" : "ghost"}
               size="icon"
               className="h-8 w-8 md:h-9 md:w-9"
@@ -652,7 +652,7 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
         </Tooltip>
         
         {/* Refresh messages button */}
-        <Button
+        <Button aria-label="Atualizar"
           variant="ghost"
           size="icon"
           className="h-8 w-8 md:h-9 md:w-9"
@@ -666,7 +666,7 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
         {/* More options menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8 md:h-9 md:w-9">
+            <Button aria-label="Ação" variant="ghost" size="icon" className="h-8 w-8 md:h-9 md:w-9">
               <MoreVertical className="h-3.5 w-3.5 md:h-4 md:w-4" />
             </Button>
           </DropdownMenuTrigger>

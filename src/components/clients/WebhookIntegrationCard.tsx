@@ -329,7 +329,7 @@ function send${preset.name}($leadData) {
                   readOnly
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono"
                 />
-                <Button
+                <Button aria-label="Copiar"
                   variant="outline"
                   size="icon"
                   onClick={() => copyToClipboard(webhookUrl || '', 'URL copiada para a área de transferência')}

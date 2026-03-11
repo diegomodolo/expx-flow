@@ -433,14 +433,14 @@ export default function ClienteAutomacoes() {
                               </div>}
                           </div>
                           <div className="flex items-center gap-2 ml-4">
-                            <Button variant="ghost" size="icon" onClick={() => {
+                            <Button aria-label="Editar" variant="ghost" size="icon" onClick={() => {
                         setRuleToEdit(rule);
                         setEditDialogOpen(true);
                       }}>
                               <Pencil className="h-4 w-4" />
                             </Button>
                             <Switch checked={rule.is_active} onCheckedChange={() => handleToggleRule(rule.id, rule.is_active)} />
-                            <Button variant="ghost" size="icon" onClick={() => {
+                            <Button aria-label="Excluir" variant="ghost" size="icon" onClick={() => {
                         setRuleToDelete(rule.id);
                         setDeleteDialogOpen(true);
                       }}>

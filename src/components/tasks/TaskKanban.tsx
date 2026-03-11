@@ -688,7 +688,7 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
                         {column.name}
                         <Badge variant="secondary" className={cn("bg-background/80", isCompactMode && "text-xs px-1.5 py-0")}>{finalTasks.length}</Badge>
                       </h3>
-                      <Button
+                      <Button aria-label="Ação"
                         variant="ghost"
                         size="icon"
                         className={cn("opacity-60 hover:opacity-100", isCompactMode ? "h-5 w-5" : "h-6 w-6")}

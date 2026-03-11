@@ -180,7 +180,7 @@ export default function AgentSquads() {
                       <span>{squad.members_count || 0} agentes</span>
                     </div>
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button
+                      <Button aria-label="Editar"
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8"
@@ -191,7 +191,7 @@ export default function AgentSquads() {
                       >
                         <Edit className="w-4 h-4" />
                       </Button>
-                      <Button
+                      <Button aria-label="Excluir"
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 text-destructive"

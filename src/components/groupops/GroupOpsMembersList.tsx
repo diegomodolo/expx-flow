@@ -517,7 +517,7 @@ function MemberActionsMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button size="icon" variant="ghost" className="h-8 w-8">
+        <Button aria-label="Ação" size="icon" variant="ghost" className="h-8 w-8">
           <MoreHorizontal className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
@@ -739,7 +739,7 @@ function AddMembersDialog({
                   <AvatarFallback className="text-[10px] bg-primary/10 text-primary"><Building2 className="h-3 w-3" /></AvatarFallback>
                 </Avatar>
                 <span className="text-sm font-medium flex-1">{selectedClient.name}</span>
-                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setSelectedClientId('')}>
+                <Button aria-label="Fechar" size="icon" variant="ghost" className="h-6 w-6" onClick={() => setSelectedClientId('')}>
                   <X className="h-3 w-3" />
                 </Button>
               </div>
@@ -791,7 +791,7 @@ function AddMembersDialog({
                     className="flex-1 text-sm font-mono"
                   />
                   {phones.length > 1 && (
-                    <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={() => removePhoneRow(idx)}>
+                    <Button aria-label="Fechar" size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={() => removePhoneRow(idx)}>
                       <X className="h-3.5 w-3.5" />
                     </Button>
                   )}

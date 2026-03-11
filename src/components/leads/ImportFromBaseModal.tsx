@@ -423,7 +423,7 @@ export const ImportFromBaseModal = ({ open, onOpenChange, companyId, segment }: 
                 onKeyDown={handleCnaeKeyDown}
                 className="font-mono"
               />
-              <Button variant="outline" onClick={handleAddCnae} disabled={!cnaeInput.trim()} size="icon">
+              <Button aria-label="Adicionar" variant="outline" onClick={handleAddCnae} disabled={!cnaeInput.trim()} size="icon">
                 <Plus className="h-4 w-4" />
               </Button>
             </div>

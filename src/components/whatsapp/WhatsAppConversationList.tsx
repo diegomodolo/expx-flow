@@ -126,7 +126,7 @@ export function WhatsAppConversationList({
             <TooltipProvider delayDuration={300}>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button
+                  <Button aria-label="Adicionar"
                     variant="outline"
                     size="icon"
                     onClick={onNewConversation}

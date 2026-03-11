@@ -347,7 +347,7 @@ export function CreativeVariationGenerator() {
                       alt="Base"
                       className="w-full h-36 object-cover rounded-lg"
                     />
-                    <Button
+                    <Button aria-label="Excluir"
                       variant="destructive"
                       size="icon"
                       className="absolute top-1 right-1 h-6 w-6"
@@ -390,7 +390,7 @@ export function CreativeVariationGenerator() {
                       alt="Person"
                       className="w-full h-36 object-cover rounded-lg"
                     />
-                    <Button
+                    <Button aria-label="Excluir"
                       variant="destructive"
                       size="icon"
                       className="absolute top-1 right-1 h-6 w-6"

@@ -149,7 +149,7 @@ export default function EditorFunil() {
                   <CardHeader>
                     <div className="flex items-start justify-between mb-2">
                       <GitBranch className="h-8 w-8 text-primary" />
-                      <Button
+                      <Button aria-label="Excluir"
                         variant="ghost"
                         size="icon"
                         onClick={(e) => {

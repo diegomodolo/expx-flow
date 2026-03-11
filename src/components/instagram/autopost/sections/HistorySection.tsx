@@ -116,7 +116,7 @@ export function HistorySection({ publishedPosts, onPostDeleted }: HistorySection
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Button
+                      <Button aria-label="Visualizar"
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8"
@@ -126,7 +126,7 @@ export function HistorySection({ publishedPosts, onPostDeleted }: HistorySection
                         <Eye className="w-4 h-4" />
                       </Button>
                       {post.status === 'published' && post.instagram_media_id && (
-                        <Button
+                        <Button aria-label="Excluir"
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 text-destructive hover:text-destructive"

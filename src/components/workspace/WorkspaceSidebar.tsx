@@ -208,7 +208,7 @@ export function WorkspaceSidebar({
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button 
+              <Button aria-label="Ação"
                 variant="ghost" 
                 size="icon" 
                 className="h-6 w-6 opacity-0 group-hover:opacity-100"
@@ -279,7 +279,7 @@ export function WorkspaceSidebar({
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button 
+                  <Button aria-label="Ação"
                     variant="ghost" 
                     size="icon" 
                     className="h-6 w-6 opacity-0 group-hover:opacity-100"
@@ -334,10 +334,10 @@ export function WorkspaceSidebar({
         <div className="p-3 border-b flex items-center justify-between">
           <h2 className="font-semibold text-sm">Workspace</h2>
           <div className="flex gap-1">
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setCreateFolderOpen(true)}>
+            <Button aria-label="Adicionar" variant="ghost" size="icon" className="h-7 w-7" onClick={() => setCreateFolderOpen(true)}>
               <FolderPlus className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleCreateDocument(null)}>
+            <Button aria-label="Adicionar" variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleCreateDocument(null)}>
               <FilePlus className="h-4 w-4" />
             </Button>
           </div>

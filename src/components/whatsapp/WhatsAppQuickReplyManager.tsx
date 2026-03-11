@@ -345,7 +345,7 @@ export const WhatsAppQuickReplyManager: React.FC<WhatsAppQuickReplyManagerProps>
                             )}
                           </div>
                           <div className="flex-shrink-0 flex gap-1">
-                            <Button
+                            <Button aria-label="Editar"
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8"
@@ -355,7 +355,7 @@ export const WhatsAppQuickReplyManager: React.FC<WhatsAppQuickReplyManagerProps>
                             >
                               <Pencil className="h-4 w-4" />
                             </Button>
-                            <Button
+                            <Button aria-label="Excluir"
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8 text-destructive hover:text-destructive"
@@ -378,7 +378,7 @@ export const WhatsAppQuickReplyManager: React.FC<WhatsAppQuickReplyManagerProps>
                   <h3 className="font-medium">
                     {editingReply ? 'Editar Resposta Rápida' : 'Nova Resposta Rápida'}
                   </h3>
-                  <Button type="button" variant="ghost" size="icon" onClick={resetForm}>
+                  <Button aria-label="Fechar" type="button" variant="ghost" size="icon" onClick={resetForm}>
                     <X className="h-4 w-4" />
                   </Button>
                 </div>

@@ -207,7 +207,7 @@ export function CSTVCriticalAlertOverlay({ alerts, onDismiss, onDismissAll, rota
                 {currentIndex + 1} de {alerts.length}
               </span>
             )}
-            <Button 
+            <Button aria-label="Fechar"
               variant="ghost" 
               size="icon"
               onClick={onDismissAll}
