@@ -43,6 +43,13 @@ interface ReleaseEntry {
   published_at: string;
 }
 
+function sanitizeText(text: string): string {
+  return text
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "")
+    .replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/g, "")
+    .replace(/(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g, "");
+}
+
 function categorize(message: string): { category: string; cleanTitle: string } {
   const lower = message.toLowerCase().trim();
 
@@ -233,11 +240,14 @@ const handler = async (req: Request): Promise<Response> => {
 
     for (const pr of mergedPrs) {
       const { category, cleanTitle } = categorize(pr.title);
+      const description = pr.body
+        ? sanitizeText(pr.body).substring(0, 1000)
+        : null;
       entries.push({
-        title: cleanTitle,
+        title: sanitizeText(cleanTitle),
         friendly_title: null,
         category,
-        description: pr.body ? pr.body.substring(0, 1000) : null,
+        description,
         source_type: "pr",
         source_ref: `pr-${pr.number}`,
         source_url: pr.html_url,
@@ -254,7 +264,7 @@ const handler = async (req: Request): Promise<Response> => {
       const { category, cleanTitle } = categorize(firstLine);
 
       entries.push({
-        title: cleanTitle,
+        title: sanitizeText(cleanTitle),
         friendly_title: null,
         category,
         description: null,
@@ -282,18 +292,25 @@ const handler = async (req: Request): Promise<Response> => {
       entries[i].friendly_title = friendlyTitles[i];
     }
 
-    // Upsert by source_ref
-    const { error: upsertError } = await supabase
-      .from("release_notes")
-      .upsert(entries, { onConflict: "source_ref" });
+    // Upsert by source_ref (one by one to isolate problematic entries)
+    let syncedCount = 0;
+    for (const entry of entries) {
+      const { error: upsertError } = await supabase
+        .from("release_notes")
+        .upsert(entry, { onConflict: "source_ref" });
 
-    if (upsertError) {
-      console.error("Upsert error:", JSON.stringify(upsertError));
-      throw new Error(`Erro ao salvar release notes: ${upsertError.message}`);
+      if (upsertError) {
+        console.error(
+          `Upsert error for ${entry.source_ref}:`,
+          JSON.stringify(upsertError),
+        );
+      } else {
+        syncedCount++;
+      }
     }
 
     return new Response(
-      JSON.stringify({ success: true, synced_count: entries.length }),
+      JSON.stringify({ success: true, synced_count: syncedCount }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (error: unknown) {
