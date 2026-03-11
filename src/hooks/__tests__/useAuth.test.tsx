@@ -28,7 +28,7 @@ vi.mock("@/integrations/supabase/client", () => ({
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual("react-router-dom");
   return {
-    ...actual as any,
+    ...(actual as object),
     useLocation: vi.fn().mockReturnValue({ pathname: "/dashboard" }),
   };
 });
@@ -36,7 +36,7 @@ vi.mock("react-router-dom", async () => {
 describe("useAuth", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (useLocation as any).mockReturnValue({ pathname: "/dashboard" });
+    vi.mocked(useLocation).mockReturnValue({ pathname: "/dashboard" } as unknown as ReturnType<typeof useLocation>);
   });
 
   it("deve lancar erro quando usado fora do AuthProvider", () => {
@@ -73,7 +73,7 @@ describe("useAuth", () => {
 
   it("deve lidar com rotas publicas corretamente", async () => {
     const { supabase } = await import("@/integrations/supabase/client");
-    (useLocation as any).mockReturnValue({ pathname: "/dashboard-publico/test" });
+    vi.mocked(useLocation).mockReturnValue({ pathname: "/dashboard-publico/test" } as unknown as ReturnType<typeof useLocation>);
 
     const wrapper = ({ children }: { children: React.ReactNode }) => (
       <MemoryRouter>

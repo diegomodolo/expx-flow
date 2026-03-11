@@ -23,14 +23,14 @@ describe("AuthPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    (useToast as any).mockReturnValue({
+    vi.mocked(useToast).mockReturnValue({
       toast: mockToast,
-    });
+    } as unknown as ReturnType<typeof useToast>);
 
-    (useAuth as any).mockReturnValue({
+    vi.mocked(useAuth).mockReturnValue({
       signIn: mockSignIn,
       user: null,
-    });
+    } as unknown as ReturnType<typeof useAuth>);
   });
 
   it("deve renderizar corretamente o formulario de login", async () => {
@@ -107,10 +107,10 @@ describe("AuthPage", () => {
   });
 
   it("deve redirecionar caso o usuario ja esteja logado", async () => {
-    (useAuth as any).mockReturnValue({
+    vi.mocked(useAuth).mockReturnValue({
       signIn: mockSignIn,
       user: { id: "user-1" },
-    });
+    } as unknown as ReturnType<typeof useAuth>);
 
     renderWithProviders(<AuthPage />);
 
