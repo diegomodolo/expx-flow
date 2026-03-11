@@ -105,17 +105,21 @@ import { cn } from "@/lib/utils";
 
 ## Erros Comuns e Solucoes
 
-| Erro                          | Causa                           | Solucao                            |
-| ----------------------------- | ------------------------------- | ---------------------------------- |
-| Import nao encontrado         | Caminho relativo em vez de `@/` | Usar `@/` sempre                   |
-| Query nao executa             | `enabled` nao configurado       | Adicionar `enabled: !!dependencia` |
-| UI nao atualiza apos mutation | Cache nao invalidado            | `queryClient.invalidateQueries()`  |
-| Componente ui/ nao existe     | Nao foi adicionado via CLI      | `npx shadcn-ui@latest add <nome>`  |
-| Toast em ingles               | Esqueceu de traduzir            | Sempre usar PT-BR em toasts        |
+| Erro                          | Causa                                          | Solucao                                                    |
+| ----------------------------- | ---------------------------------------------- | ---------------------------------------------------------- |
+| Import nao encontrado         | Caminho relativo em vez de `@/`                | Usar `@/` sempre                                           |
+| Query nao executa             | `enabled` nao configurado                      | Adicionar `enabled: !!dependencia`                         |
+| UI nao atualiza apos mutation | Cache nao invalidado                           | `queryClient.invalidateQueries()`                          |
+| Componente ui/ nao existe     | Nao foi adicionado via CLI                     | `npx shadcn-ui@latest add <nome>`                          |
+| Toast em ingles               | Esqueceu de traduzir                           | Sempre usar PT-BR em toasts                                |
+| Dados nao aparecem na tela    | Usando `activeCompany.id` em vez de `.company_id` | **SEMPRE** usar `activeCompany.company_id`              |
+| Pagina sem sidebar/header     | Faltou DashboardLayout                         | Envolver com `<DashboardLayout>`                           |
+| Erro ao ativar permissao      | Enum `menu_item_type` nao atualizado no banco  | Rodar `ALTER TYPE menu_item_type ADD VALUE 'nova-perm'`    |
 
 ## Checklist antes de submeter
 
 - [ ] **Pagina envolvida com `<DashboardLayout>`** (sidebar + header)
+- [ ] **Usando `activeCompany.company_id`** (NUNCA `.id` — este e o ID do company_members!)
 - [ ] Imports usam `@/` (nunca `../../../`)
 - [ ] Textos de UI em Portugues
 - [ ] `enabled` configurado em useQuery com dependencias
@@ -123,3 +127,11 @@ import { cn } from "@/lib/utils";
 - [ ] Componentes shadcn/ui usados (nao HTML raw para forms, buttons, etc.)
 - [ ] `cn()` usado para classes condicionais
 - [ ] Sem editar arquivos em `components/ui/`
+
+### Para novas paginas com permissao (checklist adicional)
+
+- [ ] Enum `menu_item_type` atualizado no banco (`ALTER TYPE menu_item_type ADD VALUE`)
+- [ ] Permissao adicionada em `PermissionGroupsSettings.tsx` (MENU_ITEMS)
+- [ ] Permissao adicionada em `PermissionsSettings.tsx` (MENU_ITEMS)
+- [ ] Rota em `App.tsx` com `PermissionProtectedRoute`
+- [ ] Item no sidebar `DashboardSidebar.tsx`

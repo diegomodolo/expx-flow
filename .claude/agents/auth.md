@@ -174,14 +174,27 @@ interface CRMUser {
 // Sessao armazenada em localStorage (crm_session)
 ```
 
+## Adicionar Nova Permissao — 4 Passos Obrigatorios
+
+**Todos os 4 passos devem ser feitos. Pular qualquer um causa erro.**
+
+1. **Banco:** `ALTER TYPE menu_item_type ADD VALUE 'nova-permissao';`
+2. **PermissionGroupsSettings.tsx:** Adicionar em `MENU_ITEMS[]`
+3. **PermissionsSettings.tsx:** Adicionar em `MENU_ITEMS[]`
+4. **App.tsx:** `<PermissionProtectedRoute requiredPermission="nova-permissao">`
+
+**Erro se pular passo 1:** `invalid input value for enum menu_item_type: "nova-permissao"`
+
 ## Erros Comuns e Solucoes
 
-| Erro                    | Causa                               | Solucao                                 |
-| ----------------------- | ----------------------------------- | --------------------------------------- |
-| Redirect loop em /auth  | ProtectedRoute sem loading check    | Verificar `if (loading) return spinner` |
-| Owner sem acesso        | Checando permissao antes de isOwner | Sempre checar `isOwner` primeiro        |
-| Permissoes nao carregam | company_id nao disponivel           | Esperar `activeCompany` antes de fetch  |
-| CRM auth falha          | Token expirado em localStorage      | Limpar `crm_session` e relogar          |
+| Erro                       | Causa                                          | Solucao                                        |
+| -------------------------- | ---------------------------------------------- | ---------------------------------------------- |
+| Redirect loop em /auth     | ProtectedRoute sem loading check               | Verificar `if (loading) return spinner`         |
+| Owner sem acesso           | Checando permissao antes de isOwner            | Sempre checar `isOwner` primeiro               |
+| Permissoes nao carregam    | company_id nao disponivel                      | Esperar `activeCompany` antes de fetch         |
+| CRM auth falha             | Token expirado em localStorage                 | Limpar `crm_session` e relogar                 |
+| Erro enum ao ativar perm   | Valor nao existe em `menu_item_type`           | `ALTER TYPE menu_item_type ADD VALUE 'valor'`  |
+| Dados com company_id errado | Usando `activeCompany.id` em vez de `.company_id` | **SEMPRE** `activeCompany.company_id`       |
 
 ## Checklist antes de submeter
 

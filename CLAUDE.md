@@ -225,8 +225,13 @@ Edge Functions usam `Deno.env.get()` para: `SUPABASE_URL`, `SUPABASE_SERVICE_ROL
 ## Observacoes Importantes
 
 - **OBRIGATORIO: DashboardLayout** — Toda pagina protegida DEVE ser envolvida com `<DashboardLayout>` para incluir sidebar e header. Sem excecao. Verificar `AlertasDoSistema.tsx` como referencia. Paginas sem DashboardLayout ficam sem navegacao.
+- **OBRIGATORIO: company_id** — Sempre usar `activeCompany.company_id` para queries. NUNCA usar `activeCompany.id` (este e o ID do registro em company_members, NAO o ID da empresa). Usar `.id` causa dados inseridos com company_id errado e queries retornando 0 resultados.
+- **OBRIGATORIO: RLS com SECURITY DEFINER** — Nunca fazer subquery direta em tabela com RLS dentro de uma policy. Usar funcao `get_user_company_ids()` SECURITY DEFINER. Subqueries nested em tabelas com RLS falham silenciosamente retornando 0 rows.
+- **OBRIGATORIO: GRANT em novas tabelas** — Apos criar tabela com RLS, sempre adicionar `GRANT SELECT, INSERT, UPDATE, DELETE ON public.tabela TO authenticated`. Sem GRANT, frontend recebe array vazio sem erro.
+- **OBRIGATORIO: Enum ao criar permissao** — Ao adicionar nova permissao, atualizar o enum `menu_item_type` no banco (`ALTER TYPE menu_item_type ADD VALUE 'valor'`) ANTES de usar no frontend. Tambem adicionar em `PermissionGroupsSettings.tsx` e `PermissionsSettings.tsx`.
 - `src/integrations/supabase/types.ts` e **auto-gerado** — nao editar manualmente
 - Edge Functions com `verify_jwt = false` em `config.toml` sao webhooks/agendados (sem auth)
+- **Edge Functions secrets** — Podem falhar silenciosamente. Sempre adicionar fallback hardcoded para valores criticos.
 - `components/ui/` sao primitivos shadcn — usar CLI para adicionar novos
 - O projeto usa Vercel para deploy do frontend — commits na main disparam deploy automatico
 - Migrations em `supabase/migrations/` sao sequenciais e incrementais
@@ -242,11 +247,23 @@ Edge Functions usam `Deno.env.get()` para: `SUPABASE_URL`, `SUPABASE_SERVICE_ROL
 
 ## Skills (Slash Commands — .claude/skills/)
 
-| Comando          | Descricao                                   |
-| ---------------- | ------------------------------------------- |
-| `/new-page`      | Scaffold de nova pagina com routing e guard |
-| `/new-component` | Componente com convencoes do projeto        |
-| `/write-test`    | Teste com mocks e providers                 |
+| Comando              | Descricao                                                          |
+| -------------------- | ------------------------------------------------------------------ |
+| `/new-page`          | Pagina completa: DashboardLayout + routing + permissao + hook      |
+| `/new-component`     | Componente com convencoes do projeto (display, form, list, modal)  |
+| `/new-table`         | Tabela Supabase com RLS seguro (SECURITY DEFINER) + GRANT + hook  |
+| `/new-edge-function` | Edge Function com CORS, validacao, config.toml, e hook frontend    |
+| `/add-permission`    | Permissao nos 3 lugares obrigatorios (enum DB + 2 settings files) |
+| `/debug-data`        | Diagnostico sistematico quando dados nao aparecem no frontend      |
+| `/write-test`        | Teste com mocks e providers                                        |
+
+## Hooks Automaticos (.claude/hooks/)
+
+| Hook                        | Evento       | Funcao                                                           |
+| --------------------------- | ------------ | ---------------------------------------------------------------- |
+| `validate-page-patterns.sh` | PreToolUse   | Bloqueia erros comuns: falta DashboardLayout, activeCompany.id, types.ts, CORS |
+| `post-edit-lint.sh`         | PostToolUse  | Roda ESLint async no arquivo apos editar                         |
+| `session-context.sh`        | SessionStart | Injeta regras criticas no inicio e apos compactacao              |
 
 ## CLAUDE.md por Diretorio
 
