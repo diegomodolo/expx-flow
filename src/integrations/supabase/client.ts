@@ -86,6 +86,16 @@ function safeRealtimeDecode(
   }
 }
 
+// Fix: garante que mensagens binárias do WebSocket chegam como ArrayBuffer (não Blob).
+// Sem isso, o decodificador msgpack do Supabase Realtime recebe um Blob não-iterável
+// e lança "TypeError: a is not iterable" (Fixes #43).
+class RealtimeWebSocket extends WebSocket {
+  constructor(url: string | URL, protocols?: string | string[]) {
+    super(url, protocols);
+    this.binaryType = "arraybuffer";
+  }
+}
+
 export const supabase = createClient<Database>(
   SUPABASE_URL,
   SUPABASE_PUBLISHABLE_KEY,
@@ -97,6 +107,7 @@ export const supabase = createClient<Database>(
     },
     realtime: {
       decode: safeRealtimeDecode,
+      transport: RealtimeWebSocket as typeof WebSocket,
     },
   },
 );

@@ -109,8 +109,12 @@ export function WorkspaceSidebar({
   };
 
   const handleCreateDocument = async (folderId?: string | null) => {
-    const doc = await createDocument.mutateAsync({ folderId });
-    onSelectDocument(doc);
+    try {
+      const doc = await createDocument.mutateAsync({ folderId });
+      onSelectDocument(doc);
+    } catch {
+      // Erro tratado no onError da mutation
+    }
   };
 
   const handleDeleteConfirm = () => {
