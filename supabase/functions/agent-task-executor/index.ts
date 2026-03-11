@@ -265,7 +265,7 @@ Gere o resultado/output da execução desta tarefa de forma completa e estrutura
           }
 
           // 4. Save the output and move to "review" + update board column
-          const reviewUpdate: any = {
+          const reviewUpdate: Record<string, unknown> = {
             status: 'review',
             ai_output: chatResult.response,
             progress: 100,
@@ -315,7 +315,7 @@ Gere o resultado/output da execução desta tarefa de forma completa e estrutura
           if (outputErr) console.error(`[agent-task-executor] ❌ Error inserting task_outputs:`, outputErr);
 
           // Log completion + stage change in task history
-          const completionHistory: any[] = [
+          const completionHistory: Record<string, unknown>[] = [
             {
               task_id: task.id,
               company_id: task.company_id || employee.company_id,
