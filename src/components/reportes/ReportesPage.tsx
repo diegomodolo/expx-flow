@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { useUserReports } from "@/hooks/useUserReports";
 import { useCompany } from "@/contexts/CompanyContext";
 import { ReportStatusCards } from "@/components/reportes/ReportStatusCards";
@@ -22,6 +23,7 @@ export function ReportesPage() {
       : reports.filter((r) => r.type === activeTab);
 
   return (
+    <DashboardLayout>
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -63,5 +65,6 @@ export function ReportesPage() {
       {/* New Report Dialog */}
       <NewReportDialog open={dialogOpen} onOpenChange={setDialogOpen} />
     </div>
+    </DashboardLayout>
   );
 }

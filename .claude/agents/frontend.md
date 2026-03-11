@@ -19,7 +19,10 @@ Componentes React, estilo Tailwind, data fetching com React Query, routing, e UI
 
 ### Estrutura de Componente de Pagina
 
+**OBRIGATORIO:** Toda pagina protegida DEVE ser envolvida com `<DashboardLayout>` para incluir sidebar e header. Paginas sem DashboardLayout ficam sem navegacao. Referencia: `AlertasDoSistema.tsx`.
+
 ```typescript
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompany } from "@/contexts/CompanyContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,10 +34,12 @@ const MinhaPage = () => {
   // ... hooks de dados
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Titulo da Pagina</h1>
-      {/* Conteudo */}
-    </div>
+    <DashboardLayout>
+      <div className="space-y-6">
+        <h1 className="text-2xl font-bold">Titulo da Pagina</h1>
+        {/* Conteudo */}
+      </div>
+    </DashboardLayout>
   );
 };
 
@@ -110,6 +115,7 @@ import { cn } from "@/lib/utils";
 
 ## Checklist antes de submeter
 
+- [ ] **Pagina envolvida com `<DashboardLayout>`** (sidebar + header)
 - [ ] Imports usam `@/` (nunca `../../../`)
 - [ ] Textos de UI em Portugues
 - [ ] `enabled` configurado em useQuery com dependencias

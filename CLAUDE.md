@@ -224,6 +224,7 @@ Edge Functions usam `Deno.env.get()` para: `SUPABASE_URL`, `SUPABASE_SERVICE_ROL
 
 ## Observacoes Importantes
 
+- **OBRIGATORIO: DashboardLayout** — Toda pagina protegida DEVE ser envolvida com `<DashboardLayout>` para incluir sidebar e header. Sem excecao. Verificar `AlertasDoSistema.tsx` como referencia. Paginas sem DashboardLayout ficam sem navegacao.
 - `src/integrations/supabase/types.ts` e **auto-gerado** — nao editar manualmente
 - Edge Functions com `verify_jwt = false` em `config.toml` sao webhooks/agendados (sem auth)
 - `components/ui/` sao primitivos shadcn — usar CLI para adicionar novos

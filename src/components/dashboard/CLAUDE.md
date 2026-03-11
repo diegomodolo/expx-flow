@@ -50,6 +50,7 @@
 ## Regras ao Editar
 
 1. **DashboardLayout** — Nao alterar estrutura do layout sem verificar impacto em todas as rotas
-2. **DashboardSidebar** — Menu items sao filtrados por permissao; manter sincronizado com `useEmployeePermissions`
-3. **Cards** — Manter responsividade com grid Tailwind (`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4`)
-4. **UniversalCommandBar** — Atalho Cmd+K; cuidado ao adicionar comandos novos
+2. **OBRIGATORIO: Toda pagina protegida DEVE usar `<DashboardLayout>`** — Envolver o conteudo da pagina com `<DashboardLayout>` para garantir sidebar e header. Sem excecao. Paginas sem isso ficam sem navegacao. Referencia: `AlertasDoSistema.tsx`
+3. **DashboardSidebar** — Menu items sao filtrados por permissao; manter sincronizado com `useEmployeePermissions`
+4. **Cards** — Manter responsividade com grid Tailwind (`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4`)
+5. **UniversalCommandBar** — Atalho Cmd+K; cuidado ao adicionar comandos novos
