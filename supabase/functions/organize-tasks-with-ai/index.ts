@@ -1,5 +1,6 @@
 // Deno.serve is available natively in modern Deno
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.53.0";
+import { callAI } from "../_shared/ai-gateway.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin":
@@ -48,27 +49,11 @@ Deno.serve(async (req) => {
       })),
     );
 
-    const openAIApiKey = Deno.env.get("OPENAI_API_KEY");
-    if (!openAIApiKey) {
-      throw new Error("OpenAI API key not configured");
-    }
-
     const endDate = new Date(startDate);
     endDate.setDate(endDate.getDate() + (daysToOrganize - 1));
     const endDateStr = endDate.toISOString().split("T")[0];
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${openAIApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "openai/gpt-4o-mini",
-        messages: [
-          {
-            role: "system",
-            content: `Você é um organizador de tarefas inteligente para agência de marketing. RESPONDA APENAS JSON VÁLIDO NO FORMATO EXATO ABAIXO:
+    const systemPromptContent = `Você é um organizador de tarefas inteligente para agência de marketing. RESPONDA APENAS JSON VÁLIDO NO FORMATO EXATO ABAIXO:
 
 {
   "organizedTasks": [
@@ -147,11 +132,9 @@ IMPORTANTE:
 - Retorne APENAS o JSON válido, sem texto adicional ou marcações markdown
 - startOffsetMinutes e endOffsetMinutes são OBRIGATÓRIOS para cada tarefa
 - Calcule offsets considerando a duração real estimada de cada tarefa
-- Deixe margem de segurança nos slots longos`,
-          },
-          {
-            role: "user",
-            content: `TAREFAS PARA ${startDate}:
+- Deixe margem de segurança nos slots longos`;
+
+    const userPromptContent = `TAREFAS PARA ${startDate}:
 ${tasks
   .map((task) => {
     const taskTypes = [];
@@ -213,7 +196,7 @@ ${timeSlots
   })
   .join("\n")}
 
-IMPORTANTE: 
+IMPORTANTE:
 - Só aloque tarefas compatíveis com o objetivo do slot
 - MÚLTIPLAS tarefas sequenciais por pessoa por slot são permitidas
 - Use banco de conhecimento para estimar tempo realista de cada tarefa
@@ -222,22 +205,17 @@ IMPORTANTE:
 - Priorize tarefas por deadline e prioridade
 - Distribua tarefas até ocupar ~90% da capacidade do slot
 
-RETORNE APENAS JSON:`,
-          },
-        ],
-        temperature: 0.2,
-        max_tokens: 4000,
-      }),
+RETORNE APENAS JSON:`;
+
+    const aiResult = await callAI({
+      functionName: "organize-tasks-with-ai",
+      systemPrompt: systemPromptContent,
+      userPrompt: userPromptContent,
+      temperature: 0.2,
+      maxTokens: 4000,
     });
 
-    if (!response.ok) {
-      throw new Error(
-        `OpenAI API error: ${response.status} ${response.statusText}`,
-      );
-    }
-
-    const data = await response.json();
-    const aiResponse = data.choices[0].message.content;
+    const aiResponse = aiResult.content;
 
     console.log("🤖 AI Response:", aiResponse);
 

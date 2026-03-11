@@ -1,5 +1,6 @@
 // Deno.serve is available natively in modern Deno
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
+import { callAI } from "../_shared/ai-gateway.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin":
@@ -8,7 +9,6 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const openAIApiKey = Deno.env.get("OPENAI_API_KEY");
 const supabaseUrl = Deno.env.get("SUPABASE_URL");
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
@@ -25,10 +25,6 @@ Deno.serve(async (req) => {
     const clientId = body.clientId || body.client_id;
     const theme = body.theme || body.topic;
     const companyId = body.companyId || body.company_id;
-
-    if (!openAIApiKey) {
-      throw new Error("OpenAI API key not configured");
-    }
 
     // Initialize Supabase client
     const supabase = createClient(supabaseUrl!, supabaseServiceKey!);
@@ -191,32 +187,16 @@ Deno.serve(async (req) => {
       clientName: client.name,
     });
 
-    // Call OpenAI API
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${openAIApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "openai/gpt-4o-mini",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        max_tokens: 2000,
-        temperature: 0.7,
-      }),
+    const aiResult = await callAI({
+      functionName: "generate-content-ai",
+      companyId,
+      systemPrompt,
+      userPrompt,
+      maxTokens: 2000,
+      temperature: 0.7,
     });
 
-    if (!response.ok) {
-      const error = await response.text();
-      console.error("OpenAI API error:", error);
-      throw new Error("Erro na API do OpenAI");
-    }
-
-    const data = await response.json();
-    const generatedContent = data.choices[0].message.content;
+    const generatedContent = aiResult.content;
 
     console.log("Content generated successfully");
 

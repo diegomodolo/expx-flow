@@ -1,8 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI } from "../_shared/ai-gateway.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const openAIApiKey = Deno.env.get("OPENAI_API_KEY")!;
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -115,18 +115,9 @@ async function summarizeTranscript(
   videoTitle: string,
 ): Promise<string> {
   try {
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${openAIApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "openai/gpt-4.1-mini-2025-04-14",
-        messages: [
-          {
-            role: "system",
-            content: `Você é um especialista em resumir conteúdo de vídeos para uso como base de conhecimento.
+    const result = await callAI({
+      functionName: "transcribe-youtube-video",
+      systemPrompt: `Você é um especialista em resumir conteúdo de vídeos para uso como base de conhecimento.
 
 Crie um resumo estruturado do vídeo contendo:
 1. TEMA PRINCIPAL: Uma frase sobre o tema central
@@ -135,26 +126,14 @@ Crie um resumo estruturado do vídeo contendo:
 4. CITAÇÕES: Frases marcantes ou quotes do vídeo
 
 O resumo será usado como contexto para gerar posts de Instagram, então extraia informações que possam inspirar conteúdo visual e textual.`,
-          },
-          {
-            role: "user",
-            content: `Título do vídeo: ${videoTitle}
+      userPrompt: `Título do vídeo: ${videoTitle}
 
 Transcrição:
 ${transcript.substring(0, 15000)}`,
-          },
-        ],
-        max_completion_tokens: 1000,
-      }),
+      maxTokens: 1000,
     });
 
-    if (!response.ok) {
-      console.error("Failed to summarize transcript");
-      return transcript.substring(0, 5000);
-    }
-
-    const data = await response.json();
-    return data.choices[0].message.content;
+    return result.content;
   } catch (error) {
     console.error("Error summarizing transcript:", error);
     return transcript.substring(0, 5000);

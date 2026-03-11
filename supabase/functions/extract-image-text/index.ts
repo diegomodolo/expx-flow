@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { callAIVision } from "../_shared/ai-gateway.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin":
@@ -13,11 +14,6 @@ serve(async (req) => {
   }
 
   try {
-    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
-    if (!OPENROUTER_API_KEY) {
-      throw new Error("OPENROUTER_API_KEY not configured");
-    }
-
     const { imageBase64 } = await req.json();
 
     if (!imageBase64) {
@@ -26,23 +22,7 @@ serve(async (req) => {
 
     console.log("Extracting text from image...");
 
-    const response = await fetch(
-      "https://openrouter.ai/api/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages: [
-            {
-              role: "user",
-              content: [
-                {
-                  type: "text",
-                  text: `Analyze this image and extract ALL text that appears in it. 
+    const userPrompt = `Analyze this image and extract ALL text that appears in it.
 
 IMPORTANT INSTRUCTIONS:
 - Extract only the visible text from the image
@@ -52,29 +32,16 @@ IMPORTANT INSTRUCTIONS:
 - Do not add any explanation or commentary, just return the extracted text
 - Preserve the original language of the text (Portuguese, English, etc.)
 
-Return ONLY the extracted text, nothing else.`,
-                },
-                {
-                  type: "image_url",
-                  image_url: {
-                    url: imageBase64,
-                  },
-                },
-              ],
-            },
-          ],
-        }),
-      },
-    );
+Return ONLY the extracted text, nothing else.`;
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("AI API error:", response.status, errorText);
-      throw new Error(`AI API error: ${response.status}`);
-    }
+    const aiResult = await callAIVision({
+      functionName: "extract-image-text",
+      systemPrompt: "",
+      userPrompt,
+      images: [imageBase64],
+    });
 
-    const data = await response.json();
-    const extractedText = data.choices?.[0]?.message?.content?.trim() || "";
+    const extractedText = aiResult.content.trim();
 
     console.log("Text extracted:", extractedText.substring(0, 100) + "...");
 

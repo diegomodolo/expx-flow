@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAIVision } from "../_shared/ai-gateway.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin":
@@ -14,11 +15,6 @@ serve(async (req) => {
   }
 
   try {
-    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
-    if (!OPENROUTER_API_KEY) {
-      throw new Error("OPENROUTER_API_KEY is not configured");
-    }
-
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -103,66 +99,16 @@ Regras importantes:
 - Adapte o tom de voz conforme o briefing do cliente
 - A URL deve ser a do site do cliente, se disponível`;
 
-    console.log("Calling OpenRouter AI with image...");
+    console.log("Calling AI Gateway with image...");
 
-    const response = await fetch(
-      "https://openrouter.ai/api/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages: [
-            { role: "system", content: systemPrompt },
-            {
-              role: "user",
-              content: [
-                { type: "text", text: userPrompt },
-                { type: "image_url", image_url: { url: imageUrl } },
-              ],
-            },
-          ],
-        }),
-      },
-    );
+    const aiResult = await callAIVision({
+      functionName: "generate-creative-texts",
+      systemPrompt,
+      userPrompt,
+      images: [imageUrl],
+    });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("AI Gateway error:", response.status, errorText);
-
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({
-            success: false,
-            error: "Rate limit exceeded. Please try again later.",
-          }),
-          {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-            status: 429,
-          },
-        );
-      }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({
-            success: false,
-            error: "AI credits exhausted. Please add credits to continue.",
-          }),
-          {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-            status: 402,
-          },
-        );
-      }
-
-      throw new Error(`AI Gateway error: ${response.status}`);
-    }
-
-    const aiResponse = await response.json();
-    const content = aiResponse.choices?.[0]?.message?.content;
+    const content = aiResult.content;
 
     if (!content) {
       throw new Error("No content in AI response");

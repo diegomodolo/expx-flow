@@ -1,8 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI } from "../_shared/ai-gateway.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const openAIApiKey = Deno.env.get("OPENAI_API_KEY")!;
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
 
     console.log("Generating SEO description for:", script.title);
 
-    const prompt = `Gere uma descrição otimizada para SEO do YouTube baseada no roteiro abaixo.
+    const userPrompt = `Gere uma descrição otimizada para SEO do YouTube baseada no roteiro abaixo.
 
 TÍTULO DO VÍDEO:
 ${script.title}
@@ -71,39 +71,17 @@ Retorne em formato JSON:
   "seo_score_tips": ["Dica 1 para melhorar SEO", "Dica 2"]
 }`;
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${openAIApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "openai/gpt-4.1-mini-2025-04-14",
-        messages: [
-          {
-            role: "system",
-            content:
-              "Você é especialista em SEO para YouTube. Gere descrições que maximizam descoberta e engajamento. Retorne apenas JSON válido.",
-          },
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
-        max_completion_tokens: 2000,
-        temperature: 0.7,
-        response_format: { type: "json_object" },
-      }),
+    const aiResult = await callAI({
+      functionName: "generate-youtube-description",
+      systemPrompt:
+        "Você é especialista em SEO para YouTube. Gere descrições que maximizam descoberta e engajamento. Retorne apenas JSON válido.",
+      userPrompt,
+      maxTokens: 2000,
+      temperature: 0.7,
+      responseFormat: { type: "json_object" },
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      console.error("OpenAI error:", error);
-      throw new Error("Failed to generate description");
-    }
-
-    const data = await response.json();
-    const result = JSON.parse(data.choices[0].message.content);
+    const result = JSON.parse(aiResult.content);
 
     // Save description to script
     if (result.description) {

@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.53.0";
+import { callAI } from "../_shared/ai-gateway.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -90,12 +91,6 @@ async function generateFriendlyTitles(
     category: string;
   }>,
 ): Promise<string[]> {
-  const openaiKey = Deno.env.get("OPENAI_API_KEY");
-  if (!openaiKey) {
-    console.warn("OPENAI_API_KEY não encontrada, usando títulos originais");
-    return entries.map((e) => e.title);
-  }
-
   const itemsList = entries
     .map((e, i) => {
       const catLabel = CATEGORY_LABELS[e.category] || "Atualização";
@@ -107,19 +102,9 @@ async function generateFriendlyTitles(
     .join("\n");
 
   try {
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${openaiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        temperature: 0.3,
-        messages: [
-          {
-            role: "system",
-            content: `Você é um redator de release notes para um sistema SaaS de marketing e gestão de tráfego.
+    const result = await callAI({
+      functionName: "sync-release-notes",
+      systemPrompt: `Você é um redator de release notes para um sistema SaaS de marketing e gestão de tráfego.
 Sua tarefa é reescrever títulos técnicos de commits/PRs em frases curtas e amigáveis para usuários leigos.
 
 Regras:
@@ -130,22 +115,11 @@ Regras:
 - Se for um merge ou atualização interna sem impacto visível ao usuário, escreva "Manutenção interna do sistema"
 - Comece com verbo no passado ou substantivo (ex: "Melhorada a...", "Nova opção de...", "Corrigido problema em...")
 - Responda APENAS com as frases numeradas, uma por linha, no formato: 1. Frase aqui`,
-          },
-          {
-            role: "user",
-            content: `Reescreva cada item abaixo em uma frase amigável:\n\n${itemsList}`,
-          },
-        ],
-      }),
+      userPrompt: `Reescreva cada item abaixo em uma frase amigável:\n\n${itemsList}`,
+      temperature: 0.3,
     });
 
-    if (!response.ok) {
-      console.error("OpenAI API error:", await response.text());
-      return entries.map((e) => e.title);
-    }
-
-    const data = await response.json();
-    const content: string = data.choices?.[0]?.message?.content || "";
+    const content: string = result.content;
 
     // Parse numbered lines
     const lines = content

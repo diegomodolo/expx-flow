@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { callAI } from "../_shared/ai-gateway.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin":
@@ -399,62 +400,15 @@ Você tem acesso a todos os dados do cliente acima e pode:
       })),
     ];
 
-    // Call OpenRouter AI
-    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
+    const aiResult = await callAI({
+      functionName: "content-plan-chat",
+      companyId,
+      systemPrompt: finalSystemPrompt,
+      userPrompt: "",
+      messages: formattedMessages,
+    });
 
-    if (!OPENROUTER_API_KEY) {
-      throw new Error("OPENROUTER_API_KEY not configured");
-    }
-
-    const aiResponse = await fetch(
-      "https://openrouter.ai/api/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: useCustomSystemPrompt
-            ? "google/gemini-2.5-flash-lite"
-            : "google/gemini-2.5-flash",
-          messages: formattedMessages,
-        }),
-      },
-    );
-
-    if (!aiResponse.ok) {
-      if (aiResponse.status === 429) {
-        return new Response(
-          JSON.stringify({
-            error: "Rate limit excedido, tente novamente em alguns segundos.",
-          }),
-          {
-            status: 429,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          },
-        );
-      }
-      if (aiResponse.status === 402) {
-        return new Response(
-          JSON.stringify({
-            error: "Créditos esgotados, adicione mais créditos ao workspace.",
-          }),
-          {
-            status: 402,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          },
-        );
-      }
-      const errorText = await aiResponse.text();
-      console.error("AI Gateway error:", aiResponse.status, errorText);
-      throw new Error(`AI Gateway error: ${aiResponse.status}`);
-    }
-
-    const aiData = await aiResponse.json();
-    const assistantMessage = aiData.choices[0].message.content;
-
-    return new Response(JSON.stringify({ content: assistantMessage }), {
+    return new Response(JSON.stringify({ content: aiResult.content }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {

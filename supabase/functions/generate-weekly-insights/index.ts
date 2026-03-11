@@ -1,5 +1,6 @@
 // Deno.serve is available natively in modern Deno
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI } from "../_shared/ai-gateway.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin":
@@ -20,11 +21,6 @@ Deno.serve(async (req) => {
       previousWeekMetrics,
       campaignsData,
     } = await req.json();
-
-    const openAIApiKey = Deno.env.get("OPENAI_API_KEY");
-    if (!openAIApiKey) {
-      throw new Error("OpenAI API key não configurada");
-    }
 
     console.log("Generating weekly insights for client:", clientData.name);
 
@@ -126,38 +122,17 @@ Responda APENAS em JSON válido no formato:
   ]
 }`;
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${openAIApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "openai/gpt-4o-mini",
-        messages: [
-          {
-            role: "system",
-            content:
-              "Você é um especialista em análise de campanhas de marketing digital com foco em Facebook e Instagram Ads. Forneça sempre respostas em JSON válido.",
-          },
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
-        temperature: 0.7,
-        max_tokens: 2000,
-      }),
+    const aiResult = await callAI({
+      functionName: "generate-weekly-insights",
+      systemPrompt:
+        "Você é um especialista em análise de campanhas de marketing digital com foco em Facebook e Instagram Ads. Forneça sempre respostas em JSON válido.",
+      userPrompt: prompt,
+      temperature: 0.7,
+      maxTokens: 2000,
+      responseFormat: { type: "json_object" },
     });
 
-    if (!response.ok) {
-      throw new Error(
-        `OpenAI API error: ${response.status} ${response.statusText}`,
-      );
-    }
-
-    const aiResponse = await response.json();
-    const aiContent = aiResponse.choices[0].message.content;
+    const aiContent = aiResult.content;
 
     console.log("AI response content:", aiContent);
 

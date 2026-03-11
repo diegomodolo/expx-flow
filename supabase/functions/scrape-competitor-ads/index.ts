@@ -1,4 +1,5 @@
 // Deno.serve is available natively in modern Deno
+import { callAI } from "../_shared/ai-gateway.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin":
@@ -39,16 +40,10 @@ Deno.serve(async (req) => {
 
     // Check required API keys
     const firecrawlApiKey = Deno.env.get("FIRECRAWL_API_KEY");
-    const openaiApiKey = Deno.env.get("OPENAI_API_KEY");
     console.log("Firecrawl API Key available:", !!firecrawlApiKey);
-    console.log("OpenAI API Key available:", !!openaiApiKey);
 
     if (!firecrawlApiKey) {
       throw new Error("FIRECRAWL_API_KEY não configurada");
-    }
-
-    if (!openaiApiKey) {
-      throw new Error("OPENAI_API_KEY não configurada");
     }
 
     // Step 1: Get raw content from Firecrawl
@@ -94,22 +89,11 @@ Deno.serve(async (req) => {
       throw new Error("Conteúdo muito pequeno extraído da página");
     }
 
-    // Step 2: Send raw content to ChatGPT for processing
-    console.log("Sending content to ChatGPT for processing...");
-    const openaiResponse = await fetch(
-      "https://api.openai.com/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${openaiApiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "openai/gpt-4o",
-          messages: [
-            {
-              role: "system",
-              content: `Você é um especialista em análise de dados da Biblioteca de Anúncios do Facebook. 
+    // Step 2: Send raw content to AI for processing
+    console.log("Sending content to AI for processing...");
+    const aiResult = await callAI({
+      functionName: "scrape-competitor-ads",
+      systemPrompt: `Você é um especialista em análise de dados da Biblioteca de Anúncios do Facebook.
 
 Sua tarefa é extrair APENAS os anúncios reais de uma página e retornar um JSON estruturado.
 
@@ -143,30 +127,14 @@ Retorne um JSON no formato:
 }
 
 Se não encontrar anúncios reais, retorne {"ads": []}`,
-            },
-            {
-              role: "user",
-              content: `Extraia os anúncios reais desta página da biblioteca de anúncios do Facebook:
+      userPrompt: `Extraia os anúncios reais desta página da biblioteca de anúncios do Facebook:
 
 ${rawContent}`,
-            },
-          ],
-          temperature: 0.1,
-          max_tokens: 4000,
-        }),
-      },
-    );
+      temperature: 0.1,
+      maxTokens: 4000,
+    });
 
-    console.log("OpenAI response status:", openaiResponse.status);
-
-    if (!openaiResponse.ok) {
-      const errorText = await openaiResponse.text();
-      console.error("OpenAI error:", errorText);
-      throw new Error(`OpenAI API error: ${errorText}`);
-    }
-
-    const openaiData = await openaiResponse.json();
-    const chatGptResponse = openaiData.choices[0].message.content;
+    const chatGptResponse = aiResult.content;
 
     console.log("ChatGPT response:", chatGptResponse);
 

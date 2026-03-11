@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { callAI } from "../_shared/ai-gateway.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin":
@@ -124,10 +125,7 @@ CONTEXTO: Você está em uma conversa direta (DM) no chat interno da empresa com
 Responda de forma natural, direta e útil. Seja proativo e ofereça ajuda específica baseado na sua especialidade.
 Não use formatação excessiva. Use linguagem natural e amigável.`;
 
-    // 7. Call the AI model via OpenRouter AI
-    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
-    const model = agent.model || "gemini-2.0-flash";
-
+    // 7. Call the AI model via AI Gateway
     const messages = [
       { role: "system", content: systemPrompt },
       ...conversationHistory,
@@ -146,36 +144,25 @@ Não use formatação excessiva. Use linguagem natural e amigável.`;
     }
 
     console.log(
-      `[dm-agent-responder] Calling AI Gateway with model ${model}, ${messages.length} messages`,
+      `[dm-agent-responder] Calling AI Gateway, ${messages.length} messages`,
     );
 
     let agentReply = "";
 
-    const aiResponse = await fetch(
-      "https://openrouter.ai/api/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ model, messages }),
-      },
-    );
-
-    if (aiResponse.ok) {
-      const aiData = await aiResponse.json();
-      agentReply = aiData?.choices?.[0]?.message?.content || "";
+    try {
+      const result = await callAI({
+        functionName: "dm-agent-responder",
+        companyId: channel.company_id,
+        systemPrompt,
+        userPrompt: "",
+        messages,
+      });
+      agentReply = result.content;
       console.log(
         `[dm-agent-responder] AI Gateway success, reply length: ${agentReply.length}`,
       );
-    } else {
-      const errorText = await aiResponse.text();
-      console.error(
-        "[dm-agent-responder] AI Gateway error:",
-        aiResponse.status,
-        errorText,
-      );
+    } catch (aiError) {
+      console.error("[dm-agent-responder] AI Gateway error:", aiError);
       agentReply = `Olá! Sou ${agent.agent_name}. Estou com dificuldades técnicas no momento. Tente novamente em instantes!`;
     }
 
