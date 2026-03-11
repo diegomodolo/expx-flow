@@ -17,7 +17,10 @@ export function RedirectUrlsCard({ urls }: RedirectUrlsCardProps) {
           <ArrowRightLeft className="h-3.5 w-3.5 text-blue-600 dark:text-blue-500" />
           Redirects
           {urls.length > 0 && (
-            <Badge variant="outline" className="ml-1 h-5 text-xs text-blue-600 dark:text-blue-500 border-blue-600">
+            <Badge
+              variant="outline"
+              className="ml-1 h-5 text-xs text-blue-600 dark:text-blue-500 border-blue-600"
+            >
               {urls.length}
             </Badge>
           )}
@@ -34,8 +37,8 @@ export function RedirectUrlsCard({ urls }: RedirectUrlsCardProps) {
           <ScrollArea className="h-[160px]">
             <div className="space-y-1.5 pr-2">
               {urls.slice(0, 10).map((url) => (
-                <div 
-                  key={url.id} 
+                <div
+                  key={url.id}
                   className="flex items-center justify-between gap-2 p-1.5 rounded-md bg-muted/50 hover:bg-muted transition-colors"
                 >
                   <div className="flex-1 min-w-0">
@@ -44,7 +47,10 @@ export function RedirectUrlsCard({ urls }: RedirectUrlsCardProps) {
                         {url.client_name}
                       </span>
                       {url.validation_status_code && (
-                        <Badge variant="outline" className="text-[10px] h-4 px-1 text-blue-600 dark:text-blue-500 border-blue-600 shrink-0">
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] h-4 px-1 text-blue-600 dark:text-blue-500 border-blue-600 shrink-0"
+                        >
                           {url.validation_status_code}
                         </Badge>
                       )}
@@ -52,16 +58,18 @@ export function RedirectUrlsCard({ urls }: RedirectUrlsCardProps) {
                     <p className="text-[10px] text-muted-foreground truncate">
                       {url.url}
                     </p>
-                    {url.validation_final_url && url.validation_final_url !== url.url && (
-                      <div className="flex items-center gap-0.5 text-[10px]">
-                        <ArrowRight className="h-2 w-2 text-blue-600 dark:text-blue-500 shrink-0" />
-                        <span className="text-blue-600 dark:text-blue-500 truncate">
-                          {url.validation_final_url}
-                        </span>
-                      </div>
-                    )}
+                    {url.validation_final_url &&
+                      url.validation_final_url !== url.url && (
+                        <div className="flex items-center gap-0.5 text-[10px]">
+                          <ArrowRight className="h-2 w-2 text-blue-600 dark:text-blue-500 shrink-0" />
+                          <span className="text-blue-600 dark:text-blue-500 truncate">
+                            {url.validation_final_url}
+                          </span>
+                        </div>
+                      )}
                   </div>
                   <Button
+                    aria-label="Fechar"
                     variant="ghost"
                     size="icon"
                     className="h-5 w-5 shrink-0"

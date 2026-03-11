@@ -3,7 +3,13 @@ import { SearchableClientSelect } from "@/components/ui/searchable-client-select
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -39,14 +45,23 @@ export default function EditorFunil() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterClientId, setFilterClientId] = useState<string>("all");
 
-  const { allFunnels, loadingAllFunnels, createFunnel, isCreating, deleteFunnel } = useFunnels();
+  const {
+    allFunnels,
+    loadingAllFunnels,
+    createFunnel,
+    isCreating,
+    deleteFunnel,
+  } = useFunnels();
 
   const filteredFunnels = useMemo(() => {
     if (!allFunnels) return [];
-    
-    return allFunnels.filter(funnel => {
-      const matchesSearch = funnel.name.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesClient = filterClientId === "all" || funnel.client_id === filterClientId;
+
+    return allFunnels.filter((funnel) => {
+      const matchesSearch = funnel.name
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+      const matchesClient =
+        filterClientId === "all" || funnel.client_id === filterClientId;
       return matchesSearch && matchesClient;
     });
   }, [allFunnels, searchTerm, filterClientId]);
@@ -67,7 +82,7 @@ export default function EditorFunil() {
             setNewFunnelClientId("");
             navigate(`/editor-funil/${newFunnelClientId}/${data.id}`);
           },
-        }
+        },
       );
     }
   };
@@ -85,7 +100,8 @@ export default function EditorFunil() {
           <div>
             <h1 className="text-3xl font-bold">Editor de Funil de Aquisição</h1>
             <p className="text-muted-foreground mt-2">
-              Visualize e edite o funil completo de aquisição de leads dos seus clientes.
+              Visualize e edite o funil completo de aquisição de leads dos seus
+              clientes.
             </p>
           </div>
           <Button onClick={() => setIsCreateDialogOpen(true)} size="lg">
@@ -115,7 +131,9 @@ export default function EditorFunil() {
               </div>
               <div className="w-full md:w-[250px]">
                 <SearchableClientSelect
-                  clients={clients?.map(c => ({ id: c.id, name: c.name })) || []}
+                  clients={
+                    clients?.map((c) => ({ id: c.id, name: c.name })) || []
+                  }
                   value={filterClientId}
                   onValueChange={setFilterClientId}
                   allLabel="Todos os clientes"
@@ -144,12 +162,15 @@ export default function EditorFunil() {
                 <Card
                   key={funnel.id}
                   className="hover:border-primary cursor-pointer transition-colors"
-                  onClick={() => navigate(`/editor-funil/${funnel.client_id}/${funnel.id}`)}
+                  onClick={() =>
+                    navigate(`/editor-funil/${funnel.client_id}/${funnel.id}`)
+                  }
                 >
                   <CardHeader>
                     <div className="flex items-start justify-between mb-2">
                       <GitBranch className="h-8 w-8 text-primary" />
                       <Button
+                        aria-label="Excluir"
                         variant="ghost"
                         size="icon"
                         onClick={(e) => {
@@ -180,9 +201,7 @@ export default function EditorFunil() {
                           locale: ptBR,
                         })}
                       </p>
-                      <p>
-                        {funnel.flow_data.nodes?.length || 0} blocos
-                      </p>
+                      <p>{funnel.flow_data.nodes?.length || 0} blocos</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -192,8 +211,8 @@ export default function EditorFunil() {
             <div className="text-center py-12">
               <GitBranch className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-medium mb-2">
-                {searchTerm || filterClientId !== "all" 
-                  ? "Nenhum funil encontrado" 
+                {searchTerm || filterClientId !== "all"
+                  ? "Nenhum funil encontrado"
                   : "Nenhum funil criado"}
               </h3>
               <p className="text-muted-foreground mb-4">
@@ -231,7 +250,9 @@ export default function EditorFunil() {
                 </div>
               ) : (
                 <SearchableClientSelect
-                  clients={clients?.map(c => ({ id: c.id, name: c.name })) || []}
+                  clients={
+                    clients?.map((c) => ({ id: c.id, name: c.name })) || []
+                  }
                   value={newFunnelClientId}
                   onValueChange={setNewFunnelClientId}
                   placeholder="Selecione o cliente"
@@ -275,7 +296,9 @@ export default function EditorFunil() {
             </Button>
             <Button
               onClick={handleCreateFunnel}
-              disabled={!newFunnelName.trim() || !newFunnelClientId || isCreating}
+              disabled={
+                !newFunnelName.trim() || !newFunnelClientId || isCreating
+              }
             >
               {isCreating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Criar e Editar

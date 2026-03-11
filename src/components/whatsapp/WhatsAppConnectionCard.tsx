@@ -1,10 +1,24 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, CheckCircle2, XCircle, Phone, Eye, EyeOff, ExternalLink } from "lucide-react";
+import {
+  Loader2,
+  CheckCircle2,
+  XCircle,
+  Phone,
+  Eye,
+  EyeOff,
+  ExternalLink,
+} from "lucide-react";
 
 interface WhatsAppConnectionCardProps {
   config: {
@@ -15,8 +29,16 @@ interface WhatsAppConnectionCardProps {
     connected_phone: string | null;
     last_connection_test: string | null;
   } | null;
-  onSave: (data: { instance_id: string; token: string; client_token?: string }) => void;
-  onTestConnection: (data: { instance_id: string; token: string; client_token?: string }) => void;
+  onSave: (data: {
+    instance_id: string;
+    token: string;
+    client_token?: string;
+  }) => void;
+  onTestConnection: (data: {
+    instance_id: string;
+    token: string;
+    client_token?: string;
+  }) => void;
   isSaving: boolean;
   isTesting: boolean;
 }
@@ -70,7 +92,9 @@ export function WhatsAppConnectionCard({
             </div>
             <div>
               <CardTitle className="text-lg">Conexão Z-API</CardTitle>
-              <CardDescription>Configure suas credenciais da Z-API</CardDescription>
+              <CardDescription>
+                Configure suas credenciais da Z-API
+              </CardDescription>
             </div>
           </div>
           {config?.is_connected ? (
@@ -79,7 +103,10 @@ export function WhatsAppConnectionCard({
               Conectado
             </Badge>
           ) : isConfigured ? (
-            <Badge variant="secondary" className="bg-google-yellow-100 text-google-yellow-700 dark:bg-google-yellow-600/20 dark:text-google-yellow-400">
+            <Badge
+              variant="secondary"
+              className="bg-google-yellow-100 text-google-yellow-700 dark:bg-google-yellow-600/20 dark:text-google-yellow-400"
+            >
               <XCircle className="h-3 w-3 mr-1" />
               Desconectado
             </Badge>
@@ -96,7 +123,8 @@ export function WhatsAppConnectionCard({
             </p>
             {config.last_connection_test && (
               <p className="text-xs text-google-green-600 dark:text-google-green-500 mt-1">
-                Última verificação: {new Date(config.last_connection_test).toLocaleString("pt-BR")}
+                Última verificação:{" "}
+                {new Date(config.last_connection_test).toLocaleString("pt-BR")}
               </p>
             )}
           </div>
@@ -127,13 +155,18 @@ export function WhatsAppConnectionCard({
               className="pr-10"
             />
             <Button
+              aria-label="Avançar"
               type="button"
               variant="ghost"
               size="icon"
               className="absolute right-0 top-0 h-full"
               onClick={() => setShowToken(!showToken)}
             >
-              {showToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              {showToken ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
             </Button>
           </div>
         </div>
@@ -150,13 +183,18 @@ export function WhatsAppConnectionCard({
               className="pr-10"
             />
             <Button
+              aria-label="Avançar"
               type="button"
               variant="ghost"
               size="icon"
               className="absolute right-0 top-0 h-full"
               onClick={() => setShowClientToken(!showClientToken)}
             >
-              {showClientToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              {showClientToken ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
@@ -173,19 +211,16 @@ export function WhatsAppConnectionCard({
             {isTesting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             Testar Conexão
           </Button>
-          <Button
-            onClick={handleSave}
-            disabled={!isConfigured || isSaving}
-          >
+          <Button onClick={handleSave} disabled={!isConfigured || isSaving}>
             {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             Salvar
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            asChild
-          >
-            <a href="https://developer.z-api.io" target="_blank" rel="noopener noreferrer">
+          <Button variant="ghost" size="sm" asChild>
+            <a
+              href="https://developer.z-api.io"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               Documentação Z-API
               <ExternalLink className="h-3 w-3 ml-1" />
             </a>

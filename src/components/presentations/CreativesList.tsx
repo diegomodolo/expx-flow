@@ -1,18 +1,21 @@
-import { usePresentationDetails, PresentationCreative } from "@/hooks/usePresentations";
+import {
+  usePresentationDetails,
+  PresentationCreative,
+} from "@/hooks/usePresentations";
 import { useCreatives } from "@/hooks/useCreatives";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
-  GripVertical, 
-  Image, 
-  Film, 
-  LayoutGrid, 
-  PlayCircle, 
-  Pencil, 
+import {
+  GripVertical,
+  Image,
+  Film,
+  LayoutGrid,
+  PlayCircle,
+  Pencil,
   Trash2,
   Calendar,
-  Clock
+  Clock,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -35,25 +38,25 @@ interface CreativesListProps {
 }
 
 const creativeTypeConfig = {
-  post_unico: { 
-    label: "Post Único", 
-    icon: Image, 
-    color: "bg-blue-500/10 text-blue-600" 
+  post_unico: {
+    label: "Post Único",
+    icon: Image,
+    color: "bg-blue-500/10 text-blue-600",
   },
-  carrossel: { 
-    label: "Carrossel", 
-    icon: LayoutGrid, 
-    color: "bg-purple-500/10 text-purple-600" 
+  carrossel: {
+    label: "Carrossel",
+    icon: LayoutGrid,
+    color: "bg-purple-500/10 text-purple-600",
   },
-  reels: { 
-    label: "Reels", 
-    icon: PlayCircle, 
-    color: "bg-pink-500/10 text-pink-600" 
+  reels: {
+    label: "Reels",
+    icon: PlayCircle,
+    color: "bg-pink-500/10 text-pink-600",
   },
-  stories: { 
-    label: "Stories", 
-    icon: Film, 
-    color: "bg-orange-500/10 text-orange-600" 
+  stories: {
+    label: "Stories",
+    icon: Film,
+    color: "bg-orange-500/10 text-orange-600",
   },
 };
 
@@ -90,7 +93,8 @@ export function CreativesList({ presentationId, onEdit }: CreativesListProps) {
           </div>
           <h3 className="text-lg font-semibold mb-2">Nenhum criativo</h3>
           <p className="text-muted-foreground max-w-sm">
-            Adicione criativos à sua apresentação clicando no botão "Novo Criativo" acima.
+            Adicione criativos à sua apresentação clicando no botão "Novo
+            Criativo" acima.
           </p>
         </div>
       </Card>
@@ -112,20 +116,20 @@ export function CreativesList({ presentationId, onEdit }: CreativesListProps) {
                   <div className="flex items-center gap-2 text-muted-foreground cursor-grab">
                     <GripVertical className="w-4 h-4" />
                     <span className="text-sm font-medium w-6 text-center">
-                      {String(index + 1).padStart(2, '0')}
+                      {String(index + 1).padStart(2, "0")}
                     </span>
                   </div>
 
                   {firstMedia ? (
                     <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0">
-                      {firstMedia.media_type === 'image' ? (
-                        <img 
-                          src={firstMedia.media_url} 
-                          alt="" 
+                      {firstMedia.media_type === "image" ? (
+                        <img
+                          src={firstMedia.media_url}
+                          alt=""
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <video 
+                        <video
                           src={firstMedia.media_url}
                           className="w-full h-full object-cover"
                         />
@@ -143,22 +147,27 @@ export function CreativesList({ presentationId, onEdit }: CreativesListProps) {
                         <Icon className="w-3 h-3 mr-1" />
                         {config.label}
                       </Badge>
-                      {creative.creative_media && creative.creative_media.length > 1 && (
-                        <span className="text-xs text-muted-foreground">
-                          {creative.creative_media.length} mídias
-                        </span>
-                      )}
+                      {creative.creative_media &&
+                        creative.creative_media.length > 1 && (
+                          <span className="text-xs text-muted-foreground">
+                            {creative.creative_media.length} mídias
+                          </span>
+                        )}
                     </div>
-                    
+
                     <p className="font-medium text-foreground line-clamp-1">
                       {creative.headline || "Sem headline"}
                     </p>
-                    
+
                     {creative.scheduled_date && (
                       <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <Calendar className="w-3 h-3" />
-                          {format(new Date(creative.scheduled_date), "dd/MM/yyyy", { locale: ptBR })}
+                          {format(
+                            new Date(creative.scheduled_date),
+                            "dd/MM/yyyy",
+                            { locale: ptBR },
+                          )}
                         </span>
                         {creative.scheduled_time && (
                           <span className="flex items-center gap-1">
@@ -171,15 +180,17 @@ export function CreativesList({ presentationId, onEdit }: CreativesListProps) {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <Button 
-                      variant="ghost" 
+                    <Button
+                      aria-label="Editar"
+                      variant="ghost"
                       size="icon"
                       onClick={() => onEdit(creative.id)}
                     >
                       <Pencil className="w-4 h-4" />
                     </Button>
-                    <Button 
-                      variant="ghost" 
+                    <Button
+                      aria-label="Excluir"
+                      variant="ghost"
                       size="icon"
                       onClick={() => setDeletingId(creative.id)}
                       className="text-destructive hover:text-destructive"
@@ -199,12 +210,13 @@ export function CreativesList({ presentationId, onEdit }: CreativesListProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir criativo?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação não pode ser desfeita. Todas as mídias do criativo serão excluídas.
+              Esta ação não pode ser desfeita. Todas as mídias do criativo serão
+              excluídas.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={handleDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >

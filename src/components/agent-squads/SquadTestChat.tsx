@@ -12,9 +12,14 @@ interface SquadTestChatProps {
   agentId?: string;
 }
 
-export function SquadTestChat({ squadId, squadName, agentId }: SquadTestChatProps) {
+export function SquadTestChat({
+  squadId,
+  squadName,
+  agentId,
+}: SquadTestChatProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const { messages, loading, sendMessage, clearMessages, stopExecution } = useSquadChat(squadId);
+  const { messages, loading, sendMessage, clearMessages, stopExecution } =
+    useSquadChat(squadId);
 
   if (!isOpen) {
     return (
@@ -40,11 +45,23 @@ export function SquadTestChat({ squadId, squadName, agentId }: SquadTestChatProp
         </div>
         <div className="flex items-center gap-1">
           {messages.length > 0 && (
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={clearMessages}>
+            <Button
+              aria-label="Excluir"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={clearMessages}
+            >
               <Trash2 className="h-4 w-4" />
             </Button>
           )}
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsOpen(false)}>
+          <Button
+            aria-label="Fechar"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setIsOpen(false)}
+          >
             <X className="h-4 w-4" />
           </Button>
         </div>

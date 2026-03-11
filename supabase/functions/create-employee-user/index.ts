@@ -3,7 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.53.0";
 import { Resend } from "npm:resend@4.0.0";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
@@ -25,20 +26,27 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
-    
+
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { email, name, password, companyId, companyName }: CreateEmployeeUserRequest = await req.json();
+    const {
+      email,
+      name,
+      password,
+      companyId,
+      companyName,
+    }: CreateEmployeeUserRequest = await req.json();
 
     // Criar usuário usando admin (não afeta sessão atual)
-    const { data: newUser, error: createUserError } = await supabase.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-      user_metadata: {
-        full_name: name,
-      }
-    });
+    const { data: newUser, error: createUserError } =
+      await supabase.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: {
+          full_name: name,
+        },
+      });
 
     if (createUserError) {
       throw new Error(`Erro ao criar usuário: ${createUserError.message}`);
@@ -56,7 +64,7 @@ const handler = async (req: Request): Promise<Response> => {
       .insert({
         user_id: userId,
         company_id: companyId,
-        role: 'member',
+        role: "member",
         joined_at: new Date().toISOString(),
       });
 
@@ -68,7 +76,7 @@ const handler = async (req: Request): Promise<Response> => {
     if (resendApiKey) {
       try {
         const resend = new Resend(resendApiKey);
-        
+
         await resend.emails.send({
           from: `${companyName} <sistema@controledetrafego.com.br>`,
           to: [email],
@@ -98,26 +106,26 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    return new Response(JSON.stringify({ 
-      success: true, 
-      user_id: userId,
-      email_sent: !!resendApiKey
-    }), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        ...corsHeaders,
-      },
-    });
-  } catch (error: any) {
-    console.error("Erro ao criar usuário colaborador:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({
+        success: true,
+        user_id: userId,
+        email_sent: !!resendApiKey,
+      }),
       {
-        status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          ...corsHeaders,
+        },
+      },
     );
+  } catch (error: unknown) {
+    console.error("Erro ao criar usuário colaborador:", error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
   }
 };
 

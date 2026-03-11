@@ -2,7 +2,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { AlertTriangle, ExternalLink, RefreshCw, XCircle, Clock } from "lucide-react";
+import {
+  AlertTriangle,
+  ExternalLink,
+  RefreshCw,
+  XCircle,
+  Clock,
+} from "lucide-react";
 import { RadarUrl } from "@/hooks/useRadarUrls";
 
 interface ProblematicUrlsCardProps {
@@ -12,11 +18,11 @@ interface ProblematicUrlsCardProps {
   isValidating: boolean;
 }
 
-export function ProblematicUrlsCard({ 
-  urls, 
-  onValidate, 
+export function ProblematicUrlsCard({
+  urls,
+  onValidate,
   onValidateAll,
-  isValidating 
+  isValidating,
 }: ProblematicUrlsCardProps) {
   return (
     <Card className="border-destructive/30 flex flex-col h-full">
@@ -32,14 +38,16 @@ export function ProblematicUrlsCard({
             )}
           </CardTitle>
           {urls.length > 0 && (
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={onValidateAll}
               disabled={isValidating}
               className="h-6 px-2 text-[10px]"
             >
-              <RefreshCw className={`h-2.5 w-2.5 mr-1 ${isValidating ? 'animate-spin' : ''}`} />
+              <RefreshCw
+                className={`h-2.5 w-2.5 mr-1 ${isValidating ? "animate-spin" : ""}`}
+              />
               Revalidar
             </Button>
           )}
@@ -56,8 +64,8 @@ export function ProblematicUrlsCard({
           <ScrollArea className="h-[160px]">
             <div className="space-y-1.5 pr-2">
               {urls.slice(0, 10).map((url) => (
-                <div 
-                  key={url.id} 
+                <div
+                  key={url.id}
                   className="flex items-center justify-between gap-2 p-1.5 rounded-md bg-muted/50 hover:bg-muted transition-colors"
                 >
                   <div className="flex-1 min-w-0">
@@ -65,13 +73,19 @@ export function ProblematicUrlsCard({
                       <span className="font-medium text-xs truncate max-w-[80px]">
                         {url.client_name}
                       </span>
-                      {url.validation_status === 'error' ? (
-                        <Badge variant="destructive" className="text-[10px] h-4 px-1 shrink-0">
+                      {url.validation_status === "error" ? (
+                        <Badge
+                          variant="destructive"
+                          className="text-[10px] h-4 px-1 shrink-0"
+                        >
                           <XCircle className="h-2 w-2 mr-0.5" />
-                          {url.validation_status_code || 'Erro'}
+                          {url.validation_status_code || "Erro"}
                         </Badge>
                       ) : (
-                        <Badge variant="outline" className="text-[10px] h-4 px-1 text-orange-600 dark:text-orange-500 border-orange-600 shrink-0">
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] h-4 px-1 text-orange-600 dark:text-orange-500 border-orange-600 shrink-0"
+                        >
                           <Clock className="h-2 w-2 mr-0.5" />
                           Timeout
                         </Badge>
@@ -83,21 +97,29 @@ export function ProblematicUrlsCard({
                   </div>
                   <div className="flex items-center shrink-0">
                     <Button
+                      aria-label="Atualizar"
                       variant="ghost"
                       size="icon"
                       className="h-5 w-5"
                       onClick={() => onValidate(url.id)}
                       disabled={isValidating}
                     >
-                      <RefreshCw className={`h-2.5 w-2.5 ${isValidating ? 'animate-spin' : ''}`} />
+                      <RefreshCw
+                        className={`h-2.5 w-2.5 ${isValidating ? "animate-spin" : ""}`}
+                      />
                     </Button>
                     <Button
+                      aria-label="Fechar"
                       variant="ghost"
                       size="icon"
                       className="h-5 w-5"
                       asChild
                     >
-                      <a href={url.url} target="_blank" rel="noopener noreferrer">
+                      <a
+                        href={url.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
                         <ExternalLink className="h-2.5 w-2.5" />
                       </a>
                     </Button>

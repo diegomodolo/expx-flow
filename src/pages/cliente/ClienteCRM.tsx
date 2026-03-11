@@ -2,14 +2,29 @@ import { useState } from "react";
 import { useClientContext } from "./ClienteContext";
 import { useCRMWorkspace } from "@/hooks/useCRMWorkspace";
 import { useCRMLeads } from "@/hooks/useCRMLeads";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { CRMUsersManager } from "@/components/clients/CRMUsersManager";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Copy, ExternalLink, Power, PowerOff, Loader2, Users, TrendingUp } from "lucide-react";
+import {
+  Plus,
+  Copy,
+  ExternalLink,
+  Power,
+  PowerOff,
+  Loader2,
+  Users,
+  TrendingUp,
+} from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,12 +40,19 @@ import {
 export function ClienteCRM() {
   const { client } = useClientContext();
   const { toast } = useToast();
-  const { workspace, isLoading, generateWorkspace, isGenerating, toggleActive, isTogglingActive } = useCRMWorkspace(client.id);
+  const {
+    workspace,
+    isLoading,
+    generateWorkspace,
+    isGenerating,
+    toggleActive,
+    isTogglingActive,
+  } = useCRMWorkspace(client.id);
   const [showConfirmGenerate, setShowConfirmGenerate] = useState(false);
-  
+
   // Para ClienteCRM, vamos buscar todos os leads independente do board (passando vazio)
   // Isso garante que as estatísticas mostrem todos os leads do workspace
-  const { leads = [], stages = [] } = useCRMLeads(workspace?.id || '', '');
+  const { leads = [], stages = [] } = useCRMLeads(workspace?.id || "", "");
 
   const handleGenerateCRM = async () => {
     await generateWorkspace();
@@ -61,21 +83,26 @@ export function ClienteCRM() {
   }
 
   const totalLeads = leads.length;
-  const qualifiedLeads = leads.filter(l => {
-    const stage = stages.find(s => s.id === l.stage_id);
-    return stage?.event_mapping === 'LeadQualified' || stage?.event_mapping === 'MeetingScheduled' || stage?.event_mapping === 'ProposalSent';
+  const qualifiedLeads = leads.filter((l) => {
+    const stage = stages.find((s) => s.id === l.stage_id);
+    return (
+      stage?.event_mapping === "LeadQualified" ||
+      stage?.event_mapping === "MeetingScheduled" ||
+      stage?.event_mapping === "ProposalSent"
+    );
   }).length;
-  const sales = leads.filter(l => {
-    const stage = stages.find(s => s.id === l.stage_id);
-    return stage?.event_mapping === 'Purchase';
+  const sales = leads.filter((l) => {
+    const stage = stages.find((s) => s.id === l.stage_id);
+    return stage?.event_mapping === "Purchase";
   }).length;
   const totalValue = leads
-    .filter(l => {
-      const stage = stages.find(s => s.id === l.stage_id);
-      return stage?.event_mapping === 'Purchase';
+    .filter((l) => {
+      const stage = stages.find((s) => s.id === l.stage_id);
+      return stage?.event_mapping === "Purchase";
     })
     .reduce((sum, l) => sum + (l.value || 0), 0);
-  const conversionRate = totalLeads > 0 ? ((sales / totalLeads) * 100).toFixed(1) : '0.0';
+  const conversionRate =
+    totalLeads > 0 ? ((sales / totalLeads) * 100).toFixed(1) : "0.0";
 
   return (
     <div className="space-y-6">
@@ -83,13 +110,17 @@ export function ClienteCRM() {
         <CardHeader>
           <CardTitle>Mini CRM do Cliente</CardTitle>
           <CardDescription>
-            Gere um link de acesso para que o cliente gerencie seus leads diretamente.
-            As conversões offline são enviadas automaticamente ao Meta quando os leads mudam de estágio.
+            Gere um link de acesso para que o cliente gerencie seus leads
+            diretamente. As conversões offline são enviadas automaticamente ao
+            Meta quando os leads mudam de estágio.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {!workspace ? (
-            <AlertDialog open={showConfirmGenerate} onOpenChange={setShowConfirmGenerate}>
+            <AlertDialog
+              open={showConfirmGenerate}
+              onOpenChange={setShowConfirmGenerate}
+            >
               <AlertDialogTrigger asChild>
                 <Button disabled={isGenerating}>
                   {isGenerating ? (
@@ -109,9 +140,11 @@ export function ClienteCRM() {
                 <AlertDialogHeader>
                   <AlertDialogTitle>Gerar Mini CRM?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Será criado um workspace CRM com kanban de leads para o cliente {client.name}.
-                    Um link único de acesso será gerado e poderá ser compartilhado com o cliente.
-                    <br /><br />
+                    Será criado um workspace CRM com kanban de leads para o
+                    cliente {client.name}. Um link único de acesso será gerado e
+                    poderá ser compartilhado com o cliente.
+                    <br />
+                    <br />
                     As seguintes colunas serão criadas automaticamente:
                     <ul className="list-disc list-inside mt-2 space-y-1">
                       <li>Lead Criado</li>
@@ -137,12 +170,13 @@ export function ClienteCRM() {
                 <div>
                   <Label>Link de Acesso ao CRM</Label>
                   <div className="flex gap-2 mt-1">
-                    <Input 
+                    <Input
                       value={`${window.location.origin}/crm/${workspace.access_token}`}
                       readOnly
                       className="font-mono text-sm"
                     />
-                    <Button 
+                    <Button
+                      aria-label="Copiar"
                       variant="outline"
                       size="icon"
                       onClick={handleCopyLink}
@@ -150,23 +184,29 @@ export function ClienteCRM() {
                       <Copy className="w-4 h-4" />
                     </Button>
                     <Button
+                      aria-label="Fechar"
                       variant="outline"
                       size="icon"
-                      onClick={() => window.open(`/crm/${workspace.access_token}`, '_blank')}
+                      onClick={() =>
+                        window.open(`/crm/${workspace.access_token}`, "_blank")
+                      }
                     >
                       <ExternalLink className="w-4 h-4" />
                     </Button>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Compartilhe este link com o cliente para que ele acesse o CRM
+                    Compartilhe este link com o cliente para que ele acesse o
+                    CRM
                   </p>
                 </div>
 
                 <div>
                   <Label>Status</Label>
                   <div className="flex items-center gap-2 mt-1">
-                    <Badge variant={workspace.is_active ? 'default' : 'secondary'}>
-                      {workspace.is_active ? 'Ativo' : 'Inativo'}
+                    <Badge
+                      variant={workspace.is_active ? "default" : "secondary"}
+                    >
+                      {workspace.is_active ? "Ativo" : "Inativo"}
                     </Badge>
                     <Button
                       variant="outline"
@@ -181,7 +221,7 @@ export function ClienteCRM() {
                       ) : (
                         <Power className="w-4 h-4 mr-2" />
                       )}
-                      {workspace.is_active ? 'Desativar' : 'Ativar'}
+                      {workspace.is_active ? "Desativar" : "Ativar"}
                     </Button>
                   </div>
                 </div>
@@ -204,10 +244,13 @@ export function ClienteCRM() {
                       <TrendingUp className="w-4 h-4" />
                       <p className="text-sm">Leads Qualificados</p>
                     </div>
-                    <p className="text-2xl font-bold text-green-600">{qualifiedLeads}</p>
+                    <p className="text-2xl font-bold text-green-600">
+                      {qualifiedLeads}
+                    </p>
                     {totalLeads > 0 && (
                       <p className="text-xs text-muted-foreground">
-                        {((qualifiedLeads / totalLeads) * 100).toFixed(1)}% do total
+                        {((qualifiedLeads / totalLeads) * 100).toFixed(1)}% do
+                        total
                       </p>
                     )}
                   </CardContent>
@@ -221,7 +264,10 @@ export function ClienteCRM() {
                     </div>
                     <p className="text-2xl font-bold text-green-600">{sales}</p>
                     <p className="text-xs text-muted-foreground">
-                      R$ {totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      R${" "}
+                      {totalValue.toLocaleString("pt-BR", {
+                        minimumFractionDigits: 2,
+                      })}
                     </p>
                   </CardContent>
                 </Card>
@@ -241,9 +287,7 @@ export function ClienteCRM() {
         </CardContent>
       </Card>
 
-      {workspace && (
-        <CRMUsersManager workspaceId={workspace.id} />
-      )}
+      {workspace && <CRMUsersManager workspaceId={workspace.id} />}
     </div>
   );
 }

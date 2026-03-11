@@ -29,7 +29,9 @@ export const ImageUploader = ({
   compact = false,
 }: ImageUploaderProps) => {
   const [uploading, setUploading] = useState(false);
-  const [preview, setPreview] = useState<string | null>(currentImageUrl || null);
+  const [preview, setPreview] = useState<string | null>(
+    currentImageUrl || null,
+  );
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -68,9 +70,9 @@ export const ImageUploader = ({
       setUploading(true);
 
       // Create file path
-      const fileExt = file.name.split('.').pop();
+      const fileExt = file.name.split(".").pop();
       const fileName = `${Date.now()}.${fileExt}`;
-      const filePath = folder 
+      const filePath = folder
         ? `${folder}/${fileName}`
         : `${user.id}/${fileName}`;
 
@@ -78,16 +80,16 @@ export const ImageUploader = ({
       const { data, error } = await supabase.storage
         .from(bucket)
         .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: true // Allow overwriting existing files
+          cacheControl: "3600",
+          upsert: true, // Allow overwriting existing files
         });
 
       if (error) throw error;
 
       // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from(bucket)
-        .getPublicUrl(data.path);
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from(bucket).getPublicUrl(data.path);
 
       setPreview(publicUrl);
       onImageUploaded(publicUrl);
@@ -96,9 +98,8 @@ export const ImageUploader = ({
         title: "Upload realizado!",
         description: "Imagem enviada com sucesso.",
       });
-
     } catch (error) {
-      console.error('Error uploading file:', error);
+      console.error("Error uploading file:", error);
       toast({
         title: "Erro no upload",
         description: "Não foi possível enviar a imagem. Tente novamente.",
@@ -120,9 +121,8 @@ export const ImageUploader = ({
         title: "Imagem removida",
         description: "A imagem foi removida com sucesso.",
       });
-
     } catch (error) {
-      console.error('Error removing image:', error);
+      console.error("Error removing image:", error);
       toast({
         title: "Erro ao remover",
         description: "Não foi possível remover a imagem.",
@@ -189,6 +189,7 @@ export const ImageUploader = ({
               className="w-24 h-24 rounded-full object-cover border-2 border-border shadow-sm"
             />
             <Button
+              aria-label="Excluir"
               type="button"
               variant="destructive"
               size="icon"
@@ -199,7 +200,7 @@ export const ImageUploader = ({
             </Button>
           </>
         ) : (
-          <div 
+          <div
             className="w-24 h-24 rounded-full border-2 border-dashed border-muted-foreground/30 flex items-center justify-center bg-muted/50 cursor-pointer hover:border-primary/50 hover:bg-muted transition-colors"
             onClick={triggerFileInput}
           >

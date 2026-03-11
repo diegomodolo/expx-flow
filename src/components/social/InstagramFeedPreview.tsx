@@ -92,6 +92,7 @@ export function InstagramFeedPreview({
             </div>
             {onRefresh && (
               <Button
+                aria-label="Atualizar"
                 variant="ghost"
                 size="icon"
                 onClick={onRefresh}

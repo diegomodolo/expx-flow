@@ -1,7 +1,18 @@
 import { useState, KeyboardEvent, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Send, Paperclip, Image, FileText, Film, Mic, X, Square, Trash2 } from "lucide-react";
+import {
+  Loader2,
+  Send,
+  Paperclip,
+  Image,
+  FileText,
+  Film,
+  Mic,
+  X,
+  Square,
+  Trash2,
+} from "lucide-react";
 import { WhatsAppEmojiPicker } from "./WhatsAppEmojiPicker";
 import {
   DropdownMenu,
@@ -33,15 +44,15 @@ interface WhatsAppMessageInputProps {
   onCancelReply?: () => void;
 }
 
-export function WhatsAppMessageInput({ 
-  onSend, 
-  onSendMedia, 
+export function WhatsAppMessageInput({
+  onSend,
+  onSendMedia,
   isSending,
   quickReplies = [],
   quickRepliesLoading = false,
   replyToMessage,
   replyToContactName,
-  onCancelReply
+  onCancelReply,
 }: WhatsAppMessageInputProps) {
   const [message, setMessage] = useState("");
   const [showQuickReplies, setShowQuickReplies] = useState(false);
@@ -50,7 +61,7 @@ export function WhatsAppMessageInput({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [acceptTypes, setAcceptTypes] = useState<string>("");
-  
+
   // Audio recording state
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
@@ -71,7 +82,7 @@ export function WhatsAppMessageInput({
         URL.revokeObjectURL(audioPreviewUrl);
       }
       if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current.getTracks().forEach((track) => track.stop());
       }
     };
   }, [audioPreviewUrl]);
@@ -80,16 +91,16 @@ export function WhatsAppMessageInput({
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
-      
+
       // Try to use webm/opus first (better compatibility), fallback to other formats
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
-        ? 'audio/webm;codecs=opus'
-        : MediaRecorder.isTypeSupported('audio/webm')
-          ? 'audio/webm'
-          : MediaRecorder.isTypeSupported('audio/mp4')
-            ? 'audio/mp4'
-            : 'audio/ogg';
-      
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus"
+        : MediaRecorder.isTypeSupported("audio/webm")
+          ? "audio/webm"
+          : MediaRecorder.isTypeSupported("audio/mp4")
+            ? "audio/mp4"
+            : "audio/ogg";
+
       const mediaRecorder = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
@@ -103,12 +114,12 @@ export function WhatsAppMessageInput({
       mediaRecorder.onstop = () => {
         const blob = new Blob(audioChunksRef.current, { type: mimeType });
         setAudioBlob(blob);
-        
+
         const url = URL.createObjectURL(blob);
         setAudioPreviewUrl(url);
-        
+
         // Stop all tracks
-        stream.getTracks().forEach(track => track.stop());
+        stream.getTracks().forEach((track) => track.stop());
         streamRef.current = null;
       };
 
@@ -118,15 +129,18 @@ export function WhatsAppMessageInput({
 
       // Start timer
       recordingIntervalRef.current = setInterval(() => {
-        setRecordingDuration(prev => prev + 1);
+        setRecordingDuration((prev) => prev + 1);
       }, 1000);
-
     } catch (error: unknown) {
       console.error("[WhatsAppMessageInput] Recording error:", error);
-      if (error.name === 'NotAllowedError') {
-        toast.error("Permissão para microfone negada. Por favor, permita o acesso ao microfone.");
+      if (error.name === "NotAllowedError") {
+        toast.error(
+          "Permissão para microfone negada. Por favor, permita o acesso ao microfone.",
+        );
       } else {
-        toast.error("Erro ao iniciar gravação: " + (error.message || "Erro desconhecido"));
+        toast.error(
+          "Erro ao iniciar gravação: " + (error.message || "Erro desconhecido"),
+        );
       }
     }
   }, []);
@@ -135,7 +149,7 @@ export function WhatsAppMessageInput({
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
-      
+
       if (recordingIntervalRef.current) {
         clearInterval(recordingIntervalRef.current);
         recordingIntervalRef.current = null;
@@ -147,23 +161,23 @@ export function WhatsAppMessageInput({
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
     }
-    
+
     setIsRecording(false);
     setAudioBlob(null);
     setRecordingDuration(0);
-    
+
     if (audioPreviewUrl) {
       URL.revokeObjectURL(audioPreviewUrl);
       setAudioPreviewUrl(null);
     }
-    
+
     if (recordingIntervalRef.current) {
       clearInterval(recordingIntervalRef.current);
       recordingIntervalRef.current = null;
     }
-    
+
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
     }
   }, [isRecording, audioPreviewUrl]);
@@ -172,20 +186,25 @@ export function WhatsAppMessageInput({
     if (!audioBlob || !onSendMedia) return;
 
     // Create file from blob
-    const extension = audioBlob.type.includes('webm') ? 'webm' 
-      : audioBlob.type.includes('mp4') ? 'm4a' 
-      : audioBlob.type.includes('ogg') ? 'ogg' 
-      : 'mp3';
-    
-    const file = new File([audioBlob], `audio_${Date.now()}.${extension}`, { type: audioBlob.type });
-    
+    const extension = audioBlob.type.includes("webm")
+      ? "webm"
+      : audioBlob.type.includes("mp4")
+        ? "m4a"
+        : audioBlob.type.includes("ogg")
+          ? "ogg"
+          : "mp3";
+
+    const file = new File([audioBlob], `audio_${Date.now()}.${extension}`, {
+      type: audioBlob.type,
+    });
+
     const mediaAttachment: MediaAttachment = {
       file,
       type: "ptt", // Push-to-talk (voice message)
     };
 
     onSendMedia(mediaAttachment, "");
-    
+
     // Clean up
     setAudioBlob(null);
     setRecordingDuration(0);
@@ -198,12 +217,12 @@ export function WhatsAppMessageInput({
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
   const handleSend = () => {
     const trimmed = message.trim();
-    
+
     if (attachment && onSendMedia) {
       onSendMedia(attachment, trimmed);
       setAttachment(null);
@@ -213,7 +232,7 @@ export function WhatsAppMessageInput({
     }
 
     if (!trimmed || isSending) return;
-    
+
     onSend(trimmed, replyToMessage?.id || undefined);
     setMessage("");
     setShowQuickReplies(false);
@@ -223,7 +242,7 @@ export function WhatsAppMessageInput({
 
   const handleMessageChange = (value: string) => {
     setMessage(value);
-    
+
     // Check for "/" trigger for quick replies
     if (value.startsWith("/")) {
       setShowQuickReplies(true);
@@ -237,7 +256,7 @@ export function WhatsAppMessageInput({
   const handleQuickReplySelect = async (quickReply: QuickReply) => {
     setShowQuickReplies(false);
     setQuickReplySearch("");
-    
+
     if (quickReply.type === "text") {
       // For text, insert the text directly
       setMessage(quickReply.text || "");
@@ -248,18 +267,23 @@ export function WhatsAppMessageInput({
           // Fetch the file from URL and create a File object
           const response = await fetch(quickReply.file);
           const blob = await response.blob();
-          
-          const extension = quickReply.docName?.split('.').pop() || 
-            (quickReply.type === 'image' ? 'jpg' : 
-             quickReply.type === 'video' ? 'mp4' : 
-             quickReply.type === 'audio' || quickReply.type === 'ptt' ? 'mp3' : 'pdf');
-          
+
+          const extension =
+            quickReply.docName?.split(".").pop() ||
+            (quickReply.type === "image"
+              ? "jpg"
+              : quickReply.type === "video"
+                ? "mp4"
+                : quickReply.type === "audio" || quickReply.type === "ptt"
+                  ? "mp3"
+                  : "pdf");
+
           const fileName = quickReply.docName || `quick_reply.${extension}`;
           const file = new File([blob], fileName, { type: blob.type });
-          
-          const mediaType: MediaAttachment['type'] = 
-            quickReply.type === 'myaudio' ? 'audio' : quickReply.type;
-          
+
+          const mediaType: MediaAttachment["type"] =
+            quickReply.type === "myaudio" ? "audio" : quickReply.type;
+
           onSendMedia({ file, type: mediaType }, quickReply.text || "");
         } catch (error) {
           console.error("Error loading quick reply media:", error);
@@ -280,7 +304,7 @@ export function WhatsAppMessageInput({
       setMessage("");
       return;
     }
-    
+
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
@@ -295,7 +319,7 @@ export function WhatsAppMessageInput({
       audio: "audio/mpeg,audio/ogg,audio/wav,audio/mp3",
     };
     setAcceptTypes(acceptMap[type]);
-    
+
     setTimeout(() => {
       fileInputRef.current?.click();
     }, 0);
@@ -331,24 +355,30 @@ export function WhatsAppMessageInput({
   };
 
   // Insert emoji at cursor position
-  const handleEmojiSelect = useCallback((emoji: string) => {
-    const textarea = textareaRef.current;
-    if (textarea) {
-      const start = textarea.selectionStart;
-      const end = textarea.selectionEnd;
-      const newMessage = message.slice(0, start) + emoji + message.slice(end);
-      setMessage(newMessage);
-      
-      // Set cursor position after emoji
-      setTimeout(() => {
-        textarea.focus();
-        textarea.setSelectionRange(start + emoji.length, start + emoji.length);
-      }, 0);
-    } else {
-      // Fallback: append to end
-      setMessage(prev => prev + emoji);
-    }
-  }, [message]);
+  const handleEmojiSelect = useCallback(
+    (emoji: string) => {
+      const textarea = textareaRef.current;
+      if (textarea) {
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const newMessage = message.slice(0, start) + emoji + message.slice(end);
+        setMessage(newMessage);
+
+        // Set cursor position after emoji
+        setTimeout(() => {
+          textarea.focus();
+          textarea.setSelectionRange(
+            start + emoji.length,
+            start + emoji.length,
+          );
+        }, 0);
+      } else {
+        // Fallback: append to end
+        setMessage((prev) => prev + emoji);
+      }
+    },
+    [message],
+  );
 
   const formatFileSize = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`;
@@ -359,16 +389,20 @@ export function WhatsAppMessageInput({
   const getAttachmentIcon = () => {
     if (!attachment) return null;
     switch (attachment.type) {
-      case "image": return <Image className="h-4 w-4" />;
-      case "video": return <Film className="h-4 w-4" />;
-      case "audio": 
+      case "image":
+        return <Image className="h-4 w-4" />;
+      case "video":
+        return <Film className="h-4 w-4" />;
+      case "audio":
       case "ptt":
         return <Mic className="h-4 w-4" />;
-      default: return <FileText className="h-4 w-4" />;
+      default:
+        return <FileText className="h-4 w-4" />;
     }
   };
 
-  const showMicButton = !message.trim() && !attachment && !isRecording && !audioBlob;
+  const showMicButton =
+    !message.trim() && !attachment && !isRecording && !audioBlob;
 
   // Recording UI
   if (isRecording) {
@@ -377,6 +411,7 @@ export function WhatsAppMessageInput({
         <div className="flex items-center gap-3 p-3">
           {/* Cancel button */}
           <Button
+            aria-label="Fechar"
             variant="ghost"
             size="icon"
             onClick={cancelRecording}
@@ -389,12 +424,14 @@ export function WhatsAppMessageInput({
           <div className="flex-1 flex items-center gap-3">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-destructive animate-pulse" />
-              <span className="text-sm font-medium text-destructive">Gravando</span>
+              <span className="text-sm font-medium text-destructive">
+                Gravando
+              </span>
             </div>
             <span className="text-sm text-muted-foreground font-mono">
               {formatDuration(recordingDuration)}
             </span>
-            
+
             {/* Simple waveform animation */}
             <div className="flex items-center gap-0.5 h-6">
               {[...Array(12)].map((_, i) => (
@@ -403,7 +440,7 @@ export function WhatsAppMessageInput({
                   className="w-1 bg-destructive/60 rounded-full animate-pulse"
                   style={{
                     height: `${Math.random() * 100}%`,
-                    minHeight: '4px',
+                    minHeight: "4px",
                     animationDelay: `${i * 0.1}s`,
                   }}
                 />
@@ -413,6 +450,7 @@ export function WhatsAppMessageInput({
 
           {/* Stop/Send button */}
           <Button
+            aria-label="Ação"
             size="icon"
             onClick={stopRecording}
             className="shrink-0"
@@ -431,6 +469,7 @@ export function WhatsAppMessageInput({
         <div className="flex items-center gap-3 p-3">
           {/* Cancel/Delete button */}
           <Button
+            aria-label="Fechar"
             variant="ghost"
             size="icon"
             onClick={cancelRecording}
@@ -442,11 +481,11 @@ export function WhatsAppMessageInput({
           {/* Audio player preview */}
           <div className="flex-1 flex items-center gap-3 bg-muted/50 rounded-full px-4 py-2">
             <Mic className="h-4 w-4 text-primary shrink-0" />
-            <audio 
-              src={audioPreviewUrl} 
-              controls 
+            <audio
+              src={audioPreviewUrl}
+              controls
               className="flex-1 h-8"
-              style={{ maxWidth: '100%' }}
+              style={{ maxWidth: "100%" }}
             />
             <span className="text-xs text-muted-foreground font-mono shrink-0">
               {formatDuration(recordingDuration)}
@@ -455,6 +494,7 @@ export function WhatsAppMessageInput({
 
           {/* Send button */}
           <Button
+            aria-label="Enviar"
             size="icon"
             onClick={sendAudioMessage}
             disabled={isSending}
@@ -505,9 +545,9 @@ export function WhatsAppMessageInput({
         <div className="p-3 border-b bg-muted/30">
           <div className="flex items-center gap-3">
             {attachment.type === "image" && attachment.preview ? (
-              <img 
-                src={attachment.preview} 
-                alt="Preview" 
+              <img
+                src={attachment.preview}
+                alt="Preview"
                 className="h-16 w-16 rounded object-cover"
               />
             ) : (
@@ -516,12 +556,15 @@ export function WhatsAppMessageInput({
               </div>
             )}
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{attachment.file.name}</p>
+              <p className="text-sm font-medium truncate">
+                {attachment.file.name}
+              </p>
               <p className="text-xs text-muted-foreground">
                 {formatFileSize(attachment.file.size)}
               </p>
             </div>
             <Button
+              aria-label="Excluir"
               variant="ghost"
               size="icon"
               onClick={removeAttachment}
@@ -546,6 +589,7 @@ export function WhatsAppMessageInput({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
+              aria-label="Enviar"
               variant="ghost"
               size="icon"
               disabled={isSending}
@@ -582,7 +626,11 @@ export function WhatsAppMessageInput({
 
         <Textarea
           ref={textareaRef}
-          placeholder={attachment ? "Adicione uma legenda..." : "Digite / para respostas rápidas..."}
+          placeholder={
+            attachment
+              ? "Adicione uma legenda..."
+              : "Digite / para respostas rápidas..."
+          }
           value={message}
           onChange={(e) => handleMessageChange(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -593,8 +641,8 @@ export function WhatsAppMessageInput({
 
         {/* Show mic button when no text, otherwise show send */}
         {showMicButton ? (
-          <Button 
-            size="icon" 
+          <Button
+            size="icon"
             onClick={startRecording}
             disabled={isSending}
             className="shrink-0"
@@ -603,9 +651,10 @@ export function WhatsAppMessageInput({
             <Mic className="h-4 w-4" />
           </Button>
         ) : (
-          <Button 
-            size="icon" 
-            onClick={handleSend} 
+          <Button
+            aria-label="Enviar"
+            size="icon"
+            onClick={handleSend}
             disabled={(!message.trim() && !attachment) || isSending}
             className="shrink-0"
           >

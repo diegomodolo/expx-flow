@@ -1,75 +1,77 @@
 // Deno.serve is available natively in modern Deno
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.53.0';
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.53.0";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     );
 
     const { log_id } = await req.json();
 
     if (!log_id) {
-      throw new Error('log_id is required');
+      throw new Error("log_id is required");
     }
 
     console.log(`🔄 Rolling back automation action: ${log_id}`);
 
     // Buscar log
     const { data: log, error: logError } = await supabase
-      .from('campaign_automation_logs')
-      .select('*')
-      .eq('id', log_id)
+      .from("campaign_automation_logs")
+      .select("*")
+      .eq("id", log_id)
       .single();
 
     if (logError || !log) {
-      throw new Error('Log not found');
+      throw new Error("Log not found");
     }
 
     if (log.rolled_back) {
-      throw new Error('Action already rolled back');
+      throw new Error("Action already rolled back");
     }
 
-    if (log.action_result !== 'success') {
-      throw new Error('Can only rollback successful actions');
+    if (log.action_result !== "success") {
+      throw new Error("Can only rollback successful actions");
     }
 
     // Buscar campanha
     const { data: campaign } = await supabase
-      .from('campaigns')
-      .select('facebook_id')
-      .eq('id', log.campaign_id)
+      .from("campaigns")
+      .select("facebook_id")
+      .eq("id", log.campaign_id)
       .single();
 
     if (!campaign) {
-      throw new Error('Campaign not found');
+      throw new Error("Campaign not found");
     }
 
     // Buscar integração do Facebook
     const { data: integration } = await supabase
-      .from('facebook_integrations')
-      .select('*')
-      .eq('company_id', log.company_id)
-      .eq('is_active', true)
+      .from("facebook_integrations")
+      .select("*")
+      .eq("company_id", log.company_id)
+      .eq("is_active", true)
       .single();
 
     if (!integration) {
-      throw new Error('No active Facebook integration');
+      throw new Error("No active Facebook integration");
     }
 
     // Executar rollback baseado no tipo de ação
     const url = `https://graph.facebook.com/v20.0/${campaign.facebook_id}`;
-    const updates: any = {};
+    const updates: unknown = {};
 
     // Restaurar nome
     if (log.old_name) {
@@ -88,11 +90,11 @@ Deno.serve(async (req) => {
 
     updates.access_token = integration.access_token;
 
-    console.log('📤 Sending rollback to Facebook:', updates);
+    console.log("📤 Sending rollback to Facebook:", updates);
 
     const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(updates),
     });
 
@@ -105,23 +107,23 @@ Deno.serve(async (req) => {
 
     // Marcar log como revertido
     const { error: updateError } = await supabase
-      .from('campaign_automation_logs')
+      .from("campaign_automation_logs")
       .update({
         rolled_back: true,
         rolled_back_at: new Date().toISOString(),
       })
-      .eq('id', log_id);
+      .eq("id", log_id);
 
     if (updateError) {
-      console.error('Warning: Could not update log:', updateError);
+      console.error("Warning: Could not update log:", updateError);
     }
 
-    console.log('✅ Rollback successful');
+    console.log("✅ Rollback successful");
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Action rolled back successfully',
+        message: "Action rolled back successfully",
         restored: {
           name: log.old_name,
           status: log.old_status,
@@ -129,17 +131,19 @@ Deno.serve(async (req) => {
         },
         facebook_response: result,
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
-
-  } catch (error: any) {
-    console.error('❌ Rollback error:', error);
+  } catch (error: unknown) {
+    console.error("❌ Rollback error:", error);
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         success: false,
-        error: error.message 
+        error: error.message,
       }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 });

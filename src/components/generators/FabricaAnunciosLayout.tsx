@@ -19,7 +19,9 @@ interface FabricaAnunciosLayoutProps {
   children: ReactNode;
 }
 
-export function FabricaAnunciosLayout({ children }: FabricaAnunciosLayoutProps) {
+export function FabricaAnunciosLayout({
+  children,
+}: FabricaAnunciosLayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -70,6 +72,7 @@ export function FabricaAnunciosLayout({ children }: FabricaAnunciosLayoutProps) 
           <div className="mb-4 pb-4 border-b">
             <div className="flex items-center gap-2 mb-2">
               <Button
+                aria-label="Voltar"
                 variant="ghost"
                 size="icon"
                 className="h-7 w-7 shrink-0"
@@ -89,12 +92,12 @@ export function FabricaAnunciosLayout({ children }: FabricaAnunciosLayoutProps) 
               Geração automatizada com IA
             </p>
           </div>
-          
+
           <nav className="space-y-1">
             {navItems.map((item) => {
               const isActive = location.pathname === item.href;
               const Icon = item.icon;
-              
+
               return (
                 <Link
                   key={item.href}
@@ -103,7 +106,7 @@ export function FabricaAnunciosLayout({ children }: FabricaAnunciosLayoutProps) 
                     "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors",
                     isActive
                       ? "bg-primary text-primary-foreground font-medium"
-                      : "hover:bg-muted text-muted-foreground"
+                      : "hover:bg-muted text-muted-foreground",
                   )}
                 >
                   <Icon className="w-4 h-4 shrink-0" />
@@ -118,9 +121,7 @@ export function FabricaAnunciosLayout({ children }: FabricaAnunciosLayoutProps) 
       </Card>
 
       {/* Main Content */}
-      <div className="flex-1 min-w-0">
-        {children}
-      </div>
+      <div className="flex-1 min-w-0">{children}</div>
     </div>
   );
 }

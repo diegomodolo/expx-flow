@@ -15,9 +15,24 @@ export interface SquadAgentNodeData {
 }
 
 const roleConfig = {
-  leader: { icon: Crown, color: "#F59E0B", label: "Líder", bg: "bg-yellow-500/10" },
-  manager: { icon: Shield, color: "#3B82F6", label: "Gerente", bg: "bg-blue-500/10" },
-  executor: { icon: Wrench, color: "#10B981", label: "Executor", bg: "bg-green-500/10" },
+  leader: {
+    icon: Crown,
+    color: "#F59E0B",
+    label: "Líder",
+    bg: "bg-yellow-500/10",
+  },
+  manager: {
+    icon: Shield,
+    color: "#3B82F6",
+    label: "Gerente",
+    bg: "bg-blue-500/10",
+  },
+  executor: {
+    icon: Wrench,
+    color: "#10B981",
+    label: "Executor",
+    bg: "bg-green-500/10",
+  },
 };
 
 export const SquadAgentNode = memo(({ id, data }: NodeProps) => {
@@ -27,8 +42,18 @@ export const SquadAgentNode = memo(({ id, data }: NodeProps) => {
 
   return (
     <div className="relative">
-      <Handle type="target" position={Position.Top} id="top" className="w-3 h-3 !bg-border" />
-      <Handle type="target" position={Position.Left} id="left" className="w-3 h-3 !bg-border" />
+      <Handle
+        type="target"
+        position={Position.Top}
+        id="top"
+        className="w-3 h-3 !bg-border"
+      />
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="left"
+        className="w-3 h-3 !bg-border"
+      />
 
       <div
         className="min-w-[200px] max-w-[280px] rounded-lg border-2 shadow-lg bg-card overflow-hidden"
@@ -41,9 +66,12 @@ export const SquadAgentNode = memo(({ id, data }: NodeProps) => {
         >
           <div className="flex items-center gap-2 flex-1 min-w-0">
             <Bot className="h-4 w-4 shrink-0" style={{ color: config.color }} />
-            <span className="font-medium text-sm text-foreground truncate">{nodeData.label}</span>
+            <span className="font-medium text-sm text-foreground truncate">
+              {nodeData.label}
+            </span>
           </div>
           <Button
+            aria-label="Editar"
             variant="ghost"
             size="icon"
             className="h-6 w-6 shrink-0"
@@ -65,13 +93,25 @@ export const SquadAgentNode = memo(({ id, data }: NodeProps) => {
             </Badge>
           </div>
           {nodeData.description && (
-            <p className="text-xs text-muted-foreground line-clamp-2">{nodeData.description}</p>
+            <p className="text-xs text-muted-foreground line-clamp-2">
+              {nodeData.description}
+            </p>
           )}
         </div>
       </div>
 
-      <Handle type="source" position={Position.Bottom} id="bottom" className="w-3 h-3 !bg-border" />
-      <Handle type="source" position={Position.Right} id="right" className="w-3 h-3 !bg-border" />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        id="bottom"
+        className="w-3 h-3 !bg-border"
+      />
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="right"
+        className="w-3 h-3 !bg-border"
+      />
     </div>
   );
 });

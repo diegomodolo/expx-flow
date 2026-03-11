@@ -34,7 +34,17 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Card, CardContent } from "@/components/ui/card";
-import { MoreVertical, Eye, Upload, Trash2, Users, Loader2, Search, X, Copy } from "lucide-react";
+import {
+  MoreVertical,
+  Eye,
+  Upload,
+  Trash2,
+  Users,
+  Loader2,
+  Search,
+  X,
+  Copy,
+} from "lucide-react";
 import { useState, useMemo } from "react";
 
 interface AudiencesListProps {
@@ -66,7 +76,9 @@ export function AudiencesList({
   onCreateLookalike,
 }: AudiencesListProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [audienceToDelete, setAudienceToDelete] = useState<MetaAudience | null>(null);
+  const [audienceToDelete, setAudienceToDelete] = useState<MetaAudience | null>(
+    null,
+  );
   const [searchTerm, setSearchTerm] = useState("");
   const [subtypeFilter, setSubtypeFilter] = useState("all");
 
@@ -92,11 +104,12 @@ export function AudiencesList({
 
   const filteredAudiences = useMemo(() => {
     return audiences.filter((audience) => {
-      const matchesSearch = 
+      const matchesSearch =
         audience.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         audience.description?.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      const matchesSubtype = subtypeFilter === "all" || audience.subtype === subtypeFilter;
+
+      const matchesSubtype =
+        subtypeFilter === "all" || audience.subtype === subtypeFilter;
 
       return matchesSearch && matchesSubtype;
     });
@@ -113,7 +126,10 @@ export function AudiencesList({
   };
 
   const getSubtypeBadge = (subtype?: string) => {
-    const subtypeLabels: Record<string, { label: string; variant: "default" | "secondary" | "outline" }> = {
+    const subtypeLabels: Record<
+      string,
+      { label: string; variant: "default" | "secondary" | "outline" }
+    > = {
       CUSTOM: { label: "Personalizado", variant: "default" },
       WEBSITE: { label: "Website", variant: "secondary" },
       APP: { label: "App", variant: "secondary" },
@@ -126,7 +142,10 @@ export function AudiencesList({
       ENGAGEMENT: { label: "Engajamento", variant: "secondary" },
     };
 
-    const config = subtypeLabels[subtype || "CUSTOM"] || { label: subtype || "Desconhecido", variant: "outline" as const };
+    const config = subtypeLabels[subtype || "CUSTOM"] || {
+      label: subtype || "Desconhecido",
+      variant: "outline" as const,
+    };
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
@@ -147,7 +166,9 @@ export function AudiencesList({
         <CardContent className="py-12 flex flex-col items-center justify-center text-muted-foreground">
           <Users className="h-12 w-12 mb-4 opacity-50" />
           <p className="text-lg font-medium">Nenhum público encontrado</p>
-          <p className="text-sm">Crie seu primeiro público personalizado para começar</p>
+          <p className="text-sm">
+            Crie seu primeiro público personalizado para começar
+          </p>
         </CardContent>
       </Card>
     );
@@ -179,7 +200,12 @@ export function AudiencesList({
           </SelectContent>
         </Select>
         {hasActiveFilters && (
-          <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={clearFilters}
+            className="gap-1"
+          >
             <X className="h-4 w-4" />
             Limpar
           </Button>
@@ -206,7 +232,10 @@ export function AudiencesList({
           <TableBody>
             {filteredAudiences.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                <TableCell
+                  colSpan={5}
+                  className="h-24 text-center text-muted-foreground"
+                >
                   Nenhum público encontrado com os filtros aplicados.
                 </TableCell>
               </TableRow>
@@ -215,11 +244,17 @@ export function AudiencesList({
                 <TableRow key={audience.id} className="group">
                   <TableCell>
                     <div className="flex flex-col">
-                      <span className="font-medium truncate max-w-[300px]" title={audience.name}>
+                      <span
+                        className="font-medium truncate max-w-[300px]"
+                        title={audience.name}
+                      >
                         {audience.name}
                       </span>
                       {audience.description && (
-                        <span className="text-xs text-muted-foreground truncate max-w-[300px]" title={audience.description}>
+                        <span
+                          className="text-xs text-muted-foreground truncate max-w-[300px]"
+                          title={audience.description}
+                        >
                           {audience.description}
                         </span>
                       )}
@@ -230,35 +265,53 @@ export function AudiencesList({
                     {formatCount(audience.approximate_count)}
                   </TableCell>
                   <TableCell>
-                    <Badge 
-                      variant={audience.operation_status?.code === 200 ? "default" : "secondary"}
+                    <Badge
+                      variant={
+                        audience.operation_status?.code === 200
+                          ? "default"
+                          : "secondary"
+                      }
                       className="text-xs"
                     >
-                      {audience.operation_status?.code === 200 ? "Ativo" : "Pendente"}
+                      {audience.operation_status?.code === 200
+                        ? "Ativo"
+                        : "Pendente"}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button
+                          aria-label="Ação"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
                           <MoreVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="bg-popover">
-                        <DropdownMenuItem onClick={() => onViewDetails(audience)}>
+                        <DropdownMenuItem
+                          onClick={() => onViewDetails(audience)}
+                        >
                           <Eye className="h-4 w-4 mr-2" />
                           Ver Detalhes
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onUploadLeads(audience)}>
+                        <DropdownMenuItem
+                          onClick={() => onUploadLeads(audience)}
+                        >
                           <Upload className="h-4 w-4 mr-2" />
                           Adicionar Leads
                         </DropdownMenuItem>
-                        {audience.subtype !== 'LOOKALIKE' && onCreateLookalike && (
-                          <DropdownMenuItem onClick={() => onCreateLookalike(audience)}>
-                            <Copy className="h-4 w-4 mr-2" />
-                            Criar Semelhante
-                          </DropdownMenuItem>
-                        )}
+                        {audience.subtype !== "LOOKALIKE" &&
+                          onCreateLookalike && (
+                            <DropdownMenuItem
+                              onClick={() => onCreateLookalike(audience)}
+                            >
+                              <Copy className="h-4 w-4 mr-2" />
+                              Criar Semelhante
+                            </DropdownMenuItem>
+                          )}
                         <DropdownMenuItem
                           onClick={() => handleDeleteClick(audience)}
                           className="text-destructive focus:text-destructive"
@@ -281,13 +334,17 @@ export function AudiencesList({
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir Público</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir o público "{audienceToDelete?.name}"?
-              Esta ação não pode ser desfeita e o público será removido permanentemente do Meta Ads.
+              Tem certeza que deseja excluir o público "{audienceToDelete?.name}
+              "? Esta ação não pode ser desfeita e o público será removido
+              permanentemente do Meta Ads.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive hover:bg-destructive/90">
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-destructive hover:bg-destructive/90"
+            >
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>

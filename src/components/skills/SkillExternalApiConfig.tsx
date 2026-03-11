@@ -3,7 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Plus, Trash2, Globe } from "lucide-react";
 
 export interface ExternalApiConfig {
@@ -84,7 +90,11 @@ export function SkillExternalApiConfig({ config, onChange }: Props) {
           <Globe className="h-5 w-5 text-primary" />
           <CardTitle>API Externa</CardTitle>
         </div>
-        <Button size="sm" variant={enabled ? "destructive" : "default"} onClick={handleToggle}>
+        <Button
+          size="sm"
+          variant={enabled ? "destructive" : "default"}
+          onClick={handleToggle}
+        >
           {enabled ? "Desativar" : "Ativar API Externa"}
         </Button>
       </CardHeader>
@@ -103,11 +113,18 @@ export function SkillExternalApiConfig({ config, onChange }: Props) {
             </div>
             <div className="space-y-2">
               <Label>Método</Label>
-              <Select value={current.method} onValueChange={(v) => update({ method: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <Select
+                value={current.method}
+                onValueChange={(v) => update({ method: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   {HTTP_METHODS.map((m) => (
-                    <SelectItem key={m} value={m}>{m}</SelectItem>
+                    <SelectItem key={m} value={m}>
+                      {m}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -117,11 +134,18 @@ export function SkillExternalApiConfig({ config, onChange }: Props) {
           {/* Authentication */}
           <div className="space-y-2">
             <Label>Tipo de Autenticação</Label>
-            <Select value={current.auth_type} onValueChange={(v) => update({ auth_type: v, auth_config: {} })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+            <Select
+              value={current.auth_type}
+              onValueChange={(v) => update({ auth_type: v, auth_config: {} })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 {AUTH_TYPES.map((t) => (
-                  <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                  <SelectItem key={t.value} value={t.value}>
+                    {t.label}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -137,7 +161,9 @@ export function SkillExternalApiConfig({ config, onChange }: Props) {
                 onChange={(e) => updateAuthConfig("token", e.target.value)}
                 placeholder="seu-token-aqui"
               />
-              <p className="text-xs text-muted-foreground">Será enviado como: Authorization: Bearer {"{token}"}</p>
+              <p className="text-xs text-muted-foreground">
+                Será enviado como: Authorization: Bearer {"{token}"}
+              </p>
             </div>
           )}
 
@@ -147,7 +173,9 @@ export function SkillExternalApiConfig({ config, onChange }: Props) {
                 <Label>Nome do Header</Label>
                 <Input
                   value={current.auth_config.header_name || ""}
-                  onChange={(e) => updateAuthConfig("header_name", e.target.value)}
+                  onChange={(e) =>
+                    updateAuthConfig("header_name", e.target.value)
+                  }
                   placeholder="X-API-Key"
                 />
               </div>
@@ -169,7 +197,9 @@ export function SkillExternalApiConfig({ config, onChange }: Props) {
                 <Label>Nome do Parâmetro</Label>
                 <Input
                   value={current.auth_config.param_name || ""}
-                  onChange={(e) => updateAuthConfig("param_name", e.target.value)}
+                  onChange={(e) =>
+                    updateAuthConfig("param_name", e.target.value)
+                  }
                   placeholder="api_key"
                 />
               </div>
@@ -229,7 +259,12 @@ export function SkillExternalApiConfig({ config, onChange }: Props) {
                   onChange={(e) => updateHeader(key, key, e.target.value)}
                   className="flex-1"
                 />
-                <Button size="icon" variant="ghost" onClick={() => removeHeader(key)}>
+                <Button
+                  aria-label="Excluir"
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => removeHeader(key)}
+                >
                   <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>
               </div>

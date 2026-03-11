@@ -2,7 +2,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.53.0";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
@@ -19,54 +20,58 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    
+
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { email }: CheckUserRequest = await req.json();
 
     // Buscar usuário existente por email usando admin API
-    const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
-    
+    const { data: authUsers, error: authError } =
+      await supabase.auth.admin.listUsers();
+
     if (authError) {
       throw new Error(`Erro ao verificar usuários: ${authError.message}`);
     }
 
-    const existingUser = authUsers.users?.find(user => user.email === email);
+    const existingUser = authUsers.users?.find((user) => user.email === email);
 
     if (existingUser) {
-      return new Response(JSON.stringify({
-        exists: true,
-        user_id: existingUser.id,
-        user_metadata: existingUser.user_metadata
-      }), {
+      return new Response(
+        JSON.stringify({
+          exists: true,
+          user_id: existingUser.id,
+          user_metadata: existingUser.user_metadata,
+        }),
+        {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+            ...corsHeaders,
+          },
+        },
+      );
+    }
+
+    // Se não encontrou usuário existente
+    return new Response(
+      JSON.stringify({
+        exists: false,
+        user_id: null,
+      }),
+      {
         status: 200,
         headers: {
           "Content-Type": "application/json",
           ...corsHeaders,
         },
-      });
-    }
-
-    // Se não encontrou usuário existente
-    return new Response(JSON.stringify({
-      exists: false,
-      user_id: null
-    }), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        ...corsHeaders,
       },
-    });
+    );
   } catch (error: unknown) {
     console.error("Erro ao verificar usuário:", error);
-    return new Response(
-      JSON.stringify({ error: (error as Error).message }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
-    );
+    return new Response(JSON.stringify({ error: (error as Error).message }), {
+      status: 500,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
   }
 };
 

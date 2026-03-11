@@ -1,19 +1,33 @@
-import React, { useState, useEffect } from 'react';
-import { useTaskTimeTracking, TimeTrackingSession } from '@/hooks/useTaskTimeTracking';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Play, Square, Trash2, Clock, Plus, Pencil } from 'lucide-react';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { useAuth } from '@/hooks/useAuth';
-import { useEmployees } from '@/hooks/useEmployees';
+import React, { useState, useEffect } from "react";
+import {
+  useTaskTimeTracking,
+  TimeTrackingSession,
+} from "@/hooks/useTaskTimeTracking";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Play, Square, Trash2, Clock, Plus, Pencil } from "lucide-react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { useAuth } from "@/hooks/useAuth";
+import { useEmployees } from "@/hooks/useEmployees";
 
 function formatDuration(minutes: number): string {
-  if (minutes < 0.017) return '0s'; // less than 1 second
+  if (minutes < 0.017) return "0s"; // less than 1 second
   if (minutes < 10) {
     // Under 10 minutes: show minutes and seconds
     const totalSeconds = Math.round(minutes * 60);
@@ -39,12 +53,16 @@ function LiveTimer({ startedAt }: { startedAt: string }) {
     return () => clearInterval(interval);
   }, [startedAt]);
 
-  return <span className="text-primary font-mono font-bold">{formatDuration(elapsed)}</span>;
+  return (
+    <span className="text-primary font-mono font-bold">
+      {formatDuration(elapsed)}
+    </span>
+  );
 }
 
 function toLocalDatetimeValue(iso: string): string {
   const d = new Date(iso);
-  const pad = (n: number) => n.toString().padStart(2, '0');
+  const pad = (n: number) => n.toString().padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
@@ -59,7 +77,10 @@ interface TaskTimeTrackingTabProps {
   taskStatus?: string;
 }
 
-export function TaskTimeTrackingTab({ taskId, taskStatus }: TaskTimeTrackingTabProps) {
+export function TaskTimeTrackingTab({
+  taskId,
+  taskStatus,
+}: TaskTimeTrackingTabProps) {
   const { user } = useAuth();
   const { employees } = useEmployees();
   const {
@@ -75,18 +96,19 @@ export function TaskTimeTrackingTab({ taskId, taskStatus }: TaskTimeTrackingTabP
   } = useTaskTimeTracking(taskId);
 
   const [formOpen, setFormOpen] = useState(false);
-  const [editingSession, setEditingSession] = useState<TimeTrackingSession | null>(null);
+  const [editingSession, setEditingSession] =
+    useState<TimeTrackingSession | null>(null);
   const [formData, setFormData] = useState<SessionFormData>({
-    user_id: '',
-    started_at: '',
-    ended_at: '',
+    user_id: "",
+    started_at: "",
+    ended_at: "",
   });
 
   const openCreateForm = () => {
     const now = new Date();
     setEditingSession(null);
     setFormData({
-      user_id: user?.id || '',
+      user_id: user?.id || "",
       started_at: toLocalDatetimeValue(now.toISOString()),
       ended_at: toLocalDatetimeValue(now.toISOString()),
     });
@@ -98,7 +120,9 @@ export function TaskTimeTrackingTab({ taskId, taskStatus }: TaskTimeTrackingTabP
     setFormData({
       user_id: session.user_id,
       started_at: toLocalDatetimeValue(session.started_at),
-      ended_at: session.ended_at ? toLocalDatetimeValue(session.ended_at) : toLocalDatetimeValue(new Date().toISOString()),
+      ended_at: session.ended_at
+        ? toLocalDatetimeValue(session.ended_at)
+        : toLocalDatetimeValue(new Date().toISOString()),
     });
     setFormOpen(true);
   };
@@ -112,12 +136,21 @@ export function TaskTimeTrackingTab({ taskId, taskStatus }: TaskTimeTrackingTabP
 
     if (editingSession) {
       updateSession.mutate(
-        { sessionId: editingSession.id, started_at: startedIso, ended_at: endedIso, user_id: formData.user_id },
+        {
+          sessionId: editingSession.id,
+          started_at: startedIso,
+          ended_at: endedIso,
+          user_id: formData.user_id,
+        },
         { onSuccess: () => setFormOpen(false) },
       );
     } else {
       createManualSession.mutate(
-        { user_id: formData.user_id, started_at: startedIso, ended_at: endedIso },
+        {
+          user_id: formData.user_id,
+          started_at: startedIso,
+          ended_at: endedIso,
+        },
         { onSuccess: () => setFormOpen(false) },
       );
     }
@@ -134,19 +167,23 @@ export function TaskTimeTrackingTab({ taskId, taskStatus }: TaskTimeTrackingTabP
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-base font-semibold text-foreground mb-1">Time Tracking</h3>
+        <h3 className="text-base font-semibold text-foreground mb-1">
+          Time Tracking
+        </h3>
         <p className="text-sm text-muted-foreground mb-4">
           Controle o tempo de trabalho nesta tarefa.
         </p>
       </div>
 
       {/* Active Session Card */}
-      {activeSession && taskStatus === 'progress' && (
+      {activeSession && taskStatus === "progress" && (
         <div className="rounded-xl border-2 border-primary bg-primary/5 p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />
-              <p className="text-sm font-semibold text-foreground">Cronômetro Ativo</p>
+              <p className="text-sm font-semibold text-foreground">
+                Cronômetro Ativo
+              </p>
             </div>
             <Button
               variant="destructive"
@@ -163,7 +200,9 @@ export function TaskTimeTrackingTab({ taskId, taskStatus }: TaskTimeTrackingTabP
             <p className="text-3xl font-mono font-bold text-primary">
               <LiveTimer startedAt={activeSession.started_at} />
             </p>
-            <p className="text-xs text-muted-foreground mt-1">Tempo desde o último início</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Tempo desde o último início
+            </p>
           </div>
         </div>
       )}
@@ -172,7 +211,9 @@ export function TaskTimeTrackingTab({ taskId, taskStatus }: TaskTimeTrackingTabP
       <div className="grid grid-cols-2 gap-3">
         <div className="rounded-xl border border-border bg-muted/30 p-4 text-center">
           <p className="text-xs text-muted-foreground mb-1">Tempo Trabalhado</p>
-          <p className="text-xl font-bold text-foreground">{formatDuration(totalMinutes)}</p>
+          <p className="text-xl font-bold text-foreground">
+            {formatDuration(totalMinutes)}
+          </p>
         </div>
         <div className="rounded-xl border border-border bg-muted/30 p-4 text-center">
           <p className="text-xs text-muted-foreground mb-1">Sessões</p>
@@ -217,10 +258,16 @@ export function TaskTimeTrackingTab({ taskId, taskStatus }: TaskTimeTrackingTabP
 
       {/* Sessions List */}
       <div className="space-y-2">
-        <h4 className="text-sm font-semibold text-foreground">Histórico de Sessões</h4>
-        {isLoading && <p className="text-sm text-muted-foreground">Carregando...</p>}
+        <h4 className="text-sm font-semibold text-foreground">
+          Histórico de Sessões
+        </h4>
+        {isLoading && (
+          <p className="text-sm text-muted-foreground">Carregando...</p>
+        )}
         {!isLoading && sessions.length === 0 && (
-          <p className="text-sm text-muted-foreground">Nenhuma sessão registrada.</p>
+          <p className="text-sm text-muted-foreground">
+            Nenhuma sessão registrada.
+          </p>
         )}
         {sessions.map((session) => (
           <SessionRow
@@ -239,27 +286,40 @@ export function TaskTimeTrackingTab({ taskId, taskStatus }: TaskTimeTrackingTabP
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{editingSession ? 'Editar Sessão' : 'Adicionar Sessão Manual'}</DialogTitle>
+            <DialogTitle>
+              {editingSession ? "Editar Sessão" : "Adicionar Sessão Manual"}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-2">
             <div>
               <Label className="text-sm font-medium">Responsável</Label>
-              <Select value={formData.user_id} onValueChange={(v) => setFormData(p => ({ ...p, user_id: v }))}>
+              <Select
+                value={formData.user_id}
+                onValueChange={(v) =>
+                  setFormData((p) => ({ ...p, user_id: v }))
+                }
+              >
                 <SelectTrigger className="mt-1.5">
                   <SelectValue placeholder="Selecione o responsável" />
                 </SelectTrigger>
                 <SelectContent>
-                  {employees.filter(e => e.status === 'active').map((emp) => (
-                    <SelectItem key={emp.user_id} value={emp.user_id}>
-                      <div className="flex items-center gap-2">
-                        <Avatar className="h-5 w-5">
-                          <AvatarImage src={emp.profile_avatar_url || emp.avatar || ''} />
-                          <AvatarFallback className="text-[8px] bg-muted">{emp.name.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        {emp.name}
-                      </div>
-                    </SelectItem>
-                  ))}
+                  {employees
+                    .filter((e) => e.status === "active")
+                    .map((emp) => (
+                      <SelectItem key={emp.user_id} value={emp.user_id}>
+                        <div className="flex items-center gap-2">
+                          <Avatar className="h-5 w-5">
+                            <AvatarImage
+                              src={emp.profile_avatar_url || emp.avatar || ""}
+                            />
+                            <AvatarFallback className="text-[8px] bg-muted">
+                              {emp.name.charAt(0)}
+                            </AvatarFallback>
+                          </Avatar>
+                          {emp.name}
+                        </div>
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
@@ -269,7 +329,9 @@ export function TaskTimeTrackingTab({ taskId, taskStatus }: TaskTimeTrackingTabP
                 type="datetime-local"
                 className="mt-1.5"
                 value={formData.started_at}
-                onChange={(e) => setFormData(p => ({ ...p, started_at: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((p) => ({ ...p, started_at: e.target.value }))
+                }
               />
             </div>
             <div>
@@ -278,27 +340,38 @@ export function TaskTimeTrackingTab({ taskId, taskStatus }: TaskTimeTrackingTabP
                 type="datetime-local"
                 className="mt-1.5"
                 value={formData.ended_at}
-                onChange={(e) => setFormData(p => ({ ...p, ended_at: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((p) => ({ ...p, ended_at: e.target.value }))
+                }
               />
             </div>
-            {formData.started_at && formData.ended_at && new Date(formData.ended_at) > new Date(formData.started_at) && (
-              <div className="rounded-lg bg-muted/50 p-3 text-center">
-                <p className="text-xs text-muted-foreground">Duração</p>
-                <p className="text-lg font-bold text-foreground">
-                  {formatDuration((new Date(formData.ended_at).getTime() - new Date(formData.started_at).getTime()) / 60000)}
-                </p>
-              </div>
-            )}
+            {formData.started_at &&
+              formData.ended_at &&
+              new Date(formData.ended_at) > new Date(formData.started_at) && (
+                <div className="rounded-lg bg-muted/50 p-3 text-center">
+                  <p className="text-xs text-muted-foreground">Duração</p>
+                  <p className="text-lg font-bold text-foreground">
+                    {formatDuration(
+                      (new Date(formData.ended_at).getTime() -
+                        new Date(formData.started_at).getTime()) /
+                        60000,
+                    )}
+                  </p>
+                </div>
+              )}
             <Button
               className="w-full"
               onClick={handleSubmit}
               disabled={
-                !formData.user_id || !formData.started_at || !formData.ended_at ||
+                !formData.user_id ||
+                !formData.started_at ||
+                !formData.ended_at ||
                 new Date(formData.ended_at) <= new Date(formData.started_at) ||
-                createManualSession.isPending || updateSession.isPending
+                createManualSession.isPending ||
+                updateSession.isPending
               }
             >
-              {editingSession ? 'Salvar Alterações' : 'Adicionar Sessão'}
+              {editingSession ? "Salvar Alterações" : "Adicionar Sessão"}
             </Button>
           </div>
         </DialogContent>
@@ -325,25 +398,35 @@ function SessionRow({
   const isActive = !session.ended_at;
 
   return (
-    <div className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
-      isActive ? 'border-primary/50 bg-primary/5' : 'border-border bg-muted/20'
-    }`}>
+    <div
+      className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
+        isActive
+          ? "border-primary/50 bg-primary/5"
+          : "border-border bg-muted/20"
+      }`}
+    >
       <Avatar className="h-8 w-8 shrink-0">
         {session.user_avatar && <AvatarImage src={session.user_avatar} />}
         <AvatarFallback className="text-xs bg-muted">
-          {(session.user_name || 'U').charAt(0).toUpperCase()}
+          {(session.user_name || "U").charAt(0).toUpperCase()}
         </AvatarFallback>
       </Avatar>
 
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-foreground truncate">
-          {session.user_name || 'Usuário'}
+          {session.user_name || "Usuário"}
         </p>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span>{format(new Date(session.started_at), "dd/MM/yy HH:mm", { locale: ptBR })}</span>
+          <span>
+            {format(new Date(session.started_at), "dd/MM/yy HH:mm", {
+              locale: ptBR,
+            })}
+          </span>
           <span>→</span>
           {session.ended_at ? (
-            <span>{format(new Date(session.ended_at), "HH:mm", { locale: ptBR })}</span>
+            <span>
+              {format(new Date(session.ended_at), "HH:mm", { locale: ptBR })}
+            </span>
           ) : (
             <span className="text-primary font-medium">Em andamento</span>
           )}
@@ -373,6 +456,7 @@ function SessionRow({
         )}
         {!isActive && (
           <Button
+            aria-label="Editar"
             variant="ghost"
             size="icon"
             className="h-7 w-7 text-muted-foreground hover:text-foreground"
@@ -383,6 +467,7 @@ function SessionRow({
         )}
         {isOwner && !isActive && (
           <Button
+            aria-label="Excluir"
             variant="ghost"
             size="icon"
             className="h-7 w-7 text-muted-foreground hover:text-destructive"

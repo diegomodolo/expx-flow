@@ -6,7 +6,11 @@ const REPORTED_ERRORS_KEY = "expx_reported_errors";
 
 let reportCount = 0;
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-const pendingErrors: Array<{ message: string; stack: string | null; componentStack?: string | null }> = [];
+const pendingErrors: Array<{
+  message: string;
+  stack: string | null;
+  componentStack?: string | null;
+}> = [];
 
 function getReportedFingerprints(): Set<string> {
   try {
@@ -33,7 +37,7 @@ function generateFingerprint(message: string, stack: string | null): string {
   let hash = 0;
   for (let i = 0; i < raw.length; i++) {
     const chr = raw.charCodeAt(i);
-    hash = ((hash << 5) - hash) + chr;
+    hash = (hash << 5) - hash + chr;
     hash |= 0;
   }
   return Math.abs(hash).toString(36);
@@ -53,10 +57,14 @@ function isIgnoredError(message: string): boolean {
     "net::ERR_",
     "ChunkLoadError",
   ];
-  return ignored.some(pattern => message.includes(pattern));
+  return ignored.some((pattern) => message.includes(pattern));
 }
 
-async function sendReport(error: { message: string; stack: string | null; componentStack?: string | null }) {
+async function sendReport(error: {
+  message: string;
+  stack: string | null;
+  componentStack?: string | null;
+}) {
   if (reportCount >= MAX_REPORTS_PER_SESSION) return;
   if (isIgnoredError(error.message)) return;
 
@@ -90,7 +98,11 @@ function processPendingErrors() {
   }
 }
 
-function queueError(message: string, stack: string | null, componentStack?: string | null) {
+function queueError(
+  message: string,
+  stack: string | null,
+  componentStack?: string | null,
+) {
   if (reportCount >= MAX_REPORTS_PER_SESSION) return;
   if (isIgnoredError(message)) return;
 
@@ -107,7 +119,14 @@ export function initErrorReporter() {
     const msg = typeof message === "string" ? message : String(message);
     queueError(msg, error?.stack || null);
     if (originalOnError) {
-      return originalOnError.call(window, message, _source, _lineno, _colno, error);
+      return originalOnError.call(
+        window,
+        message,
+        _source,
+        _lineno,
+        _colno,
+        error,
+      );
     }
     return false;
   };
@@ -135,17 +154,37 @@ export function initErrorReporter() {
       stack = firstArg.stack || null;
     } else if (typeof firstArg === "string") {
       message = firstArg;
-      // Check if second arg is an Error
+      // Check if second arg has error info
       const secondArg = args[1];
       if (secondArg instanceof Error) {
         message = `${message}: ${secondArg.message}`;
         stack = secondArg.stack || null;
+      } else if (
+        secondArg !== null &&
+        secondArg !== undefined &&
+        typeof secondArg === "object"
+      ) {
+        // Handle Supabase PostgrestError and similar non-Error objects with message property
+        const errObj = secondArg as {
+          message?: string;
+          code?: string;
+          details?: string;
+        };
+        if (errObj.message) {
+          message = `${message}: ${errObj.message}`;
+          if (errObj.code) message += ` (code: ${errObj.code})`;
+        }
       }
     } else {
-      message = args.map(a => {
-        try { return typeof a === "object" ? JSON.stringify(a) : String(a); }
-        catch { return String(a); }
-      }).join(" ");
+      message = args
+        .map((a) => {
+          try {
+            return typeof a === "object" ? JSON.stringify(a) : String(a);
+          } catch {
+            return String(a);
+          }
+        })
+        .join(" ");
     }
 
     if (message) {
@@ -155,6 +194,9 @@ export function initErrorReporter() {
 }
 
 // Export for React ErrorBoundary integration
-export function reportComponentError(error: Error, componentStack: string | null) {
+export function reportComponentError(
+  error: Error,
+  componentStack: string | null,
+) {
   queueError(error.message, error.stack || null, componentStack);
 }

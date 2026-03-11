@@ -1,14 +1,21 @@
 import { useState } from "react";
 import { format, isToday, isTomorrow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useWhatsAppReminders, WhatsAppReminder } from "@/hooks/useWhatsAppReminders";
+import {
+  useWhatsAppReminders,
+  WhatsAppReminder,
+} from "@/hooks/useWhatsAppReminders";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Sheet,
   SheetContent,
@@ -33,17 +40,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { 
-  Clock, 
-  CalendarDays, 
-  Loader2, 
-  Bell, 
-  User, 
+import {
+  Clock,
+  CalendarDays,
+  Loader2,
+  Bell,
+  User,
   MessageCircle,
   Phone,
   Check,
   CalendarClock,
-  MoreVertical
+  MoreVertical,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -58,18 +65,24 @@ export function WhatsAppRemindersPanel({
   onOpenChange,
   onNavigateToChat,
 }: WhatsAppRemindersPanelProps) {
-  const { 
-    todayReminders, 
-    futureReminders, 
+  const {
+    todayReminders,
+    futureReminders,
     isLoading,
     completeReminder,
     rescheduleReminder,
   } = useWhatsAppReminders();
-  
+
   const [activeTab, setActiveTab] = useState("today");
-  const [confirmCompleteId, setConfirmCompleteId] = useState<string | null>(null);
-  const [rescheduleReminderId, setRescheduleReminderId] = useState<string | null>(null);
-  const [rescheduleDate, setRescheduleDate] = useState<Date | undefined>(undefined);
+  const [confirmCompleteId, setConfirmCompleteId] = useState<string | null>(
+    null,
+  );
+  const [rescheduleReminderId, setRescheduleReminderId] = useState<
+    string | null
+  >(null);
+  const [rescheduleDate, setRescheduleDate] = useState<Date | undefined>(
+    undefined,
+  );
 
   const formatReminderDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -126,9 +139,9 @@ export function WhatsAppRemindersPanel({
       // Set time to 9:00 AM by default
       const newDate = new Date(rescheduleDate);
       newDate.setHours(9, 0, 0, 0);
-      rescheduleReminder.mutate({ 
-        reminderId: rescheduleReminderId, 
-        newDate: newDate.toISOString() 
+      rescheduleReminder.mutate({
+        reminderId: rescheduleReminderId,
+        newDate: newDate.toISOString(),
       });
       setRescheduleReminderId(null);
       setRescheduleDate(undefined);
@@ -139,39 +152,46 @@ export function WhatsAppRemindersPanel({
     <div
       className={cn(
         "p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors",
-        isToday(new Date(reminder.nextActionDate)) && "border-primary/50 bg-primary/5"
+        isToday(new Date(reminder.nextActionDate)) &&
+          "border-primary/50 bg-primary/5",
       )}
     >
       <div className="flex items-start gap-3">
         <Avatar className="h-10 w-10">
           {reminder.clientAvatar && (
-            <AvatarImage src={reminder.clientAvatar} alt={reminder.clientName} />
+            <AvatarImage
+              src={reminder.clientAvatar}
+              alt={reminder.clientName}
+            />
           )}
           <AvatarFallback className="bg-primary/10 text-primary text-sm">
             {getInitials(reminder.clientName)}
           </AvatarFallback>
         </Avatar>
-        
+
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="font-medium text-sm truncate">{reminder.clientName}</span>
+            <span className="font-medium text-sm truncate">
+              {reminder.clientName}
+            </span>
           </div>
-          
+
           {/* Chat info */}
           {reminder.chatJid && (
             <div className="flex items-center gap-1.5 mt-0.5 text-xs text-muted-foreground">
               <Phone className="h-3 w-3" />
               <span>{formatPhoneNumber(reminder.chatJid)}</span>
-              {reminder.chatName && reminder.chatName !== reminder.clientName && (
-                <span className="truncate">• {reminder.chatName}</span>
-              )}
+              {reminder.chatName &&
+                reminder.chatName !== reminder.clientName && (
+                  <span className="truncate">• {reminder.chatName}</span>
+                )}
             </div>
           )}
-          
+
           <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
             {reminder.summary}
           </p>
-          
+
           <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
               <Clock className="h-3 w-3" />
@@ -189,14 +209,21 @@ export function WhatsAppRemindersPanel({
         {/* Actions dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+            <Button
+              aria-label="Ação"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0"
+            >
               <MoreVertical className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             {reminder.conversationId && (
               <>
-                <DropdownMenuItem onClick={() => handleNavigateToChat(reminder)}>
+                <DropdownMenuItem
+                  onClick={() => handleNavigateToChat(reminder)}
+                >
                   <MessageCircle className="h-4 w-4 mr-2" />
                   Ir para o chat
                 </DropdownMenuItem>
@@ -207,10 +234,12 @@ export function WhatsAppRemindersPanel({
               <Check className="h-4 w-4 mr-2" />
               Marcar como concluído
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {
-              setRescheduleReminderId(reminder.id);
-              setRescheduleDate(new Date(reminder.nextActionDate));
-            }}>
+            <DropdownMenuItem
+              onClick={() => {
+                setRescheduleReminderId(reminder.id);
+                setRescheduleDate(new Date(reminder.nextActionDate));
+              }}
+            >
               <CalendarClock className="h-4 w-4 mr-2" />
               Remarcar
             </DropdownMenuItem>
@@ -243,7 +272,11 @@ export function WhatsAppRemindersPanel({
             </SheetDescription>
           </SheetHeader>
 
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full">
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="h-full"
+          >
             <div className="px-4 pt-3 border-b">
               <TabsList className="w-full grid grid-cols-2">
                 <TabsTrigger value="today" className="gap-2">
@@ -273,7 +306,10 @@ export function WhatsAppRemindersPanel({
               </div>
             ) : (
               <>
-                <TabsContent value="today" className="m-0 h-[calc(100vh-180px)]">
+                <TabsContent
+                  value="today"
+                  className="m-0 h-[calc(100vh-180px)]"
+                >
                   <ScrollArea className="h-full">
                     <div className="p-4 space-y-3">
                       {todayReminders.length === 0 ? (
@@ -287,7 +323,10 @@ export function WhatsAppRemindersPanel({
                   </ScrollArea>
                 </TabsContent>
 
-                <TabsContent value="future" className="m-0 h-[calc(100vh-180px)]">
+                <TabsContent
+                  value="future"
+                  className="m-0 h-[calc(100vh-180px)]"
+                >
                   <ScrollArea className="h-full">
                     <div className="p-4 space-y-3">
                       {futureReminders.length === 0 ? (
@@ -307,12 +346,16 @@ export function WhatsAppRemindersPanel({
       </Sheet>
 
       {/* Confirm Complete Dialog */}
-      <AlertDialog open={!!confirmCompleteId} onOpenChange={() => setConfirmCompleteId(null)}>
+      <AlertDialog
+        open={!!confirmCompleteId}
+        onOpenChange={() => setConfirmCompleteId(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Concluir lembrete?</AlertDialogTitle>
             <AlertDialogDescription>
-              Este lembrete será removido da lista. Essa ação não pode ser desfeita.
+              Este lembrete será removido da lista. Essa ação não pode ser
+              desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -325,10 +368,13 @@ export function WhatsAppRemindersPanel({
       </AlertDialog>
 
       {/* Reschedule Popover */}
-      <AlertDialog open={!!rescheduleReminderId} onOpenChange={() => {
-        setRescheduleReminderId(null);
-        setRescheduleDate(undefined);
-      }}>
+      <AlertDialog
+        open={!!rescheduleReminderId}
+        onOpenChange={() => {
+          setRescheduleReminderId(null);
+          setRescheduleDate(undefined);
+        }}
+      >
         <AlertDialogContent className="sm:max-w-[400px]">
           <AlertDialogHeader>
             <AlertDialogTitle>Remarcar lembrete</AlertDialogTitle>
@@ -348,7 +394,7 @@ export function WhatsAppRemindersPanel({
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={handleReschedule}
               disabled={!rescheduleDate}
             >

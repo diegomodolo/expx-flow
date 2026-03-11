@@ -1,13 +1,13 @@
 import { memo } from "react";
 import { Handle, Position, NodeProps } from "@xyflow/react";
-import { 
-  Pencil, 
-  Facebook, 
-  Search, 
-  Youtube, 
-  Mail, 
-  BookOpen, 
-  Newspaper, 
+import {
+  Pencil,
+  Facebook,
+  Search,
+  Youtube,
+  Mail,
+  BookOpen,
+  Newspaper,
   Video,
   Megaphone,
   FileText,
@@ -47,7 +47,7 @@ import {
   CalendarDays,
   Cast,
   QrCode,
-  type LucideIcon
+  type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -56,47 +56,47 @@ const iconMap: Record<string, LucideIcon> = {
   google: Search,
   youtube: Youtube,
   mail: Mail,
-  'book-open': BookOpen,
+  "book-open": BookOpen,
   newspaper: Newspaper,
   video: Video,
   megaphone: Megaphone,
-  'file-text': FileText,
-  'message-square': MessageSquare,
+  "file-text": FileText,
+  "message-square": MessageSquare,
   users: Users,
   target: Target,
-  'trending-up': TrendingUp,
-  'check-circle': CheckCircle,
+  "trending-up": TrendingUp,
+  "check-circle": CheckCircle,
   podcast: Podcast,
   image: Image,
-  'list-checks': ListChecks,
+  "list-checks": ListChecks,
   brain: Brain,
-  'graduation-cap': GraduationCap,
-  'users-round': UsersRound,
+  "graduation-cap": GraduationCap,
+  "users-round": UsersRound,
   bell: Bell,
   mic: Mic,
-  'file-badge': FileBadge2,
-  'clipboard-list': ClipboardList,
+  "file-badge": FileBadge2,
+  "clipboard-list": ClipboardList,
   bot: Bot,
-  'message-circle': MessageCircle,
-  'chart-bar': BarChart2,
+  "message-circle": MessageCircle,
+  "chart-bar": BarChart2,
   calendar: Calendar,
   presentation: Presentation,
-  'play-circle': PlayCircle,
-  'file-check': FileCheck,
+  "play-circle": PlayCircle,
+  "file-check": FileCheck,
   phone: Phone,
-  'credit-card': CreditCard,
+  "credit-card": CreditCard,
   rocket: Rocket,
   star: Star,
-  'layout-dashboard': LayoutDashboard,
+  "layout-dashboard": LayoutDashboard,
   gift: Gift,
   repeat: Repeat,
   plug: Plug,
   database: Database,
-  'bot-message-square': BotMessageSquare,
-  'bar-chart-3': BarChart3,
-  'calendar-days': CalendarDays,
+  "bot-message-square": BotMessageSquare,
+  "bar-chart-3": BarChart3,
+  "calendar-days": CalendarDays,
   cast: Cast,
-  'qr-code': QrCode,
+  "qr-code": QrCode,
 };
 
 export interface CustomNodeData {
@@ -122,14 +122,14 @@ export const CustomNode = memo(({ id, data }: NodeProps) => {
         id="top"
         className="w-3 h-3 !bg-border"
       />
-      
+
       <Handle
         type="target"
         position={Position.Left}
         id="left"
         className="w-3 h-3 !bg-border"
       />
-      
+
       <div
         className="min-w-[180px] max-w-[250px] rounded-lg border-2 shadow-lg bg-card overflow-hidden"
         style={{ borderColor: handleColor }}
@@ -140,8 +140,8 @@ export const CustomNode = memo(({ id, data }: NodeProps) => {
         >
           <div className="flex items-center gap-2 flex-1 min-w-0">
             {IconComponent && (
-              <IconComponent 
-                className="h-4 w-4 shrink-0" 
+              <IconComponent
+                className="h-4 w-4 shrink-0"
                 style={{ color: handleColor }}
               />
             )}
@@ -150,6 +150,7 @@ export const CustomNode = memo(({ id, data }: NodeProps) => {
             </span>
           </div>
           <Button
+            aria-label="Editar"
             variant="ghost"
             size="icon"
             className="h-6 w-6 shrink-0"
@@ -161,7 +162,7 @@ export const CustomNode = memo(({ id, data }: NodeProps) => {
             <Pencil className="h-3 w-3" />
           </Button>
         </div>
-        
+
         {nodeData.description && (
           <div className="px-3 py-2 text-xs text-muted-foreground border-t">
             {nodeData.description}
@@ -175,7 +176,7 @@ export const CustomNode = memo(({ id, data }: NodeProps) => {
         id="bottom"
         className="w-3 h-3 !bg-border"
       />
-      
+
       <Handle
         type="source"
         position={Position.Right}

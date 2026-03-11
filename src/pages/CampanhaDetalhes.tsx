@@ -5,7 +5,23 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Edit, BarChart3, Users, Target, TrendingUp, Eye, Calendar, DollarSign, RefreshCw, AlertTriangle, Plus, Download, CheckCircle, Loader2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Edit,
+  BarChart3,
+  Users,
+  Target,
+  TrendingUp,
+  Eye,
+  Calendar,
+  DollarSign,
+  RefreshCw,
+  AlertTriangle,
+  Plus,
+  Download,
+  CheckCircle,
+  Loader2,
+} from "lucide-react";
 import { useCampaigns } from "@/hooks/useCampaigns";
 import { useTasks } from "@/hooks/useTasks";
 import { useTeams } from "@/hooks/useTeams";
@@ -16,6 +32,7 @@ import { CampaignMetricsModal } from "@/components/campaigns/CampaignMetricsModa
 import { AdSetMetricsModal } from "@/components/adsets/AdSetMetricsModal";
 import { AdCreativeMetricsModal } from "@/components/ads/AdCreativeMetricsModal";
 import { supabase } from "@/integrations/supabase/client";
+import DOMPurify from "dompurify";
 // Fixed: Removed all isRefreshingData references
 
 // Interface local para compatibilidade
@@ -44,9 +61,9 @@ export default function CampanhaDetalhes() {
   const { campaigns, loading } = useCampaigns();
   const { createTask } = useTasks();
   const { teams } = useTeams();
-  
-  const campaign = campaigns.find(c => c.id === id);
-  
+
+  const campaign = campaigns.find((c) => c.id === id);
+
   const { adSets, loading: adSetsLoading } = useAdSets(campaign?.client_id);
   const { ads, loading: adsLoading } = useAds(campaign?.client_id);
   const [showMetricsModal, setShowMetricsModal] = useState(false);
@@ -62,95 +79,108 @@ export default function CampanhaDetalhes() {
   const { toast } = useToast();
 
   // Filtrar ad sets e ads desta campanha
-  const campaignAdSets = adSets.filter(adSet => adSet.campaign_id === id);
-  const campaignAds = ads.filter(ad => ad.campaign_id === id);
+  const campaignAdSets = adSets.filter((adSet) => adSet.campaign_id === id);
+  const campaignAds = ads.filter((ad) => ad.campaign_id === id);
 
   // Função para analisar a campanha e gerar sugestões
   const handleAnalyzeCampaign = async () => {
     if (!campaign) return;
-    
+
     setIsAnalyzing(true);
     try {
       // Simular análise (aqui você pode fazer uma chamada real para uma API ou função)
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
       const suggestions: unknown[] = [];
-      
+
       // 1. Análise de CTR
       if (campaign.ctr && campaign.ctr < 1.5) {
         suggestions.push({
-          id: 'low-ctr',
-          type: 'warning',
-          title: 'CTR Baixo Detectado',
+          id: "low-ctr",
+          type: "warning",
+          title: "CTR Baixo Detectado",
           description: `O CTR da campanha está em ${campaign.ctr?.toFixed(2)}%, abaixo da média de mercado (2-3%).`,
-          action: 'Revise os criativos, teste novos textos de anúncio e ajuste o público-alvo para melhorar a relevância.',
-          priority: 'high'
+          action:
+            "Revise os criativos, teste novos textos de anúncio e ajuste o público-alvo para melhorar a relevância.",
+          priority: "high",
         });
       }
 
       // 2. Análise de CPC
       if (campaign.cpc && campaign.cpc > 3) {
         suggestions.push({
-          id: 'high-cpc',
-          type: 'warning',
-          title: 'CPC Elevado',
+          id: "high-cpc",
+          type: "warning",
+          title: "CPC Elevado",
           description: `O CPC atual é R$ ${campaign.cpc?.toFixed(2)}, acima do recomendado para este tipo de campanha.`,
-          action: 'Otimize as palavras-chave, ajuste a estratégia de lance e revise a qualidade dos anúncios.',
-          priority: 'high'
+          action:
+            "Otimize as palavras-chave, ajuste a estratégia de lance e revise a qualidade dos anúncios.",
+          priority: "high",
         });
       }
 
       // 3. Análise de conversões
       if (campaign.conversions && campaign.conversions < 10) {
         suggestions.push({
-          id: 'low-conversions',
-          type: 'warning',
-          title: 'Baixo Volume de Conversões',
+          id: "low-conversions",
+          type: "warning",
+          title: "Baixo Volume de Conversões",
           description: `A campanha possui apenas ${campaign.conversions} conversões. É necessário aumentar o volume.`,
-          action: 'Aumente o orçamento, expanda o público-alvo ou otimize a página de destino.',
-          priority: 'medium'
+          action:
+            "Aumente o orçamento, expanda o público-alvo ou otimize a página de destino.",
+          priority: "medium",
         });
       }
 
       // 4. Oportunidades de escalonamento
-      if (campaign.ctr && campaign.ctr > 3 && campaign.cpc && campaign.cpc < 2.5) {
+      if (
+        campaign.ctr &&
+        campaign.ctr > 3 &&
+        campaign.cpc &&
+        campaign.cpc < 2.5
+      ) {
         suggestions.push({
-          id: 'scale-opportunity',
-          type: 'opportunity',
-          title: 'Oportunidade de Escalonamento',
-          description: 'A campanha está performando muito bem com CTR alto e CPC baixo.',
-          action: 'Considere aumentar o orçamento diário para maximizar os resultados desta campanha de alta performance.',
-          priority: 'high'
+          id: "scale-opportunity",
+          type: "opportunity",
+          title: "Oportunidade de Escalonamento",
+          description:
+            "A campanha está performando muito bem com CTR alto e CPC baixo.",
+          action:
+            "Considere aumentar o orçamento diário para maximizar os resultados desta campanha de alta performance.",
+          priority: "high",
         });
       }
 
       // 5. Análise de CPA
       if (campaign.cpa && campaign.cpa > 100) {
         suggestions.push({
-          id: 'high-cpa',
-          type: 'warning',
-          title: 'CPA Alto Detectado',
+          id: "high-cpa",
+          type: "warning",
+          title: "CPA Alto Detectado",
           description: `O CPA atual é R$ ${campaign.cpa?.toFixed(2)}, que pode estar impactando o ROI.`,
-          action: 'Revise a estratégia de direcionamento, otimize a jornada do usuário e teste novos públicos.',
-          priority: 'high'
+          action:
+            "Revise a estratégia de direcionamento, otimize a jornada do usuário e teste novos públicos.",
+          priority: "high",
         });
       }
 
       // 6. Sugestões gerais se a campanha está bem
-      if (suggestions.filter(s => s.type === 'warning').length === 0) {
+      if (suggestions.filter((s) => s.type === "warning").length === 0) {
         suggestions.push({
-          id: 'general-optimization',
-          type: 'opportunity',
-          title: 'Oportunidades de Otimização',
-          description: 'A campanha está funcionando bem! Aqui estão algumas melhorias que podem ser aplicadas.',
-          action: 'Teste novos criativos, explore públicos semelhantes e considere expandir para outras plataformas.',
-          priority: 'low'
+          id: "general-optimization",
+          type: "opportunity",
+          title: "Oportunidades de Otimização",
+          description:
+            "A campanha está funcionando bem! Aqui estão algumas melhorias que podem ser aplicadas.",
+          action:
+            "Teste novos criativos, explore públicos semelhantes e considere expandir para outras plataformas.",
+          priority: "low",
         });
       }
 
       setCampaignSuggestions(suggestions);
     } catch (error) {
-      console.error('Erro ao analisar campanha:', error);
+      console.error("Erro ao analisar campanha:", error);
     } finally {
       setIsAnalyzing(false);
     }
@@ -159,26 +189,27 @@ export default function CampanhaDetalhes() {
   // Função para sincronizar dados da campanha
   const handleSyncCampaign = async () => {
     if (!campaign) return;
-    
+
     setIsSyncing(true);
     try {
       // Buscar o último período de sincronização usado
       const getLastSyncPeriod = async (clientId: string): Promise<string> => {
         const { data } = await supabase
-          .from('clients')
-          .select('last_sync_period')
-          .eq('id', clientId)
+          .from("clients")
+          .select("last_sync_period")
+          .eq("id", clientId)
           .single();
-        
+
         if (data?.last_sync_period) {
           return data.last_sync_period;
         }
-        
-        return localStorage.getItem('lastSyncPeriod') || '30';
+
+        return localStorage.getItem("lastSyncPeriod") || "30";
       };
 
       const syncPeriod = await getLastSyncPeriod(campaign.client_id);
-      const periodLabel = syncPeriod === 'lifetime' ? 'máximo' : `${syncPeriod} dias`;
+      const periodLabel =
+        syncPeriod === "lifetime" ? "máximo" : `${syncPeriod} dias`;
 
       toast({
         title: "Sincronização iniciada",
@@ -186,13 +217,16 @@ export default function CampanhaDetalhes() {
       });
 
       // Chamar a edge function para sincronizar a campanha específica
-      const { data, error } = await supabase.functions.invoke('sync-facebook-campaigns', {
-        body: {
-          clientId: campaign.client_id,
-          period: syncPeriod,
-          fullSync: true
-        }
-      });
+      const { data, error } = await supabase.functions.invoke(
+        "sync-facebook-campaigns",
+        {
+          body: {
+            clientId: campaign.client_id,
+            period: syncPeriod,
+            fullSync: true,
+          },
+        },
+      );
 
       if (error) {
         throw error;
@@ -202,9 +236,8 @@ export default function CampanhaDetalhes() {
         title: "Sincronização concluída!",
         description: "Os dados da campanha foram atualizados automaticamente.",
       });
-      
     } catch (error) {
-      console.error('Erro na sincronização:', error);
+      console.error("Erro na sincronização:", error);
       toast({
         title: "Erro na sincronização",
         description: "Não foi possível sincronizar os dados. Tente novamente.",
@@ -218,25 +251,28 @@ export default function CampanhaDetalhes() {
   // Função para gerar análise completa da campanha
   const handleGenerateAnalysis = async () => {
     if (!campaign) return;
-    
+
     setIsGeneratingAnalysis(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-campaign-analysis', {
-        body: {
-          clientData: {
-            name: campaign.client?.name || 'Cliente',
-            sector: 'Não especificado',
-            product_name: campaign.name || 'Campanha',
-            monthly_budget: campaign.spend || 0,
-            leads_generated: campaign.conversions || 0,
-            status: campaign.status || 'unknown',
+      const { data, error } = await supabase.functions.invoke(
+        "generate-campaign-analysis",
+        {
+          body: {
+            clientData: {
+              name: campaign.client?.name || "Cliente",
+              sector: "Não especificado",
+              product_name: campaign.name || "Campanha",
+              monthly_budget: campaign.spend || 0,
+              leads_generated: campaign.conversions || 0,
+              status: campaign.status || "unknown",
+            },
+            campaigns: [campaign], // Enviar apenas esta campanha
           },
-          campaigns: [campaign], // Enviar apenas esta campanha
         },
-      });
+      );
 
       if (error) {
-        console.error('Error generating analysis:', error);
+        console.error("Error generating analysis:", error);
         toast({
           title: "Erro ao gerar análise",
           description: "Não foi possível gerar a análise. Tente novamente.",
@@ -251,7 +287,7 @@ export default function CampanhaDetalhes() {
         description: "A análise detalhada da campanha foi gerada pela IA.",
       });
     } catch (error) {
-      console.error('Error generating analysis:', error);
+      console.error("Error generating analysis:", error);
       toast({
         title: "Erro ao gerar análise",
         description: "Não foi possível gerar a análise. Tente novamente.",
@@ -266,14 +302,15 @@ export default function CampanhaDetalhes() {
   const handleCreateTask = async (suggestion: unknown) => {
     try {
       if (!campaign) return;
-      
+
       // Pegar o primeiro time disponível ou criar uma tarefa sem time específico
       const defaultTeam = teams.length > 0 ? teams[0] : null;
-      
+
       if (!defaultTeam) {
         toast({
           title: "Erro ao criar tarefa",
-          description: "Nenhuma equipe encontrada. Crie uma equipe primeiro nas configurações.",
+          description:
+            "Nenhuma equipe encontrada. Crie uma equipe primeiro nas configurações.",
           variant: "destructive",
         });
         return;
@@ -282,9 +319,9 @@ export default function CampanhaDetalhes() {
       // Calcular deadline baseado na prioridade
       const now = new Date();
       const deadline = new Date();
-      if (suggestion.priority === 'high') {
+      if (suggestion.priority === "high") {
         deadline.setDate(now.getDate() + 2); // 2 dias para alta prioridade
-      } else if (suggestion.priority === 'medium') {
+      } else if (suggestion.priority === "medium") {
         deadline.setDate(now.getDate() + 5); // 5 dias para média prioridade
       } else {
         deadline.setDate(now.getDate() + 10); // 10 dias para baixa prioridade
@@ -298,7 +335,7 @@ export default function CampanhaDetalhes() {
         responsible_avatar: "",
         status: "todo" as const,
         priority: suggestion.priority as "high" | "medium" | "low",
-        deadline: deadline.toISOString().split('T')[0], // Format: YYYY-MM-DD
+        deadline: deadline.toISOString().split("T")[0], // Format: YYYY-MM-DD
         progress: 0,
         origin: "automation" as const,
         related_campaign_id: campaign.id,
@@ -306,11 +343,10 @@ export default function CampanhaDetalhes() {
       };
 
       await createTask(taskData);
-      
+
       // O toast de sucesso é exibido automaticamente pelo hook useTasks
-      
     } catch (error) {
-      console.error('Erro ao criar tarefa:', error);
+      console.error("Erro ao criar tarefa:", error);
       toast({
         title: "Erro ao criar tarefa",
         description: "Não foi possível criar a tarefa. Tente novamente.",
@@ -336,9 +372,11 @@ export default function CampanhaDetalhes() {
   };
 
   const getPerformanceLevel = (ctr: number, cpc: number) => {
-    if (ctr >= 3 && cpc <= 2) return { level: "Excelente", color: "text-emerald-600" };
+    if (ctr >= 3 && cpc <= 2)
+      return { level: "Excelente", color: "text-emerald-600" };
     if (ctr >= 2 && cpc <= 3) return { level: "Bom", color: "text-blue-600" };
-    if (ctr >= 1.5 && cpc <= 4) return { level: "Regular", color: "text-amber-600" };
+    if (ctr >= 1.5 && cpc <= 4)
+      return { level: "Regular", color: "text-amber-600" };
     return { level: "Crítico", color: "text-red-600" };
   };
 
@@ -351,38 +389,38 @@ export default function CampanhaDetalhes() {
     // Bom: CTR ≥ 2% e CPC ≤ 2 e conversões > 0
     if (ctr >= 2 && cpc <= 2 && conversions > 0) {
       return {
-        level: 'good',
-        label: 'Bom',
-        color: 'text-emerald-600',
-        borderColor: 'border-l-emerald-500',
-        bgColor: 'bg-emerald-50',
-        badgeColor: 'bg-emerald-100 text-emerald-800',
-        icon: TrendingUp
+        level: "good",
+        label: "Bom",
+        color: "text-emerald-600",
+        borderColor: "border-l-emerald-500",
+        bgColor: "bg-emerald-50",
+        badgeColor: "bg-emerald-100 text-emerald-800",
+        icon: TrendingUp,
       };
     }
-    
+
     // OK: CTR ≥ 1% ou CPC ≤ 3 ou conversões > 0
     if (ctr >= 1 || cpc <= 3 || conversions > 0) {
       return {
-        level: 'ok',
-        label: 'OK',
-        color: 'text-blue-600',
-        borderColor: 'border-l-blue-500',
-        bgColor: 'bg-blue-50',
-        badgeColor: 'bg-blue-100 text-blue-800',
-        icon: Target
+        level: "ok",
+        label: "OK",
+        color: "text-blue-600",
+        borderColor: "border-l-blue-500",
+        bgColor: "bg-blue-50",
+        badgeColor: "bg-blue-100 text-blue-800",
+        icon: Target,
       };
     }
 
     // Ruim: CTR < 1% e CPC > 3 e sem conversões
     return {
-      level: 'bad',
-      label: 'Crítico',
-      color: 'text-red-600',
-      borderColor: 'border-l-red-500',
-      bgColor: 'bg-red-50',
-      badgeColor: 'bg-red-100 text-red-800',
-      icon: AlertTriangle
+      level: "bad",
+      label: "Crítico",
+      color: "text-red-600",
+      borderColor: "border-l-red-500",
+      bgColor: "bg-red-50",
+      badgeColor: "bg-red-100 text-red-800",
+      icon: AlertTriangle,
     };
   };
 
@@ -395,71 +433,72 @@ export default function CampanhaDetalhes() {
     // Bom: CTR ≥ 2% e CPC ≤ 2 e conversões > 0
     if (ctr >= 2 && cpc <= 2 && conversions > 0) {
       return {
-        level: 'good',
-        label: 'Bom',
-        color: 'text-emerald-600',
-        borderColor: 'border-l-emerald-500',
-        bgColor: 'bg-emerald-50',
-        badgeColor: 'bg-emerald-100 text-emerald-800',
-        icon: TrendingUp
+        level: "good",
+        label: "Bom",
+        color: "text-emerald-600",
+        borderColor: "border-l-emerald-500",
+        bgColor: "bg-emerald-50",
+        badgeColor: "bg-emerald-100 text-emerald-800",
+        icon: TrendingUp,
       };
     }
-    
+
     // OK: CTR ≥ 1% ou CPC ≤ 3 ou conversões > 0
     if (ctr >= 1 || cpc <= 3 || conversions > 0) {
       return {
-        level: 'ok',
-        label: 'OK',
-        color: 'text-blue-600',
-        borderColor: 'border-l-blue-500',
-        bgColor: 'bg-blue-50',
-        badgeColor: 'bg-blue-100 text-blue-800',
-        icon: Target
+        level: "ok",
+        label: "OK",
+        color: "text-blue-600",
+        borderColor: "border-l-blue-500",
+        bgColor: "bg-blue-50",
+        badgeColor: "bg-blue-100 text-blue-800",
+        icon: Target,
       };
     }
 
     // Ruim: CTR < 1% e CPC > 3 e sem conversões
     return {
-      level: 'bad',
-      label: 'Crítico',
-      color: 'text-red-600',
-      borderColor: 'border-l-red-500',
-      bgColor: 'bg-red-50',
-      badgeColor: 'bg-red-100 text-red-800',
-      icon: AlertTriangle
+      level: "bad",
+      label: "Crítico",
+      color: "text-red-600",
+      borderColor: "border-l-red-500",
+      bgColor: "bg-red-50",
+      badgeColor: "bg-red-100 text-red-800",
+      icon: AlertTriangle,
     };
   };
 
   // Função para traduzir CTA para português
   const formatCallToAction = (callToAction?: string) => {
     if (!callToAction) return null;
-    
+
     try {
       // Se for JSON, fazer parse
-      const cta = typeof callToAction === 'string' && callToAction.startsWith('{') 
-        ? JSON.parse(callToAction) 
-        : { type: callToAction };
-      
+      const cta =
+        typeof callToAction === "string" && callToAction.startsWith("{")
+          ? JSON.parse(callToAction)
+          : { type: callToAction };
+
       const ctaTranslations: { [key: string]: string } = {
-        'LEARN_MORE': 'Saiba Mais',
-        'SHOP_NOW': 'Compre Agora',
-        'SIGN_UP': 'Cadastre-se',
-        'DOWNLOAD': 'Baixar',
-        'WATCH_MORE': 'Assistir Mais',
-        'CONTACT_US': 'Entre em Contato',
-        'BOOK_TRAVEL': 'Reservar Viagem',
-        'GET_QUOTE': 'Solicitar Orçamento',
-        'CALL_NOW': 'Ligar Agora',
-        'APPLY_NOW': 'Candidatar-se',
-        'GET_OFFER': 'Ver Oferta',
-        'SUBSCRIBE': 'Inscrever-se',
-        'NO_BUTTON': 'Sem Botão',
-        'LIKE_PAGE': 'Curtir Página',
-        'MESSAGE_PAGE': 'Enviar Mensagem',
-        'INSTALL_APP': 'Instalar App'
+        LEARN_MORE: "Saiba Mais",
+        SHOP_NOW: "Compre Agora",
+        SIGN_UP: "Cadastre-se",
+        DOWNLOAD: "Baixar",
+        WATCH_MORE: "Assistir Mais",
+        CONTACT_US: "Entre em Contato",
+        BOOK_TRAVEL: "Reservar Viagem",
+        GET_QUOTE: "Solicitar Orçamento",
+        CALL_NOW: "Ligar Agora",
+        APPLY_NOW: "Candidatar-se",
+        GET_OFFER: "Ver Oferta",
+        SUBSCRIBE: "Inscrever-se",
+        NO_BUTTON: "Sem Botão",
+        LIKE_PAGE: "Curtir Página",
+        MESSAGE_PAGE: "Enviar Mensagem",
+        INSTALL_APP: "Instalar App",
       };
-      
-      return ctaTranslations[cta.type] || cta.type || 'Não especificado';
+
+      return ctaTranslations[cta.type] || cta.type || "Não especificado";
     } catch (error) {
       // Se não conseguir fazer parse, retornar como string
       return callToAction;
@@ -468,81 +507,123 @@ export default function CampanhaDetalhes() {
 
   // Função para formatar dados de segmentação
   const formatTargeting = (targeting?: string) => {
-    if (!targeting) return { formatted: 'Não especificado', details: [] };
-    
+    if (!targeting) return { formatted: "Não especificado", details: [] };
+
     try {
       const targetingObj = JSON.parse(targeting);
       const details = [];
-      
+
       // Extrair idade
       if (targetingObj.age_min || targetingObj.age_max) {
-        details.push(`Idade: ${targetingObj.age_min || '18'}-${targetingObj.age_max || '65+'}`);
+        details.push(
+          `Idade: ${targetingObj.age_min || "18"}-${targetingObj.age_max || "65+"}`,
+        );
       }
-      
+
       // Extrair localização
       if (targetingObj.geo_locations?.countries?.length > 0) {
-        details.push(`País: ${targetingObj.geo_locations.countries.join(', ')}`);
+        details.push(
+          `País: ${targetingObj.geo_locations.countries.join(", ")}`,
+        );
       }
-      
+
       if (targetingObj.geo_locations?.regions?.length > 0) {
         const regions = targetingObj.geo_locations.regions;
         if (regions.length <= 3) {
-          details.push(`Região: ${regions.map((r: unknown) => r.name || r).join(', ')}`);
+          details.push(
+            `Região: ${regions.map((r: unknown) => r.name || r).join(", ")}`,
+          );
         } else {
-          details.push(`Região: ${regions.slice(0, 3).map((r: unknown) => r.name || r).join(', ')} +${regions.length - 3} outras`);
+          details.push(
+            `Região: ${regions
+              .slice(0, 3)
+              .map((r: unknown) => r.name || r)
+              .join(", ")} +${regions.length - 3} outras`,
+          );
         }
       }
-      
+
       if (targetingObj.geo_locations?.cities?.length > 0) {
         const cities = targetingObj.geo_locations.cities;
         if (cities.length <= 3) {
-          details.push(`Cidades: ${cities.map((c: unknown) => c.name || c).join(', ')}`);
+          details.push(
+            `Cidades: ${cities.map((c: unknown) => c.name || c).join(", ")}`,
+          );
         } else {
-          details.push(`Cidades: ${cities.slice(0, 3).map((c: unknown) => c.name || c).join(', ')} +${cities.length - 3} outras`);
+          details.push(
+            `Cidades: ${cities
+              .slice(0, 3)
+              .map((c: unknown) => c.name || c)
+              .join(", ")} +${cities.length - 3} outras`,
+          );
         }
       }
-      
+
       // Extrair audiências customizadas - mostrar os nomes
       if (targetingObj.custom_audiences?.length > 0) {
         const audiences = targetingObj.custom_audiences;
         if (audiences.length <= 3) {
-          details.push(`Audiências: ${audiences.map((a: unknown) => a.name || a).join(', ')}`);
+          details.push(
+            `Audiências: ${audiences.map((a: unknown) => a.name || a).join(", ")}`,
+          );
         } else {
-          details.push(`Audiências: ${audiences.slice(0, 3).map((a: unknown) => a.name || a).join(', ')} +${audiences.length - 3} outras`);
+          details.push(
+            `Audiências: ${audiences
+              .slice(0, 3)
+              .map((a: unknown) => a.name || a)
+              .join(", ")} +${audiences.length - 3} outras`,
+          );
         }
       }
-      
+
       // Extrair interesses - mostrar os nomes
       if (targetingObj.interests?.length > 0) {
         const interests = targetingObj.interests;
         if (interests.length <= 3) {
-          details.push(`Interesses: ${interests.map((i: unknown) => i.name || i).join(', ')}`);
+          details.push(
+            `Interesses: ${interests.map((i: unknown) => i.name || i).join(", ")}`,
+          );
         } else {
-          details.push(`Interesses: ${interests.slice(0, 3).map((i: unknown) => i.name || i).join(', ')} +${interests.length - 3} outros`);
+          details.push(
+            `Interesses: ${interests
+              .slice(0, 3)
+              .map((i: unknown) => i.name || i)
+              .join(", ")} +${interests.length - 3} outros`,
+          );
         }
       }
-      
+
       // Extrair comportamentos - mostrar os nomes
       if (targetingObj.behaviors?.length > 0) {
         const behaviors = targetingObj.behaviors;
         if (behaviors.length <= 3) {
-          details.push(`Comportamentos: ${behaviors.map((b: unknown) => b.name || b).join(', ')}`);
+          details.push(
+            `Comportamentos: ${behaviors.map((b: unknown) => b.name || b).join(", ")}`,
+          );
         } else {
-          details.push(`Comportamentos: ${behaviors.slice(0, 3).map((b: unknown) => b.name || b).join(', ')} +${behaviors.length - 3} outros`);
+          details.push(
+            `Comportamentos: ${behaviors
+              .slice(0, 3)
+              .map((b: unknown) => b.name || b)
+              .join(", ")} +${behaviors.length - 3} outros`,
+          );
         }
       }
-      
+
       // Extrair nome da audiência se disponível
       if (targetingObj.name) {
         details.push(`Audiência: ${targetingObj.name}`);
       }
-      
-      return { 
-        formatted: details.length > 0 ? details.join(' • ') : 'Segmentação personalizada', 
-        details 
+
+      return {
+        formatted:
+          details.length > 0
+            ? details.join(" • ")
+            : "Segmentação personalizada",
+        details,
       };
     } catch {
-      return { formatted: 'Segmentação personalizada', details: [] };
+      return { formatted: "Segmentação personalizada", details: [] };
     }
   };
 
@@ -560,7 +641,9 @@ export default function CampanhaDetalhes() {
     return (
       <DashboardLayout>
         <div className="flex flex-col items-center justify-center h-64">
-          <h2 className="text-2xl font-bold text-muted-foreground mb-4">Campanha não encontrada</h2>
+          <h2 className="text-2xl font-bold text-muted-foreground mb-4">
+            Campanha não encontrada
+          </h2>
           <Button onClick={() => navigate("/campanhas")} variant="outline">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Voltar para Campanhas
@@ -571,17 +654,18 @@ export default function CampanhaDetalhes() {
   }
 
   const performance = getPerformanceLevel(campaign.ctr || 0, campaign.cpc || 0);
-  const conversionRate = campaign.conversions && campaign.clicks 
-    ? ((campaign.conversions / campaign.clicks) * 100).toFixed(2)
-    : "0.00";
+  const conversionRate =
+    campaign.conversions && campaign.clicks
+      ? ((campaign.conversions / campaign.clicks) * 100).toFixed(2)
+      : "0.00";
 
   return (
     <DashboardLayout>
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-4">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             size="sm"
             onClick={() => navigate("/campanhas")}
           >
@@ -589,27 +673,31 @@ export default function CampanhaDetalhes() {
             Voltar
           </Button>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">{campaign.name}</h1>
+            <h1 className="text-2xl font-bold text-foreground">
+              {campaign.name}
+            </h1>
             <p className="text-muted-foreground">{campaign.client?.name}</p>
           </div>
         </div>
         <div className="flex items-center space-x-2">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             size="sm"
             onClick={() => setShowMetricsModal(true)}
           >
             <BarChart3 className="w-4 h-4 mr-2" />
             Métricas Detalhadas
           </Button>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             size="sm"
             onClick={handleSyncCampaign}
             disabled={isSyncing}
           >
-            <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
-            {isSyncing ? 'Sincronizando...' : 'Sincronizar'}
+            <RefreshCw
+              className={`w-4 h-4 mr-2 ${isSyncing ? "animate-spin" : ""}`}
+            />
+            {isSyncing ? "Sincronizando..." : "Sincronizar"}
           </Button>
         </div>
       </div>
@@ -620,15 +708,22 @@ export default function CampanhaDetalhes() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Status</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Status
+                </p>
                 <Badge className={getStatusColor(campaign.status)}>
                   {campaign.status}
                 </Badge>
               </div>
-              <div className={`w-3 h-3 rounded-full ${
-                campaign.status?.toLowerCase() === "ativa" ? "bg-emerald-500" : 
-                campaign.status?.toLowerCase() === "pausada" ? "bg-amber-500" : "bg-slate-500"
-              }`} />
+              <div
+                className={`w-3 h-3 rounded-full ${
+                  campaign.status?.toLowerCase() === "ativa"
+                    ? "bg-emerald-500"
+                    : campaign.status?.toLowerCase() === "pausada"
+                      ? "bg-amber-500"
+                      : "bg-slate-500"
+                }`}
+              />
             </div>
           </CardContent>
         </Card>
@@ -637,7 +732,9 @@ export default function CampanhaDetalhes() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Performance</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Performance
+                </p>
                 <p className={`text-lg font-semibold ${performance.color}`}>
                   {performance.level}
                 </p>
@@ -665,7 +762,9 @@ export default function CampanhaDetalhes() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Conversões</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Conversões
+                </p>
                 <p className="text-lg font-semibold text-foreground">
                   {campaign.conversions || 0}
                 </p>
@@ -685,13 +784,13 @@ export default function CampanhaDetalhes() {
               <div>
                 <p className="text-xs text-muted-foreground">Alcance</p>
                 <p className="text-lg font-semibold">
-                  {campaign.reach?.toLocaleString('pt-BR') || '0'}
+                  {campaign.reach?.toLocaleString("pt-BR") || "0"}
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center space-x-2">
@@ -699,13 +798,13 @@ export default function CampanhaDetalhes() {
               <div>
                 <p className="text-xs text-muted-foreground">Impressões</p>
                 <p className="text-lg font-semibold">
-                  {campaign.impressions?.toLocaleString('pt-BR') || '0'}
+                  {campaign.impressions?.toLocaleString("pt-BR") || "0"}
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center space-x-2">
@@ -713,23 +812,27 @@ export default function CampanhaDetalhes() {
               <div>
                 <p className="text-xs text-muted-foreground">Cliques</p>
                 <p className="text-lg font-semibold">
-                  {campaign.clicks?.toLocaleString('pt-BR') || '0'}
+                  {campaign.clicks?.toLocaleString("pt-BR") || "0"}
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center space-x-2">
               <TrendingUp className="w-4 h-4 text-orange-500" />
               <div>
-                <p className="text-xs text-muted-foreground">Taxa de Conversão</p>
+                <p className="text-xs text-muted-foreground">
+                  Taxa de Conversão
+                </p>
                 <p className="text-lg font-semibold">
-                  {campaign.conversions && campaign.clicks 
-                    ? ((campaign.conversions / campaign.clicks) * 100).toFixed(2) + '%'
-                    : '0,00%'}
+                  {campaign.conversions && campaign.clicks
+                    ? ((campaign.conversions / campaign.clicks) * 100).toFixed(
+                        2,
+                      ) + "%"
+                    : "0,00%"}
                 </p>
               </div>
             </div>
@@ -749,15 +852,20 @@ export default function CampanhaDetalhes() {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-sm text-muted-foreground">Investimento Total</p>
+                <p className="text-sm text-muted-foreground">
+                  Investimento Total
+                </p>
                 <p className="text-2xl font-bold text-foreground">
-                  R$ {campaign.spend?.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) || '0,00'}
+                  R${" "}
+                  {campaign.spend?.toLocaleString("pt-BR", {
+                    minimumFractionDigits: 2,
+                  }) || "0,00"}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">CPC Médio</p>
                 <p className="text-2xl font-bold text-foreground">
-                  R$ {campaign.cpc?.toFixed(2) || '0,00'}
+                  R$ {campaign.cpc?.toFixed(2) || "0,00"}
                 </p>
               </div>
             </div>
@@ -765,11 +873,13 @@ export default function CampanhaDetalhes() {
               <div>
                 <p className="text-sm text-muted-foreground">CPA</p>
                 <p className="text-xl font-semibold text-foreground">
-                  R$ {campaign.cpa?.toFixed(2) || '0,00'}
+                  R$ {campaign.cpa?.toFixed(2) || "0,00"}
                 </p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Taxa de Conversão</p>
+                <p className="text-sm text-muted-foreground">
+                  Taxa de Conversão
+                </p>
                 <p className="text-xl font-semibold text-foreground">
                   {conversionRate}%
                 </p>
@@ -790,13 +900,13 @@ export default function CampanhaDetalhes() {
               <div>
                 <p className="text-sm text-muted-foreground">CTR</p>
                 <p className="text-2xl font-bold text-foreground">
-                  {campaign.ctr?.toFixed(2) || '0,00'}%
+                  {campaign.ctr?.toFixed(2) || "0,00"}%
                 </p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">CPC</p>
                 <p className="text-2xl font-bold text-foreground">
-                  R$ {campaign.cpc?.toFixed(2) || '0,00'}
+                  R$ {campaign.cpc?.toFixed(2) || "0,00"}
                 </p>
               </div>
             </div>
@@ -804,20 +914,19 @@ export default function CampanhaDetalhes() {
               <div>
                 <p className="text-sm text-muted-foreground">Frequência</p>
                 <p className="text-xl font-semibold text-foreground">
-                  {campaign.frequency?.toFixed(2) || '0,00'}
+                  {campaign.frequency?.toFixed(2) || "0,00"}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Conversões</p>
                 <p className="text-xl font-semibold text-foreground">
-                  {campaign.conversions?.toLocaleString('pt-BR') || '0'}
+                  {campaign.conversions?.toLocaleString("pt-BR") || "0"}
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
-
 
       {/* Tabs para seções adicionais */}
       <Tabs defaultValue="insights" className="space-y-6">
@@ -854,27 +963,33 @@ export default function CampanhaDetalhes() {
             <CardContent>
               <div className="space-y-4">
                 <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <h4 className="font-semibold text-blue-900 mb-2">💡 Oportunidade de Melhoria</h4>
+                  <h4 className="font-semibold text-blue-900 mb-2">
+                    💡 Oportunidade de Melhoria
+                  </h4>
                   <p className="text-blue-800">
-                    {campaign.ctr && campaign.ctr < 2 
+                    {campaign.ctr && campaign.ctr < 2
                       ? "O CTR está abaixo da média. Considere testar novos criativos ou ajustar o público-alvo."
                       : "O CTR está em bom nível. Continue monitorando e testando variações."}
                   </p>
                 </div>
-                
+
                 <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                  <h4 className="font-semibold text-green-900 mb-2">📈 Performance</h4>
+                  <h4 className="font-semibold text-green-900 mb-2">
+                    📈 Performance
+                  </h4>
                   <p className="text-green-800">
-                    {campaign.conversions && campaign.conversions > 50 
+                    {campaign.conversions && campaign.conversions > 50
                       ? "Excelente número de conversões! A campanha está performando bem."
                       : "Considere otimizar para aumentar o número de conversões."}
                   </p>
                 </div>
 
                 <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
-                  <h4 className="font-semibold text-amber-900 mb-2">⚠️ Atenção</h4>
+                  <h4 className="font-semibold text-amber-900 mb-2">
+                    ⚠️ Atenção
+                  </h4>
                   <p className="text-amber-800">
-                    {campaign.cpc && campaign.cpc > 3 
+                    {campaign.cpc && campaign.cpc > 3
                       ? "CPC está elevado. Revise as palavras-chave e configurações de lance."
                       : "CPC está em nível adequado. Continue monitorando."}
                   </p>
@@ -887,41 +1002,70 @@ export default function CampanhaDetalhes() {
         <TabsContent value="alerts">
           <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <h4 className="text-lg font-semibold">Alertas & Sugestões da Campanha</h4>
+              <h4 className="text-lg font-semibold">
+                Alertas & Sugestões da Campanha
+              </h4>
               <Button
                 onClick={handleAnalyzeCampaign}
                 className="flex items-center gap-2"
                 disabled={isAnalyzing}
               >
-                <RefreshCw className={`w-4 h-4 ${isAnalyzing ? 'animate-spin' : ''}`} />
-                {isAnalyzing ? 'Analisando...' : 'Buscar Sugestões'}
+                <RefreshCw
+                  className={`w-4 h-4 ${isAnalyzing ? "animate-spin" : ""}`}
+                />
+                {isAnalyzing ? "Analisando..." : "Buscar Sugestões"}
               </Button>
             </div>
 
             {campaignSuggestions.length > 0 ? (
               <div className="space-y-4">
                 {campaignSuggestions.map((suggestion) => (
-                  <Card key={suggestion.id} className={`border-l-4 ${
-                    suggestion.type === 'warning' ? 'border-l-red-500' : 'border-l-blue-500'
-                  }`}>
+                  <Card
+                    key={suggestion.id}
+                    className={`border-l-4 ${
+                      suggestion.type === "warning"
+                        ? "border-l-red-500"
+                        : "border-l-blue-500"
+                    }`}
+                  >
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
-                            {suggestion.type === 'warning' ? (
+                            {suggestion.type === "warning" ? (
                               <AlertTriangle className="w-5 h-5 text-red-500" />
                             ) : (
                               <Target className="w-5 h-5 text-blue-500" />
                             )}
-                            <h5 className="font-medium text-gray-900">{suggestion.title}</h5>
-                            <Badge variant={suggestion.priority === 'high' ? 'destructive' : suggestion.priority === 'medium' ? 'default' : 'secondary'}>
-                              {suggestion.priority === 'high' ? 'Alta' : suggestion.priority === 'medium' ? 'Média' : 'Baixa'}
+                            <h5 className="font-medium text-gray-900">
+                              {suggestion.title}
+                            </h5>
+                            <Badge
+                              variant={
+                                suggestion.priority === "high"
+                                  ? "destructive"
+                                  : suggestion.priority === "medium"
+                                    ? "default"
+                                    : "secondary"
+                              }
+                            >
+                              {suggestion.priority === "high"
+                                ? "Alta"
+                                : suggestion.priority === "medium"
+                                  ? "Média"
+                                  : "Baixa"}
                             </Badge>
                           </div>
-                          <p className="text-sm text-gray-600 mb-3">{suggestion.description}</p>
+                          <p className="text-sm text-gray-600 mb-3">
+                            {suggestion.description}
+                          </p>
                           <div className="bg-gray-50 p-3 rounded-lg mb-3">
-                            <p className="text-sm font-medium text-gray-900 mb-1">Ação recomendada:</p>
-                            <p className="text-sm text-gray-700">{suggestion.action}</p>
+                            <p className="text-sm font-medium text-gray-900 mb-1">
+                              Ação recomendada:
+                            </p>
+                            <p className="text-sm text-gray-700">
+                              {suggestion.action}
+                            </p>
                           </div>
                           <div className="flex justify-end">
                             <Button
@@ -946,24 +1090,38 @@ export default function CampanhaDetalhes() {
                   Análise da Campanha
                 </h3>
                 <p className="text-gray-500 mb-6 max-w-2xl mx-auto">
-                  Clique em "Buscar Sugestões" para obter uma análise detalhada desta campanha com insights estratégicos e recomendações de otimização.
+                  Clique em "Buscar Sugestões" para obter uma análise detalhada
+                  desta campanha com insights estratégicos e recomendações de
+                  otimização.
                 </p>
-                
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-2xl mx-auto">
                   <div className="text-center p-4 bg-blue-50 rounded-lg">
                     <AlertTriangle className="w-6 h-6 text-blue-600 mx-auto mb-2" />
-                    <p className="text-sm font-medium text-blue-900">Identificação de Problemas</p>
-                    <p className="text-xs text-blue-700">CTR baixo, CPC alto, etc.</p>
+                    <p className="text-sm font-medium text-blue-900">
+                      Identificação de Problemas
+                    </p>
+                    <p className="text-xs text-blue-700">
+                      CTR baixo, CPC alto, etc.
+                    </p>
                   </div>
                   <div className="text-center p-4 bg-green-50 rounded-lg">
                     <TrendingUp className="w-6 h-6 text-green-600 mx-auto mb-2" />
-                    <p className="text-sm font-medium text-green-900">Oportunidades</p>
-                    <p className="text-xs text-green-700">Escalonamento e melhorias</p>
+                    <p className="text-sm font-medium text-green-900">
+                      Oportunidades
+                    </p>
+                    <p className="text-xs text-green-700">
+                      Escalonamento e melhorias
+                    </p>
                   </div>
                   <div className="text-center p-4 bg-purple-50 rounded-lg">
                     <Target className="w-6 h-6 text-purple-600 mx-auto mb-2" />
-                    <p className="text-sm font-medium text-purple-900">Ações Estratégicas</p>
-                    <p className="text-xs text-purple-700">Próximos passos recomendados</p>
+                    <p className="text-sm font-medium text-purple-900">
+                      Ações Estratégicas
+                    </p>
+                    <p className="text-xs text-purple-700">
+                      Próximos passos recomendados
+                    </p>
                   </div>
                 </div>
               </div>
@@ -975,32 +1133,49 @@ export default function CampanhaDetalhes() {
         <TabsContent value="analysis" className="p-4 sm:p-6">
           <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <h4 className="text-lg font-semibold">Análise Completa da Campanha</h4>
+              <h4 className="text-lg font-semibold">
+                Análise Completa da Campanha
+              </h4>
               <Button
                 onClick={handleGenerateAnalysis}
                 className="flex items-center gap-2"
                 disabled={isGeneratingAnalysis}
               >
-                <BarChart3 className={`w-4 h-4 ${isGeneratingAnalysis ? 'animate-pulse' : ''}`} />
-                {isGeneratingAnalysis ? 'Gerando Análise...' : 'Gerar Análise com IA'}
+                <BarChart3
+                  className={`w-4 h-4 ${isGeneratingAnalysis ? "animate-pulse" : ""}`}
+                />
+                {isGeneratingAnalysis
+                  ? "Gerando Análise..."
+                  : "Gerar Análise com IA"}
               </Button>
             </div>
 
             {campaignAnalysis ? (
               <div className="bg-white border border-gray-200 rounded-lg p-6">
                 <div className="prose prose-gray max-w-none">
-                  <div 
+                  <div
                     className="markdown-content"
-                    dangerouslySetInnerHTML={{ 
-                      __html: campaignAnalysis.replace(/\n/g, '<br/>').replace(/##\s+(.+)/g, '<h2 class="text-xl font-semibold text-gray-900 mt-6 mb-3">$1</h2>').replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/- (.+)/g, '<li class="ml-4">• $1</li>') 
+                    dangerouslySetInnerHTML={{
+                      __html: DOMPurify.sanitize(
+                        campaignAnalysis
+                          .replace(/\n/g, "<br/>")
+                          .replace(
+                            /##\s+(.+)/g,
+                            '<h2 class="text-xl font-semibold text-gray-900 mt-6 mb-3">$1</h2>',
+                          )
+                          .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+                          .replace(/- (.+)/g, '<li class="ml-4">• $1</li>'),
+                      ),
                     }}
                   />
                 </div>
-                
+
                 <div className="mt-6 pt-4 border-t border-gray-200">
                   <div className="flex items-center gap-2 text-sm text-gray-500">
                     <CheckCircle className="w-4 h-4" />
-                    <span>Análise gerada por IA especializada em tráfego pago</span>
+                    <span>
+                      Análise gerada por IA especializada em tráfego pago
+                    </span>
                   </div>
                 </div>
               </div>
@@ -1011,34 +1186,44 @@ export default function CampanhaDetalhes() {
                   Análise Estratégica com IA
                 </h3>
                 <p className="text-gray-500 mb-6 max-w-2xl mx-auto">
-                  Obtenha uma análise detalhada desta campanha feita por nossa IA especializada em tráfego pago. 
-                  Receba insights estratégicos, identificação de oportunidades e recomendações baseadas nas melhores práticas do mercado.
+                  Obtenha uma análise detalhada desta campanha feita por nossa
+                  IA especializada em tráfego pago. Receba insights
+                  estratégicos, identificação de oportunidades e recomendações
+                  baseadas nas melhores práticas do mercado.
                 </p>
-                
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 max-w-4xl mx-auto">
                   <div className="text-center p-4 bg-blue-50 rounded-lg">
                     <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
                       <BarChart3 className="w-4 h-4 text-blue-600" />
                     </div>
-                    <p className="text-sm font-medium text-blue-900">Diagnóstico da Campanha</p>
+                    <p className="text-sm font-medium text-blue-900">
+                      Diagnóstico da Campanha
+                    </p>
                   </div>
                   <div className="text-center p-4 bg-green-50 rounded-lg">
                     <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
                       <TrendingUp className="w-4 h-4 text-green-600" />
                     </div>
-                    <p className="text-sm font-medium text-green-900">Estratégias de Otimização</p>
+                    <p className="text-sm font-medium text-green-900">
+                      Estratégias de Otimização
+                    </p>
                   </div>
                   <div className="text-center p-4 bg-purple-50 rounded-lg">
                     <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-2">
                       <Target className="w-4 h-4 text-purple-600" />
                     </div>
-                    <p className="text-sm font-medium text-purple-900">Ações Prioritárias</p>
+                    <p className="text-sm font-medium text-purple-900">
+                      Ações Prioritárias
+                    </p>
                   </div>
                   <div className="text-center p-4 bg-orange-50 rounded-lg">
                     <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-2">
                       <Users className="w-4 h-4 text-orange-600" />
                     </div>
-                    <p className="text-sm font-medium text-orange-900">Recomendações de Escala</p>
+                    <p className="text-sm font-medium text-orange-900">
+                      Recomendações de Escala
+                    </p>
                   </div>
                 </div>
               </div>
@@ -1051,14 +1236,16 @@ export default function CampanhaDetalhes() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Conjuntos de Anúncios da Campanha</CardTitle>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="sm"
                   onClick={handleSyncCampaign}
                   disabled={isSyncing}
                 >
-                  <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
-                  {isSyncing ? 'Sincronizando...' : 'Sincronizar'}
+                  <RefreshCw
+                    className={`w-4 h-4 mr-2 ${isSyncing ? "animate-spin" : ""}`}
+                  />
+                  {isSyncing ? "Sincronizando..." : "Sincronizar"}
                 </Button>
               </div>
             </CardHeader>
@@ -1066,7 +1253,9 @@ export default function CampanhaDetalhes() {
               {adSetsLoading ? (
                 <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                  <p className="mt-2 text-muted-foreground">Carregando conjuntos de anúncios...</p>
+                  <p className="mt-2 text-muted-foreground">
+                    Carregando conjuntos de anúncios...
+                  </p>
                 </div>
               ) : campaignAdSets.length > 0 ? (
                 <div className="space-y-4">
@@ -1074,61 +1263,102 @@ export default function CampanhaDetalhes() {
                     const performance = getAdSetPerformance(adSet);
                     const targeting = formatTargeting(adSet.targeting);
                     const Icon = performance.icon;
-                    
+
                     return (
-                      <Card key={adSet.id} className={`border-l-4 ${performance.borderColor} hover:shadow-lg transition-all duration-200`}>
+                      <Card
+                        key={adSet.id}
+                        className={`border-l-4 ${performance.borderColor} hover:shadow-lg transition-all duration-200`}
+                      >
                         <CardContent className="p-4">
                           <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-3">
-                              <Icon className={`w-5 h-5 ${performance.color}`} />
+                              <Icon
+                                className={`w-5 h-5 ${performance.color}`}
+                              />
                               <div>
-                                <h4 className="font-medium text-gray-900">{adSet.name}</h4>
-                                <p className="text-xs text-gray-500">Conjunto de Anúncios</p>
+                                <h4 className="font-medium text-gray-900">
+                                  {adSet.name}
+                                </h4>
+                                <p className="text-xs text-gray-500">
+                                  Conjunto de Anúncios
+                                </p>
                               </div>
                             </div>
-                             <div className="flex items-center gap-2">
-                               <Badge className={performance.badgeColor}>
-                                 {performance.label}
-                               </Badge>
-                               <Badge 
-                                 variant={adSet.status === 'ACTIVE' ? 'default' : 'secondary'}
-                                 className={adSet.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : ''}
-                               >
-                                 {adSet.status}
-                               </Badge>
-                               <Button
-                                 size="sm"
-                                 variant="outline"
-                                 onClick={() => {
-                                   setSelectedAdSet(adSet);
-                                   setShowAdSetMetrics(true);
-                                 }}
-                               >
-                                 <Eye className="w-4 h-4 mr-1" />
-                                 Ver Métricas
-                               </Button>
-                             </div>
+                            <div className="flex items-center gap-2">
+                              <Badge className={performance.badgeColor}>
+                                {performance.label}
+                              </Badge>
+                              <Badge
+                                variant={
+                                  adSet.status === "ACTIVE"
+                                    ? "default"
+                                    : "secondary"
+                                }
+                                className={
+                                  adSet.status === "ACTIVE"
+                                    ? "bg-green-100 text-green-800"
+                                    : ""
+                                }
+                              >
+                                {adSet.status}
+                              </Badge>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setSelectedAdSet(adSet);
+                                  setShowAdSetMetrics(true);
+                                }}
+                              >
+                                <Eye className="w-4 h-4 mr-1" />
+                                Ver Métricas
+                              </Button>
+                            </div>
                           </div>
-                          
+
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-4">
-                            <div className={`p-3 rounded-lg ${performance.bgColor}`}>
-                              <p className="text-gray-600 text-xs">Orçamento Diário</p>
-                              <p className="font-semibold text-gray-900">R$ {adSet.daily_budget?.toFixed(2) || '0,00'}</p>
+                            <div
+                              className={`p-3 rounded-lg ${performance.bgColor}`}
+                            >
+                              <p className="text-gray-600 text-xs">
+                                Orçamento Diário
+                              </p>
+                              <p className="font-semibold text-gray-900">
+                                R$ {adSet.daily_budget?.toFixed(2) || "0,00"}
+                              </p>
                             </div>
                             <div>
                               <p className="text-gray-500">Investimento</p>
-                              <p className="font-medium">R$ {adSet.spend?.toFixed(2) || '0,00'}</p>
-                            </div>
-                            <div className={adSet.ctr && adSet.ctr < 1 ? 'p-2 bg-red-50 rounded' : ''}>
-                              <p className="text-gray-500">CTR</p>
-                              <p className={`font-medium ${adSet.ctr && adSet.ctr < 1 ? 'text-red-600' : ''}`}>
-                                {adSet.ctr?.toFixed(2) || '0,00'}%
+                              <p className="font-medium">
+                                R$ {adSet.spend?.toFixed(2) || "0,00"}
                               </p>
                             </div>
-                            <div className={adSet.cpc && adSet.cpc > 3 ? 'p-2 bg-red-50 rounded' : ''}>
+                            <div
+                              className={
+                                adSet.ctr && adSet.ctr < 1
+                                  ? "p-2 bg-red-50 rounded"
+                                  : ""
+                              }
+                            >
+                              <p className="text-gray-500">CTR</p>
+                              <p
+                                className={`font-medium ${adSet.ctr && adSet.ctr < 1 ? "text-red-600" : ""}`}
+                              >
+                                {adSet.ctr?.toFixed(2) || "0,00"}%
+                              </p>
+                            </div>
+                            <div
+                              className={
+                                adSet.cpc && adSet.cpc > 3
+                                  ? "p-2 bg-red-50 rounded"
+                                  : ""
+                              }
+                            >
                               <p className="text-gray-500">CPC</p>
-                              <p className={`font-medium ${adSet.cpc && adSet.cpc > 3 ? 'text-red-600' : ''}`}>
-                                R$ {adSet.cpc?.toFixed(2) || '0,00'}
+                              <p
+                                className={`font-medium ${adSet.cpc && adSet.cpc > 3 ? "text-red-600" : ""}`}
+                              >
+                                R$ {adSet.cpc?.toFixed(2) || "0,00"}
                               </p>
                             </div>
                           </div>
@@ -1136,21 +1366,36 @@ export default function CampanhaDetalhes() {
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                             <div>
                               <p className="text-gray-500">Impressões</p>
-                              <p className="font-medium">{adSet.impressions?.toLocaleString('pt-BR') || '0'}</p>
+                              <p className="font-medium">
+                                {adSet.impressions?.toLocaleString("pt-BR") ||
+                                  "0"}
+                              </p>
                             </div>
                             <div>
                               <p className="text-gray-500">Cliques</p>
-                              <p className="font-medium">{adSet.clicks?.toLocaleString('pt-BR') || '0'}</p>
+                              <p className="font-medium">
+                                {adSet.clicks?.toLocaleString("pt-BR") || "0"}
+                              </p>
                             </div>
-                            <div className={adSet.conversions === 0 ? 'p-2 bg-amber-50 rounded' : ''}>
+                            <div
+                              className={
+                                adSet.conversions === 0
+                                  ? "p-2 bg-amber-50 rounded"
+                                  : ""
+                              }
+                            >
                               <p className="text-gray-500">Conversões</p>
-                              <p className={`font-medium ${adSet.conversions === 0 ? 'text-amber-600' : ''}`}>
+                              <p
+                                className={`font-medium ${adSet.conversions === 0 ? "text-amber-600" : ""}`}
+                              >
                                 {adSet.conversions || 0}
                               </p>
                             </div>
                             <div>
                               <p className="text-gray-500">CPA</p>
-                              <p className="font-medium">R$ {adSet.cpa?.toFixed(2) || '0,00'}</p>
+                              <p className="font-medium">
+                                R$ {adSet.cpa?.toFixed(2) || "0,00"}
+                              </p>
                             </div>
                           </div>
 
@@ -1158,17 +1403,25 @@ export default function CampanhaDetalhes() {
                             <div className="mt-4 pt-3 border-t border-gray-100">
                               <div className="flex items-center gap-2 mb-2">
                                 <Target className="w-4 h-4 text-gray-500" />
-                                <p className="text-gray-600 text-sm font-medium">Segmentação:</p>
+                                <p className="text-gray-600 text-sm font-medium">
+                                  Segmentação:
+                                </p>
                               </div>
                               <div className="flex flex-wrap gap-2">
                                 {targeting.details.length > 0 ? (
                                   targeting.details.map((detail, index) => (
-                                    <Badge key={index} variant="outline" className="text-xs">
+                                    <Badge
+                                      key={index}
+                                      variant="outline"
+                                      className="text-xs"
+                                    >
                                       {detail}
                                     </Badge>
                                   ))
                                 ) : (
-                                  <p className="text-sm text-gray-600">{targeting.formatted}</p>
+                                  <p className="text-sm text-gray-600">
+                                    {targeting.formatted}
+                                  </p>
                                 )}
                               </div>
                             </div>
@@ -1182,17 +1435,24 @@ export default function CampanhaDetalhes() {
                 <div className="flex flex-col items-center justify-center py-12 space-y-4">
                   <Target className="w-12 h-12 text-gray-400 mx-auto mb-2" />
                   <div className="text-center">
-                    <p className="text-gray-500 mb-1">Nenhum conjunto de anúncios encontrado para esta campanha.</p>
-                    <p className="text-sm text-gray-400">Os dados aparecerão aqui após a sincronização com o Facebook.</p>
+                    <p className="text-gray-500 mb-1">
+                      Nenhum conjunto de anúncios encontrado para esta campanha.
+                    </p>
+                    <p className="text-sm text-gray-400">
+                      Os dados aparecerão aqui após a sincronização com o
+                      Facebook.
+                    </p>
                   </div>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     onClick={handleSyncCampaign}
                     disabled={isSyncing}
                     className="mt-4"
                   >
-                    <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
-                    {isSyncing ? 'Sincronizando...' : 'Sincronizar Dados'}
+                    <RefreshCw
+                      className={`w-4 h-4 mr-2 ${isSyncing ? "animate-spin" : ""}`}
+                    />
+                    {isSyncing ? "Sincronizando..." : "Sincronizar Dados"}
                   </Button>
                 </div>
               )}
@@ -1205,14 +1465,16 @@ export default function CampanhaDetalhes() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Criativos da Campanha</CardTitle>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="sm"
                   onClick={handleSyncCampaign}
                   disabled={isSyncing}
                 >
-                  <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
-                  {isSyncing ? 'Sincronizando...' : 'Sincronizar'}
+                  <RefreshCw
+                    className={`w-4 h-4 mr-2 ${isSyncing ? "animate-spin" : ""}`}
+                  />
+                  {isSyncing ? "Sincronizando..." : "Sincronizar"}
                 </Button>
               </div>
             </CardHeader>
@@ -1220,58 +1482,83 @@ export default function CampanhaDetalhes() {
               {adsLoading ? (
                 <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                  <p className="mt-2 text-muted-foreground">Carregando criativos...</p>
+                  <p className="mt-2 text-muted-foreground">
+                    Carregando criativos...
+                  </p>
                 </div>
               ) : campaignAds.length > 0 ? (
                 <div className="space-y-4">
                   {campaignAds.map((ad) => {
                     const performance = getAdPerformance(ad);
                     const Icon = performance.icon;
-                    
+
                     return (
-                      <Card key={ad.id} className={`border-l-4 ${performance.borderColor} hover:shadow-lg transition-all duration-200`}>
+                      <Card
+                        key={ad.id}
+                        className={`border-l-4 ${performance.borderColor} hover:shadow-lg transition-all duration-200`}
+                      >
                         <CardContent className="p-4">
                           <div className="flex items-start justify-between mb-3">
                             <div className="flex items-start gap-3">
-                              <Icon className={`w-5 h-5 ${performance.color} mt-1`} />
+                              <Icon
+                                className={`w-5 h-5 ${performance.color} mt-1`}
+                              />
                               <div className="flex-1">
-                                <h4 className="font-medium text-gray-900 mb-1">{ad.name}</h4>
+                                <h4 className="font-medium text-gray-900 mb-1">
+                                  {ad.name}
+                                </h4>
                                 <div className="flex items-center gap-2">
-                                  <p className="text-sm text-gray-600">{ad.creative_type}</p>
+                                  <p className="text-sm text-gray-600">
+                                    {ad.creative_type}
+                                  </p>
                                   <Badge className={performance.badgeColor}>
                                     {performance.label}
                                   </Badge>
                                 </div>
-                               </div>
-                             </div>
-                             <div className="flex items-center gap-2">
-                               <Badge 
-                                 variant={ad.status === 'ACTIVE' ? 'default' : 'secondary'}
-                                 className={ad.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : ''}
-                               >
-                                 {ad.status}
-                               </Badge>
-                               <Button
-                                 size="sm"
-                                 variant="outline"
-                                 onClick={() => {
-                                   setSelectedAd(ad);
-                                   setShowAdMetrics(true);
-                                 }}
-                               >
-                                 <Eye className="w-4 h-4 mr-1" />
-                                 Ver Métricas
-                               </Button>
-                             </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge
+                                variant={
+                                  ad.status === "ACTIVE"
+                                    ? "default"
+                                    : "secondary"
+                                }
+                                className={
+                                  ad.status === "ACTIVE"
+                                    ? "bg-green-100 text-green-800"
+                                    : ""
+                                }
+                              >
+                                {ad.status}
+                              </Badge>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setSelectedAd(ad);
+                                  setShowAdMetrics(true);
+                                }}
+                              >
+                                <Eye className="w-4 h-4 mr-1" />
+                                Ver Métricas
+                              </Button>
+                            </div>
                           </div>
 
                           {(ad.creative_title || ad.creative_body) && (
-                            <div className={`mb-4 p-3 rounded-lg ${performance.bgColor} border border-gray-100`}>
+                            <div
+                              className={`mb-4 p-3 rounded-lg ${performance.bgColor} border border-gray-100`}
+                            >
                               {ad.creative_title && (
-                                <h5 className="font-medium text-gray-900 mb-1">{ad.creative_title}</h5>
+                                <h5 className="font-medium text-gray-900 mb-1">
+                                  {ad.creative_title}
+                                </h5>
                               )}
                               {ad.creative_body && (
-                                <p className="text-sm text-gray-700 mb-2">{ad.creative_body}</p>
+                                <p className="text-sm text-gray-700 mb-2">
+                                  {ad.creative_body}
+                                </p>
                               )}
                               {ad.call_to_action && (
                                 <Badge variant="outline" className="text-xs">
@@ -1280,27 +1567,53 @@ export default function CampanhaDetalhes() {
                               )}
                             </div>
                           )}
-                          
+
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-4">
                             <div>
                               <p className="text-gray-500">Investimento</p>
-                              <p className="font-medium">R$ {ad.spend?.toFixed(2) || '0,00'}</p>
+                              <p className="font-medium">
+                                R$ {ad.spend?.toFixed(2) || "0,00"}
+                              </p>
                             </div>
-                            <div className={ad.ctr && ad.ctr < 1 ? 'p-2 bg-red-50 rounded' : ''}>
+                            <div
+                              className={
+                                ad.ctr && ad.ctr < 1
+                                  ? "p-2 bg-red-50 rounded"
+                                  : ""
+                              }
+                            >
                               <p className="text-gray-500">CTR</p>
-                              <p className={`font-medium ${ad.ctr && ad.ctr < 1 ? 'text-red-600' : ''}`}>
-                                {ad.ctr?.toFixed(2) || '0,00'}%
+                              <p
+                                className={`font-medium ${ad.ctr && ad.ctr < 1 ? "text-red-600" : ""}`}
+                              >
+                                {ad.ctr?.toFixed(2) || "0,00"}%
                               </p>
                             </div>
-                            <div className={ad.cpc && ad.cpc > 3 ? 'p-2 bg-red-50 rounded' : ''}>
+                            <div
+                              className={
+                                ad.cpc && ad.cpc > 3
+                                  ? "p-2 bg-red-50 rounded"
+                                  : ""
+                              }
+                            >
                               <p className="text-gray-500">CPC</p>
-                              <p className={`font-medium ${ad.cpc && ad.cpc > 3 ? 'text-red-600' : ''}`}>
-                                R$ {ad.cpc?.toFixed(2) || '0,00'}
+                              <p
+                                className={`font-medium ${ad.cpc && ad.cpc > 3 ? "text-red-600" : ""}`}
+                              >
+                                R$ {ad.cpc?.toFixed(2) || "0,00"}
                               </p>
                             </div>
-                            <div className={ad.conversions === 0 ? 'p-2 bg-amber-50 rounded' : ''}>
+                            <div
+                              className={
+                                ad.conversions === 0
+                                  ? "p-2 bg-amber-50 rounded"
+                                  : ""
+                              }
+                            >
                               <p className="text-gray-500">Conversões</p>
-                              <p className={`font-medium ${ad.conversions === 0 ? 'text-amber-600' : ''}`}>
+                              <p
+                                className={`font-medium ${ad.conversions === 0 ? "text-amber-600" : ""}`}
+                              >
                                 {ad.conversions || 0}
                               </p>
                             </div>
@@ -1309,11 +1622,15 @@ export default function CampanhaDetalhes() {
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                             <div>
                               <p className="text-gray-500">Impressões</p>
-                              <p className="font-medium">{ad.impressions?.toLocaleString('pt-BR') || '0'}</p>
+                              <p className="font-medium">
+                                {ad.impressions?.toLocaleString("pt-BR") || "0"}
+                              </p>
                             </div>
                             <div>
                               <p className="text-gray-500">Cliques</p>
-                              <p className="font-medium">{ad.clicks?.toLocaleString('pt-BR') || '0'}</p>
+                              <p className="font-medium">
+                                {ad.clicks?.toLocaleString("pt-BR") || "0"}
+                              </p>
                             </div>
                             <div>
                               <p className="text-gray-500">Curtidas</p>
@@ -1329,19 +1646,22 @@ export default function CampanhaDetalhes() {
                             <div className="mt-4 pt-3 border-t border-gray-100">
                               <div className="flex items-center gap-2 mb-3">
                                 <Eye className="w-4 h-4 text-gray-500" />
-                                <p className="text-gray-600 text-sm font-medium">Mídia do Criativo:</p>
+                                <p className="text-gray-600 text-sm font-medium">
+                                  Mídia do Criativo:
+                                </p>
                               </div>
                               <div className="flex gap-3">
                                 {ad.image_url && (
                                   <div className="relative group">
                                     <div className="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden">
-                                      <img 
-                                        src={ad.image_url} 
-                                        alt="Creative" 
+                                      <img
+                                        src={ad.image_url}
+                                        alt="Creative"
                                         className="w-full h-full object-cover transition-transform group-hover:scale-105"
                                         onError={(e) => {
                                           const target = e.currentTarget;
-                                          target.parentElement!.innerHTML = '<div class="w-full h-full flex items-center justify-center"><Eye class="w-6 h-6 text-gray-400" /></div>';
+                                          target.parentElement!.innerHTML =
+                                            '<div class="w-full h-full flex items-center justify-center"><Eye class="w-6 h-6 text-gray-400" /></div>';
                                         }}
                                       />
                                     </div>
@@ -1372,17 +1692,24 @@ export default function CampanhaDetalhes() {
                 <div className="flex flex-col items-center justify-center py-12 space-y-4">
                   <Eye className="w-12 h-12 text-gray-400 mx-auto mb-2" />
                   <div className="text-center">
-                    <p className="text-gray-500 mb-1">Nenhum criativo encontrado para esta campanha.</p>
-                    <p className="text-sm text-gray-400">Os dados aparecerão aqui após a sincronização com o Facebook.</p>
+                    <p className="text-gray-500 mb-1">
+                      Nenhum criativo encontrado para esta campanha.
+                    </p>
+                    <p className="text-sm text-gray-400">
+                      Os dados aparecerão aqui após a sincronização com o
+                      Facebook.
+                    </p>
                   </div>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     onClick={handleSyncCampaign}
                     disabled={isSyncing}
                     className="mt-4"
                   >
-                    <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
-                    {isSyncing ? 'Sincronizando...' : 'Sincronizar Dados'}
+                    <RefreshCw
+                      className={`w-4 h-4 mr-2 ${isSyncing ? "animate-spin" : ""}`}
+                    />
+                    {isSyncing ? "Sincronizando..." : "Sincronizar Dados"}
                   </Button>
                 </div>
               )}
@@ -1396,7 +1723,7 @@ export default function CampanhaDetalhes() {
         <CampaignMetricsModal
           campaign={{
             ...campaign,
-            created_at: campaign.created_at || new Date().toISOString()
+            created_at: campaign.created_at || new Date().toISOString(),
           }}
           isOpen={showMetricsModal}
           onClose={() => setShowMetricsModal(false)}

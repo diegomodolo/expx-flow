@@ -1,19 +1,73 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
-import { Tag, Trash2, RefreshCw, Plus, Edit, X, Building2, Search, LayoutGrid, DatabaseIcon, MoreHorizontal, Trophy } from "lucide-react";
+import {
+  Tag,
+  Trash2,
+  RefreshCw,
+  Plus,
+  Edit,
+  X,
+  Building2,
+  Search,
+  LayoutGrid,
+  DatabaseIcon,
+  MoreHorizontal,
+  Trophy,
+} from "lucide-react";
 import { useLeadScoring } from "@/hooks/useLeadScoring";
 import { toast } from "sonner";
 import { ListaCnaeImportModal } from "./ListaCnaeImportModal";
@@ -53,11 +107,11 @@ interface FormData {
 }
 
 const SEGMENT_TYPES = [
-  { value: 'sector', label: 'Setor' },
-  { value: 'behavior', label: 'Comportamento' },
-  { value: 'location', label: 'Localização' },
-  { value: 'value', label: 'Valor' },
-  { value: 'custom', label: 'Personalizado' },
+  { value: "sector", label: "Setor" },
+  { value: "behavior", label: "Comportamento" },
+  { value: "location", label: "Localização" },
+  { value: "value", label: "Valor" },
+  { value: "custom", label: "Personalizado" },
 ];
 
 // Helper to fetch ALL assignments (paginated to avoid 1000 limit)
@@ -69,14 +123,14 @@ async function fetchAllAssignments(segmentId: string): Promise<string[]> {
 
   while (hasMore) {
     const { data, error } = await supabase
-      .from('lead_segment_assignments')
-      .select('lead_id')
-      .eq('segment_id', segmentId)
+      .from("lead_segment_assignments")
+      .select("lead_id")
+      .eq("segment_id", segmentId)
       .range(from, from + pageSize - 1);
 
     if (error) throw error;
     if (data && data.length > 0) {
-      allLeadIds.push(...data.map(a => a.lead_id));
+      allLeadIds.push(...data.map((a) => a.lead_id));
       from += pageSize;
       hasMore = data.length === pageSize;
     } else {
@@ -87,28 +141,46 @@ async function fetchAllAssignments(segmentId: string): Promise<string[]> {
   return allLeadIds;
 }
 
-export const LeadSegmentsDashboard = ({ 
+export const LeadSegmentsDashboard = ({
   companyId: propCompanyId,
   openCreateDialog,
-  onCreateDialogChange 
+  onCreateDialogChange,
 }: LeadSegmentsDashboardProps) => {
   const { activeCompany } = useCompany();
   const companyId = propCompanyId || activeCompany?.company_id;
-  
+
   const queryClient = useQueryClient();
   const { scoreAndSaveLead } = useLeadScoring();
-  const [recalculateProgressMap, setRecalculateProgressMap] = useState<Map<string, RecalculateProgress>>(new Map());
+  const [recalculateProgressMap, setRecalculateProgressMap] = useState<
+    Map<string, RecalculateProgress>
+  >(new Map());
 
   // Form state for create/edit dialog
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [formData, setFormData] = useState<FormData>({ name: '', description: '', segment_type: 'custom', cnaes: [] });
-  const [cnaeInput, setCnaeInput] = useState('');
+  const [formData, setFormData] = useState<FormData>({
+    name: "",
+    description: "",
+    segment_type: "custom",
+    cnaes: [],
+  });
+  const [cnaeInput, setCnaeInput] = useState("");
 
   // Modal states
-  const [importModalSegment, setImportModalSegment] = useState<{ id: string; name: string; cnaes: string[] } | null>(null);
-  const [importFromBaseSegment, setImportFromBaseSegment] = useState<{ id: string; name: string; cnaes: string[] } | null>(null);
-  const [deleteConfirmSegment, setDeleteConfirmSegment] = useState<{ id: string; name: string } | null>(null);
+  const [importModalSegment, setImportModalSegment] = useState<{
+    id: string;
+    name: string;
+    cnaes: string[];
+  } | null>(null);
+  const [importFromBaseSegment, setImportFromBaseSegment] = useState<{
+    id: string;
+    name: string;
+    cnaes: string[];
+  } | null>(null);
+  const [deleteConfirmSegment, setDeleteConfirmSegment] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   // Sync dialog state with external prop
   useEffect(() => {
@@ -126,24 +198,24 @@ export const LeadSegmentsDashboard = ({
 
   // Optimized query: fetch segments + lead counts only (no heavy lead data)
   const { data: segments, isLoading } = useQuery({
-    queryKey: ['lead-segments-dashboard', companyId],
+    queryKey: ["lead-segments-dashboard", companyId],
     queryFn: async () => {
       if (!companyId) return [];
 
       const { data: segmentsData } = await supabase
-        .from('lead_segments')
-        .select('*')
-        .eq('company_id', companyId)
-        .order('name');
+        .from("lead_segments")
+        .select("*")
+        .eq("company_id", companyId)
+        .order("name");
 
       if (!segmentsData?.length) return [];
 
       // Fetch lead counts per segment using a single count query per segment
       const metricsPromises = segmentsData.map(async (segment) => {
         const { count } = await supabase
-          .from('lead_segment_assignments')
-          .select('*', { count: 'exact', head: true })
-          .eq('segment_id', segment.id);
+          .from("lead_segment_assignments")
+          .select("*", { count: "exact", head: true })
+          .eq("segment_id", segment.id);
 
         return {
           id: segment.id,
@@ -160,113 +232,125 @@ export const LeadSegmentsDashboard = ({
 
       return Promise.all(metricsPromises);
     },
-    enabled: !!companyId
+    enabled: !!companyId,
   });
 
   // Mutations for CRUD
   const createMutation = useMutation({
     mutationFn: async (data: FormData) => {
       if (!companyId) throw new Error("Empresa não encontrada");
-      const { error } = await supabase
-        .from('lead_segments')
-        .insert({ 
-          company_id: companyId, 
-          name: data.name, 
-          description: data.description || null, 
-          segment_type: data.segment_type,
-          cnaes: data.cnaes
-        });
+      const { error } = await supabase.from("lead_segments").insert({
+        company_id: companyId,
+        name: data.name,
+        description: data.description || null,
+        segment_type: data.segment_type,
+        cnaes: data.cnaes,
+      });
       if (error) throw error;
     },
-    onSuccess: () => { 
-      queryClient.invalidateQueries({ queryKey: ['lead-segments-dashboard'] }); 
-      resetForm(); 
-      toast.success("Segmento criado!"); 
-    }
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["lead-segments-dashboard"] });
+      resetForm();
+      toast.success("Segmento criado!");
+    },
   });
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: FormData }) => {
       const { error } = await supabase
-        .from('lead_segments')
-        .update({ 
-          name: data.name, 
-          description: data.description || null, 
+        .from("lead_segments")
+        .update({
+          name: data.name,
+          description: data.description || null,
           segment_type: data.segment_type,
-          cnaes: data.cnaes
+          cnaes: data.cnaes,
         })
-        .eq('id', id);
+        .eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { 
-      queryClient.invalidateQueries({ queryKey: ['lead-segments-dashboard'] }); 
-      resetForm(); 
-      toast.success("Segmento atualizado!"); 
-    }
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["lead-segments-dashboard"] });
+      resetForm();
+      toast.success("Segmento atualizado!");
+    },
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => { 
-      const { error } = await supabase.from('lead_segments').delete().eq('id', id); 
-      if (error) throw error; 
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("lead_segments")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
     },
-    onSuccess: () => { 
-      queryClient.invalidateQueries({ queryKey: ['lead-segments-dashboard'] }); 
-      toast.success("Segmento removido!"); 
-    }
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["lead-segments-dashboard"] });
+      toast.success("Segmento removido!");
+    },
   });
 
-  const resetForm = () => { 
-    setFormData({ name: '', description: '', segment_type: 'custom', cnaes: [] }); 
-    setCnaeInput('');
-    setEditingId(null); 
-    setIsDialogOpen(false); 
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      description: "",
+      segment_type: "custom",
+      cnaes: [],
+    });
+    setCnaeInput("");
+    setEditingId(null);
+    setIsDialogOpen(false);
   };
 
-  const handleEdit = (seg: SegmentMetrics) => { 
-    setEditingId(seg.id); 
-    setFormData({ 
-      name: seg.name, 
-      description: seg.description || '', 
+  const handleEdit = (seg: SegmentMetrics) => {
+    setEditingId(seg.id);
+    setFormData({
+      name: seg.name,
+      description: seg.description || "",
       segment_type: seg.segment_type,
-      cnaes: seg.cnaes || []
-    }); 
-    setCnaeInput('');
-    setIsDialogOpen(true); 
+      cnaes: seg.cnaes || [],
+    });
+    setCnaeInput("");
+    setIsDialogOpen(true);
   };
 
   const handleSubmit = () => {
-    if (!formData.name.trim()) { toast.error("Digite um nome"); return; }
+    if (!formData.name.trim()) {
+      toast.error("Digite um nome");
+      return;
+    }
     if (editingId) updateMutation.mutate({ id: editingId, data: formData });
     else createMutation.mutate(formData);
   };
 
   const handleAddCnae = () => {
-    const cnae = cnaeInput.trim().replace(/\D/g, '');
+    const cnae = cnaeInput.trim().replace(/\D/g, "");
     if (!cnae) return;
     if (formData.cnaes.includes(cnae)) {
       toast.error("CNAE já adicionado");
       return;
     }
-    setFormData(prev => ({ ...prev, cnaes: [...prev.cnaes, cnae] }));
-    setCnaeInput('');
+    setFormData((prev) => ({ ...prev, cnaes: [...prev.cnaes, cnae] }));
+    setCnaeInput("");
   };
 
   const handleRemoveCnae = (cnaeToRemove: string) => {
-    setFormData(prev => ({ 
-      ...prev, 
-      cnaes: prev.cnaes.filter(c => c !== cnaeToRemove) 
+    setFormData((prev) => ({
+      ...prev,
+      cnaes: prev.cnaes.filter((c) => c !== cnaeToRemove),
     }));
   };
 
   const handleCnaeKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       e.preventDefault();
       handleAddCnae();
     }
   };
 
-  const handleRecalculateSegmentScores = async (segmentId: string, segmentName: string) => {
+  const handleRecalculateSegmentScores = async (
+    segmentId: string,
+    segmentName: string,
+  ) => {
     if (recalculateProgressMap.has(segmentId)) {
       toast.info(`Segmento "${segmentName}" já está sendo recalculado.`);
       return;
@@ -276,13 +360,20 @@ export const LeadSegmentsDashboard = ({
       const leadIds = await fetchAllAssignments(segmentId);
 
       if (leadIds.length === 0) {
-        toast.info(`Segmento "${segmentName}" não possui leads para recalcular.`);
+        toast.info(
+          `Segmento "${segmentName}" não possui leads para recalcular.`,
+        );
         return;
       }
 
-      setRecalculateProgressMap(prev => {
+      setRecalculateProgressMap((prev) => {
         const newMap = new Map(prev);
-        newMap.set(segmentId, { segmentId, segmentName, total: leadIds.length, processed: 0 });
+        newMap.set(segmentId, {
+          segmentId,
+          segmentName,
+          total: leadIds.length,
+          processed: 0,
+        });
         return newMap;
       });
 
@@ -292,23 +383,26 @@ export const LeadSegmentsDashboard = ({
       for (let i = 0; i < leadIds.length; i += batchSize) {
         const batchIds = leadIds.slice(i, i + batchSize);
         const { data: leadsData, error } = await supabase
-          .from('lead_master_pool')
-          .select('*')
-          .in('id', batchIds);
+          .from("lead_master_pool")
+          .select("*")
+          .in("id", batchIds);
 
         if (error) throw error;
 
         for (const lead of leadsData || []) {
           await scoreAndSaveLead(lead.id, lead);
           processed++;
-          
+
           if (processed % 10 === 0 || processed === leadIds.length) {
             const currentProcessed = processed;
-            setRecalculateProgressMap(prev => {
+            setRecalculateProgressMap((prev) => {
               const newMap = new Map(prev);
               const existing = newMap.get(segmentId);
               if (existing) {
-                newMap.set(segmentId, { ...existing, processed: currentProcessed });
+                newMap.set(segmentId, {
+                  ...existing,
+                  processed: currentProcessed,
+                });
               }
               return newMap;
             });
@@ -316,14 +410,16 @@ export const LeadSegmentsDashboard = ({
         }
       }
 
-      toast.success(`${processed} leads do segmento "${segmentName}" recalculados!`);
-      queryClient.invalidateQueries({ queryKey: ['lead-segments-dashboard'] });
-      queryClient.invalidateQueries({ queryKey: ['lead-pool'] });
+      toast.success(
+        `${processed} leads do segmento "${segmentName}" recalculados!`,
+      );
+      queryClient.invalidateQueries({ queryKey: ["lead-segments-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["lead-pool"] });
     } catch (error) {
-      console.error('Error recalculating segment scores:', error);
+      console.error("Error recalculating segment scores:", error);
       toast.error(`Erro ao recalcular scores do segmento "${segmentName}"`);
     } finally {
-      setRecalculateProgressMap(prev => {
+      setRecalculateProgressMap((prev) => {
         const newMap = new Map(prev);
         newMap.delete(segmentId);
         return newMap;
@@ -338,40 +434,52 @@ export const LeadSegmentsDashboard = ({
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>{editingId ? "Editar" : "Criar"} Segmento</DialogTitle>
-            <DialogDescription>Segmentos organizam leads por características.</DialogDescription>
+            <DialogDescription>
+              Segmentos organizam leads por características.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label>Nome</Label>
-              <Input 
-                placeholder="Ex: Leads Quentes" 
-                value={formData.name} 
-                onChange={(e) => setFormData(p => ({ ...p, name: e.target.value }))} 
+              <Input
+                placeholder="Ex: Leads Quentes"
+                value={formData.name}
+                onChange={(e) =>
+                  setFormData((p) => ({ ...p, name: e.target.value }))
+                }
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label>Tipo</Label>
-              <Select 
-                value={formData.segment_type} 
-                onValueChange={(v) => setFormData(p => ({ ...p, segment_type: v }))}
+              <Select
+                value={formData.segment_type}
+                onValueChange={(v) =>
+                  setFormData((p) => ({ ...p, segment_type: v }))
+                }
               >
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
-                  {SEGMENT_TYPES.map(t => (
-                    <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                  {SEGMENT_TYPES.map((t) => (
+                    <SelectItem key={t.value} value={t.value}>
+                      {t.label}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="space-y-2">
               <Label>Descrição</Label>
-              <Textarea 
-                placeholder="Descreva..." 
-                value={formData.description} 
-                onChange={(e) => setFormData(p => ({ ...p, description: e.target.value }))} 
-                rows={2} 
+              <Textarea
+                placeholder="Descreva..."
+                value={formData.description}
+                onChange={(e) =>
+                  setFormData((p) => ({ ...p, description: e.target.value }))
+                }
+                rows={2}
               />
             </div>
 
@@ -388,9 +496,9 @@ export const LeadSegmentsDashboard = ({
                   onKeyDown={handleCnaeKeyDown}
                   className="font-mono"
                 />
-                <Button 
-                  type="button" 
-                  variant="outline" 
+                <Button
+                  type="button"
+                  variant="outline"
                   onClick={handleAddCnae}
                   disabled={!cnaeInput.trim()}
                 >
@@ -398,15 +506,16 @@ export const LeadSegmentsDashboard = ({
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground">
-                Adicione os CNAEs relacionados a este segmento para usar na importação via ListaCNAE
+                Adicione os CNAEs relacionados a este segmento para usar na
+                importação via ListaCNAE
               </p>
-              
+
               {formData.cnaes.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-2">
                   {formData.cnaes.map((cnae) => (
-                    <Badge 
-                      key={cnae} 
-                      variant="secondary" 
+                    <Badge
+                      key={cnae}
+                      variant="secondary"
                       className="flex items-center gap-1 font-mono"
                     >
                       {cnae}
@@ -424,35 +533,43 @@ export const LeadSegmentsDashboard = ({
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={resetForm}>Cancelar</Button>
-            <Button 
-              onClick={handleSubmit} 
+            <Button variant="outline" onClick={resetForm}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleSubmit}
               disabled={createMutation.isPending || updateMutation.isPending}
             >
-              {createMutation.isPending || updateMutation.isPending ? "Salvando..." : "Salvar"}
+              {createMutation.isPending || updateMutation.isPending
+                ? "Salvando..."
+                : "Salvar"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={!!deleteConfirmSegment} onOpenChange={(open) => !open && setDeleteConfirmSegment(null)}>
+      <AlertDialog
+        open={!!deleteConfirmSegment}
+        onOpenChange={(open) => !open && setDeleteConfirmSegment(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Remover segmento?</AlertDialogTitle>
             <AlertDialogDescription>
-              O segmento "{deleteConfirmSegment?.name}" será removido. Os leads não serão removidos, apenas o segmento.
+              O segmento "{deleteConfirmSegment?.name}" será removido. Os leads
+              não serão removidos, apenas o segmento.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={() => {
                 if (deleteConfirmSegment) {
                   deleteMutation.mutate(deleteConfirmSegment.id);
                   setDeleteConfirmSegment(null);
                 }
-              }} 
+              }}
               className="bg-destructive text-destructive-foreground"
             >
               Remover
@@ -477,8 +594,8 @@ export const LeadSegmentsDashboard = ({
           {recalculateProgressMap.size > 0 && (
             <div className="mb-6 space-y-3">
               {Array.from(recalculateProgressMap.values()).map((progress) => (
-                <div 
-                  key={progress.segmentId} 
+                <div
+                  key={progress.segmentId}
                   className="p-4 border rounded-lg bg-muted/50 animate-fade-in"
                 >
                   <div className="flex items-center justify-between mb-2">
@@ -489,12 +606,13 @@ export const LeadSegmentsDashboard = ({
                       {progress.processed} / {progress.total}
                     </span>
                   </div>
-                  <Progress 
-                    value={(progress.processed / progress.total) * 100} 
+                  <Progress
+                    value={(progress.processed / progress.total) * 100}
                     className="h-2"
                   />
                   <p className="text-xs text-muted-foreground mt-2">
-                    {Math.round((progress.processed / progress.total) * 100)}% concluído
+                    {Math.round((progress.processed / progress.total) * 100)}%
+                    concluído
                   </p>
                 </div>
               ))}
@@ -513,7 +631,9 @@ export const LeadSegmentsDashboard = ({
                     <TableHead>Segmento</TableHead>
                     <TableHead>Tipo</TableHead>
                     <TableHead className="text-right">Leads</TableHead>
-                    <TableHead className="text-center w-[60px]">Ações</TableHead>
+                    <TableHead className="text-center w-[60px]">
+                      Ações
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
 
@@ -529,7 +649,11 @@ export const LeadSegmentsDashboard = ({
                           />
                           <div className="min-w-0">
                             <div className="font-medium flex items-center gap-2">
-                              <span aria-hidden="true">{segment.icon === 'tag' ? '🏷️' : (segment.icon || '📁')}</span>
+                              <span aria-hidden="true">
+                                {segment.icon === "tag"
+                                  ? "🏷️"
+                                  : segment.icon || "📁"}
+                              </span>
                               <span className="truncate">{segment.name}</span>
                             </div>
                             {segment.description && (
@@ -543,7 +667,9 @@ export const LeadSegmentsDashboard = ({
 
                       <TableCell>
                         <Badge variant="secondary">
-                          {SEGMENT_TYPES.find(t => t.value === segment.segment_type)?.label || segment.segment_type}
+                          {SEGMENT_TYPES.find(
+                            (t) => t.value === segment.segment_type,
+                          )?.label || segment.segment_type}
                         </Badge>
                       </TableCell>
 
@@ -556,33 +682,68 @@ export const LeadSegmentsDashboard = ({
                       <TableCell className="text-center">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Button
+                              aria-label="Ação"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                            >
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleEdit(segment)}>
+                            <DropdownMenuItem
+                              onClick={() => handleEdit(segment)}
+                            >
                               <Edit className="h-4 w-4 mr-2" />
                               Editar segmento
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleRecalculateSegmentScores(segment.id, segment.name)}>
+                            <DropdownMenuItem
+                              onClick={() =>
+                                handleRecalculateSegmentScores(
+                                  segment.id,
+                                  segment.name,
+                                )
+                              }
+                            >
                               <RefreshCw className="h-4 w-4 mr-2" />
                               Recalcular scores
                             </DropdownMenuItem>
                             {segment.cnaes && segment.cnaes.length > 0 && (
-                              <DropdownMenuItem onClick={() => setImportModalSegment({ id: segment.id, name: segment.name, cnaes: segment.cnaes })}>
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  setImportModalSegment({
+                                    id: segment.id,
+                                    name: segment.name,
+                                    cnaes: segment.cnaes,
+                                  })
+                                }
+                              >
                                 <Search className="h-4 w-4 mr-2" />
                                 Buscar na ListaCNAE
                               </DropdownMenuItem>
                             )}
-                            <DropdownMenuItem onClick={() => setImportFromBaseSegment({ id: segment.id, name: segment.name, cnaes: segment.cnaes || [] })}>
+                            <DropdownMenuItem
+                              onClick={() =>
+                                setImportFromBaseSegment({
+                                  id: segment.id,
+                                  name: segment.name,
+                                  cnaes: segment.cnaes || [],
+                                })
+                              }
+                            >
                               <DatabaseIcon className="h-4 w-4 mr-2" />
                               Importar da base
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                               className="text-destructive focus:text-destructive"
-                              onClick={() => setDeleteConfirmSegment({ id: segment.id, name: segment.name })}
+                              onClick={() =>
+                                setDeleteConfirmSegment({
+                                  id: segment.id,
+                                  name: segment.name,
+                                })
+                              }
                             >
                               <Trash2 className="h-4 w-4 mr-2" />
                               Remover segmento

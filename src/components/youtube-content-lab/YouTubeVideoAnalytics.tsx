@@ -2,9 +2,30 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { YouTubeVideo, PeriodOption, SortOption } from "@/hooks/useYouTubeAnalytics";
+import {
+  YouTubeVideo,
+  PeriodOption,
+  SortOption,
+} from "@/hooks/useYouTubeAnalytics";
 import { YouTubeChannel } from "@/hooks/useYouTubeChannels";
-import { Eye, ThumbsUp, MessageCircle, TrendingUp, FileText, Loader2, ExternalLink, BarChart3, Clock, Hash, Youtube, X, RefreshCw, Film, Zap, DollarSign } from "lucide-react";
+import {
+  Eye,
+  ThumbsUp,
+  MessageCircle,
+  TrendingUp,
+  FileText,
+  Loader2,
+  ExternalLink,
+  BarChart3,
+  Clock,
+  Hash,
+  Youtube,
+  X,
+  RefreshCw,
+  Film,
+  Zap,
+  DollarSign,
+} from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { YouTubeAnalysisFilters } from "./YouTubeAnalysisFilters";
 import { YouTubeMonetizationRanking } from "./YouTubeMonetizationRanking";
@@ -68,15 +89,17 @@ export function YouTubeVideoAnalytics({
   refreshing,
 }: YouTubeVideoAnalyticsProps) {
   const [analysisTab, setAnalysisTab] = useState("ranking");
-  const [contentTypeFilter, setContentTypeFilter] = useState<'all' | 'videos' | 'shorts'>('all');
+  const [contentTypeFilter, setContentTypeFilter] = useState<
+    "all" | "videos" | "shorts"
+  >("all");
 
   const filteredByContentType = videos.filter((v) => {
     const duration = v.duration_seconds ?? 0;
     // YouTube Shorts: até 3 minutos (180s)
     const isShort = duration > 0 && duration <= 180;
-    
-    if (contentTypeFilter === 'shorts') return isShort;
-    if (contentTypeFilter === 'videos') return !isShort || duration === 0;
+
+    if (contentTypeFilter === "shorts") return isShort;
+    if (contentTypeFilter === "videos") return !isShort || duration === 0;
     return true;
   });
 
@@ -138,8 +161,10 @@ export function YouTubeVideoAnalytics({
                   disabled={refreshing || channels.length === 0}
                   className="flex items-center gap-2 shrink-0"
                 >
-                  <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-                  {refreshing ? 'Analisando...' : 'Refazer Análise'}
+                  <RefreshCw
+                    className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
+                  />
+                  {refreshing ? "Analisando..." : "Refazer Análise"}
                 </Button>
               )}
             </div>
@@ -171,7 +196,9 @@ export function YouTubeVideoAnalytics({
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Views</p>
-                <p className="text-2xl font-bold">{formatNumber(metrics.totalViews)}</p>
+                <p className="text-2xl font-bold">
+                  {formatNumber(metrics.totalViews)}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -185,7 +212,9 @@ export function YouTubeVideoAnalytics({
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Curtidas</p>
-                <p className="text-2xl font-bold">{formatNumber(metrics.totalLikes)}</p>
+                <p className="text-2xl font-bold">
+                  {formatNumber(metrics.totalLikes)}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -199,7 +228,9 @@ export function YouTubeVideoAnalytics({
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Comentários</p>
-                <p className="text-2xl font-bold">{formatNumber(metrics.totalComments)}</p>
+                <p className="text-2xl font-bold">
+                  {formatNumber(metrics.totalComments)}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -213,7 +244,9 @@ export function YouTubeVideoAnalytics({
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Engajamento</p>
-                <p className="text-2xl font-bold">{metrics.avgEngagementRate.toFixed(2)}%</p>
+                <p className="text-2xl font-bold">
+                  {metrics.avgEngagementRate.toFixed(2)}%
+                </p>
               </div>
             </div>
           </CardContent>
@@ -227,7 +260,10 @@ export function YouTubeVideoAnalytics({
             <TrendingUp className="h-4 w-4" />
             <span className="hidden sm:inline">Ranking Vídeos</span>
           </TabsTrigger>
-          <TabsTrigger value="ranking-channels" className="flex items-center gap-2">
+          <TabsTrigger
+            value="ranking-channels"
+            className="flex items-center gap-2"
+          >
             <Youtube className="h-4 w-4" />
             <span className="hidden sm:inline">Ranking Canais</span>
           </TabsTrigger>
@@ -254,22 +290,26 @@ export function YouTubeVideoAnalytics({
           <Card>
             <CardHeader className="space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-               <CardTitle>Vídeos de Maior Destaque</CardTitle>
+                <CardTitle>Vídeos de Maior Destaque</CardTitle>
                 <div className="flex flex-wrap gap-2">
                   {/* Content type filter */}
                   <div className="flex items-center gap-1 mr-2 border-r pr-3">
                     <Button
                       size="sm"
-                      variant={contentTypeFilter === 'all' ? 'default' : 'outline'}
-                      onClick={() => setContentTypeFilter('all')}
+                      variant={
+                        contentTypeFilter === "all" ? "default" : "outline"
+                      }
+                      onClick={() => setContentTypeFilter("all")}
                       className="h-7 text-xs"
                     >
                       Todos
                     </Button>
                     <Button
                       size="sm"
-                      variant={contentTypeFilter === 'videos' ? 'default' : 'outline'}
-                      onClick={() => setContentTypeFilter('videos')}
+                      variant={
+                        contentTypeFilter === "videos" ? "default" : "outline"
+                      }
+                      onClick={() => setContentTypeFilter("videos")}
                       className="h-7 text-xs flex items-center gap-1"
                     >
                       <Film className="h-3.5 w-3.5" />
@@ -277,8 +317,10 @@ export function YouTubeVideoAnalytics({
                     </Button>
                     <Button
                       size="sm"
-                      variant={contentTypeFilter === 'shorts' ? 'default' : 'outline'}
-                      onClick={() => setContentTypeFilter('shorts')}
+                      variant={
+                        contentTypeFilter === "shorts" ? "default" : "outline"
+                      }
+                      onClick={() => setContentTypeFilter("shorts")}
                       className="h-7 text-xs flex items-center gap-1"
                     >
                       <Zap className="h-3.5 w-3.5" />
@@ -287,8 +329,8 @@ export function YouTubeVideoAnalytics({
                   </div>
                   <Button
                     size="sm"
-                    variant={sortBy === 'engagement' ? 'default' : 'outline'}
-                    onClick={() => onSortChange('engagement')}
+                    variant={sortBy === "engagement" ? "default" : "outline"}
+                    onClick={() => onSortChange("engagement")}
                     className="flex items-center gap-1.5"
                   >
                     <TrendingUp className="h-4 w-4" />
@@ -296,8 +338,8 @@ export function YouTubeVideoAnalytics({
                   </Button>
                   <Button
                     size="sm"
-                    variant={sortBy === 'views' ? 'default' : 'outline'}
-                    onClick={() => onSortChange('views')}
+                    variant={sortBy === "views" ? "default" : "outline"}
+                    onClick={() => onSortChange("views")}
                     className="flex items-center gap-1.5"
                   >
                     <Eye className="h-4 w-4" />
@@ -305,8 +347,8 @@ export function YouTubeVideoAnalytics({
                   </Button>
                   <Button
                     size="sm"
-                    variant={sortBy === 'likes' ? 'default' : 'outline'}
-                    onClick={() => onSortChange('likes')}
+                    variant={sortBy === "likes" ? "default" : "outline"}
+                    onClick={() => onSortChange("likes")}
                     className="flex items-center gap-1.5"
                   >
                     <ThumbsUp className="h-4 w-4" />
@@ -314,8 +356,8 @@ export function YouTubeVideoAnalytics({
                   </Button>
                   <Button
                     size="sm"
-                    variant={sortBy === 'comments' ? 'default' : 'outline'}
-                    onClick={() => onSortChange('comments')}
+                    variant={sortBy === "comments" ? "default" : "outline"}
+                    onClick={() => onSortChange("comments")}
                     className="flex items-center gap-1.5"
                   >
                     <MessageCircle className="h-4 w-4" />
@@ -323,7 +365,6 @@ export function YouTubeVideoAnalytics({
                   </Button>
                 </div>
               </div>
-              
             </CardHeader>
             <CardContent>
               {videos.length === 0 ? (
@@ -340,7 +381,7 @@ export function YouTubeVideoAnalytics({
                       <div className="text-lg font-bold text-muted-foreground w-6">
                         {index + 1}
                       </div>
-                      
+
                       <div className="w-32 h-20 rounded-md overflow-hidden bg-muted flex-shrink-0">
                         {video.thumbnail_url ? (
                           <img
@@ -356,8 +397,8 @@ export function YouTubeVideoAnalytics({
                       </div>
 
                       <div className="flex-1 min-w-0">
-                        <TranslatedTitle 
-                          title={video.title} 
+                        <TranslatedTitle
+                          title={video.title}
                           className="font-medium"
                         />
                         {video.channel_name && (
@@ -366,19 +407,29 @@ export function YouTubeVideoAnalytics({
                           </p>
                         )}
                         <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-                          <span className={`flex items-center gap-1 ${sortBy === 'views' ? 'text-primary font-semibold' : ''}`}>
+                          <span
+                            className={`flex items-center gap-1 ${sortBy === "views" ? "text-primary font-semibold" : ""}`}
+                          >
                             <Eye className="h-3.5 w-3.5" />
                             {formatNumber(video.view_count)}
                           </span>
-                          <span className={`flex items-center gap-1 ${sortBy === 'likes' ? 'text-primary font-semibold' : ''}`}>
+                          <span
+                            className={`flex items-center gap-1 ${sortBy === "likes" ? "text-primary font-semibold" : ""}`}
+                          >
                             <ThumbsUp className="h-3.5 w-3.5" />
                             {formatNumber(video.like_count)}
                           </span>
-                          <span className={`flex items-center gap-1 ${sortBy === 'comments' ? 'text-primary font-semibold' : ''}`}>
+                          <span
+                            className={`flex items-center gap-1 ${sortBy === "comments" ? "text-primary font-semibold" : ""}`}
+                          >
                             <MessageCircle className="h-3.5 w-3.5" />
                             {formatNumber(video.comment_count)}
                           </span>
-                          <Badge variant={sortBy === 'engagement' ? 'default' : 'secondary'}>
+                          <Badge
+                            variant={
+                              sortBy === "engagement" ? "default" : "secondary"
+                            }
+                          >
                             {(video.engagement_rate || 0).toFixed(2)}% eng.
                           </Badge>
                         </div>
@@ -394,9 +445,15 @@ export function YouTubeVideoAnalytics({
                           Roteiro
                         </Button>
                         <Button
+                          aria-label="Fechar"
                           size="icon"
                           variant="ghost"
-                          onClick={() => window.open(`https://youtube.com/watch?v=${video.video_id}`, '_blank')}
+                          onClick={() =>
+                            window.open(
+                              `https://youtube.com/watch?v=${video.video_id}`,
+                              "_blank",
+                            )
+                          }
                         >
                           <ExternalLink className="h-4 w-4" />
                         </Button>

@@ -177,6 +177,7 @@ export function CampaignBuilderModal({
                 <p className="text-xs text-muted-foreground">{clientName}</p>
               </div>
               <Button
+                aria-label="Fechar"
                 variant="ghost"
                 size="icon"
                 onClick={handleClose}

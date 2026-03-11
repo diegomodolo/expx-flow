@@ -25,7 +25,11 @@ export interface GenerationData {
   generatedContent?: string;
 }
 
-export function ContentModal({ isOpen, onClose, contentType }: ContentModalProps) {
+export function ContentModal({
+  isOpen,
+  onClose,
+  contentType,
+}: ContentModalProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [data, setData] = useState<GenerationData>({
     clientId: "",
@@ -60,7 +64,7 @@ export function ContentModal({ isOpen, onClose, contentType }: ContentModalProps
   };
 
   const updateData = (key: keyof GenerationData, value: string) => {
-    setData(prev => ({ ...prev, [key]: value }));
+    setData((prev) => ({ ...prev, [key]: value }));
   };
 
   const canProceedFromStep1 = data.clientId !== "";
@@ -74,7 +78,10 @@ export function ContentModal({ isOpen, onClose, contentType }: ContentModalProps
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" style={{ zIndex: 50 }}>
+      <DialogContent
+        className="max-w-4xl max-h-[90vh] overflow-y-auto"
+        style={{ zIndex: 50 }}
+      >
         <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
           <div className="space-y-1">
             <DialogTitle className="flex items-center gap-2">
@@ -86,6 +93,7 @@ export function ContentModal({ isOpen, onClose, contentType }: ContentModalProps
             </p>
           </div>
           <Button
+            aria-label="Fechar"
             variant="ghost"
             size="icon"
             onClick={handleClose}
@@ -120,7 +128,9 @@ export function ContentModal({ isOpen, onClose, contentType }: ContentModalProps
                 data={data}
                 isGenerating={isGenerating}
                 setIsGenerating={setIsGenerating}
-                onContentGenerated={(content) => updateData("generatedContent", content)}
+                onContentGenerated={(content) =>
+                  updateData("generatedContent", content)
+                }
               />
             )}
           </div>

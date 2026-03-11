@@ -1,9 +1,5 @@
 import { useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -94,17 +90,49 @@ const typeLabels: Record<string, string> = {
 };
 
 const STATUS_OPTIONS = [
-  { value: "pending", label: "Pendente", icon: Clock, color: "text-yellow-600" },
-  { value: "approved", label: "Aprovado", icon: CheckCircle, color: "text-green-600" },
-  { value: "rejected", label: "Rejeitado", icon: XCircle, color: "text-red-600" },
-  { value: "published", label: "Publicado", icon: Send, color: "text-blue-600" },
+  {
+    value: "pending",
+    label: "Pendente",
+    icon: Clock,
+    color: "text-yellow-600",
+  },
+  {
+    value: "approved",
+    label: "Aprovado",
+    icon: CheckCircle,
+    color: "text-green-600",
+  },
+  {
+    value: "rejected",
+    label: "Rejeitado",
+    icon: XCircle,
+    color: "text-red-600",
+  },
+  {
+    value: "published",
+    label: "Publicado",
+    icon: Send,
+    color: "text-blue-600",
+  },
 ];
 
 const STATUS_BADGES: Record<string, { label: string; className: string }> = {
-  pending: { label: "Pendente", className: "bg-yellow-100 text-yellow-700 border-yellow-200" },
-  approved: { label: "Aprovado", className: "bg-green-100 text-green-700 border-green-200" },
-  rejected: { label: "Rejeitado", className: "bg-red-100 text-red-700 border-red-200" },
-  published: { label: "Publicado", className: "bg-blue-100 text-blue-700 border-blue-200" },
+  pending: {
+    label: "Pendente",
+    className: "bg-yellow-100 text-yellow-700 border-yellow-200",
+  },
+  approved: {
+    label: "Aprovado",
+    className: "bg-green-100 text-green-700 border-green-200",
+  },
+  rejected: {
+    label: "Rejeitado",
+    className: "bg-red-100 text-red-700 border-red-200",
+  },
+  published: {
+    label: "Publicado",
+    className: "bg-blue-100 text-blue-700 border-blue-200",
+  },
 };
 
 export function CarouselPreviewModal({
@@ -122,10 +150,14 @@ export function CarouselPreviewModal({
   onCarouselUpdated,
 }: CarouselPreviewModalProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [previewPlatform, setPreviewPlatform] = useState<'instagram' | 'facebook'>('instagram');
+  const [previewPlatform, setPreviewPlatform] = useState<
+    "instagram" | "facebook"
+  >("instagram");
   const [showRegenerateModal, setShowRegenerateModal] = useState(false);
   const [showImageEditorModal, setShowImageEditorModal] = useState(false);
-  const [editingSlideIndex, setEditingSlideIndex] = useState<number | null>(null);
+  const [editingSlideIndex, setEditingSlideIndex] = useState<number | null>(
+    null,
+  );
 
   const slides = carousel.slides || [];
   const slide = slides[currentSlide];
@@ -138,7 +170,7 @@ export function CarouselPreviewModal({
 
   const handleImageEditorSave = async (newImages: string[]) => {
     if (editingSlideIndex === null || !newImages[0]) return;
-    
+
     try {
       // Update the specific slide in the database
       const updatedSlides = [...slides];
@@ -172,9 +204,16 @@ export function CarouselPreviewModal({
   // Check for missing images
   const getMissingImagesInfo = () => {
     const totalSlides = slides.length;
-    const slidesWithImages = slides.filter(s => s.image_url && s.image_url.trim() !== '').length;
+    const slidesWithImages = slides.filter(
+      (s) => s.image_url && s.image_url.trim() !== "",
+    ).length;
     const missingCount = totalSlides - slidesWithImages;
-    return { totalSlides, slidesWithImages, missingCount, hasMissing: missingCount > 0 };
+    return {
+      totalSlides,
+      slidesWithImages,
+      missingCount,
+      hasMissing: missingCount > 0,
+    };
   };
 
   const missingInfo = getMissingImagesInfo();
@@ -193,22 +232,25 @@ export function CarouselPreviewModal({
     setCurrentSlide((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
   };
 
-  const clientName = carousel.clients?.name || 'marca_oficial';
-  const accountName = clientName.toLowerCase().replace(/\s+/g, '_');
+  const clientName = carousel.clients?.name || "marca_oficial";
+  const accountName = clientName.toLowerCase().replace(/\s+/g, "_");
 
   const handleStatusChange = (newStatus: string) => {
     if (onStatusChange) {
       onStatusChange(newStatus);
-    } else if (newStatus === 'approved' && onApprove) {
+    } else if (newStatus === "approved" && onApprove) {
       onApprove();
-    } else if (newStatus === 'rejected' && onReject) {
+    } else if (newStatus === "rejected" && onReject) {
       onReject();
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[95vh] p-0 overflow-hidden" hideCloseButton>
+      <DialogContent
+        className="max-w-6xl max-h-[95vh] p-0 overflow-hidden"
+        hideCloseButton
+      >
         <VisuallyHidden>
           <DialogTitle>Preview do Carrossel</DialogTitle>
         </VisuallyHidden>
@@ -221,6 +263,7 @@ export function CarouselPreviewModal({
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-lg font-semibold">Detalhes do Carrossel</h2>
                 <Button
+                  aria-label="Fechar"
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8"
@@ -229,21 +272,37 @@ export function CarouselPreviewModal({
                   <XCircle className="h-4 w-4" />
                 </Button>
               </div>
-              
+
               {/* Status Selector */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-muted-foreground">Status</label>
-                <Select value={carousel.status} onValueChange={handleStatusChange}>
+                <label className="text-sm font-medium text-muted-foreground">
+                  Status
+                </label>
+                <Select
+                  value={carousel.status}
+                  onValueChange={handleStatusChange}
+                >
                   <SelectTrigger className="w-full">
                     <SelectValue>
                       <div className="flex items-center gap-2">
                         {(() => {
-                          const StatusIcon = STATUS_OPTIONS.find(s => s.value === carousel.status)?.icon || Clock;
-                          const statusColor = STATUS_OPTIONS.find(s => s.value === carousel.status)?.color || "";
+                          const StatusIcon =
+                            STATUS_OPTIONS.find(
+                              (s) => s.value === carousel.status,
+                            )?.icon || Clock;
+                          const statusColor =
+                            STATUS_OPTIONS.find(
+                              (s) => s.value === carousel.status,
+                            )?.color || "";
                           return (
                             <>
-                              <StatusIcon className={`h-4 w-4 ${statusColor}`} />
-                              <span>{STATUS_BADGES[carousel.status]?.label || "Pendente"}</span>
+                              <StatusIcon
+                                className={`h-4 w-4 ${statusColor}`}
+                              />
+                              <span>
+                                {STATUS_BADGES[carousel.status]?.label ||
+                                  "Pendente"}
+                              </span>
                             </>
                           );
                         })()}
@@ -273,27 +332,46 @@ export function CarouselPreviewModal({
                 {/* Metadata */}
                 <div className="space-y-3">
                   <div>
-                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Tipo</label>
-                    <p className="text-sm font-medium mt-1">{typeLabels[carousel.carousel_type] || carousel.carousel_type}</p>
+                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      Tipo
+                    </label>
+                    <p className="text-sm font-medium mt-1">
+                      {typeLabels[carousel.carousel_type] ||
+                        carousel.carousel_type}
+                    </p>
                   </div>
-                  
+
                   {carousel.theme && (
                     <div>
-                      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Tema</label>
-                      <p className="text-sm font-medium mt-1">{carousel.theme}</p>
+                      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                        Tema
+                      </label>
+                      <p className="text-sm font-medium mt-1">
+                        {carousel.theme}
+                      </p>
                     </div>
                   )}
 
                   <div>
-                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Slides</label>
-                    <p className="text-sm font-medium mt-1">{slides.length} slides</p>
+                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      Slides
+                    </label>
+                    <p className="text-sm font-medium mt-1">
+                      {slides.length} slides
+                    </p>
                   </div>
 
                   {carousel.generated_at && (
                     <div>
-                      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Gerado em</label>
+                      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                        Gerado em
+                      </label>
                       <p className="text-sm font-medium mt-1">
-                        {format(new Date(carousel.generated_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                        {format(
+                          new Date(carousel.generated_at),
+                          "dd/MM/yyyy 'às' HH:mm",
+                          { locale: ptBR },
+                        )}
                       </p>
                     </div>
                   )}
@@ -305,7 +383,8 @@ export function CarouselPreviewModal({
                     <div className="flex items-center gap-2 text-orange-700 dark:text-orange-400 mb-2">
                       <ImageOff className="h-4 w-4" />
                       <span className="text-sm font-medium">
-                        {missingInfo.missingCount} de {missingInfo.totalSlides} imagens pendentes
+                        {missingInfo.missingCount} de {missingInfo.totalSlides}{" "}
+                        imagens pendentes
                       </span>
                     </div>
                     <Button
@@ -325,23 +404,33 @@ export function CarouselPreviewModal({
                 {/* Caption */}
                 {carousel.caption && (
                   <div>
-                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Legenda</label>
-                    <p className="text-sm mt-1 whitespace-pre-wrap">{carousel.caption}</p>
+                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      Legenda
+                    </label>
+                    <p className="text-sm mt-1 whitespace-pre-wrap">
+                      {carousel.caption}
+                    </p>
                   </div>
                 )}
 
                 {/* Hashtags */}
                 {carousel.hashtags && (
                   <div>
-                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Hashtags</label>
-                    <p className="text-sm mt-1 text-primary">{carousel.hashtags}</p>
+                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      Hashtags
+                    </label>
+                    <p className="text-sm mt-1 text-primary">
+                      {carousel.hashtags}
+                    </p>
                   </div>
                 )}
 
                 {/* CTA */}
                 {carousel.cta_text && (
                   <div>
-                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">CTA</label>
+                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      CTA
+                    </label>
                     <p className="text-sm mt-1">{carousel.cta_text}</p>
                   </div>
                 )}
@@ -350,7 +439,7 @@ export function CarouselPreviewModal({
 
             {/* Action Buttons */}
             <div className="p-4 border-t bg-background space-y-3">
-              <Button 
+              <Button
                 className="w-full bg-primary hover:bg-primary/90"
                 onClick={onPublishNow}
               >
@@ -359,17 +448,11 @@ export function CarouselPreviewModal({
               </Button>
 
               <div className="grid grid-cols-2 gap-2">
-                <Button 
-                  variant="outline" 
-                  onClick={onSchedule}
-                >
+                <Button variant="outline" onClick={onSchedule}>
                   <Calendar className="h-4 w-4 mr-2" />
                   Agendar
                 </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={onSendToPresentation}
-                >
+                <Button variant="outline" onClick={onSendToPresentation}>
                   <FileText className="h-4 w-4 mr-2" />
                   Apresentação
                 </Button>
@@ -381,13 +464,24 @@ export function CarouselPreviewModal({
           <div className="flex-1 flex flex-col bg-background min-w-0">
             {/* Platform Tabs */}
             <div className="p-4 border-b">
-              <Tabs value={previewPlatform} onValueChange={(v) => setPreviewPlatform(v as 'instagram' | 'facebook')}>
+              <Tabs
+                value={previewPlatform}
+                onValueChange={(v) =>
+                  setPreviewPlatform(v as "instagram" | "facebook")
+                }
+              >
                 <TabsList className="grid w-full max-w-xs grid-cols-2">
-                  <TabsTrigger value="instagram" className="flex items-center gap-2">
+                  <TabsTrigger
+                    value="instagram"
+                    className="flex items-center gap-2"
+                  >
                     <Instagram className="h-4 w-4" />
                     Instagram
                   </TabsTrigger>
-                  <TabsTrigger value="facebook" className="flex items-center gap-2">
+                  <TabsTrigger
+                    value="facebook"
+                    className="flex items-center gap-2"
+                  >
                     <Facebook className="h-4 w-4" />
                     Facebook
                   </TabsTrigger>
@@ -410,7 +504,9 @@ export function CarouselPreviewModal({
                       </div>
                     </div>
                     <div className="flex-1">
-                      <span className="font-semibold text-sm">{accountName}</span>
+                      <span className="font-semibold text-sm">
+                        {accountName}
+                      </span>
                     </div>
                     <MoreHorizontal className="h-5 w-5 text-muted-foreground" />
                   </div>
@@ -427,7 +523,9 @@ export function CarouselPreviewModal({
                       <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-violet-500/20 to-violet-500/5 p-6">
                         <Layers className="h-16 w-16 text-violet-500/50 mb-4" />
                         {slide?.headline && (
-                          <p className="text-center font-semibold text-lg">{slide.headline}</p>
+                          <p className="text-center font-semibold text-lg">
+                            {slide.headline}
+                          </p>
                         )}
                         {(slide?.body_text || slide?.body) && (
                           <p className="text-center text-sm text-muted-foreground mt-2">
@@ -441,6 +539,7 @@ export function CarouselPreviewModal({
                     {slides.length > 1 && (
                       <>
                         <Button
+                          aria-label="Voltar"
                           variant="ghost"
                           size="icon"
                           className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full h-8 w-8"
@@ -449,6 +548,7 @@ export function CarouselPreviewModal({
                           <ChevronLeft className="h-5 w-5" />
                         </Button>
                         <Button
+                          aria-label="Avançar"
                           variant="ghost"
                           size="icon"
                           className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full h-8 w-8"
@@ -463,7 +563,9 @@ export function CarouselPreviewModal({
                             <button
                               key={idx}
                               className={`w-1.5 h-1.5 rounded-full transition-all ${
-                                idx === currentSlide ? 'bg-white scale-125' : 'bg-white/50'
+                                idx === currentSlide
+                                  ? "bg-white scale-125"
+                                  : "bg-white/50"
                               }`}
                               onClick={() => setCurrentSlide(idx)}
                             />
@@ -494,19 +596,26 @@ export function CarouselPreviewModal({
 
                     {/* Caption */}
                     <div className="text-sm">
-                      <span className="font-semibold">{accountName}</span>{' '}
+                      <span className="font-semibold">{accountName}</span>{" "}
                       <span className="text-foreground">
-                        {carousel.caption || slide?.body_text || slide?.body || 'Sem legenda'}
+                        {carousel.caption ||
+                          slide?.body_text ||
+                          slide?.body ||
+                          "Sem legenda"}
                       </span>
                     </div>
 
                     {/* Hashtags */}
                     {carousel.hashtags && (
-                      <p className="text-sm text-primary">{carousel.hashtags}</p>
+                      <p className="text-sm text-primary">
+                        {carousel.hashtags}
+                      </p>
                     )}
 
                     {/* View Comments */}
-                    <p className="text-sm text-muted-foreground">Ver todos os 42 comentários</p>
+                    <p className="text-sm text-muted-foreground">
+                      Ver todos os 42 comentários
+                    </p>
                   </div>
                 </div>
               </div>
@@ -521,9 +630,9 @@ export function CarouselPreviewModal({
                       <button
                         onClick={() => setCurrentSlide(idx)}
                         className={`relative w-16 h-20 rounded-lg overflow-hidden border-2 transition-all ${
-                          idx === currentSlide 
-                            ? 'border-primary ring-2 ring-primary/20' 
-                            : 'border-transparent hover:border-muted-foreground/30'
+                          idx === currentSlide
+                            ? "border-primary ring-2 ring-primary/20"
+                            : "border-transparent hover:border-muted-foreground/30"
                         }`}
                       >
                         {s.image_url ? (
@@ -541,10 +650,11 @@ export function CarouselPreviewModal({
                           {idx + 1}
                         </div>
                       </button>
-                      
+
                       {/* Edit button overlay */}
                       {s.image_url && clientId && companyId && (
                         <Button
+                          aria-label="Avançar"
                           variant="secondary"
                           size="icon"
                           className="absolute top-0.5 right-0.5 h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity bg-background/90 hover:bg-background shadow-sm"
@@ -576,19 +686,22 @@ export function CarouselPreviewModal({
       />
 
       {/* Image Editor Modal */}
-      {editingSlideIndex !== null && slides[editingSlideIndex]?.image_url && clientId && companyId && (
-        <ImageEditorModal
-          open={showImageEditorModal}
-          onOpenChange={(open) => {
-            setShowImageEditorModal(open);
-            if (!open) setEditingSlideIndex(null);
-          }}
-          images={[slides[editingSlideIndex].image_url!]}
-          onSave={handleImageEditorSave}
-          clientId={clientId}
-          companyId={companyId}
-        />
-      )}
+      {editingSlideIndex !== null &&
+        slides[editingSlideIndex]?.image_url &&
+        clientId &&
+        companyId && (
+          <ImageEditorModal
+            open={showImageEditorModal}
+            onOpenChange={(open) => {
+              setShowImageEditorModal(open);
+              if (!open) setEditingSlideIndex(null);
+            }}
+            images={[slides[editingSlideIndex].image_url!]}
+            onSave={handleImageEditorSave}
+            clientId={clientId}
+            companyId={companyId}
+          />
+        )}
     </Dialog>
   );
 }

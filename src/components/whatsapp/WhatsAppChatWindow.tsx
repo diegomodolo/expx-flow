@@ -1,7 +1,10 @@
 import { useRef, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { WhatsAppConversation } from "@/hooks/useWhatsAppConversations";
-import { useWhatsAppMessages, MediaAttachment } from "@/hooks/useWhatsAppMessages";
+import {
+  useWhatsAppMessages,
+  MediaAttachment,
+} from "@/hooks/useWhatsAppMessages";
 import { WhatsAppMessageBubble } from "./WhatsAppMessageBubble";
 import { WhatsAppMessageInput } from "./WhatsAppMessageInput";
 import { WhatsAppMessagesLoading } from "./WhatsAppMessagesLoading";
@@ -20,8 +23,34 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
-import { Phone, RefreshCw, Trash2, MoreVertical, Loader2, CheckCheck, Sparkles, Archive, ArchiveRestore, Circle, CircleDot, BellOff, Bell, Pin, PinOff, Ban, Building2, ExternalLink, Clock, ListTodo, StickyNote } from "lucide-react";
+import {
+  ResizablePanelGroup,
+  ResizablePanel,
+  ResizableHandle,
+} from "@/components/ui/resizable";
+import {
+  Phone,
+  RefreshCw,
+  Trash2,
+  MoreVertical,
+  Loader2,
+  CheckCheck,
+  Sparkles,
+  Archive,
+  ArchiveRestore,
+  Circle,
+  CircleDot,
+  BellOff,
+  Bell,
+  Pin,
+  PinOff,
+  Ban,
+  Building2,
+  ExternalLink,
+  Clock,
+  ListTodo,
+  StickyNote,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -47,7 +76,11 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useQueryClient } from "@tanstack/react-query";
 import { WhatsAppReminderModal } from "./WhatsAppReminderModal";
 import { WhatsAppQuickTaskModal } from "./WhatsAppQuickTaskModal";
@@ -63,19 +96,34 @@ interface WhatsAppChatWindowProps {
   onNavigateAway?: () => void; // Called when navigating away (e.g., to client page)
 }
 
-export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChatDeleted, onChatArchived, onNavigateAway }: WhatsAppChatWindowProps) {
+export function WhatsAppChatWindow({
+  conversation,
+  companyId,
+  instanceId,
+  onChatDeleted,
+  onChatArchived,
+  onNavigateAway,
+}: WhatsAppChatWindowProps) {
   const navigate = useNavigate();
-  const { messages, isLoading, isFetchingFromApi, isSyncingInBackground, isSendingMedia, sendMessage, sendMedia, fetchMessagesFromApi } = useWhatsAppMessages(
-    conversation.id,
-    companyId
-  );
+  const {
+    messages,
+    isLoading,
+    isFetchingFromApi,
+    isSyncingInBackground,
+    isSendingMedia,
+    sendMessage,
+    sendMedia,
+    fetchMessagesFromApi,
+  } = useWhatsAppMessages(conversation.id, companyId);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isArchiving, setIsArchiving] = useState(false);
   const [deleteFromWhatsApp, setDeleteFromWhatsApp] = useState(true);
   const [deleteLocal, setDeleteLocal] = useState(true);
-  const [chatLabelIds, setChatLabelIds] = useState<string[]>(conversation.label_ids || []);
+  const [chatLabelIds, setChatLabelIds] = useState<string[]>(
+    conversation.label_ids || [],
+  );
   const [showProfilePic, setShowProfilePic] = useState(false);
   const [isMarkingRead, setIsMarkingRead] = useState(false);
   const [isTogglingRead, setIsTogglingRead] = useState(false);
@@ -103,64 +151,71 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
       setLinkedClientName(conversation.client_name || null);
       setLinkedClientLogo(conversation.client_logo_url || null);
     }
-  }, [conversation.client_id, conversation.client_name, conversation.client_logo_url]);
-  
+  }, [
+    conversation.client_id,
+    conversation.client_name,
+    conversation.client_logo_url,
+  ]);
+
   // AI Assistant state
   const [aiAssistantOpen, setAiAssistantOpen] = useState(false);
   const [aiSelectedMessage, setAiSelectedMessage] = useState("");
   const [aiSendDialogOpen, setAiSendDialogOpen] = useState(false);
   const [aiSuggestedResponse, setAiSuggestedResponse] = useState("");
   const [isSendingAiResponse, setIsSendingAiResponse] = useState(false);
-  
+
   // CS Tools modals state
   const [reminderModalOpen, setReminderModalOpen] = useState(false);
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [noteModalOpen, setNoteModalOpen] = useState(false);
-  
+
   // Reply to message state
-  const [replyToMessage, setReplyToMessage] = useState<import("@/hooks/useWhatsAppMessages").WhatsAppMessage | null>(null);
-  
+  const [replyToMessage, setReplyToMessage] = useState<
+    import("@/hooks/useWhatsAppMessages").WhatsAppMessage | null
+  >(null);
+
   const { labels } = useWhatsAppLabels(companyId, instanceId ?? null);
-  const { quickReplies, isLoading: quickRepliesLoading } = useWhatsAppQuickReplies(instanceId ?? null);
+  const { quickReplies, isLoading: quickRepliesLoading } =
+    useWhatsAppQuickReplies(instanceId ?? null);
   const { sizes, setAiAssistantSize } = useWhatsAppPanelSizes();
-  const { config: aiAgentConfig } = useWhatsAppAIAgentConfig(companyId, conversation.instance_id || instanceId);
-  const { assignment: currentAssignment } = useConversationAssignment(conversation.id, companyId);
+  const { config: aiAgentConfig } = useWhatsAppAIAgentConfig(
+    companyId,
+    conversation.instance_id || instanceId,
+  );
+  const { assignment: currentAssignment } = useConversationAssignment(
+    conversation.id,
+    companyId,
+  );
   const queryClient = useQueryClient();
 
   // Check if realtime analysis is forced globally
   const forceRealtimeAnalysis = aiAgentConfig?.force_realtime_analysis ?? false;
   const ignoreGroupAnalysis = aiAgentConfig?.ignore_group_analysis ?? true;
-  
+
   // Check if this is a group conversation
   // Groups can be identified by:
   // - @g.us suffix (standard WhatsApp group format)
   // - Hyphen in phone (some group formats)
   // - Phone starting with "120363" (WhatsApp group ID pattern)
   // - Very long phone numbers (20+ digits typically indicate groups)
-  const isGroupConversation = 
-    conversation.phone?.includes("@g.us") || 
+  const isGroupConversation =
+    conversation.phone?.includes("@g.us") ||
     conversation.phone?.includes("-") ||
     conversation.phone?.startsWith("120363") ||
     (conversation.phone?.length || 0) > 18;
-  
+
   // Should hide AI for groups if ignore_group_analysis is enabled
   const shouldHideAIForGroup = isGroupConversation && ignoreGroupAnalysis;
-  
+
   // Debug logging (can be removed later)
   if (isGroupConversation) {
-    console.log("[WhatsAppChatWindow] Group detection:", {
-      phone: conversation.phone,
-      phoneLength: conversation.phone?.length,
-      isGroupConversation,
-      ignoreGroupAnalysis,
-      shouldHideAIForGroup,
-      configInstanceId: conversation.instance_id || instanceId,
-      aiAgentConfigLoaded: !!aiAgentConfig,
-    });
+    // intentionally empty
   }
-  
+
   // If forced, keep AI assistant always open - BUT not for groups when ignore is enabled
-  const isAiAssistantVisible = shouldHideAIForGroup ? false : (forceRealtimeAnalysis || aiAssistantOpen);
+  const isAiAssistantVisible = shouldHideAIForGroup
+    ? false
+    : forceRealtimeAnalysis || aiAssistantOpen;
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -169,14 +224,25 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
     }
   }, [messages]);
 
-  const displayName = conversation.contact_name || formatPhoneNumber(conversation.phone);
+  const displayName =
+    conversation.contact_name || formatPhoneNumber(conversation.phone);
 
   const handleSend = (message: string, replyToMessageId?: string) => {
-    sendMessage({ phone: conversation.phone, message, instanceId: instanceId ?? null, replyToMessageId });
+    sendMessage({
+      phone: conversation.phone,
+      message,
+      instanceId: instanceId ?? null,
+      replyToMessageId,
+    });
   };
 
   const handleSendMedia = (media: MediaAttachment, caption: string) => {
-    sendMedia({ phone: conversation.phone, media, caption, instanceId: instanceId ?? null });
+    sendMedia({
+      phone: conversation.phone,
+      media,
+      caption,
+      instanceId: instanceId ?? null,
+    });
   };
 
   const handleDeleteChat = async () => {
@@ -188,18 +254,21 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
     setIsDeleting(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke("delete-whatsapp-chat", {
-        body: {
-          company_id: companyId,
-          instance_id: instanceId,
-          phone: conversation.phone,
-          conversation_id: conversation.id,
-          delete_chat_whatsapp: deleteFromWhatsApp,
-          delete_local: deleteLocal,
-          delete_chat_db: false,
-          delete_messages_db: false,
+      const { data, error } = await supabase.functions.invoke(
+        "delete-whatsapp-chat",
+        {
+          body: {
+            company_id: companyId,
+            instance_id: instanceId,
+            phone: conversation.phone,
+            conversation_id: conversation.id,
+            delete_chat_whatsapp: deleteFromWhatsApp,
+            delete_local: deleteLocal,
+            delete_chat_db: false,
+            delete_messages_db: false,
+          },
         },
-      });
+      );
 
       if (error) throw error;
 
@@ -227,13 +296,16 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
     setIsMarkingRead(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke("mark-whatsapp-read", {
-        body: {
-          company_id: companyId,
-          instance_id: instanceId,
-          conversation_id: conversation.id,
+      const { data, error } = await supabase.functions.invoke(
+        "mark-whatsapp-read",
+        {
+          body: {
+            company_id: companyId,
+            instance_id: instanceId,
+            conversation_id: conversation.id,
+          },
         },
-      });
+      );
 
       if (error) throw error;
 
@@ -260,15 +332,18 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
     const newArchiveState = !conversation.is_archived;
 
     try {
-      const { data, error } = await supabase.functions.invoke("archive-whatsapp-chat", {
-        body: {
-          company_id: companyId,
-          instance_id: instanceId,
-          phone: conversation.phone,
-          conversation_id: conversation.id,
-          archive: newArchiveState,
+      const { data, error } = await supabase.functions.invoke(
+        "archive-whatsapp-chat",
+        {
+          body: {
+            company_id: companyId,
+            instance_id: instanceId,
+            phone: conversation.phone,
+            conversation_id: conversation.id,
+            archive: newArchiveState,
+          },
         },
-      });
+      );
 
       if (error) throw error;
 
@@ -296,20 +371,27 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
     const newReadState = conversation.unread_count > 0; // If has unread, mark as read; otherwise mark as unread
 
     try {
-      const { data, error } = await supabase.functions.invoke("toggle-whatsapp-chat-read", {
-        body: {
-          company_id: companyId,
-          instance_id: instanceId,
-          conversation_id: conversation.id,
-          phone: conversation.phone,
-          read: newReadState,
+      const { data, error } = await supabase.functions.invoke(
+        "toggle-whatsapp-chat-read",
+        {
+          body: {
+            company_id: companyId,
+            instance_id: instanceId,
+            conversation_id: conversation.id,
+            phone: conversation.phone,
+            read: newReadState,
+          },
         },
-      });
+      );
 
       if (error) throw error;
 
       if (data?.success) {
-        toast.success(newReadState ? "Chat marcado como lido" : "Chat marcado como não lido");
+        toast.success(
+          newReadState
+            ? "Chat marcado como lido"
+            : "Chat marcado como não lido",
+        );
       } else {
         throw new Error(data?.error || "Erro ao alterar status");
       }
@@ -330,14 +412,17 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
     setIsMuting(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke("mute-whatsapp-chat", {
-        body: {
-          company_id: companyId,
-          instance_id: instanceId,
-          phone: conversation.phone,
-          mute_end_time: muteEndTime,
+      const { data, error } = await supabase.functions.invoke(
+        "mute-whatsapp-chat",
+        {
+          body: {
+            company_id: companyId,
+            instance_id: instanceId,
+            phone: conversation.phone,
+            mute_end_time: muteEndTime,
+          },
         },
-      });
+      );
 
       if (error) throw error;
 
@@ -364,14 +449,17 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
     const newPinStatus = !conversation.is_pinned;
 
     try {
-      const { data, error } = await supabase.functions.invoke("pin-whatsapp-chat", {
-        body: {
-          company_id: companyId,
-          instance_id: instanceId,
-          phone: conversation.phone,
-          pin: newPinStatus,
+      const { data, error } = await supabase.functions.invoke(
+        "pin-whatsapp-chat",
+        {
+          body: {
+            company_id: companyId,
+            instance_id: instanceId,
+            phone: conversation.phone,
+            pin: newPinStatus,
+          },
         },
-      });
+      );
 
       if (error) throw error;
 
@@ -397,14 +485,17 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
     setIsBlocking(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke("block-whatsapp-contact", {
-        body: {
-          company_id: companyId,
-          instance_id: instanceId,
-          phone: conversation.phone,
-          block: true,
+      const { data, error } = await supabase.functions.invoke(
+        "block-whatsapp-contact",
+        {
+          body: {
+            company_id: companyId,
+            instance_id: instanceId,
+            phone: conversation.phone,
+            block: true,
+          },
         },
-      });
+      );
 
       if (error) throw error;
 
@@ -436,9 +527,13 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
     setAiSendDialogOpen(false);
     setAiAssistantOpen(false);
     setAiSuggestedResponse("");
-    
+
     // Fire and forget - sendMessage already handles optimistic UI and error states
-    sendMessage({ phone: conversation.phone, message, instanceId: instanceId ?? null });
+    sendMessage({
+      phone: conversation.phone,
+      message,
+      instanceId: instanceId ?? null,
+    });
   };
 
   const handleNavigateToClient = () => {
@@ -449,8 +544,8 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
   };
 
   return (
-    <ResizablePanelGroup 
-      direction="horizontal" 
+    <ResizablePanelGroup
+      direction="horizontal"
       className="h-full"
       onLayout={(panelSizes) => {
         // When AI assistant is open, save the AI panel size (second panel)
@@ -460,498 +555,551 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
       }}
     >
       {/* Main chat area */}
-      <ResizablePanel defaultSize={aiAssistantOpen ? (100 - sizes.aiAssistant) : 100} minSize={50}>
+      <ResizablePanel
+        defaultSize={aiAssistantOpen ? 100 - sizes.aiAssistant : 100}
+        minSize={50}
+      >
         <div className="flex flex-col h-full min-w-0">
-      <div className="flex items-center gap-2 md:gap-3 px-2 md:px-4 py-2 md:py-3 border-b bg-muted/30">
-        <div className="relative shrink-0">
-          <Avatar 
-            className={cn(
-              "h-8 w-8 md:h-10 md:w-10",
-              conversation.profile_pic_url && "cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
-            )}
-            onClick={() => conversation.profile_pic_url && setShowProfilePic(true)}
-          >
-            {conversation.profile_pic_url && (
-              <AvatarImage 
-                src={conversation.profile_pic_url} 
-                alt={displayName}
-                className="object-cover"
-              />
-            )}
-            <AvatarFallback className="bg-primary/10 text-primary text-xs md:text-sm font-medium">
-              {getInitials(displayName)}
-            </AvatarFallback>
-          </Avatar>
-          
-          {/* Client logo overlay - clickable to navigate to client */}
-          {linkedClientId && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button 
-                  onClick={handleNavigateToClient}
-                  className="absolute -bottom-1 -right-1 h-4 w-4 md:h-5 md:w-5 rounded-full border-2 border-background bg-background overflow-hidden shadow-sm cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
-                >
-                  {linkedClientLogo ? (
-                    <img 
-                      src={linkedClientLogo} 
-                      alt={linkedClientName || "Cliente"}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="h-full w-full bg-primary/10 flex items-center justify-center">
-                      <Building2 className="h-2.5 w-2.5 md:h-3 md:w-3 text-primary" />
-                    </div>
-                  )}
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="right" className="text-xs">
-                <span>Abrir cadastro: {linkedClientName}</span>
-              </TooltipContent>
-            </Tooltip>
-          )}
-        </div>
-        <div className="flex-1 min-w-0 max-w-[120px] md:max-w-none">
-          <div className="flex items-center gap-1 md:gap-2">
-            <h3 className="font-medium text-xs md:text-sm truncate">{displayName}</h3>
-            {/* Label badges - hide on small screens */}
-            <div className="hidden md:flex">
-              {chatLabelIds.length > 0 && (
-                <WhatsAppLabelList 
-                  labels={labels.filter(l => chatLabelIds.includes(l.id))} 
-                  maxVisible={2}
-                />
+          <div className="flex items-center gap-2 md:gap-3 px-2 md:px-4 py-2 md:py-3 border-b bg-muted/30">
+            <div className="relative shrink-0">
+              <Avatar
+                className={cn(
+                  "h-8 w-8 md:h-10 md:w-10",
+                  conversation.profile_pic_url &&
+                    "cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all",
+                )}
+                onClick={() =>
+                  conversation.profile_pic_url && setShowProfilePic(true)
+                }
+              >
+                {conversation.profile_pic_url && (
+                  <AvatarImage
+                    src={conversation.profile_pic_url}
+                    alt={displayName}
+                    className="object-cover"
+                  />
+                )}
+                <AvatarFallback className="bg-primary/10 text-primary text-xs md:text-sm font-medium">
+                  {getInitials(displayName)}
+                </AvatarFallback>
+              </Avatar>
+
+              {/* Client logo overlay - clickable to navigate to client */}
+              {linkedClientId && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={handleNavigateToClient}
+                      className="absolute -bottom-1 -right-1 h-4 w-4 md:h-5 md:w-5 rounded-full border-2 border-background bg-background overflow-hidden shadow-sm cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
+                    >
+                      {linkedClientLogo ? (
+                        <img
+                          src={linkedClientLogo}
+                          alt={linkedClientName || "Cliente"}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="h-full w-full bg-primary/10 flex items-center justify-center">
+                          <Building2 className="h-2.5 w-2.5 md:h-3 md:w-3 text-primary" />
+                        </div>
+                      )}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="text-xs">
+                    <span>Abrir cadastro: {linkedClientName}</span>
+                  </TooltipContent>
+                </Tooltip>
               )}
             </div>
-          </div>
-          <p className="text-[10px] md:text-xs text-muted-foreground flex items-center gap-1">
-            <Phone className="h-2.5 w-2.5 md:h-3 md:w-3 shrink-0" />
-            <span className="truncate">{formatPhoneNumber(conversation.phone)}</span>
-            {/* Background sync indicator - hide on small screens */}
-            {isSyncingInBackground && (
-              <span className="hidden md:flex ml-2 items-center gap-1 text-primary/70">
-                <RefreshCw className="h-3 w-3 animate-spin" />
-                <span className="text-[10px]">Sincronizando...</span>
-              </span>
+            <div className="flex-1 min-w-0 max-w-[120px] md:max-w-none">
+              <div className="flex items-center gap-1 md:gap-2">
+                <h3 className="font-medium text-xs md:text-sm truncate">
+                  {displayName}
+                </h3>
+                {/* Label badges - hide on small screens */}
+                <div className="hidden md:flex">
+                  {chatLabelIds.length > 0 && (
+                    <WhatsAppLabelList
+                      labels={labels.filter((l) => chatLabelIds.includes(l.id))}
+                      maxVisible={2}
+                    />
+                  )}
+                </div>
+              </div>
+              <p className="text-[10px] md:text-xs text-muted-foreground flex items-center gap-1">
+                <Phone className="h-2.5 w-2.5 md:h-3 md:w-3 shrink-0" />
+                <span className="truncate">
+                  {formatPhoneNumber(conversation.phone)}
+                </span>
+                {/* Background sync indicator - hide on small screens */}
+                {isSyncingInBackground && (
+                  <span className="hidden md:flex ml-2 items-center gap-1 text-primary/70">
+                    <RefreshCw className="h-3 w-3 animate-spin" />
+                    <span className="text-[10px]">Sincronizando...</span>
+                  </span>
+                )}
+              </p>
+            </div>
+
+            {/* Client linker */}
+            <WhatsAppClientLinker
+              conversationId={conversation.id}
+              currentClientId={conversation.client_id}
+              companyId={companyId}
+              conversationPhone={conversation.phone}
+              conversationContactName={conversation.contact_name}
+              onClientChange={(clientId, clientName, clientLogoUrl) => {
+                setLinkedClientId(clientId);
+                setLinkedClientName(clientName);
+                setLinkedClientLogo(clientLogoUrl || null);
+              }}
+            />
+
+            {/* Assignment picker */}
+            <WhatsAppAssignmentPicker
+              conversationId={conversation.id}
+              companyId={companyId}
+              currentAssignment={currentAssignment || null}
+              onAssignmentChange={() => {
+                queryClient.invalidateQueries({
+                  queryKey: ["whatsapp-assignments", companyId],
+                });
+                queryClient.invalidateQueries({
+                  queryKey: ["whatsapp-assignment", conversation.id],
+                });
+              }}
+            />
+
+            {/* Label picker */}
+            <WhatsAppLabelPicker
+              phone={conversation.phone}
+              currentLabelIds={chatLabelIds}
+              companyId={companyId}
+              instanceId={instanceId ?? null}
+              onLabelsChange={setChatLabelIds}
+            />
+
+            {/* CS Tools - Lembrete e Tarefa: only shows when a client is linked */}
+            {linkedClientId && (
+              <>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      aria-label="Ação"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 md:h-9 md:w-9"
+                      onClick={() => setReminderModalOpen(true)}
+                    >
+                      <Clock className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Adicionar Lembrete</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      aria-label="Ação"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 md:h-9 md:w-9"
+                      onClick={() => setTaskModalOpen(true)}
+                    >
+                      <ListTodo className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Criar Tarefa</TooltipContent>
+                </Tooltip>
+              </>
             )}
-          </p>
-        </div>
-        
-        {/* Client linker */}
-        <WhatsAppClientLinker
-          conversationId={conversation.id}
-          currentClientId={conversation.client_id}
-          companyId={companyId}
-          conversationPhone={conversation.phone}
-          conversationContactName={conversation.contact_name}
-          onClientChange={(clientId, clientName, clientLogoUrl) => {
-            setLinkedClientId(clientId);
-            setLinkedClientName(clientName);
-            setLinkedClientLogo(clientLogoUrl || null);
-          }}
-        />
-        
-        {/* Assignment picker */}
-        <WhatsAppAssignmentPicker
-          conversationId={conversation.id}
-          companyId={companyId}
-          currentAssignment={currentAssignment || null}
-          onAssignmentChange={() => {
-            queryClient.invalidateQueries({ queryKey: ["whatsapp-assignments", companyId] });
-            queryClient.invalidateQueries({ queryKey: ["whatsapp-assignment", conversation.id] });
-          }}
-        />
-        
-        {/* Label picker */}
-        <WhatsAppLabelPicker
-          phone={conversation.phone}
-          currentLabelIds={chatLabelIds}
-          companyId={companyId}
-          instanceId={instanceId ?? null}
-          onLabelsChange={setChatLabelIds}
-        />
-        
-        {/* CS Tools - Lembrete e Tarefa: only shows when a client is linked */}
-        {linkedClientId && (
-          <>
+
+            {/* Observação - sempre disponível (é por chat, não por cliente) */}
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
+                  aria-label="Ação"
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8 md:h-9 md:w-9"
-                  onClick={() => setReminderModalOpen(true)}
+                  onClick={() => setNoteModalOpen(true)}
                 >
-                  <Clock className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                  <StickyNote className="h-3.5 w-3.5 md:h-4 md:w-4" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Adicionar Lembrete</TooltipContent>
+              <TooltipContent>Adicionar Observação</TooltipContent>
             </Tooltip>
+
+            {/* Open client button - only shows when a client is linked */}
+            {linkedClientId && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 md:h-9 md:w-9"
+                    onClick={handleNavigateToClient}
+                    title="Abrir cadastro do cliente"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Abrir cadastro: {linkedClientName}
+                </TooltipContent>
+              </Tooltip>
+            )}
+
+            {/* AI Assistant button */}
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant="ghost"
+                  aria-label="Fechar"
+                  variant={aiAssistantOpen ? "secondary" : "ghost"}
                   size="icon"
                   className="h-8 w-8 md:h-9 md:w-9"
-                  onClick={() => setTaskModalOpen(true)}
+                  onClick={() => setAiAssistantOpen(!aiAssistantOpen)}
+                  title="Assistente IA"
                 >
-                  <ListTodo className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                  <Sparkles
+                    className={cn(
+                      "h-3.5 w-3.5 md:h-4 md:w-4",
+                      aiAssistantOpen && "text-primary",
+                    )}
+                  />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Criar Tarefa</TooltipContent>
+              <TooltipContent>Assistente IA</TooltipContent>
             </Tooltip>
-          </>
-        )}
-        
-        {/* Observação - sempre disponível (é por chat, não por cliente) */}
-        <Tooltip>
-          <TooltipTrigger asChild>
+
+            {/* Refresh messages button */}
             <Button
+              aria-label="Atualizar"
               variant="ghost"
               size="icon"
               className="h-8 w-8 md:h-9 md:w-9"
-              onClick={() => setNoteModalOpen(true)}
-            >
-              <StickyNote className="h-3.5 w-3.5 md:h-4 md:w-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Adicionar Observação</TooltipContent>
-        </Tooltip>
-        
-        {/* Open client button - only shows when a client is linked */}
-        {linkedClientId && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 md:h-9 md:w-9"
-                onClick={handleNavigateToClient}
-                title="Abrir cadastro do cliente"
-              >
-                <ExternalLink className="h-3.5 w-3.5 md:h-4 md:w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Abrir cadastro: {linkedClientName}</TooltipContent>
-          </Tooltip>
-        )}
-        
-        {/* AI Assistant button */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant={aiAssistantOpen ? "secondary" : "ghost"}
-              size="icon"
-              className="h-8 w-8 md:h-9 md:w-9"
-              onClick={() => setAiAssistantOpen(!aiAssistantOpen)}
-              title="Assistente IA"
-            >
-              <Sparkles className={cn("h-3.5 w-3.5 md:h-4 md:w-4", aiAssistantOpen && "text-primary")} />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Assistente IA</TooltipContent>
-        </Tooltip>
-        
-        {/* Refresh messages button */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 md:h-9 md:w-9"
-          onClick={() => fetchMessagesFromApi(true)}
-          disabled={isFetchingFromApi}
-          title="Atualizar mensagens"
-        >
-          <RefreshCw className={`h-3.5 w-3.5 md:h-4 md:w-4 ${isFetchingFromApi ? 'animate-spin' : ''}`} />
-        </Button>
-
-        {/* More options menu */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8 md:h-9 md:w-9">
-              <MoreVertical className="h-3.5 w-3.5 md:h-4 md:w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => fetchMessagesFromApi(true)}>
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Atualizar mensagens
-            </DropdownMenuItem>
-            <DropdownMenuItem 
-              onClick={handleMarkAllRead}
-              disabled={isMarkingRead}
-            >
-              {isMarkingRead ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <CheckCheck className="h-4 w-4 mr-2" />
-              )}
-              Marcar tudo como lido
-            </DropdownMenuItem>
-            <DropdownMenuItem 
-              onClick={handleToggleChatRead}
-              disabled={isTogglingRead}
-            >
-              {isTogglingRead ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : conversation.unread_count > 0 ? (
-                <Circle className="h-4 w-4 mr-2" />
-              ) : (
-                <CircleDot className="h-4 w-4 mr-2" />
-              )}
-              {conversation.unread_count > 0 ? "Marcar como lido" : "Marcar como não lido"}
-            </DropdownMenuItem>
-            <DropdownMenuItem 
-              onClick={handleArchiveChat}
-              disabled={isArchiving}
-            >
-              {isArchiving ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : conversation.is_archived ? (
-                <ArchiveRestore className="h-4 w-4 mr-2" />
-              ) : (
-                <Archive className="h-4 w-4 mr-2" />
-              )}
-              {conversation.is_archived ? "Desarquivar chat" : "Arquivar chat"}
-            </DropdownMenuItem>
-            <DropdownMenuItem 
-              onClick={handlePinChat}
-              disabled={isPinning}
-            >
-              {isPinning ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : conversation.is_pinned ? (
-                <PinOff className="h-4 w-4 mr-2" />
-              ) : (
-                <Pin className="h-4 w-4 mr-2" />
-              )}
-              {conversation.is_pinned ? "Desafixar chat" : "Fixar no topo"}
-            </DropdownMenuItem>
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger disabled={isMuting}>
-                {isMuting ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <BellOff className="h-4 w-4 mr-2" />
-                )}
-                Silenciar notificações
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent>
-                <DropdownMenuItem onClick={() => handleMuteChat(8)}>
-                  Por 8 horas
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleMuteChat(168)}>
-                  Por 1 semana
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleMuteChat(-1)}>
-                  Permanentemente
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => handleMuteChat(0)}>
-                  <Bell className="h-4 w-4 mr-2" />
-                  Remover silenciamento
-                </DropdownMenuItem>
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
-            <DropdownMenuSeparator />
-            {/* CS Tools Section */}
-            <DropdownMenuItem 
-              onClick={() => {
-                if (!linkedClientId) {
-                  toast.error("Vincule este chat a um cliente primeiro");
-                  return;
-                }
-                setReminderModalOpen(true);
-              }}
-            >
-              <Clock className="h-4 w-4 mr-2" />
-              Adicionar Lembrete
-            </DropdownMenuItem>
-            <DropdownMenuItem 
-              onClick={() => {
-                if (!linkedClientId) {
-                  toast.error("Vincule este chat a um cliente primeiro");
-                  return;
-                }
-                setTaskModalOpen(true);
-              }}
-            >
-              <ListTodo className="h-4 w-4 mr-2" />
-              Criar Tarefa
-            </DropdownMenuItem>
-            <DropdownMenuItem 
-              onClick={() => setNoteModalOpen(true)}
-            >
-              <StickyNote className="h-4 w-4 mr-2" />
-              Adicionar Observação
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem 
-              onClick={handleBlockContact}
-              disabled={isBlocking}
-              className="text-destructive focus:text-destructive"
-            >
-              {isBlocking ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Ban className="h-4 w-4 mr-2" />
-              )}
-              Bloquear contato
-            </DropdownMenuItem>
-            <DropdownMenuItem 
-              onClick={() => setIsDeleteDialogOpen(true)}
-              className="text-destructive focus:text-destructive"
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Deletar chat
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-
-      {/* Delete chat dialog */}
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Deletar chat?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Escolha como deseja deletar este chat com {displayName}.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          
-          <div className="py-4 space-y-4">
-            <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="delete-whatsapp" 
-                checked={deleteFromWhatsApp}
-                onCheckedChange={(checked) => setDeleteFromWhatsApp(checked === true)}
-              />
-              <Label htmlFor="delete-whatsapp" className="text-sm">
-                Deletar do WhatsApp
-                <span className="block text-xs text-muted-foreground">
-                  Remove o chat do seu WhatsApp
-                </span>
-              </Label>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="delete-local" 
-                checked={deleteLocal}
-                onCheckedChange={(checked) => setDeleteLocal(checked === true)}
-              />
-              <Label htmlFor="delete-local" className="text-sm">
-                Deletar do sistema
-                <span className="block text-xs text-muted-foreground">
-                  Remove o chat e mensagens deste painel
-                </span>
-              </Label>
-            </div>
-          </div>
-
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleDeleteChat}
-              disabled={isDeleting || (!deleteFromWhatsApp && !deleteLocal)}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {isDeleting ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Deletando...
-                </>
-              ) : (
-                "Deletar"
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Profile picture modal */}
-      <Dialog open={showProfilePic} onOpenChange={setShowProfilePic}>
-        <DialogContent className="max-w-md p-0 overflow-hidden bg-transparent border-none">
-          <div className="flex flex-col items-center gap-4 p-4">
-            {conversation.profile_pic_url && (
-              <img
-                src={conversation.profile_pic_url}
-                alt={displayName}
-                className="w-72 h-72 rounded-full object-cover shadow-2xl"
-              />
-            )}
-            <span className="text-lg font-semibold text-white drop-shadow-lg">
-              {displayName}
-            </span>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Chat notes - fixed at top (specific to this conversation/chat) */}
-      <WhatsAppChatNotes 
-        conversationId={conversation.id} 
-        chatName={displayName}
-      />
-
-      {/* Messages */}
-      <ScrollArea className="flex-1 px-4">
-        {isLoading ? (
-          <WhatsAppMessagesLoading />
-        ) : messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <p className="text-sm text-muted-foreground">Nenhuma mensagem ainda</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Envie uma mensagem para iniciar a conversa
-            </p>
-            <Button
-              variant="outline"
-              size="sm"
               onClick={() => fetchMessagesFromApi(true)}
               disabled={isFetchingFromApi}
-              className="mt-4"
+              title="Atualizar mensagens"
             >
-              <RefreshCw className={`h-4 w-4 mr-2 ${isFetchingFromApi ? 'animate-spin' : ''}`} />
-              Buscar mensagens anteriores
+              <RefreshCw
+                className={`h-3.5 w-3.5 md:h-4 md:w-4 ${isFetchingFromApi ? "animate-spin" : ""}`}
+              />
             </Button>
-          </div>
-        ) : (
-          <div className="py-4 space-y-2">
-            {messages.map((message) => (
-              <div key={message.id} id={`message-${message.id}`} className="transition-all duration-300">
-                <WhatsAppMessageBubble 
-                  message={message} 
-                  allMessages={messages}
-                  contactName={displayName}
-                  instanceId={instanceId ?? null}
-                  companyId={companyId}
-                  remoteJid={`${conversation.phone}@s.whatsapp.net`}
-                  onOpenAIAssistant={handleOpenAIAssistant}
-                  onReply={setReplyToMessage}
-                />
-              </div>
-            ))}
-            <div ref={scrollRef} />
-          </div>
-        )}
-      </ScrollArea>
 
-      {/* Input */}
-      <WhatsAppMessageInput 
-        onSend={handleSend} 
-        onSendMedia={handleSendMedia}
-        isSending={isSendingMedia}
-        quickReplies={quickReplies}
-        quickRepliesLoading={quickRepliesLoading}
-        replyToMessage={replyToMessage}
-        replyToContactName={displayName}
-        onCancelReply={() => setReplyToMessage(null)}
-      />
-      </div>
+            {/* More options menu */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  aria-label="Ação"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 md:h-9 md:w-9"
+                >
+                  <MoreVertical className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => fetchMessagesFromApi(true)}>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Atualizar mensagens
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={handleMarkAllRead}
+                  disabled={isMarkingRead}
+                >
+                  {isMarkingRead ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <CheckCheck className="h-4 w-4 mr-2" />
+                  )}
+                  Marcar tudo como lido
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={handleToggleChatRead}
+                  disabled={isTogglingRead}
+                >
+                  {isTogglingRead ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : conversation.unread_count > 0 ? (
+                    <Circle className="h-4 w-4 mr-2" />
+                  ) : (
+                    <CircleDot className="h-4 w-4 mr-2" />
+                  )}
+                  {conversation.unread_count > 0
+                    ? "Marcar como lido"
+                    : "Marcar como não lido"}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={handleArchiveChat}
+                  disabled={isArchiving}
+                >
+                  {isArchiving ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : conversation.is_archived ? (
+                    <ArchiveRestore className="h-4 w-4 mr-2" />
+                  ) : (
+                    <Archive className="h-4 w-4 mr-2" />
+                  )}
+                  {conversation.is_archived
+                    ? "Desarquivar chat"
+                    : "Arquivar chat"}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handlePinChat} disabled={isPinning}>
+                  {isPinning ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : conversation.is_pinned ? (
+                    <PinOff className="h-4 w-4 mr-2" />
+                  ) : (
+                    <Pin className="h-4 w-4 mr-2" />
+                  )}
+                  {conversation.is_pinned ? "Desafixar chat" : "Fixar no topo"}
+                </DropdownMenuItem>
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger disabled={isMuting}>
+                    {isMuting ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <BellOff className="h-4 w-4 mr-2" />
+                    )}
+                    Silenciar notificações
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent>
+                    <DropdownMenuItem onClick={() => handleMuteChat(8)}>
+                      Por 8 horas
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleMuteChat(168)}>
+                      Por 1 semana
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleMuteChat(-1)}>
+                      Permanentemente
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => handleMuteChat(0)}>
+                      <Bell className="h-4 w-4 mr-2" />
+                      Remover silenciamento
+                    </DropdownMenuItem>
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+                <DropdownMenuSeparator />
+                {/* CS Tools Section */}
+                <DropdownMenuItem
+                  onClick={() => {
+                    if (!linkedClientId) {
+                      toast.error("Vincule este chat a um cliente primeiro");
+                      return;
+                    }
+                    setReminderModalOpen(true);
+                  }}
+                >
+                  <Clock className="h-4 w-4 mr-2" />
+                  Adicionar Lembrete
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    if (!linkedClientId) {
+                      toast.error("Vincule este chat a um cliente primeiro");
+                      return;
+                    }
+                    setTaskModalOpen(true);
+                  }}
+                >
+                  <ListTodo className="h-4 w-4 mr-2" />
+                  Criar Tarefa
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setNoteModalOpen(true)}>
+                  <StickyNote className="h-4 w-4 mr-2" />
+                  Adicionar Observação
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={handleBlockContact}
+                  disabled={isBlocking}
+                  className="text-destructive focus:text-destructive"
+                >
+                  {isBlocking ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Ban className="h-4 w-4 mr-2" />
+                  )}
+                  Bloquear contato
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setIsDeleteDialogOpen(true)}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Deletar chat
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          {/* Delete chat dialog */}
+          <AlertDialog
+            open={isDeleteDialogOpen}
+            onOpenChange={setIsDeleteDialogOpen}
+          >
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Deletar chat?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Escolha como deseja deletar este chat com {displayName}.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+
+              <div className="py-4 space-y-4">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="delete-whatsapp"
+                    checked={deleteFromWhatsApp}
+                    onCheckedChange={(checked) =>
+                      setDeleteFromWhatsApp(checked === true)
+                    }
+                  />
+                  <Label htmlFor="delete-whatsapp" className="text-sm">
+                    Deletar do WhatsApp
+                    <span className="block text-xs text-muted-foreground">
+                      Remove o chat do seu WhatsApp
+                    </span>
+                  </Label>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="delete-local"
+                    checked={deleteLocal}
+                    onCheckedChange={(checked) =>
+                      setDeleteLocal(checked === true)
+                    }
+                  />
+                  <Label htmlFor="delete-local" className="text-sm">
+                    Deletar do sistema
+                    <span className="block text-xs text-muted-foreground">
+                      Remove o chat e mensagens deste painel
+                    </span>
+                  </Label>
+                </div>
+              </div>
+
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={isDeleting}>
+                  Cancelar
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDeleteChat}
+                  disabled={isDeleting || (!deleteFromWhatsApp && !deleteLocal)}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  {isDeleting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Deletando...
+                    </>
+                  ) : (
+                    "Deletar"
+                  )}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          {/* Profile picture modal */}
+          <Dialog open={showProfilePic} onOpenChange={setShowProfilePic}>
+            <DialogContent className="max-w-md p-0 overflow-hidden bg-transparent border-none">
+              <div className="flex flex-col items-center gap-4 p-4">
+                {conversation.profile_pic_url && (
+                  <img
+                    src={conversation.profile_pic_url}
+                    alt={displayName}
+                    className="w-72 h-72 rounded-full object-cover shadow-2xl"
+                  />
+                )}
+                <span className="text-lg font-semibold text-white drop-shadow-lg">
+                  {displayName}
+                </span>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Chat notes - fixed at top (specific to this conversation/chat) */}
+          <WhatsAppChatNotes
+            conversationId={conversation.id}
+            chatName={displayName}
+          />
+
+          {/* Messages */}
+          <ScrollArea className="flex-1 px-4">
+            {isLoading ? (
+              <WhatsAppMessagesLoading />
+            ) : messages.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <p className="text-sm text-muted-foreground">
+                  Nenhuma mensagem ainda
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Envie uma mensagem para iniciar a conversa
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fetchMessagesFromApi(true)}
+                  disabled={isFetchingFromApi}
+                  className="mt-4"
+                >
+                  <RefreshCw
+                    className={`h-4 w-4 mr-2 ${isFetchingFromApi ? "animate-spin" : ""}`}
+                  />
+                  Buscar mensagens anteriores
+                </Button>
+              </div>
+            ) : (
+              <div className="py-4 space-y-2">
+                {messages.map((message) => (
+                  <div
+                    key={message.id}
+                    id={`message-${message.id}`}
+                    className="transition-all duration-300"
+                  >
+                    <WhatsAppMessageBubble
+                      message={message}
+                      allMessages={messages}
+                      contactName={displayName}
+                      instanceId={instanceId ?? null}
+                      companyId={companyId}
+                      remoteJid={`${conversation.phone}@s.whatsapp.net`}
+                      onOpenAIAssistant={handleOpenAIAssistant}
+                      onReply={setReplyToMessage}
+                    />
+                  </div>
+                ))}
+                <div ref={scrollRef} />
+              </div>
+            )}
+          </ScrollArea>
+
+          {/* Input */}
+          <WhatsAppMessageInput
+            onSend={handleSend}
+            onSendMedia={handleSendMedia}
+            isSending={isSendingMedia}
+            quickReplies={quickReplies}
+            quickRepliesLoading={quickRepliesLoading}
+            replyToMessage={replyToMessage}
+            replyToContactName={displayName}
+            onCancelReply={() => setReplyToMessage(null)}
+          />
+        </div>
       </ResizablePanel>
 
       {/* AI Assistant Panel - show when open or forced */}
       {isAiAssistantVisible && (
         <>
           <ResizableHandle withHandle />
-          <ResizablePanel defaultSize={sizes.aiAssistant} minSize={20} maxSize={50}>
+          <ResizablePanel
+            defaultSize={sizes.aiAssistant}
+            minSize={20}
+            maxSize={50}
+          >
             <WhatsAppAIAssistant
               isOpen={isAiAssistantVisible}
               onClose={() => setAiAssistantOpen(false)}
@@ -994,7 +1142,7 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
         conversationId={conversation.id}
         chatName={displayName}
       />
-      
+
       {/* Reminder and Task modals - only when client is linked */}
       {linkedClientId && linkedClientName && (
         <>

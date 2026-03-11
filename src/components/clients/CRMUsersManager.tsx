@@ -1,5 +1,11 @@
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -29,7 +35,15 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useCRMUsers, CRMUser } from "@/hooks/useCRMUsers";
 import { CRMUserDialog } from "./CRMUserDialog";
-import { UserPlus, MoreVertical, Edit, Ban, CheckCircle, Trash2, Shield } from "lucide-react";
+import {
+  UserPlus,
+  MoreVertical,
+  Edit,
+  Ban,
+  CheckCircle,
+  Trash2,
+  Shield,
+} from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
@@ -39,10 +53,18 @@ interface CRMUsersManagerProps {
 }
 
 export function CRMUsersManager({ workspaceId }: CRMUsersManagerProps) {
-  const { users, isLoading, createUser, updateUser, toggleUserStatus, deleteUser, resetPassword } = useCRMUsers(workspaceId);
-  
+  const {
+    users,
+    isLoading,
+    createUser,
+    updateUser,
+    toggleUserStatus,
+    deleteUser,
+    resetPassword,
+  } = useCRMUsers(workspaceId);
+
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [dialogMode, setDialogMode] = useState<'create' | 'edit'>('create');
+  const [dialogMode, setDialogMode] = useState<"create" | "edit">("create");
   const [selectedUser, setSelectedUser] = useState<CRMUser | undefined>();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<CRMUser | undefined>();
@@ -50,20 +72,20 @@ export function CRMUsersManager({ workspaceId }: CRMUsersManagerProps) {
   const [userToBlock, setUserToBlock] = useState<CRMUser | undefined>();
 
   const handleCreateUser = () => {
-    setDialogMode('create');
+    setDialogMode("create");
     setSelectedUser(undefined);
     setDialogOpen(true);
   };
 
   const handleEditUser = (user: CRMUser) => {
-    setDialogMode('edit');
+    setDialogMode("edit");
     setSelectedUser(user);
     setDialogOpen(true);
   };
 
   const handleSubmit = async (data: unknown) => {
     try {
-      if (dialogMode === 'create') {
+      if (dialogMode === "create") {
         await createUser.mutateAsync({
           email: data.email,
           fullName: data.fullName,
@@ -88,7 +110,7 @@ export function CRMUsersManager({ workspaceId }: CRMUsersManagerProps) {
 
   const handleResetPassword = async (newPassword: string) => {
     if (!selectedUser) return;
-    
+
     try {
       await resetPassword.mutateAsync({
         id: selectedUser.id,
@@ -100,8 +122,10 @@ export function CRMUsersManager({ workspaceId }: CRMUsersManagerProps) {
   };
 
   const handleToggleStatus = (user: CRMUser) => {
-    if (user.role === 'admin' && user.is_active) {
-      const adminCount = users.filter(u => u.role === 'admin' && u.is_active).length;
+    if (user.role === "admin" && user.is_active) {
+      const adminCount = users.filter(
+        (u) => u.role === "admin" && u.is_active,
+      ).length;
       if (adminCount <= 1) {
         toast.error("Não é possível bloquear o último administrador ativo");
         return;
@@ -122,8 +146,8 @@ export function CRMUsersManager({ workspaceId }: CRMUsersManagerProps) {
   };
 
   const handleDeleteClick = (user: CRMUser) => {
-    const adminCount = users.filter(u => u.role === 'admin').length;
-    if (user.role === 'admin' && adminCount <= 1) {
+    const adminCount = users.filter((u) => u.role === "admin").length;
+    if (user.role === "admin" && adminCount <= 1) {
       toast.error("Não é possível remover o último administrador");
       return;
     }
@@ -139,9 +163,11 @@ export function CRMUsersManager({ workspaceId }: CRMUsersManagerProps) {
     }
   };
 
-  const activeUsers = users.filter(u => u.is_active).length;
-  const adminCount = users.filter(u => u.role === 'admin').length;
-  const collaboratorCount = users.filter(u => u.role === 'collaborator').length;
+  const activeUsers = users.filter((u) => u.is_active).length;
+  const adminCount = users.filter((u) => u.role === "admin").length;
+  const collaboratorCount = users.filter(
+    (u) => u.role === "collaborator",
+  ).length;
 
   if (isLoading) {
     return (
@@ -179,7 +205,9 @@ export function CRMUsersManager({ workspaceId }: CRMUsersManagerProps) {
               <div className="text-muted-foreground">
                 <Shield className="h-12 w-12 mx-auto mb-2 opacity-50" />
                 <p className="font-medium">Nenhum usuário cadastrado</p>
-                <p className="text-sm">Cadastre o primeiro usuário para liberar o acesso ao CRM</p>
+                <p className="text-sm">
+                  Cadastre o primeiro usuário para liberar o acesso ao CRM
+                </p>
               </div>
               <Button onClick={handleCreateUser} variant="outline">
                 <UserPlus className="h-4 w-4 mr-2" />
@@ -203,34 +231,52 @@ export function CRMUsersManager({ workspaceId }: CRMUsersManagerProps) {
                   <TableBody>
                     {users.map((user) => (
                       <TableRow key={user.id}>
-                        <TableCell className="font-medium">{user.full_name}</TableCell>
+                        <TableCell className="font-medium">
+                          {user.full_name}
+                        </TableCell>
                         <TableCell>{user.email}</TableCell>
                         <TableCell>
-                          <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
-                            {user.role === 'admin' ? 'Admin' : 'Colaborador'}
+                          <Badge
+                            variant={
+                              user.role === "admin" ? "default" : "secondary"
+                            }
+                          >
+                            {user.role === "admin" ? "Admin" : "Colaborador"}
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={user.is_active ? 'default' : 'destructive'}>
-                            {user.is_active ? 'Ativo' : 'Bloqueado'}
+                          <Badge
+                            variant={user.is_active ? "default" : "destructive"}
+                          >
+                            {user.is_active ? "Ativo" : "Bloqueado"}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-muted-foreground">
-                          {format(new Date(user.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                          {format(new Date(user.created_at), "dd/MM/yyyy", {
+                            locale: ptBR,
+                          })}
                         </TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
+                              <Button
+                                aria-label="Ação"
+                                variant="ghost"
+                                size="icon"
+                              >
                                 <MoreVertical className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleEditUser(user)}>
+                              <DropdownMenuItem
+                                onClick={() => handleEditUser(user)}
+                              >
                                 <Edit className="h-4 w-4 mr-2" />
                                 Editar
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleToggleStatus(user)}>
+                              <DropdownMenuItem
+                                onClick={() => handleToggleStatus(user)}
+                              >
                                 {user.is_active ? (
                                   <>
                                     <Ban className="h-4 w-4 mr-2" />
@@ -263,9 +309,14 @@ export function CRMUsersManager({ workspaceId }: CRMUsersManagerProps) {
               <div className="flex items-center gap-4 mt-4 text-sm text-muted-foreground">
                 <span>📊 {activeUsers} usuários ativos</span>
                 <span>•</span>
-                <span>{adminCount} admin{adminCount !== 1 ? 's' : ''}</span>
+                <span>
+                  {adminCount} admin{adminCount !== 1 ? "s" : ""}
+                </span>
                 <span>•</span>
-                <span>{collaboratorCount} colaborador{collaboratorCount !== 1 ? 'es' : ''}</span>
+                <span>
+                  {collaboratorCount} colaborador
+                  {collaboratorCount !== 1 ? "es" : ""}
+                </span>
               </div>
             </>
           )}
@@ -287,13 +338,17 @@ export function CRMUsersManager({ workspaceId }: CRMUsersManagerProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Remover Usuário</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja remover o usuário <strong>{userToDelete?.full_name}</strong>?
-              Esta ação não pode ser desfeita e o usuário perderá acesso ao CRM.
+              Tem certeza que deseja remover o usuário{" "}
+              <strong>{userToDelete?.full_name}</strong>? Esta ação não pode ser
+              desfeita e o usuário perderá acesso ao CRM.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
               Remover
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -305,13 +360,17 @@ export function CRMUsersManager({ workspaceId }: CRMUsersManagerProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Bloquear Administrador</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja bloquear o administrador <strong>{userToBlock?.full_name}</strong>?
-              Ele perderá acesso ao CRM até que seja reativado.
+              Tem certeza que deseja bloquear o administrador{" "}
+              <strong>{userToBlock?.full_name}</strong>? Ele perderá acesso ao
+              CRM até que seja reativado.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmBlock} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction
+              onClick={confirmBlock}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
               Bloquear
             </AlertDialogAction>
           </AlertDialogFooter>
