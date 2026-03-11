@@ -5,7 +5,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
@@ -46,51 +47,64 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { 
-      meetingId, 
-      presentationName, 
-      clientName, 
+    const {
+      meetingId,
+      presentationName,
+      clientName,
       participants,
       creatives,
       meetingDate,
       companyId,
     }: SummaryRequest = await req.json();
 
-    console.log(`Enviando resumo da reunião ${meetingId} para ${participants.length} participantes`);
+    console.log(
+      `Enviando resumo da reunião ${meetingId} para ${participants.length} participantes`,
+    );
 
-    const approved = creatives.filter(c => c.status === "approved").length;
-    const rejected = creatives.filter(c => c.status === "rejected").length;
+    const approved = creatives.filter((c) => c.status === "approved").length;
+    const rejected = creatives.filter((c) => c.status === "rejected").length;
     const total = creatives.length;
     const approvalRate = total > 0 ? Math.round((approved / total) * 100) : 0;
 
     const participantsList = participants
-      .map(p => `<li>${p.name}${p.role ? ` (${p.role})` : ''}</li>`)
-      .join('');
+      .map((p) => `<li>${p.name}${p.role ? ` (${p.role})` : ""}</li>`)
+      .join("");
 
     const creativesRows = creatives
       .map((c, i) => {
-        const typeLabel = CREATIVE_TYPE_LABELS[c.creativeType] || c.creativeType;
-        const statusColor = c.status === 'approved' ? '#22c55e' : c.status === 'rejected' ? '#ef4444' : '#f59e0b';
-        const statusText = c.status === 'approved' ? '✓ Aprovado' : c.status === 'rejected' ? '✗ Reprovado' : 'Pendente';
-        
+        const typeLabel =
+          CREATIVE_TYPE_LABELS[c.creativeType] || c.creativeType;
+        const statusColor =
+          c.status === "approved"
+            ? "#22c55e"
+            : c.status === "rejected"
+              ? "#ef4444"
+              : "#f59e0b";
+        const statusText =
+          c.status === "approved"
+            ? "✓ Aprovado"
+            : c.status === "rejected"
+              ? "✗ Reprovado"
+              : "Pendente";
+
         return `
           <tr style="border-bottom: 1px solid #e5e7eb;">
             <td style="padding: 12px;">${c.headline || `Criativo ${i + 1}`}</td>
             <td style="padding: 12px;">${typeLabel}</td>
             <td style="padding: 12px; color: ${statusColor}; font-weight: 600;">${statusText}</td>
-            <td style="padding: 12px; color: #6b7280; font-size: 14px;">${c.rejectionReason || '-'}</td>
+            <td style="padding: 12px; color: #6b7280; font-size: 14px;">${c.rejectionReason || "-"}</td>
           </tr>
         `;
       })
-      .join('');
+      .join("");
 
-    const formattedDate = new Date(meetingDate).toLocaleDateString('pt-BR', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    const formattedDate = new Date(meetingDate).toLocaleDateString("pt-BR", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
 
     const htmlContent = `
@@ -173,8 +187,8 @@ const handler = async (req: Request): Promise<Response> => {
       </html>
     `;
 
-    const emails = participants.map(p => p.email);
-    
+    const emails = participants.map((p) => p.email);
+
     const emailResponse = await resend.emails.send({
       from: "Expx Flow <noreply@expxflow.com.br>",
       to: emails,
@@ -229,7 +243,7 @@ Data: ${new Date(meetingDate).toLocaleDateString("pt-BR")}
 • Reprovados: ${rejected}
 • Pendentes: ${pending}
 
-👥 Participantes: ${participants.map(p => p.name).join(", ")}
+👥 Participantes: ${participants.map((p) => p.name).join(", ")}
 
 _Resumo completo enviado por email_`;
 
@@ -240,12 +254,14 @@ _Resumo completo enviado por email_`;
                 }
 
                 const zapiUrl = `https://api.z-api.io/instances/${whatsappConfig.instance_id}/token/${whatsappConfig.token}/send-text`;
-                
+
                 await fetch(zapiUrl, {
                   method: "POST",
                   headers: {
                     "Content-Type": "application/json",
-                    ...(whatsappConfig.client_token ? { "Client-Token": whatsappConfig.client_token } : {}),
+                    ...(whatsappConfig.client_token
+                      ? { "Client-Token": whatsappConfig.client_token }
+                      : {}),
                   },
                   body: JSON.stringify({
                     phone: phone,
@@ -264,33 +280,35 @@ _Resumo completo enviado por email_`;
       }
     }
 
-    return new Response(JSON.stringify({ 
-      success: true, 
-      message: "Resumo enviado com sucesso",
-      email_id: emailResponse.data?.id 
-    }), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        ...corsHeaders,
-      },
-    });
-
-  } catch (error: any) {
-    console.error("Erro ao enviar resumo da reunião:", error);
-    
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error.message 
+      JSON.stringify({
+        success: true,
+        message: "Resumo enviado com sucesso",
+        email_id: emailResponse.data?.id,
+      }),
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          ...corsHeaders,
+        },
+      },
+    );
+  } catch (error: unknown) {
+    console.error("Erro ao enviar resumo da reunião:", error);
+
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: error.message,
       }),
       {
         status: 500,
-        headers: { 
-          "Content-Type": "application/json", 
-          ...corsHeaders 
+        headers: {
+          "Content-Type": "application/json",
+          ...corsHeaders,
         },
-      }
+      },
     );
   }
 };

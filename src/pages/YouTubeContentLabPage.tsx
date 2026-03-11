@@ -15,9 +15,20 @@ import { YouTubeScriptsList } from "@/components/youtube-content-lab/YouTubeScri
 import { YouTubeScriptBuilder } from "@/components/youtube-content-lab/YouTubeScriptBuilder";
 import { YouTubeThumbnailConfig } from "@/components/youtube-content-lab/YouTubeThumbnailConfig";
 import { YouTubeCategorySidebar } from "@/components/youtube-content-lab/YouTubeCategorySidebar";
-import { YouTubeRefreshModal, ChannelRefreshStatus } from "@/components/youtube-content-lab/YouTubeRefreshModal";
+import {
+  YouTubeRefreshModal,
+  ChannelRefreshStatus,
+} from "@/components/youtube-content-lab/YouTubeRefreshModal";
 import { YouTubeRefreshConfigModal } from "@/components/youtube-content-lab/YouTubeRefreshConfigModal";
-import { Youtube, BarChart3, Lightbulb, FileText, Loader2, Image, ArrowLeft } from "lucide-react";
+import {
+  Youtube,
+  BarChart3,
+  Lightbulb,
+  FileText,
+  Loader2,
+  Image,
+  ArrowLeft,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 
@@ -27,13 +38,13 @@ export default function YouTubeContentLabPage() {
 
   // Fetch lab details
   const { data: lab, isLoading: labLoading } = useQuery({
-    queryKey: ['youtube-lab', labId],
+    queryKey: ["youtube-lab", labId],
     queryFn: async () => {
       if (!labId) return null;
       const { data, error } = await supabase
-        .from('youtube_content_labs')
-        .select('*, clients(name)')
-        .eq('id', labId)
+        .from("youtube_content_labs")
+        .select("*, clients(name)")
+        .eq("id", labId)
         .single();
       if (error) throw error;
       return data as unknown;
@@ -48,10 +59,14 @@ export default function YouTubeContentLabPage() {
 
   const [activeTab, setActiveTab] = useState("channels");
   const [selectedScriptId, setSelectedScriptId] = useState<string | null>(null);
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
+    null,
+  );
   const [refreshConfigOpen, setRefreshConfigOpen] = useState(false);
   const [refreshModalOpen, setRefreshModalOpen] = useState(false);
-  const [refreshStatuses, setRefreshStatuses] = useState<ChannelRefreshStatus[]>([]);
+  const [refreshStatuses, setRefreshStatuses] = useState<
+    ChannelRefreshStatus[]
+  >([]);
   const [refreshFinished, setRefreshFinished] = useState(false);
 
   // For now hooks still use clientId - they'll work for client-linked labs
@@ -63,7 +78,8 @@ export default function YouTubeContentLabPage() {
   const thumbnailsHook = useYouTubeThumbnails(clientId, companyId);
   const categoriesHook = useYouTubeCategories(clientId, companyId);
 
-  const categoryChannelIds = categoriesHook.getChannelIdsForCategory(selectedCategoryId);
+  const categoryChannelIds =
+    categoriesHook.getChannelIdsForCategory(selectedCategoryId);
 
   useEffect(() => {
     if (categoryChannelIds) {
@@ -75,20 +91,22 @@ export default function YouTubeContentLabPage() {
 
   const filteredChannels = useMemo(() => {
     if (!categoryChannelIds) return channelsHook.channels;
-    return channelsHook.channels.filter(ch => categoryChannelIds.includes(ch.id));
+    return channelsHook.channels.filter((ch) =>
+      categoryChannelIds.includes(ch.id),
+    );
   }, [channelsHook.channels, categoryChannelIds]);
 
   const filteredSuggestions = useMemo(() => {
     if (!categoryChannelIds) return suggestionsHook.suggestions;
-    return suggestionsHook.suggestions.filter((s: unknown) =>
-      s.category_id === selectedCategoryId || !s.category_id
+    return suggestionsHook.suggestions.filter(
+      (s: unknown) => s.category_id === selectedCategoryId || !s.category_id,
     );
   }, [suggestionsHook.suggestions, selectedCategoryId, categoryChannelIds]);
 
   const filteredScripts = useMemo(() => {
     if (!categoryChannelIds) return scriptsHook.scripts;
-    return scriptsHook.scripts.filter((s: unknown) =>
-      s.category_id === selectedCategoryId || !s.category_id
+    return scriptsHook.scripts.filter(
+      (s: unknown) => s.category_id === selectedCategoryId || !s.category_id,
     );
   }, [scriptsHook.scripts, selectedCategoryId, categoryChannelIds]);
 
@@ -104,7 +122,10 @@ export default function YouTubeContentLabPage() {
     return (
       <div className="text-center py-16 space-y-4">
         <h3 className="text-lg font-medium">Lab não encontrado</h3>
-        <Button variant="outline" onClick={() => navigate('/youtube-content-lab')}>
+        <Button
+          variant="outline"
+          onClick={() => navigate("/youtube-content-lab")}
+        >
           Voltar
         </Button>
       </div>
@@ -128,16 +149,24 @@ export default function YouTubeContentLabPage() {
   };
 
   if (selectedScriptId) {
-    const script = scriptsHook.scripts.find(s => s.id === selectedScriptId);
+    const script = scriptsHook.scripts.find((s) => s.id === selectedScriptId);
     if (script) {
       return (
         <YouTubeScriptBuilder
           script={script}
           onClose={handleCloseBuilder}
-          onUpdate={(updates) => scriptsHook.updateScript(selectedScriptId, updates)}
-          onSendMessage={(message) => scriptsHook.sendChatMessage(selectedScriptId, message)}
-          onGenerateTitles={(style) => scriptsHook.generateTitles(selectedScriptId, style)}
-          fetchMessages={() => scriptsHook.fetchScriptMessages(selectedScriptId)}
+          onUpdate={(updates) =>
+            scriptsHook.updateScript(selectedScriptId, updates)
+          }
+          onSendMessage={(message) =>
+            scriptsHook.sendChatMessage(selectedScriptId, message)
+          }
+          onGenerateTitles={(style) =>
+            scriptsHook.generateTitles(selectedScriptId, style)
+          }
+          fetchMessages={() =>
+            scriptsHook.fetchScriptMessages(selectedScriptId)
+          }
           onGenerateThumbnail={thumbnailsHook.generateThumbnail}
           generatingThumbnail={thumbnailsHook.generating}
           thumbnailConfig={thumbnailsHook.config}
@@ -153,10 +182,11 @@ export default function YouTubeContentLabPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <Button aria-label="Voltar"
+        <Button
+          aria-label="Voltar"
           variant="ghost"
           size="icon"
-          onClick={() => navigate('/youtube-content-lab')}
+          onClick={() => navigate("/youtube-content-lab")}
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
@@ -166,7 +196,8 @@ export default function YouTubeContentLabPage() {
         <div>
           <h1 className="text-2xl font-bold">{labName}</h1>
           <p className="text-muted-foreground">
-            {lab.client_id ? "Lab vinculado ao cliente" : "Lab standalone"} • Analise canais, identifique tendências e crie roteiros
+            {lab.client_id ? "Lab vinculado ao cliente" : "Lab standalone"} •
+            Analise canais, identifique tendências e crie roteiros
           </p>
         </div>
       </div>
@@ -191,11 +222,17 @@ export default function YouTubeContentLabPage() {
                 <Youtube className="h-4 w-4" />
                 Canais
               </TabsTrigger>
-              <TabsTrigger value="analytics" className="flex items-center gap-2">
+              <TabsTrigger
+                value="analytics"
+                className="flex items-center gap-2"
+              >
                 <BarChart3 className="h-4 w-4" />
                 Análise
               </TabsTrigger>
-              <TabsTrigger value="suggestions" className="flex items-center gap-2">
+              <TabsTrigger
+                value="suggestions"
+                className="flex items-center gap-2"
+              >
                 <Lightbulb className="h-4 w-4" />
                 Sugestões
               </TabsTrigger>
@@ -203,7 +240,10 @@ export default function YouTubeContentLabPage() {
                 <FileText className="h-4 w-4" />
                 Roteiros
               </TabsTrigger>
-              <TabsTrigger value="thumbnails" className="flex items-center gap-2">
+              <TabsTrigger
+                value="thumbnails"
+                className="flex items-center gap-2"
+              >
                 <Image className="h-4 w-4" />
                 Thumbnails
               </TabsTrigger>
@@ -232,7 +272,9 @@ export default function YouTubeContentLabPage() {
                 onPeriodChange={analyticsHook.setPeriod}
                 customDateRange={analyticsHook.customDateRange}
                 onCustomDateChange={analyticsHook.setCustomDateRange}
-                selectedChannelIds={categoryChannelIds || analyticsHook.selectedChannelIds}
+                selectedChannelIds={
+                  categoryChannelIds || analyticsHook.selectedChannelIds
+                }
                 onChannelSelect={analyticsHook.setSelectedChannelIds}
                 searchQuery={analyticsHook.searchQuery}
                 onSearchChange={analyticsHook.setSearchQuery}
@@ -243,7 +285,9 @@ export default function YouTubeContentLabPage() {
                 topByEngagement={analyticsHook.topByEngagement}
                 channels={filteredChannels}
                 onCreateScript={(topic) => {
-                  scriptsHook.generateScript(topic, { sourceVideoTitle: topic });
+                  scriptsHook.generateScript(topic, {
+                    sourceVideoTitle: topic,
+                  });
                   setActiveTab("scripts");
                 }}
                 onRefreshAnalysis={async () => {
@@ -260,7 +304,9 @@ export default function YouTubeContentLabPage() {
                 generating={suggestionsHook.generating}
                 onGenerateSuggestions={suggestionsHook.generateSuggestions}
                 onCreateScript={handleCreateScript}
-                onDismiss={(id) => suggestionsHook.updateSuggestionStatus(id, 'dismissed')}
+                onDismiss={(id) =>
+                  suggestionsHook.updateSuggestionStatus(id, "dismissed")
+                }
                 hasChannels={filteredChannels.length > 0}
               />
             </TabsContent>
@@ -275,7 +321,9 @@ export default function YouTubeContentLabPage() {
                 onCreateNew={() => {
                   scriptsHook.generateScript("Novo roteiro");
                 }}
-                onUpdateStatus={(scriptId, status) => scriptsHook.updateScript(scriptId, { status })}
+                onUpdateStatus={(scriptId, status) =>
+                  scriptsHook.updateScript(scriptId, { status })
+                }
               />
             </TabsContent>
 
@@ -293,12 +341,16 @@ export default function YouTubeContentLabPage() {
         onOpenChange={setRefreshConfigOpen}
         channels={filteredChannels}
         onConfirm={async (selectedIds, periodDays) => {
-          const channelsToRefresh = filteredChannels.filter((ch) => selectedIds.includes(ch.id));
-          const statuses: ChannelRefreshStatus[] = channelsToRefresh.map((ch) => ({
-            channelId: ch.id,
-            channelName: ch.channel_name,
-            status: "pending" as const,
-          }));
+          const channelsToRefresh = filteredChannels.filter((ch) =>
+            selectedIds.includes(ch.id),
+          );
+          const statuses: ChannelRefreshStatus[] = channelsToRefresh.map(
+            (ch) => ({
+              channelId: ch.id,
+              channelName: ch.channel_name,
+              status: "pending" as const,
+            }),
+          );
           setRefreshStatuses(statuses);
           setRefreshFinished(false);
           setRefreshModalOpen(true);
@@ -307,24 +359,31 @@ export default function YouTubeContentLabPage() {
             const channel = channelsToRefresh[i];
             setRefreshStatuses((prev) =>
               prev.map((s, idx) =>
-                idx === i ? { ...s, status: "loading" as const } : s
-              )
+                idx === i ? { ...s, status: "loading" as const } : s,
+              ),
             );
 
             try {
-              const data = await channelsHook.refreshChannel(channel.id, periodDays);
+              const data = await channelsHook.refreshChannel(
+                channel.id,
+                periodDays,
+              );
               setRefreshStatuses((prev) =>
                 prev.map((s, idx) =>
                   idx === i
-                    ? { ...s, status: "success" as const, videoCount: data?.analyzedCount ?? 0 }
-                    : s
-                )
+                    ? {
+                        ...s,
+                        status: "success" as const,
+                        videoCount: data?.analyzedCount ?? 0,
+                      }
+                    : s,
+                ),
               );
             } catch {
               setRefreshStatuses((prev) =>
                 prev.map((s, idx) =>
-                  idx === i ? { ...s, status: "error" as const } : s
-                )
+                  idx === i ? { ...s, status: "error" as const } : s,
+                ),
               );
             }
           }

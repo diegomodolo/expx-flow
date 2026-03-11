@@ -30,16 +30,19 @@ const PRIORITY_LABELS: Record<string, string> = {
   low: "🟢 Baixa",
 };
 
-function buildTaskEmbed(type: NotificationType, payload: TaskNotificationPayload) {
+function buildTaskEmbed(
+  type: NotificationType,
+  payload: TaskNotificationPayload,
+) {
   const colorMap: Record<NotificationType, number> = {
-    task_created: 0x3b82f6,      // blue
-    task_completed: 0x10b981,    // green
-    task_assigned: 0xf59e0b,     // amber
-    task_overdue: 0xef4444,      // red
-    task_comment: 0x8b5cf6,      // purple
-    task_review: 0xf59e0b,       // amber – awaiting review
-    task_rejected: 0xef4444,     // red
-    squad_updates: 0x6366f1,     // indigo
+    task_created: 0x3b82f6, // blue
+    task_completed: 0x10b981, // green
+    task_assigned: 0xf59e0b, // amber
+    task_overdue: 0xef4444, // red
+    task_comment: 0x8b5cf6, // purple
+    task_review: 0xf59e0b, // amber – awaiting review
+    task_rejected: 0xef4444, // red
+    squad_updates: 0x6366f1, // indigo
   };
 
   const titleMap: Record<NotificationType, string> = {
@@ -58,10 +61,18 @@ function buildTaskEmbed(type: NotificationType, payload: TaskNotificationPayload
   fields.push({ name: "Tarefa", value: payload.title, inline: false });
 
   if (payload.responsible_name) {
-    fields.push({ name: "Responsável", value: payload.responsible_name, inline: true });
+    fields.push({
+      name: "Responsável",
+      value: payload.responsible_name,
+      inline: true,
+    });
   }
   if (payload.priority) {
-    fields.push({ name: "Prioridade", value: PRIORITY_LABELS[payload.priority] || payload.priority, inline: true });
+    fields.push({
+      name: "Prioridade",
+      value: PRIORITY_LABELS[payload.priority] || payload.priority,
+      inline: true,
+    });
   }
   if (payload.due_date) {
     const formatted = new Date(payload.due_date).toLocaleDateString("pt-BR");
@@ -74,13 +85,25 @@ function buildTaskEmbed(type: NotificationType, payload: TaskNotificationPayload
     fields.push({ name: "Squad", value: payload.team_name, inline: true });
   }
   if (payload.authorizer_name) {
-    fields.push({ name: "Autorizador", value: payload.authorizer_name, inline: true });
+    fields.push({
+      name: "Autorizador",
+      value: payload.authorizer_name,
+      inline: true,
+    });
   }
   if (payload.rejection_reason) {
-    fields.push({ name: "Motivo", value: payload.rejection_reason, inline: true });
+    fields.push({
+      name: "Motivo",
+      value: payload.rejection_reason,
+      inline: true,
+    });
   }
   if (payload.quality_score !== undefined) {
-    fields.push({ name: "Qualidade", value: `${payload.quality_score}%`, inline: true });
+    fields.push({
+      name: "Qualidade",
+      value: `${payload.quality_score}%`,
+      inline: true,
+    });
   }
 
   return {
@@ -127,7 +150,6 @@ export async function sendDiscordTaskNotification(
 
     if (!channelId) {
       // No channel mapped for this squad, skip
-      console.log("[Discord] No channel mapped for team", payload.team_id);
       return;
     }
 
@@ -142,8 +164,6 @@ export async function sendDiscordTaskNotification(
         embed,
       },
     });
-
-    console.log(`[Discord] Notification '${type}' sent to channel ${channelId}`);
   } catch (err) {
     console.error("[Discord] Failed to send notification:", err);
     // Don't throw - notifications are fire-and-forget

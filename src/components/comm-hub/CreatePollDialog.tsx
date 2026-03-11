@@ -1,20 +1,20 @@
-import { useState } from 'react';
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Loader2, Plus, X, GripVertical } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-import { toast } from 'sonner';
-import { useQueryClient } from '@tanstack/react-query';
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Loader2, Plus, X, GripVertical } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface CreatePollDialogProps {
   open: boolean;
@@ -22,9 +22,13 @@ interface CreatePollDialogProps {
   channelId: string | null;
 }
 
-export function CreatePollDialog({ open, onOpenChange, channelId }: CreatePollDialogProps) {
-  const [question, setQuestion] = useState('');
-  const [options, setOptions] = useState(['', '']);
+export function CreatePollDialog({
+  open,
+  onOpenChange,
+  channelId,
+}: CreatePollDialogProps) {
+  const [question, setQuestion] = useState("");
+  const [options, setOptions] = useState(["", ""]);
   const [allowMultiple, setAllowMultiple] = useState(false);
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [sending, setSending] = useState(false);
@@ -33,7 +37,7 @@ export function CreatePollDialog({ open, onOpenChange, channelId }: CreatePollDi
 
   const addOption = () => {
     if (options.length < 10) {
-      setOptions([...options, '']);
+      setOptions([...options, ""]);
     }
   };
 
@@ -49,7 +53,7 @@ export function CreatePollDialog({ open, onOpenChange, channelId }: CreatePollDi
     setOptions(updated);
   };
 
-  const validOptions = options.filter(o => o.trim());
+  const validOptions = options.filter((o) => o.trim());
   const canCreate = question.trim() && validOptions.length >= 2;
 
   const handleCreate = async () => {
@@ -60,25 +64,25 @@ export function CreatePollDialog({ open, onOpenChange, channelId }: CreatePollDi
       // Create the message first
       const pollContent = `📊 **Enquete:** ${question.trim()}`;
       const { data: msgData, error: msgError } = await supabase
-        .from('internal_messages')
+        .from("internal_messages")
         .insert({
           channel_id: channelId,
           user_id: user.id,
           content: pollContent,
         })
-        .select('id')
+        .select("id")
         .single();
 
       if (msgError) throw msgError;
 
       // Create the poll
       const { error: pollError } = await supabase
-        .from('internal_polls')
+        .from("internal_polls")
         .insert({
           message_id: msgData.id,
           channel_id: channelId,
           question: question.trim(),
-          options: validOptions.map(o => o.trim()),
+          options: validOptions.map((o) => o.trim()),
           allow_multiple: allowMultiple,
           is_anonymous: isAnonymous,
           created_by: user.id,
@@ -86,16 +90,18 @@ export function CreatePollDialog({ open, onOpenChange, channelId }: CreatePollDi
 
       if (pollError) throw pollError;
 
-      toast.success('Enquete criada!');
-      queryClient.invalidateQueries({ queryKey: ['internal-messages', channelId] });
-      setQuestion('');
-      setOptions(['', '']);
+      toast.success("Enquete criada!");
+      queryClient.invalidateQueries({
+        queryKey: ["internal-messages", channelId],
+      });
+      setQuestion("");
+      setOptions(["", ""]);
       setAllowMultiple(false);
       setIsAnonymous(false);
       onOpenChange(false);
     } catch (err) {
-      console.error('Error creating poll:', err);
-      toast.error('Erro ao criar enquete');
+      console.error("Error creating poll:", err);
+      toast.error("Erro ao criar enquete");
     } finally {
       setSending(false);
     }
@@ -124,7 +130,9 @@ export function CreatePollDialog({ open, onOpenChange, channelId }: CreatePollDi
             <div className="space-y-2">
               {options.map((opt, i) => (
                 <div key={i} className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground w-5 text-center shrink-0">{i + 1}</span>
+                  <span className="text-xs text-muted-foreground w-5 text-center shrink-0">
+                    {i + 1}
+                  </span>
                   <Input
                     value={opt}
                     onChange={(e) => updateOption(i, e.target.value)}
@@ -132,7 +140,8 @@ export function CreatePollDialog({ open, onOpenChange, channelId }: CreatePollDi
                     className="flex-1"
                   />
                   {options.length > 2 && (
-                    <Button aria-label="Fechar"
+                    <Button
+                      aria-label="Fechar"
                       size="icon"
                       variant="ghost"
                       className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
@@ -159,7 +168,10 @@ export function CreatePollDialog({ open, onOpenChange, channelId }: CreatePollDi
 
           <div className="space-y-3 pt-2 border-t border-border">
             <div className="flex items-center justify-between">
-              <Label htmlFor="allow-multiple" className="text-sm cursor-pointer">
+              <Label
+                htmlFor="allow-multiple"
+                className="text-sm cursor-pointer"
+              >
                 Permitir múltiplas respostas
               </Label>
               <Switch
@@ -181,7 +193,11 @@ export function CreatePollDialog({ open, onOpenChange, channelId }: CreatePollDi
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={sending}>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={sending}
+          >
             Cancelar
           </Button>
           <Button onClick={handleCreate} disabled={!canCreate || sending}>

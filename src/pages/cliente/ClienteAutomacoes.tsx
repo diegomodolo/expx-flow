@@ -1,6 +1,12 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
@@ -15,47 +21,77 @@ import { ImportAutomationTemplateDialog } from "@/components/clients/ImportAutom
 import { EditAutomationValuesDialog } from "@/components/clients/EditAutomationValuesDialog";
 import { AutomationProgressModal } from "@/components/clients/AutomationProgressModal";
 import { translateObjective } from "@/components/automations/CampaignObjectiveSelector";
-import { Play, Plus, Trash2, Clock, CheckCircle2, XCircle, Loader2, AlertCircle, Undo2, Zap, Pencil, ArrowRight, Calendar } from "lucide-react";
+import {
+  Play,
+  Plus,
+  Trash2,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  Loader2,
+  AlertCircle,
+  Undo2,
+  Zap,
+  Pencil,
+  ArrowRight,
+  Calendar,
+} from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 export default function ClienteAutomacoes() {
-  const {
-    id: clientId
-  } = useParams<{
+  const { id: clientId } = useParams<{
     id: string;
   }>();
-  const {
-    toast
-  } = useToast();
-  const {
-    client
-  } = useClientDetails(clientId || "");
+  const { toast } = useToast();
+  const { client } = useClientDetails(clientId || "");
   const {
     rules,
     loading: rulesLoading,
     updateRule,
     updateRuleConditions,
     deleteRule,
-    fetchRules
+    fetchRules,
   } = useAutomationRules(clientId);
   const {
     logs,
     loading: logsLoading,
     fetchLogs,
     rollbackAction,
-    clearLogs
+    clearLogs,
   } = useAutomationLogs(clientId);
   const {
     schedule,
     loading: scheduleLoading,
     createOrUpdateSchedule,
-    toggleSchedule
+    toggleSchedule,
   } = useAutomationSchedule(clientId);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [executing, setExecuting] = useState(false);
@@ -63,38 +99,42 @@ export default function ClienteAutomacoes() {
   const [ruleToDelete, setRuleToDelete] = useState<string | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [ruleToEdit, setRuleToEdit] = useState<unknown>(null);
-  const [logEntityFilter, setLogEntityFilter] = useState<'all' | 'campaign' | 'adset' | 'ad'>('all');
+  const [logEntityFilter, setLogEntityFilter] = useState<
+    "all" | "campaign" | "adset" | "ad"
+  >("all");
   const [clearLogsDialogOpen, setClearLogsDialogOpen] = useState(false);
   const [clearingLogs, setClearingLogs] = useState(false);
   const [progressModalOpen, setProgressModalOpen] = useState(false);
-  const [executionId, setExecutionId] = useState<string>('');
-  const [executionsPerDay, setExecutionsPerDay] = useState<number>(schedule?.executions_per_day || 2);
+  const [executionId, setExecutionId] = useState<string>("");
+  const [executionsPerDay, setExecutionsPerDay] = useState<number>(
+    schedule?.executions_per_day || 2,
+  );
   const [activeTab, setActiveTab] = useState<string>("automations");
 
   // Função para converter horário UTC para timezone local (BRT = UTC-3)
   const convertUTCToLocal = (utcTime: string): string => {
-    const [hours, minutes] = utcTime.split(':').map(Number);
+    const [hours, minutes] = utcTime.split(":").map(Number);
     const utcDate = new Date();
     utcDate.setUTCHours(hours, minutes, 0, 0);
 
     // Formatar para timezone local (BRT)
-    return utcDate.toLocaleTimeString('pt-BR', {
-      timeZone: 'America/Sao_Paulo',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
+    return utcDate.toLocaleTimeString("pt-BR", {
+      timeZone: "America/Sao_Paulo",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
     });
   };
 
   // Função para gerar preview de horários no timezone local
   const getLocalTimePreview = (executions: number): string[] => {
-    const intervalMinutes = 24 * 60 / executions;
+    const intervalMinutes = (24 * 60) / executions;
     const times: string[] = [];
     for (let i = 0; i < executions; i++) {
       const utcMinutes = i * intervalMinutes;
       const hours = Math.floor(utcMinutes / 60);
       const minutes = utcMinutes % 60;
-      const utcTime = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+      const utcTime = `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
       times.push(convertUTCToLocal(utcTime));
     }
     return times;
@@ -106,21 +146,23 @@ export default function ClienteAutomacoes() {
       setExecutionsPerDay(schedule.executions_per_day);
     }
   }, [schedule]);
-  const filteredLogs = logs.filter(log => logEntityFilter === 'all' || log.entity_type === logEntityFilter);
+  const filteredLogs = logs.filter(
+    (log) => logEntityFilter === "all" || log.entity_type === logEntityFilter,
+  );
   const handleToggleRule = async (ruleId: string, currentStatus: boolean) => {
     try {
       await updateRule(ruleId, {
-        is_active: !currentStatus
+        is_active: !currentStatus,
       });
       toast({
         title: !currentStatus ? "Automação ativada" : "Automação desativada",
-        description: "O status foi atualizado com sucesso."
+        description: "O status foi atualizado com sucesso.",
       });
     } catch (error: unknown) {
       toast({
         title: "Erro",
         description: error.message,
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
@@ -130,7 +172,7 @@ export default function ClienteAutomacoes() {
       await deleteRule(ruleToDelete);
       toast({
         title: "Automação removida",
-        description: "A automação foi removida com sucesso."
+        description: "A automação foi removida com sucesso.",
       });
       setDeleteDialogOpen(false);
       setRuleToDelete(null);
@@ -138,7 +180,7 @@ export default function ClienteAutomacoes() {
       toast({
         title: "Erro",
         description: error.message,
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
@@ -150,31 +192,34 @@ export default function ClienteAutomacoes() {
     setExecuting(true);
     try {
       // Usar a nova função que retorna imediatamente
-      const { data, error } = await supabase.functions.invoke('start-automation-execution', {
-        body: {
-          client_id: clientId,
-          execution_id: newExecutionId
-        }
-      });
-      
+      const { data, error } = await supabase.functions.invoke(
+        "start-automation-execution",
+        {
+          body: {
+            client_id: clientId,
+            execution_id: newExecutionId,
+          },
+        },
+      );
+
       if (error) throw error;
-      
+
       if (!data?.success) {
-        throw new Error(data?.message || 'Erro ao iniciar execução');
+        throw new Error(data?.message || "Erro ao iniciar execução");
       }
-      
+
       // A execução continua em background - o modal acompanha via realtime
       toast({
         title: "Execução iniciada",
-        description: "Acompanhe o progresso no modal."
+        description: "Acompanhe o progresso no modal.",
       });
     } catch (error: unknown) {
-      console.error('Error starting automations:', error);
+      console.error("Error starting automations:", error);
       setProgressModalOpen(false);
       toast({
         title: "Erro ao iniciar automações",
         description: error.message,
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setExecuting(false);
@@ -213,17 +258,20 @@ export default function ClienteAutomacoes() {
       activate_campaign: "Ativar Campanha",
       increase_budget: "Aumentar Budget",
       decrease_budget: "Reduzir Budget",
-      rename_campaign: "Renomear Campanha"
+      rename_campaign: "Renomear Campanha",
     };
     return labels[actionType] || actionType;
   };
   const getActionTypeBadge = (actionType: string) => {
-    const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+    const variants: Record<
+      string,
+      "default" | "secondary" | "destructive" | "outline"
+    > = {
       pause_campaign: "destructive",
       activate_campaign: "default",
       increase_budget: "default",
       decrease_budget: "secondary",
-      rename_campaign: "outline"
+      rename_campaign: "outline",
     };
     return variants[actionType] || "outline";
   };
@@ -246,7 +294,7 @@ export default function ClienteAutomacoes() {
   const handleSaveConditions = async (
     ruleId: string,
     updatedConditions: unknown,
-    timeWindowDays?: number
+    timeWindowDays?: number,
   ) => {
     try {
       await updateRuleConditions(ruleId, updatedConditions, timeWindowDays);
@@ -256,7 +304,7 @@ export default function ClienteAutomacoes() {
       toast({
         title: "Erro",
         description: error.message,
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
@@ -271,7 +319,7 @@ export default function ClienteAutomacoes() {
       frequency: "Frequência",
       reach: "Alcance",
       cost_per_click: "CPC",
-      roas: "ROAS"
+      roas: "ROAS",
     };
     return labels[field] || field;
   };
@@ -282,11 +330,14 @@ export default function ClienteAutomacoes() {
       ">=": "maior ou igual a",
       "<=": "menor ou igual a",
       "=": "igual a",
-      "!=": "diferente de"
+      "!=": "diferente de",
     };
     return labels[operator] || operator;
   };
-  const formatConditionValue = (field: string, value: number | boolean | null): string => {
+  const formatConditionValue = (
+    field: string,
+    value: number | boolean | null,
+  ): string => {
     if (value === null || value === undefined) return "N/A";
     if (typeof value === "boolean") return value ? "Sim" : "Não";
     if (["cpa", "spend", "cost_per_click"].includes(field)) {
@@ -297,7 +348,8 @@ export default function ClienteAutomacoes() {
     }
     return value.toString();
   };
-  return <div className="space-y-6">
+  return (
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -328,14 +380,22 @@ export default function ClienteAutomacoes() {
         {/* Tab 1: Automações */}
         <TabsContent value="automations" className="space-y-4">
           <div className="flex gap-2">
-            <Button onClick={handleExecuteAll} disabled={executing || rules.length === 0} variant="outline">
-              {executing ? <>
+            <Button
+              onClick={handleExecuteAll}
+              disabled={executing || rules.length === 0}
+              variant="outline"
+            >
+              {executing ? (
+                <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Executando...
-                </> : <>
+                </>
+              ) : (
+                <>
                   <Play className="mr-2 h-4 w-4" />
                   Executar Agora
-                </>}
+                </>
+              )}
             </Button>
             <Button onClick={() => setImportDialogOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
@@ -347,13 +407,19 @@ export default function ClienteAutomacoes() {
             <CardHeader>
               <CardTitle>Automações Ativas</CardTitle>
               <CardDescription>
-                {rules.length} {rules.length === 1 ? "automação importada" : "automações importadas"}
+                {rules.length}{" "}
+                {rules.length === 1
+                  ? "automação importada"
+                  : "automações importadas"}
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {rulesLoading ? <div className="flex items-center justify-center py-8">
+              {rulesLoading ? (
+                <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                </div> : rules.length === 0 ? <div className="flex flex-col items-center justify-center py-8 text-center">
+                </div>
+              ) : rules.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
                   <Zap className="h-12 w-12 text-muted-foreground mb-4" />
                   <p className="text-muted-foreground">
                     Nenhuma automação importada ainda.
@@ -361,96 +427,167 @@ export default function ClienteAutomacoes() {
                   <p className="text-sm text-muted-foreground mt-1">
                     Clique em "Importar Template" para começar.
                   </p>
-                </div> : <div className="space-y-4">
-                  {rules.map(rule => <Card key={rule.id} className="border-border/50">
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {rules.map((rule) => (
+                    <Card key={rule.id} className="border-border/50">
                       <CardContent className="pt-6">
                         <div className="flex items-start justify-between">
                           <div className="space-y-1 flex-1">
                             <div className="flex items-center gap-2">
-                              <h4 className="font-semibold">{rule.rule_name}</h4>
-                              <Badge variant={getActionTypeBadge(rule.action_type)}>
+                              <h4 className="font-semibold">
+                                {rule.rule_name}
+                              </h4>
+                              <Badge
+                                variant={getActionTypeBadge(rule.action_type)}
+                              >
                                 {getActionTypeLabel(rule.action_type)}
                               </Badge>
                             </div>
                             <div className="flex items-center gap-4 text-xs text-muted-foreground mt-2">
                               <span className="flex items-center gap-1">
                                 <Clock className="h-3 w-3" />
-                                Importada {formatDistanceToNow(new Date(rule.created_at), {
-                            addSuffix: true,
-                            locale: ptBR
-                          })}
+                                Importada{" "}
+                                {formatDistanceToNow(
+                                  new Date(rule.created_at),
+                                  {
+                                    addSuffix: true,
+                                    locale: ptBR,
+                                  },
+                                )}
                               </span>
                             </div>
-                            {rule.campaign_objectives && rule.campaign_objectives.length > 0 && <div className="mt-3 pt-3 border-t">
-                                <div className="text-xs font-medium text-muted-foreground mb-2">
-                                  Aplica-se apenas aos objetivos:
-                                </div>
-                                <div className="flex flex-wrap gap-1">
-                                  {rule.campaign_objectives.map(obj => <Badge key={obj} variant="outline" className="text-xs">
-                                      {translateObjective(obj)}
-                                    </Badge>)}
-                                </div>
-                              </div>}
-                            {rule.conditions?.conditions && rule.conditions.conditions.length > 0 && <div className="mt-3 pt-3 border-t">
-                                <div className="text-xs font-medium text-muted-foreground mb-2">
-                                  Condições configuradas:
-                                </div>
-                                <div className="space-y-1">
-                                  {rule.conditions.conditions.map((condition: unknown, idx: number) => <div key={idx} className="flex items-center gap-2 text-xs">
-                                      <Badge variant="secondary" className="font-mono">
-                                        {getFieldLabel(condition.field)}
+                            {rule.campaign_objectives &&
+                              rule.campaign_objectives.length > 0 && (
+                                <div className="mt-3 pt-3 border-t">
+                                  <div className="text-xs font-medium text-muted-foreground mb-2">
+                                    Aplica-se apenas aos objetivos:
+                                  </div>
+                                  <div className="flex flex-wrap gap-1">
+                                    {rule.campaign_objectives.map((obj) => (
+                                      <Badge
+                                        key={obj}
+                                        variant="outline"
+                                        className="text-xs"
+                                      >
+                                        {translateObjective(obj)}
                                       </Badge>
-                                      <span className="text-muted-foreground">
-                                        {getOperatorLabel(condition.operator)}
-                                      </span>
-                                      <span className="font-semibold">
-                                        {formatConditionValue(condition.field, condition.value)}
-                                      </span>
-                                    </div>)}
+                                    ))}
+                                  </div>
                                 </div>
-                              </div>}
-                            {rule.action_config && <div className="mt-3 pt-3 border-t">
+                              )}
+                            {rule.conditions?.conditions &&
+                              rule.conditions.conditions.length > 0 && (
+                                <div className="mt-3 pt-3 border-t">
+                                  <div className="text-xs font-medium text-muted-foreground mb-2">
+                                    Condições configuradas:
+                                  </div>
+                                  <div className="space-y-1">
+                                    {rule.conditions.conditions.map(
+                                      (condition: unknown, idx: number) => (
+                                        <div
+                                          key={idx}
+                                          className="flex items-center gap-2 text-xs"
+                                        >
+                                          <Badge
+                                            variant="secondary"
+                                            className="font-mono"
+                                          >
+                                            {getFieldLabel(condition.field)}
+                                          </Badge>
+                                          <span className="text-muted-foreground">
+                                            {getOperatorLabel(
+                                              condition.operator,
+                                            )}
+                                          </span>
+                                          <span className="font-semibold">
+                                            {formatConditionValue(
+                                              condition.field,
+                                              condition.value,
+                                            )}
+                                          </span>
+                                        </div>
+                                      ),
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                            {rule.action_config && (
+                              <div className="mt-3 pt-3 border-t">
                                 <div className="text-xs font-medium text-muted-foreground mb-2">
                                   Configuração da ação:
                                 </div>
                                 <div className="space-y-1 text-xs">
                                   <div className="flex items-center gap-2">
                                     <Clock className="h-3 w-3 text-muted-foreground" />
-                                    <span className="text-muted-foreground">Janela de análise:</span>
-                                    <span className="font-semibold">{rule.time_window_days} dia(s)</span>
+                                    <span className="text-muted-foreground">
+                                      Janela de análise:
+                                    </span>
+                                    <span className="font-semibold">
+                                      {rule.time_window_days} dia(s)
+                                    </span>
                                   </div>
-                                  {rule.action_config.percentage && <div className="flex items-center gap-2">
-                                      <span className="text-muted-foreground">Percentual:</span>
-                                      <span className="font-semibold">{rule.action_config.percentage}%</span>
-                                    </div>}
-                                  {rule.action_config.name_pattern && <div className="flex items-center gap-2">
-                                      <span className="text-muted-foreground">Padrão do nome:</span>
+                                  {rule.action_config.percentage && (
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-muted-foreground">
+                                        Percentual:
+                                      </span>
+                                      <span className="font-semibold">
+                                        {rule.action_config.percentage}%
+                                      </span>
+                                    </div>
+                                  )}
+                                  {rule.action_config.name_pattern && (
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-muted-foreground">
+                                        Padrão do nome:
+                                      </span>
                                       <code className="bg-muted px-2 py-0.5 rounded text-xs">
                                         {rule.action_config.name_pattern}
                                       </code>
-                                    </div>}
+                                    </div>
+                                  )}
                                 </div>
-                              </div>}
+                              </div>
+                            )}
                           </div>
                           <div className="flex items-center gap-2 ml-4">
-                            <Button aria-label="Editar" variant="ghost" size="icon" onClick={() => {
-                        setRuleToEdit(rule);
-                        setEditDialogOpen(true);
-                      }}>
+                            <Button
+                              aria-label="Editar"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                setRuleToEdit(rule);
+                                setEditDialogOpen(true);
+                              }}
+                            >
                               <Pencil className="h-4 w-4" />
                             </Button>
-                            <Switch checked={rule.is_active} onCheckedChange={() => handleToggleRule(rule.id, rule.is_active)} />
-                            <Button aria-label="Excluir" variant="ghost" size="icon" onClick={() => {
-                        setRuleToDelete(rule.id);
-                        setDeleteDialogOpen(true);
-                      }}>
+                            <Switch
+                              checked={rule.is_active}
+                              onCheckedChange={() =>
+                                handleToggleRule(rule.id, rule.is_active)
+                              }
+                            />
+                            <Button
+                              aria-label="Excluir"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                setRuleToDelete(rule.id);
+                                setDeleteDialogOpen(true);
+                              }}
+                            >
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                           </div>
                         </div>
                       </CardContent>
-                    </Card>)}
-                </div>}
+                    </Card>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -463,10 +600,15 @@ export default function ClienteAutomacoes() {
                 <div className="flex items-center gap-2">
                   <Clock className="h-5 w-5 text-primary" />
                   <CardTitle>Agendamento Automático</CardTitle>
-                  {schedule?.is_enabled && <Badge variant="default" className="bg-green-500/10 text-green-500 border-green-500/20">
+                  {schedule?.is_enabled && (
+                    <Badge
+                      variant="default"
+                      className="bg-green-500/10 text-green-500 border-green-500/20"
+                    >
                       <CheckCircle2 className="h-3 w-3 mr-1" />
                       Sistema Ativo
-                    </Badge>}
+                    </Badge>
+                  )}
                 </div>
               </div>
               <CardDescription>
@@ -474,32 +616,45 @@ export default function ClienteAutomacoes() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              
               {schedule?.is_enabled}
 
               <div className="flex items-start justify-between">
                 <div className="space-y-1">
-                  <Label htmlFor="schedule-enabled" className="text-base font-medium">
+                  <Label
+                    htmlFor="schedule-enabled"
+                    className="text-base font-medium"
+                  >
                     Ativar Execução Programada
                   </Label>
                   <p className="text-sm text-muted-foreground">
-                    Configure e ative a execução automática das suas regras de automação
+                    Configure e ative a execução automática das suas regras de
+                    automação
                   </p>
                 </div>
-                <Switch id="schedule-enabled" checked={schedule?.is_enabled || false} onCheckedChange={checked => toggleSchedule(checked)} disabled={scheduleLoading || rules.length === 0} />
+                <Switch
+                  id="schedule-enabled"
+                  checked={schedule?.is_enabled || false}
+                  onCheckedChange={(checked) => toggleSchedule(checked)}
+                  disabled={scheduleLoading || rules.length === 0}
+                />
               </div>
 
-              {schedule?.is_enabled && <>
+              {schedule?.is_enabled && (
+                <>
                   <div className="space-y-2">
                     <Label htmlFor="frequency">Frequência de Execução</Label>
-                    <Select value={executionsPerDay.toString()} onValueChange={value => {
-                  const executions = parseInt(value);
-                  setExecutionsPerDay(executions);
-                  createOrUpdateSchedule({
-                    is_enabled: true,
-                    executions_per_day: executions
-                  });
-                }} disabled={scheduleLoading}>
+                    <Select
+                      value={executionsPerDay.toString()}
+                      onValueChange={(value) => {
+                        const executions = parseInt(value);
+                        setExecutionsPerDay(executions);
+                        createOrUpdateSchedule({
+                          is_enabled: true,
+                          executions_per_day: executions,
+                        });
+                      }}
+                      disabled={scheduleLoading}
+                    >
                       <SelectTrigger id="frequency">
                         <SelectValue />
                       </SelectTrigger>
@@ -508,55 +663,84 @@ export default function ClienteAutomacoes() {
                           1x por dia ({getLocalTimePreview(1)[0]})
                         </SelectItem>
                         <SelectItem value="2">
-                          2x por dia ({getLocalTimePreview(2).join(', ')})
+                          2x por dia ({getLocalTimePreview(2).join(", ")})
                         </SelectItem>
                         <SelectItem value="3">
-                          3x por dia ({getLocalTimePreview(3).join(', ')})
+                          3x por dia ({getLocalTimePreview(3).join(", ")})
                         </SelectItem>
                         <SelectItem value="4">
-                          4x por dia ({getLocalTimePreview(4).join(', ')})
+                          4x por dia ({getLocalTimePreview(4).join(", ")})
                         </SelectItem>
-                        <SelectItem value="6">6x por dia (a cada 4h)</SelectItem>
-                        <SelectItem value="8">8x por dia (a cada 3h)</SelectItem>
-                        <SelectItem value="12">12x por dia (a cada 2h)</SelectItem>
+                        <SelectItem value="6">
+                          6x por dia (a cada 4h)
+                        </SelectItem>
+                        <SelectItem value="8">
+                          8x por dia (a cada 3h)
+                        </SelectItem>
+                        <SelectItem value="12">
+                          12x por dia (a cada 2h)
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
-                  {schedule.scheduled_times && schedule.scheduled_times.length > 0 && <div className="rounded-lg bg-muted p-4 space-y-2">
-                      <p className="text-sm font-medium">
-                        Horários programados (horário local - BRT):
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {schedule.scheduled_times.map((time: string, idx: number) => <Badge key={idx} variant="secondary" className="font-mono">
-                            {convertUTCToLocal(time)}
-                          </Badge>)}
+                  {schedule.scheduled_times &&
+                    schedule.scheduled_times.length > 0 && (
+                      <div className="rounded-lg bg-muted p-4 space-y-2">
+                        <p className="text-sm font-medium">
+                          Horários programados (horário local - BRT):
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {schedule.scheduled_times.map(
+                            (time: string, idx: number) => (
+                              <Badge
+                                key={idx}
+                                variant="secondary"
+                                className="font-mono"
+                              >
+                                {convertUTCToLocal(time)}
+                              </Badge>
+                            ),
+                          )}
+                        </div>
                       </div>
-                    </div>}
+                    )}
 
-                  {schedule.last_execution_at && <div className="text-sm text-muted-foreground">
+                  {schedule.last_execution_at && (
+                    <div className="text-sm text-muted-foreground">
                       <span className="font-medium">Última execução:</span>{" "}
-                      {formatDistanceToNow(new Date(schedule.last_execution_at), {
-                  addSuffix: true,
-                  locale: ptBR
-                })}
-                    </div>}
+                      {formatDistanceToNow(
+                        new Date(schedule.last_execution_at),
+                        {
+                          addSuffix: true,
+                          locale: ptBR,
+                        },
+                      )}
+                    </div>
+                  )}
 
-                  {schedule.next_execution_at && <div className="text-sm text-muted-foreground">
+                  {schedule.next_execution_at && (
+                    <div className="text-sm text-muted-foreground">
                       <span className="font-medium">Próxima execução:</span>{" "}
-                      {formatDistanceToNow(new Date(schedule.next_execution_at), {
-                  addSuffix: true,
-                  locale: ptBR
-                })}
-                    </div>}
+                      {formatDistanceToNow(
+                        new Date(schedule.next_execution_at),
+                        {
+                          addSuffix: true,
+                          locale: ptBR,
+                        },
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
 
-                  
-                </>}
-
-              {rules.length === 0 && <div className="rounded-lg bg-yellow-50 dark:bg-yellow-950 p-3 text-sm text-yellow-800 dark:text-yellow-200">
+              {rules.length === 0 && (
+                <div className="rounded-lg bg-yellow-50 dark:bg-yellow-950 p-3 text-sm text-yellow-800 dark:text-yellow-200">
                   <AlertCircle className="h-4 w-4 inline mr-2" />
-                  Configure pelo menos uma automação antes de ativar o agendamento
-                </div>}
+                  Configure pelo menos uma automação antes de ativar o
+                  agendamento
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -568,10 +752,20 @@ export default function ClienteAutomacoes() {
       </Tabs>
 
       {/* Import Dialog */}
-      <ImportAutomationTemplateDialog open={importDialogOpen} onOpenChange={setImportDialogOpen} clientId={clientId || ""} onImported={handleImported} />
+      <ImportAutomationTemplateDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        clientId={clientId || ""}
+        onImported={handleImported}
+      />
 
       {/* Edit Values Dialog */}
-      <EditAutomationValuesDialog open={editDialogOpen} onOpenChange={setEditDialogOpen} rule={ruleToEdit} onSave={handleSaveConditions} />
+      <EditAutomationValuesDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        rule={ruleToEdit}
+        onSave={handleSaveConditions}
+      />
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
@@ -579,8 +773,9 @@ export default function ClienteAutomacoes() {
           <AlertDialogHeader>
             <AlertDialogTitle>Remover automação?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação não pode ser desfeita. A automação será removida permanentemente
-              deste cliente, mas o template original será preservado.
+              Esta ação não pode ser desfeita. A automação será removida
+              permanentemente deste cliente, mas o template original será
+              preservado.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -593,37 +788,52 @@ export default function ClienteAutomacoes() {
       </AlertDialog>
 
       {/* Clear Logs Confirmation Dialog */}
-      <AlertDialog open={clearLogsDialogOpen} onOpenChange={setClearLogsDialogOpen}>
+      <AlertDialog
+        open={clearLogsDialogOpen}
+        onOpenChange={setClearLogsDialogOpen}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Limpar todos os logs?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação irá remover permanentemente todos os {logs.length} logs de execução de automações deste cliente.
-              Esta ação não pode ser desfeita.
+              Esta ação irá remover permanentemente todos os {logs.length} logs
+              de execução de automações deste cliente. Esta ação não pode ser
+              desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={clearingLogs}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleClearLogs} disabled={clearingLogs} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              {clearingLogs ? <>
+            <AlertDialogCancel disabled={clearingLogs}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleClearLogs}
+              disabled={clearingLogs}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {clearingLogs ? (
+                <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Limpando...
-                </> : <>
+                </>
+              ) : (
+                <>
                   <Trash2 className="mr-2 h-4 w-4" />
                   Limpar Logs
-                </>}
+                </>
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
       {/* Automation Progress Modal */}
-      <AutomationProgressModal 
-        open={progressModalOpen} 
-        executionId={executionId} 
-        clientId={clientId || ''} 
-        onClose={() => setProgressModalOpen(false)} 
+      <AutomationProgressModal
+        open={progressModalOpen}
+        executionId={executionId}
+        clientId={clientId || ""}
+        onClose={() => setProgressModalOpen(false)}
         onComplete={() => fetchLogs()}
       />
-    </div>;
+    </div>
+  );
 }

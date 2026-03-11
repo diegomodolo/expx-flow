@@ -3,11 +3,29 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Plus, Trash2, Upload, Loader2, X, GripVertical } from "lucide-react";
+import {
+  ArrowLeft,
+  Plus,
+  Trash2,
+  Upload,
+  Loader2,
+  X,
+  GripVertical,
+} from "lucide-react";
 import { useCreatives } from "@/hooks/useCreatives";
-import { usePresentationDetails, PresentationCreative, CreativeMedia } from "@/hooks/usePresentations";
+import {
+  usePresentationDetails,
+  PresentationCreative,
+  CreativeMedia,
+} from "@/hooks/usePresentations";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ReelsCoverSection } from "@/components/shared/ReelsCoverSection";
@@ -31,19 +49,31 @@ interface SceneItem {
   text: string;
 }
 
-export function CreativeForm({ presentationId, editingId, onClose }: CreativeFormProps) {
+export function CreativeForm({
+  presentationId,
+  editingId,
+  onClose,
+}: CreativeFormProps) {
   const { toast } = useToast();
   const { createCreative, updateCreative } = useCreatives(presentationId);
   const { data: presentation } = usePresentationDetails(presentationId);
   const { activeCompany } = useCompany();
-  
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadingMedia, setUploadingMedia] = useState(false);
-  const [mediaFiles, setMediaFiles] = useState<{ file?: File; url: string; type: 'image' | 'video'; headline?: string; subheadline?: string }[]>([]);
+  const [mediaFiles, setMediaFiles] = useState<
+    {
+      file?: File;
+      url: string;
+      type: "image" | "video";
+      headline?: string;
+      subheadline?: string;
+    }[]
+  >([]);
   const [existingMedia, setExistingMedia] = useState<CreativeMedia[]>([]);
-  
+
   const [formData, setFormData] = useState({
-    creative_type: "post_unico" as PresentationCreative['creative_type'],
+    creative_type: "post_unico" as PresentationCreative["creative_type"],
     scheduled_date: "",
     scheduled_time: "",
     objective: "",
@@ -63,7 +93,7 @@ export function CreativeForm({ presentationId, editingId, onClose }: CreativeFor
 
   useEffect(() => {
     if (editingId && presentation?.creatives) {
-      const creative = presentation.creatives.find(c => c.id === editingId);
+      const creative = presentation.creatives.find((c) => c.id === editingId);
       if (creative) {
         setFormData({
           creative_type: creative.creative_type,
@@ -87,19 +117,21 @@ export function CreativeForm({ presentationId, editingId, onClose }: CreativeFor
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
-    const newMediaFiles = files.map(file => ({
+    const newMediaFiles = files.map((file) => ({
       file,
       url: URL.createObjectURL(file),
-      type: file.type.startsWith('video/') ? 'video' as const : 'image' as const,
+      type: file.type.startsWith("video/")
+        ? ("video" as const)
+        : ("image" as const),
     }));
 
-    setMediaFiles(prev => [...prev, ...newMediaFiles]);
+    setMediaFiles((prev) => [...prev, ...newMediaFiles]);
   };
 
   const removeMediaFile = (index: number) => {
-    setMediaFiles(prev => {
+    setMediaFiles((prev) => {
       const newFiles = [...prev];
-      if (newFiles[index].url.startsWith('blob:')) {
+      if (newFiles[index].url.startsWith("blob:")) {
         URL.revokeObjectURL(newFiles[index].url);
       }
       newFiles.splice(index, 1);
@@ -108,26 +140,35 @@ export function CreativeForm({ presentationId, editingId, onClose }: CreativeFor
   };
 
   const removeExistingMedia = async (mediaId: string) => {
-    setExistingMedia(prev => prev.filter(m => m.id !== mediaId));
+    setExistingMedia((prev) => prev.filter((m) => m.id !== mediaId));
     // Mark for deletion on save
   };
 
   const addScene = () => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      script: [...prev.script, { scene: `Cena ${prev.script.length + 1}`, text: "" }],
+      script: [
+        ...prev.script,
+        { scene: `Cena ${prev.script.length + 1}`, text: "" },
+      ],
     }));
   };
 
-  const updateScene = (index: number, field: 'scene' | 'text', value: string) => {
-    setFormData(prev => ({
+  const updateScene = (
+    index: number,
+    field: "scene" | "text",
+    value: string,
+  ) => {
+    setFormData((prev) => ({
       ...prev,
-      script: prev.script.map((s, i) => i === index ? { ...s, [field]: value } : s),
+      script: prev.script.map((s, i) =>
+        i === index ? { ...s, [field]: value } : s,
+      ),
     }));
   };
 
   const removeScene = (index: number) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       script: prev.script.filter((_, i) => i !== index),
     }));
@@ -138,8 +179,8 @@ export function CreativeForm({ presentationId, editingId, onClose }: CreativeFor
     try {
       // Calculate order_index
       const existingCreatives = presentation?.creatives || [];
-      const orderIndex = editingId 
-        ? existingCreatives.find(c => c.id === editingId)?.order_index || 0
+      const orderIndex = editingId
+        ? existingCreatives.find((c) => c.id === editingId)?.order_index || 0
         : existingCreatives.length;
 
       const creativeData = {
@@ -147,7 +188,9 @@ export function CreativeForm({ presentationId, editingId, onClose }: CreativeFor
         creative_type: formData.creative_type,
         order_index: orderIndex,
         scheduled_date: formData.scheduled_date || null,
-        scheduled_time: formData.scheduled_time ? `${formData.scheduled_time}:00` : null,
+        scheduled_time: formData.scheduled_time
+          ? `${formData.scheduled_time}:00`
+          : null,
         objective: formData.objective || null,
         headline: formData.headline || null,
         subheadline: formData.subheadline || null,
@@ -161,9 +204,14 @@ export function CreativeForm({ presentationId, editingId, onClose }: CreativeFor
 
       if (editingId) {
         // If editing a rejected creative, reset status to pending
-        const updatePayload = originalStatus === 'rejected' 
-          ? { id: editingId, ...creativeData, current_status: 'pending' as const }
-          : { id: editingId, ...creativeData };
+        const updatePayload =
+          originalStatus === "rejected"
+            ? {
+                id: editingId,
+                ...creativeData,
+                current_status: "pending" as const,
+              }
+            : { id: editingId, ...creativeData };
         await updateCreative.mutateAsync(updatePayload);
         creativeId = editingId;
       } else {
@@ -174,30 +222,32 @@ export function CreativeForm({ presentationId, editingId, onClose }: CreativeFor
       // Upload new media files
       if (mediaFiles.length > 0) {
         setUploadingMedia(true);
-        
+
         for (let i = 0; i < mediaFiles.length; i++) {
           const mediaFile = mediaFiles[i];
           if (mediaFile.file) {
             // Upload file to storage
-            const fileExt = mediaFile.file.name.split('.').pop()?.toLowerCase();
+            const fileExt = mediaFile.file.name.split(".").pop()?.toLowerCase();
             const fileName = `${crypto.randomUUID()}.${fileExt}`;
             const filePath = `${presentationId}/${fileName}`;
 
             const { error: uploadError } = await supabase.storage
-              .from('presentation-media')
+              .from("presentation-media")
               .upload(filePath, mediaFile.file, {
                 contentType: mediaFile.file.type,
               });
 
             if (uploadError) throw uploadError;
 
-            const { data: { publicUrl } } = supabase.storage
-              .from('presentation-media')
+            const {
+              data: { publicUrl },
+            } = supabase.storage
+              .from("presentation-media")
               .getPublicUrl(filePath);
 
             // Add media record to database
             const { error: mediaError } = await supabase
-              .from('creative_media')
+              .from("creative_media")
               .insert({
                 creative_id: creativeId,
                 media_url: publicUrl,
@@ -216,7 +266,7 @@ export function CreativeForm({ presentationId, editingId, onClose }: CreativeFor
         title: editingId ? "Criativo atualizado" : "Criativo criado",
         description: "As alterações foram salvas com sucesso.",
       });
-      
+
       onClose();
     } catch (error: unknown) {
       toast({
@@ -230,8 +280,8 @@ export function CreativeForm({ presentationId, editingId, onClose }: CreativeFor
     }
   };
 
-  const isReels = formData.creative_type === 'reels';
-  const isCarrossel = formData.creative_type === 'carrossel';
+  const isReels = formData.creative_type === "reels";
+  const isCarrossel = formData.creative_type === "carrossel";
 
   return (
     <div className="space-y-6">
@@ -248,9 +298,11 @@ export function CreativeForm({ presentationId, editingId, onClose }: CreativeFor
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label>Tipo de Criativo</Label>
-          <Select 
-            value={formData.creative_type} 
-            onValueChange={(v) => setFormData(prev => ({ ...prev, creative_type: v as unknown }))}
+          <Select
+            value={formData.creative_type}
+            onValueChange={(v) =>
+              setFormData((prev) => ({ ...prev, creative_type: v as unknown }))
+            }
           >
             <SelectTrigger>
               <SelectValue />
@@ -271,7 +323,12 @@ export function CreativeForm({ presentationId, editingId, onClose }: CreativeFor
             <Input
               type="date"
               value={formData.scheduled_date}
-              onChange={(e) => setFormData(prev => ({ ...prev, scheduled_date: e.target.value }))}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  scheduled_date: e.target.value,
+                }))
+              }
             />
           </div>
           <div>
@@ -279,7 +336,12 @@ export function CreativeForm({ presentationId, editingId, onClose }: CreativeFor
             <Input
               type="time"
               value={formData.scheduled_time}
-              onChange={(e) => setFormData(prev => ({ ...prev, scheduled_time: e.target.value }))}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  scheduled_time: e.target.value,
+                }))
+              }
             />
           </div>
         </div>
@@ -289,7 +351,9 @@ export function CreativeForm({ presentationId, editingId, onClose }: CreativeFor
         <Label>Objetivo</Label>
         <Textarea
           value={formData.objective}
-          onChange={(e) => setFormData(prev => ({ ...prev, objective: e.target.value }))}
+          onChange={(e) =>
+            setFormData((prev) => ({ ...prev, objective: e.target.value }))
+          }
           placeholder="Descreva o objetivo deste criativo..."
           rows={2}
         />
@@ -300,7 +364,9 @@ export function CreativeForm({ presentationId, editingId, onClose }: CreativeFor
           <Label>Headline</Label>
           <Input
             value={formData.headline}
-            onChange={(e) => setFormData(prev => ({ ...prev, headline: e.target.value }))}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, headline: e.target.value }))
+            }
             placeholder="Título principal"
           />
         </div>
@@ -308,7 +374,9 @@ export function CreativeForm({ presentationId, editingId, onClose }: CreativeFor
           <Label>Subheadline</Label>
           <Input
             value={formData.subheadline}
-            onChange={(e) => setFormData(prev => ({ ...prev, subheadline: e.target.value }))}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, subheadline: e.target.value }))
+            }
             placeholder="Subtítulo"
           />
         </div>
@@ -325,16 +393,27 @@ export function CreativeForm({ presentationId, editingId, onClose }: CreativeFor
           multiple={isCarrossel}
           className="hidden"
         />
-        
+
         <div className="grid grid-cols-4 gap-3">
           {existingMedia.map((media) => (
-            <div key={media.id} className="relative aspect-square rounded-lg overflow-hidden bg-muted group">
-              {media.media_type === 'image' ? (
-                <img src={media.media_url} alt="" className="w-full h-full object-cover" />
+            <div
+              key={media.id}
+              className="relative aspect-square rounded-lg overflow-hidden bg-muted group"
+            >
+              {media.media_type === "image" ? (
+                <img
+                  src={media.media_url}
+                  alt=""
+                  className="w-full h-full object-cover"
+                />
               ) : (
-                <video src={media.media_url} className="w-full h-full object-cover" />
+                <video
+                  src={media.media_url}
+                  className="w-full h-full object-cover"
+                />
               )}
-              <Button aria-label="Avançar"
+              <Button
+                aria-label="Avançar"
                 variant="destructive"
                 size="icon"
                 className="absolute top-1 right-1 w-6 h-6 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -346,13 +425,21 @@ export function CreativeForm({ presentationId, editingId, onClose }: CreativeFor
           ))}
 
           {mediaFiles.map((media, index) => (
-            <div key={index} className="relative aspect-square rounded-lg overflow-hidden bg-muted group">
-              {media.type === 'image' ? (
-                <img src={media.url} alt="" className="w-full h-full object-cover" />
+            <div
+              key={index}
+              className="relative aspect-square rounded-lg overflow-hidden bg-muted group"
+            >
+              {media.type === "image" ? (
+                <img
+                  src={media.url}
+                  alt=""
+                  className="w-full h-full object-cover"
+                />
               ) : (
                 <video src={media.url} className="w-full h-full object-cover" />
               )}
-              <Button aria-label="Avançar"
+              <Button
+                aria-label="Avançar"
                 variant="destructive"
                 size="icon"
                 className="absolute top-1 right-1 w-6 h-6 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -378,7 +465,9 @@ export function CreativeForm({ presentationId, editingId, onClose }: CreativeFor
         <Label>Legenda</Label>
         <Textarea
           value={formData.caption}
-          onChange={(e) => setFormData(prev => ({ ...prev, caption: e.target.value }))}
+          onChange={(e) =>
+            setFormData((prev) => ({ ...prev, caption: e.target.value }))
+          }
           placeholder="Escreva a legenda do post..."
           rows={4}
         />
@@ -388,7 +477,9 @@ export function CreativeForm({ presentationId, editingId, onClose }: CreativeFor
         <Label>Hashtags</Label>
         <Input
           value={formData.hashtags}
-          onChange={(e) => setFormData(prev => ({ ...prev, hashtags: e.target.value }))}
+          onChange={(e) =>
+            setFormData((prev) => ({ ...prev, hashtags: e.target.value }))
+          }
           placeholder="#hashtag1 #hashtag2 #hashtag3"
         />
       </div>
@@ -400,7 +491,12 @@ export function CreativeForm({ presentationId, editingId, onClose }: CreativeFor
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base">Roteiro</CardTitle>
-                <Button variant="outline" size="sm" onClick={addScene} className="gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={addScene}
+                  className="gap-2"
+                >
                   <Plus className="w-4 h-4" />
                   Adicionar Cena
                 </Button>
@@ -409,27 +505,36 @@ export function CreativeForm({ presentationId, editingId, onClose }: CreativeFor
             <CardContent className="space-y-3">
               {formData.script.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-4">
-                  Nenhuma cena adicionada. Clique em "Adicionar Cena" para começar.
+                  Nenhuma cena adicionada. Clique em "Adicionar Cena" para
+                  começar.
                 </p>
               ) : (
                 formData.script.map((scene, index) => (
-                  <div key={index} className="flex gap-3 items-start p-3 bg-muted/50 rounded-lg">
+                  <div
+                    key={index}
+                    className="flex gap-3 items-start p-3 bg-muted/50 rounded-lg"
+                  >
                     <GripVertical className="w-4 h-4 mt-2 text-muted-foreground cursor-grab" />
                     <div className="flex-1 space-y-2">
                       <Input
                         value={scene.scene}
-                        onChange={(e) => updateScene(index, 'scene', e.target.value)}
+                        onChange={(e) =>
+                          updateScene(index, "scene", e.target.value)
+                        }
                         placeholder="Nome da cena"
                         className="font-medium"
                       />
                       <Textarea
                         value={scene.text}
-                        onChange={(e) => updateScene(index, 'text', e.target.value)}
+                        onChange={(e) =>
+                          updateScene(index, "text", e.target.value)
+                        }
                         placeholder="Descrição/Texto da cena..."
                         rows={2}
                       />
                     </div>
-                    <Button aria-label="Excluir"
+                    <Button
+                      aria-label="Excluir"
                       variant="ghost"
                       size="icon"
                       className="text-destructive hover:text-destructive"
@@ -446,13 +551,17 @@ export function CreativeForm({ presentationId, editingId, onClose }: CreativeFor
           {/* Reels Cover */}
           <ReelsCoverSection
             coverUrl={formData.reels_cover_url}
-            onCoverChange={(url) => setFormData(prev => ({ ...prev, reels_cover_url: url }))}
+            onCoverChange={(url) =>
+              setFormData((prev) => ({ ...prev, reels_cover_url: url }))
+            }
             clientId={presentation?.client_id}
             companyId={activeCompany?.company_id}
             headline={formData.headline}
             subheadline={formData.subheadline}
             objective={formData.objective}
-            script={formData.script.map(s => `${s.scene}: ${s.text}`).join('\n')}
+            script={formData.script
+              .map((s) => `${s.scene}: ${s.text}`)
+              .join("\n")}
             uploadBucket="presentation-media"
             uploadFolder={`${presentationId}/covers`}
           />
@@ -463,14 +572,20 @@ export function CreativeForm({ presentationId, editingId, onClose }: CreativeFor
         <Button variant="outline" onClick={onClose}>
           Cancelar
         </Button>
-        <Button onClick={handleSubmit} disabled={isSubmitting} className="gap-2">
+        <Button
+          onClick={handleSubmit}
+          disabled={isSubmitting}
+          className="gap-2"
+        >
           {isSubmitting ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
               {uploadingMedia ? "Enviando mídias..." : "Salvando..."}
             </>
+          ) : editingId ? (
+            "Salvar Alterações"
           ) : (
-            editingId ? "Salvar Alterações" : "Criar Criativo"
+            "Criar Criativo"
           )}
         </Button>
       </div>

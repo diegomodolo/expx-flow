@@ -4,8 +4,18 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/CompanyContext";
-import { Plus, Loader2, Sparkles, Copy, Lightbulb, RefreshCw } from "lucide-react";
-import { AdPreviewCard, GeneratedAdType } from "@/components/ad-factory/AdPreviewCard";
+import {
+  Plus,
+  Loader2,
+  Sparkles,
+  Copy,
+  Lightbulb,
+  RefreshCw,
+} from "lucide-react";
+import {
+  AdPreviewCard,
+  GeneratedAdType,
+} from "@/components/ad-factory/AdPreviewCard";
 import { ApprovalDestinationDialogV2 } from "@/components/ad-factory/ApprovalDestinationDialogV2";
 import { toast } from "sonner";
 import {
@@ -75,10 +85,25 @@ interface AdConfig {
   url_params: string;
 }
 
-const typeConfig: Record<GenerationType, { label: string; icon: React.ReactNode; color: string }> = {
-  clone: { label: "Clone", icon: <Copy className="h-4 w-4" />, color: "bg-blue-500/10 text-blue-600" },
-  concept: { label: "Conceito", icon: <Lightbulb className="h-4 w-4" />, color: "bg-purple-500/10 text-purple-600" },
-  iteration: { label: "Iteração", icon: <RefreshCw className="h-4 w-4" />, color: "bg-green-500/10 text-green-600" },
+const typeConfig: Record<
+  GenerationType,
+  { label: string; icon: React.ReactNode; color: string }
+> = {
+  clone: {
+    label: "Clone",
+    icon: <Copy className="h-4 w-4" />,
+    color: "bg-blue-500/10 text-blue-600",
+  },
+  concept: {
+    label: "Conceito",
+    icon: <Lightbulb className="h-4 w-4" />,
+    color: "bg-purple-500/10 text-purple-600",
+  },
+  iteration: {
+    label: "Iteração",
+    icon: <RefreshCw className="h-4 w-4" />,
+    color: "bg-green-500/10 text-green-600",
+  },
 };
 
 const statusFilters = [
@@ -96,7 +121,9 @@ export function FabricaAnunciosGerados({ clientId }: Props) {
   const [generating, setGenerating] = useState(false);
   const [selectedType, setSelectedType] = useState<GenerationType>("concept");
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [filterStatus, setFilterStatus] = useState<GenerationStatus | "all">("pending");
+  const [filterStatus, setFilterStatus] = useState<GenerationStatus | "all">(
+    "pending",
+  );
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
@@ -112,19 +139,26 @@ export function FabricaAnunciosGerados({ clientId }: Props) {
         .maybeSingle();
 
       if (error) throw error;
-      return data as { target_campaign_id: string | null; target_adset_id: string | null } | null;
+      return data as {
+        target_campaign_id: string | null;
+        target_adset_id: string | null;
+      } | null;
     },
     enabled: !!clientId,
   });
 
-  const { data: ads, isLoading, refetch } = useQuery({
-    queryKey: ['generated-ads', clientId],
+  const {
+    data: ads,
+    isLoading,
+    refetch,
+  } = useQuery({
+    queryKey: ["generated-ads", clientId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('ad_generation_queue')
-        .select('*')
-        .eq('client_id', clientId)
-        .order('generated_at', { ascending: false });
+        .from("ad_generation_queue")
+        .select("*")
+        .eq("client_id", clientId)
+        .order("generated_at", { ascending: false });
 
       if (error) throw error;
       return data as GeneratedAd[];
@@ -137,45 +171,67 @@ export function FabricaAnunciosGerados({ clientId }: Props) {
 
     setGenerating(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
       // Call the real AI generation edge function
-      const { data, error } = await supabase.functions.invoke('daily-ad-generator', {
-        body: {
-          client_id: clientId,
-          company_id: activeCompany.company_id,
-          user_id: user.id,
-          generation_type: selectedType,
-          count: 1,
+      const { data, error } = await supabase.functions.invoke(
+        "daily-ad-generator",
+        {
+          body: {
+            client_id: clientId,
+            company_id: activeCompany.company_id,
+            user_id: user.id,
+            generation_type: selectedType,
+            count: 1,
+          },
         },
-      });
+      );
 
       if (error) {
         // Handle specific error codes
-        if (error.message?.includes('429') || error.message?.includes('rate limit')) {
-          toast.error('Limite de requisições atingido. Aguarde alguns segundos e tente novamente.');
+        if (
+          error.message?.includes("429") ||
+          error.message?.includes("rate limit")
+        ) {
+          toast.error(
+            "Limite de requisições atingido. Aguarde alguns segundos e tente novamente.",
+          );
           return;
         }
-        if (error.message?.includes('402') || error.message?.includes('payment') || error.message?.includes('credits')) {
-          toast.error('Créditos insuficientes. Adicione créditos ao seu workspace.');
+        if (
+          error.message?.includes("402") ||
+          error.message?.includes("payment") ||
+          error.message?.includes("credits")
+        ) {
+          toast.error(
+            "Créditos insuficientes. Adicione créditos ao seu workspace.",
+          );
           return;
         }
         throw error;
       }
 
       if (data?.generated > 0) {
-        toast.success(`Anúncio "${typeConfig[selectedType].label}" gerado com sucesso!`);
+        toast.success(
+          `Anúncio "${typeConfig[selectedType].label}" gerado com sucesso!`,
+        );
       } else {
-        const reason = data?.errors?.[0] || 'Verifique se há dados suficientes (concorrentes, temas de pesquisa ou anúncios vencedores).';
+        const reason =
+          data?.errors?.[0] ||
+          "Verifique se há dados suficientes (concorrentes, temas de pesquisa ou anúncios vencedores).";
         toast.warning(`Não foi possível gerar o anúncio. ${reason}`);
       }
 
       setDialogOpen(false);
       refetch();
     } catch (error: unknown) {
-      console.error('Error generating ad:', error);
-      toast.error('Erro ao gerar anúncio: ' + (error.message || 'Erro desconhecido'));
+      console.error("Error generating ad:", error);
+      toast.error(
+        "Erro ao gerar anúncio: " + (error.message || "Erro desconhecido"),
+      );
     } finally {
       setGenerating(false);
     }
@@ -183,7 +239,7 @@ export function FabricaAnunciosGerados({ clientId }: Props) {
 
   const openAdDialog = (ad: GeneratedAd) => {
     if (!activeCompany?.company_id) {
-      toast.error('Selecione uma empresa ativa primeiro');
+      toast.error("Selecione uma empresa ativa primeiro");
       return;
     }
 
@@ -191,23 +247,27 @@ export function FabricaAnunciosGerados({ clientId }: Props) {
     setApprovalDialogOpen(true);
   };
 
-  const handleApproveAndPublish = async (destinations: SelectedDestination[], adConfig: AdConfig) => {
+  const handleApproveAndPublish = async (
+    destinations: SelectedDestination[],
+    adConfig: AdConfig,
+  ) => {
     if (!selectedAd || !activeCompany?.company_id) return;
 
-    console.log('[FabricaAnunciosGerados] Publishing ad:', selectedAd.id, 'to destinations:', destinations);
-
-    const { data, error } = await supabase.functions.invoke('publish-approved-ads', {
-      body: {
-        client_id: clientId,
-        company_id: activeCompany.company_id,
-        ad_id: selectedAd.id,
-        destinations,
-        ad_config: adConfig,
+    const { data, error } = await supabase.functions.invoke(
+      "publish-approved-ads",
+      {
+        body: {
+          client_id: clientId,
+          company_id: activeCompany.company_id,
+          ad_id: selectedAd.id,
+          destinations,
+          ad_config: adConfig,
+        },
       },
-    });
+    );
 
     if (error) {
-      console.error('[FabricaAnunciosGerados] Publish error:', error);
+      console.error("[FabricaAnunciosGerados] Publish error:", error);
       throw new Error(error.message);
     }
 
@@ -219,7 +279,7 @@ export function FabricaAnunciosGerados({ clientId }: Props) {
       toast.success(`Anúncio publicado em ${data.published} destino(s)!`);
       if (data.failed > 0) toast.warning(`${data.failed} destino(s) falharam`);
     } else {
-      toast.error('Nenhum anúncio foi publicado');
+      toast.error("Nenhum anúncio foi publicado");
     }
 
     await refetch();
@@ -227,23 +287,26 @@ export function FabricaAnunciosGerados({ clientId }: Props) {
     setApprovalDialogOpen(false);
   };
 
-  const handleUpdateStatus = async (adId: string, newStatus: GenerationStatus) => {
+  const handleUpdateStatus = async (
+    adId: string,
+    newStatus: GenerationStatus,
+  ) => {
     try {
       const { error } = await supabase
-        .from('ad_generation_queue')
-        .update({ 
+        .from("ad_generation_queue")
+        .update({
           status: newStatus,
           reviewed_at: new Date().toISOString(),
         })
-        .eq('id', adId);
+        .eq("id", adId);
 
       if (error) throw error;
 
       toast.success(`Status atualizado!`);
       refetch();
     } catch (error: unknown) {
-      console.error('Error updating status:', error);
-      toast.error('Erro ao atualizar status');
+      console.error("Error updating status:", error);
+      toast.error("Erro ao atualizar status");
     }
   };
 
@@ -323,7 +386,10 @@ export function FabricaAnunciosGerados({ clientId }: Props) {
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label>Tipo de Geração</Label>
-                <Select value={selectedType} onValueChange={(v) => setSelectedType(v as GenerationType)}>
+                <Select
+                  value={selectedType}
+                  onValueChange={(v) => setSelectedType(v as GenerationType)}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -351,13 +417,19 @@ export function FabricaAnunciosGerados({ clientId }: Props) {
               </div>
 
               <div className="text-sm text-muted-foreground p-3 bg-muted rounded-lg">
-                {selectedType === 'clone' && (
-                  <p>Gera um anúncio inspirado nos anúncios dos concorrentes cadastrados.</p>
+                {selectedType === "clone" && (
+                  <p>
+                    Gera um anúncio inspirado nos anúncios dos concorrentes
+                    cadastrados.
+                  </p>
                 )}
-                {selectedType === 'concept' && (
-                  <p>Gera um anúncio baseado nos temas de pesquisa e insights de mercado.</p>
+                {selectedType === "concept" && (
+                  <p>
+                    Gera um anúncio baseado nos temas de pesquisa e insights de
+                    mercado.
+                  </p>
                 )}
-                {selectedType === 'iteration' && (
+                {selectedType === "iteration" && (
                   <p>Gera uma variação de um anúncio vencedor existente.</p>
                 )}
               </div>
@@ -405,7 +477,8 @@ export function FabricaAnunciosGerados({ clientId }: Props) {
             <Sparkles className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-medium">Nenhum anúncio gerado ainda</h3>
             <p className="text-sm text-muted-foreground mt-1 max-w-md">
-              Clique em "Gerar Novo Anúncio" para criar seu primeiro anúncio ou configure a geração automática na aba Geral.
+              Clique em "Gerar Novo Anúncio" para criar seu primeiro anúncio ou
+              configure a geração automática na aba Geral.
             </p>
           </CardContent>
         </Card>
@@ -429,7 +502,7 @@ export function FabricaAnunciosGerados({ clientId }: Props) {
                 isSelected={false}
                 onSelect={() => {}}
                 onApprove={() => openAdDialog(ad)}
-                onReject={() => handleUpdateStatus(ad.id, 'rejected')}
+                onReject={() => handleUpdateStatus(ad.id, "rejected")}
                 onViewDetails={() => openAdDialog(ad)}
                 compact
               />
@@ -452,7 +525,7 @@ export function FabricaAnunciosGerados({ clientId }: Props) {
             setApprovalDialogOpen(open);
             if (!open) setSelectedAd(null);
           }}
-          adId={selectedAd?.id || ''}
+          adId={selectedAd?.id || ""}
           clientId={clientId}
           companyId={activeCompany.company_id}
           defaultCampaignId={scheduleDefaults?.target_campaign_id ?? null}
@@ -464,7 +537,9 @@ export function FabricaAnunciosGerados({ clientId }: Props) {
             selectedAd
               ? {
                   headline: selectedAd.generated_content?.headline,
-                  primary_text: selectedAd.generated_content?.primary_text || selectedAd.generated_content?.body,
+                  primary_text:
+                    selectedAd.generated_content?.primary_text ||
+                    selectedAd.generated_content?.body,
                   description: selectedAd.generated_content?.description,
                   image_url: selectedAd.generated_content?.creative_image_url,
                 }

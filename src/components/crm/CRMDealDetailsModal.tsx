@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
-import {
-  Dialog,
-  DialogContent,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
@@ -71,7 +69,10 @@ interface CRMDealDetailsModalProps {
   boards?: { id: string; name: string }[];
   isOpen: boolean;
   onClose: () => void;
-  onUpdateDeal?: (data: { id: string; [key: string]: unknown }) => Promise<unknown>;
+  onUpdateDeal?: (data: {
+    id: string;
+    [key: string]: unknown;
+  }) => Promise<unknown>;
   onViewContact?: (contact: CRMContact) => void;
   onDeleteDeal?: (dealId: string) => Promise<void>;
 }
@@ -140,9 +141,9 @@ const getActivityLabel = (activity: DealActivity, stages: CRMStage[]) => {
   switch (activity.activity_type) {
     case "stage_changed":
     case "stage_change": {
-      const fromStage = stages.find(s => s.id === activity.from_stage_id);
-      const toStage = stages.find(s => s.id === activity.to_stage_id);
-      return `Movido de "${fromStage?.name || '?'}" para "${toStage?.name || '?'}"`;
+      const fromStage = stages.find((s) => s.id === activity.from_stage_id);
+      const toStage = stages.find((s) => s.id === activity.to_stage_id);
+      return `Movido de "${fromStage?.name || "?"}" para "${toStage?.name || "?"}"`;
     }
     case "field_updated":
       return `${activity.notes || "Campo alterado"}: ${activity.old_value || "-"} → ${activity.new_value || "-"}`;
@@ -218,35 +219,44 @@ export function CRMDealDetailsModal({
     queryKey: ["crm-activities", contactId, deal?.id],
     queryFn: async () => {
       if (!deal) return [];
-      
+
       // Get activities for this contact (across all deals) or this specific deal
       const { data, error } = await supabase
         .from("crm_deal_activities")
         .select("*")
-        .or(contactId ? `contact_id.eq.${contactId},deal_id.eq.${deal.id}` : `deal_id.eq.${deal.id}`)
+        .or(
+          contactId
+            ? `contact_id.eq.${contactId},deal_id.eq.${deal.id}`
+            : `deal_id.eq.${deal.id}`,
+        )
         .order("created_at", { ascending: false });
 
       if (error) throw error;
 
       // Fetch user names for created_by
-      const userIds = [...new Set(data.map(a => a.created_by).filter(Boolean))];
+      const userIds = [
+        ...new Set(data.map((a) => a.created_by).filter(Boolean)),
+      ];
       let usersMap: Record<string, { full_name: string | null }> = {};
-      
+
       if (userIds.length > 0) {
         const { data: profiles } = await supabase
           .from("profiles")
           .select("user_id, full_name")
           .in("user_id", userIds);
-        
+
         if (profiles) {
-          usersMap = profiles.reduce((acc, p) => {
-            acc[p.user_id] = { full_name: p.full_name };
-            return acc;
-          }, {} as Record<string, { full_name: string | null }>);
+          usersMap = profiles.reduce(
+            (acc, p) => {
+              acc[p.user_id] = { full_name: p.full_name };
+              return acc;
+            },
+            {} as Record<string, { full_name: string | null }>,
+          );
         }
       }
 
-      return data.map(a => ({
+      return data.map((a) => ({
         ...a,
         user: a.created_by ? usersMap[a.created_by] || null : null,
       })) as DealActivity[];
@@ -259,7 +269,7 @@ export function CRMDealDetailsModal({
     queryKey: ["crm-contact-deals", contactId],
     queryFn: async () => {
       if (!contactId || !deal) return [];
-      
+
       const { data, error } = await supabase
         .from("crm_deals")
         .select("id, title, status, created_at, stage_id")
@@ -280,17 +290,15 @@ export function CRMDealDetailsModal({
   const addNoteMutation = useMutation({
     mutationFn: async (note: string) => {
       const { data: userData } = await supabase.auth.getUser();
-      
-      const { error } = await supabase
-        .from("crm_deal_activities")
-        .insert({
-          deal_id: deal!.id,
-          contact_id: contactId || null,
-          activity_type: "manual_note",
-          notes: note,
-          is_manual: true,
-          created_by: userData.user?.id,
-        });
+
+      const { error } = await supabase.from("crm_deal_activities").insert({
+        deal_id: deal!.id,
+        contact_id: contactId || null,
+        activity_type: "manual_note",
+        notes: note,
+        is_manual: true,
+        created_by: userData.user?.id,
+      });
 
       if (error) throw error;
     },
@@ -336,10 +344,12 @@ export function CRMDealDetailsModal({
   useEffect(() => {
     if (deal) {
       const startDate = deal.start_date ? new Date(deal.start_date) : null;
-      const closeDate = deal.expected_close_date ? new Date(deal.expected_close_date) : null;
-      
-      const currentStage = stages.find(s => s.id === deal.stage_id);
-      
+      const closeDate = deal.expected_close_date
+        ? new Date(deal.expected_close_date)
+        : null;
+
+      const currentStage = stages.find((s) => s.id === deal.stage_id);
+
       setFormData({
         title: deal.title || "",
         start_date: startDate,
@@ -347,7 +357,9 @@ export function CRMDealDetailsModal({
         expected_close_date: closeDate,
         expected_close_time: closeDate ? format(closeDate, "HH:mm") : "",
         quantity: deal.quantity?.toString() || "1",
-        value: deal.value ? deal.value.toLocaleString("pt-BR", { minimumFractionDigits: 2 }) : "",
+        value: deal.value
+          ? deal.value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })
+          : "",
         responsible_id: deal.responsible_id || "",
         board_id: currentStage?.board_id || "",
         stage_id: deal.stage_id || "",
@@ -389,7 +401,7 @@ export function CRMDealDetailsModal({
   const updateLeadMutation = useMutation({
     mutationFn: async (data: typeof leadFormData) => {
       if (!contactId) throw new Error("No contact to update");
-      
+
       const { error } = await supabase
         .from("crm_contacts")
         .update({
@@ -452,7 +464,7 @@ export function CRMDealDetailsModal({
 
   const handleSave = async () => {
     if (!onUpdateDeal) return;
-    
+
     setIsSaving(true);
     try {
       let startDateTime: string | null = null;
@@ -467,7 +479,9 @@ export function CRMDealDetailsModal({
 
       if (formData.expected_close_date) {
         const date = new Date(formData.expected_close_date.getTime()); // Create a copy
-        const [hours, minutes] = (formData.expected_close_time || "00:00").split(":");
+        const [hours, minutes] = (
+          formData.expected_close_time || "00:00"
+        ).split(":");
         date.setHours(parseInt(hours) || 0, parseInt(minutes) || 0, 0, 0);
         closeDateTime = date.toISOString();
       }
@@ -477,51 +491,99 @@ export function CRMDealDetailsModal({
 
       // Detect changed fields before updating
       const { data: userData } = await supabase.auth.getUser();
-      const changedFields: { field: string; oldValue: string; newValue: string }[] = [];
+      const changedFields: {
+        field: string;
+        oldValue: string;
+        newValue: string;
+      }[] = [];
 
       if (formData.title !== (deal.title || "")) {
-        changedFields.push({ field: "Título", oldValue: deal.title || "-", newValue: formData.title || "-" });
-      }
-      
-      const oldStartFormatted = deal.start_date ? format(new Date(deal.start_date), "dd/MM/yyyy HH:mm") : "-";
-      const newStartFormatted = startDateTime ? format(new Date(startDateTime), "dd/MM/yyyy HH:mm") : "-";
-      if (oldStartFormatted !== newStartFormatted) {
-        changedFields.push({ field: "Data de Início", oldValue: oldStartFormatted, newValue: newStartFormatted });
+        changedFields.push({
+          field: "Título",
+          oldValue: deal.title || "-",
+          newValue: formData.title || "-",
+        });
       }
 
-      const oldCloseFormatted = deal.expected_close_date ? format(new Date(deal.expected_close_date), "dd/MM/yyyy HH:mm") : "-";
-      const newCloseFormatted = closeDateTime ? format(new Date(closeDateTime), "dd/MM/yyyy HH:mm") : "-";
+      const oldStartFormatted = deal.start_date
+        ? format(new Date(deal.start_date), "dd/MM/yyyy HH:mm")
+        : "-";
+      const newStartFormatted = startDateTime
+        ? format(new Date(startDateTime), "dd/MM/yyyy HH:mm")
+        : "-";
+      if (oldStartFormatted !== newStartFormatted) {
+        changedFields.push({
+          field: "Data de Início",
+          oldValue: oldStartFormatted,
+          newValue: newStartFormatted,
+        });
+      }
+
+      const oldCloseFormatted = deal.expected_close_date
+        ? format(new Date(deal.expected_close_date), "dd/MM/yyyy HH:mm")
+        : "-";
+      const newCloseFormatted = closeDateTime
+        ? format(new Date(closeDateTime), "dd/MM/yyyy HH:mm")
+        : "-";
       if (oldCloseFormatted !== newCloseFormatted) {
-        changedFields.push({ field: "Previsão de Fechamento", oldValue: oldCloseFormatted, newValue: newCloseFormatted });
+        changedFields.push({
+          field: "Previsão de Fechamento",
+          oldValue: oldCloseFormatted,
+          newValue: newCloseFormatted,
+        });
       }
 
       if ((deal.quantity || 1) !== (parseInt(formData.quantity) || 1)) {
-        changedFields.push({ field: "Quantidade", oldValue: String(deal.quantity || 1), newValue: formData.quantity });
+        changedFields.push({
+          field: "Quantidade",
+          oldValue: String(deal.quantity || 1),
+          newValue: formData.quantity,
+        });
       }
 
-      const oldValueFormatted = deal.value ? `R$ ${deal.value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "-";
-      const newValueFormatted = value ? `R$ ${value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "-";
+      const oldValueFormatted = deal.value
+        ? `R$ ${deal.value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
+        : "-";
+      const newValueFormatted = value
+        ? `R$ ${value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
+        : "-";
       if (oldValueFormatted !== newValueFormatted) {
-        changedFields.push({ field: "Valor", oldValue: oldValueFormatted, newValue: newValueFormatted });
+        changedFields.push({
+          field: "Valor",
+          oldValue: oldValueFormatted,
+          newValue: newValueFormatted,
+        });
       }
 
       if (deal.stage_id !== formData.stage_id) {
-        const oldStage = stages.find(s => s.id === deal.stage_id);
-        const newStage = stages.find(s => s.id === formData.stage_id);
-        changedFields.push({ field: "Etapa", oldValue: oldStage?.name || "-", newValue: newStage?.name || "-" });
+        const oldStage = stages.find((s) => s.id === deal.stage_id);
+        const newStage = stages.find((s) => s.id === formData.stage_id);
+        changedFields.push({
+          field: "Etapa",
+          oldValue: oldStage?.name || "-",
+          newValue: newStage?.name || "-",
+        });
       }
 
       if (deal.status !== formData.status) {
-        const statusLabels: Record<string, string> = { open: "Aberto", won: "Ganho", lost: "Perdido" };
-        changedFields.push({ 
-          field: "Status", 
-          oldValue: statusLabels[deal.status] || deal.status, 
-          newValue: statusLabels[formData.status] || formData.status 
+        const statusLabels: Record<string, string> = {
+          open: "Aberto",
+          won: "Ganho",
+          lost: "Perdido",
+        };
+        changedFields.push({
+          field: "Status",
+          oldValue: statusLabels[deal.status] || deal.status,
+          newValue: statusLabels[formData.status] || formData.status,
         });
       }
 
       if ((deal.notes || "") !== (formData.notes || "")) {
-        changedFields.push({ field: "Descrição", oldValue: "Texto anterior", newValue: "Texto atualizado" });
+        changedFields.push({
+          field: "Descrição",
+          oldValue: "Texto anterior",
+          newValue: "Texto atualizado",
+        });
       }
 
       await onUpdateDeal({
@@ -534,14 +596,16 @@ export function CRMDealDetailsModal({
         responsible_id: formData.responsible_id || null,
         stage_id: formData.stage_id,
         status: formData.status as "open" | "won" | "lost",
-        temperature: formData.temperature ? formData.temperature as "cold" | "warm" | "hot" : null,
+        temperature: formData.temperature
+          ? (formData.temperature as "cold" | "warm" | "hot")
+          : null,
         notes: formData.notes || null,
         workflow_id: formData.workflow_id || null,
       });
-      
+
       // Log each field change individually with old and new values
       if (changedFields.length > 0) {
-        const activityInserts = changedFields.map(change => ({
+        const activityInserts = changedFields.map((change) => ({
           deal_id: deal.id,
           contact_id: contactId || null,
           activity_type: "field_updated",
@@ -567,7 +631,7 @@ export function CRMDealDetailsModal({
 
   const handleDelete = async () => {
     if (!onDeleteDeal) return;
-    
+
     if (confirm("Tem certeza que deseja excluir este negócio?")) {
       try {
         await onDeleteDeal(deal.id);
@@ -585,13 +649,16 @@ export function CRMDealDetailsModal({
     addNoteMutation.mutate(newNote.trim());
   };
 
-  const filteredStages = formData.board_id 
-    ? stages.filter(s => s.board_id === formData.board_id)
+  const filteredStages = formData.board_id
+    ? stages.filter((s) => s.board_id === formData.board_id)
     : stages;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-[95vw] w-[1600px] max-h-[80vh] p-0 gap-0 overflow-hidden bg-background">
+        <VisuallyHidden>
+          <DialogTitle>Detalhes do negócio</DialogTitle>
+        </VisuallyHidden>
         <div className="flex h-[75vh]">
           {/* Sidebar Menu */}
           <div className="w-20 bg-background border-r flex flex-col items-center py-4 shrink-0">
@@ -599,7 +666,7 @@ export function CRMDealDetailsModal({
               const Icon = item.icon;
               const isActive = activeSection === item.id;
               const isDelete = item.id === "excluir";
-              
+
               return (
                 <button
                   key={item.id}
@@ -612,9 +679,14 @@ export function CRMDealDetailsModal({
                   }}
                   className={cn(
                     "flex flex-col items-center justify-center w-full py-3 px-2 text-xs transition-colors",
-                    isActive && !isDelete && "bg-primary/10 text-primary border-l-2 border-primary",
-                    !isActive && !isDelete && "text-muted-foreground hover:text-foreground hover:bg-muted/50",
-                    isDelete && "text-destructive hover:bg-destructive/10 mt-auto"
+                    isActive &&
+                      !isDelete &&
+                      "bg-primary/10 text-primary border-l-2 border-primary",
+                    !isActive &&
+                      !isDelete &&
+                      "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                    isDelete &&
+                      "text-destructive hover:bg-destructive/10 mt-auto",
                   )}
                 >
                   <Icon className="w-5 h-5 mb-1" />
@@ -636,13 +708,16 @@ export function CRMDealDetailsModal({
               <div className="flex-1 min-w-0">
                 <h2 className="text-xl font-semibold truncate">{deal.title}</h2>
                 <p className="text-sm text-muted-foreground">
-                  Criado em {format(new Date(deal.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                  Criado em{" "}
+                  {format(new Date(deal.created_at), "dd/MM/yyyy HH:mm", {
+                    locale: ptBR,
+                  })}
                 </p>
               </div>
               {otherDeals.length > 0 && (
                 <Badge variant="secondary" className="shrink-0">
-                  <Briefcase className="w-3 h-3 mr-1" />
-                  +{otherDeals.length} negócio(s) anterior(es)
+                  <Briefcase className="w-3 h-3 mr-1" />+{otherDeals.length}{" "}
+                  negócio(s) anterior(es)
                 </Badge>
               )}
             </div>
@@ -657,18 +732,27 @@ export function CRMDealDetailsModal({
                       {/* Row 1: ID + Title */}
                       <div className="grid grid-cols-[140px_1fr] gap-4">
                         <div className="space-y-2">
-                          <Label className="text-xs text-muted-foreground">ID</Label>
-                          <Input 
-                            value={deal.id.slice(0, 8).toUpperCase()} 
-                            disabled 
+                          <Label className="text-xs text-muted-foreground">
+                            ID
+                          </Label>
+                          <Input
+                            value={deal.id.slice(0, 8).toUpperCase()}
+                            disabled
                             className="bg-muted/50 font-mono text-sm"
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label className="text-xs text-muted-foreground">Título</Label>
+                          <Label className="text-xs text-muted-foreground">
+                            Título
+                          </Label>
                           <Input
                             value={formData.title}
-                            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                title: e.target.value,
+                              })
+                            }
                             placeholder="Título do negócio"
                           />
                         </div>
@@ -677,7 +761,9 @@ export function CRMDealDetailsModal({
                       {/* Row 2: Start Date/Time + Close Date/Time */}
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label className="text-xs text-muted-foreground">Início</Label>
+                          <Label className="text-xs text-muted-foreground">
+                            Início
+                          </Label>
                           <div className="flex gap-2">
                             <Popover>
                               <PopoverTrigger asChild>
@@ -685,18 +771,29 @@ export function CRMDealDetailsModal({
                                   variant="outline"
                                   className={cn(
                                     "flex-1 justify-start text-left font-normal",
-                                    !formData.start_date && "text-muted-foreground"
+                                    !formData.start_date &&
+                                      "text-muted-foreground",
                                   )}
                                 >
                                   <CalendarIcon className="mr-2 h-4 w-4" />
-                                  {formData.start_date ? format(formData.start_date, "dd/MM/yyyy") : "Selecionar"}
+                                  {formData.start_date
+                                    ? format(formData.start_date, "dd/MM/yyyy")
+                                    : "Selecionar"}
                                 </Button>
                               </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0" align="start">
+                              <PopoverContent
+                                className="w-auto p-0"
+                                align="start"
+                              >
                                 <Calendar
                                   mode="single"
                                   selected={formData.start_date || undefined}
-                                  onSelect={(date) => setFormData({ ...formData, start_date: date || null })}
+                                  onSelect={(date) =>
+                                    setFormData({
+                                      ...formData,
+                                      start_date: date || null,
+                                    })
+                                  }
                                   locale={ptBR}
                                   className="p-3 pointer-events-auto"
                                 />
@@ -705,13 +802,20 @@ export function CRMDealDetailsModal({
                             <Input
                               type="time"
                               value={formData.start_time}
-                              onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  start_time: e.target.value,
+                                })
+                              }
                               className="w-28"
                             />
                           </div>
                         </div>
                         <div className="space-y-2">
-                          <Label className="text-xs text-muted-foreground">Previsão de Fechamento</Label>
+                          <Label className="text-xs text-muted-foreground">
+                            Previsão de Fechamento
+                          </Label>
                           <div className="flex gap-2">
                             <Popover>
                               <PopoverTrigger asChild>
@@ -719,18 +823,34 @@ export function CRMDealDetailsModal({
                                   variant="outline"
                                   className={cn(
                                     "flex-1 justify-start text-left font-normal",
-                                    !formData.expected_close_date && "text-muted-foreground"
+                                    !formData.expected_close_date &&
+                                      "text-muted-foreground",
                                   )}
                                 >
                                   <CalendarIcon className="mr-2 h-4 w-4" />
-                                  {formData.expected_close_date ? format(formData.expected_close_date, "dd/MM/yyyy") : "Selecionar"}
+                                  {formData.expected_close_date
+                                    ? format(
+                                        formData.expected_close_date,
+                                        "dd/MM/yyyy",
+                                      )
+                                    : "Selecionar"}
                                 </Button>
                               </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0" align="start">
+                              <PopoverContent
+                                className="w-auto p-0"
+                                align="start"
+                              >
                                 <Calendar
                                   mode="single"
-                                  selected={formData.expected_close_date || undefined}
-                                  onSelect={(date) => setFormData({ ...formData, expected_close_date: date || null })}
+                                  selected={
+                                    formData.expected_close_date || undefined
+                                  }
+                                  onSelect={(date) =>
+                                    setFormData({
+                                      ...formData,
+                                      expected_close_date: date || null,
+                                    })
+                                  }
                                   locale={ptBR}
                                   className="p-3 pointer-events-auto"
                                 />
@@ -739,7 +859,12 @@ export function CRMDealDetailsModal({
                             <Input
                               type="time"
                               value={formData.expected_close_time}
-                              onChange={(e) => setFormData({ ...formData, expected_close_time: e.target.value })}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  expected_close_time: e.target.value,
+                                })
+                              }
                               className="w-28"
                             />
                           </div>
@@ -749,43 +874,77 @@ export function CRMDealDetailsModal({
                       {/* Row 3: Quantity + Value + Temperature */}
                       <div className="grid grid-cols-3 gap-4">
                         <div className="space-y-2">
-                          <Label className="text-xs text-muted-foreground">Quantidade</Label>
+                          <Label className="text-xs text-muted-foreground">
+                            Quantidade
+                          </Label>
                           <Input
                             type="number"
                             min="1"
                             value={formData.quantity}
-                            onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                quantity: e.target.value,
+                              })
+                            }
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label className="text-xs text-muted-foreground">Valor</Label>
+                          <Label className="text-xs text-muted-foreground">
+                            Valor
+                          </Label>
                           <div className="relative">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
+                              R$
+                            </span>
                             <Input
                               value={formData.value}
-                              onChange={(e) => setFormData({ ...formData, value: e.target.value })}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  value: e.target.value,
+                                })
+                              }
                               placeholder="0,00"
                               className="pl-10"
                             />
                           </div>
                         </div>
                         <div className="space-y-2">
-                          <Label className="text-xs text-muted-foreground">Temperatura</Label>
-                          <Select 
-                            value={formData.temperature || "none"} 
-                            onValueChange={(v) => setFormData({ ...formData, temperature: v === "none" ? "" : v })}
+                          <Label className="text-xs text-muted-foreground">
+                            Temperatura
+                          </Label>
+                          <Select
+                            value={formData.temperature || "none"}
+                            onValueChange={(v) =>
+                              setFormData({
+                                ...formData,
+                                temperature: v === "none" ? "" : v,
+                              })
+                            }
                           >
-                            <SelectTrigger className={cn(
-                              "font-medium",
-                              formData.temperature === "hot" && "bg-red-500/20 text-red-700 border-red-500/50",
-                              formData.temperature === "warm" && "bg-orange-500/20 text-orange-700 border-orange-500/50",
-                              formData.temperature === "cold" && "bg-blue-400/20 text-blue-700 border-blue-400/50"
-                            )}>
+                            <SelectTrigger
+                              className={cn(
+                                "font-medium",
+                                formData.temperature === "hot" &&
+                                  "bg-red-500/20 text-red-700 border-red-500/50",
+                                formData.temperature === "warm" &&
+                                  "bg-orange-500/20 text-orange-700 border-orange-500/50",
+                                formData.temperature === "cold" &&
+                                  "bg-blue-400/20 text-blue-700 border-blue-400/50",
+                              )}
+                            >
                               <SelectValue placeholder="Selecione...">
-                                {formData.temperature && formData.temperature !== "none" 
-                                  ? temperatureOptions.find(t => t.value === formData.temperature)?.icon + " " + temperatureOptions.find(t => t.value === formData.temperature)?.label
-                                  : "Não definida"
-                                }
+                                {formData.temperature &&
+                                formData.temperature !== "none"
+                                  ? temperatureOptions.find(
+                                      (t) => t.value === formData.temperature,
+                                    )?.icon +
+                                    " " +
+                                    temperatureOptions.find(
+                                      (t) => t.value === formData.temperature,
+                                    )?.label
+                                  : "Não definida"}
                               </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
@@ -806,34 +965,55 @@ export function CRMDealDetailsModal({
                       {/* Row 4: Responsible + Board + Stage */}
                       <div className="grid grid-cols-3 gap-4">
                         <div className="space-y-2">
-                          <Label className="text-xs text-muted-foreground">Responsável</Label>
-                          <Select 
-                            value={formData.responsible_id || "none"} 
-                            onValueChange={(v) => setFormData({ ...formData, responsible_id: v === "none" ? "" : v })}
+                          <Label className="text-xs text-muted-foreground">
+                            Responsável
+                          </Label>
+                          <Select
+                            value={formData.responsible_id || "none"}
+                            onValueChange={(v) =>
+                              setFormData({
+                                ...formData,
+                                responsible_id: v === "none" ? "" : v,
+                              })
+                            }
                           >
                             <SelectTrigger>
                               <SelectValue placeholder="Selecione...">
-                                {formData.responsible_id && formData.responsible_id !== "none" 
-                                  ? crmUsers.find(u => u.id === formData.responsible_id)?.full_name || "Selecione..."
-                                  : "Sem responsável"
-                                }
+                                {formData.responsible_id &&
+                                formData.responsible_id !== "none"
+                                  ? crmUsers.find(
+                                      (u) => u.id === formData.responsible_id,
+                                    )?.full_name || "Selecione..."
+                                  : "Sem responsável"}
                               </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="none">Sem responsável</SelectItem>
-                              {crmUsers.filter(u => u.is_active).map((user) => (
-                                <SelectItem key={user.id} value={user.id}>
-                                  {user.full_name}
-                                </SelectItem>
-                              ))}
+                              <SelectItem value="none">
+                                Sem responsável
+                              </SelectItem>
+                              {crmUsers
+                                .filter((u) => u.is_active)
+                                .map((user) => (
+                                  <SelectItem key={user.id} value={user.id}>
+                                    {user.full_name}
+                                  </SelectItem>
+                                ))}
                             </SelectContent>
                           </Select>
                         </div>
                         <div className="space-y-2">
-                          <Label className="text-xs text-muted-foreground">Funil</Label>
-                          <Select 
-                            value={formData.board_id} 
-                            onValueChange={(v) => setFormData({ ...formData, board_id: v, stage_id: "" })}
+                          <Label className="text-xs text-muted-foreground">
+                            Funil
+                          </Label>
+                          <Select
+                            value={formData.board_id}
+                            onValueChange={(v) =>
+                              setFormData({
+                                ...formData,
+                                board_id: v,
+                                stage_id: "",
+                              })
+                            }
                           >
                             <SelectTrigger>
                               <SelectValue placeholder="Selecione..." />
@@ -848,10 +1028,14 @@ export function CRMDealDetailsModal({
                           </Select>
                         </div>
                         <div className="space-y-2">
-                          <Label className="text-xs text-muted-foreground">Etapa</Label>
-                          <Select 
-                            value={formData.stage_id} 
-                            onValueChange={(v) => setFormData({ ...formData, stage_id: v })}
+                          <Label className="text-xs text-muted-foreground">
+                            Etapa
+                          </Label>
+                          <Select
+                            value={formData.stage_id}
+                            onValueChange={(v) =>
+                              setFormData({ ...formData, stage_id: v })
+                            }
                           >
                             <SelectTrigger>
                               <SelectValue placeholder="Selecione..." />
@@ -860,8 +1044,8 @@ export function CRMDealDetailsModal({
                               {filteredStages.map((stage) => (
                                 <SelectItem key={stage.id} value={stage.id}>
                                   <div className="flex items-center gap-2">
-                                    <span 
-                                      className="w-2 h-2 rounded-full" 
+                                    <span
+                                      className="w-2 h-2 rounded-full"
                                       style={{ backgroundColor: stage.color }}
                                     />
                                     {stage.name}
@@ -879,8 +1063,8 @@ export function CRMDealDetailsModal({
                           <h3 className="font-medium">Informações do Lead</h3>
                           <div className="flex gap-2">
                             {contact && (
-                              <Button 
-                                variant="outline" 
+                              <Button
+                                variant="outline"
                                 size="sm"
                                 onClick={() => setActiveSection("lead")}
                               >
@@ -888,16 +1072,16 @@ export function CRMDealDetailsModal({
                                 Ver Detalhes
                               </Button>
                             )}
-                            <Button 
-                              variant="outline" 
+                            <Button
+                              variant="outline"
                               size="sm"
                               onClick={() => setIsSearchContactOpen(true)}
                             >
                               <Search className="w-4 h-4 mr-1" />
                               Buscar Lead
                             </Button>
-                            <Button 
-                              variant="outline" 
+                            <Button
+                              variant="outline"
                               size="sm"
                               onClick={() => setIsCreateContactOpen(true)}
                             >
@@ -906,7 +1090,7 @@ export function CRMDealDetailsModal({
                             </Button>
                           </div>
                         </div>
-                        
+
                         {contact ? (
                           <div className="flex items-center gap-6 flex-wrap">
                             <div className="flex items-center gap-3">
@@ -916,8 +1100,12 @@ export function CRMDealDetailsModal({
                                 </AvatarFallback>
                               </Avatar>
                               <div>
-                                <p className="font-medium">{contact.full_name}</p>
-                                <p className="text-sm text-muted-foreground">{contact.email}</p>
+                                <p className="font-medium">
+                                  {contact.full_name}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                  {contact.email}
+                                </p>
                               </div>
                             </div>
                             {contact.phone && (
@@ -934,25 +1122,42 @@ export function CRMDealDetailsModal({
                             )}
                           </div>
                         ) : (
-                          <p className="text-sm text-muted-foreground">Nenhum lead vinculado</p>
+                          <p className="text-sm text-muted-foreground">
+                            Nenhum lead vinculado
+                          </p>
                         )}
 
                         {/* Other Deals */}
                         {otherDeals.length > 0 && (
                           <div className="border-t pt-3 mt-3">
                             <p className="text-xs text-muted-foreground mb-2">
-                              Este lead possui outros {otherDeals.length} negócio(s):
+                              Este lead possui outros {otherDeals.length}{" "}
+                              negócio(s):
                             </p>
                             <div className="flex gap-2 flex-wrap">
                               {otherDeals.map((d) => {
-                                const stage = stages.find(s => s.id === d.stage_id);
+                                const stage = stages.find(
+                                  (s) => s.id === d.stage_id,
+                                );
                                 return (
-                                  <Badge key={d.id} variant="outline" className="text-xs">
-                                    <span 
-                                      className="w-2 h-2 rounded-full mr-1" 
-                                      style={{ backgroundColor: stage?.color || "#888" }}
+                                  <Badge
+                                    key={d.id}
+                                    variant="outline"
+                                    className="text-xs"
+                                  >
+                                    <span
+                                      className="w-2 h-2 rounded-full mr-1"
+                                      style={{
+                                        backgroundColor: stage?.color || "#888",
+                                      }}
                                     />
-                                    {d.title} ({d.status === "won" ? "Ganho" : d.status === "lost" ? "Perdido" : "Aberto"})
+                                    {d.title} (
+                                    {d.status === "won"
+                                      ? "Ganho"
+                                      : d.status === "lost"
+                                        ? "Perdido"
+                                        : "Aberto"}
+                                    )
                                   </Badge>
                                 );
                               })}
@@ -963,10 +1168,17 @@ export function CRMDealDetailsModal({
 
                       {/* Workflow */}
                       <div className="space-y-2">
-                        <Label className="text-xs text-muted-foreground">Fluxo</Label>
-                        <Select 
-                          value={formData.workflow_id || "none"} 
-                          onValueChange={(v) => setFormData({ ...formData, workflow_id: v === "none" ? "" : v })}
+                        <Label className="text-xs text-muted-foreground">
+                          Fluxo
+                        </Label>
+                        <Select
+                          value={formData.workflow_id || "none"}
+                          onValueChange={(v) =>
+                            setFormData({
+                              ...formData,
+                              workflow_id: v === "none" ? "" : v,
+                            })
+                          }
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Selecione..." />
@@ -979,16 +1191,25 @@ export function CRMDealDetailsModal({
 
                       {/* Tags */}
                       <div className="space-y-2">
-                        <Label className="text-xs text-muted-foreground">Tags</Label>
-                        <CRMDealTags dealId={deal.id} workspaceId={deal.workspace_id} />
+                        <Label className="text-xs text-muted-foreground">
+                          Tags
+                        </Label>
+                        <CRMDealTags
+                          dealId={deal.id}
+                          workspaceId={deal.workspace_id}
+                        />
                       </div>
 
                       {/* Description */}
                       <div className="space-y-2">
-                        <Label className="text-xs text-muted-foreground">Descrição</Label>
+                        <Label className="text-xs text-muted-foreground">
+                          Descrição
+                        </Label>
                         <Textarea
                           value={formData.notes}
-                          onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                          onChange={(e) =>
+                            setFormData({ ...formData, notes: e.target.value })
+                          }
                           placeholder="Adicione uma descrição..."
                           rows={4}
                           className="resize-none"
@@ -996,8 +1217,8 @@ export function CRMDealDetailsModal({
                       </div>
 
                       {/* Save Button */}
-                      <Button 
-                        className="w-full" 
+                      <Button
+                        className="w-full"
                         onClick={handleSave}
                         disabled={isSaving}
                       >
@@ -1011,9 +1232,10 @@ export function CRMDealDetailsModal({
                     <div className="space-y-4">
                       <h3 className="font-medium">Histórico Completo</h3>
                       <p className="text-sm text-muted-foreground">
-                        Visualize o histórico detalhado deste negócio e do lead associado.
+                        Visualize o histórico detalhado deste negócio e do lead
+                        associado.
                       </p>
-                      
+
                       {activities.length === 0 ? (
                         <div className="text-center py-12 text-muted-foreground">
                           <History className="w-12 h-12 mx-auto mb-3 opacity-30" />
@@ -1022,28 +1244,43 @@ export function CRMDealDetailsModal({
                       ) : (
                         <div className="space-y-3">
                           {activities.map((activity) => {
-                            const Icon = getActivityIcon(activity.activity_type);
-                            const isDifferentDeal = activity.deal_id !== deal.id;
-                            
+                            const Icon = getActivityIcon(
+                              activity.activity_type,
+                            );
+                            const isDifferentDeal =
+                              activity.deal_id !== deal.id;
+
                             return (
-                              <div 
-                                key={activity.id} 
+                              <div
+                                key={activity.id}
                                 className={cn(
                                   "flex gap-3 p-3 rounded-lg",
-                                  isDifferentDeal ? "bg-muted/50 border border-dashed" : "bg-muted/30"
+                                  isDifferentDeal
+                                    ? "bg-muted/50 border border-dashed"
+                                    : "bg-muted/30",
                                 )}
                               >
-                                <div className={cn(
-                                  "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
-                                  activity.is_manual ? "bg-primary/10 text-primary" : "bg-muted"
-                                )}>
+                                <div
+                                  className={cn(
+                                    "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
+                                    activity.is_manual
+                                      ? "bg-primary/10 text-primary"
+                                      : "bg-muted",
+                                  )}
+                                >
                                   <Icon className="w-4 h-4" />
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-sm">{getActivityLabel(activity, stages)}</p>
-                                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                  <p className="text-sm">
+                                    {getActivityLabel(activity, stages)}
+                                  </p>
+                                  <div className="flex items-center gap-2 mt-1 flex-wrap">
                                     <span className="text-xs text-muted-foreground">
-                                      {format(new Date(activity.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                                      {format(
+                                        new Date(activity.created_at),
+                                        "dd/MM/yyyy HH:mm",
+                                        { locale: ptBR },
+                                      )}
                                     </span>
                                     {activity.user?.full_name && (
                                       <span className="text-xs text-muted-foreground">
@@ -1051,7 +1288,10 @@ export function CRMDealDetailsModal({
                                       </span>
                                     )}
                                     {isDifferentDeal && (
-                                      <Badge variant="outline" className="text-xs">
+                                      <Badge
+                                        variant="outline"
+                                        className="text-xs"
+                                      >
                                         Outro negócio
                                       </Badge>
                                     )}
@@ -1068,18 +1308,20 @@ export function CRMDealDetailsModal({
                   {activeSection === "lead" && (
                     <div className="space-y-6">
                       <div className="flex items-center justify-between">
-                        <h3 className="font-medium text-lg">Informações do Lead</h3>
+                        <h3 className="font-medium text-lg">
+                          Informações do Lead
+                        </h3>
                         <div className="flex gap-2">
-                          <Button 
-                            variant="outline" 
+                          <Button
+                            variant="outline"
                             size="sm"
                             onClick={() => setIsSearchContactOpen(true)}
                           >
                             <Search className="w-4 h-4 mr-1" />
                             Trocar Lead
                           </Button>
-                          <Button 
-                            variant="outline" 
+                          <Button
+                            variant="outline"
                             size="sm"
                             onClick={() => setIsCreateContactOpen(true)}
                           >
@@ -1088,51 +1330,88 @@ export function CRMDealDetailsModal({
                           </Button>
                         </div>
                       </div>
-                      
+
                       {contact ? (
                         <div className="space-y-6">
                           {/* Dados Básicos */}
                           <div className="space-y-4">
-                            <h4 className="text-sm font-medium text-muted-foreground border-b pb-2">Dados Básicos</h4>
+                            <h4 className="text-sm font-medium text-muted-foreground border-b pb-2">
+                              Dados Básicos
+                            </h4>
                             <div className="grid grid-cols-2 gap-4">
                               <div className="space-y-2">
-                                <Label className="text-xs text-muted-foreground">Nome Completo *</Label>
+                                <Label className="text-xs text-muted-foreground">
+                                  Nome Completo *
+                                </Label>
                                 <Input
                                   value={leadFormData.full_name}
-                                  onChange={(e) => setLeadFormData({ ...leadFormData, full_name: e.target.value })}
+                                  onChange={(e) =>
+                                    setLeadFormData({
+                                      ...leadFormData,
+                                      full_name: e.target.value,
+                                    })
+                                  }
                                   placeholder="Nome do lead"
                                 />
                               </div>
                               <div className="space-y-2">
-                                <Label className="text-xs text-muted-foreground">Empresa</Label>
+                                <Label className="text-xs text-muted-foreground">
+                                  Empresa
+                                </Label>
                                 <Input
                                   value={leadFormData.company_name}
-                                  onChange={(e) => setLeadFormData({ ...leadFormData, company_name: e.target.value })}
+                                  onChange={(e) =>
+                                    setLeadFormData({
+                                      ...leadFormData,
+                                      company_name: e.target.value,
+                                    })
+                                  }
                                   placeholder="Nome da empresa"
                                 />
                               </div>
                               <div className="space-y-2">
-                                <Label className="text-xs text-muted-foreground">E-mail</Label>
+                                <Label className="text-xs text-muted-foreground">
+                                  E-mail
+                                </Label>
                                 <Input
                                   type="email"
                                   value={leadFormData.email}
-                                  onChange={(e) => setLeadFormData({ ...leadFormData, email: e.target.value })}
+                                  onChange={(e) =>
+                                    setLeadFormData({
+                                      ...leadFormData,
+                                      email: e.target.value,
+                                    })
+                                  }
                                   placeholder="email@exemplo.com"
                                 />
                               </div>
                               <div className="space-y-2">
-                                <Label className="text-xs text-muted-foreground">Telefone</Label>
+                                <Label className="text-xs text-muted-foreground">
+                                  Telefone
+                                </Label>
                                 <Input
                                   value={leadFormData.phone}
-                                  onChange={(e) => setLeadFormData({ ...leadFormData, phone: e.target.value })}
+                                  onChange={(e) =>
+                                    setLeadFormData({
+                                      ...leadFormData,
+                                      phone: e.target.value,
+                                    })
+                                  }
                                   placeholder="(00) 00000-0000"
                                 />
                               </div>
                               <div className="space-y-2">
-                                <Label className="text-xs text-muted-foreground">ID Externo</Label>
+                                <Label className="text-xs text-muted-foreground">
+                                  ID Externo
+                                </Label>
                                 <Input
                                   value={leadFormData.external_id}
-                                  onChange={(e) => setLeadFormData({ ...leadFormData, external_id: e.target.value })}
+                                  onChange={(e) =>
+                                    setLeadFormData({
+                                      ...leadFormData,
+                                      external_id: e.target.value,
+                                    })
+                                  }
                                   placeholder="ID em outro sistema"
                                 />
                               </div>
@@ -1141,29 +1420,52 @@ export function CRMDealDetailsModal({
 
                           {/* Localização */}
                           <div className="space-y-4">
-                            <h4 className="text-sm font-medium text-muted-foreground border-b pb-2">Localização</h4>
+                            <h4 className="text-sm font-medium text-muted-foreground border-b pb-2">
+                              Localização
+                            </h4>
                             <div className="grid grid-cols-3 gap-4">
                               <div className="space-y-2">
-                                <Label className="text-xs text-muted-foreground">Cidade</Label>
+                                <Label className="text-xs text-muted-foreground">
+                                  Cidade
+                                </Label>
                                 <Input
                                   value={leadFormData.city}
-                                  onChange={(e) => setLeadFormData({ ...leadFormData, city: e.target.value })}
+                                  onChange={(e) =>
+                                    setLeadFormData({
+                                      ...leadFormData,
+                                      city: e.target.value,
+                                    })
+                                  }
                                   placeholder="Cidade"
                                 />
                               </div>
                               <div className="space-y-2">
-                                <Label className="text-xs text-muted-foreground">Estado</Label>
+                                <Label className="text-xs text-muted-foreground">
+                                  Estado
+                                </Label>
                                 <Input
                                   value={leadFormData.state}
-                                  onChange={(e) => setLeadFormData({ ...leadFormData, state: e.target.value })}
+                                  onChange={(e) =>
+                                    setLeadFormData({
+                                      ...leadFormData,
+                                      state: e.target.value,
+                                    })
+                                  }
                                   placeholder="Estado"
                                 />
                               </div>
                               <div className="space-y-2">
-                                <Label className="text-xs text-muted-foreground">País</Label>
+                                <Label className="text-xs text-muted-foreground">
+                                  País
+                                </Label>
                                 <Input
                                   value={leadFormData.country}
-                                  onChange={(e) => setLeadFormData({ ...leadFormData, country: e.target.value })}
+                                  onChange={(e) =>
+                                    setLeadFormData({
+                                      ...leadFormData,
+                                      country: e.target.value,
+                                    })
+                                  }
                                   placeholder="País"
                                 />
                               </div>
@@ -1172,7 +1474,9 @@ export function CRMDealDetailsModal({
 
                           {/* Redes Sociais e Website */}
                           <div className="space-y-4">
-                            <h4 className="text-sm font-medium text-muted-foreground border-b pb-2">Redes Sociais e Website</h4>
+                            <h4 className="text-sm font-medium text-muted-foreground border-b pb-2">
+                              Redes Sociais e Website
+                            </h4>
                             <div className="grid grid-cols-2 gap-4">
                               <div className="space-y-2">
                                 <Label className="text-xs text-muted-foreground flex items-center gap-1">
@@ -1180,7 +1484,12 @@ export function CRMDealDetailsModal({
                                 </Label>
                                 <Input
                                   value={leadFormData.facebook}
-                                  onChange={(e) => setLeadFormData({ ...leadFormData, facebook: e.target.value })}
+                                  onChange={(e) =>
+                                    setLeadFormData({
+                                      ...leadFormData,
+                                      facebook: e.target.value,
+                                    })
+                                  }
                                   placeholder="URL ou @usuario"
                                 />
                               </div>
@@ -1190,7 +1499,12 @@ export function CRMDealDetailsModal({
                                 </Label>
                                 <Input
                                   value={leadFormData.instagram}
-                                  onChange={(e) => setLeadFormData({ ...leadFormData, instagram: e.target.value })}
+                                  onChange={(e) =>
+                                    setLeadFormData({
+                                      ...leadFormData,
+                                      instagram: e.target.value,
+                                    })
+                                  }
                                   placeholder="URL ou @usuario"
                                 />
                               </div>
@@ -1200,7 +1514,12 @@ export function CRMDealDetailsModal({
                                 </Label>
                                 <Input
                                   value={leadFormData.website}
-                                  onChange={(e) => setLeadFormData({ ...leadFormData, website: e.target.value })}
+                                  onChange={(e) =>
+                                    setLeadFormData({
+                                      ...leadFormData,
+                                      website: e.target.value,
+                                    })
+                                  }
                                   placeholder="https://exemplo.com"
                                 />
                               </div>
@@ -1209,45 +1528,82 @@ export function CRMDealDetailsModal({
 
                           {/* Dados de Origem (UTM) */}
                           <div className="space-y-4">
-                            <h4 className="text-sm font-medium text-muted-foreground border-b pb-2">Dados de Origem (UTM)</h4>
+                            <h4 className="text-sm font-medium text-muted-foreground border-b pb-2">
+                              Dados de Origem (UTM)
+                            </h4>
                             <div className="grid grid-cols-2 gap-4">
                               <div className="space-y-2">
-                                <Label className="text-xs text-muted-foreground">UTM Source</Label>
+                                <Label className="text-xs text-muted-foreground">
+                                  UTM Source
+                                </Label>
                                 <Input
                                   value={leadFormData.utm_source}
-                                  onChange={(e) => setLeadFormData({ ...leadFormData, utm_source: e.target.value })}
+                                  onChange={(e) =>
+                                    setLeadFormData({
+                                      ...leadFormData,
+                                      utm_source: e.target.value,
+                                    })
+                                  }
                                   placeholder="Ex: facebook, google"
                                 />
                               </div>
                               <div className="space-y-2">
-                                <Label className="text-xs text-muted-foreground">UTM Medium</Label>
+                                <Label className="text-xs text-muted-foreground">
+                                  UTM Medium
+                                </Label>
                                 <Input
                                   value={leadFormData.utm_medium}
-                                  onChange={(e) => setLeadFormData({ ...leadFormData, utm_medium: e.target.value })}
+                                  onChange={(e) =>
+                                    setLeadFormData({
+                                      ...leadFormData,
+                                      utm_medium: e.target.value,
+                                    })
+                                  }
                                   placeholder="Ex: cpc, email"
                                 />
                               </div>
                               <div className="space-y-2">
-                                <Label className="text-xs text-muted-foreground">UTM Campaign</Label>
+                                <Label className="text-xs text-muted-foreground">
+                                  UTM Campaign
+                                </Label>
                                 <Input
                                   value={leadFormData.utm_campaign}
-                                  onChange={(e) => setLeadFormData({ ...leadFormData, utm_campaign: e.target.value })}
+                                  onChange={(e) =>
+                                    setLeadFormData({
+                                      ...leadFormData,
+                                      utm_campaign: e.target.value,
+                                    })
+                                  }
                                   placeholder="Nome da campanha"
                                 />
                               </div>
                               <div className="space-y-2">
-                                <Label className="text-xs text-muted-foreground">UTM Term</Label>
+                                <Label className="text-xs text-muted-foreground">
+                                  UTM Term
+                                </Label>
                                 <Input
                                   value={leadFormData.utm_term}
-                                  onChange={(e) => setLeadFormData({ ...leadFormData, utm_term: e.target.value })}
+                                  onChange={(e) =>
+                                    setLeadFormData({
+                                      ...leadFormData,
+                                      utm_term: e.target.value,
+                                    })
+                                  }
                                   placeholder="Termo de busca"
                                 />
                               </div>
                               <div className="space-y-2 col-span-2">
-                                <Label className="text-xs text-muted-foreground">UTM Content</Label>
+                                <Label className="text-xs text-muted-foreground">
+                                  UTM Content
+                                </Label>
                                 <Input
                                   value={leadFormData.utm_content}
-                                  onChange={(e) => setLeadFormData({ ...leadFormData, utm_content: e.target.value })}
+                                  onChange={(e) =>
+                                    setLeadFormData({
+                                      ...leadFormData,
+                                      utm_content: e.target.value,
+                                    })
+                                  }
                                   placeholder="Identificador do conteúdo"
                                 />
                               </div>
@@ -1256,10 +1612,17 @@ export function CRMDealDetailsModal({
 
                           {/* Observações */}
                           <div className="space-y-2">
-                            <Label className="text-xs text-muted-foreground">Observações</Label>
+                            <Label className="text-xs text-muted-foreground">
+                              Observações
+                            </Label>
                             <Textarea
                               value={leadFormData.notes}
-                              onChange={(e) => setLeadFormData({ ...leadFormData, notes: e.target.value })}
+                              onChange={(e) =>
+                                setLeadFormData({
+                                  ...leadFormData,
+                                  notes: e.target.value,
+                                })
+                              }
                               placeholder="Notas sobre este lead..."
                               rows={4}
                               className="resize-none"
@@ -1269,10 +1632,15 @@ export function CRMDealDetailsModal({
                           {/* Created At + Save Button */}
                           <div className="pt-4 border-t space-y-4">
                             <p className="text-sm text-muted-foreground">
-                              Lead criado em {format(new Date(contact.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                              Lead criado em{" "}
+                              {format(
+                                new Date(contact.created_at),
+                                "dd/MM/yyyy 'às' HH:mm",
+                                { locale: ptBR },
+                              )}
                             </p>
-                            <Button 
-                              className="w-full" 
+                            <Button
+                              className="w-full"
                               onClick={handleSaveLead}
                               disabled={isSavingLead}
                             >
@@ -1285,17 +1653,21 @@ export function CRMDealDetailsModal({
                         <div className="text-center py-12 text-muted-foreground">
                           <User className="w-12 h-12 mx-auto mb-3 opacity-30" />
                           <p>Nenhum lead vinculado a este negócio</p>
-                          <p className="text-sm mt-2">Busque ou crie um lead para vincular</p>
+                          <p className="text-sm mt-2">
+                            Busque ou crie um lead para vincular
+                          </p>
                         </div>
                       )}
                     </div>
                   )}
 
-                  {activeSection !== "principal" && activeSection !== "historico" && activeSection !== "lead" && (
-                    <div className="text-center py-12 text-muted-foreground">
-                      <p>Seção em desenvolvimento</p>
-                    </div>
-                  )}
+                  {activeSection !== "principal" &&
+                    activeSection !== "historico" &&
+                    activeSection !== "lead" && (
+                      <div className="text-center py-12 text-muted-foreground">
+                        <p>Seção em desenvolvimento</p>
+                      </div>
+                    )}
                 </div>
               </ScrollArea>
 
@@ -1304,24 +1676,38 @@ export function CRMDealDetailsModal({
                 {/* Status Section */}
                 <div className="p-4 border-b space-y-3">
                   <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground">Situação</Label>
-                    <Select 
-                      value={formData.status} 
-                      onValueChange={(v) => setFormData({ ...formData, status: v })}
+                    <Label className="text-xs text-muted-foreground">
+                      Situação
+                    </Label>
+                    <Select
+                      value={formData.status}
+                      onValueChange={(v) =>
+                        setFormData({ ...formData, status: v })
+                      }
                     >
-                      <SelectTrigger className={cn(
-                        "font-medium",
-                        formData.status === "open" && "bg-blue-500 text-white border-blue-500",
-                        formData.status === "won" && "bg-emerald-500 text-white border-emerald-500",
-                        formData.status === "lost" && "bg-gray-500 text-white border-gray-500"
-                      )}>
+                      <SelectTrigger
+                        className={cn(
+                          "font-medium",
+                          formData.status === "open" &&
+                            "bg-blue-500 text-white border-blue-500",
+                          formData.status === "won" &&
+                            "bg-emerald-500 text-white border-emerald-500",
+                          formData.status === "lost" &&
+                            "bg-gray-500 text-white border-gray-500",
+                        )}
+                      >
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         {statusOptions.map((status) => (
                           <SelectItem key={status.value} value={status.value}>
                             <div className="flex items-center gap-2">
-                              <span className={cn("w-2 h-2 rounded-full", status.color)} />
+                              <span
+                                className={cn(
+                                  "w-2 h-2 rounded-full",
+                                  status.color,
+                                )}
+                              />
                               {status.label}
                             </div>
                           </SelectItem>
@@ -1333,7 +1719,9 @@ export function CRMDealDetailsModal({
 
                 {/* Note Input */}
                 <div className="p-4 border-b space-y-3">
-                  <Label className="text-xs text-muted-foreground">Adicionar ao Histórico</Label>
+                  <Label className="text-xs text-muted-foreground">
+                    Adicionar ao Histórico
+                  </Label>
                   <Textarea
                     value={newNote}
                     onChange={(e) => setNewNote(e.target.value)}
@@ -1341,7 +1729,7 @@ export function CRMDealDetailsModal({
                     rows={3}
                     className="resize-none"
                   />
-                  <Button 
+                  <Button
                     onClick={handleSendNote}
                     disabled={!newNote.trim() || addNoteMutation.isPending}
                     className="w-full bg-emerald-500 hover:bg-emerald-600"
@@ -1369,13 +1757,17 @@ export function CRMDealDetailsModal({
                         activities.map((activity) => {
                           const Icon = getActivityIcon(activity.activity_type);
                           const isDifferentDeal = activity.deal_id !== deal.id;
-                          
+
                           return (
                             <div key={activity.id} className="flex gap-3">
-                              <div className={cn(
-                                "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
-                                activity.is_manual ? "bg-primary/10 text-primary" : "bg-muted"
-                              )}>
+                              <div
+                                className={cn(
+                                  "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
+                                  activity.is_manual
+                                    ? "bg-primary/10 text-primary"
+                                    : "bg-muted",
+                                )}
+                              >
                                 <Icon className="w-4 h-4" />
                               </div>
                               <div className="flex-1 min-w-0">
@@ -1384,7 +1776,10 @@ export function CRMDealDetailsModal({
                                 </p>
                                 <div className="flex items-center gap-2 mt-1 flex-wrap">
                                   <span className="text-xs text-muted-foreground">
-                                    {format(new Date(activity.created_at), "dd/MM/yy HH:mm")}
+                                    {format(
+                                      new Date(activity.created_at),
+                                      "dd/MM/yy HH:mm",
+                                    )}
                                   </span>
                                   {activity.user?.full_name && (
                                     <span className="text-xs font-medium text-muted-foreground">
@@ -1392,7 +1787,10 @@ export function CRMDealDetailsModal({
                                     </span>
                                   )}
                                   {isDifferentDeal && (
-                                    <Badge variant="outline" className="text-[10px] px-1 py-0">
+                                    <Badge
+                                      variant="outline"
+                                      className="text-[10px] px-1 py-0"
+                                    >
                                       Outro negócio
                                     </Badge>
                                   )}

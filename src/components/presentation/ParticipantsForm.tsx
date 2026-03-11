@@ -33,7 +33,11 @@ export function ParticipantsForm({
 
   const handleAdd = () => {
     if (name.trim() && email.trim()) {
-      onAddParticipant({ name: name.trim(), role: role.trim(), email: email.trim() });
+      onAddParticipant({
+        name: name.trim(),
+        role: role.trim(),
+        email: email.trim(),
+      });
       setName("");
       setRole("");
       setEmail("");
@@ -51,7 +55,7 @@ export function ParticipantsForm({
     <div className="w-full h-full bg-background flex flex-col items-center justify-center p-8">
       <div className="w-full max-w-2xl">
         <div className="flex items-center gap-3 mb-8">
-          <div 
+          <div
             className="p-3 rounded-full"
             style={{ backgroundColor: `${primaryColor}20` }}
           >
@@ -126,7 +130,7 @@ export function ParticipantsForm({
                   className="flex items-center justify-between p-3 bg-muted rounded-lg"
                 >
                   <div className="flex items-center gap-3">
-                    <div 
+                    <div
                       className="w-10 h-10 rounded-full flex items-center justify-center text-white font-medium"
                       style={{ backgroundColor: primaryColor }}
                     >
@@ -135,11 +139,13 @@ export function ParticipantsForm({
                     <div>
                       <p className="font-medium text-foreground">{p.name}</p>
                       <p className="text-sm text-muted-foreground">
-                        {p.role && `${p.role} • `}{p.email}
+                        {p.role && `${p.role} • `}
+                        {p.email}
                       </p>
                     </div>
                   </div>
-                  <Button aria-label="Fechar"
+                  <Button
+                    aria-label="Fechar"
                     variant="ghost"
                     size="icon"
                     onClick={() => onRemoveParticipant(index)}

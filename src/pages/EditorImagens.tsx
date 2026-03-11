@@ -32,7 +32,7 @@ export default function EditorImagens() {
       setSelectedImages([url]);
       setIsEditorOpen(true);
     },
-    [revokeLastObjectUrl]
+    [revokeLastObjectUrl],
   );
 
   const handleModalOpenChange = useCallback(
@@ -43,7 +43,7 @@ export default function EditorImagens() {
       }
       setIsEditorOpen(nextOpen);
     },
-    [revokeLastObjectUrl]
+    [revokeLastObjectUrl],
   );
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -86,7 +86,7 @@ export default function EditorImagens() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigate('/geradores')}
+            onClick={() => navigate("/geradores")}
             className="flex items-center gap-2 mb-4"
           >
             <Home className="w-4 h-4" />
@@ -108,10 +108,12 @@ export default function EditorImagens() {
 
         <div className="grid gap-6 md:grid-cols-2 max-w-2xl">
           {/* Criar do zero */}
-          <div 
+          <div
             onClick={activeCompany ? handleCreateNew : undefined}
             className={`group rounded-xl border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 p-8 transition-all hover:bg-muted/30 ${
-              activeCompany ? "cursor-pointer" : "pointer-events-none opacity-60"
+              activeCompany
+                ? "cursor-pointer"
+                : "pointer-events-none opacity-60"
             }`}
           >
             <div className="flex flex-col items-center text-center gap-4">
@@ -128,10 +130,13 @@ export default function EditorImagens() {
           </div>
 
           {/* Upload de imagem */}
-          <label className={`group rounded-xl border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 p-8 transition-all hover:bg-muted/30 ${
-            activeCompany ? "cursor-pointer" : "pointer-events-none opacity-60"
-          }`}>
-
+          <label
+            className={`group rounded-xl border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 p-8 transition-all hover:bg-muted/30 ${
+              activeCompany
+                ? "cursor-pointer"
+                : "pointer-events-none opacity-60"
+            }`}
+          >
             <input
               type="file"
               accept="image/*"
@@ -170,7 +175,6 @@ export default function EditorImagens() {
             clientId=""
             companyId={activeCompany.company_id}
             onSave={(newImages) => {
-              console.log("Imagens salvas:", newImages);
               handleModalOpenChange(false);
             }}
           />

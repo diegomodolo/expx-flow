@@ -20,7 +20,10 @@ import {
   EdgeProps,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { SquadAgentNode, SquadAgentNodeData } from "@/components/agent-squads/SquadAgentNode";
+import {
+  SquadAgentNode,
+  SquadAgentNodeData,
+} from "@/components/agent-squads/SquadAgentNode";
 import { SquadAgentLibrary } from "@/components/agent-squads/SquadAgentLibrary";
 import { SquadTestChat } from "@/components/agent-squads/SquadTestChat";
 import { SquadNodeEditPanel } from "@/components/agent-squads/SquadNodeEditPanel";
@@ -48,7 +51,14 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { ArrowLeft, Save, Loader2, Settings, Check, ChevronsUpDown } from "lucide-react";
+import {
+  ArrowLeft,
+  Save,
+  Loader2,
+  Settings,
+  Check,
+  ChevronsUpDown,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAgentSquads } from "@/hooks/useAgentSquads";
@@ -60,8 +70,25 @@ const nodeTypes: NodeTypes = {
 };
 
 // Custom labeled edge
-function LabeledEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data, markerEnd }: EdgeProps) {
-  const [edgePath, labelX, labelY] = getBezierPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition });
+function LabeledEdge({
+  id,
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  sourcePosition,
+  targetPosition,
+  data,
+  markerEnd,
+}: EdgeProps) {
+  const [edgePath, labelX, labelY] = getBezierPath({
+    sourceX,
+    sourceY,
+    sourcePosition,
+    targetX,
+    targetY,
+    targetPosition,
+  });
 
   return (
     <>
@@ -69,7 +96,11 @@ function LabeledEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition, t
       {(data as unknown)?.label && (
         <EdgeLabelRenderer>
           <div
-            style={{ position: "absolute", transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`, pointerEvents: "all" }}
+            style={{
+              position: "absolute",
+              transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
+              pointerEvents: "all",
+            }}
             className="bg-card border rounded px-2 py-0.5 text-xs text-muted-foreground shadow-sm"
           >
             {(data as unknown).label}
@@ -86,7 +117,13 @@ function SquadEditorContent() {
   const navigate = useNavigate();
   const { squadId } = useParams();
   const { toast } = useToast();
-  const { fetchSquadById, fetchSquadMembers, fetchSquadFlows, saveSquadLayout, updateSquad } = useAgentSquads();
+  const {
+    fetchSquadById,
+    fetchSquadMembers,
+    fetchSquadFlows,
+    saveSquadLayout,
+    updateSquad,
+  } = useAgentSquads();
   const { clients = [] } = useClients();
   const { screenToFlowPosition } = useReactFlow();
 
@@ -101,7 +138,11 @@ function SquadEditorContent() {
 
   // Edit squad dialog state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [editForm, setEditForm] = useState({ name: "", description: "", client_id: "" });
+  const [editForm, setEditForm] = useState({
+    name: "",
+    description: "",
+    client_id: "",
+  });
   const [clientPopoverOpen, setClientPopoverOpen] = useState(false);
 
   const nodesRef = useRef<Node[]>([]);
@@ -179,7 +220,7 @@ function SquadEditorContent() {
       };
       setEdges((eds) => addEdge(newEdge, eds));
     },
-    [setEdges]
+    [setEdges],
   );
 
   const onDragOver = useCallback((event: React.DragEvent) => {
@@ -194,7 +235,10 @@ function SquadEditorContent() {
       if (!agentData) return;
 
       const agent = JSON.parse(agentData);
-      const position = screenToFlowPosition({ x: event.clientX, y: event.clientY });
+      const position = screenToFlowPosition({
+        x: event.clientX,
+        y: event.clientY,
+      });
 
       const newNode: Node = {
         id: `agent-${agent.id}-${Date.now()}`,
@@ -212,19 +256,27 @@ function SquadEditorContent() {
 
       setNodes((nds) => nds.concat(newNode));
     },
-    [handleOpenEditPanel, setNodes, screenToFlowPosition]
+    [handleOpenEditPanel, setNodes, screenToFlowPosition],
   );
 
   const onDragStart = (event: React.DragEvent, agent: unknown) => {
-    event.dataTransfer.setData("application/squad-agent", JSON.stringify(agent));
+    event.dataTransfer.setData(
+      "application/squad-agent",
+      JSON.stringify(agent),
+    );
     event.dataTransfer.effectAllowed = "move";
   };
 
   const handleSaveNode = (id: string, updates: Partial<SquadAgentNodeData>) => {
     setNodes((nds) =>
       nds.map((node) =>
-        node.id === id ? { ...node, data: { ...(node.data as SquadAgentNodeData), ...updates } } : node
-      )
+        node.id === id
+          ? {
+              ...node,
+              data: { ...(node.data as SquadAgentNodeData), ...updates },
+            }
+          : node,
+      ),
     );
   };
 
@@ -287,11 +339,17 @@ function SquadEditorContent() {
     setEditDialogOpen(false);
   };
 
-  const selectedEditClientName = sortedClients.find(c => c.id === editForm.client_id)?.name;
+  const selectedEditClientName = sortedClients.find(
+    (c) => c.id === editForm.client_id,
+  )?.name;
 
   // Find leader agent for test chat
-  const leaderNode = nodes.find((n) => (n.data as SquadAgentNodeData).role === "leader");
-  const leaderAgentId = leaderNode ? (leaderNode.data as SquadAgentNodeData).agent_id : undefined;
+  const leaderNode = nodes.find(
+    (n) => (n.data as SquadAgentNodeData).role === "leader",
+  );
+  const leaderAgentId = leaderNode
+    ? (leaderNode.data as SquadAgentNodeData).agent_id
+    : undefined;
 
   if (isLoading) {
     return (
@@ -306,12 +364,19 @@ function SquadEditorContent() {
       {/* Header */}
       <div className="border-b bg-card px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Button aria-label="Voltar" variant="ghost" size="icon" onClick={() => navigate("/ia/squads")}>
+          <Button
+            aria-label="Voltar"
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate("/ia/squads")}
+          >
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
             <h1 className="text-lg font-semibold">{squadName}</h1>
-            <p className="text-sm text-muted-foreground">Editor Visual da Squad</p>
+            <p className="text-sm text-muted-foreground">
+              Editor Visual da Squad
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -320,7 +385,11 @@ function SquadEditorContent() {
             Editar Squad
           </Button>
           <Button onClick={handleSave} disabled={isSaving}>
-            {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+            {isSaving ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4 mr-2" />
+            )}
             Salvar
           </Button>
         </div>
@@ -342,11 +411,19 @@ function SquadEditorContent() {
             deleteKeyCode={["Backspace", "Delete"]}
             onNodesDelete={(deletedNodes) => {
               const deletedIds = new Set(deletedNodes.map((n) => n.id));
-              setEdges((eds) => eds.filter((e) => !deletedIds.has(e.source) && !deletedIds.has(e.target)));
+              setEdges((eds) =>
+                eds.filter(
+                  (e) => !deletedIds.has(e.source) && !deletedIds.has(e.target),
+                ),
+              );
             }}
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
-            defaultEdgeOptions={{ type: "labeled", animated: true, markerEnd: { type: "arrowclosed" as unknown } }}
+            defaultEdgeOptions={{
+              type: "labeled",
+              animated: true,
+              markerEnd: { type: "arrowclosed" as unknown },
+            }}
             fitView
             minZoom={0.2}
             maxZoom={2}
@@ -354,7 +431,10 @@ function SquadEditorContent() {
             <Background />
             <Controls />
             <MiniMap pannable zoomable />
-            <Panel position="top-center" className="bg-card/80 backdrop-blur-sm px-3 py-1 rounded-md text-sm text-muted-foreground">
+            <Panel
+              position="top-center"
+              className="bg-card/80 backdrop-blur-sm px-3 py-1 rounded-md text-sm text-muted-foreground"
+            >
               Arraste agentes da biblioteca e conecte-os para definir o fluxo
             </Panel>
           </ReactFlow>
@@ -376,8 +456,13 @@ function SquadEditorContent() {
         onRefreshNode={(nodeId, updates) => {
           setNodes((nds) =>
             nds.map((n) =>
-              n.id === nodeId ? { ...n, data: { ...(n.data as SquadAgentNodeData), ...updates } } : n
-            )
+              n.id === nodeId
+                ? {
+                    ...n,
+                    data: { ...(n.data as SquadAgentNodeData), ...updates },
+                  }
+                : n,
+            ),
           );
         }}
       />
@@ -393,7 +478,9 @@ function SquadEditorContent() {
               <Label>Nome da Squad</Label>
               <Input
                 value={editForm.name}
-                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, name: e.target.value })
+                }
                 placeholder="Nome da squad"
               />
             </div>
@@ -401,13 +488,18 @@ function SquadEditorContent() {
               <Label>Descrição</Label>
               <Textarea
                 value={editForm.description}
-                onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, description: e.target.value })
+                }
                 placeholder="Descreva o objetivo da squad..."
               />
             </div>
             <div>
               <Label>Cliente</Label>
-              <Popover open={clientPopoverOpen} onOpenChange={setClientPopoverOpen}>
+              <Popover
+                open={clientPopoverOpen}
+                onOpenChange={setClientPopoverOpen}
+              >
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
@@ -437,7 +529,9 @@ function SquadEditorContent() {
                             <Check
                               className={cn(
                                 "mr-2 h-4 w-4",
-                                editForm.client_id === c.id ? "opacity-100" : "opacity-0"
+                                editForm.client_id === c.id
+                                  ? "opacity-100"
+                                  : "opacity-0",
                               )}
                             />
                             {c.name}
@@ -454,7 +548,10 @@ function SquadEditorContent() {
             <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleSaveSquadEdit} disabled={!editForm.name || !editForm.client_id}>
+            <Button
+              onClick={handleSaveSquadEdit}
+              disabled={!editForm.name || !editForm.client_id}
+            >
               Salvar Alterações
             </Button>
           </DialogFooter>

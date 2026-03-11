@@ -1,7 +1,7 @@
-import React, { useRef, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import React, { useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Undo2,
   Redo2,
@@ -14,20 +14,27 @@ import {
   ChevronDown,
   ChevronRight,
   Crop,
-} from 'lucide-react';
-import { CanvasElement } from './hooks/useImageEditor';
-import { ElementProperties } from './ElementProperties';
-import { ElementLibrary } from './ElementLibrary';
-import { OrientationSelector, Orientation, ORIENTATIONS } from './OrientationSelector';
-import { cn } from '@/lib/utils';
+} from "lucide-react";
+import { CanvasElement } from "./hooks/useImageEditor";
+import { ElementProperties } from "./ElementProperties";
+import { ElementLibrary } from "./ElementLibrary";
+import {
+  OrientationSelector,
+  Orientation,
+  ORIENTATIONS,
+} from "./OrientationSelector";
+import { cn } from "@/lib/utils";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from '@/components/ui/collapsible';
+} from "@/components/ui/collapsible";
 
 interface EditorToolbarProps {
-  onAddElement: (type: CanvasElement['type'], config?: Partial<CanvasElement>) => void;
+  onAddElement: (
+    type: CanvasElement["type"],
+    config?: Partial<CanvasElement>,
+  ) => void;
   onUndo: () => void;
   onRedo: () => void;
   canUndo: boolean;
@@ -81,7 +88,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
   selectedElement,
   onUpdateElement,
   companyId,
-  orientation = 'post',
+  orientation = "post",
   onOrientationChange,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -92,7 +99,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
 
     const reader = new FileReader();
     reader.onload = () => {
-      onAddElement('image', {
+      onAddElement("image", {
         content: reader.result as string,
         width: 150,
         height: 150,
@@ -101,22 +108,22 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
     reader.readAsDataURL(file);
 
     if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+      fileInputRef.current.value = "";
     }
   };
 
   const textPresets = [
-    { label: 'Título', size: 32, weight: 'bold' },
-    { label: 'Subtítulo', size: 24, weight: '600' },
-    { label: 'Corpo', size: 16, weight: 'normal' },
-    { label: 'Citação', size: 18, weight: '500' },
+    { label: "Título", size: 32, weight: "bold" },
+    { label: "Subtítulo", size: 24, weight: "600" },
+    { label: "Corpo", size: 16, weight: "normal" },
+    { label: "Citação", size: 18, weight: "500" },
   ];
 
   const shapePresets = [
-    { label: 'Retângulo', icon: Square, type: 'rectangle' as const },
-    { label: 'Círculo', icon: Circle, type: 'circle' as const },
-    { label: 'Linha', icon: Minus, type: 'line' as const },
-    { label: 'Seta', icon: ArrowRight, type: 'arrow' as const },
+    { label: "Retângulo", icon: Square, type: "rectangle" as const },
+    { label: "Círculo", icon: Circle, type: "circle" as const },
+    { label: "Linha", icon: Minus, type: "line" as const },
+    { label: "Seta", icon: ArrowRight, type: "arrow" as const },
   ];
 
   const handleOrientationChange = (newOrientation: Orientation) => {
@@ -127,9 +134,12 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
     <div className="w-56 bg-card border-r border-border flex flex-col h-full">
       {/* Header with undo/redo */}
       <div className="p-2 border-b border-border flex items-center justify-between">
-        <span className="text-xs font-medium text-muted-foreground">Ferramentas</span>
+        <span className="text-xs font-medium text-muted-foreground">
+          Ferramentas
+        </span>
         <div className="flex gap-1">
-          <Button aria-label="Ação"
+          <Button
+            aria-label="Ação"
             variant="ghost"
             size="icon"
             onClick={onUndo}
@@ -138,7 +148,8 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
           >
             <Undo2 className="h-3.5 w-3.5" />
           </Button>
-          <Button aria-label="Ação"
+          <Button
+            aria-label="Ação"
             variant="ghost"
             size="icon"
             onClick={onRedo}
@@ -180,10 +191,15 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                 <button
                   key={preset.label}
                   className="w-full text-left px-2 py-1.5 rounded text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                  onClick={() => onAddElement('text', {
-                    content: preset.label,
-                    styles: { fontSize: preset.size, fontWeight: preset.weight }
-                  })}
+                  onClick={() =>
+                    onAddElement("text", {
+                      content: preset.label,
+                      styles: {
+                        fontSize: preset.size,
+                        fontWeight: preset.weight,
+                      },
+                    })
+                  }
                 >
                   {preset.label}
                 </button>
@@ -198,10 +214,17 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                 <button
                   key={preset.label}
                   className="flex items-center gap-1.5 px-2 py-1.5 rounded text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                  onClick={() => onAddElement('shape', {
-                    styles: { shapeType: preset.type },
-                    height: preset.type === 'line' ? 20 : preset.type === 'arrow' ? 30 : undefined,
-                  })}
+                  onClick={() =>
+                    onAddElement("shape", {
+                      styles: { shapeType: preset.type },
+                      height:
+                        preset.type === "line"
+                          ? 20
+                          : preset.type === "arrow"
+                            ? 30
+                            : undefined,
+                    })
+                  }
                 >
                   <preset.icon className="h-3.5 w-3.5" />
                   <span>{preset.label}</span>

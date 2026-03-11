@@ -30,11 +30,11 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useMetaPixels } from "@/hooks/useMetaPixels";
-import { 
-  Loader2, 
-  Upload, 
-  ChevronDown, 
-  ChevronRight, 
+import {
+  Loader2,
+  Upload,
+  ChevronDown,
+  ChevronRight,
   AlertCircle,
   Link,
   Type,
@@ -49,7 +49,7 @@ import {
   RefreshCw,
   Copy,
   Sparkles,
-  Send
+  Send,
 } from "lucide-react";
 import { GeneratedAdType } from "./AdPreviewCard";
 import { cn } from "@/lib/utils";
@@ -101,16 +101,40 @@ interface AdConfig {
 }
 
 const statusConfig = {
-  pending: { label: "Aberto", color: "bg-yellow-500/10 text-yellow-600 border-yellow-500/30" },
-  approved: { label: "Aprovado", color: "bg-blue-500/10 text-blue-600 border-blue-500/30" },
-  rejected: { label: "Rejeitado", color: "bg-red-500/10 text-red-600 border-red-500/30" },
-  published: { label: "Publicado", color: "bg-green-500/10 text-green-600 border-green-500/30" },
+  pending: {
+    label: "Aberto",
+    color: "bg-yellow-500/10 text-yellow-600 border-yellow-500/30",
+  },
+  approved: {
+    label: "Aprovado",
+    color: "bg-blue-500/10 text-blue-600 border-blue-500/30",
+  },
+  rejected: {
+    label: "Rejeitado",
+    color: "bg-red-500/10 text-red-600 border-red-500/30",
+  },
+  published: {
+    label: "Publicado",
+    color: "bg-green-500/10 text-green-600 border-green-500/30",
+  },
 };
 
 const typeConfig = {
-  clone: { label: "Clone", icon: Copy, color: "bg-blue-500/10 text-blue-500 border-blue-500/20" },
-  concept: { label: "Conceito", icon: Sparkles, color: "bg-purple-500/10 text-purple-500 border-purple-500/20" },
-  iteration: { label: "Iteração", icon: RefreshCw, color: "bg-green-500/10 text-green-500 border-green-500/20" },
+  clone: {
+    label: "Clone",
+    icon: Copy,
+    color: "bg-blue-500/10 text-blue-500 border-blue-500/20",
+  },
+  concept: {
+    label: "Conceito",
+    icon: Sparkles,
+    color: "bg-purple-500/10 text-purple-500 border-purple-500/20",
+  },
+  iteration: {
+    label: "Iteração",
+    icon: RefreshCw,
+    color: "bg-green-500/10 text-green-500 border-green-500/20",
+  },
 };
 
 interface ApprovalDestinationDialogV2Props {
@@ -121,7 +145,10 @@ interface ApprovalDestinationDialogV2Props {
   companyId: string;
   defaultCampaignId?: string | null;
   defaultAdSetId?: string | null;
-  onApprove: (destinations: SelectedDestination[], adConfig: AdConfig) => Promise<void>;
+  onApprove: (
+    destinations: SelectedDestination[],
+    adConfig: AdConfig,
+  ) => Promise<void>;
   onStatusChange?: () => void;
   ad?: GeneratedAdType | null;
   adContent?: {
@@ -146,22 +173,40 @@ export function ApprovalDestinationDialogV2({
   adContent,
 }: ApprovalDestinationDialogV2Props) {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [adSetsByCampaign, setAdSetsByCampaign] = useState<Record<string, AdSet[]>>({});
-  const [selectedDestinations, setSelectedDestinations] = useState<SelectedDestination[]>([]);
+  const [adSetsByCampaign, setAdSetsByCampaign] = useState<
+    Record<string, AdSet[]>
+  >({});
+  const [selectedDestinations, setSelectedDestinations] = useState<
+    SelectedDestination[]
+  >([]);
   const [expandedCampaigns, setExpandedCampaigns] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [publishing, setPublishing] = useState(false);
-  const [previewPlatform, setPreviewPlatform] = useState<'facebook' | 'instagram'>('facebook');
+  const [previewPlatform, setPreviewPlatform] = useState<
+    "facebook" | "instagram"
+  >("facebook");
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<string>("");
-  
+
   // Load pixels for selection
-  const { pixels, loading: loadingPixels, fetchPixels, syncPixels, syncing } = useMetaPixels(clientId, companyId);
+  const {
+    pixels,
+    loading: loadingPixels,
+    fetchPixels,
+    syncPixels,
+    syncing,
+  } = useMetaPixels(clientId, companyId);
 
   // Get type config for display
-  const typeConf = ad ? (typeConfig[ad.generation_type as keyof typeof typeConfig] || typeConfig.concept) : null;
+  const typeConf = ad
+    ? typeConfig[ad.generation_type as keyof typeof typeConfig] ||
+      typeConfig.concept
+    : null;
   const TypeIcon = typeConf?.icon;
-  const currentStatusConf = ad ? (statusConfig[ad.status as keyof typeof statusConfig] || statusConfig.pending) : null;
+  const currentStatusConf = ad
+    ? statusConfig[ad.status as keyof typeof statusConfig] ||
+      statusConfig.pending
+    : null;
 
   // Ad configuration state
   const [adConfig, setAdConfig] = useState<AdConfig>({
@@ -185,7 +230,7 @@ export function ApprovalDestinationDialogV2({
   useEffect(() => {
     // Update ad config when adContent changes
     if (adContent) {
-      setAdConfig(prev => ({
+      setAdConfig((prev) => ({
         ...prev,
         headline: adContent.headline || prev.headline,
         primary_text: adContent.primary_text || prev.primary_text,
@@ -197,18 +242,20 @@ export function ApprovalDestinationDialogV2({
   useEffect(() => {
     // Set default selections when data is loaded
     if (defaultCampaignId && campaigns.length > 0) {
-      const campaign = campaigns.find(c => c.id === defaultCampaignId);
+      const campaign = campaigns.find((c) => c.id === defaultCampaignId);
       if (campaign) {
         const adSets = adSetsByCampaign[defaultCampaignId] || [];
-        const defaultAdSets = defaultAdSetId 
-          ? adSets.filter(a => a.id === defaultAdSetId).map(a => a.id)
+        const defaultAdSets = defaultAdSetId
+          ? adSets.filter((a) => a.id === defaultAdSetId).map((a) => a.id)
           : [];
-        
-        setSelectedDestinations([{
-          campaignId: defaultCampaignId,
-          campaignName: campaign.name,
-          adSetIds: defaultAdSets,
-        }]);
+
+        setSelectedDestinations([
+          {
+            campaignId: defaultCampaignId,
+            campaignName: campaign.name,
+            adSetIds: defaultAdSets,
+          },
+        ]);
         setExpandedCampaigns([defaultCampaignId]);
       }
     }
@@ -218,46 +265,60 @@ export function ApprovalDestinationDialogV2({
     try {
       // Load schedule defaults
       const { data: scheduleData, error: scheduleError } = await supabase
-        .from('ad_generation_schedules')
-        .select('id, default_destination_url, default_primary_text, default_headline, default_description, default_cta, default_pixel_id, default_url_params')
-        .eq('client_id', clientId)
+        .from("ad_generation_schedules")
+        .select(
+          "id, default_destination_url, default_primary_text, default_headline, default_description, default_cta, default_pixel_id, default_url_params",
+        )
+        .eq("client_id", clientId)
         .maybeSingle();
 
       if (scheduleError) throw scheduleError;
 
       if (scheduleData) {
-        setAdConfig(prev => ({
-          destination_url: (scheduleData as unknown).default_destination_url || prev.destination_url,
-          primary_text: prev.primary_text || (scheduleData as unknown).default_primary_text || "",
-          headline: prev.headline || (scheduleData as unknown).default_headline || "",
-          description: prev.description || (scheduleData as unknown).default_description || "",
+        setAdConfig((prev) => ({
+          destination_url:
+            (scheduleData as unknown).default_destination_url ||
+            prev.destination_url,
+          primary_text:
+            prev.primary_text ||
+            (scheduleData as unknown).default_primary_text ||
+            "",
+          headline:
+            prev.headline || (scheduleData as unknown).default_headline || "",
+          description:
+            prev.description ||
+            (scheduleData as unknown).default_description ||
+            "",
           cta: (scheduleData as unknown).default_cta || prev.cta,
           pixel_id: (scheduleData as unknown).default_pixel_id || prev.pixel_id,
-          url_params: (scheduleData as unknown).default_url_params || prev.url_params,
+          url_params:
+            (scheduleData as unknown).default_url_params || prev.url_params,
         }));
 
         // Load saved destinations from the schedule
         const { data: destinationsData, error: destError } = await supabase
-          .from('ad_generation_schedule_destinations')
-          .select(`
+          .from("ad_generation_schedule_destinations")
+          .select(
+            `
             campaign_id,
             adset_id,
             campaigns:campaign_id (id, name),
             ad_sets:adset_id (id, name)
-          `)
-          .eq('schedule_id', scheduleData.id);
+          `,
+          )
+          .eq("schedule_id", scheduleData.id);
 
         if (destError) throw destError;
 
         if (destinationsData && destinationsData.length > 0) {
           // Group by campaign
           const destinationMap: Record<string, SelectedDestination> = {};
-          
+
           destinationsData.forEach((dest: unknown) => {
             const campaignId = dest.campaign_id;
-            const campaignName = dest.campaigns?.name || '';
+            const campaignName = dest.campaigns?.name || "";
             const adSetId = dest.adset_id;
-            
+
             if (!destinationMap[campaignId]) {
               destinationMap[campaignId] = {
                 campaignId,
@@ -265,19 +326,22 @@ export function ApprovalDestinationDialogV2({
                 adSetIds: [],
               };
             }
-            
-            if (adSetId && !destinationMap[campaignId].adSetIds.includes(adSetId)) {
+
+            if (
+              adSetId &&
+              !destinationMap[campaignId].adSetIds.includes(adSetId)
+            ) {
               destinationMap[campaignId].adSetIds.push(adSetId);
             }
           });
 
           const defaultDestinations = Object.values(destinationMap);
           setSelectedDestinations(defaultDestinations);
-          setExpandedCampaigns(defaultDestinations.map(d => d.campaignId));
+          setExpandedCampaigns(defaultDestinations.map((d) => d.campaignId));
         }
       }
     } catch (error) {
-      console.error('Error loading defaults:', error);
+      console.error("Error loading defaults:", error);
     }
   };
 
@@ -286,28 +350,28 @@ export function ApprovalDestinationDialogV2({
     try {
       // Load campaigns
       const { data: campaignsData, error: campaignsError } = await supabase
-        .from('campaigns')
-        .select('id, name, facebook_id')
-        .eq('client_id', clientId)
-        .eq('is_active', true)
-        .order('name');
+        .from("campaigns")
+        .select("id, name, facebook_id")
+        .eq("client_id", clientId)
+        .eq("is_active", true)
+        .order("name");
 
       if (campaignsError) throw campaignsError;
       setCampaigns(campaignsData || []);
 
       // Load all ad sets for all campaigns
       const { data: adSetsData, error: adSetsError } = await supabase
-        .from('ad_sets')
-        .select('id, name, facebook_id, campaign_id')
-        .eq('client_id', clientId)
-        .eq('is_active', true)
-        .order('name');
+        .from("ad_sets")
+        .select("id, name, facebook_id, campaign_id")
+        .eq("client_id", clientId)
+        .eq("is_active", true)
+        .order("name");
 
       if (adSetsError) throw adSetsError;
 
       // Group ad sets by campaign
       const grouped: Record<string, AdSet[]> = {};
-      (adSetsData || []).forEach(adSet => {
+      (adSetsData || []).forEach((adSet) => {
         if (!grouped[adSet.campaign_id]) {
           grouped[adSet.campaign_id] = [];
         }
@@ -315,38 +379,42 @@ export function ApprovalDestinationDialogV2({
       });
       setAdSetsByCampaign(grouped);
     } catch (error) {
-      console.error('Error loading data:', error);
-      toast.error('Erro ao carregar campanhas');
+      console.error("Error loading data:", error);
+      toast.error("Erro ao carregar campanhas");
     } finally {
       setLoading(false);
     }
   };
 
   const toggleCampaign = (campaignId: string, campaignName: string) => {
-    setSelectedDestinations(prev => {
-      const existing = prev.find(d => d.campaignId === campaignId);
+    setSelectedDestinations((prev) => {
+      const existing = prev.find((d) => d.campaignId === campaignId);
       if (existing) {
-        return prev.filter(d => d.campaignId !== campaignId);
+        return prev.filter((d) => d.campaignId !== campaignId);
       }
       return [...prev, { campaignId, campaignName, adSetIds: [] }];
     });
   };
 
-  const toggleAdSet = (campaignId: string, campaignName: string, adSetId: string) => {
-    setSelectedDestinations(prev => {
-      const existingIdx = prev.findIndex(d => d.campaignId === campaignId);
-      
+  const toggleAdSet = (
+    campaignId: string,
+    campaignName: string,
+    adSetId: string,
+  ) => {
+    setSelectedDestinations((prev) => {
+      const existingIdx = prev.findIndex((d) => d.campaignId === campaignId);
+
       if (existingIdx === -1) {
         return [...prev, { campaignId, campaignName, adSetIds: [adSetId] }];
       }
-      
+
       const existing = prev[existingIdx];
       const hasAdSet = existing.adSetIds.includes(adSetId);
-      
+
       const newAdSetIds = hasAdSet
-        ? existing.adSetIds.filter(id => id !== adSetId)
+        ? existing.adSetIds.filter((id) => id !== adSetId)
         : [...existing.adSetIds, adSetId];
-      
+
       const updated = [...prev];
       updated[existingIdx] = { ...existing, adSetIds: newAdSetIds };
       return updated;
@@ -354,36 +422,43 @@ export function ApprovalDestinationDialogV2({
   };
 
   const toggleExpandCampaign = (campaignId: string) => {
-    setExpandedCampaigns(prev => 
-      prev.includes(campaignId) 
-        ? prev.filter(id => id !== campaignId)
-        : [...prev, campaignId]
+    setExpandedCampaigns((prev) =>
+      prev.includes(campaignId)
+        ? prev.filter((id) => id !== campaignId)
+        : [...prev, campaignId],
     );
   };
 
   const isCampaignSelected = (campaignId: string) => {
-    return selectedDestinations.some(d => d.campaignId === campaignId);
+    return selectedDestinations.some((d) => d.campaignId === campaignId);
   };
 
   const isAdSetSelected = (campaignId: string, adSetId: string) => {
-    const dest = selectedDestinations.find(d => d.campaignId === campaignId);
+    const dest = selectedDestinations.find((d) => d.campaignId === campaignId);
     return dest?.adSetIds.includes(adSetId) || false;
   };
 
   const getSelectedCount = () => {
-    return selectedDestinations.reduce((acc, d) => acc + Math.max(d.adSetIds.length, 1), 0);
+    return selectedDestinations.reduce(
+      (acc, d) => acc + Math.max(d.adSetIds.length, 1),
+      0,
+    );
   };
 
   const handlePublish = async () => {
-    const destinationsWithAdSets = selectedDestinations.filter(d => d.adSetIds.length > 0);
-    
+    const destinationsWithAdSets = selectedDestinations.filter(
+      (d) => d.adSetIds.length > 0,
+    );
+
     if (destinationsWithAdSets.length === 0) {
-      toast.error('Selecione pelo menos uma campanha e um conjunto de anúncios');
+      toast.error(
+        "Selecione pelo menos uma campanha e um conjunto de anúncios",
+      );
       return;
     }
 
     if (!adConfig.destination_url) {
-      toast.error('Informe a URL de destino');
+      toast.error("Informe a URL de destino");
       return;
     }
 
@@ -392,8 +467,8 @@ export function ApprovalDestinationDialogV2({
       await onApprove(destinationsWithAdSets, adConfig);
       onOpenChange(false);
     } catch (error: unknown) {
-      console.error('Error publishing:', error);
-      toast.error('Erro ao publicar: ' + error.message);
+      console.error("Error publishing:", error);
+      toast.error("Erro ao publicar: " + error.message);
     } finally {
       setPublishing(false);
     }
@@ -406,7 +481,13 @@ export function ApprovalDestinationDialogV2({
     try {
       const { error } = await supabase
         .from("ad_generation_queue")
-        .update({ status: selectedStatus as "pending" | "approved" | "rejected" | "published" })
+        .update({
+          status: selectedStatus as
+            | "pending"
+            | "approved"
+            | "rejected"
+            | "published",
+        })
         .eq("id", ad.id);
 
       if (error) throw error;
@@ -423,7 +504,7 @@ export function ApprovalDestinationDialogV2({
   };
 
   const getCTALabel = (value: string) => {
-    return CTA_OPTIONS.find(o => o.value === value)?.label || value;
+    return CTA_OPTIONS.find((o) => o.value === value)?.label || value;
   };
 
   return (
@@ -461,7 +542,7 @@ export function ApprovalDestinationDialogV2({
                     <Eye className="h-4 w-4" />
                     Destino da Publicação
                   </Label>
-                  
+
                   {loading ? (
                     <div className="flex items-center justify-center py-8">
                       <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -469,39 +550,59 @@ export function ApprovalDestinationDialogV2({
                   ) : campaigns.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-6 text-center bg-muted/50 rounded-lg">
                       <AlertCircle className="h-8 w-8 text-muted-foreground mb-2" />
-                      <p className="text-sm text-muted-foreground">Nenhuma campanha ativa encontrada.</p>
+                      <p className="text-sm text-muted-foreground">
+                        Nenhuma campanha ativa encontrada.
+                      </p>
                     </div>
                   ) : (
                     <div className="space-y-2 max-h-48 overflow-y-auto">
-                      {campaigns.map(campaign => {
+                      {campaigns.map((campaign) => {
                         const adSets = adSetsByCampaign[campaign.id] || [];
-                        const isExpanded = expandedCampaigns.includes(campaign.id);
+                        const isExpanded = expandedCampaigns.includes(
+                          campaign.id,
+                        );
                         const isSelected = isCampaignSelected(campaign.id);
-                        const selectedAdSetCount = selectedDestinations.find(d => d.campaignId === campaign.id)?.adSetIds.length || 0;
+                        const selectedAdSetCount =
+                          selectedDestinations.find(
+                            (d) => d.campaignId === campaign.id,
+                          )?.adSetIds.length || 0;
 
                         return (
-                          <div 
-                            key={campaign.id} 
+                          <div
+                            key={campaign.id}
                             className={cn(
                               "border rounded-lg overflow-hidden transition-colors",
-                              isSelected && "border-primary bg-primary/5"
+                              isSelected && "border-primary bg-primary/5",
                             )}
                           >
                             <div className="flex items-center gap-2 p-2">
                               <Checkbox
                                 checked={isSelected}
-                                onCheckedChange={() => toggleCampaign(campaign.id, campaign.name)}
+                                onCheckedChange={() =>
+                                  toggleCampaign(campaign.id, campaign.name)
+                                }
                               />
-                              <Collapsible open={isExpanded} onOpenChange={() => toggleExpandCampaign(campaign.id)} className="flex-1">
+                              <Collapsible
+                                open={isExpanded}
+                                onOpenChange={() =>
+                                  toggleExpandCampaign(campaign.id)
+                                }
+                                className="flex-1"
+                              >
                                 <CollapsibleTrigger className="flex items-center gap-2 w-full text-left">
                                   {isExpanded ? (
                                     <ChevronDown className="h-4 w-4 text-muted-foreground" />
                                   ) : (
                                     <ChevronRight className="h-4 w-4 text-muted-foreground" />
                                   )}
-                                  <span className="text-sm font-medium flex-1 truncate">{campaign.name}</span>
+                                  <span className="text-sm font-medium flex-1 truncate">
+                                    {campaign.name}
+                                  </span>
                                   {selectedAdSetCount > 0 && (
-                                    <Badge variant="secondary" className="text-xs">
+                                    <Badge
+                                      variant="secondary"
+                                      className="text-xs"
+                                    >
                                       {selectedAdSetCount}
                                     </Badge>
                                   )}
@@ -509,20 +610,40 @@ export function ApprovalDestinationDialogV2({
                                 <CollapsibleContent>
                                   {adSets.length > 0 ? (
                                     <div className="mt-2 ml-6 space-y-1">
-                                      {adSets.map(adSet => (
-                                        <div 
-                                          key={adSet.id} 
+                                      {adSets.map((adSet) => (
+                                        <div
+                                          key={adSet.id}
                                           className={cn(
                                             "flex items-center gap-2 p-1.5 rounded-md hover:bg-muted/50 cursor-pointer",
-                                            isAdSetSelected(campaign.id, adSet.id) && "bg-primary/10"
+                                            isAdSetSelected(
+                                              campaign.id,
+                                              adSet.id,
+                                            ) && "bg-primary/10",
                                           )}
-                                          onClick={() => toggleAdSet(campaign.id, campaign.name, adSet.id)}
+                                          onClick={() =>
+                                            toggleAdSet(
+                                              campaign.id,
+                                              campaign.name,
+                                              adSet.id,
+                                            )
+                                          }
                                         >
                                           <Checkbox
-                                            checked={isAdSetSelected(campaign.id, adSet.id)}
-                                            onCheckedChange={() => toggleAdSet(campaign.id, campaign.name, adSet.id)}
+                                            checked={isAdSetSelected(
+                                              campaign.id,
+                                              adSet.id,
+                                            )}
+                                            onCheckedChange={() =>
+                                              toggleAdSet(
+                                                campaign.id,
+                                                campaign.name,
+                                                adSet.id,
+                                              )
+                                            }
                                           />
-                                          <span className="text-xs">{adSet.name}</span>
+                                          <span className="text-xs">
+                                            {adSet.name}
+                                          </span>
                                         </div>
                                       ))}
                                     </div>
@@ -551,7 +672,10 @@ export function ApprovalDestinationDialogV2({
                   </Label>
 
                   <div className="space-y-2">
-                    <Label htmlFor="destination_url" className="flex items-center gap-2 text-sm">
+                    <Label
+                      htmlFor="destination_url"
+                      className="flex items-center gap-2 text-sm"
+                    >
                       <Link className="h-3.5 w-3.5" />
                       URL de Destino *
                     </Label>
@@ -559,12 +683,20 @@ export function ApprovalDestinationDialogV2({
                       id="destination_url"
                       placeholder="https://seusite.com/pagina"
                       value={adConfig.destination_url}
-                      onChange={(e) => setAdConfig({ ...adConfig, destination_url: e.target.value })}
+                      onChange={(e) =>
+                        setAdConfig({
+                          ...adConfig,
+                          destination_url: e.target.value,
+                        })
+                      }
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="primary_text" className="flex items-center gap-2 text-sm">
+                    <Label
+                      htmlFor="primary_text"
+                      className="flex items-center gap-2 text-sm"
+                    >
                       <MessageSquare className="h-3.5 w-3.5" />
                       Texto Principal
                     </Label>
@@ -573,13 +705,21 @@ export function ApprovalDestinationDialogV2({
                       placeholder="Texto principal do anúncio..."
                       rows={2}
                       value={adConfig.primary_text}
-                      onChange={(e) => setAdConfig({ ...adConfig, primary_text: e.target.value })}
+                      onChange={(e) =>
+                        setAdConfig({
+                          ...adConfig,
+                          primary_text: e.target.value,
+                        })
+                      }
                     />
                   </div>
 
                   <div className="grid gap-4 grid-cols-2">
                     <div className="space-y-2">
-                      <Label htmlFor="headline" className="flex items-center gap-2 text-sm">
+                      <Label
+                        htmlFor="headline"
+                        className="flex items-center gap-2 text-sm"
+                      >
                         <Type className="h-3.5 w-3.5" />
                         Título
                       </Label>
@@ -587,18 +727,25 @@ export function ApprovalDestinationDialogV2({
                         id="headline"
                         placeholder="Título do anúncio"
                         value={adConfig.headline}
-                        onChange={(e) => setAdConfig({ ...adConfig, headline: e.target.value })}
+                        onChange={(e) =>
+                          setAdConfig({ ...adConfig, headline: e.target.value })
+                        }
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="cta" className="flex items-center gap-2 text-sm">
+                      <Label
+                        htmlFor="cta"
+                        className="flex items-center gap-2 text-sm"
+                      >
                         <MousePointer className="h-3.5 w-3.5" />
                         Botão CTA
                       </Label>
                       <Select
                         value={adConfig.cta}
-                        onValueChange={(value) => setAdConfig({ ...adConfig, cta: value })}
+                        onValueChange={(value) =>
+                          setAdConfig({ ...adConfig, cta: value })
+                        }
                       >
                         <SelectTrigger id="cta">
                           <SelectValue placeholder="Selecione" />
@@ -615,7 +762,10 @@ export function ApprovalDestinationDialogV2({
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="description" className="flex items-center gap-2 text-sm">
+                    <Label
+                      htmlFor="description"
+                      className="flex items-center gap-2 text-sm"
+                    >
                       <FileText className="h-3.5 w-3.5" />
                       Descrição
                     </Label>
@@ -623,20 +773,33 @@ export function ApprovalDestinationDialogV2({
                       id="description"
                       placeholder="Descrição do anúncio"
                       value={adConfig.description}
-                      onChange={(e) => setAdConfig({ ...adConfig, description: e.target.value })}
+                      onChange={(e) =>
+                        setAdConfig({
+                          ...adConfig,
+                          description: e.target.value,
+                        })
+                      }
                     />
                   </div>
 
                   <div className="grid gap-4 grid-cols-2">
                     <div className="space-y-2">
-                      <Label htmlFor="pixel_id" className="flex items-center gap-2 text-sm">
+                      <Label
+                        htmlFor="pixel_id"
+                        className="flex items-center gap-2 text-sm"
+                      >
                         <Activity className="h-3.5 w-3.5" />
                         Pixel
                       </Label>
                       <div className="flex gap-2">
                         <Select
                           value={adConfig.pixel_id || "none"}
-                          onValueChange={(value) => setAdConfig({ ...adConfig, pixel_id: value === "none" ? "" : value })}
+                          onValueChange={(value) =>
+                            setAdConfig({
+                              ...adConfig,
+                              pixel_id: value === "none" ? "" : value,
+                            })
+                          }
                         >
                           <SelectTrigger id="pixel_id" className="flex-1">
                             <SelectValue placeholder="Selecione um pixel" />
@@ -650,20 +813,26 @@ export function ApprovalDestinationDialogV2({
                             ))}
                           </SelectContent>
                         </Select>
-                        <Button aria-label="Fechar"
+                        <Button
+                          aria-label="Fechar"
                           variant="outline"
                           size="icon"
                           onClick={() => syncPixels()}
                           disabled={syncing}
                           title="Sincronizar pixels"
                         >
-                          <RefreshCw className={cn("h-4 w-4", syncing && "animate-spin")} />
+                          <RefreshCw
+                            className={cn("h-4 w-4", syncing && "animate-spin")}
+                          />
                         </Button>
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="url_params" className="flex items-center gap-2 text-sm">
+                      <Label
+                        htmlFor="url_params"
+                        className="flex items-center gap-2 text-sm"
+                      >
                         <Settings2 className="h-3.5 w-3.5" />
                         Parâmetros URL
                       </Label>
@@ -671,7 +840,12 @@ export function ApprovalDestinationDialogV2({
                         id="url_params"
                         placeholder="utm_source=meta..."
                         value={adConfig.url_params}
-                        onChange={(e) => setAdConfig({ ...adConfig, url_params: e.target.value })}
+                        onChange={(e) =>
+                          setAdConfig({
+                            ...adConfig,
+                            url_params: e.target.value,
+                          })
+                        }
                       />
                     </div>
                   </div>
@@ -688,7 +862,10 @@ export function ApprovalDestinationDialogV2({
                 <div className="flex items-center gap-2">
                   <Label className="text-sm font-medium">Status:</Label>
                   {currentStatusConf && (
-                    <Badge variant="outline" className={currentStatusConf.color}>
+                    <Badge
+                      variant="outline"
+                      className={currentStatusConf.color}
+                    >
                       {currentStatusConf.label}
                     </Badge>
                   )}
@@ -712,42 +889,52 @@ export function ApprovalDestinationDialogV2({
                     variant="outline"
                     size="sm"
                     onClick={handleStatusChange}
-                    disabled={isUpdatingStatus || !selectedStatus || selectedStatus === ad.status}
+                    disabled={
+                      isUpdatingStatus ||
+                      !selectedStatus ||
+                      selectedStatus === ad.status
+                    }
                   >
-                    {isUpdatingStatus ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
+                    {isUpdatingStatus ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      "Salvar"
+                    )}
                   </Button>
                 </div>
               </div>
             )}
-            
+
             <div className="px-6 py-3 border-b flex items-center justify-between">
               <Label className="text-sm font-medium">Preview do Anúncio</Label>
               <div className="flex items-center gap-1 bg-background rounded-lg p-1">
                 <Button
-                  variant={previewPlatform === 'facebook' ? 'default' : 'ghost'}
+                  variant={previewPlatform === "facebook" ? "default" : "ghost"}
                   size="sm"
                   className="h-7 px-2"
-                  onClick={() => setPreviewPlatform('facebook')}
+                  onClick={() => setPreviewPlatform("facebook")}
                 >
                   <Facebook className="h-4 w-4 mr-1" />
                   Facebook
                 </Button>
                 <Button
-                  variant={previewPlatform === 'instagram' ? 'default' : 'ghost'}
+                  variant={
+                    previewPlatform === "instagram" ? "default" : "ghost"
+                  }
                   size="sm"
                   className="h-7 px-2"
-                  onClick={() => setPreviewPlatform('instagram')}
+                  onClick={() => setPreviewPlatform("instagram")}
                 >
                   <Instagram className="h-4 w-4 mr-1" />
                   Instagram
                 </Button>
               </div>
             </div>
-            
+
             <ScrollArea className="flex-1 px-6 py-4">
               <div className="flex justify-center">
-                {previewPlatform === 'facebook' ? (
-                  <FacebookAdPreview 
+                {previewPlatform === "facebook" ? (
+                  <FacebookAdPreview
                     imageUrl={adContent?.image_url}
                     primaryText={adConfig.primary_text}
                     headline={adConfig.headline}
@@ -756,7 +943,7 @@ export function ApprovalDestinationDialogV2({
                     destinationUrl={adConfig.destination_url}
                   />
                 ) : (
-                  <InstagramAdPreview 
+                  <InstagramAdPreview
                     imageUrl={adContent?.image_url}
                     primaryText={adConfig.primary_text}
                     headline={adConfig.headline}
@@ -773,7 +960,8 @@ export function ApprovalDestinationDialogV2({
             <div className="text-sm text-muted-foreground">
               {getSelectedCount() > 0 ? (
                 <span>
-                  Publicar em <strong>{getSelectedCount()}</strong> destino{getSelectedCount() !== 1 ? 's' : ''}
+                  Publicar em <strong>{getSelectedCount()}</strong> destino
+                  {getSelectedCount() !== 1 ? "s" : ""}
                 </span>
               ) : (
                 <span className="hidden sm:inline">Selecione os destinos</span>
@@ -783,9 +971,14 @@ export function ApprovalDestinationDialogV2({
               <Button variant="outline" onClick={() => onOpenChange(false)}>
                 Fechar
               </Button>
-              <Button 
-                onClick={handlePublish} 
-                disabled={publishing || selectedDestinations.filter(d => d.adSetIds.length > 0).length === 0 || !adConfig.destination_url}
+              <Button
+                onClick={handlePublish}
+                disabled={
+                  publishing ||
+                  selectedDestinations.filter((d) => d.adSetIds.length > 0)
+                    .length === 0 ||
+                  !adConfig.destination_url
+                }
                 className="bg-green-600 hover:bg-green-700"
               >
                 {publishing ? (
@@ -793,7 +986,7 @@ export function ApprovalDestinationDialogV2({
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     Publicando...
                   </>
-                ) : ad?.status === 'published' ? (
+                ) : ad?.status === "published" ? (
                   <>
                     <Send className="h-4 w-4 mr-2" />
                     Republicar
@@ -814,13 +1007,13 @@ export function ApprovalDestinationDialogV2({
 }
 
 // Facebook Ad Preview Component
-function FacebookAdPreview({ 
-  imageUrl, 
-  primaryText, 
-  headline, 
-  description, 
+function FacebookAdPreview({
+  imageUrl,
+  primaryText,
+  headline,
+  description,
   cta,
-  destinationUrl 
+  destinationUrl,
 }: {
   imageUrl?: string;
   primaryText: string;
@@ -829,8 +1022,14 @@ function FacebookAdPreview({
   cta: string;
   destinationUrl: string;
 }) {
-  const domain = destinationUrl ? new URL(destinationUrl.startsWith('http') ? destinationUrl : `https://${destinationUrl}`).hostname.replace('www.', '') : 'seusite.com';
-  
+  const domain = destinationUrl
+    ? new URL(
+        destinationUrl.startsWith("http")
+          ? destinationUrl
+          : `https://${destinationUrl}`,
+      ).hostname.replace("www.", "")
+    : "seusite.com";
+
   return (
     <div className="w-[320px] bg-white rounded-lg shadow-md overflow-hidden text-black">
       {/* Header */}
@@ -841,34 +1040,44 @@ function FacebookAdPreview({
           <p className="text-xs text-gray-500">Patrocinado · 🌐</p>
         </div>
       </div>
-      
+
       {/* Primary Text */}
       {primaryText && (
         <div className="px-3 pb-2">
-          <p className="text-sm whitespace-pre-wrap line-clamp-3">{primaryText}</p>
+          <p className="text-sm whitespace-pre-wrap line-clamp-3">
+            {primaryText}
+          </p>
         </div>
       )}
-      
+
       {/* Image - 3:4 aspect ratio (new Meta standard) */}
       <div className="aspect-[3/4] bg-gray-200 relative">
         {imageUrl ? (
-          <img src={imageUrl} alt="Ad preview" className="w-full h-full object-cover" />
+          <img
+            src={imageUrl}
+            alt="Ad preview"
+            className="w-full h-full object-cover"
+          />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-gray-400">
             Sem imagem
           </div>
         )}
       </div>
-      
+
       {/* Link Info */}
       <div className="p-3 border-t bg-gray-50">
         <p className="text-xs text-gray-500 uppercase">{domain}</p>
-        <p className="font-semibold text-sm line-clamp-1">{headline || "Título do anúncio"}</p>
-        {description && <p className="text-xs text-gray-500 line-clamp-1">{description}</p>}
+        <p className="font-semibold text-sm line-clamp-1">
+          {headline || "Título do anúncio"}
+        </p>
+        {description && (
+          <p className="text-xs text-gray-500 line-clamp-1">{description}</p>
+        )}
       </div>
-      
+
       {/* CTA Button */}
-      {cta && cta !== 'Sem Botão' && (
+      {cta && cta !== "Sem Botão" && (
         <div className="px-3 pb-3">
           <button className="w-full bg-gray-100 text-gray-700 text-sm font-semibold py-2 px-4 rounded">
             {cta}
@@ -880,11 +1089,11 @@ function FacebookAdPreview({
 }
 
 // Instagram Ad Preview Component
-function InstagramAdPreview({ 
-  imageUrl, 
-  primaryText, 
+function InstagramAdPreview({
+  imageUrl,
+  primaryText,
   headline,
-  cta 
+  cta,
 }: {
   imageUrl?: string;
   primaryText: string;
@@ -901,39 +1110,45 @@ function InstagramAdPreview({
           <p className="text-xs text-gray-500">Patrocinado</p>
         </div>
       </div>
-      
+
       {/* Image - 3:4 aspect ratio (new Meta standard) */}
       <div className="aspect-[3/4] bg-gray-200 relative">
         {imageUrl ? (
-          <img src={imageUrl} alt="Ad preview" className="w-full h-full object-cover" />
+          <img
+            src={imageUrl}
+            alt="Ad preview"
+            className="w-full h-full object-cover"
+          />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-gray-400">
             Sem imagem
           </div>
         )}
       </div>
-      
+
       {/* CTA Button */}
-      {cta && cta !== 'Sem Botão' && (
+      {cta && cta !== "Sem Botão" && (
         <div className="p-3 border-t">
           <button className="w-full bg-blue-500 text-white text-sm font-semibold py-2 px-4 rounded">
             {cta}
           </button>
         </div>
       )}
-      
+
       {/* Actions */}
       <div className="flex items-center gap-4 px-3 py-2">
         <span className="text-xl">♡</span>
         <span className="text-xl">💬</span>
         <span className="text-xl">✈</span>
       </div>
-      
+
       {/* Caption */}
       <div className="px-3 pb-3">
         <p className="text-sm">
           <span className="font-semibold">suapagina</span>{" "}
-          <span className="whitespace-pre-wrap line-clamp-2">{primaryText || headline || "Descrição do anúncio"}</span>
+          <span className="whitespace-pre-wrap line-clamp-2">
+            {primaryText || headline || "Descrição do anúncio"}
+          </span>
         </p>
       </div>
     </div>

@@ -48,7 +48,7 @@ export const useAutomationRules = (clientId?: string | null) => {
 
   const fetchTemplates = async () => {
     if (!user || !activeCompany?.company_id) return;
-    
+
     const { data, error } = await supabase
       .from("campaign_automation_rules")
       .select("*")
@@ -60,15 +60,15 @@ export const useAutomationRules = (clientId?: string | null) => {
       console.error("Error fetching templates:", error);
       return;
     }
-    
+
     setTemplates((data as unknown) || []);
   };
 
   const fetchRules = async () => {
     if (!user || !activeCompany?.company_id) return;
-    
+
     setLoading(true);
-    
+
     let query = supabase
       .from("campaign_automation_rules")
       .select("*")
@@ -79,7 +79,9 @@ export const useAutomationRules = (clientId?: string | null) => {
       query = query.eq("client_id", clientId);
     }
 
-    const { data, error } = await query.order("rule_order", { ascending: true });
+    const { data, error } = await query.order("rule_order", {
+      ascending: true,
+    });
 
     if (error) {
       console.error("Error fetching rules:", error);
@@ -91,7 +93,7 @@ export const useAutomationRules = (clientId?: string | null) => {
     } else {
       setRules((data as unknown) || []);
     }
-    
+
     setLoading(false);
   };
 
@@ -105,31 +107,51 @@ export const useAutomationRules = (clientId?: string | null) => {
     const autoFixEntityTypes = async () => {
       if (!rules.length || !activeCompany?.company_id) return;
 
-      const rulesToFix = rules.filter(rule => {
-        const isAdAction = ['pause_ad', 'activate_ad', 'duplicate_ad'].includes(rule.action_type);
-        const isAdsetAction = ['pause_adset', 'activate_adset', 'duplicate_adset'].includes(rule.action_type);
-        const isCampaignAction = ['pause_campaign', 'activate_campaign', 'adjust_budget', 'duplicate_campaign'].includes(rule.action_type);
+      const rulesToFix = rules.filter((rule) => {
+        const isAdAction = ["pause_ad", "activate_ad", "duplicate_ad"].includes(
+          rule.action_type,
+        );
+        const isAdsetAction = [
+          "pause_adset",
+          "activate_adset",
+          "duplicate_adset",
+        ].includes(rule.action_type);
+        const isCampaignAction = [
+          "pause_campaign",
+          "activate_campaign",
+          "adjust_budget",
+          "duplicate_campaign",
+        ].includes(rule.action_type);
 
-        if (isAdAction && rule.entity_type !== 'ad') return true;
-        if (isAdsetAction && rule.entity_type !== 'adset') return true;
-        if (isCampaignAction && rule.entity_type !== 'campaign' && rule.entity_type !== null) return true;
+        if (isAdAction && rule.entity_type !== "ad") return true;
+        if (isAdsetAction && rule.entity_type !== "adset") return true;
+        if (
+          isCampaignAction &&
+          rule.entity_type !== "campaign" &&
+          rule.entity_type !== null
+        )
+          return true;
         return false;
       });
 
       for (const rule of rulesToFix) {
-        let correctEntityType = 'campaign';
-        if (['pause_ad', 'activate_ad', 'duplicate_ad'].includes(rule.action_type)) {
-          correctEntityType = 'ad';
-        } else if (['pause_adset', 'activate_adset', 'duplicate_adset'].includes(rule.action_type)) {
-          correctEntityType = 'adset';
+        let correctEntityType = "campaign";
+        if (
+          ["pause_ad", "activate_ad", "duplicate_ad"].includes(rule.action_type)
+        ) {
+          correctEntityType = "ad";
+        } else if (
+          ["pause_adset", "activate_adset", "duplicate_adset"].includes(
+            rule.action_type,
+          )
+        ) {
+          correctEntityType = "adset";
         }
 
-        console.log(`🔧 Auto-fixing entity_type for rule "${rule.rule_name}": ${rule.entity_type} → ${correctEntityType}`);
-        
         await supabase
-          .from('campaign_automation_rules')
+          .from("campaign_automation_rules")
           .update({ entity_type: correctEntityType })
-          .eq('id', rule.id);
+          .eq("id", rule.id);
       }
 
       if (rulesToFix.length > 0) {
@@ -140,7 +162,21 @@ export const useAutomationRules = (clientId?: string | null) => {
     autoFixEntityTypes();
   }, [rules.length]);
 
-  const createTemplate = async (templateData: Omit<AutomationRule, "id" | "created_at" | "updated_at" | "company_id" | "is_template" | "client_id" | "template_id" | "imported_at" | "execution_count" | "last_execution_at">) => {
+  const createTemplate = async (
+    templateData: Omit<
+      AutomationRule,
+      | "id"
+      | "created_at"
+      | "updated_at"
+      | "company_id"
+      | "is_template"
+      | "client_id"
+      | "template_id"
+      | "imported_at"
+      | "execution_count"
+      | "last_execution_at"
+    >,
+  ) => {
     if (!activeCompany?.company_id) return null;
 
     const { data, error } = await supabase
@@ -173,7 +209,10 @@ export const useAutomationRules = (clientId?: string | null) => {
     return data;
   };
 
-  const importTemplateToClient = async (templateId: string, targetClientId: string) => {
+  const importTemplateToClient = async (
+    templateId: string,
+    targetClientId: string,
+  ) => {
     if (!activeCompany?.company_id) return null;
 
     const { data: template, error: fetchError } = await supabase
@@ -197,7 +236,7 @@ export const useAutomationRules = (clientId?: string | null) => {
   const importConfiguredTemplate = async (
     templateId: string,
     targetClientId: string,
-    configuredConditions: unknown
+    configuredConditions: unknown,
   ) => {
     if (!activeCompany?.company_id) return null;
 
@@ -218,7 +257,7 @@ export const useAutomationRules = (clientId?: string | null) => {
 
     // Validate that all conditions have operator and value
     const allConfigured = configuredConditions.conditions.every(
-      (c: unknown) => c.operator !== null && c.value !== null
+      (c: unknown) => c.operator !== null && c.value !== null,
     );
 
     if (!allConfigured) {
@@ -290,14 +329,14 @@ export const useAutomationRules = (clientId?: string | null) => {
     }
 
     // Verificar se é template e notificar sincronização
-    const updatedRule = rules.find(r => r.id === id);
+    const updatedRule = rules.find((r) => r.id === id);
     if (updatedRule?.is_template) {
       // Buscar quantas regras foram sincronizadas
       const { count } = await supabase
-        .from('campaign_automation_rules')
-        .select('id', { count: 'exact', head: true })
-        .eq('template_id', id)
-        .eq('is_template', false);
+        .from("campaign_automation_rules")
+        .select("id", { count: "exact", head: true })
+        .eq("template_id", id)
+        .eq("is_template", false);
 
       if (count && count > 0) {
         toast({
@@ -321,14 +360,22 @@ export const useAutomationRules = (clientId?: string | null) => {
     await fetchRules();
   };
 
-  const updateRuleConditions = async (ruleId: string, newConditions: unknown, timeWindowDays?: number) => {
-    const updateData: unknown = { 
+  const updateRuleConditions = async (
+    ruleId: string,
+    newConditions: unknown,
+    timeWindowDays?: number,
+  ) => {
+    const updateData: unknown = {
       conditions: newConditions,
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     };
-    
+
     // Incluir time_window_days se fornecido
-    if (timeWindowDays !== undefined && timeWindowDays >= 1 && timeWindowDays <= 90) {
+    if (
+      timeWindowDays !== undefined &&
+      timeWindowDays >= 1 &&
+      timeWindowDays <= 90
+    ) {
       updateData.time_window_days = timeWindowDays;
     }
 
@@ -348,7 +395,7 @@ export const useAutomationRules = (clientId?: string | null) => {
 
     toast({
       title: "Regra atualizada",
-      description: timeWindowDays 
+      description: timeWindowDays
         ? `Condições e janela de tempo (${timeWindowDays} dias) atualizados.`
         : "Os valores foram atualizados com sucesso.",
     });
@@ -383,12 +430,12 @@ export const useAutomationRules = (clientId?: string | null) => {
   const simulateRule = async (ruleId: string) => {
     try {
       const { data, error } = await supabase.functions.invoke(
-        'execute-campaign-automations',
+        "execute-campaign-automations",
         {
           body: {},
-          method: 'GET',
+          method: "GET",
           // Pass query params via URL
-        }
+        },
       );
 
       if (error) throw error;

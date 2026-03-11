@@ -8,7 +8,8 @@ const openAIApiKey = Deno.env.get("OPENAI_API_KEY")!;
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
@@ -95,7 +96,7 @@ Deno.serve(async (req) => {
       throw new Error("OPENROUTER_API_KEY is not configured");
 
     // clientId é opcional para o Editor de Imagens standalone
-    let clientData: any = null;
+    let clientData: unknown = null;
 
     if (clientId) {
       // Buscar dados completos do cliente incluindo logo e imagens de referência
@@ -262,7 +263,7 @@ Deno.serve(async (req) => {
     const clientBriefing = clientData?.ai_briefing || "";
 
     // Build message content for Gemini multimodal request
-    const messageContent: any[] = [];
+    const messageContent: unknown[] = [];
 
     // Convert all images to base64 first (Gemini can't access external URLs like Facebook/Instagram)
     console.log("Converting images to base64...");
@@ -324,7 +325,7 @@ Deno.serve(async (req) => {
       slidePrompt: string,
       slideNumber?: number,
     ): Promise<string> => {
-      const slideMessageContent: any[] = [...messageContent]; // Copia referências
+      const slideMessageContent: unknown[] = [...messageContent]; // Copia referências
 
       // Adicionar imagem adicional para mesclagem se existir
       if (additionalImageBase64) {
@@ -528,7 +529,7 @@ Generate the image now.`;
       }
 
       // Safely parse JSON response
-      let geminiData: any;
+      let geminiData: unknown;
       try {
         const responseText = await geminiResponse.text();
         if (!responseText || responseText.trim() === "") {
@@ -542,7 +543,7 @@ Generate the image now.`;
           "Failed to parse Gemini response - the model may have returned an invalid response",
         );
       }
-      const getBase64Url = (d: any) =>
+      const getBase64Url = (d: unknown) =>
         d?.choices?.[0]?.message?.images?.[0]?.image_url?.url as
           | string
           | undefined;
@@ -584,7 +585,7 @@ Generate the image now.`;
         }
 
         // Safely parse retry JSON response
-        let retryData: any;
+        let retryData: unknown;
         try {
           const retryText = await retryResponse.text();
           if (!retryText || retryText.trim() === "") {
@@ -640,7 +641,7 @@ Generate the image now.`;
       const MAX_UPLOAD_RETRIES = 4;
       const BASE_DELAY_MS = 750;
 
-      let lastUploadError: any = null;
+      let lastUploadError: unknown = null;
       let uploadedBucket: (typeof UPLOAD_BUCKETS)[number] | null = null;
 
       const uploadWithRetry = async (
@@ -660,7 +661,8 @@ Generate the image now.`;
           }
 
           lastUploadError = error;
-          const status = (error as any)?.status ?? (error as any)?.statusCode;
+          const status =
+            (error as unknown)?.status ?? (error as unknown)?.statusCode;
           console.warn(
             `Upload attempt ${attempt}/${MAX_UPLOAD_RETRIES} failed (bucket=${bucket}, status=${status}):`,
             error.message,
@@ -803,7 +805,7 @@ CRITICAL CAROUSEL CONSISTENCY:
           console.log(
             `Slide ${slideNumber}/${totalSlides} generated successfully`,
           );
-        } catch (slideError: any) {
+        } catch (slideError: unknown) {
           console.error(`Error generating slide ${slideNumber}:`, slideError);
           throw new Error(
             `Failed to generate slide ${slideNumber}: ${slideError.message}`,
@@ -848,7 +850,7 @@ CRITICAL CAROUSEL CONSISTENCY:
         },
       );
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error in generate-visual-creative function:", error);
     return new Response(
       JSON.stringify({

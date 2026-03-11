@@ -3,7 +3,8 @@
 const openAIApiKey = Deno.env.get("OPENAI_API_KEY");
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
@@ -21,7 +22,7 @@ Deno.serve(async (req) => {
     console.log("Campaigns data:", campaigns?.length || 0, "campaigns");
 
     // Preparar dados das campanhas para análise
-    const campaignSummary = campaigns.map((campaign: any) => ({
+    const campaignSummary = campaigns.map((campaign: unknown) => ({
       name: campaign.name,
       status: campaign.status,
       objective: campaign.objective,

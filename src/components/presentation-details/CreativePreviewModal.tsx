@@ -51,7 +51,10 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   scheduled: { label: "Agendado", color: "bg-blue-500 text-white" },
 };
 
-export function CreativePreviewModal({ creative, onClose }: CreativePreviewModalProps) {
+export function CreativePreviewModal({
+  creative,
+  onClose,
+}: CreativePreviewModalProps) {
   const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
 
   if (!creative) return null;
@@ -59,7 +62,8 @@ export function CreativePreviewModal({ creative, onClose }: CreativePreviewModal
   const media = creative.creative_media || [];
   const currentMedia = media[currentMediaIndex];
   const TypeIcon = CREATIVE_TYPE_ICONS[creative.creative_type] || Image;
-  const statusConfig = STATUS_LABELS[creative.current_status] || STATUS_LABELS.pending;
+  const statusConfig =
+    STATUS_LABELS[creative.current_status] || STATUS_LABELS.pending;
 
   const goNext = () => {
     setCurrentMediaIndex((prev) => (prev + 1) % media.length);
@@ -70,13 +74,19 @@ export function CreativePreviewModal({ creative, onClose }: CreativePreviewModal
   };
 
   return (
-    <Dialog open={!!creative} onOpenChange={() => { onClose(); setCurrentMediaIndex(0); }}>
+    <Dialog
+      open={!!creative}
+      onOpenChange={() => {
+        onClose();
+        setCurrentMediaIndex(0);
+      }}
+    >
       <DialogContent className="max-w-4xl max-h-[90vh] p-0 overflow-hidden">
         <div className="flex flex-col md:flex-row h-full">
           {/* Media Section */}
           <div className="relative flex-1 bg-black flex items-center justify-center min-h-[300px] md:min-h-[500px]">
             {currentMedia ? (
-              currentMedia.media_type === 'video' ? (
+              currentMedia.media_type === "video" ? (
                 <video
                   src={currentMedia.media_url}
                   className="max-w-full max-h-full object-contain"
@@ -87,7 +97,7 @@ export function CreativePreviewModal({ creative, onClose }: CreativePreviewModal
               ) : (
                 <img
                   src={currentMedia.media_url}
-                  alt={creative.headline || 'Creative'}
+                  alt={creative.headline || "Creative"}
                   className="max-w-full max-h-full object-contain"
                 />
               )
@@ -100,7 +110,8 @@ export function CreativePreviewModal({ creative, onClose }: CreativePreviewModal
             {/* Navigation arrows */}
             {media.length > 1 && (
               <>
-                <Button aria-label="Voltar"
+                <Button
+                  aria-label="Voltar"
                   variant="ghost"
                   size="icon"
                   className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full"
@@ -108,7 +119,8 @@ export function CreativePreviewModal({ creative, onClose }: CreativePreviewModal
                 >
                   <ChevronLeft className="w-6 h-6" />
                 </Button>
-                <Button aria-label="Avançar"
+                <Button
+                  aria-label="Avançar"
                   variant="ghost"
                   size="icon"
                   className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full"
@@ -123,7 +135,7 @@ export function CreativePreviewModal({ creative, onClose }: CreativePreviewModal
                     <button
                       key={idx}
                       className={`w-2 h-2 rounded-full transition-colors ${
-                        idx === currentMediaIndex ? 'bg-white' : 'bg-white/50'
+                        idx === currentMediaIndex ? "bg-white" : "bg-white/50"
                       }`}
                       onClick={() => setCurrentMediaIndex(idx)}
                     />
@@ -141,13 +153,17 @@ export function CreativePreviewModal({ creative, onClose }: CreativePreviewModal
                 <span className="text-sm text-muted-foreground">
                   {CREATIVE_TYPE_LABELS[creative.creative_type]}
                 </span>
-                <Badge className={statusConfig.color}>{statusConfig.label}</Badge>
+                <Badge className={statusConfig.color}>
+                  {statusConfig.label}
+                </Badge>
               </div>
               <DialogTitle className="text-left">
                 {creative.headline || `Criativo ${creative.order_index + 1}`}
               </DialogTitle>
               {creative.subheadline && (
-                <p className="text-sm text-muted-foreground text-left">{creative.subheadline}</p>
+                <p className="text-sm text-muted-foreground text-left">
+                  {creative.subheadline}
+                </p>
               )}
             </DialogHeader>
 
@@ -161,8 +177,13 @@ export function CreativePreviewModal({ creative, onClose }: CreativePreviewModal
                       Data de Publicação
                     </div>
                     <p className="text-sm text-muted-foreground pl-6">
-                      {format(new Date(creative.scheduled_date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-                      {creative.scheduled_time && ` às ${creative.scheduled_time}`}
+                      {format(
+                        new Date(creative.scheduled_date),
+                        "dd 'de' MMMM 'de' yyyy",
+                        { locale: ptBR },
+                      )}
+                      {creative.scheduled_time &&
+                        ` às ${creative.scheduled_time}`}
                     </p>
                   </div>
                 )}
@@ -174,7 +195,9 @@ export function CreativePreviewModal({ creative, onClose }: CreativePreviewModal
                       <Target className="w-4 h-4 text-muted-foreground" />
                       Objetivo
                     </div>
-                    <p className="text-sm text-muted-foreground pl-6">{creative.objective}</p>
+                    <p className="text-sm text-muted-foreground pl-6">
+                      {creative.objective}
+                    </p>
                   </div>
                 )}
 
@@ -198,7 +221,9 @@ export function CreativePreviewModal({ creative, onClose }: CreativePreviewModal
                       <Hash className="w-4 h-4 text-muted-foreground" />
                       Hashtags
                     </div>
-                    <p className="text-sm text-blue-500 pl-6">{creative.hashtags}</p>
+                    <p className="text-sm text-blue-500 pl-6">
+                      {creative.hashtags}
+                    </p>
                   </div>
                 )}
 
@@ -209,7 +234,11 @@ export function CreativePreviewModal({ creative, onClose }: CreativePreviewModal
                       Aprovado pelo Gestor
                     </p>
                     <p className="text-xs text-green-600/70">
-                      {format(new Date(creative.manager_approved_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                      {format(
+                        new Date(creative.manager_approved_at),
+                        "dd/MM/yyyy 'às' HH:mm",
+                        { locale: ptBR },
+                      )}
                     </p>
                   </div>
                 )}

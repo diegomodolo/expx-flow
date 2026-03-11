@@ -2,7 +2,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
@@ -76,9 +77,9 @@ serve(async (req) => {
 });
 
 async function handleIngestCallback(
-  supabase: any,
+  supabase: unknown,
   jobId: string,
-  body: any,
+  body: unknown,
   shotstackApiKey: string,
   supabaseUrl: string,
 ) {
@@ -294,9 +295,9 @@ async function handleIngestCallback(
 }
 
 async function handleEditCallback(
-  supabase: any,
+  supabase: unknown,
   jobId: string,
-  body: any,
+  body: unknown,
   clipIndex: string | null,
   reqUrl: URL,
 ) {

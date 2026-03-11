@@ -38,7 +38,9 @@ export function SlideImageEditModal({
 }: SlideImageEditModalProps) {
   const [prompt, setPrompt] = useState("");
   const [useAsReference, setUseAsReference] = useState(true);
-  const [additionalImageUrl, setAdditionalImageUrl] = useState<string | null>(null);
+  const [additionalImageUrl, setAdditionalImageUrl] = useState<string | null>(
+    null,
+  );
   const [isUploading, setIsUploading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -70,7 +72,9 @@ export function SlideImageEditModal({
 
       if (uploadError) throw uploadError;
 
-      const { data } = supabase.storage.from("visual-creatives").getPublicUrl(path);
+      const { data } = supabase.storage
+        .from("visual-creatives")
+        .getPublicUrl(path);
       if (data?.publicUrl) {
         setAdditionalImageUrl(data.publicUrl);
         toast.success("Imagem carregada com sucesso");
@@ -105,20 +109,23 @@ export function SlideImageEditModal({
       }
 
       // Call generate-visual-creative edge function
-      const { data, error } = await supabase.functions.invoke("generate-visual-creative", {
-        body: {
-          creativeType: "instagram_feed",
-          clientId,
-          companyId,
-          references,
-          additionalImageToMerge: additionalImageUrl,
-          extraPrompt: prompt,
-          context: {
-            title: "",
-            description: prompt,
+      const { data, error } = await supabase.functions.invoke(
+        "generate-visual-creative",
+        {
+          body: {
+            creativeType: "instagram_feed",
+            clientId,
+            companyId,
+            references,
+            additionalImageToMerge: additionalImageUrl,
+            extraPrompt: prompt,
+            context: {
+              title: "",
+              description: prompt,
+            },
           },
         },
-      });
+      );
 
       if (error) throw new Error(error.message);
       if (!data?.imageUrl) throw new Error("Nenhuma imagem foi gerada");
@@ -154,7 +161,7 @@ export function SlideImageEditModal({
 
       onImageUpdated(data.imageUrl);
       toast.success("Imagem atualizada com sucesso!");
-      
+
       // Reset and close
       setPrompt("");
       setAdditionalImageUrl(null);
@@ -233,7 +240,8 @@ export function SlideImageEditModal({
                   alt="Imagem adicional"
                   className="w-full h-full object-cover"
                 />
-                <Button aria-label="Excluir"
+                <Button
+                  aria-label="Excluir"
                   variant="destructive"
                   size="icon"
                   className="absolute top-1 right-1 h-5 w-5"
@@ -291,7 +299,10 @@ export function SlideImageEditModal({
           >
             Cancelar
           </Button>
-          <Button onClick={handleGenerate} disabled={isGenerating || !prompt.trim()}>
+          <Button
+            onClick={handleGenerate}
+            disabled={isGenerating || !prompt.trim()}
+          >
             {isGenerating ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
