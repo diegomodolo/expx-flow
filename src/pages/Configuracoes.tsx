@@ -14,7 +14,7 @@ import { WhatsAppSettings } from "@/components/whatsapp/WhatsAppSettings";
 import { ListaCnaeSettings } from "@/components/settings/ListaCnaeSettings";
 import { DiscordSettings } from "@/components/discord/DiscordSettings";
 import { UsageDefaultsSettings } from "@/components/settings/UsageDefaultsSettings";
-
+import { AISettings } from "@/components/settings/ai/AISettings";
 
 const Configuracoes = () => {
   return (
@@ -26,7 +26,7 @@ const Configuracoes = () => {
             Gerencie as configurações da sua empresa e conta
           </p>
         </div>
-        
+
         <SettingsLayout>
           <Routes>
             <Route index element={<CompanySettings />} />
@@ -34,15 +34,28 @@ const Configuracoes = () => {
             <Route path="notificacoes" element={<NotificationSettings />} />
             <Route path="planos" element={<PlansSettings />} />
             <Route path="facebook" element={<FacebookIntegrationSettings />} />
-            <Route path="sincronizacao-facebook" element={<FacebookSyncSettings />} />
-            <Route path="integracao-google" element={<GoogleAdsIntegrationCard />} />
-            <Route path="sincronizacao-google" element={<GoogleAdsSyncSettings />} />
-            <Route path="integracao-google-meet" element={<GoogleMeetIntegrationCard />} />
+            <Route
+              path="sincronizacao-facebook"
+              element={<FacebookSyncSettings />}
+            />
+            <Route
+              path="integracao-google"
+              element={<GoogleAdsIntegrationCard />}
+            />
+            <Route
+              path="sincronizacao-google"
+              element={<GoogleAdsSyncSettings />}
+            />
+            <Route
+              path="integracao-google-meet"
+              element={<GoogleMeetIntegrationCard />}
+            />
             <Route path="permissoes" element={<PermissionsProtectedRoute />} />
             <Route path="whatsapp" element={<WhatsAppSettings />} />
             <Route path="listacnae" element={<ListaCnaeSettings />} />
             <Route path="discord" element={<DiscordSettings />} />
             <Route path="padroes-de-uso" element={<UsageDefaultsSettings />} />
+            <Route path="ia" element={<AISettings />} />
           </Routes>
         </SettingsLayout>
       </div>
