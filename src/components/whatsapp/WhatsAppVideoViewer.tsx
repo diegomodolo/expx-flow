@@ -1,7 +1,13 @@
 import { useState, useCallback, useEffect } from "react";
 import { Video as VideoIcon, Download, Loader2, X, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogClose } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogClose,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { cn } from "@/lib/utils";
 import {
   downloadAndCacheMedia,
@@ -200,6 +206,9 @@ export function WhatsAppVideoViewer({
         {/* Modal for video player */}
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
           <DialogContent className="max-w-[90vw] max-h-[90vh] p-0 overflow-hidden bg-black/95 border-none">
+            <VisuallyHidden>
+              <DialogTitle>Vídeo do WhatsApp</DialogTitle>
+            </VisuallyHidden>
             <DialogClose className="absolute top-4 right-4 z-10 rounded-full bg-black/50 p-2 text-white hover:bg-black/70 transition-colors">
               <X className="h-5 w-5" />
             </DialogClose>

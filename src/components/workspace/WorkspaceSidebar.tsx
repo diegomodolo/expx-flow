@@ -113,7 +113,7 @@ export function WorkspaceSidebar({
       const doc = await createDocument.mutateAsync({ folderId });
       onSelectDocument(doc);
     } catch {
-      // Error handled by mutation's onError
+      // Erro tratado no onError da mutation
     }
   };
 

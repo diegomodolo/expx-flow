@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import {
   Instagram,
   Heart,
@@ -174,6 +175,9 @@ export function InstagramFeedPreview({
       {/* Modal de Preview do Post */}
       <Dialog open={!!selectedPost} onOpenChange={() => setSelectedPost(null)}>
         <DialogContent className="max-w-2xl p-0 gap-0 overflow-hidden">
+          <VisuallyHidden>
+            <DialogTitle>Pré-visualização do post do Instagram</DialogTitle>
+          </VisuallyHidden>
           <div className="flex flex-col md:flex-row">
             {/* Imagem do post */}
             <div className="md:w-1/2 bg-black flex items-center justify-center min-h-[300px]">

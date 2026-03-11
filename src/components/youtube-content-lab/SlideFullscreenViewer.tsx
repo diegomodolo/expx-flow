@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { YouTubeSlide } from "@/hooks/useYouTubeSlides";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, X, Pencil, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -96,6 +97,9 @@ export function SlideFullscreenViewer({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[95vw] max-h-[95vh] w-full h-full p-0 bg-black/95 border-none">
+        <VisuallyHidden>
+          <DialogTitle>Visualização em tela cheia do slide</DialogTitle>
+        </VisuallyHidden>
         <div className="relative w-full h-full flex flex-col">
           {/* Header */}
           <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between p-4 bg-gradient-to-b from-black/80 to-transparent">

@@ -57,7 +57,6 @@ export function WorkspaceShareDialog({
 
   const handleAddShare = async () => {
     if (!selectedUser) return;
-
     try {
       await createShare.mutateAsync({
         resourceType,
@@ -67,7 +66,7 @@ export function WorkspaceShareDialog({
       });
       setSelectedUser("");
     } catch {
-      // Error handled by mutation's onError
+      // Erro tratado no onError da mutation
     }
   };
 
@@ -78,7 +77,7 @@ export function WorkspaceShareDialog({
     try {
       await updateShare.mutateAsync({ id: shareId, permission });
     } catch {
-      // Error handled by mutation's onError
+      // Erro tratado no onError da mutation
     }
   };
 
@@ -86,7 +85,7 @@ export function WorkspaceShareDialog({
     try {
       await deleteShare.mutateAsync(shareId);
     } catch {
-      // Error handled by mutation's onError
+      // Erro tratado no onError da mutation
     }
   };
 

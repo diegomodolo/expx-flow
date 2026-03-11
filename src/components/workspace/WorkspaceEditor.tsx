@@ -65,7 +65,7 @@ export function WorkspaceEditor({ document }: WorkspaceEditorProps) {
     try {
       await updateDocument.mutateAsync({ id: document.id, content });
     } catch {
-      // Error handled by mutation's onError
+      // Erro tratado no onError da mutation
     }
   }, [document, editor, updateDocument]);
 
@@ -78,7 +78,7 @@ export function WorkspaceEditor({ document }: WorkspaceEditorProps) {
         title: title || "Sem título",
       });
     } catch {
-      // Error handled by mutation's onError
+      // Erro tratado no onError da mutation
     }
   };
 
@@ -87,10 +87,10 @@ export function WorkspaceEditor({ document }: WorkspaceEditorProps) {
     if (!document) return;
     try {
       await updateDocument.mutateAsync({ id: document.id, icon });
+      setShowEmojiPicker(false);
     } catch {
-      // Error handled by mutation's onError
+      // Erro tratado no onError da mutation
     }
-    setShowEmojiPicker(false);
   };
 
   // Handle favorite toggle
