@@ -50,8 +50,14 @@ export function DashboardHeader() {
   const queryClient = useQueryClient();
   const [approvalTaskOpen, setApprovalTaskOpen] = useState(false);
   const [approvalTask, setApprovalTask] = useState<unknown>(null);
+  const [approvalNotificationId, setApprovalNotificationId] = useState<
+    string | null
+  >(null);
 
-  const handleOpenApprovalTask = async (taskId: string) => {
+  const handleOpenApprovalTask = async (
+    taskId: string,
+    notificationId: string,
+  ) => {
     const { data } = await supabase
       .from("tasks")
       .select("*")
@@ -59,14 +65,24 @@ export function DashboardHeader() {
       .single();
     if (data) {
       setApprovalTask(data);
+      setApprovalNotificationId(notificationId);
       setApprovalTaskOpen(true);
     }
   };
 
   const handleSaveApprovalTask = async (taskData: unknown) => {
+    // Mark notification as read when task is actually approved/rejected
+    if (approvalNotificationId) {
+      await supabase
+        .from("user_notifications" as unknown)
+        .update({ is_read: true })
+        .eq("id", approvalNotificationId);
+    }
     setApprovalTaskOpen(false);
     setApprovalTask(null);
+    setApprovalNotificationId(null);
     queryClient.invalidateQueries({ queryKey: ["tasks-awaiting-approval"] });
+    queryClient.invalidateQueries({ queryKey: ["user-notifications"] });
   };
 
   useEffect(() => {

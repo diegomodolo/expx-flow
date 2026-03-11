@@ -214,8 +214,10 @@ const Agendamento = () => {
 
   const handleEditPost = (post: ScheduledPost) => {
     setPreviewPost(null);
-    setSelectedPost(post);
-    setIsModalOpen(true);
+    setTimeout(() => {
+      setSelectedPost(post);
+      setIsModalOpen(true);
+    }, 150);
   };
 
   const handleNewPost = (date?: Date) => {

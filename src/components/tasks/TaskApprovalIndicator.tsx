@@ -5,8 +5,15 @@ import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { useTasksAwaitingApproval, TaskAwaitingApproval } from "@/hooks/useTasksAwaitingApproval";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  useTasksAwaitingApproval,
+  TaskAwaitingApproval,
+} from "@/hooks/useTasksAwaitingApproval";
 
 interface TaskApprovalItemProps {
   task: TaskAwaitingApproval;
@@ -27,10 +34,15 @@ function TaskApprovalItem({ task, onClick }: TaskApprovalItemProps) {
           {task.title}
         </p>
         {task.body && (
-          <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{task.body}</p>
+          <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+            {task.body}
+          </p>
         )}
         <span className="text-[10px] text-muted-foreground mt-1 block">
-          {formatDistanceToNow(parseISO(task.created_at), { addSuffix: true, locale: ptBR })}
+          {formatDistanceToNow(parseISO(task.created_at), {
+            addSuffix: true,
+            locale: ptBR,
+          })}
         </span>
       </div>
     </button>
@@ -38,19 +50,20 @@ function TaskApprovalItem({ task, onClick }: TaskApprovalItemProps) {
 }
 
 interface TaskApprovalIndicatorProps {
-  onOpenTask: (taskId: string) => void;
+  onOpenTask: (taskId: string, notificationId: string) => void;
 }
 
-export function TaskApprovalIndicator({ onOpenTask }: TaskApprovalIndicatorProps) {
+export function TaskApprovalIndicator({
+  onOpenTask,
+}: TaskApprovalIndicatorProps) {
   const [open, setOpen] = useState(false);
-  const { tasks, count, markAsRead } = useTasksAwaitingApproval();
+  const { tasks, count } = useTasksAwaitingApproval();
 
   if (count === 0) return null;
 
   const handleClick = (task: TaskAwaitingApproval) => {
-    markAsRead.mutate(task.notification_id);
     if (task.task_id) {
-      onOpenTask(task.task_id);
+      onOpenTask(task.task_id, task.notification_id);
     }
     setOpen(false);
   };
@@ -70,11 +83,17 @@ export function TaskApprovalIndicator({ onOpenTask }: TaskApprovalIndicatorProps
           </Badge>
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-[380px] p-0 shadow-lg" sideOffset={8}>
+      <PopoverContent
+        align="end"
+        className="w-[380px] p-0 shadow-lg"
+        sideOffset={8}
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
           <div>
-            <h4 className="text-sm font-semibold text-foreground">Aguardando sua aprovação</h4>
+            <h4 className="text-sm font-semibold text-foreground">
+              Aguardando sua aprovação
+            </h4>
             <p className="text-xs text-muted-foreground">
               {count} tarefa{count !== 1 ? "s" : ""} para revisar
             </p>
