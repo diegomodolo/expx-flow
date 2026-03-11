@@ -1,6 +1,6 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { BacklogQuickEntry } from "./BacklogQuickEntry";
-import { Loader2, Inbox, Pencil, Clock, Zap, RotateCcw, AlertTriangle, ChevronRight, ChevronDown } from "lucide-react";
+import { Loader2, Inbox, Pencil, Clock, Zap, RotateCcw, AlertTriangle, ChevronRight, ChevronDown, Plus } from "lucide-react";
 import { TaskDialog } from "@/components/tasks/TaskDialog";
 import { useTasks } from "@/hooks/useTasks";
 import { useState, useMemo, Fragment } from "react";
@@ -43,8 +43,9 @@ export function BacklogBucket({
   subtasksByParent = new Map(),
 }: Props) {
   const [editingTask, setEditingTask] = useState<unknown>(null);
+  const [newTaskDialogOpen, setNewTaskDialogOpen] = useState(false);
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
-  const { updateTask } = useTasks();
+  const { createTask, updateTask } = useTasks();
   const queryClient = useQueryClient();
 
   const clientsMap = useMemo(() => {
@@ -262,7 +263,20 @@ export function BacklogBucket({
 
       {/* Quick Entry - anchored bottom */}
       <div className="flex-shrink-0 px-4 pt-3 pb-4">
-        <BacklogQuickEntry clients={clients} companyId={companyId} selectedSquadId={selectedSquadId} />
+        <div className="flex items-end gap-2">
+          <div className="flex-1">
+            <BacklogQuickEntry clients={clients} companyId={companyId} selectedSquadId={selectedSquadId} />
+          </div>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-10 w-10 flex-shrink-0 rounded-xl"
+            title="Nova tarefa (formulário completo)"
+            onClick={() => setNewTaskDialogOpen(true)}
+          >
+            <Plus className="w-4 h-4" />
+          </Button>
+        </div>
       </div>
       {/* Edit Task Dialog */}
       <TaskDialog
@@ -275,6 +289,21 @@ export function BacklogBucket({
             queryClient.invalidateQueries({ queryKey: ["backlog-center-tasks"] });
             setEditingTask(null);
           }
+        }}
+      />
+      {/* New Task Dialog */}
+      <TaskDialog
+        open={newTaskDialogOpen}
+        onOpenChange={setNewTaskDialogOpen}
+        onSave={async (data) => {
+          await createTask({
+            ...data,
+            task_state: "backlog",
+            team_id: selectedSquadId || data.team_id,
+          });
+          queryClient.invalidateQueries({ queryKey: ["backlog-center-tasks"] });
+          queryClient.invalidateQueries({ queryKey: ["backlog-center-task-clients"] });
+          setNewTaskDialogOpen(false);
         }}
       />
     </div>
