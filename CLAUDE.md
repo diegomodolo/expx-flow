@@ -245,25 +245,37 @@ Edge Functions usam `Deno.env.get()` para: `SUPABASE_URL`, `SUPABASE_SERVICE_ROL
 | Auth     | `auth.md`     | Autenticacao, permissoes, roles, route guards |
 | Testing  | `testing.md`  | Infraestrutura de testes, mocks, patterns     |
 
+## OBRIGATORIO: Criar Skill de Contexto ao finalizar feature/modulo
+
+Ao finalizar o trabalho em uma feature ou modulo (apos commit/PR), verificar se existe uma skill de contexto em `.claude/skills/<nome-do-modulo>/SKILL.md`. Se NAO existir, criar automaticamente cobrindo:
+
+1. **Visao geral** — O que o modulo faz, rota, modelo de dados
+2. **Arquivos-chave** — Tabela com cada arquivo e sua responsabilidade
+3. **Padroes estabelecidos** — Como as coisas devem ser feitas neste modulo (exemplos de codigo)
+4. **Armadilhas e bugs** — Problemas encontrados e como foram resolvidos
+5. **Contexto nao-obvio** — Qualquer coisa que levou tempo para descobrir
+
+Seguir o formato das skills existentes (ex: `.claude/skills/workspace/SKILL.md`, `.claude/skills/ai-gateway/SKILL.md`). Commitar a skill junto com o trabalho da feature.
+
 ## Skills (Slash Commands — .claude/skills/)
 
-| Comando              | Descricao                                                          |
-| -------------------- | ------------------------------------------------------------------ |
-| `/new-page`          | Pagina completa: DashboardLayout + routing + permissao + hook      |
-| `/new-component`     | Componente com convencoes do projeto (display, form, list, modal)  |
+| Comando              | Descricao                                                         |
+| -------------------- | ----------------------------------------------------------------- |
+| `/new-page`          | Pagina completa: DashboardLayout + routing + permissao + hook     |
+| `/new-component`     | Componente com convencoes do projeto (display, form, list, modal) |
 | `/new-table`         | Tabela Supabase com RLS seguro (SECURITY DEFINER) + GRANT + hook  |
-| `/new-edge-function` | Edge Function com CORS, validacao, config.toml, e hook frontend    |
+| `/new-edge-function` | Edge Function com CORS, validacao, config.toml, e hook frontend   |
 | `/add-permission`    | Permissao nos 3 lugares obrigatorios (enum DB + 2 settings files) |
-| `/debug-data`        | Diagnostico sistematico quando dados nao aparecem no frontend      |
-| `/write-test`        | Teste com mocks e providers                                        |
+| `/debug-data`        | Diagnostico sistematico quando dados nao aparecem no frontend     |
+| `/write-test`        | Teste com mocks e providers                                       |
 
 ## Hooks Automaticos (.claude/hooks/)
 
-| Hook                        | Evento       | Funcao                                                           |
-| --------------------------- | ------------ | ---------------------------------------------------------------- |
+| Hook                        | Evento       | Funcao                                                                         |
+| --------------------------- | ------------ | ------------------------------------------------------------------------------ |
 | `validate-page-patterns.sh` | PreToolUse   | Bloqueia erros comuns: falta DashboardLayout, activeCompany.id, types.ts, CORS |
-| `post-edit-lint.sh`         | PostToolUse  | Roda ESLint async no arquivo apos editar                         |
-| `session-context.sh`        | SessionStart | Injeta regras criticas no inicio e apos compactacao              |
+| `post-edit-lint.sh`         | PostToolUse  | Roda ESLint async no arquivo apos editar                                       |
+| `session-context.sh`        | SessionStart | Injeta regras criticas no inicio e apos compactacao                            |
 
 ## CLAUDE.md por Diretorio
 
