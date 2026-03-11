@@ -2,13 +2,17 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { useCompany } from "@/contexts/CompanyContext";
-import { Client, ClientStatus, calculateClientStatus } from "@/hooks/useClients";
+import {
+  Client,
+  ClientStatus,
+  calculateClientStatus,
+} from "@/hooks/useClients";
 
 export interface ClientCampaign {
   id: string;
   name: string;
   platforms: string;
-  status: 'active' | 'paused' | 'finished' | 'deleted';
+  status: "active" | "paused" | "finished" | "deleted";
   is_active: boolean;
   ctr: number;
   cpc: number;
@@ -81,7 +85,7 @@ export function useClientDetails(clientId: string) {
 
   const fetchClientDetails = async () => {
     if (!user || !activeCompany || !clientId) return;
-    
+
     try {
       setLoading(true);
       setError(null);
@@ -89,7 +93,8 @@ export function useClientDetails(clientId: string) {
       // Fetch client data with ad account information
       const { data: clientData, error: clientError } = await supabase
         .from("clients")
-        .select(`
+        .select(
+          `
           *,
           facebook_ad_accounts!ad_account_id (
             id,
@@ -127,13 +132,14 @@ export function useClientDetails(clientId: string) {
             status,
             is_manager
           )
-        `)
+        `,
+        )
         .eq("id", clientId)
         .eq("company_id", activeCompany.company_id)
         .maybeSingle();
 
       if (clientError) throw clientError;
-      
+
       if (!clientData) {
         setError("Cliente não encontrado");
         return;
@@ -149,22 +155,25 @@ export function useClientDetails(clientId: string) {
 
       if (campaignsError) throw campaignsError;
 
-      console.log('Campaigns fetched for client:', clientId, campaignsData);
-
       // Combine client and campaigns data and calculate status
-      const { status, explanation } = await calculateClientStatus(clientId, activeCompany.company_id);
+      const { status, explanation } = await calculateClientStatus(
+        clientId,
+        activeCompany.company_id,
+      );
       const clientWithCampaigns: ClientDetailsData = {
         ...clientData,
         campaigns: campaignsData || [],
         status, // This is already ClientStatus from calculateClientStatus
-        statusExplanation: explanation
+        statusExplanation: explanation,
       };
-
-      console.log('Client with campaigns:', clientWithCampaigns);
 
       setClient(clientWithCampaigns);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao buscar detalhes do cliente");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Erro ao buscar detalhes do cliente",
+      );
     } finally {
       setLoading(false);
     }
@@ -179,15 +188,16 @@ export function useClientDetails(clientId: string) {
     const handleRefresh = () => {
       fetchClientDetails();
     };
-    
-    window.addEventListener('refreshClientDetails', handleRefresh);
-    return () => window.removeEventListener('refreshClientDetails', handleRefresh);
+
+    window.addEventListener("refreshClientDetails", handleRefresh);
+    return () =>
+      window.removeEventListener("refreshClientDetails", handleRefresh);
   }, [clientId, user?.id, activeCompany?.company_id]);
 
   return {
     client,
     loading,
     error,
-    refetch: fetchClientDetails
+    refetch: fetchClientDetails,
   };
 }

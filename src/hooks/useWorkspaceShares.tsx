@@ -14,23 +14,6 @@ export function useWorkspaceShares(
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: rawShares = [], isLoading } = useQuery({
-    queryKey: ["workspace-shares", resourceType, resourceId],
-    queryFn: async () => {
-      if (!resourceType || !resourceId) return [];
-
-      const { data, error } = await supabase
-        .from("workspace_shares")
-        .select("*")
-        .eq("resource_type", resourceType)
-        .eq("resource_id", resourceId);
-
-      if (error) throw error;
-      return (data || []) as WorkspaceShare[];
-    },
-    enabled: !!resourceType && !!resourceId,
-  });
-
   const { data: companyUsers = [] } = useQuery({
     queryKey: ["company-users-for-share", activeCompany?.company_id],
     queryFn: async () => {
@@ -55,6 +38,23 @@ export function useWorkspaceShares(
         }));
     },
     enabled: !!activeCompany?.company_id,
+  });
+
+  const { data: rawShares = [], isLoading } = useQuery({
+    queryKey: ["workspace-shares", resourceType, resourceId],
+    queryFn: async () => {
+      if (!resourceType || !resourceId) return [];
+
+      const { data, error } = await supabase
+        .from("workspace_shares")
+        .select("*")
+        .eq("resource_type", resourceType)
+        .eq("resource_id", resourceId);
+
+      if (error) throw error;
+      return (data || []) as WorkspaceShare[];
+    },
+    enabled: !!resourceType && !!resourceId,
   });
 
   // Enrich shares with user info from companyUsers (avoids FK dependency on profiles)

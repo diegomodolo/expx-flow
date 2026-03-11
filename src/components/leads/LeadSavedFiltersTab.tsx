@@ -1,10 +1,25 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { Filter, Plus, Trash2, Edit, Star, StarOff, Eye, RefreshCw } from "lucide-react";
+import {
+  Filter,
+  Plus,
+  Trash2,
+  Edit,
+  Star,
+  StarOff,
+  Eye,
+  RefreshCw,
+} from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
@@ -31,7 +46,7 @@ interface FilterConfig {
     operator: string;
     value: unknown;
   }>;
-  logic: 'AND' | 'OR';
+  logic: "AND" | "OR";
 }
 
 interface SavedFilter {
@@ -44,7 +59,9 @@ interface SavedFilter {
   updated_at: string;
 }
 
-export const LeadSavedFiltersTab = ({ companyId }: LeadSavedFiltersTabProps) => {
+export const LeadSavedFiltersTab = ({
+  companyId,
+}: LeadSavedFiltersTabProps) => {
   const queryClient = useQueryClient();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -54,58 +71,64 @@ export const LeadSavedFiltersTab = ({ companyId }: LeadSavedFiltersTabProps) => 
   const [filterToDelete, setFilterToDelete] = useState<string | null>(null);
 
   const { data: filters, isLoading } = useQuery({
-    queryKey: ['lead-saved-filters', companyId],
+    queryKey: ["lead-saved-filters", companyId],
     queryFn: async () => {
       if (!companyId) return [];
-      
+
       const { data, error } = await supabase
-        .from('lead_saved_filters')
-        .select('*')
-        .eq('company_id', companyId)
-        .order('is_favorite', { ascending: false })
-        .order('updated_at', { ascending: false });
-      
+        .from("lead_saved_filters")
+        .select("*")
+        .eq("company_id", companyId)
+        .order("is_favorite", { ascending: false })
+        .order("updated_at", { ascending: false });
+
       if (error) throw error;
-      return (data || []).map(d => ({
+      return (data || []).map((d) => ({
         ...d,
-        filter_config: d.filter_config as unknown as FilterConfig
+        filter_config: d.filter_config as unknown as FilterConfig,
       })) as SavedFilter[];
     },
-    enabled: !!companyId
+    enabled: !!companyId,
   });
 
   const toggleFavoriteMutation = useMutation({
-    mutationFn: async ({ id, isFavorite }: { id: string; isFavorite: boolean }) => {
+    mutationFn: async ({
+      id,
+      isFavorite,
+    }: {
+      id: string;
+      isFavorite: boolean;
+    }) => {
       const { error } = await supabase
-        .from('lead_saved_filters')
+        .from("lead_saved_filters")
         .update({ is_favorite: isFavorite })
-        .eq('id', id);
-      
+        .eq("id", id);
+
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['lead-saved-filters'] });
-    }
+      queryClient.invalidateQueries({ queryKey: ["lead-saved-filters"] });
+    },
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from('lead_saved_filters')
+        .from("lead_saved_filters")
         .delete()
-        .eq('id', id);
-      
+        .eq("id", id);
+
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['lead-saved-filters'] });
+      queryClient.invalidateQueries({ queryKey: ["lead-saved-filters"] });
       toast.success("Filtro excluído com sucesso");
       setDeleteDialogOpen(false);
       setFilterToDelete(null);
     },
     onError: () => {
       toast.error("Erro ao excluir filtro");
-    }
+    },
   });
 
   const handleEdit = (filter: SavedFilter) => {
@@ -129,9 +152,9 @@ export const LeadSavedFiltersTab = ({ companyId }: LeadSavedFiltersTabProps) => 
   // If viewing a filter, show results
   if (viewingFilter) {
     return (
-      <LeadFilterResultsView 
-        filter={viewingFilter} 
-        onBack={() => setViewingFilter(null)} 
+      <LeadFilterResultsView
+        filter={viewingFilter}
+        onBack={() => setViewingFilter(null)}
       />
     );
   }
@@ -149,7 +172,12 @@ export const LeadSavedFiltersTab = ({ companyId }: LeadSavedFiltersTabProps) => 
               Crie e gerencie filtros para análise de leads agregados
             </CardDescription>
           </div>
-          <Button onClick={() => { setEditingFilter(null); setIsModalOpen(true); }}>
+          <Button
+            onClick={() => {
+              setEditingFilter(null);
+              setIsModalOpen(true);
+            }}
+          >
             <Plus className="h-4 w-4 mr-2" />
             Criar Filtro
           </Button>
@@ -188,33 +216,39 @@ export const LeadSavedFiltersTab = ({ companyId }: LeadSavedFiltersTabProps) => 
                           {getConditionsCount(filter)} condição(ões)
                         </Badge>
                         <Badge variant="outline">
-                          {filter.filter_config?.logic || 'AND'}
+                          {filter.filter_config?.logic || "AND"}
                         </Badge>
                       </div>
 
                       {/* Date */}
                       <p className="text-xs text-muted-foreground">
-                        Atualizado em {format(new Date(filter.updated_at), "dd/MM/yy HH:mm", { locale: ptBR })}
+                        Atualizado em{" "}
+                        {format(new Date(filter.updated_at), "dd/MM/yy HH:mm", {
+                          locale: ptBR,
+                        })}
                       </p>
 
                       {/* Actions */}
                       <div className="flex items-center gap-2 pt-2 border-t">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
+                        <Button
+                          variant="outline"
+                          size="sm"
                           className="flex-1"
                           onClick={() => handleView(filter)}
                         >
                           <Eye className="h-4 w-4 mr-1" />
                           Ver Resultados
                         </Button>
-                        <Button aria-label="Ação"
+                        <Button
+                          aria-label="Ação"
                           variant="ghost"
                           size="icon"
-                          onClick={() => toggleFavoriteMutation.mutate({ 
-                            id: filter.id, 
-                            isFavorite: !filter.is_favorite 
-                          })}
+                          onClick={() =>
+                            toggleFavoriteMutation.mutate({
+                              id: filter.id,
+                              isFavorite: !filter.is_favorite,
+                            })
+                          }
                         >
                           {filter.is_favorite ? (
                             <StarOff className="h-4 w-4" />
@@ -222,14 +256,16 @@ export const LeadSavedFiltersTab = ({ companyId }: LeadSavedFiltersTabProps) => 
                             <Star className="h-4 w-4" />
                           )}
                         </Button>
-                        <Button aria-label="Editar"
+                        <Button
+                          aria-label="Editar"
                           variant="ghost"
                           size="icon"
                           onClick={() => handleEdit(filter)}
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button aria-label="Excluir"
+                        <Button
+                          aria-label="Excluir"
                           variant="ghost"
                           size="icon"
                           onClick={() => handleDelete(filter.id)}
@@ -246,9 +282,11 @@ export const LeadSavedFiltersTab = ({ companyId }: LeadSavedFiltersTabProps) => 
             <div className="text-center py-8 text-muted-foreground">
               <Filter className="h-12 w-12 mx-auto mb-4 opacity-20" />
               <p>Nenhum filtro salvo</p>
-              <p className="text-sm mt-1">Crie filtros para analisar leads de forma agregada</p>
-              <Button 
-                variant="outline" 
+              <p className="text-sm mt-1">
+                Crie filtros para analisar leads de forma agregada
+              </p>
+              <Button
+                variant="outline"
                 className="mt-4"
                 onClick={() => setIsModalOpen(true)}
               >
@@ -272,13 +310,16 @@ export const LeadSavedFiltersTab = ({ companyId }: LeadSavedFiltersTabProps) => 
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir filtro</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir este filtro? Esta ação não pode ser desfeita.
+              Tem certeza que deseja excluir este filtro? Esta ação não pode ser
+              desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => filterToDelete && deleteMutation.mutate(filterToDelete)}
+              onClick={() =>
+                filterToDelete && deleteMutation.mutate(filterToDelete)
+              }
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Excluir

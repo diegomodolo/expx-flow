@@ -75,109 +75,229 @@ interface NavGroup {
   items: NavItem[];
 }
 
-export function ClientDetailsLayout({ children, clientId, clientName, dashboardToken }: ClientDetailsLayoutProps) {
+export function ClientDetailsLayout({
+  children,
+  clientId,
+  clientName,
+  dashboardToken,
+}: ClientDetailsLayoutProps) {
   const location = useLocation();
   const [activeSyncJobId, setActiveSyncJobId] = useState<string | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [switchClientOpen, setSwitchClientOpen] = useState(false);
   const { job, progressPercentage } = useSyncJobStatus(activeSyncJobId);
   const { clients, updateClient } = useClients();
-  
+
   // Find the current client from the clients list
-  const currentClient = clients.find(c => c.id === clientId);
+  const currentClient = clients.find((c) => c.id === clientId);
 
   // Navigation groups - Visão Geral first, then alphabetical order
-  const navGroups: NavGroup[] = useMemo(() => [
-    {
-      title: "Visão Geral",
-      icon: Eye,
-      items: [
-        { title: "Alertas & Sugestões", href: `/clientes/${clientId}/alertas`, icon: AlertTriangle },
-        { title: "Dashboard", href: `/clientes/${clientId}`, icon: LayoutDashboard },
-      ]
-    },
-    {
-      title: "Análises & Relatórios",
-      icon: BarChart3,
-      items: [
-        { title: "Análise Competitiva", href: `/clientes/${clientId}/competitiva`, icon: Users },
-        { title: "Análise Completa", href: `/clientes/${clientId}/analise`, icon: BarChart3 },
-        { title: "Comparação de Períodos", href: `/clientes/${clientId}/comparacao`, icon: GitCompare },
-        { title: "Relatório Semanal", href: `/clientes/${clientId}/relatorio`, icon: FileText },
-        { title: "Tendências", href: `/clientes/${clientId}/tendencias`, icon: TrendingUp },
-      ]
-    },
-    {
-      title: "Campanhas & Anúncios",
-      icon: Megaphone,
-      items: [
-        { title: "Automações", href: `/clientes/${clientId}/automacoes`, icon: Zap },
-        { title: "Campanhas", href: `/clientes/${clientId}/campanhas`, icon: Megaphone },
-        { title: "Conjuntos de Anúncios", href: `/clientes/${clientId}/conjuntos`, icon: Layers },
-        { title: "Criativos", href: `/clientes/${clientId}/criativos`, icon: Image },
-        { title: "Funil de Conversão", href: `/clientes/${clientId}/funil`, icon: TrendingUp },
-      ]
-    },
-    {
-      title: "Configurações & Dados",
-      icon: Settings,
-      items: [
-        { title: "Anotações", href: `/clientes/${clientId}/anotacoes`, icon: StickyNote },
-        { title: "Contato & Dados", href: `/clientes/${clientId}/contato`, icon: User },
-        { title: "Histórico", href: `/clientes/${clientId}/historico`, icon: Clock },
-      ]
-    },
-    {
-      title: "Customer Success",
-      icon: Heart,
-      items: [
-        { title: "Saúde & Jornada", href: `/clientes/${clientId}/cs`, icon: Heart },
-      ]
-    },
-    {
-      title: "Criação de Conteúdo",
-      icon: PenTool,
-      items: [
-        { title: "Fábrica de Anúncios", href: `/clientes/${clientId}/fabrica-anuncios`, icon: Factory },
-        { title: "Fábrica de Carrosseis", href: `/clientes/${clientId}/fabrica-carrosseis`, icon: Layers },
-        { title: "Fábrica de Criativos", href: `/clientes/${clientId}/fabrica-criativos`, icon: Palette },
-        { title: "Redes Sociais", href: `/clientes/${clientId}/redes-sociais`, icon: Share2 },
-        { title: "YouTube Content Lab", href: `/clientes/${clientId}/youtube-content-lab`, icon: Youtube },
-      ]
-    },
-    {
-      title: "Gestão de Leads",
-      icon: Kanban,
-      items: [
-        { title: "CRM", href: `/clientes/${clientId}/crm`, icon: Kanban },
-        { title: "Leads Desqualificados", href: `/clientes/${clientId}/leads-desqualificados`, icon: UserX },
-      ]
-    },
-    {
-      title: "Meta & Rastreamento",
-      icon: Target,
-      items: [
-        { title: "Conversões Offline", href: `/clientes/${clientId}/conversoes`, icon: DollarSign },
-        { title: "Keyword Planner", href: `/clientes/${clientId}/keyword-planner`, icon: Sparkles },
-        { title: "Pixels Meta", href: `/clientes/${clientId}/pixels`, icon: Activity },
-        { title: "Públicos Meta", href: `/clientes/${clientId}/publicos`, icon: UsersRound },
-        { title: "URLs", href: `/clientes/${clientId}/urls`, icon: Link2 },
-      ]
-    },
-    {
-      title: "Planejamento",
-      icon: Presentation,
-      items: [
-        { title: "Apresentações", href: `/clientes/${clientId}/apresentacoes`, icon: TrendingUp },
-        { title: "Tarefas", href: `/clientes/${clientId}/tarefas`, icon: ListTodo },
-      ]
-    },
-  ], [clientId]);
+  const navGroups: NavGroup[] = useMemo(
+    () => [
+      {
+        title: "Visão Geral",
+        icon: Eye,
+        items: [
+          {
+            title: "Alertas & Sugestões",
+            href: `/clientes/${clientId}/alertas`,
+            icon: AlertTriangle,
+          },
+          {
+            title: "Dashboard",
+            href: `/clientes/${clientId}`,
+            icon: LayoutDashboard,
+          },
+        ],
+      },
+      {
+        title: "Análises & Relatórios",
+        icon: BarChart3,
+        items: [
+          {
+            title: "Análise Competitiva",
+            href: `/clientes/${clientId}/competitiva`,
+            icon: Users,
+          },
+          {
+            title: "Análise Completa",
+            href: `/clientes/${clientId}/analise`,
+            icon: BarChart3,
+          },
+          {
+            title: "Comparação de Períodos",
+            href: `/clientes/${clientId}/comparacao`,
+            icon: GitCompare,
+          },
+          {
+            title: "Relatório Semanal",
+            href: `/clientes/${clientId}/relatorio`,
+            icon: FileText,
+          },
+          {
+            title: "Tendências",
+            href: `/clientes/${clientId}/tendencias`,
+            icon: TrendingUp,
+          },
+        ],
+      },
+      {
+        title: "Campanhas & Anúncios",
+        icon: Megaphone,
+        items: [
+          {
+            title: "Automações",
+            href: `/clientes/${clientId}/automacoes`,
+            icon: Zap,
+          },
+          {
+            title: "Campanhas",
+            href: `/clientes/${clientId}/campanhas`,
+            icon: Megaphone,
+          },
+          {
+            title: "Conjuntos de Anúncios",
+            href: `/clientes/${clientId}/conjuntos`,
+            icon: Layers,
+          },
+          {
+            title: "Criativos",
+            href: `/clientes/${clientId}/criativos`,
+            icon: Image,
+          },
+          {
+            title: "Funil de Conversão",
+            href: `/clientes/${clientId}/funil`,
+            icon: TrendingUp,
+          },
+        ],
+      },
+      {
+        title: "Configurações & Dados",
+        icon: Settings,
+        items: [
+          {
+            title: "Anotações",
+            href: `/clientes/${clientId}/anotacoes`,
+            icon: StickyNote,
+          },
+          {
+            title: "Contato & Dados",
+            href: `/clientes/${clientId}/contato`,
+            icon: User,
+          },
+          {
+            title: "Histórico",
+            href: `/clientes/${clientId}/historico`,
+            icon: Clock,
+          },
+        ],
+      },
+      {
+        title: "Customer Success",
+        icon: Heart,
+        items: [
+          {
+            title: "Saúde & Jornada",
+            href: `/clientes/${clientId}/cs`,
+            icon: Heart,
+          },
+        ],
+      },
+      {
+        title: "Criação de Conteúdo",
+        icon: PenTool,
+        items: [
+          {
+            title: "Fábrica de Anúncios",
+            href: `/clientes/${clientId}/fabrica-anuncios`,
+            icon: Factory,
+          },
+          {
+            title: "Fábrica de Carrosseis",
+            href: `/clientes/${clientId}/fabrica-carrosseis`,
+            icon: Layers,
+          },
+          {
+            title: "Fábrica de Criativos",
+            href: `/clientes/${clientId}/fabrica-criativos`,
+            icon: Palette,
+          },
+          {
+            title: "Redes Sociais",
+            href: `/clientes/${clientId}/redes-sociais`,
+            icon: Share2,
+          },
+          {
+            title: "YouTube Content Lab",
+            href: `/clientes/${clientId}/youtube-content-lab`,
+            icon: Youtube,
+          },
+        ],
+      },
+      {
+        title: "Gestão de Leads",
+        icon: Kanban,
+        items: [
+          { title: "CRM", href: `/clientes/${clientId}/crm`, icon: Kanban },
+          {
+            title: "Leads Desqualificados",
+            href: `/clientes/${clientId}/leads-desqualificados`,
+            icon: UserX,
+          },
+        ],
+      },
+      {
+        title: "Meta & Rastreamento",
+        icon: Target,
+        items: [
+          {
+            title: "Conversões Offline",
+            href: `/clientes/${clientId}/conversoes`,
+            icon: DollarSign,
+          },
+          {
+            title: "Keyword Planner",
+            href: `/clientes/${clientId}/keyword-planner`,
+            icon: Sparkles,
+          },
+          {
+            title: "Pixels Meta",
+            href: `/clientes/${clientId}/pixels`,
+            icon: Activity,
+          },
+          {
+            title: "Públicos Meta",
+            href: `/clientes/${clientId}/publicos`,
+            icon: UsersRound,
+          },
+          { title: "URLs", href: `/clientes/${clientId}/urls`, icon: Link2 },
+        ],
+      },
+      {
+        title: "Planejamento",
+        icon: Presentation,
+        items: [
+          {
+            title: "Apresentações",
+            href: `/clientes/${clientId}/apresentacoes`,
+            icon: TrendingUp,
+          },
+          {
+            title: "Tarefas",
+            href: `/clientes/${clientId}/tarefas`,
+            icon: ListTodo,
+          },
+        ],
+      },
+    ],
+    [clientId],
+  );
 
   // State for controlling open groups - initialize with active group + Visão Geral
   const [openGroups, setOpenGroups] = useState<string[]>(() => {
-    const activeGroup = navGroups.find(group => 
-      group.items.some(item => location.pathname === item.href)
+    const activeGroup = navGroups.find((group) =>
+      group.items.some((item) => location.pathname === item.href),
     );
     const defaultOpen = ["Visão Geral"];
     if (activeGroup && activeGroup.title !== "Visão Geral") {
@@ -188,11 +308,11 @@ export function ClientDetailsLayout({ children, clientId, clientName, dashboardT
 
   // Update open groups when route changes
   useEffect(() => {
-    const activeGroup = navGroups.find(group => 
-      group.items.some(item => location.pathname === item.href)
+    const activeGroup = navGroups.find((group) =>
+      group.items.some((item) => location.pathname === item.href),
     );
     if (activeGroup && !openGroups.includes(activeGroup.title)) {
-      setOpenGroups(prev => [...prev, activeGroup.title]);
+      setOpenGroups((prev) => [...prev, activeGroup.title]);
     }
   }, [location.pathname, navGroups]);
 
@@ -200,11 +320,11 @@ export function ClientDetailsLayout({ children, clientId, clientName, dashboardT
   useEffect(() => {
     const checkActiveSyncJob = async () => {
       const { data } = await supabase
-        .from('sync_jobs')
-        .select('id, status, created_at')
-        .eq('client_id', clientId)
-        .in('status', ['pending', 'processing'])
-        .order('created_at', { ascending: false })
+        .from("sync_jobs")
+        .select("id, status, created_at")
+        .eq("client_id", clientId)
+        .in("status", ["pending", "processing"])
+        .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
 
@@ -212,20 +332,20 @@ export function ClientDetailsLayout({ children, clientId, clientName, dashboardT
         // Only show sync indicator if job is less than 10 minutes old
         const jobAge = Date.now() - new Date(data.created_at).getTime();
         const tenMinutes = 10 * 60 * 1000;
-        
+
         if (jobAge < tenMinutes) {
           setActiveSyncJobId(data.id);
         } else {
           // Job is too old, likely stuck - mark it as error
           await supabase
-            .from('sync_jobs')
-            .update({ 
-              status: 'error',
-              error_message: 'Job timeout - took more than 10 minutes',
-              completed_at: new Date().toISOString()
+            .from("sync_jobs")
+            .update({
+              status: "error",
+              error_message: "Job timeout - took more than 10 minutes",
+              completed_at: new Date().toISOString(),
             })
-            .eq('id', data.id);
-          
+            .eq("id", data.id);
+
           setActiveSyncJobId(null);
         }
       } else {
@@ -240,18 +360,21 @@ export function ClientDetailsLayout({ children, clientId, clientName, dashboardT
     }
   }, [clientId]);
 
-  const handleEditClient = async (clientData: Omit<Client, "id" | "active_campaigns" | "avg_cpl" | "leads_generated">) => {
+  const handleEditClient = async (
+    clientData: Omit<
+      Client,
+      "id" | "active_campaigns" | "avg_cpl" | "leads_generated"
+    >,
+  ) => {
     await updateClient(clientId, clientData);
     setEditDialogOpen(false);
     // Dispatch event to refresh client details across the page
-    window.dispatchEvent(new CustomEvent('refreshClientDetails'));
+    window.dispatchEvent(new CustomEvent("refreshClientDetails"));
   };
 
   const toggleGroup = (groupTitle: string, open: boolean) => {
-    setOpenGroups(prev => 
-      open 
-        ? [...prev, groupTitle]
-        : prev.filter(g => g !== groupTitle)
+    setOpenGroups((prev) =>
+      open ? [...prev, groupTitle] : prev.filter((g) => g !== groupTitle),
     );
   };
 
@@ -268,7 +391,8 @@ export function ClientDetailsLayout({ children, clientId, clientName, dashboardT
               <p className="font-medium truncate flex-1" title={clientName}>
                 {clientName}
               </p>
-              <Button aria-label="Voltar"
+              <Button
+                aria-label="Voltar"
                 variant="ghost"
                 size="icon"
                 className="h-7 w-7 shrink-0"
@@ -277,7 +401,8 @@ export function ClientDetailsLayout({ children, clientId, clientName, dashboardT
               >
                 <ArrowLeftRight className="h-4 w-4" />
               </Button>
-              <Button aria-label="Editar"
+              <Button
+                aria-label="Editar"
                 variant="ghost"
                 size="icon"
                 className="h-7 w-7 shrink-0"
@@ -287,31 +412,42 @@ export function ClientDetailsLayout({ children, clientId, clientName, dashboardT
                 <Pencil className="h-4 w-4" />
               </Button>
             </div>
-            {job && (job.status === 'processing' || job.status === 'pending') && (
-              <Badge variant="outline" className="mt-2 w-full justify-center animate-pulse">
-                <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                Sincronizando {progressPercentage}%
-              </Badge>
-            )}
+            {job &&
+              (job.status === "processing" || job.status === "pending") && (
+                <Badge
+                  variant="outline"
+                  className="mt-2 w-full justify-center animate-pulse"
+                >
+                  <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                  Sincronizando {progressPercentage}%
+                </Badge>
+              )}
             {dashboardToken && (
               <Button
                 variant="outline"
                 size="sm"
                 className="mt-2 w-full"
-                onClick={() => window.open(`${window.location.origin}/dashboard-publico/${dashboardToken}`, '_blank')}
+                onClick={() =>
+                  window.open(
+                    `${window.location.origin}/dashboard-publico/${dashboardToken}`,
+                    "_blank",
+                  )
+                }
               >
                 <ExternalLink className="h-4 w-4 mr-2" />
                 Dashboard Público
               </Button>
             )}
           </div>
-          
+
           <nav className="space-y-1">
             {navGroups.map((group) => {
               const isOpen = openGroups.includes(group.title);
-              const hasActiveItem = group.items.some(item => location.pathname === item.href);
+              const hasActiveItem = group.items.some(
+                (item) => location.pathname === item.href,
+              );
               const GroupIcon = group.icon;
-              
+
               return (
                 <Collapsible
                   key={group.title}
@@ -320,14 +456,18 @@ export function ClientDetailsLayout({ children, clientId, clientName, dashboardT
                 >
                   <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-2 rounded-md text-sm hover:bg-muted transition-colors">
                     <div className="flex items-center gap-2">
-                      <GroupIcon className={cn(
-                        "w-4 h-4",
-                        hasActiveItem && "text-primary"
-                      )} />
-                      <span className={cn(
-                        "font-medium",
-                        hasActiveItem && "text-primary"
-                      )}>
+                      <GroupIcon
+                        className={cn(
+                          "w-4 h-4",
+                          hasActiveItem && "text-primary",
+                        )}
+                      />
+                      <span
+                        className={cn(
+                          "font-medium",
+                          hasActiveItem && "text-primary",
+                        )}
+                      >
                         {group.title}
                       </span>
                     </div>
@@ -337,13 +477,13 @@ export function ClientDetailsLayout({ children, clientId, clientName, dashboardT
                       <ChevronRight className="w-4 h-4 text-muted-foreground" />
                     )}
                   </CollapsibleTrigger>
-                  
+
                   <CollapsibleContent>
                     <div className="ml-4 mt-1 space-y-0.5 border-l border-border pl-3">
                       {group.items.map((item) => {
                         const isActive = location.pathname === item.href;
                         const Icon = item.icon;
-                        
+
                         return (
                           <Link
                             key={item.href}
@@ -352,7 +492,7 @@ export function ClientDetailsLayout({ children, clientId, clientName, dashboardT
                               "flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors",
                               isActive
                                 ? "bg-primary text-primary-foreground font-medium"
-                                : "hover:bg-muted text-muted-foreground"
+                                : "hover:bg-muted text-muted-foreground",
                             )}
                           >
                             <Icon className="w-3.5 h-3.5 shrink-0" />
@@ -370,9 +510,7 @@ export function ClientDetailsLayout({ children, clientId, clientName, dashboardT
       </Card>
 
       {/* Main Content */}
-      <div className="flex-1 min-w-0">
-        {children}
-      </div>
+      <div className="flex-1 min-w-0">{children}</div>
 
       {/* Edit Client Dialog - Only render when currentClient is loaded */}
       {currentClient && (

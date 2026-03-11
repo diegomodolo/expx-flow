@@ -1,23 +1,24 @@
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { MessageSquare, Pin, Send, Trash2 } from 'lucide-react';
-import { useTeamNotes } from '@/hooks/useTeamNotes';
-import { formatDistanceToNow } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { MessageSquare, Pin, Send, Trash2 } from "lucide-react";
+import { useTeamNotes } from "@/hooks/useTeamNotes";
+import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 export const TeamNotesCard = () => {
-  const [newNote, setNewNote] = useState('');
-  const { notes, isLoading, addNote, togglePin, deleteNote, currentUserId } = useTeamNotes();
+  const [newNote, setNewNote] = useState("");
+  const { notes, isLoading, addNote, togglePin, deleteNote, currentUserId } =
+    useTeamNotes();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (newNote.trim()) {
       addNote.mutate(newNote.trim());
-      setNewNote('');
+      setNewNote("");
     }
   };
 
@@ -32,8 +33,11 @@ export const TeamNotesCard = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="h-16 bg-muted/50 rounded-lg animate-pulse" />
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="h-16 bg-muted/50 rounded-lg animate-pulse"
+              />
             ))}
           </div>
         </CardContent>
@@ -57,9 +61,10 @@ export const TeamNotesCard = () => {
             onChange={(e) => setNewNote(e.target.value)}
             className="flex-1"
           />
-          <Button aria-label="Enviar"
-            type="submit" 
-            size="icon" 
+          <Button
+            aria-label="Enviar"
+            type="submit"
+            size="icon"
             disabled={!newNote.trim() || addNote.isPending}
           >
             <Send className="h-4 w-4" />
@@ -75,14 +80,15 @@ export const TeamNotesCard = () => {
         ) : (
           <ScrollArea className="h-[180px]">
             <div className="space-y-3 pr-3">
-              {notes.map(note => (
+              {notes.map((note) => (
                 <div
                   key={note.id}
                   className={`
                     p-3 rounded-lg border transition-colors
-                    ${note.is_pinned 
-                      ? 'border-primary/50 bg-primary/5' 
-                      : 'border-border/50 hover:border-border'
+                    ${
+                      note.is_pinned
+                        ? "border-primary/50 bg-primary/5"
+                        : "border-border/50 hover:border-border"
                     }
                   `}
                 >
@@ -90,19 +96,19 @@ export const TeamNotesCard = () => {
                     <Avatar className="h-7 w-7">
                       <AvatarImage src={note.author_avatar || undefined} />
                       <AvatarFallback className="text-xs">
-                        {note.author_name?.charAt(0).toUpperCase() || 'U'}
+                        {note.author_name?.charAt(0).toUpperCase() || "U"}
                       </AvatarFallback>
                     </Avatar>
-                    
+
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-sm font-medium">
                           {note.author_name}
                         </span>
                         <span className="text-xs text-muted-foreground">
-                          {formatDistanceToNow(new Date(note.created_at), { 
-                            addSuffix: true, 
-                            locale: ptBR 
+                          {formatDistanceToNow(new Date(note.created_at), {
+                            addSuffix: true,
+                            locale: ptBR,
                           })}
                         </span>
                         {note.is_pinned && (
@@ -116,18 +122,24 @@ export const TeamNotesCard = () => {
 
                     {note.user_id === currentUserId && (
                       <div className="flex items-center gap-1 shrink-0">
-                        <Button aria-label="Fechar"
+                        <Button
+                          aria-label="Fechar"
                           variant="ghost"
                           size="icon"
                           className="h-7 w-7"
-                          onClick={() => togglePin.mutate({ 
-                            noteId: note.id, 
-                            isPinned: note.is_pinned 
-                          })}
+                          onClick={() =>
+                            togglePin.mutate({
+                              noteId: note.id,
+                              isPinned: note.is_pinned,
+                            })
+                          }
                         >
-                          <Pin className={`h-3 w-3 ${note.is_pinned ? 'text-primary' : ''}`} />
+                          <Pin
+                            className={`h-3 w-3 ${note.is_pinned ? "text-primary" : ""}`}
+                          />
                         </Button>
-                        <Button aria-label="Excluir"
+                        <Button
+                          aria-label="Excluir"
                           variant="ghost"
                           size="icon"
                           className="h-7 w-7 text-destructive hover:text-destructive"

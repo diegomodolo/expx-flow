@@ -20,20 +20,20 @@ import { cn } from "@/lib/utils";
 // Função para determinar aspect ratio baseado no tipo de criativo
 function getAspectRatioClass(typeKey: string): string {
   const aspectRatioMap: Record<string, string> = {
-    'instagram_feed': 'aspect-[3/4]',
-    'facebook_feed': 'aspect-[3/4]',
-    'linkedin_post': 'aspect-[3/4]',
-    'instagram_story': 'aspect-[9/16]',
-    'instagram_reels': 'aspect-[9/16]',
-    'facebook_story': 'aspect-[9/16]',
-    'whatsapp_status': 'aspect-[9/16]',
-    'tiktok_video': 'aspect-[9/16]',
-    'youtube_thumbnail': 'aspect-video',
-    'twitter_post': 'aspect-video',
-    'banner_horizontal': 'aspect-[32/10]',
-    'banner_vertical': 'aspect-[1/2]',
+    instagram_feed: "aspect-[3/4]",
+    facebook_feed: "aspect-[3/4]",
+    linkedin_post: "aspect-[3/4]",
+    instagram_story: "aspect-[9/16]",
+    instagram_reels: "aspect-[9/16]",
+    facebook_story: "aspect-[9/16]",
+    whatsapp_status: "aspect-[9/16]",
+    tiktok_video: "aspect-[9/16]",
+    youtube_thumbnail: "aspect-video",
+    twitter_post: "aspect-video",
+    banner_horizontal: "aspect-[32/10]",
+    banner_vertical: "aspect-[1/2]",
   };
-  return aspectRatioMap[typeKey] || 'aspect-[3/4]';
+  return aspectRatioMap[typeKey] || "aspect-[3/4]";
 }
 
 interface CarouselPreviewCardProps {
@@ -120,7 +120,9 @@ export function CarouselPreviewCard({
       <div className="relative">
         {images.length > 0 && (
           <>
-            <div className={`relative bg-muted ${getAspectRatioClass(typeKey)}`}>
+            <div
+              className={`relative bg-muted ${getAspectRatioClass(typeKey)}`}
+            >
               <img
                 src={images[currentSlide]}
                 alt={`Slide ${currentSlide + 1}`}
@@ -128,7 +130,8 @@ export function CarouselPreviewCard({
               />
 
               {/* Navigation arrows */}
-              <Button aria-label="Voltar"
+              <Button
+                aria-label="Voltar"
                 variant="secondary"
                 size="icon"
                 className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full opacity-80 hover:opacity-100"
@@ -136,7 +139,8 @@ export function CarouselPreviewCard({
               >
                 <ChevronLeft className="w-4 h-4" />
               </Button>
-              <Button aria-label="Avançar"
+              <Button
+                aria-label="Avançar"
                 variant="secondary"
                 size="icon"
                 className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full opacity-80 hover:opacity-100"
@@ -153,7 +157,7 @@ export function CarouselPreviewCard({
                     onClick={() => setCurrentSlide(idx)}
                     className={cn(
                       "w-2 h-2 rounded-full transition-colors",
-                      idx === currentSlide ? "bg-white" : "bg-white/50"
+                      idx === currentSlide ? "bg-white" : "bg-white/50",
                     )}
                   />
                 ))}
@@ -171,7 +175,7 @@ export function CarouselPreviewCard({
                       "shrink-0 w-12 h-12 rounded overflow-hidden border-2 transition-colors",
                       idx === currentSlide
                         ? "border-primary"
-                        : "border-transparent hover:border-muted-foreground/50"
+                        : "border-transparent hover:border-muted-foreground/50",
                     )}
                   >
                     <img
@@ -191,7 +195,9 @@ export function CarouselPreviewCard({
       <CardContent className="p-3 space-y-3">
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground">Legenda</span>
+            <span className="text-xs font-medium text-muted-foreground">
+              Legenda
+            </span>
             <Button
               variant="ghost"
               size="sm"
@@ -212,7 +218,11 @@ export function CarouselPreviewCard({
                 className="text-sm"
               />
               <div className="flex gap-2">
-                <Button size="sm" onClick={handleCaptionSave} className="flex-1">
+                <Button
+                  size="sm"
+                  onClick={handleCaptionSave}
+                  className="flex-1"
+                >
                   Salvar
                 </Button>
                 <Button
@@ -258,11 +268,21 @@ export function CarouselPreviewCard({
             <Download className="w-3 h-3 mr-1" />
             Slide {currentSlide + 1}
           </Button>
-          <Button variant="outline" size="sm" onClick={onSave} className="w-full">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onSave}
+            className="w-full"
+          >
             <Save className="w-3 h-3 mr-1" />
             Salvar
           </Button>
-          <Button variant="outline" size="sm" onClick={onSchedule} className="w-full">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onSchedule}
+            className="w-full"
+          >
             <Calendar className="w-3 h-3 mr-1" />
             Agendar
           </Button>

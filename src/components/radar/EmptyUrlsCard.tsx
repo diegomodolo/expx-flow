@@ -12,11 +12,11 @@ interface EmptyUrlsCardProps {
   isValidating: boolean;
 }
 
-export function EmptyUrlsCard({ 
-  urls, 
+export function EmptyUrlsCard({
+  urls,
   onValidate,
   onValidateAll,
-  isValidating 
+  isValidating,
 }: EmptyUrlsCardProps) {
   return (
     <Card className="border-purple-500/30 flex flex-col h-full">
@@ -26,20 +26,25 @@ export function EmptyUrlsCard({
             <FileX2 className="h-3.5 w-3.5 text-purple-600 dark:text-purple-500" />
             Vazias
             {urls.length > 0 && (
-              <Badge variant="outline" className="ml-1 h-5 text-xs text-purple-600 dark:text-purple-500 border-purple-600">
+              <Badge
+                variant="outline"
+                className="ml-1 h-5 text-xs text-purple-600 dark:text-purple-500 border-purple-600"
+              >
                 {urls.length}
               </Badge>
             )}
           </CardTitle>
           {urls.length > 0 && (
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={onValidateAll}
               disabled={isValidating}
               className="h-6 px-2 text-[10px]"
             >
-              <RefreshCw className={`h-2.5 w-2.5 mr-1 ${isValidating ? 'animate-spin' : ''}`} />
+              <RefreshCw
+                className={`h-2.5 w-2.5 mr-1 ${isValidating ? "animate-spin" : ""}`}
+              />
               Revalidar
             </Button>
           )}
@@ -56,8 +61,8 @@ export function EmptyUrlsCard({
           <ScrollArea className="h-[160px]">
             <div className="space-y-1.5 pr-2">
               {urls.slice(0, 10).map((url) => (
-                <div 
-                  key={url.id} 
+                <div
+                  key={url.id}
                   className="flex items-center justify-between gap-2 p-1.5 rounded-md bg-muted/50 hover:bg-muted transition-colors"
                 >
                   <div className="flex-1 min-w-0">
@@ -65,7 +70,10 @@ export function EmptyUrlsCard({
                       <span className="font-medium text-xs truncate max-w-[80px]">
                         {url.client_name}
                       </span>
-                      <Badge variant="outline" className="text-[10px] h-4 px-1 text-purple-600 dark:text-purple-500 border-purple-600 shrink-0">
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] h-4 px-1 text-purple-600 dark:text-purple-500 border-purple-600 shrink-0"
+                      >
                         <FileX2 className="h-2 w-2 mr-0.5" />
                         Vazio
                       </Badge>
@@ -75,22 +83,30 @@ export function EmptyUrlsCard({
                     </p>
                   </div>
                   <div className="flex items-center shrink-0">
-                    <Button aria-label="Atualizar"
+                    <Button
+                      aria-label="Atualizar"
                       variant="ghost"
                       size="icon"
                       className="h-5 w-5"
                       onClick={() => onValidate(url.id)}
                       disabled={isValidating}
                     >
-                      <RefreshCw className={`h-2.5 w-2.5 ${isValidating ? 'animate-spin' : ''}`} />
+                      <RefreshCw
+                        className={`h-2.5 w-2.5 ${isValidating ? "animate-spin" : ""}`}
+                      />
                     </Button>
-                    <Button aria-label="Fechar"
+                    <Button
+                      aria-label="Fechar"
                       variant="ghost"
                       size="icon"
                       className="h-5 w-5"
                       asChild
                     >
-                      <a href={url.url} target="_blank" rel="noopener noreferrer">
+                      <a
+                        href={url.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
                         <ExternalLink className="h-2.5 w-2.5" />
                       </a>
                     </Button>

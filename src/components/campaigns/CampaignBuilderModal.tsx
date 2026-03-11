@@ -1,19 +1,19 @@
-import { useEffect } from 'react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { 
-  Loader2,
-  Rocket,
-  X,
-} from 'lucide-react';
-import { useCampaignBuilder } from '@/hooks/useCampaignBuilder';
-import { CampaignSection } from './builder/CampaignSection';
-import { AdSetSection } from './builder/AdSetSection';
-import { ReviewSection } from './builder/ReviewSection';
-import { AIGeneratorSection, AIGeneratedData } from './builder/AIGeneratorSection';
-import { BuilderTreeNav } from './builder/BuilderTreeNav';
-import { CreativeEditor } from './builder/CreativeEditor';
+import { useEffect } from "react";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Loader2, Rocket, X } from "lucide-react";
+import { useCampaignBuilder } from "@/hooks/useCampaignBuilder";
+import { CampaignSection } from "./builder/CampaignSection";
+import { AdSetSection } from "./builder/AdSetSection";
+import { ReviewSection } from "./builder/ReviewSection";
+import {
+  AIGeneratorSection,
+  AIGeneratedData,
+} from "./builder/AIGeneratorSection";
+import { BuilderTreeNav } from "./builder/BuilderTreeNav";
+import { CreativeEditor } from "./builder/CreativeEditor";
 
 interface CampaignBuilderModalProps {
   isOpen: boolean;
@@ -81,7 +81,7 @@ export function CampaignBuilderModal({
 
   // Determine what content to show based on state
   const renderContent = () => {
-    if (state.currentSection === 'ai-generator') {
+    if (state.currentSection === "ai-generator") {
       return (
         <ScrollArea className="flex-1">
           <div className="p-6 max-w-4xl">
@@ -96,16 +96,13 @@ export function CampaignBuilderModal({
       );
     }
 
-    if (state.currentSection === 'campaign') {
+    if (state.currentSection === "campaign") {
       return (
-        <CampaignSection
-          campaign={state.campaign}
-          onChange={updateCampaign}
-        />
+        <CampaignSection campaign={state.campaign} onChange={updateCampaign} />
       );
     }
 
-    if (state.currentSection === 'adsets' && currentAdSet) {
+    if (state.currentSection === "adsets" && currentAdSet) {
       // If a creative is selected, show the creative editor (matches AdEditContent structure)
       if (state.selectedCreativeIndex !== undefined) {
         const creative = currentAdSet.creatives[state.selectedCreativeIndex];
@@ -113,7 +110,13 @@ export function CampaignBuilderModal({
           return (
             <CreativeEditor
               creative={creative}
-              onChange={(updates) => updateCreative(state.currentAdSetIndex, state.selectedCreativeIndex!, updates)}
+              onChange={(updates) =>
+                updateCreative(
+                  state.currentAdSetIndex,
+                  state.selectedCreativeIndex!,
+                  updates,
+                )
+              }
               clientId={clientId}
               companyId={companyId}
               clientName={clientName}
@@ -132,22 +135,21 @@ export function CampaignBuilderModal({
           clientName={clientName}
           onChange={(updates) => updateAdSet(state.currentAdSetIndex, updates)}
           onAddCreative={() => addCreative(state.currentAdSetIndex)}
-          onRemoveCreative={(index) => removeCreative(state.currentAdSetIndex, index)}
-          onUpdateCreative={(index, updates) => 
+          onRemoveCreative={(index) =>
+            removeCreative(state.currentAdSetIndex, index)
+          }
+          onUpdateCreative={(index, updates) =>
             updateCreative(state.currentAdSetIndex, index, updates)
           }
         />
       );
     }
 
-    if (state.currentSection === 'review') {
+    if (state.currentSection === "review") {
       return (
         <ScrollArea className="flex-1">
           <div className="p-6 max-w-4xl">
-            <ReviewSection
-              state={state}
-              validationError={validationError}
-            />
+            <ReviewSection state={state} validationError={validationError} />
           </div>
         </ScrollArea>
       );
@@ -158,10 +160,13 @@ export function CampaignBuilderModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent 
+      <DialogContent
         className="w-[1800px] max-w-[95vw] h-[85vh] flex flex-col p-0 gap-0 overflow-hidden"
         hideCloseButton
       >
+        <VisuallyHidden>
+          <DialogTitle>Criar campanha</DialogTitle>
+        </VisuallyHidden>
         <div className="flex h-full">
           {/* Left sidebar - Tree navigation */}
           <div className="w-[450px] min-w-[450px] border-r bg-muted/30 flex flex-col">
@@ -169,11 +174,15 @@ export function CampaignBuilderModal({
             <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b">
               <div>
                 <h1 className="text-base font-semibold">Nova Campanha</h1>
-                <p className="text-xs text-muted-foreground">
-                  {clientName}
-                </p>
+                <p className="text-xs text-muted-foreground">{clientName}</p>
               </div>
-              <Button aria-label="Fechar" variant="ghost" size="icon" onClick={handleClose} className="h-8 w-8">
+              <Button
+                aria-label="Fechar"
+                variant="ghost"
+                size="icon"
+                onClick={handleClose}
+                className="h-8 w-8"
+              >
                 <X className="h-4 w-4" />
               </Button>
             </div>

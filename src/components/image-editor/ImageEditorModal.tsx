@@ -63,11 +63,6 @@ export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
         detectedOrientationRef.current = imageUrl;
 
         detectOrientationFromUrl(imageUrl).then((detectedOrientation) => {
-          console.log(
-            "Detected orientation:",
-            detectedOrientation.id,
-            detectedOrientation.ratio,
-          );
           setOrientation(detectedOrientation.id);
         });
       }

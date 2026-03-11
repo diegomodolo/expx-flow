@@ -2,8 +2,10 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 interface UserData {
@@ -18,7 +20,7 @@ interface UserData {
 }
 
 interface RequestBody {
-  action: 'add' | 'remove' | 'replace';
+  action: "add" | "remove" | "replace";
   clientId: string;
   audienceId: string;
   users: UserData[];
@@ -27,38 +29,41 @@ interface RequestBody {
 // SHA256 hash function
 async function sha256(message: string): Promise<string> {
   const msgBuffer = new TextEncoder().encode(message);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", msgBuffer);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 // Normalize and hash data according to Meta's requirements
-async function normalizeAndHash(value: string | undefined, type: string): Promise<string | null> {
-  if (!value || value.trim() === '') return null;
+async function normalizeAndHash(
+  value: string | undefined,
+  type: string,
+): Promise<string | null> {
+  if (!value || value.trim() === "") return null;
 
   let normalized = value.trim().toLowerCase();
 
   switch (type) {
-    case 'email':
-      normalized = normalized.replace(/\s+/g, '');
+    case "email":
+      normalized = normalized.replace(/\s+/g, "");
       break;
-    case 'phone':
-      normalized = normalized.replace(/\D/g, '');
-      if (!normalized.startsWith('55') && normalized.length <= 11) {
-        normalized = '55' + normalized;
+    case "phone":
+      normalized = normalized.replace(/\D/g, "");
+      if (!normalized.startsWith("55") && normalized.length <= 11) {
+        normalized = "55" + normalized;
       }
       break;
-    case 'firstName':
-    case 'lastName':
-    case 'city':
-    case 'state':
-      normalized = normalized.replace(/\s+/g, ' ').trim();
+    case "firstName":
+    case "lastName":
+    case "city":
+    case "state":
+      normalized = normalized.replace(/\s+/g, " ").trim();
       break;
-    case 'country':
-      normalized = normalized.length === 2 ? normalized : 'br';
+    case "country":
+      normalized = normalized.length === 2 ? normalized : "br";
       break;
-    case 'zipCode':
-      normalized = normalized.replace(/[^a-z0-9]/g, '');
+    case "zipCode":
+      normalized = normalized.replace(/[^a-z0-9]/g, "");
       break;
   }
 
@@ -70,24 +75,24 @@ async function buildUserDataForMeta(users: UserData[]): Promise<string[][]> {
   const result: string[][] = [];
 
   for (const user of users) {
-    const emailHash = await normalizeAndHash(user.email, 'email');
-    const phoneHash = await normalizeAndHash(user.phone, 'phone');
-    const fnHash = await normalizeAndHash(user.firstName, 'firstName');
-    const lnHash = await normalizeAndHash(user.lastName, 'lastName');
-    const ctHash = await normalizeAndHash(user.city, 'city');
-    const stHash = await normalizeAndHash(user.state, 'state');
-    const countryHash = await normalizeAndHash(user.country, 'country');
-    const zipHash = await normalizeAndHash(user.zipCode, 'zipCode');
+    const emailHash = await normalizeAndHash(user.email, "email");
+    const phoneHash = await normalizeAndHash(user.phone, "phone");
+    const fnHash = await normalizeAndHash(user.firstName, "firstName");
+    const lnHash = await normalizeAndHash(user.lastName, "lastName");
+    const ctHash = await normalizeAndHash(user.city, "city");
+    const stHash = await normalizeAndHash(user.state, "state");
+    const countryHash = await normalizeAndHash(user.country, "country");
+    const zipHash = await normalizeAndHash(user.zipCode, "zipCode");
 
     result.push([
-      emailHash || '',
-      phoneHash || '',
-      fnHash || '',
-      lnHash || '',
-      ctHash || '',
-      stHash || '',
-      countryHash || '',
-      zipHash || '',
+      emailHash || "",
+      phoneHash || "",
+      fnHash || "",
+      lnHash || "",
+      ctHash || "",
+      stHash || "",
+      countryHash || "",
+      zipHash || "",
     ]);
   }
 
@@ -97,107 +102,120 @@ async function buildUserDataForMeta(users: UserData[]): Promise<string[][]> {
 const BATCH_SIZE = 5000; // Meta recommends up to 10k, we use 5k to stay safe on CPU
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const authHeader = req.headers.get('Authorization');
+    const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      throw new Error('Missing authorization header');
+      throw new Error("Missing authorization header");
     }
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
     if (authError || !user) {
-      throw new Error('Unauthorized');
+      throw new Error("Unauthorized");
     }
 
     const body: RequestBody = await req.json();
     const { action, clientId, audienceId, users } = body;
 
-    console.log(`[manage-audience-users] Action: ${action}, AudienceId: ${audienceId}, Users: ${users.length}`);
+    console.log(
+      `[manage-audience-users] Action: ${action}, AudienceId: ${audienceId}, Users: ${users.length}`,
+    );
 
     if (!users || users.length === 0) {
-      throw new Error('No users provided');
+      throw new Error("No users provided");
     }
 
     // Buscar cliente e integração Facebook
     const { data: client, error: clientError } = await supabase
-      .from('clients')
-      .select('id, name, company_id')
-      .eq('id', clientId)
+      .from("clients")
+      .select("id, name, company_id")
+      .eq("id", clientId)
       .single();
 
     if (clientError || !client) {
-      throw new Error('Client not found');
+      throw new Error("Client not found");
     }
 
     const { data: integration, error: integrationError } = await supabase
-      .from('facebook_integrations')
-      .select('access_token, expires_at')
-      .eq('company_id', client.company_id)
-      .eq('is_active', true)
+      .from("facebook_integrations")
+      .select("access_token, expires_at")
+      .eq("company_id", client.company_id)
+      .eq("is_active", true)
       .single();
 
     if (integrationError || !integration) {
-      throw new Error('Facebook integration not found');
+      throw new Error("Facebook integration not found");
     }
 
-    if (integration.expires_at && new Date(integration.expires_at) < new Date()) {
-      throw new Error('Facebook access token has expired');
+    if (
+      integration.expires_at &&
+      new Date(integration.expires_at) < new Date()
+    ) {
+      throw new Error("Facebook access token has expired");
     }
 
     const accessToken = integration.access_token;
-    const graphApiUrl = 'https://graph.facebook.com/v22.0';
+    const graphApiUrl = "https://graph.facebook.com/v22.0";
 
     // Buscar audiência local
     const { data: audience } = await supabase
-      .from('meta_audiences')
-      .select('id, meta_audience_id')
-      .eq('meta_audience_id', audienceId)
-      .eq('client_id', clientId)
+      .from("meta_audiences")
+      .select("id, meta_audience_id")
+      .eq("meta_audience_id", audienceId)
+      .eq("client_id", clientId)
       .single();
 
     // Criar registro de upload
     const { data: upload, error: uploadError } = await supabase
-      .from('meta_audience_uploads')
+      .from("meta_audience_uploads")
       .insert({
         audience_id: audience?.id,
         company_id: client.company_id,
         upload_type: action,
         records_count: users.length,
-        status: 'processing',
+        status: "processing",
         created_by: user.id,
       })
       .select()
       .single();
 
     if (uploadError) {
-      console.error('[manage-audience-users] Upload insert error:', uploadError);
+      console.error(
+        "[manage-audience-users] Upload insert error:",
+        uploadError,
+      );
     }
 
-    const schema = ['EMAIL', 'PHONE', 'FN', 'LN', 'CT', 'ST', 'COUNTRY', 'ZIP'];
+    const schema = ["EMAIL", "PHONE", "FN", "LN", "CT", "ST", "COUNTRY", "ZIP"];
     const totalBatches = Math.ceil(users.length / BATCH_SIZE);
     let totalReceived = 0;
     let totalInvalid = 0;
-    let lastSessionId = '';
+    let lastSessionId = "";
 
-    console.log(`[manage-audience-users] Processing ${totalBatches} batches of ${BATCH_SIZE}`);
+    console.log(
+      `[manage-audience-users] Processing ${totalBatches} batches of ${BATCH_SIZE}`,
+    );
 
     for (let i = 0; i < totalBatches; i++) {
       const batchUsers = users.slice(i * BATCH_SIZE, (i + 1) * BATCH_SIZE);
-      console.log(`[manage-audience-users] Batch ${i + 1}/${totalBatches}: ${batchUsers.length} users`);
+      console.log(
+        `[manage-audience-users] Batch ${i + 1}/${totalBatches}: ${batchUsers.length} users`,
+      );
 
       const hashedData = await buildUserDataForMeta(batchUsers);
 
       const url = `${graphApiUrl}/${audienceId}/users`;
-      const method = action === 'remove' ? 'DELETE' : 'POST';
+      const method = action === "remove" ? "DELETE" : "POST";
       const payload = {
         payload: { schema, data: hashedData },
         access_token: accessToken,
@@ -205,26 +223,29 @@ serve(async (req) => {
 
       const response = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
       const data = await response.json();
 
       if (data.error) {
-        console.error(`[manage-audience-users] Meta API error on batch ${i + 1}:`, data.error);
-        
+        console.error(
+          `[manage-audience-users] Meta API error on batch ${i + 1}:`,
+          data.error,
+        );
+
         if (upload) {
           await supabase
-            .from('meta_audience_uploads')
+            .from("meta_audience_uploads")
             .update({
-              status: 'failed',
+              status: "failed",
               error_message: `Batch ${i + 1}/${totalBatches}: ${data.error.message}`,
               records_received: totalReceived,
               records_invalid: totalInvalid,
               completed_at: new Date().toISOString(),
             })
-            .eq('id', upload.id);
+            .eq("id", upload.id);
         }
 
         throw new Error(data.error.message);
@@ -234,44 +255,54 @@ serve(async (req) => {
       totalInvalid += data.num_invalid_entries || 0;
       lastSessionId = data.session_id || lastSessionId;
 
-      console.log(`[manage-audience-users] Batch ${i + 1} done: received=${data.num_received}, invalid=${data.num_invalid_entries}`);
+      console.log(
+        `[manage-audience-users] Batch ${i + 1} done: received=${data.num_received}, invalid=${data.num_invalid_entries}`,
+      );
     }
 
     // Update upload status
     if (upload) {
       await supabase
-        .from('meta_audience_uploads')
+        .from("meta_audience_uploads")
         .update({
-          status: 'completed',
+          status: "completed",
           session_id: lastSessionId,
           records_received: totalReceived,
           records_invalid: totalInvalid,
           completed_at: new Date().toISOString(),
         })
-        .eq('id', upload.id);
+        .eq("id", upload.id);
     }
 
-    console.log(`[manage-audience-users] All batches complete. Total received: ${totalReceived}, invalid: ${totalInvalid}`);
+    console.log(
+      `[manage-audience-users] All batches complete. Total received: ${totalReceived}, invalid: ${totalInvalid}`,
+    );
 
-    return new Response(JSON.stringify({
-      success: true,
-      result: {
-        session_id: lastSessionId,
-        num_received: totalReceived,
-        num_invalid_entries: totalInvalid,
-        batches_processed: totalBatches,
+    return new Response(
+      JSON.stringify({
+        success: true,
+        result: {
+          session_id: lastSessionId,
+          num_received: totalReceived,
+          num_invalid_entries: totalInvalid,
+          batches_processed: totalBatches,
+        },
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       },
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    );
   } catch (error) {
-    console.error('[manage-audience-users] Error:', error);
-    return new Response(JSON.stringify({
-      success: false,
-      error: error.message,
-    }), {
-      status: 400,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    console.error("[manage-audience-users] Error:", error);
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: error.message,
+      }),
+      {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   }
 });

@@ -1,5 +1,11 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -12,7 +18,11 @@ interface UazapiBaseConfigCardProps {
     uazapi_admintoken?: string | null;
   } | null;
   companyId: string | undefined;
-  onSave: (data: { endpoint: string; token: string; admintoken: string }) => void;
+  onSave: (data: {
+    endpoint: string;
+    token: string;
+    admintoken: string;
+  }) => void;
   isSaving: boolean;
 }
 
@@ -57,7 +67,9 @@ export function UazapiConnectionCard({
             <Settings className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <CardTitle className="text-lg">Configuração Base UazapiGO</CardTitle>
+            <CardTitle className="text-lg">
+              Configuração Base UazapiGO
+            </CardTitle>
             <CardDescription>
               URL Base e Admin Token da sua instância UazapiGO (API v2)
             </CardDescription>
@@ -89,18 +101,24 @@ export function UazapiConnectionCard({
               onChange={(e) => setAdmintoken(e.target.value)}
               className="pr-10"
             />
-            <Button aria-label="Avançar"
+            <Button
+              aria-label="Avançar"
               type="button"
               variant="ghost"
               size="icon"
               className="absolute right-0 top-0 h-full"
               onClick={() => setShowAdminToken(!showAdminToken)}
             >
-              {showAdminToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              {showAdminToken ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
-            Token administrativo para criar e gerenciar instâncias automaticamente
+            Token administrativo para criar e gerenciar instâncias
+            automaticamente
           </p>
         </div>
 
@@ -115,14 +133,19 @@ export function UazapiConnectionCard({
               onChange={(e) => setToken(e.target.value)}
               className="pr-10"
             />
-            <Button aria-label="Avançar"
+            <Button
+              aria-label="Avançar"
               type="button"
               variant="ghost"
               size="icon"
               className="absolute right-0 top-0 h-full"
               onClick={() => setShowToken(!showToken)}
             >
-              {showToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              {showToken ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
@@ -131,19 +154,16 @@ export function UazapiConnectionCard({
         </div>
 
         <div className="flex items-center gap-2 pt-2">
-          <Button
-            onClick={handleSave}
-            disabled={!isConfigured || isSaving}
-          >
+          <Button onClick={handleSave} disabled={!isConfigured || isSaving}>
             {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             Salvar Configuração Base
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            asChild
-          >
-            <a href="https://docs.uazapi.com" target="_blank" rel="noopener noreferrer">
+          <Button variant="ghost" size="sm" asChild>
+            <a
+              href="https://docs.uazapi.com"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               Documentação
               <ExternalLink className="h-3 w-3 ml-1" />
             </a>

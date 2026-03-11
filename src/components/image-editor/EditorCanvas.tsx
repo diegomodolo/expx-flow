@@ -1,15 +1,15 @@
-import React, { useRef, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Slider } from '@/components/ui/slider';
-import { Plus, ZoomIn, ZoomOut, X, Sparkles } from 'lucide-react';
-import { CanvasElement } from './hooks/useImageEditor';
-import { ElementWrapper } from './elements/ElementWrapper';
-import { TextElement } from './elements/TextElement';
-import { ShapeElement } from './elements/ShapeElement';
-import { ImageElement } from './elements/ImageElement';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { cn } from '@/lib/utils';
-import { GenerateVariationsModal } from './GenerateVariationsModal';
+import React, { useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
+import { Plus, ZoomIn, ZoomOut, X, Sparkles } from "lucide-react";
+import { CanvasElement } from "./hooks/useImageEditor";
+import { ElementWrapper } from "./elements/ElementWrapper";
+import { TextElement } from "./elements/TextElement";
+import { ShapeElement } from "./elements/ShapeElement";
+import { ImageElement } from "./elements/ImageElement";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
+import { GenerateVariationsModal } from "./GenerateVariationsModal";
 
 interface EditorCanvasProps {
   images: string[];
@@ -51,7 +51,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
   const [variationsOpen, setVariationsOpen] = useState(false);
 
   const handleCanvasClick = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).dataset.canvas === 'true') {
+    if ((e.target as HTMLElement).dataset.canvas === "true") {
       onSelectElement(null);
     }
   };
@@ -60,7 +60,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
     const files = e.target.files;
     if (!files || !onAddImage) return;
 
-    Array.from(files).forEach(file => {
+    Array.from(files).forEach((file) => {
       const reader = new FileReader();
       reader.onload = () => {
         onAddImage(reader.result as string);
@@ -68,12 +68,12 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
       reader.readAsDataURL(file);
     });
 
-    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const renderElement = (element: CanvasElement) => {
     switch (element.type) {
-      case 'text':
+      case "text":
         return (
           <TextElement
             element={element}
@@ -81,9 +81,9 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
             onUpdate={(updates) => onUpdateElement(element.id, updates)}
           />
         );
-      case 'shape':
+      case "shape":
         return <ShapeElement element={element} />;
-      case 'image':
+      case "image":
         return <ImageElement element={element} />;
       default:
         return null;
@@ -93,7 +93,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
   return (
     <div className="flex-1 flex flex-col bg-muted/30 overflow-hidden">
       {/* Canvas Area */}
-      <div 
+      <div
         className="flex-1 flex items-center justify-center p-4 overflow-auto"
         onClick={handleCanvasClick}
         data-canvas="true"
@@ -104,8 +104,8 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
           className="relative bg-black shadow-2xl"
           style={{
             transform: `scale(${zoom})`,
-            transformOrigin: 'center center',
-            transition: 'transform 0.1s ease-out',
+            transformOrigin: "center center",
+            transition: "transform 0.1s ease-out",
           }}
           data-canvas="true"
         >
@@ -151,7 +151,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
                     "relative group shrink-0 w-14 h-14 rounded-md overflow-hidden border-2 cursor-pointer transition-all",
                     idx === currentImageIndex
                       ? "border-primary ring-1 ring-primary/30"
-                      : "border-border hover:border-muted-foreground"
+                      : "border-border hover:border-muted-foreground",
                   )}
                   onClick={() => onImageChange(idx)}
                 >
@@ -195,7 +195,9 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
                   className="shrink-0 h-14 px-3 rounded-md border-2 border-dashed border-primary/40 flex items-center gap-1.5 hover:border-primary hover:bg-primary/5 transition-colors"
                 >
                   <Sparkles className="h-4 w-4 text-primary" />
-                  <span className="text-xs font-medium text-primary whitespace-nowrap">Variações</span>
+                  <span className="text-xs font-medium text-primary whitespace-nowrap">
+                    Variações
+                  </span>
                 </button>
               )}
             </div>
@@ -215,7 +217,8 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
 
       {/* Zoom Controls */}
       <div className="flex items-center justify-center gap-3 py-2 border-t border-border bg-card px-4">
-        <Button aria-label="Ação"
+        <Button
+          aria-label="Ação"
           variant="ghost"
           size="icon"
           onClick={() => onZoomChange(zoom - 0.1)}
@@ -224,7 +227,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
         >
           <ZoomOut className="h-4 w-4" />
         </Button>
-        
+
         <div className="w-36 flex items-center gap-2">
           <Slider
             value={[zoom * 100]}
@@ -237,8 +240,9 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
             {Math.round(zoom * 100)}%
           </span>
         </div>
-        
-        <Button aria-label="Ação"
+
+        <Button
+          aria-label="Ação"
           variant="ghost"
           size="icon"
           onClick={() => onZoomChange(zoom + 0.1)}
@@ -255,10 +259,10 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
         onOpenChange={setVariationsOpen}
         currentImageUrl={currentImage}
         onVariationsGenerated={(urls) => {
-          urls.forEach(url => onAddImage?.(url));
+          urls.forEach((url) => onAddImage?.(url));
         }}
         clientId={clientId}
-        companyId={companyId || ''}
+        companyId={companyId || ""}
       />
     </div>
   );

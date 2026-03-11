@@ -1,40 +1,232 @@
-import { useState, useMemo } from 'react';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Smile, Search } from 'lucide-react';
+import { useState, useMemo } from "react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Smile, Search } from "lucide-react";
 
 const EMOJI_CATEGORIES: Record<string, string[]> = {
-  '😀 Rostos': [
-    '😀','😁','😂','🤣','😃','😄','😅','😆','😉','😊',
-    '😋','😎','😍','🥰','😘','😗','😙','😚','🙂','🤗',
-    '🤩','🤔','🤨','😐','😑','😶','🙄','😏','😣','😥',
-    '😮','🤐','😯','😪','😫','🥱','😴','😌','😛','😜',
-    '😝','🤤','😒','😓','😔','😕','🙃','🤑','😲','🙁',
-    '😖','😞','😟','😤','😢','😭','😦','😧','😨','😩',
-    '🤯','😬','😰','😱','🥵','🥶','😳','🤪','😵','🥴',
-    '😠','😡','🤬','😷','🤒','🤕','🤢','🤮','🥳','🥺',
-    '🤠','🤡','🤥','🤫','🤭','🧐','🤓','😈','👿',
+  "😀 Rostos": [
+    "😀",
+    "😁",
+    "😂",
+    "🤣",
+    "😃",
+    "😄",
+    "😅",
+    "😆",
+    "😉",
+    "😊",
+    "😋",
+    "😎",
+    "😍",
+    "🥰",
+    "😘",
+    "😗",
+    "😙",
+    "😚",
+    "🙂",
+    "🤗",
+    "🤩",
+    "🤔",
+    "🤨",
+    "😐",
+    "😑",
+    "😶",
+    "🙄",
+    "😏",
+    "😣",
+    "😥",
+    "😮",
+    "🤐",
+    "😯",
+    "😪",
+    "😫",
+    "🥱",
+    "😴",
+    "😌",
+    "😛",
+    "😜",
+    "😝",
+    "🤤",
+    "😒",
+    "😓",
+    "😔",
+    "😕",
+    "🙃",
+    "🤑",
+    "😲",
+    "🙁",
+    "😖",
+    "😞",
+    "😟",
+    "😤",
+    "😢",
+    "😭",
+    "😦",
+    "😧",
+    "😨",
+    "😩",
+    "🤯",
+    "😬",
+    "😰",
+    "😱",
+    "🥵",
+    "🥶",
+    "😳",
+    "🤪",
+    "😵",
+    "🥴",
+    "😠",
+    "😡",
+    "🤬",
+    "😷",
+    "🤒",
+    "🤕",
+    "🤢",
+    "🤮",
+    "🥳",
+    "🥺",
+    "🤠",
+    "🤡",
+    "🤥",
+    "🤫",
+    "🤭",
+    "🧐",
+    "🤓",
+    "😈",
+    "👿",
   ],
-  '👋 Gestos': [
-    '👋','🤚','🖐','✋','🖖','👌','🤌','🤏','✌️','🤞',
-    '🤟','🤘','🤙','👈','👉','👆','🖕','👇','☝️','👍',
-    '👎','✊','👊','🤛','🤜','👏','🙌','👐','🤲','🤝',
-    '🙏','💪','🦾','🦿','🦵','🦶','👂','🦻','👃','🧠',
+  "👋 Gestos": [
+    "👋",
+    "🤚",
+    "🖐",
+    "✋",
+    "🖖",
+    "👌",
+    "🤌",
+    "🤏",
+    "✌️",
+    "🤞",
+    "🤟",
+    "🤘",
+    "🤙",
+    "👈",
+    "👉",
+    "👆",
+    "🖕",
+    "👇",
+    "☝️",
+    "👍",
+    "👎",
+    "✊",
+    "👊",
+    "🤛",
+    "🤜",
+    "👏",
+    "🙌",
+    "👐",
+    "🤲",
+    "🤝",
+    "🙏",
+    "💪",
+    "🦾",
+    "🦿",
+    "🦵",
+    "🦶",
+    "👂",
+    "🦻",
+    "👃",
+    "🧠",
   ],
-  '❤️ Símbolos': [
-    '❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔',
-    '❤️‍🔥','❤️‍🩹','💕','💞','💓','💗','💖','💘','💝','💟',
-    '⭐','🌟','✨','⚡','🔥','💯','✅','❌','⚠️','🚀',
-    '🎉','🎊','🏆','🥇','🎯','💡','📌','🔔','💬','💭',
+  "❤️ Símbolos": [
+    "❤️",
+    "🧡",
+    "💛",
+    "💚",
+    "💙",
+    "💜",
+    "🖤",
+    "🤍",
+    "🤎",
+    "💔",
+    "❤️‍🔥",
+    "❤️‍🩹",
+    "💕",
+    "💞",
+    "💓",
+    "💗",
+    "💖",
+    "💘",
+    "💝",
+    "💟",
+    "⭐",
+    "🌟",
+    "✨",
+    "⚡",
+    "🔥",
+    "💯",
+    "✅",
+    "❌",
+    "⚠️",
+    "🚀",
+    "🎉",
+    "🎊",
+    "🏆",
+    "🥇",
+    "🎯",
+    "💡",
+    "📌",
+    "🔔",
+    "💬",
+    "💭",
   ],
-  '🏢 Trabalho': [
-    '💼','📊','📈','📉','📋','📝','✏️','📎','🖇','📁',
-    '📂','📅','📆','🗓','⏰','⏳','⌛','🔒','🔓','🔑',
-    '🛠','⚙️','🔧','🔨','💻','🖥','📱','📧','📩','📤',
-    '📥','🗑','📦','🏷','🔍','🔎','💰','💸','🏦','📡',
+  "🏢 Trabalho": [
+    "💼",
+    "📊",
+    "📈",
+    "📉",
+    "📋",
+    "📝",
+    "✏️",
+    "📎",
+    "🖇",
+    "📁",
+    "📂",
+    "📅",
+    "📆",
+    "🗓",
+    "⏰",
+    "⏳",
+    "⌛",
+    "🔒",
+    "🔓",
+    "🔑",
+    "🛠",
+    "⚙️",
+    "🔧",
+    "🔨",
+    "💻",
+    "🖥",
+    "📱",
+    "📧",
+    "📩",
+    "📤",
+    "📥",
+    "🗑",
+    "📦",
+    "🏷",
+    "🔍",
+    "🔎",
+    "💰",
+    "💸",
+    "🏦",
+    "📡",
   ],
 };
 
@@ -43,17 +235,22 @@ interface EmojiGifPickerProps {
   onGifSelect: (gifUrl: string) => void;
 }
 
-export function EmojiGifPicker({ onEmojiSelect, onGifSelect }: EmojiGifPickerProps) {
+export function EmojiGifPicker({
+  onEmojiSelect,
+  onGifSelect,
+}: EmojiGifPickerProps) {
   const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState('');
-  const [activeTab, setActiveTab] = useState('emoji');
+  const [search, setSearch] = useState("");
+  const [activeTab, setActiveTab] = useState("emoji");
 
   const filteredEmojis = useMemo(() => {
     if (!search) return EMOJI_CATEGORIES;
     const result: Record<string, string[]> = {};
     // Simple search: just show all emojis flattened when searching
-    const all = Object.values(EMOJI_CATEGORIES).flat().filter(() => true);
-    if (all.length > 0) result['Resultados'] = all;
+    const all = Object.values(EMOJI_CATEGORIES)
+      .flat()
+      .filter(() => true);
+    if (all.length > 0) result["Resultados"] = all;
     return result;
   }, [search]);
 
@@ -63,24 +260,25 @@ export function EmojiGifPicker({ onEmojiSelect, onGifSelect }: EmojiGifPickerPro
 
   // Sample trending GIFs (placeholder thumbnails)
   const sampleGifs = [
-    { id: '1', label: '👍 Aprovado', emoji: '👍' },
-    { id: '2', label: '🎉 Celebração', emoji: '🎉' },
-    { id: '3', label: '😂 Rindo', emoji: '😂' },
-    { id: '4', label: '🔥 Fogo', emoji: '🔥' },
-    { id: '5', label: '💪 Força', emoji: '💪' },
-    { id: '6', label: '🚀 Foguete', emoji: '🚀' },
-    { id: '7', label: '❤️ Amor', emoji: '❤️' },
-    { id: '8', label: '👏 Palmas', emoji: '👏' },
-    { id: '9', label: '🏆 Troféu', emoji: '🏆' },
-    { id: '10', label: '✅ Feito', emoji: '✅' },
-    { id: '11', label: '💯 100%', emoji: '💯' },
-    { id: '12', label: '🤝 Acordo', emoji: '🤝' },
+    { id: "1", label: "👍 Aprovado", emoji: "👍" },
+    { id: "2", label: "🎉 Celebração", emoji: "🎉" },
+    { id: "3", label: "😂 Rindo", emoji: "😂" },
+    { id: "4", label: "🔥 Fogo", emoji: "🔥" },
+    { id: "5", label: "💪 Força", emoji: "💪" },
+    { id: "6", label: "🚀 Foguete", emoji: "🚀" },
+    { id: "7", label: "❤️ Amor", emoji: "❤️" },
+    { id: "8", label: "👏 Palmas", emoji: "👏" },
+    { id: "9", label: "🏆 Troféu", emoji: "🏆" },
+    { id: "10", label: "✅ Feito", emoji: "✅" },
+    { id: "11", label: "💯 100%", emoji: "💯" },
+    { id: "12", label: "🤝 Acordo", emoji: "🤝" },
   ];
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button aria-label="Ação"
+        <Button
+          aria-label="Ação"
           size="icon"
           variant="ghost"
           className="rounded-xl shrink-0 h-10 w-10 text-muted-foreground hover:text-foreground"
@@ -96,8 +294,12 @@ export function EmojiGifPicker({ onEmojiSelect, onGifSelect }: EmojiGifPickerPro
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="border-b border-border px-3 pt-3 pb-0">
             <TabsList className="w-full grid grid-cols-2 h-9">
-              <TabsTrigger value="emoji" className="text-xs">😀 Emojis</TabsTrigger>
-              <TabsTrigger value="gif" className="text-xs font-bold">GIF</TabsTrigger>
+              <TabsTrigger value="emoji" className="text-xs">
+                😀 Emojis
+              </TabsTrigger>
+              <TabsTrigger value="gif" className="text-xs font-bold">
+                GIF
+              </TabsTrigger>
             </TabsList>
           </div>
 
@@ -106,7 +308,9 @@ export function EmojiGifPicker({ onEmojiSelect, onGifSelect }: EmojiGifPickerPro
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
               <Input
-                placeholder={activeTab === 'emoji' ? 'Buscar emoji...' : 'Buscar GIF...'}
+                placeholder={
+                  activeTab === "emoji" ? "Buscar emoji..." : "Buscar GIF..."
+                }
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-8 h-8 text-xs"
@@ -149,7 +353,10 @@ export function EmojiGifPicker({ onEmojiSelect, onGifSelect }: EmojiGifPickerPro
                   {sampleGifs.map((gif) => (
                     <button
                       key={gif.id}
-                      onClick={() => { onEmojiSelect(gif.emoji); setOpen(false); }}
+                      onClick={() => {
+                        onEmojiSelect(gif.emoji);
+                        setOpen(false);
+                      }}
                       className="flex flex-col items-center justify-center gap-1 p-3 rounded-lg bg-muted/50 hover:bg-accent border border-border transition-colors"
                     >
                       <span className="text-2xl">{gif.emoji}</span>

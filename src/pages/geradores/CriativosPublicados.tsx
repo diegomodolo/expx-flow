@@ -41,7 +41,8 @@ export default function CriativosPublicados() {
   const { activeCompany } = useCompany();
   const companyId = activeCompany?.company_id;
   const [clientFilter, setClientFilter] = useState<string>("all");
-  const [selectedCreative, setSelectedCreative] = useState<PublishedCreative | null>(null);
+  const [selectedCreative, setSelectedCreative] =
+    useState<PublishedCreative | null>(null);
 
   const { data: clients } = useQuery({
     queryKey: ["clients-for-published", companyId],
@@ -58,14 +59,19 @@ export default function CriativosPublicados() {
     enabled: !!companyId,
   });
 
-  const { data: creatives, isLoading, refetch } = useQuery({
+  const {
+    data: creatives,
+    isLoading,
+    refetch,
+  } = useQuery({
     queryKey: ["published-creatives", companyId, clientFilter],
     queryFn: async () => {
       if (!companyId) return [];
-      
+
       let query = supabase
         .from("creative_generation_queue")
-        .select(`
+        .select(
+          `
           id,
           client_id,
           image_url,
@@ -75,7 +81,8 @@ export default function CriativosPublicados() {
           published_at,
           reviewed_at,
           clients (name, company)
-        `)
+        `,
+        )
         .eq("company_id", companyId)
         .in("status", ["approved", "published"])
         .order("reviewed_at", { ascending: false });
@@ -94,8 +101,12 @@ export default function CriativosPublicados() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Criativos Publicados</h1>
-          <p className="text-muted-foreground">Criativos aprovados e publicados</p>
+          <h1 className="text-2xl font-bold text-foreground">
+            Criativos Publicados
+          </h1>
+          <p className="text-muted-foreground">
+            Criativos aprovados e publicados
+          </p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[...Array(6)].map((_, i) => (
@@ -116,8 +127,12 @@ export default function CriativosPublicados() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Criativos Publicados</h1>
-          <p className="text-muted-foreground">Criativos aprovados e publicados</p>
+          <h1 className="text-2xl font-bold text-foreground">
+            Criativos Publicados
+          </h1>
+          <p className="text-muted-foreground">
+            Criativos aprovados e publicados
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <ClientSearchCombobox
@@ -128,7 +143,12 @@ export default function CriativosPublicados() {
             allOptionLabel="Todos os clientes"
             className="w-56"
           />
-          <Button aria-label="Atualizar" variant="outline" size="icon" onClick={() => refetch()}>
+          <Button
+            aria-label="Atualizar"
+            variant="outline"
+            size="icon"
+            onClick={() => refetch()}
+          >
             <RefreshCw className="h-4 w-4" />
           </Button>
         </div>
@@ -138,7 +158,9 @@ export default function CriativosPublicados() {
         <Card>
           <CardContent className="p-8 text-center">
             <Rocket className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground">Nenhum criativo aprovado ou publicado</p>
+            <p className="text-muted-foreground">
+              Nenhum criativo aprovado ou publicado
+            </p>
           </CardContent>
         </Card>
       ) : (
@@ -150,10 +172,11 @@ export default function CriativosPublicados() {
                   <CardTitle className="text-sm font-medium">
                     {creative.clients?.name || "Cliente"}
                   </CardTitle>
-                  <Badge 
-                    className={creative.status === "published" 
-                      ? "bg-purple-500/10 text-purple-500 border-purple-500/20" 
-                      : "bg-green-500/10 text-green-500 border-green-500/20"
+                  <Badge
+                    className={
+                      creative.status === "published"
+                        ? "bg-purple-500/10 text-purple-500 border-purple-500/20"
+                        : "bg-green-500/10 text-green-500 border-green-500/20"
                     }
                   >
                     {creative.status === "published" ? "Publicado" : "Aprovado"}
@@ -162,11 +185,11 @@ export default function CriativosPublicados() {
               </CardHeader>
               <CardContent className="p-4 pt-0">
                 {creative.image_url ? (
-                  <div 
+                  <div
                     className="relative aspect-[3/4] bg-muted rounded-lg overflow-hidden mb-3 cursor-pointer"
                     onClick={() => setSelectedCreative(creative)}
                   >
-                    <img 
+                    <img
                       src={creative.image_url}
                       alt="Criativo"
                       loading="lazy"
@@ -192,7 +215,10 @@ export default function CriativosPublicados() {
                 )}
 
                 <p className="text-xs text-muted-foreground">
-                  {creative.reviewed_at && format(new Date(creative.reviewed_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                  {creative.reviewed_at &&
+                    format(new Date(creative.reviewed_at), "dd/MM/yyyy HH:mm", {
+                      locale: ptBR,
+                    })}
                 </p>
               </CardContent>
             </Card>
@@ -200,7 +226,10 @@ export default function CriativosPublicados() {
         </div>
       )}
 
-      <Dialog open={!!selectedCreative} onOpenChange={() => setSelectedCreative(null)}>
+      <Dialog
+        open={!!selectedCreative}
+        onOpenChange={() => setSelectedCreative(null)}
+      >
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Preview do Criativo</DialogTitle>
@@ -209,18 +238,20 @@ export default function CriativosPublicados() {
             <div className="space-y-4">
               {selectedCreative.image_url && (
                 <div className="aspect-[3/4] max-h-[60vh] mx-auto overflow-hidden rounded-lg bg-muted">
-                  <img 
+                  <img
                     src={selectedCreative.image_url}
                     alt="Criativo"
                     className="w-full h-full object-cover"
                   />
                 </div>
               )}
-              {(selectedCreative.caption || selectedCreative.generated_content?.caption) && (
+              {(selectedCreative.caption ||
+                selectedCreative.generated_content?.caption) && (
                 <div>
                   <p className="text-sm font-medium mb-1">Legenda:</p>
                   <p className="text-sm text-muted-foreground">
-                    {selectedCreative.caption || selectedCreative.generated_content?.caption}
+                    {selectedCreative.caption ||
+                      selectedCreative.generated_content?.caption}
                   </p>
                 </div>
               )}
@@ -234,13 +265,16 @@ export default function CriativosPublicados() {
               )}
               <div className="flex items-center justify-between text-sm text-muted-foreground">
                 <span>Cliente: {selectedCreative.clients?.name}</span>
-                <Badge 
-                  className={selectedCreative.status === "published" 
-                    ? "bg-purple-500/10 text-purple-500 border-purple-500/20" 
-                    : "bg-green-500/10 text-green-500 border-green-500/20"
+                <Badge
+                  className={
+                    selectedCreative.status === "published"
+                      ? "bg-purple-500/10 text-purple-500 border-purple-500/20"
+                      : "bg-green-500/10 text-green-500 border-green-500/20"
                   }
                 >
-                  {selectedCreative.status === "published" ? "Publicado" : "Aprovado"}
+                  {selectedCreative.status === "published"
+                    ? "Publicado"
+                    : "Aprovado"}
                 </Badge>
               </div>
             </div>

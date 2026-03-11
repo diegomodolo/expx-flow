@@ -2,8 +2,10 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 interface RequestBody {
@@ -35,21 +37,24 @@ serve(async (req) => {
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
     const body: RequestBody = await req.json();
-    const { 
-      clientId, 
-      instagramAccountId, 
-      companyId, 
-      limit = 20, 
-      adCursor, 
+    const {
+      clientId,
+      instagramAccountId,
+      companyId,
+      limit = 20,
+      adCursor,
       instagramCursor,
       carouselCursor,
-      includeCarousels = true
+      includeCarousels = true,
     } = body;
 
     if (!companyId) {
       return new Response(
         JSON.stringify({ success: false, error: "companyId é obrigatório" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -62,7 +67,8 @@ serve(async (req) => {
     if (clientId) {
       const { data: client, error: clientError } = await supabase
         .from("clients")
-        .select(`
+        .select(
+          `
           id,
           ad_account_id,
           instagram_account_id,
@@ -76,7 +82,8 @@ serve(async (req) => {
             instagram_id,
             username
           )
-        `)
+        `,
+        )
         .eq("id", clientId)
         .single();
 
@@ -113,20 +120,30 @@ serve(async (req) => {
     if (integrationError || !integration?.access_token) {
       console.error("No Facebook integration found:", integrationError);
       return new Response(
-        JSON.stringify({ 
-          success: true, 
-          adCreatives: [], 
+        JSON.stringify({
+          success: true,
+          adCreatives: [],
           instagramPosts: [],
           instagramCarousels: [],
-          message: "Integração com Facebook não configurada"
+          message: "Integração com Facebook não configurada",
         }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
     const accessToken = integration.access_token;
-    const adCreatives: { id: string; imageUrl: string; name: string; type: 'ad' }[] = [];
-    const instagramPosts: { id: string; imageUrl: string; caption: string; type: 'instagram' }[] = [];
+    const adCreatives: {
+      id: string;
+      imageUrl: string;
+      name: string;
+      type: "ad";
+    }[] = [];
+    const instagramPosts: {
+      id: string;
+      imageUrl: string;
+      caption: string;
+      type: "instagram";
+    }[] = [];
     const instagramCarousels: CarouselItem[] = [];
     let nextAdCursor: string | null = null;
     let nextInstagramCursor: string | null = null;
@@ -134,50 +151,54 @@ serve(async (req) => {
 
     // Fetch Ad Creatives if we have an ad account
     if (adAccountId) {
-      const accountId = adAccountId.startsWith('act_') 
-        ? adAccountId 
+      const accountId = adAccountId.startsWith("act_")
+        ? adAccountId
         : `act_${adAccountId}`;
 
-      console.log(`Fetching ads for account: ${accountId}, cursor: ${adCursor || 'initial'}`);
+      console.log(
+        `Fetching ads for account: ${accountId}, cursor: ${adCursor || "initial"}`,
+      );
 
       try {
         // Build URL with cursor if provided
         let creativesUrl = `https://graph.facebook.com/v20.0/${accountId}/adcreatives?fields=id,name,image_url,object_story_spec,object_type,created_time&limit=100&access_token=${accessToken}`;
-        
+
         if (adCursor) {
           creativesUrl = adCursor;
         }
 
         const creativesResponse = await fetch(creativesUrl);
         const creativesData = await creativesResponse.json();
-        
+
         if (creativesData.error) {
           console.error("Error fetching creatives:", creativesData.error);
         } else if (creativesData.data) {
           console.log(`Found ${creativesData.data.length} creatives`);
-          
+
           // Sort by created_time descending (most recent first)
-          const sortedCreatives = creativesData.data.sort((a: any, b: any) => {
-            const dateA = new Date(a.created_time || 0).getTime();
-            const dateB = new Date(b.created_time || 0).getTime();
-            return dateB - dateA;
-          });
-          
+          const sortedCreatives = creativesData.data.sort(
+            (a: unknown, b: unknown) => {
+              const dateA = new Date(a.created_time || 0).getTime();
+              const dateB = new Date(b.created_time || 0).getTime();
+              return dateB - dateA;
+            },
+          );
+
           for (const creative of sortedCreatives) {
             if (adCreatives.length >= limit) break;
-            
+
             // Check if it's an image-based creative
             const spec = creative.object_story_spec;
-            
+
             // Skip if it's a video creative
             if (spec?.video_data) {
               continue;
             }
-            
+
             // Only include if it has photo_data or link_data with image (not video)
             let imageUrl: string | null = null;
             let isImageCreative = false;
-            
+
             if (spec?.photo_data?.url) {
               // Pure image post
               imageUrl = spec.photo_data.url;
@@ -191,25 +212,25 @@ serve(async (req) => {
               imageUrl = creative.image_url;
               isImageCreative = true;
             }
-            
+
             if (isImageCreative && imageUrl) {
               // Avoid duplicates
-              if (!adCreatives.some(c => c.imageUrl === imageUrl)) {
+              if (!adCreatives.some((c) => c.imageUrl === imageUrl)) {
                 adCreatives.push({
                   id: creative.id,
                   imageUrl: imageUrl,
-                  name: creative.name || 'Criativo',
-                  type: 'ad'
+                  name: creative.name || "Criativo",
+                  type: "ad",
                 });
               }
             }
           }
-          
+
           // Set next cursor for pagination
           if (creativesData.paging?.next && adCreatives.length === limit) {
             nextAdCursor = creativesData.paging.next;
           }
-          
+
           console.log(`Filtered to ${adCreatives.length} image-only creatives`);
         }
       } catch (e) {
@@ -219,12 +240,14 @@ serve(async (req) => {
 
     // Fetch Instagram Posts if we have an Instagram account
     if (instagramId) {
-      console.log(`Fetching Instagram posts for account: ${instagramId}, cursor: ${instagramCursor || 'initial'}`);
+      console.log(
+        `Fetching Instagram posts for account: ${instagramId}, cursor: ${instagramCursor || "initial"}`,
+      );
 
       try {
         // Build URL with cursor if provided
         let mediaUrl = `https://graph.facebook.com/v20.0/${instagramId}/media?fields=id,media_type,media_url,thumbnail_url,caption,permalink,timestamp,product_type&limit=100&access_token=${accessToken}`;
-        
+
         if (instagramCursor) {
           mediaUrl = instagramCursor;
         }
@@ -236,7 +259,9 @@ serve(async (req) => {
         // Keep fetching until we have enough image posts or run out of pages
         while (nextUrl && instagramPosts.length < limit && page < maxPages) {
           page += 1;
-          console.log(`Instagram pagination: fetching page ${page}, current posts: ${instagramPosts.length}`);
+          console.log(
+            `Instagram pagination: fetching page ${page}, current posts: ${instagramPosts.length}`,
+          );
 
           const mediaResponse = await fetch(nextUrl);
           const mediaData = await mediaResponse.json();
@@ -246,8 +271,12 @@ serve(async (req) => {
             break;
           }
 
-          const items: any[] = Array.isArray(mediaData.data) ? mediaData.data : [];
-          console.log(`Found ${items.length} Instagram posts from API (page ${page})`);
+          const items: unknown[] = Array.isArray(mediaData.data)
+            ? mediaData.data
+            : [];
+          console.log(
+            `Found ${items.length} Instagram posts from API (page ${page})`,
+          );
 
           if (items.length === 0) {
             console.log("No more items from API, stopping pagination");
@@ -256,7 +285,7 @@ serve(async (req) => {
           }
 
           // Sort by timestamp descending (most recent first)
-          const sortedItems = items.sort((a: any, b: any) => {
+          const sortedItems = items.sort((a: unknown, b: unknown) => {
             const dateA = new Date(a.timestamp || 0).getTime();
             const dateB = new Date(b.timestamp || 0).getTime();
             return dateB - dateA;
@@ -264,7 +293,7 @@ serve(async (req) => {
 
           for (const post of sortedItems) {
             if (instagramPosts.length >= limit) break;
-            
+
             // Only include IMAGE (skip CAROUSEL_ALBUM and VIDEO/REELS for this tab)
             const mediaType = post.media_type?.toUpperCase();
             const isImagePost = mediaType === "IMAGE";
@@ -275,13 +304,14 @@ serve(async (req) => {
             if (!imageUrl) continue;
 
             // Avoid duplicates
-            if (instagramPosts.some(p => p.id === post.id)) continue;
+            if (instagramPosts.some((p) => p.id === post.id)) continue;
 
             instagramPosts.push({
               id: post.id,
               imageUrl,
               caption: post.caption
-                ? post.caption.substring(0, 100) + (post.caption.length > 100 ? "..." : "")
+                ? post.caption.substring(0, 100) +
+                  (post.caption.length > 100 ? "..." : "")
                 : "Post do Instagram",
               type: "instagram",
             });
@@ -301,7 +331,7 @@ serve(async (req) => {
         }
 
         console.log(
-          `Filtered to ${instagramPosts.length} Instagram image posts (after ${page} pages)`
+          `Filtered to ${instagramPosts.length} Instagram image posts (after ${page} pages)`,
         );
       } catch (e) {
         console.error("Error in Instagram fetch:", e);
@@ -310,12 +340,14 @@ serve(async (req) => {
 
     // Fetch Instagram Carousels if we have an Instagram account and includeCarousels is true
     if (instagramId && includeCarousels) {
-      console.log(`Fetching Instagram carousels for account: ${instagramId}, cursor: ${carouselCursor || 'initial'}`);
+      console.log(
+        `Fetching Instagram carousels for account: ${instagramId}, cursor: ${carouselCursor || "initial"}`,
+      );
 
       try {
         // Build URL with cursor if provided
         let mediaUrl = `https://graph.facebook.com/v20.0/${instagramId}/media?fields=id,media_type,media_url,thumbnail_url,caption,permalink,timestamp,children{id,media_type,media_url}&limit=50&access_token=${accessToken}`;
-        
+
         if (carouselCursor) {
           mediaUrl = carouselCursor;
         }
@@ -325,20 +357,33 @@ serve(async (req) => {
         let nextUrl: string | null = mediaUrl;
 
         // Keep fetching until we have enough carousels or run out of pages
-        while (nextUrl && instagramCarousels.length < limit && page < maxPages) {
+        while (
+          nextUrl &&
+          instagramCarousels.length < limit &&
+          page < maxPages
+        ) {
           page += 1;
-          console.log(`Carousel pagination: fetching page ${page}, current carousels: ${instagramCarousels.length}`);
+          console.log(
+            `Carousel pagination: fetching page ${page}, current carousels: ${instagramCarousels.length}`,
+          );
 
           const mediaResponse = await fetch(nextUrl);
           const mediaData = await mediaResponse.json();
 
           if (mediaData.error) {
-            console.error("Error fetching Instagram carousels:", mediaData.error);
+            console.error(
+              "Error fetching Instagram carousels:",
+              mediaData.error,
+            );
             break;
           }
 
-          const items: any[] = Array.isArray(mediaData.data) ? mediaData.data : [];
-          console.log(`Found ${items.length} Instagram posts from API for carousel check (page ${page})`);
+          const items: unknown[] = Array.isArray(mediaData.data)
+            ? mediaData.data
+            : [];
+          console.log(
+            `Found ${items.length} Instagram posts from API for carousel check (page ${page})`,
+          );
 
           if (items.length === 0) {
             console.log("No more items from API, stopping pagination");
@@ -347,7 +392,7 @@ serve(async (req) => {
           }
 
           // Sort by timestamp descending (most recent first)
-          const sortedItems = items.sort((a: any, b: any) => {
+          const sortedItems = items.sort((a: unknown, b: unknown) => {
             const dateA = new Date(a.timestamp || 0).getTime();
             const dateB = new Date(b.timestamp || 0).getTime();
             return dateB - dateA;
@@ -355,17 +400,21 @@ serve(async (req) => {
 
           for (const post of sortedItems) {
             if (instagramCarousels.length >= limit) break;
-            
+
             // Only include CAROUSEL_ALBUM
             const mediaType = post.media_type?.toUpperCase();
             if (mediaType !== "CAROUSEL_ALBUM") continue;
 
             // Avoid duplicates
-            if (instagramCarousels.some(c => c.id === post.id)) continue;
+            if (instagramCarousels.some((c) => c.id === post.id)) continue;
 
             // Get children (slides) of the carousel
-            const children: { id: string; imageUrl: string; mediaType: string }[] = [];
-            
+            const children: {
+              id: string;
+              imageUrl: string;
+              mediaType: string;
+            }[] = [];
+
             if (post.children?.data && Array.isArray(post.children.data)) {
               for (const child of post.children.data) {
                 const childMediaType = child.media_type?.toUpperCase();
@@ -374,7 +423,7 @@ serve(async (req) => {
                   children.push({
                     id: child.id,
                     imageUrl: child.media_url,
-                    mediaType: childMediaType
+                    mediaType: childMediaType,
                   });
                 }
               }
@@ -386,10 +435,11 @@ serve(async (req) => {
                 id: post.id,
                 imageUrl: children[0].imageUrl, // First image as cover
                 caption: post.caption
-                  ? post.caption.substring(0, 100) + (post.caption.length > 100 ? "..." : "")
+                  ? post.caption.substring(0, 100) +
+                    (post.caption.length > 100 ? "..." : "")
                   : "Carrossel do Instagram",
                 children,
-                timestamp: post.timestamp
+                timestamp: post.timestamp,
               });
             }
           }
@@ -408,14 +458,16 @@ serve(async (req) => {
         }
 
         console.log(
-          `Found ${instagramCarousels.length} Instagram carousels (after ${page} pages)`
+          `Found ${instagramCarousels.length} Instagram carousels (after ${page} pages)`,
         );
       } catch (e) {
         console.error("Error in Instagram carousel fetch:", e);
       }
     }
 
-    console.log(`Returning ${adCreatives.length} ad creatives, ${instagramPosts.length} Instagram posts, and ${instagramCarousels.length} carousels`);
+    console.log(
+      `Returning ${adCreatives.length} ad creatives, ${instagramPosts.length} Instagram posts, and ${instagramCarousels.length} carousels`,
+    );
 
     return new Response(
       JSON.stringify({
@@ -430,19 +482,22 @@ serve(async (req) => {
         nextCarouselCursor,
         hasMoreAds: !!nextAdCursor,
         hasMoreInstagram: !!nextInstagramCursor,
-        hasMoreCarousels: !!nextCarouselCursor
+        hasMoreCarousels: !!nextCarouselCursor,
       }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
-
   } catch (error) {
     console.error("Error in fetch-creative-references:", error);
     return new Response(
       JSON.stringify({
         success: false,
-        error: error instanceof Error ? error.message : "Erro ao buscar referências",
+        error:
+          error instanceof Error ? error.message : "Erro ao buscar referências",
       }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 });
