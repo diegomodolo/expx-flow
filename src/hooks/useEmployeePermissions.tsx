@@ -60,7 +60,8 @@ export type MenuItemType =
   | "youtube-content-lab"
   | "squads-ia"
   | "parametros-performance"
-  | "reportes";
+  | "reportes"
+  | "configurar-ia";
 
 export interface EmployeePermission {
   id: string;
@@ -228,6 +229,7 @@ export function useEmployeePermissions() {
           "roteiros",
           "command-center",
           "reportes",
+          "configurar-ia",
         ];
         setCurrentUserPermissions(allPermissions);
         setPermissionsLoading(false);
