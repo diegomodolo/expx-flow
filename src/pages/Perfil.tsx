@@ -3,6 +3,7 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { ProfileLayout } from "@/components/profile/ProfileLayout";
 import { UserProfileSettings } from "@/components/settings/UserProfileSettings";
 import { SecuritySettings } from "@/components/settings/SecuritySettings";
+import { ProfileGoogleMeetCard } from "@/components/profile/ProfileGoogleMeetCard";
 
 const Perfil = () => {
   return (
@@ -14,11 +15,12 @@ const Perfil = () => {
             Gerencie suas informações pessoais e configurações de segurança
           </p>
         </div>
-        
+
         <ProfileLayout>
           <Routes>
             <Route index element={<UserProfileSettings />} />
             <Route path="seguranca" element={<SecuritySettings />} />
+            <Route path="integracoes" element={<ProfileGoogleMeetCard />} />
           </Routes>
         </ProfileLayout>
       </div>

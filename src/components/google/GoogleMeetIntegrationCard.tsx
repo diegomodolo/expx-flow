@@ -1,7 +1,21 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Unlink, CheckCircle, AlertTriangle, RefreshCw, Calendar, Video } from "lucide-react";
+import {
+  Loader2,
+  Unlink,
+  CheckCircle,
+  AlertTriangle,
+  RefreshCw,
+  Calendar,
+  Video,
+} from "lucide-react";
 import { useGoogleMeetIntegration } from "@/hooks/useGoogleMeetIntegration";
 import { useCompany } from "@/contexts/CompanyContext";
 import { format } from "date-fns";
@@ -21,7 +35,9 @@ export function GoogleMeetIntegrationCard() {
     return (
       <Card>
         <CardContent className="p-6">
-          <p className="text-muted-foreground">Selecione uma empresa primeiro.</p>
+          <p className="text-muted-foreground">
+            Selecione uma empresa primeiro.
+          </p>
         </CardContent>
       </Card>
     );
@@ -39,8 +55,12 @@ export function GoogleMeetIntegrationCard() {
           Google Meet & Drive
         </CardTitle>
         <CardDescription>
-          Conta Google para reuniões, transcrições e integração com Drive.
-          Esta conta é independente da integração do Google Ads.
+          Conta Google padrão da empresa para reuniões e transcrições. Cada
+          colaborador também pode conectar sua própria conta em{" "}
+          <span className="font-medium text-foreground">
+            Perfil → Integrações
+          </span>
+          .
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -56,10 +76,17 @@ export function GoogleMeetIntegrationCard() {
               <AlertTitle>Conectado</AlertTitle>
               <AlertDescription className="space-y-1">
                 {integration.user_email && (
-                  <p>Conta: <strong>{integration.user_email}</strong></p>
+                  <p>
+                    Conta: <strong>{integration.user_email}</strong>
+                  </p>
                 )}
                 <p className="text-xs">
-                  Conectado em: {format(new Date(integration.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                  Conectado em:{" "}
+                  {format(
+                    new Date(integration.created_at),
+                    "dd/MM/yyyy 'às' HH:mm",
+                    { locale: ptBR },
+                  )}
                 </p>
               </AlertDescription>
             </Alert>
@@ -69,17 +96,29 @@ export function GoogleMeetIntegrationCard() {
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle>Token expirando</AlertTitle>
                 <AlertDescription>
-                  O token está prestes a expirar. Renove-o para manter a integração funcionando.
+                  O token está prestes a expirar. Renove-o para manter a
+                  integração funcionando.
                 </AlertDescription>
               </Alert>
             )}
 
             <div className="flex gap-2 flex-wrap">
-              <Button variant="outline" size="sm" onClick={refreshToken} disabled={loading}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={refreshToken}
+                disabled={loading}
+              >
                 <RefreshCw className="h-4 w-4 mr-1" />
                 Renovar Token
               </Button>
-              <Button variant="outline" size="sm" onClick={disconnectGoogle} disabled={loading} className="text-destructive hover:text-destructive">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={disconnectGoogle}
+                disabled={loading}
+                className="text-destructive hover:text-destructive"
+              >
                 <Unlink className="h-4 w-4 mr-1" />
                 Desconectar
               </Button>
@@ -88,8 +127,9 @@ export function GoogleMeetIntegrationCard() {
         ) : (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              Conecte uma conta Google com acesso ao Meet e Drive para criar reuniões e acessar transcrições.
-              Use uma conta diferente da integração do Google Ads se preferir.
+              Conecte uma conta Google com acesso ao Meet e Drive para criar
+              reuniões e acessar transcrições. Use uma conta diferente da
+              integração do Google Ads se preferir.
             </p>
             <Button onClick={connectGoogle} disabled={loading}>
               <Calendar className="h-4 w-4 mr-2" />

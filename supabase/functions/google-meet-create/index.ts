@@ -7,17 +7,40 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-async function getValidAccessToken(supabaseClient: unknown, companyId: string) {
-  const { data: integration, error } = await supabaseClient
-    .from("google_meet_integrations")
-    .select("*")
-    .eq("company_id", companyId)
-    .eq("is_active", true)
-    .single();
+async function getValidAccessToken(
+  supabaseClient: unknown,
+  companyId: string,
+  userId?: string,
+) {
+  let integration = null;
 
-  if (error || !integration) {
+  // 1. Try user-specific integration first
+  if (userId) {
+    const { data } = await supabaseClient
+      .from("google_meet_integrations")
+      .select("*")
+      .eq("company_id", companyId)
+      .eq("user_id", userId)
+      .eq("is_active", true)
+      .maybeSingle();
+    integration = data;
+  }
+
+  // 2. Fallback to company integration
+  if (!integration) {
+    const { data } = await supabaseClient
+      .from("google_meet_integrations")
+      .select("*")
+      .eq("company_id", companyId)
+      .is("user_id", null)
+      .eq("is_active", true)
+      .maybeSingle();
+    integration = data;
+  }
+
+  if (!integration) {
     throw new Error(
-      "Google Meet integration not found. Please connect Google Meet first in Settings > Google Meet & Drive.",
+      "Nenhuma integração Google Meet encontrada. Conecte sua conta Google em Perfil > Integrações, ou peça ao administrador para configurar a conta da empresa.",
     );
   }
 
@@ -49,7 +72,7 @@ async function getValidAccessToken(supabaseClient: unknown, companyId: string) {
       const err = await tokenResponse.text();
       console.error("Token refresh failed:", err);
       throw new Error(
-        "Failed to refresh Google Meet token. Please reconnect in Settings > Google Meet & Drive.",
+        "Falha ao renovar token Google Meet. Reconecte sua conta em Perfil > Integrações.",
       );
     }
 
@@ -106,7 +129,11 @@ serve(async (req) => {
 
     console.log("Creating Google Meet space for company:", companyId);
 
-    const accessToken = await getValidAccessToken(supabaseClient, companyId);
+    const accessToken = await getValidAccessToken(
+      supabaseClient,
+      companyId,
+      user.id,
+    );
 
     // Create Google Meet Space with auto-recording and auto-transcription enabled
     const meetResponse = await fetch("https://meet.googleapis.com/v2/spaces", {

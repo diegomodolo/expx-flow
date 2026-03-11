@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
-import { User, Shield } from "lucide-react";
+import { User, Shield, Video } from "lucide-react";
 
 interface ProfileLayoutProps {
   children: ReactNode;
@@ -12,19 +12,25 @@ const profileNavItems = [
     title: "Meu Perfil",
     href: "/perfil",
     icon: User,
-    description: "Informações pessoais e foto"
+    description: "Informações pessoais e foto",
   },
   {
     title: "Segurança",
     href: "/perfil/seguranca",
     icon: Shield,
-    description: "Senha e autenticação"
-  }
+    description: "Senha e autenticação",
+  },
+  {
+    title: "Integrações",
+    href: "/perfil/integracoes",
+    icon: Video,
+    description: "Google Meet e outras contas",
+  },
 ];
 
 export const ProfileLayout = ({ children }: ProfileLayoutProps) => {
   const location = useLocation();
-  
+
   const isActiveRoute = (href: string) => {
     if (href === "/perfil") {
       return location.pathname === "/perfil";
@@ -42,14 +48,14 @@ export const ProfileLayout = ({ children }: ProfileLayoutProps) => {
               {profileNavItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = isActiveRoute(item.href);
-                
+
                 return (
                   <NavLink
                     key={item.href}
                     to={item.href}
                     className={`flex items-start space-x-3 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground ${
-                      isActive 
-                        ? "bg-accent text-accent-foreground font-medium" 
+                      isActive
+                        ? "bg-accent text-accent-foreground font-medium"
                         : "text-muted-foreground"
                     }`}
                   >
@@ -69,9 +75,7 @@ export const ProfileLayout = ({ children }: ProfileLayoutProps) => {
       </div>
 
       {/* Content Area */}
-      <div className="lg:col-span-3">
-        {children}
-      </div>
+      <div className="lg:col-span-3">{children}</div>
     </div>
   );
 };

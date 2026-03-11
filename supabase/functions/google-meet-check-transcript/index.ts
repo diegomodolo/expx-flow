@@ -7,15 +7,38 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-async function getValidAccessToken(supabaseClient: unknown, companyId: string) {
-  const { data: integration, error } = await supabaseClient
-    .from("google_meet_integrations")
-    .select("*")
-    .eq("company_id", companyId)
-    .eq("is_active", true)
-    .single();
+async function getValidAccessToken(
+  supabaseClient: unknown,
+  companyId: string,
+  userId?: string,
+) {
+  let integration = null;
 
-  if (error || !integration) throw new Error("Google integration not found.");
+  // 1. Try user-specific integration first
+  if (userId) {
+    const { data } = await supabaseClient
+      .from("google_meet_integrations")
+      .select("*")
+      .eq("company_id", companyId)
+      .eq("user_id", userId)
+      .eq("is_active", true)
+      .maybeSingle();
+    integration = data;
+  }
+
+  // 2. Fallback to company integration
+  if (!integration) {
+    const { data } = await supabaseClient
+      .from("google_meet_integrations")
+      .select("*")
+      .eq("company_id", companyId)
+      .is("user_id", null)
+      .eq("is_active", true)
+      .maybeSingle();
+    integration = data;
+  }
+
+  if (!integration) throw new Error("Google integration not found.");
 
   const expiresAt = new Date(integration.expires_at);
   const now = new Date();
@@ -91,6 +114,7 @@ serve(async (req) => {
     const accessToken = await getValidAccessToken(
       supabaseClient,
       meeting.company_id,
+      meeting.created_by,
     );
 
     await supabaseClient

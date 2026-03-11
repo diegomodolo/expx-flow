@@ -29,7 +29,7 @@ serve(async (req) => {
     if (userError || !user) throw new Error("Unauthorized");
 
     const body = await req.json();
-    const { action, code, companyId, redirectUri } = body;
+    const { action, code, companyId, redirectUri, userId } = body;
 
     if (action === "exchange") {
       const clientId = Deno.env.get("GOOGLE_MEET_CLIENT_ID")?.trim();
@@ -83,28 +83,53 @@ serve(async (req) => {
         Date.now() + tokens.expires_in * 1000,
       ).toISOString();
 
-      const { data: integration, error: integrationError } =
-        await supabaseClient
+      // Check if integration already exists for this user/company combo
+      const existingQuery = supabaseClient
+        .from("google_meet_integrations")
+        .select("*")
+        .eq("company_id", companyId)
+        .eq("is_active", true);
+
+      if (userId) {
+        existingQuery.eq("user_id", userId);
+      } else {
+        existingQuery.is("user_id", null);
+      }
+
+      const { data: existing } = await existingQuery.maybeSingle();
+
+      let integration;
+      if (existing) {
+        const { data, error: updateError } = await supabaseClient
           .from("google_meet_integrations")
-          .upsert(
-            {
-              company_id: companyId,
-              access_token: tokens.access_token,
-              refresh_token: tokens.refresh_token,
-              expires_at: expiresAt,
-              is_active: true,
-              user_email: userEmail,
-            },
-            {
-              onConflict: "company_id",
-            },
-          )
+          .update({
+            access_token: tokens.access_token,
+            refresh_token: tokens.refresh_token,
+            expires_at: expiresAt,
+            is_active: true,
+            user_email: userEmail,
+          })
+          .eq("id", existing.id)
           .select()
           .single();
-
-      if (integrationError) {
-        console.error("Failed to save integration:", integrationError);
-        throw integrationError;
+        if (updateError) throw updateError;
+        integration = data;
+      } else {
+        const { data, error: insertError } = await supabaseClient
+          .from("google_meet_integrations")
+          .insert({
+            company_id: companyId,
+            user_id: userId || null,
+            access_token: tokens.access_token,
+            refresh_token: tokens.refresh_token,
+            expires_at: expiresAt,
+            is_active: true,
+            user_email: userEmail,
+          })
+          .select()
+          .single();
+        if (insertError) throw insertError;
+        integration = data;
       }
 
       console.log("Google Meet integration saved:", integration.id);
@@ -122,12 +147,19 @@ serve(async (req) => {
         throw new Error("Google OAuth credentials not configured");
       }
 
-      const { data: integration, error: intError } = await supabaseClient
+      let query = supabaseClient
         .from("google_meet_integrations")
         .select("*")
         .eq("company_id", companyId)
-        .eq("is_active", true)
-        .single();
+        .eq("is_active", true);
+
+      if (userId) {
+        query = query.eq("user_id", userId);
+      } else {
+        query = query.is("user_id", null);
+      }
+
+      const { data: integration, error: intError } = await query.single();
 
       if (intError || !integration) {
         throw new Error("Google Meet integration not found");
