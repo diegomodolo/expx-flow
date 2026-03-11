@@ -165,7 +165,7 @@ export function useWorkspaceDocuments(folderId?: string | null) {
       isFavorite?: boolean;
       coverImage?: string | null;
     }) => {
-      const updates: unknown = {};
+      const updates: Record<string, unknown> = {};
       if (title !== undefined) updates.title = title;
       if (content !== undefined) updates.content = content;
       if (icon !== undefined) updates.icon = icon;
