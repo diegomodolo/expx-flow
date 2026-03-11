@@ -208,7 +208,7 @@ export default function ConfiguracaoFabricaCriativos() {
           <p className="text-muted-foreground">Gerencie as fábricas de criativos</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={() => refetch()}>
+          <Button aria-label="Atualizar" variant="outline" size="icon" onClick={() => refetch()}>
             <RefreshCw className="h-4 w-4" />
           </Button>
           <Button onClick={() => setShowNewDialog(true)}>
@@ -286,7 +286,7 @@ export default function ConfiguracaoFabricaCriativos() {
                     onCheckedChange={() => handleToggleActive(schedule.id, schedule.is_active)}
                   />
 
-                  <Button
+                  <Button aria-label="Fechar"
                     variant="ghost"
                     size="icon"
                     onClick={() => navigate(`/clientes/${schedule.client_id}/fabrica-criativos`)}

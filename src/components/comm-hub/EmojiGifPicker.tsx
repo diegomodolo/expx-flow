@@ -80,7 +80,7 @@ export function EmojiGifPicker({ onEmojiSelect, onGifSelect }: EmojiGifPickerPro
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button
+        <Button aria-label="Ação"
           size="icon"
           variant="ghost"
           className="rounded-xl shrink-0 h-10 w-10 text-muted-foreground hover:text-foreground"

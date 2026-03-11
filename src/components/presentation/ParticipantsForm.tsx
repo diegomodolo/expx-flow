@@ -139,7 +139,7 @@ export function ParticipantsForm({
                       </p>
                     </div>
                   </div>
-                  <Button
+                  <Button aria-label="Fechar"
                     variant="ghost"
                     size="icon"
                     onClick={() => onRemoveParticipant(index)}

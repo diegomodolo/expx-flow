@@ -85,7 +85,7 @@ serve(async (req) => {
 
     // Build targeting if provided
     if (updates.targeting) {
-      const targeting: any = {
+      const targeting: Record<string, unknown> = {
         geo_locations: updates.targeting.geo_locations || { countries: ["BR"] },
         targeting_automation: {
           advantage_audience: 0,
@@ -117,7 +117,7 @@ serve(async (req) => {
 
     // Update Ad Set in Meta with retry logic for transient errors
     const maxRetries = 3;
-    let lastError: any = null;
+    let lastError: { message: string; code?: number; is_transient?: boolean } | null = null;
     
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       console.log(`Sending update to Meta API (attempt ${attempt}/${maxRetries})...`);
@@ -153,7 +153,7 @@ serve(async (req) => {
     }
 
     // Update local database
-    const localUpdates: any = {
+    const localUpdates: Record<string, string | number | boolean> = {
       updated_at: new Date().toISOString(),
     };
 
@@ -189,10 +189,10 @@ serve(async (req) => {
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error in update-meta-adset:", error);
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
+      JSON.stringify({ success: false, error: error instanceof Error ? error.message : String(error) }),
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

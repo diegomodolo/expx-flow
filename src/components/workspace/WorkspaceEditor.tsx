@@ -109,19 +109,26 @@ export function WorkspaceEditor({ document }: WorkspaceEditorProps) {
             )}
           </div>
 
-          {/* Title */}
-          <Input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            onBlur={handleTitleBlur}
-            placeholder="Sem título"
-            className="text-xl font-semibold border-none shadow-none focus-visible:ring-0 px-0 h-auto"
-          />
+          {/* Title and creator */}
+          <div className="flex-1">
+            <Input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              onBlur={handleTitleBlur}
+              placeholder="Sem título"
+              className="text-xl font-semibold border-none shadow-none focus-visible:ring-0 px-0 h-auto"
+            />
+            {document.creator_name && (
+              <p className="text-xs text-muted-foreground pl-0.5 -mt-0.5">
+                Criado por {document.creator_name}
+              </p>
+            )}
+          </div>
         </div>
 
         {/* Actions */}
         <div className="flex items-center gap-1">
-          <Button
+          <Button aria-label="Fechar"
             variant="ghost"
             size="icon"
             onClick={handleToggleFavorite}
@@ -134,7 +141,7 @@ export function WorkspaceEditor({ document }: WorkspaceEditorProps) {
             )}
           </Button>
           
-          <Button
+          <Button aria-label="Ação"
             variant="ghost"
             size="icon"
             onClick={() => setShareOpen(true)}
@@ -145,7 +152,7 @@ export function WorkspaceEditor({ document }: WorkspaceEditorProps) {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
+              <Button aria-label="Ação" variant="ghost" size="icon" className="h-8 w-8">
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>

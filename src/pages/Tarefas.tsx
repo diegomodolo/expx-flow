@@ -84,7 +84,7 @@ export default function Tarefas() {
   const [clientComboOpen, setClientComboOpen] = useState(false);
   const [clientComboOpen2, setClientComboOpen2] = useState(false);
   // Estados para ordenação
-  const [sortField, setSortField] = useState<string>('created_at');
+  const [sortField, setSortField] = useState<string>('due_date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   // Estado para seleção de quadro do colaborador
   const [selectedBoardUserId, setSelectedBoardUserId] = useState<string | null | "all">(null);

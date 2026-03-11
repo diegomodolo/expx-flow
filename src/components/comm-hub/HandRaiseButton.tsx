@@ -76,7 +76,7 @@ export function HandRaiseButton({ channelId }: HandRaiseButtonProps) {
       <div className="flex items-center gap-1">
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button
+            <Button aria-label="Fechar"
               variant={myHandRaised ? 'default' : 'ghost'}
               size="icon"
               className={cn('h-8 w-8 relative', myHandRaised && 'animate-pulse')}

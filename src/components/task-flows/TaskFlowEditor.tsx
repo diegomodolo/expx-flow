@@ -254,7 +254,7 @@ function TaskFlowEditorContent({ flowId }: TaskFlowEditorProps) {
         {/* Page Header */}
         <div className="border-b bg-card px-6 py-3 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/fluxos")}>
+            <Button aria-label="Fechar" variant="ghost" size="icon" onClick={() => navigate("/fluxos")}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -273,8 +273,8 @@ function TaskFlowEditorContent({ flowId }: TaskFlowEditorProps) {
                     }}
                     className="h-8 text-lg font-semibold"
                   />
-                  <Button size="icon" variant="ghost" onClick={handleSaveName}><Check className="h-4 w-4" /></Button>
-                  <Button size="icon" variant="ghost" onClick={() => setIsEditingName(false)}><X className="h-4 w-4" /></Button>
+                  <Button aria-label="Confirmar" size="icon" variant="ghost" onClick={handleSaveName}><Check className="h-4 w-4" /></Button>
+                  <Button aria-label="Editar" size="icon" variant="ghost" onClick={() => setIsEditingName(false)}><X className="h-4 w-4" /></Button>
                 </div>
               ) : (
                 <h1

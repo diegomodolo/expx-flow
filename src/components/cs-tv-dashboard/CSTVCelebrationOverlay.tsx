@@ -321,7 +321,7 @@ export function CSTVCelebrationOverlay({ alerts, onDismiss, onDismissAll, rotati
                 {currentIndex + 1} de {alerts.length}
               </span>
             )}
-            <Button 
+            <Button aria-label="Fechar"
               variant="ghost" 
               size="icon"
               onClick={onDismissAll}

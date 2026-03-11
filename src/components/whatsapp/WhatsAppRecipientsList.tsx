@@ -243,7 +243,7 @@ export function WhatsAppRecipientsList({
                       <Badge variant="secondary" className="text-xs">Relatórios</Badge>
                     )}
                   </div>
-                  <Button
+                  <Button aria-label="Enviar"
                     variant="ghost"
                     size="icon"
                     onClick={() => handleSendTest(recipient.phone)}
@@ -256,7 +256,7 @@ export function WhatsAppRecipientsList({
                       <Send className="h-4 w-4" />
                     )}
                   </Button>
-                  <Button
+                  <Button aria-label="Excluir"
                     variant="ghost"
                     size="icon"
                     onClick={() => setDeleteId(recipient.id)}

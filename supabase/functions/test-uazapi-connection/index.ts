@@ -28,7 +28,7 @@ serve(async (req) => {
 
   try {
     const payload: TestConnectionPayload = await req.json();
-    let { instance_id, endpoint, token, session, company_id } = payload;
+    const { instance_id, endpoint, token, session, company_id } = payload;
 
     console.log("[test-uazapi-connection] Request:", { instance_id, session, company_id });
 
@@ -173,7 +173,7 @@ serve(async (req) => {
 
     // Update instance in database
     if (instance_id) {
-      const updateData: any = {
+      const updateData: Record<string, unknown> = {
         is_connected: isConnected,
         connected_phone: connectedPhone,
         last_connection_test: new Date().toISOString(),

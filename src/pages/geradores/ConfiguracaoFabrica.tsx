@@ -280,7 +280,7 @@ export default function ConfiguracaoFabrica() {
                   </TableCell>
                   
                   <TableCell>
-                    <Button
+                    <Button aria-label="Configurações"
                       variant="ghost"
                       size="icon"
                       onClick={() => setConfigClientId(schedule.client_id)}

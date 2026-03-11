@@ -192,7 +192,7 @@ export function MeetingsHistory({ meetings, isLoading, presentationId, onRefresh
                       </div>
 
                       <CollapsibleTrigger asChild>
-                        <Button variant="ghost" size="icon">
+                        <Button aria-label="Fechar" variant="ghost" size="icon">
                           {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                         </Button>
                       </CollapsibleTrigger>

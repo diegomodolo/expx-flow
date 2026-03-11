@@ -214,7 +214,7 @@ export default function KeywordPlannerPage() {
                     onKeyPress={handleKeyPress}
                     disabled={loading}
                   />
-                  <Button onClick={handleAddKeyword} disabled={!keywordInput.trim() || loading} size="icon">
+                  <Button aria-label="Adicionar" onClick={handleAddKeyword} disabled={!keywordInput.trim() || loading} size="icon">
                     <Plus className="h-4 w-4" />
                   </Button>
                 </div>

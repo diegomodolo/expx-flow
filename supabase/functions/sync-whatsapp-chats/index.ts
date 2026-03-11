@@ -86,7 +86,7 @@ serve(async (req) => {
     // 3. Chamar API UazapiGO para buscar chats
     // A UazapiGO v2 usa o header "token" para autenticar
     // O token identifica automaticamente a instância, então não precisa de instância na URL
-    let chats: any[] = [];
+    let chats: Record<string, unknown>[] = [];
     const attemptLogs: string[] = [];
     
     // Lista de endpoints para tentar (UazapiGO / proxies / variações de basePath)
@@ -120,9 +120,9 @@ serve(async (req) => {
       ].filter(Boolean)
     );
 
-    type EndpointAttempt = { url: string; method: "GET" | "POST"; body: any | null };
+    type EndpointAttempt = { url: string; method: "GET" | "POST"; body: Record<string, unknown> | null };
     const endpointsToTry: EndpointAttempt[] = [];
-    const add = (url: string, method: "GET" | "POST", body: any | null) => {
+    const add = (url: string, method: "GET" | "POST", body: Record<string, unknown> | null) => {
       endpointsToTry.push({ url, method, body });
     };
 
@@ -164,7 +164,7 @@ serve(async (req) => {
       try {
         console.log(`[sync-whatsapp-chats] Tentando: ${ep.method} ${ep.url}`);
         
-        const apiKeyHeader = (config as any)?.token || token;
+        const apiKeyHeader = (config as Record<string, unknown>)?.token || token;
 
         const fetchOptions: RequestInit = {
           method: ep.method,
@@ -195,7 +195,7 @@ serve(async (req) => {
             const responseData = JSON.parse(responseText);
             
             // A resposta pode estar em diferentes formatos
-            let foundChats: any[] = [];
+            let foundChats: Record<string, unknown>[] = [];
             
             if (Array.isArray(responseData)) {
               foundChats = responseData;
@@ -262,7 +262,7 @@ serve(async (req) => {
 
     // 4. Processar e sincronizar chats
     let syncedCount = 0;
-    let errors: string[] = [];
+    const errors: string[] = [];
 
     for (const chat of chats) {
       try {
@@ -301,7 +301,7 @@ serve(async (req) => {
                            null;
 
         // Extrair preview da última mensagem
-        let lastMessagePreview = chat.wa_lastMessageTextVote || null;
+        const lastMessagePreview = chat.wa_lastMessageTextVote || null;
         let lastMessageAt = null;
 
         // Timestamp pode estar em diferentes campos

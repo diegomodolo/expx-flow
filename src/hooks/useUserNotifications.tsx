@@ -33,6 +33,7 @@ export function useUserNotifications() {
         .from("user_notifications" as unknown)
         .select("*")
         .eq("user_id", user.id)
+        .neq("type", "task_review")
         .order("created_at", { ascending: false })
         .limit(50);
       if (error) throw error;
@@ -57,6 +58,7 @@ export function useUserNotifications() {
         },
         () => {
           queryClient.invalidateQueries({ queryKey: ["user-notifications", user.id] });
+          queryClient.invalidateQueries({ queryKey: ["tasks-awaiting-approval", user.id] });
         }
       )
       .on(
@@ -69,6 +71,7 @@ export function useUserNotifications() {
         },
         () => {
           queryClient.invalidateQueries({ queryKey: ["user-notifications", user.id] });
+          queryClient.invalidateQueries({ queryKey: ["tasks-awaiting-approval", user.id] });
         }
       )
       .subscribe();

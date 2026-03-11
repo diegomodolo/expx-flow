@@ -69,7 +69,7 @@ export function FabricaAnunciosLayout({ children }: FabricaAnunciosLayoutProps) 
         <CardContent className="p-4">
           <div className="mb-4 pb-4 border-b">
             <div className="flex items-center gap-2 mb-2">
-              <Button
+              <Button aria-label="Voltar"
                 variant="ghost"
                 size="icon"
                 className="h-7 w-7 shrink-0"

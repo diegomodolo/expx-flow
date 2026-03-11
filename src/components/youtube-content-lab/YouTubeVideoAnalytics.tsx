@@ -393,7 +393,7 @@ export function YouTubeVideoAnalytics({
                           <FileText className="h-4 w-4 mr-1" />
                           Roteiro
                         </Button>
-                        <Button
+                        <Button aria-label="Fechar"
                           size="icon"
                           variant="ghost"
                           onClick={() => window.open(`https://youtube.com/watch?v=${video.video_id}`, '_blank')}

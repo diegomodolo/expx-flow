@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
       },
     });
 
-    let categories: any[] = [];
+    let categories: { id: number; name: string; slug: string }[] = [];
     if (categoriesResponse.ok) {
       categories = await categoriesResponse.json();
     }
@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
           name: userData.name,
           slug: userData.slug,
         },
-        categories: categories.map((cat: any) => ({
+        categories: categories.map((cat) => ({
           id: cat.id,
           name: cat.name,
           slug: cat.slug,

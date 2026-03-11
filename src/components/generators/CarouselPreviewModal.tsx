@@ -220,7 +220,7 @@ export function CarouselPreviewModal({
             <div className="p-4 border-b bg-background">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-lg font-semibold">Detalhes do Carrossel</h2>
-                <Button
+                <Button aria-label="Fechar"
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8"
@@ -440,7 +440,7 @@ export function CarouselPreviewModal({
                     {/* Navigation Arrows */}
                     {slides.length > 1 && (
                       <>
-                        <Button
+                        <Button aria-label="Voltar"
                           variant="ghost"
                           size="icon"
                           className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full h-8 w-8"
@@ -448,7 +448,7 @@ export function CarouselPreviewModal({
                         >
                           <ChevronLeft className="h-5 w-5" />
                         </Button>
-                        <Button
+                        <Button aria-label="Avançar"
                           variant="ghost"
                           size="icon"
                           className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full h-8 w-8"
@@ -544,7 +544,7 @@ export function CarouselPreviewModal({
                       
                       {/* Edit button overlay */}
                       {s.image_url && clientId && companyId && (
-                        <Button
+                        <Button aria-label="Avançar"
                           variant="secondary"
                           size="icon"
                           className="absolute top-0.5 right-0.5 h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity bg-background/90 hover:bg-background shadow-sm"

@@ -209,7 +209,7 @@ export function WorkloadTimeline({ members, tasks, startHour: _startHourProp = 0
 
         {/* Date navigation */}
         <div className="flex items-center gap-1 ml-4 bg-muted/40 rounded-lg px-1 py-0.5">
-          <Button
+          <Button aria-label="Voltar"
             variant="ghost"
             size="icon"
             className="h-6 w-6"
@@ -249,7 +249,7 @@ export function WorkloadTimeline({ members, tasks, startHour: _startHourProp = 0
             </PopoverContent>
           </Popover>
 
-          <Button
+          <Button aria-label="Avançar"
             variant="ghost"
             size="icon"
             className="h-6 w-6"
@@ -285,7 +285,7 @@ export function WorkloadTimeline({ members, tasks, startHour: _startHourProp = 0
             <ZoomIn className="w-3.5 h-3.5 text-muted-foreground" />
           </div>
 
-          <Button
+          <Button aria-label="Fechar"
             variant="ghost"
             size="icon"
             className="h-7 w-7"

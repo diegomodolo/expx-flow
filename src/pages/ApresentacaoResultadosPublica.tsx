@@ -573,7 +573,7 @@ export default function ApresentacaoResultadosPublica() {
 
       {/* Navigation */}
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-background/80 backdrop-blur-sm px-6 py-3 rounded-full shadow-lg border">
-        <Button
+        <Button aria-label="Voltar"
           variant="ghost"
           size="icon"
           onClick={prevSlide}
@@ -597,7 +597,7 @@ export default function ApresentacaoResultadosPublica() {
           ))}
         </div>
 
-        <Button
+        <Button aria-label="Avançar"
           variant="ghost"
           size="icon"
           onClick={nextSlide}

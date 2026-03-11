@@ -784,7 +784,7 @@ export default function ApresentacaoPublica() {
           {creative.caption && (
             <div className="mb-5">
               <div className="text-base font-medium text-foreground mb-2">Legenda</div>
-              <p className="text-base text-muted-foreground whitespace-pre-wrap line-clamp-6">
+              <p className="text-base text-muted-foreground whitespace-pre-wrap">
                 {creative.caption}
               </p>
             </div>
@@ -839,7 +839,7 @@ export default function ApresentacaoPublica() {
 
       {/* Navigation */}
       <div className="flex items-center justify-center gap-4 p-4 bg-black">
-        <Button
+        <Button aria-label="Voltar"
           variant="ghost"
           size="icon"
           onClick={prevSlide}
@@ -867,7 +867,7 @@ export default function ApresentacaoPublica() {
           ))}
         </div>
 
-        <Button
+        <Button aria-label="Avançar"
           variant="ghost"
           size="icon"
           onClick={nextSlide}

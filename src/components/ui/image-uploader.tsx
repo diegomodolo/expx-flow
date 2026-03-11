@@ -188,7 +188,7 @@ export const ImageUploader = ({
               alt="Preview"
               className="w-24 h-24 rounded-full object-cover border-2 border-border shadow-sm"
             />
-            <Button
+            <Button aria-label="Excluir"
               type="button"
               variant="destructive"
               size="icon"

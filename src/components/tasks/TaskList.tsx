@@ -214,7 +214,7 @@ export function TaskList({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask }
                         <TableCell className="text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button
+                              <Button aria-label="Ação"
                                 variant="ghost"
                                 size="icon"
                                 className="h-7 w-7"

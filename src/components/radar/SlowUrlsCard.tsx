@@ -74,7 +74,7 @@ export function SlowUrlsCard({ urls }: SlowUrlsCardProps) {
                       {url.url}
                     </p>
                   </div>
-                  <Button
+                  <Button aria-label="Fechar"
                     variant="ghost"
                     size="icon"
                     className="h-5 w-5 shrink-0"

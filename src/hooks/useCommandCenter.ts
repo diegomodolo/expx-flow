@@ -43,6 +43,7 @@ export interface SquadMember {
 
 export function useCommandCenter() {
   const { activeCompany } = useCompany();
+  const companyId = activeCompany?.company_id;
   const { teams, loading: teamsLoading } = useTeams();
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [backlogTasks, setBacklogTasks] = useState<CommandCenterTask[]>([]);
@@ -60,9 +61,21 @@ export function useCommandCenter() {
 
   const [viewDate, setViewDate] = useState<Date>(new Date());
 
+  const initialLoadDone = useRef(false);
+  const prevTeamId = useRef(selectedTeamId);
+  const prevViewDate = useRef(viewDate);
+
+  // Reset initial load flag when squad or date changes (to show spinner)
+  if (prevTeamId.current !== selectedTeamId || prevViewDate.current?.toDateString() !== viewDate?.toDateString()) {
+    initialLoadDone.current = false;
+    prevTeamId.current = selectedTeamId;
+    prevViewDate.current = viewDate;
+  }
+
   const fetchTasks = useCallback(async () => {
-    if (!selectedTeamId || !activeCompany) return;
-    setLoading(true);
+    if (!selectedTeamId || !companyId) return;
+    // Only show loading spinner on initial load, not on refetches
+    if (!initialLoadDone.current) setLoading(true);
     try {
       const targetDate = viewDate;
       const dayStart = startOfDay(targetDate).toISOString();
@@ -73,7 +86,7 @@ export function useCommandCenter() {
         .from("tasks")
         .select("*")
         .eq("team_id", selectedTeamId)
-        .eq("company_id", activeCompany.company_id)
+        .eq("company_id", companyId)
         .eq("status", "todo")
         .is("start_date", null)
         .neq("task_state", "backlog")
@@ -84,7 +97,7 @@ export function useCommandCenter() {
         .from("tasks")
         .select("*")
         .eq("team_id", selectedTeamId)
-        .eq("company_id", activeCompany.company_id)
+        .eq("company_id", companyId)
         .gte("start_date", dayStart)
         .lte("start_date", dayEnd)
         .neq("status", "cancelled")
@@ -149,11 +162,18 @@ export function useCommandCenter() {
       console.error("Error fetching command center tasks:", err);
     } finally {
       setLoading(false);
+      initialLoadDone.current = true;
     }
-  }, [selectedTeamId, activeCompany, viewDate]);
+  }, [selectedTeamId, companyId, viewDate]);
 
   useEffect(() => {
     fetchTasks();
+  }, [fetchTasks]);
+
+  // Keep a stable ref to fetchTasks so the realtime subscription doesn't re-subscribe on every callback change
+  const fetchTasksRef = useRef(fetchTasks);
+  useEffect(() => {
+    fetchTasksRef.current = fetchTasks;
   }, [fetchTasks]);
 
   // Realtime subscription (debounced to avoid jarring resets during drag-drop)
@@ -164,7 +184,7 @@ export function useCommandCenter() {
       .channel(`command-center-${selectedTeamId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "tasks", filter: `team_id=eq.${selectedTeamId}` }, () => {
         if (realtimeTimerRef.current) clearTimeout(realtimeTimerRef.current);
-        realtimeTimerRef.current = setTimeout(() => fetchTasks(), 2000);
+        realtimeTimerRef.current = setTimeout(() => fetchTasksRef.current(), 5000);
       })
       .subscribe();
 
@@ -172,7 +192,7 @@ export function useCommandCenter() {
       if (realtimeTimerRef.current) clearTimeout(realtimeTimerRef.current);
       supabase.removeChannel(channel);
     };
-  }, [selectedTeamId, fetchTasks]);
+  }, [selectedTeamId]);
 
   const assignTask = async (taskId: string, userId: string, memberName: string, startDate: Date) => {
     const task = backlogTasks.find(t => t.id === taskId);
@@ -186,7 +206,7 @@ export function useCommandCenter() {
         .from('task_board_columns' as unknown)
         .select('id, status, order_index')
         .eq('user_id', userId)
-        .eq('company_id', activeCompany?.company_id || '')
+        .eq('company_id', companyId || '')
         .order('order_index', { ascending: true }) as unknown);
 
       if (columns && columns.length > 0) {
@@ -280,7 +300,7 @@ export function useCommandCenter() {
       }
       throw error;
     }
-    fetchTasks();
+    // Realtime subscription handles sync — no manual refetch needed
   };
 
   const returnToBacklogCenter = async (taskId: string) => {
@@ -323,8 +343,7 @@ export function useCommandCenter() {
       .from("tasks")
       .update(resetFields)
       .eq("parent_task_id", taskId);
-
-    fetchTasks();
+    // Realtime subscription handles sync — no manual refetch needed
   };
 
   const getAgingHours = (createdAt: string) => {

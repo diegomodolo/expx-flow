@@ -61,7 +61,7 @@ export function RedirectUrlsCard({ urls }: RedirectUrlsCardProps) {
                       </div>
                     )}
                   </div>
-                  <Button
+                  <Button aria-label="Fechar"
                     variant="ghost"
                     size="icon"
                     className="h-5 w-5 shrink-0"

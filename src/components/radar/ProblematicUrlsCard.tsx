@@ -82,7 +82,7 @@ export function ProblematicUrlsCard({
                     </p>
                   </div>
                   <div className="flex items-center shrink-0">
-                    <Button
+                    <Button aria-label="Atualizar"
                       variant="ghost"
                       size="icon"
                       className="h-5 w-5"
@@ -91,7 +91,7 @@ export function ProblematicUrlsCard({
                     >
                       <RefreshCw className={`h-2.5 w-2.5 ${isValidating ? 'animate-spin' : ''}`} />
                     </Button>
-                    <Button
+                    <Button aria-label="Fechar"
                       variant="ghost"
                       size="icon"
                       className="h-5 w-5"

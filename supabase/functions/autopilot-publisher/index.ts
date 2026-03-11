@@ -32,7 +32,7 @@ serve(async (req) => {
 
     console.log('[autopilot-publisher] Found', schedules?.length || 0, 'active autopilot schedules');
 
-    const results: any[] = [];
+    const results: unknown[] = [];
 
     for (const schedule of schedules || []) {
       // Score is now 0-10, no need to divide by 100

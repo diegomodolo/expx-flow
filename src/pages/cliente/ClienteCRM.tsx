@@ -142,14 +142,14 @@ export function ClienteCRM() {
                       readOnly
                       className="font-mono text-sm"
                     />
-                    <Button 
+                    <Button aria-label="Copiar"
                       variant="outline"
                       size="icon"
                       onClick={handleCopyLink}
                     >
                       <Copy className="w-4 h-4" />
                     </Button>
-                    <Button
+                    <Button aria-label="Fechar"
                       variant="outline"
                       size="icon"
                       onClick={() => window.open(`/crm/${workspace.access_token}`, '_blank')}

@@ -242,7 +242,7 @@ async function validateUrl(url: string, urlId: string): Promise<ValidationResult
         final_url: finalUrl,
         content_length: totalBytes,
       }
-    } catch (getError: any) {
+    } catch (getError: unknown) {
       clearTimeout(getTimeoutId)
       clearTimeout(timeoutId)
       
@@ -257,10 +257,10 @@ async function validateUrl(url: string, urlId: string): Promise<ValidationResult
         final_url: finalUrl,
       }
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     const loadTime = Date.now() - startTime
-    
-    if (error.name === 'AbortError') {
+
+    if (error instanceof Error && error.name === 'AbortError') {
       return {
         url_id: urlId,
         status: 'timeout',
@@ -276,7 +276,7 @@ async function validateUrl(url: string, urlId: string): Promise<ValidationResult
       status: 'error',
       status_code: null,
       load_time_ms: loadTime,
-      error_message: error.message || 'Erro desconhecido',
+      error_message: error instanceof Error ? error.message : 'Erro desconhecido',
       final_url: null,
     }
   }
@@ -419,10 +419,10 @@ Deno.serve(async (req) => {
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Validation error:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : String(error) }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }

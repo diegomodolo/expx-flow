@@ -280,11 +280,12 @@ serve(async (req) => {
             case "audio":
               content = "[Áudio]";
               break;
-            case "document":
+            case "document": {
               // Try to get filename from content object
               const fileName = message.content?.fileName || message.fileName;
               content = fileName ? `📎 ${fileName}` : "[Documento]";
               break;
+            }
             case "sticker":
               content = "[Sticker]";
               break;
@@ -440,7 +441,7 @@ serve(async (req) => {
       conversationId = existingConversation.id;
       
       // Update conversation
-      const updateData: any = {
+      const updateData: Record<string, unknown> = {
         last_message_at: new Date().toISOString(),
         last_message_preview: content.substring(0, 100),
       };
@@ -529,7 +530,8 @@ serve(async (req) => {
 });
 
 // Handle reaction events from UazapiGO
-async function handleReactionEvent(supabase: any, payload: any): Promise<Response> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function handleReactionEvent(supabase: ReturnType<typeof createClient>, payload: any): Promise<Response> {
   try {
     const reaction = payload.reaction || payload.message?.reaction || {};
     const instanceToken = payload.token || null;
@@ -598,7 +600,8 @@ async function handleReactionEvent(supabase: any, payload: any): Promise<Respons
 
 // Handle message edit events from UazapiGO
 // UazapiGO sends: message.edited = "ORIGINAL_MESSAGE_ID" and message.content = "new text"
-async function handleMessageEditEvent(supabase: any, payload: any): Promise<Response> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function handleMessageEditEvent(supabase: ReturnType<typeof createClient>, payload: any): Promise<Response> {
   try {
     const message = payload.message || {};
     const instanceToken = payload.token || null;

@@ -171,7 +171,7 @@ function RoutineItem({ execution, onComplete, onSkip }: RoutineItemProps) {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
+                <Button aria-label="Ação"
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8 text-muted-foreground hover:text-foreground"

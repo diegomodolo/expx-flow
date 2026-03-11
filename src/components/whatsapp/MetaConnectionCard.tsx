@@ -169,7 +169,7 @@ export function MetaConnectionCard({
               onChange={(e) => setAccessToken(e.target.value)}
               className="pr-10"
             />
-            <Button
+            <Button aria-label="Avançar"
               type="button"
               variant="ghost"
               size="icon"
@@ -191,7 +191,7 @@ export function MetaConnectionCard({
             <Label>Callback URL</Label>
             <div className="flex gap-2">
               <Input value={webhookUrl} readOnly className="bg-muted" />
-              <Button variant="outline" size="icon" onClick={handleCopyWebhook}>
+              <Button aria-label="Copiar" variant="outline" size="icon" onClick={handleCopyWebhook}>
                 {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
               </Button>
             </div>
@@ -208,7 +208,7 @@ export function MetaConnectionCard({
                 value={verifyToken}
                 onChange={(e) => setVerifyToken(e.target.value)}
               />
-              <Button
+              <Button aria-label="Fechar"
                 variant="outline"
                 size="icon"
                 onClick={() => {

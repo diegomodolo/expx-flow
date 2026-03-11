@@ -127,7 +127,7 @@ serve(async (req) => {
     // Calculate date ranges based on trigger type
     const now = new Date();
     let periodStart: Date;
-    let periodEnd: Date = now;
+    const periodEnd: Date = now;
     let previousPeriodStart: Date;
     let previousPeriodEnd: Date;
 
@@ -294,8 +294,8 @@ serve(async (req) => {
 
     // Get templates
     const templates = trigger.templates || [];
-    const gestorTemplate = templates.find((t: any) => t.recipient_profile === 'gestor' && t.is_active);
-    const clienteTemplate = templates.find((t: any) => t.recipient_profile === 'cliente' && t.is_active);
+    const gestorTemplate = templates.find((t: { recipient_profile: string; is_active: boolean }) => t.recipient_profile === 'gestor' && t.is_active);
+    const clienteTemplate = templates.find((t: { recipient_profile: string; is_active: boolean }) => t.recipient_profile === 'cliente' && t.is_active);
 
     // Replace variables in message
     const replaceVariables = (template: string, vars: Record<string, string>) => {
@@ -357,7 +357,7 @@ serve(async (req) => {
       gatilho: trigger.trigger_name,
     };
 
-    const results: any[] = [];
+    const results: Record<string, unknown>[] = [];
 
     for (const recipient of recipients) {
       const template = recipient.profile === 'gestor' ? gestorTemplate : clienteTemplate;

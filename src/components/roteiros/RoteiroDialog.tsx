@@ -86,7 +86,7 @@ export function RoteiroDialog({ open, onOpenChange, onSave, roteiro, loading, pr
                     ))}
                   </SelectContent>
                 </Select>
-                <Button variant="outline" size="icon" onClick={() => setCatDialogOpen(true)}>
+                <Button aria-label="Adicionar" variant="outline" size="icon" onClick={() => setCatDialogOpen(true)}>
                   <Plus className="w-4 h-4" />
                 </Button>
               </div>

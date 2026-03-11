@@ -608,7 +608,7 @@ export default function RepositorioCriativos() {
                           {/* Navigation Arrows for Carousel */}
                           {isCarousel && (
                             <>
-                              <Button
+                              <Button aria-label="Voltar"
                                 variant="secondary"
                                 size="icon"
                                 className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full opacity-80 hover:opacity-100"
@@ -616,7 +616,7 @@ export default function RepositorioCriativos() {
                               >
                                 <ChevronLeft className="w-5 h-5" />
                               </Button>
-                              <Button
+                              <Button aria-label="Avançar"
                                 variant="secondary"
                                 size="icon"
                                 className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full opacity-80 hover:opacity-100"
