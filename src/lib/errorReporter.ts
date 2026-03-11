@@ -56,6 +56,9 @@ function isIgnoredError(message: string): boolean {
     "cancelled",
     "net::ERR_",
     "ChunkLoadError",
+    "Refresh Token",
+    "AuthApiError",
+    "AuthRetryableFetchError",
   ];
   return ignored.some((pattern) => message.includes(pattern));
 }

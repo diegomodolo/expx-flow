@@ -1,12 +1,22 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { User, Session } from '@supabase/supabase-js';
-import { useLocation } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+} from "react";
+import { User, Session } from "@supabase/supabase-js";
+import { useLocation } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: unknown }>;
+  signUp: (
+    email: string,
+    password: string,
+    fullName: string,
+  ) => Promise<{ error: unknown }>;
   signIn: (email: string, password: string) => Promise<{ error: unknown }>;
   signOut: () => Promise<{ error: unknown }>;
   loading: boolean;
@@ -23,7 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Public pages should not attempt to recover/refresh auth sessions.
   const isPublicRoute =
     /^\/(dashboard-publico|tv|social-tv|radar-tv|apresentacao|resultados|crm|report-lead-desqualificado)(\/|$)/.test(
-      location.pathname
+      location.pathname,
     );
 
   useEffect(() => {
@@ -64,11 +74,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       subscription = data.subscription;
 
       // THEN check for existing session
-      const { data: sessionData } = await supabase.auth.getSession();
-      if (!isMounted) return;
-      setSession(sessionData.session);
-      setUser(sessionData.session?.user ?? null);
-      setLoading(false);
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (!isMounted) return;
+        setSession(sessionData.session);
+        setUser(sessionData.session?.user ?? null);
+      } catch (err) {
+        // Refresh token expirado/inválido — limpar sessão silenciosamente
+        if (err instanceof Error && err.message.includes("Refresh Token")) {
+          await supabase.auth.signOut().catch(() => {});
+          if (!isMounted) return;
+          setSession(null);
+          setUser(null);
+        }
+      } finally {
+        if (isMounted) setLoading(false);
+      }
     };
 
     run();
@@ -85,11 +106,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       password,
       options: {
         data: {
-          full_name: fullName
-        }
-      }
+          full_name: fullName,
+        },
+      },
     });
-    
+
     // Se não há erro e não precisa confirmar email, o usuário já está logado
     return { error, data };
   };
@@ -97,7 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({
       email,
-      password
+      password,
     });
     return { error };
   };
@@ -113,20 +134,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signUp,
     signIn,
     signOut,
-    loading
+    loading,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }
