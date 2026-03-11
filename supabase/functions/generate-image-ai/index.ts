@@ -1,5 +1,4 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import { callAI } from "../_shared/ai-gateway.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin":
@@ -213,15 +212,43 @@ INSTRUÇÕES CRÍTICAS DE ESTILO (PRIORIDADE MÁXIMA):
       `Generating image with ${imagesLoaded}/${referenceImageUrls.length} reference images loaded. Prompt: ${textInstruction.substring(0, 200)}`,
     );
 
-    const aiResult = await callAI({
-      functionName: "generate-image-ai",
-      companyId,
-      systemPrompt: "",
-      userPrompt: textInstruction,
-      messages: [{ role: "user", content: messageContent }],
-    });
+    const openrouterApiKey = Deno.env.get("OPENROUTER_API_KEY") ?? "";
+    const imageResponse = await fetch(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${openrouterApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.0-flash-exp:free",
+          messages: [{ role: "user", content: messageContent }],
+          modalities: ["image", "text"],
+          max_tokens: 2048,
+        }),
+      },
+    );
 
-    const base64ImageUrl = aiResult.content;
+    if (!imageResponse.ok) {
+      const errText = await imageResponse.text();
+      throw new Error(
+        `OpenRouter image error (${imageResponse.status}): ${errText}`,
+      );
+    }
+
+    const imageData = await imageResponse.json();
+    const choice = imageData.choices?.[0]?.message;
+    // Image content may be in content array or directly as string
+    let base64ImageUrl = "";
+    if (Array.isArray(choice?.content)) {
+      const imgPart = choice.content.find(
+        (p: { type: string }) => p.type === "image_url",
+      );
+      base64ImageUrl = imgPart?.image_url?.url || "";
+    } else if (typeof choice?.content === "string") {
+      base64ImageUrl = choice.content;
+    }
 
     if (!base64ImageUrl) {
       return new Response(
@@ -290,7 +317,6 @@ INSTRUÇÕES CRÍTICAS DE ESTILO (PRIORIDADE MÁXIMA):
       JSON.stringify({
         success: true,
         image_url: persistentUrl,
-        text: textContent,
         reference_images_used: referenceImageUrls.length,
       }),
       {

@@ -229,6 +229,11 @@ export const AI_FUNCTIONS: AIFunctionDef[] = [
     label: "Imagem de Slide",
     category: "Vídeo & YouTube",
   },
+  {
+    functionName: "transcribe-youtube-video",
+    label: "Transcrição YouTube",
+    category: "Vídeo & YouTube",
+  },
 
   // Imagens & Carrosséis
   {

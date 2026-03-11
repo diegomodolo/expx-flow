@@ -14,14 +14,12 @@ export function useAIApiKey() {
       if (!companyId) return null;
       const { data, error } = await supabase
         .from("ai_api_keys")
-        .select("openrouter_api_key")
+        .select("id")
         .eq("company_id", companyId)
         .maybeSingle();
       if (error) throw error;
       if (!data) return null;
-      // Mascarar: mostrar apenas últimos 4 chars
-      const key = data.openrouter_api_key;
-      return "••••••" + key.slice(-4);
+      return "••••••••••";
     },
     enabled: !!companyId,
   });
