@@ -4,6 +4,7 @@ import {
   Droppable,
   Draggable,
   DropResult,
+  DragUpdate,
   DroppableProvided,
   DraggableProvided,
 } from "react-beautiful-dnd";
@@ -187,7 +188,7 @@ export function WorkspaceSidebar({
     }
   };
 
-  const handleDragUpdate = (update: unknown) => {
+  const handleDragUpdate = (update: DragUpdate) => {
     if (update.destination?.droppableId) {
       if (update.destination.droppableId === "root") {
         setDragOverFolderId("root");
