@@ -11,13 +11,13 @@ export interface OfflineConversion {
   event_time: number;
   value: number | null;
   currency: string;
-  status: 'pending' | 'sent' | 'error';
+  status: "pending" | "sent" | "error";
   meta_response: unknown;
   webhook_payload?: unknown;
   error_message: string | null;
   created_at: string;
   sent_at: string | null;
-  source?: 'webhook' | 'manual';
+  source?: "webhook" | "manual";
   custom_data?: unknown;
 }
 
@@ -28,7 +28,7 @@ export interface SendConversionParams {
   eventTime?: number;
   value?: number;
   currency?: string;
-  actionSource?: 'crm' | 'system_generated' | 'website' | 'app' | 'phone_call';
+  actionSource?: "crm" | "system_generated" | "website" | "app" | "phone_call";
   userData: {
     email?: string;
     phone?: string;
@@ -65,18 +65,18 @@ export const useOfflineConversions = (clientId: string) => {
     error,
     refetch,
   } = useQuery({
-    queryKey: ['offline-conversions', clientId, activeCompany?.company_id],
+    queryKey: ["offline-conversions", clientId, activeCompany?.company_id],
     queryFn: async () => {
       if (!clientId) return [];
 
       const { data, error } = await supabase
-        .from('offline_conversions')
-        .select('*')
-        .eq('client_id', clientId)
-        .order('created_at', { ascending: false });
+        .from("offline_conversions")
+        .select("*")
+        .eq("client_id", clientId)
+        .order("created_at", { ascending: false });
 
       if (error) {
-        console.error('Error fetching offline conversions:', error);
+        console.error("Error fetching offline conversions:", error);
         throw error;
       }
 
@@ -88,40 +88,42 @@ export const useOfflineConversions = (clientId: string) => {
   // Send a new offline conversion
   const sendConversionMutation = useMutation({
     mutationFn: async (params: SendConversionParams) => {
-      console.log('Sending offline conversion:', params);
-
-      const { data, error } = await supabase.functions.invoke('send-offline-conversion', {
-        body: params,
-      });
+      const { data, error } = await supabase.functions.invoke(
+        "send-offline-conversion",
+        {
+          body: params,
+        },
+      );
 
       if (error) {
-        console.error('Error calling send-offline-conversion:', error);
+        console.error("Error calling send-offline-conversion:", error);
         throw error;
       }
 
       if (!data.success) {
-        throw new Error(data.error || 'Failed to send offline conversion');
+        throw new Error(data.error || "Failed to send offline conversion");
       }
 
       return data;
     },
     onSuccess: (data) => {
-      console.log('Offline conversion sent successfully:', data);
-      
       toast({
         title: "Conversão enviada!",
         description: "A conversão offline foi registrada no Meta com sucesso.",
       });
 
       // Refetch conversions list
-      queryClient.invalidateQueries({ queryKey: ['offline-conversions', clientId] });
+      queryClient.invalidateQueries({
+        queryKey: ["offline-conversions", clientId],
+      });
     },
     onError: (error: unknown) => {
-      console.error('Error sending offline conversion:', error);
-      
+      console.error("Error sending offline conversion:", error);
+
       toast({
         title: "Erro ao enviar conversão",
-        description: error.message || "Não foi possível enviar a conversão offline.",
+        description:
+          error.message || "Não foi possível enviar a conversão offline.",
         variant: "destructive",
       });
     },
@@ -130,14 +132,14 @@ export const useOfflineConversions = (clientId: string) => {
   // Get timeline for specific lead
   const getLeadTimeline = async (leadId: string) => {
     const { data, error } = await supabase
-      .from('offline_conversions')
-      .select('*')
-      .eq('client_id', clientId)
+      .from("offline_conversions")
+      .select("*")
+      .eq("client_id", clientId)
       .or(`custom_data->lead_id.eq.${leadId}`)
-      .order('event_time', { ascending: true });
+      .order("event_time", { ascending: true });
 
     if (error) {
-      console.error('Error fetching lead timeline:', error);
+      console.error("Error fetching lead timeline:", error);
       return [];
     }
 

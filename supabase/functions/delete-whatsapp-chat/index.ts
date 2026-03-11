@@ -2,8 +2,10 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 interface DeleteChatPayload {
@@ -29,9 +31,9 @@ serve(async (req) => {
 
   try {
     const payload: DeleteChatPayload = await req.json();
-    const { 
-      company_id, 
-      instance_id, 
+    const {
+      company_id,
+      instance_id,
       phone,
       conversation_id,
       delete_chat_db = false,
@@ -42,19 +44,24 @@ serve(async (req) => {
 
     console.log("[delete-whatsapp-chat] Deleting chat for phone:", phone);
     console.log("[delete-whatsapp-chat] Instance:", instance_id);
-    console.log("[delete-whatsapp-chat] Options:", { delete_chat_db, delete_messages_db, delete_chat_whatsapp, delete_local });
+    console.log("[delete-whatsapp-chat] Options:", {
+      delete_chat_db,
+      delete_messages_db,
+      delete_chat_whatsapp,
+      delete_local,
+    });
 
     if (!company_id || !instance_id || !phone) {
       console.error("[delete-whatsapp-chat] Missing required fields");
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: "company_id, instance_id e phone são obrigatórios" 
+        JSON.stringify({
+          success: false,
+          error: "company_id, instance_id e phone são obrigatórios",
         }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, "Content-Type": "application/json" } 
-        }
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -69,14 +76,14 @@ serve(async (req) => {
     if (configError || !config) {
       console.error("[delete-whatsapp-chat] Config not found:", configError);
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: "Configuração do WhatsApp não encontrada" 
+        JSON.stringify({
+          success: false,
+          error: "Configuração do WhatsApp não encontrada",
         }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, "Content-Type": "application/json" } 
-        }
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -89,45 +96,51 @@ serve(async (req) => {
       .single();
 
     if (instanceError || !instance) {
-      console.error("[delete-whatsapp-chat] Instance not found:", instanceError);
+      console.error(
+        "[delete-whatsapp-chat] Instance not found:",
+        instanceError,
+      );
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: "Instância não encontrada" 
+        JSON.stringify({
+          success: false,
+          error: "Instância não encontrada",
         }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, "Content-Type": "application/json" } 
-        }
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
     const instanceToken = instance.uazapi_token;
-    const baseUrl = (config.uazapi_endpoint || config.uazapi_base_url)?.replace(/\/$/, "");
+    const baseUrl = (config.uazapi_endpoint || config.uazapi_base_url)?.replace(
+      /\/$/,
+      "",
+    );
 
     if (!baseUrl || !instanceToken) {
       console.error("[delete-whatsapp-chat] Missing base URL or token");
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: "Configuração incompleta da instância" 
+        JSON.stringify({
+          success: false,
+          error: "Configuração incompleta da instância",
         }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, "Content-Type": "application/json" } 
-        }
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
     let apiSuccess = true;
-    let apiData: any = null;
+    let apiData: unknown = null;
 
     // Only call provider API if we need to delete from WhatsApp or provider DB
     if (delete_chat_whatsapp || delete_chat_db || delete_messages_db) {
       // Call UazapiGO delete chat endpoint
       // POST /chat/delete
       const deleteUrl = `${baseUrl}/chat/delete`;
-      
+
       const deletePayload = {
         number: phone.replace(/\D/g, ""), // Clean phone number
         deleteChatDB: delete_chat_db,
@@ -136,13 +149,16 @@ serve(async (req) => {
       };
 
       console.log("[delete-whatsapp-chat] Calling API:", deleteUrl);
-      console.log("[delete-whatsapp-chat] Payload:", JSON.stringify(deletePayload));
+      console.log(
+        "[delete-whatsapp-chat] Payload:",
+        JSON.stringify(deletePayload),
+      );
 
       const apiResponse = await fetch(deleteUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "token": instanceToken,
+          token: instanceToken,
         },
         body: JSON.stringify(deletePayload),
       });
@@ -152,7 +168,11 @@ serve(async (req) => {
       } catch {
         apiData = null;
       }
-      console.log("[delete-whatsapp-chat] API Response:", apiResponse.status, JSON.stringify(apiData));
+      console.log(
+        "[delete-whatsapp-chat] API Response:",
+        apiResponse.status,
+        JSON.stringify(apiData),
+      );
 
       if (!apiResponse.ok) {
         console.error("[delete-whatsapp-chat] API error:", apiData);
@@ -163,7 +183,10 @@ serve(async (req) => {
 
     // Delete from our local Supabase DB if requested
     if (delete_local && conversation_id) {
-      console.log("[delete-whatsapp-chat] Deleting from local DB, conversation:", conversation_id);
+      console.log(
+        "[delete-whatsapp-chat] Deleting from local DB, conversation:",
+        conversation_id,
+      );
 
       // First delete all messages for this conversation
       const { error: messagesError } = await supabase
@@ -172,7 +195,10 @@ serve(async (req) => {
         .eq("conversation_id", conversation_id);
 
       if (messagesError) {
-        console.error("[delete-whatsapp-chat] Error deleting messages:", messagesError);
+        console.error(
+          "[delete-whatsapp-chat] Error deleting messages:",
+          messagesError,
+        );
       } else {
         console.log("[delete-whatsapp-chat] Local messages deleted");
       }
@@ -184,16 +210,19 @@ serve(async (req) => {
         .eq("id", conversation_id);
 
       if (conversationError) {
-        console.error("[delete-whatsapp-chat] Error deleting conversation:", conversationError);
+        console.error(
+          "[delete-whatsapp-chat] Error deleting conversation:",
+          conversationError,
+        );
         return new Response(
-          JSON.stringify({ 
-            success: false, 
-            error: "Erro ao deletar conversa do banco de dados local" 
+          JSON.stringify({
+            success: false,
+            error: "Erro ao deletar conversa do banco de dados local",
           }),
-          { 
-            status: 500, 
-            headers: { ...corsHeaders, "Content-Type": "application/json" } 
-          }
+          {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
         );
       } else {
         console.log("[delete-whatsapp-chat] Local conversation deleted");
@@ -203,28 +232,27 @@ serve(async (req) => {
     console.log("[delete-whatsapp-chat] Chat deleted successfully");
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         api_success: apiSuccess,
         data: apiData,
       }),
-      { 
-        status: 200, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
-      }
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
-
   } catch (error) {
     console.error("[delete-whatsapp-chat] Error:", error);
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error.message || "Erro interno ao deletar chat" 
+      JSON.stringify({
+        success: false,
+        error: error.message || "Erro interno ao deletar chat",
       }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
-      }
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 });

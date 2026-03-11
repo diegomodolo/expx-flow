@@ -18,10 +18,10 @@ export interface VisualCreative {
   caption?: string;
   image_url?: string;
   video_url?: string;
-  media_type?: 'image' | 'video';
+  media_type?: "image" | "video";
   generation_operation_id?: string;
   video_duration_seconds?: number;
-  status: 'generating' | 'completed' | 'failed' | 'error';
+  status: "generating" | "completed" | "failed" | "error";
   created_at: string;
   updated_at: string;
 }
@@ -44,22 +44,28 @@ export function useVisualCreatives() {
       setError(null);
 
       const { data, error: fetchError } = await supabase
-        .from('visual_creatives')
-        .select('*')
-        .eq('company_id', activeCompany.company_id)
-        .order('created_at', { ascending: false });
+        .from("visual_creatives")
+        .select("*")
+        .eq("company_id", activeCompany.company_id)
+        .order("created_at", { ascending: false });
 
       if (fetchError) {
         throw fetchError;
       }
 
-      setCreatives((data || []).map(item => ({
-        ...item,
-        status: item.status as 'generating' | 'completed' | 'failed' | 'error',
-        media_type: (item.media_type as 'image' | 'video') || 'image'
-      })));
+      setCreatives(
+        (data || []).map((item) => ({
+          ...item,
+          status: item.status as
+            | "generating"
+            | "completed"
+            | "failed"
+            | "error",
+          media_type: (item.media_type as "image" | "video") || "image",
+        })),
+      );
     } catch (err: unknown) {
-      console.error('Error fetching visual creatives:', err);
+      console.error("Error fetching visual creatives:", err);
       setError(err.message);
       toast({
         title: "Erro ao carregar criativos",
@@ -71,29 +77,34 @@ export function useVisualCreatives() {
     }
   };
 
-  const createCreative = async (creativeData: Omit<VisualCreative, 'id' | 'created_at' | 'updated_at'>) => {
+  const createCreative = async (
+    creativeData: Omit<VisualCreative, "id" | "created_at" | "updated_at">,
+  ) => {
     try {
-      console.log('Creating visual creative:', creativeData);
-      
       const { data, error } = await supabase
-        .from('visual_creatives')
+        .from("visual_creatives")
         .insert([creativeData])
         .select()
         .single();
 
       if (error) {
-        console.error('Supabase error creating creative:', error);
+        console.error("Supabase error creating creative:", error);
         throw error;
       }
 
-      console.log('Visual creative created successfully:', data);
-
       // Atualizar lista local
-      setCreatives(prev => [{
-        ...data,
-        status: data.status as 'generating' | 'completed' | 'failed' | 'error',
-        media_type: (data.media_type as 'image' | 'video') || 'image'
-      }, ...prev]);
+      setCreatives((prev) => [
+        {
+          ...data,
+          status: data.status as
+            | "generating"
+            | "completed"
+            | "failed"
+            | "error",
+          media_type: (data.media_type as "image" | "video") || "image",
+        },
+        ...prev,
+      ]);
 
       toast({
         title: "Criativo salvo",
@@ -102,7 +113,7 @@ export function useVisualCreatives() {
 
       return data;
     } catch (err: unknown) {
-      console.error('Error creating creative:', err);
+      console.error("Error creating creative:", err);
       toast({
         title: "Erro ao salvar criativo",
         description: err.message || "Não foi possível salvar o criativo.",
@@ -112,7 +123,10 @@ export function useVisualCreatives() {
     }
   };
 
-  const updateCreative = async (id: string, updates: Partial<VisualCreative>) => {
+  const updateCreative = async (
+    id: string,
+    updates: Partial<VisualCreative>,
+  ) => {
     try {
       // For now, just show success message
       toast({
@@ -120,7 +134,7 @@ export function useVisualCreatives() {
         description: "O criativo foi atualizado com sucesso.",
       });
     } catch (err: unknown) {
-      console.error('Error updating creative:', err);
+      console.error("Error updating creative:", err);
       toast({
         title: "Erro ao atualizar criativo",
         description: "Não foi possível atualizar o criativo.",
@@ -138,7 +152,7 @@ export function useVisualCreatives() {
         description: "O criativo foi removido do histórico.",
       });
     } catch (err: unknown) {
-      console.error('Error deleting creative:', err);
+      console.error("Error deleting creative:", err);
       toast({
         title: "Erro ao remover criativo",
         description: "Não foi possível remover o criativo.",

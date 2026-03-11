@@ -46,16 +46,31 @@ function categorize(message: string): { category: string; cleanTitle: string } {
   const lower = message.toLowerCase().trim();
 
   if (/^feat(\(.+?\))?:\s*/i.test(lower)) {
-    return { category: "feature", cleanTitle: message.replace(/^feat(\(.+?\))?:\s*/i, "") };
+    return {
+      category: "feature",
+      cleanTitle: message.replace(/^feat(\(.+?\))?:\s*/i, ""),
+    };
   }
   if (/^fix(\(.+?\))?:\s*/i.test(lower)) {
-    return { category: "fix", cleanTitle: message.replace(/^fix(\(.+?\))?:\s*/i, "") };
+    return {
+      category: "fix",
+      cleanTitle: message.replace(/^fix(\(.+?\))?:\s*/i, ""),
+    };
   }
   if (/^(refactor|perf|chore)(\(.+?\))?:\s*/i.test(lower)) {
-    return { category: "improvement", cleanTitle: message.replace(/^(refactor|perf|chore)(\(.+?\))?:\s*/i, "") };
+    return {
+      category: "improvement",
+      cleanTitle: message.replace(/^(refactor|perf|chore)(\(.+?\))?:\s*/i, ""),
+    };
   }
   if (/^(docs|style|test|build|ci)(\(.+?\))?:\s*/i.test(lower)) {
-    return { category: "other", cleanTitle: message.replace(/^(docs|style|test|build|ci)(\(.+?\))?:\s*/i, "") };
+    return {
+      category: "other",
+      cleanTitle: message.replace(
+        /^(docs|style|test|build|ci)(\(.+?\))?:\s*/i,
+        "",
+      ),
+    };
   }
 
   return { category: "other", cleanTitle: message };
@@ -69,7 +84,11 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 async function generateFriendlyTitles(
-  entries: Array<{ title: string; description: string | null; category: string }>
+  entries: Array<{
+    title: string;
+    description: string | null;
+    category: string;
+  }>,
 ): Promise<string[]> {
   const openaiKey = Deno.env.get("OPENAI_API_KEY");
   if (!openaiKey) {
@@ -80,7 +99,9 @@ async function generateFriendlyTitles(
   const itemsList = entries
     .map((e, i) => {
       const catLabel = CATEGORY_LABELS[e.category] || "Atualização";
-      const desc = e.description ? ` | Descrição: ${e.description.substring(0, 200)}` : "";
+      const desc = e.description
+        ? ` | Descrição: ${e.description.substring(0, 200)}`
+        : "";
       return `${i + 1}. [${catLabel}] "${e.title}"${desc}`;
     })
     .join("\n");
@@ -127,7 +148,9 @@ Regras:
     const content: string = data.choices?.[0]?.message?.content || "";
 
     // Parse numbered lines
-    const lines = content.split("\n").filter((l: string) => /^\d+\.\s/.test(l.trim()));
+    const lines = content
+      .split("\n")
+      .filter((l: string) => /^\d+\.\s/.test(l.trim()));
     return entries.map((e, i) => {
       const line = lines[i];
       if (line) {
@@ -157,7 +180,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
     // Get last published_at from release_notes
@@ -180,7 +203,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Fetch commits from main
     const commitsRes = await fetch(
       `https://api.github.com/repos/${repoOwner}/${repoName}/commits?sha=main&since=${sinceDate}&per_page=100`,
-      { headers: ghHeaders }
+      { headers: ghHeaders },
     );
 
     if (!commitsRes.ok) {
@@ -194,7 +217,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Fetch merged PRs
     const prsRes = await fetch(
       `https://api.github.com/repos/${repoOwner}/${repoName}/pulls?state=closed&sort=updated&direction=desc&per_page=100`,
-      { headers: ghHeaders }
+      { headers: ghHeaders },
     );
 
     if (!prsRes.ok) {
@@ -205,12 +228,12 @@ const handler = async (req: Request): Promise<Response> => {
 
     const allPrs: GitHubPR[] = await prsRes.json();
     const mergedPrs = allPrs.filter(
-      (pr) => pr.merged_at && new Date(pr.merged_at) >= new Date(sinceDate)
+      (pr) => pr.merged_at && new Date(pr.merged_at) >= new Date(sinceDate),
     );
 
     // Build set of merge commit SHAs from PRs (to deduplicate)
     const prMergeCommitShas = new Set(
-      mergedPrs.map((pr) => pr.merge_commit_sha).filter(Boolean)
+      mergedPrs.map((pr) => pr.merge_commit_sha).filter(Boolean),
     );
 
     // Process PRs
@@ -252,10 +275,9 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     if (entries.length === 0) {
-      return new Response(
-        JSON.stringify({ success: true, synced_count: 0 }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ success: true, synced_count: 0 }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Generate friendly titles using AI
@@ -276,18 +298,16 @@ const handler = async (req: Request): Promise<Response> => {
 
     return new Response(
       JSON.stringify({ success: true, synced_count: entries.length }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (error: unknown) {
     console.error("Erro sync-release-notes:", error);
-    const message = error instanceof Error ? error.message : "Erro desconhecido";
-    return new Response(
-      JSON.stringify({ success: false, error: message }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+    const message =
+      error instanceof Error ? error.message : "Erro desconhecido";
+    return new Response(JSON.stringify({ success: false, error: message }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 };
 

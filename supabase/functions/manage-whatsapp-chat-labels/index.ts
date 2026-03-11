@@ -2,8 +2,10 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 interface ManageLabelsPayload {
@@ -26,14 +28,30 @@ serve(async (req) => {
 
   try {
     const payload: ManageLabelsPayload = await req.json();
-    const { company_id, instance_id, phone, label_ids, add_label_id, remove_label_id } = payload;
+    const {
+      company_id,
+      instance_id,
+      phone,
+      label_ids,
+      add_label_id,
+      remove_label_id,
+    } = payload;
 
-    console.log("[manage-whatsapp-chat-labels] Managing labels for phone:", phone);
+    console.log(
+      "[manage-whatsapp-chat-labels] Managing labels for phone:",
+      phone,
+    );
 
     if (!company_id || !instance_id || !phone) {
       return new Response(
-        JSON.stringify({ success: false, error: "company_id, instance_id e phone são obrigatórios" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          success: false,
+          error: "company_id, instance_id e phone são obrigatórios",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -47,8 +65,14 @@ serve(async (req) => {
 
     if (configError || !config) {
       return new Response(
-        JSON.stringify({ success: false, error: "Configuração do WhatsApp não encontrada" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          success: false,
+          error: "Configuração do WhatsApp não encontrada",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -62,8 +86,14 @@ serve(async (req) => {
 
     if (instanceError || !instance?.uazapi_token) {
       return new Response(
-        JSON.stringify({ success: false, error: "Instância não encontrada ou sem token" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          success: false,
+          error: "Instância não encontrada ou sem token",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -76,8 +106,8 @@ serve(async (req) => {
       formattedPhone = "55" + formattedPhone;
     }
 
-    const body: any = { number: formattedPhone };
-    
+    const body: unknown = { number: formattedPhone };
+
     // Only one operation at a time
     if (label_ids !== undefined) {
       body.labelids = label_ids;
@@ -87,18 +117,29 @@ serve(async (req) => {
       body.remove_labelid = remove_label_id;
     } else {
       return new Response(
-        JSON.stringify({ success: false, error: "Especifique label_ids, add_label_id ou remove_label_id" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          success: false,
+          error: "Especifique label_ids, add_label_id ou remove_label_id",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
-    console.log("[manage-whatsapp-chat-labels] Calling:", url, "with body:", body);
+    console.log(
+      "[manage-whatsapp-chat-labels] Calling:",
+      url,
+      "with body:",
+      body,
+    );
 
     const apiResponse = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "token": instance.uazapi_token,
+        token: instance.uazapi_token,
       },
       body: JSON.stringify(body),
     });
@@ -108,21 +149,29 @@ serve(async (req) => {
 
     if (!apiResponse.ok) {
       return new Response(
-        JSON.stringify({ success: false, error: apiData.message || "Erro ao gerenciar etiquetas do chat" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          success: false,
+          error: apiData.message || "Erro ao gerenciar etiquetas do chat",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
-    return new Response(
-      JSON.stringify({ success: true, data: apiData }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-
+    return new Response(JSON.stringify({ success: true, data: apiData }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (error) {
     console.error("[manage-whatsapp-chat-labels] Error:", error);
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 });

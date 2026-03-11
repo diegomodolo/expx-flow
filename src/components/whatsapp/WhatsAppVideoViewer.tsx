@@ -1,9 +1,18 @@
 import { useState, useCallback, useEffect } from "react";
 import { Video as VideoIcon, Download, Loader2, X, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogClose } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogClose,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { cn } from "@/lib/utils";
-import { downloadAndCacheMedia, hasCachedMedia } from "@/hooks/useWhatsAppMediaCache";
+import {
+  downloadAndCacheMedia,
+  hasCachedMedia,
+} from "@/hooks/useWhatsAppMediaCache";
 
 interface WhatsAppVideoViewerProps {
   mediaUrl: string | null;
@@ -32,7 +41,6 @@ export function WhatsAppVideoViewer({
   // Check if we have cached media on mount
   useEffect(() => {
     if (hasCachedMedia(cachedMediaUrl)) {
-      console.log("[WhatsAppVideoViewer] Using cached video URL:", cachedMediaUrl);
       setVideoSrc(cachedMediaUrl!);
       setVideoLoaded(true);
       // Generate thumbnail from cached video
@@ -46,11 +54,11 @@ export function WhatsAppVideoViewer({
     video.crossOrigin = "anonymous";
     video.preload = "metadata";
     video.src = videoUrl;
-    
+
     video.onloadeddata = () => {
       video.currentTime = 1; // Seek to 1 second for thumbnail
     };
-    
+
     video.onseeked = () => {
       try {
         const canvas = document.createElement("canvas");
@@ -63,13 +71,11 @@ export function WhatsAppVideoViewer({
           setThumbnailSrc(thumbUrl);
         }
       } catch (e) {
-        console.log("[WhatsAppVideoViewer] Thumbnail generation failed:", e);
+        // intentionally empty
       }
     };
-    
-    video.onerror = () => {
-      console.log("[WhatsAppVideoViewer] Video metadata load failed for thumbnail");
-    };
+
+    video.onerror = () => {};
   }, []);
 
   const handleDownload = useCallback(async () => {
@@ -83,7 +89,9 @@ export function WhatsAppVideoViewer({
       // Try direct URL as fallback
       if (mediaUrl) {
         try {
-          const testResponse = await fetch(mediaUrl, { method: "HEAD" }).catch(() => null);
+          const testResponse = await fetch(mediaUrl, { method: "HEAD" }).catch(
+            () => null,
+          );
           if (testResponse?.ok) {
             setVideoSrc(mediaUrl);
             setVideoLoaded(true);
@@ -102,8 +110,6 @@ export function WhatsAppVideoViewer({
     setError(null);
 
     try {
-      console.log("[WhatsAppVideoViewer] Downloading and caching video...");
-
       const result = await downloadAndCacheMedia({
         instanceId,
         externalMessageId: messageId,
@@ -129,18 +135,24 @@ export function WhatsAppVideoViewer({
       setVideoSrc(url);
       setVideoLoaded(true);
       generateThumbnail(url);
-      console.log("[WhatsAppVideoViewer] Video ready, cached:", !!cachedUrl);
     } catch (err: unknown) {
       console.error("[WhatsAppVideoViewer] Error:", err);
       setError(err.message || "Erro ao carregar vídeo");
     } finally {
       setIsDownloading(false);
     }
-  }, [videoSrc, instanceId, messageId, supabaseMessageId, mediaUrl, generateThumbnail]);
+  }, [
+    videoSrc,
+    instanceId,
+    messageId,
+    supabaseMessageId,
+    mediaUrl,
+    generateThumbnail,
+  ]);
 
   const handleSaveVideo = useCallback(() => {
     if (!videoSrc) return;
-    
+
     const link = document.createElement("a");
     link.href = videoSrc;
     link.download = `whatsapp_video_${Date.now()}.mp4`;
@@ -162,7 +174,7 @@ export function WhatsAppVideoViewer({
   if (videoLoaded && videoSrc) {
     return (
       <>
-        <div 
+        <div
           className="relative cursor-pointer group rounded-lg overflow-hidden"
           onClick={() => setIsModalOpen(true)}
         >
@@ -173,14 +185,16 @@ export function WhatsAppVideoViewer({
               className="max-w-full max-h-60 object-cover"
             />
           ) : (
-            <div className={cn(
-              "w-full h-40 flex items-center justify-center",
-              isOutgoing ? "bg-primary-foreground/10" : "bg-muted/50"
-            )}>
+            <div
+              className={cn(
+                "w-full h-40 flex items-center justify-center",
+                isOutgoing ? "bg-primary-foreground/10" : "bg-muted/50",
+              )}
+            >
               <VideoIcon className="h-12 w-12 text-muted-foreground" />
             </div>
           )}
-          
+
           {/* Play button overlay */}
           <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors flex items-center justify-center">
             <div className="w-14 h-14 rounded-full bg-black/60 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -192,10 +206,13 @@ export function WhatsAppVideoViewer({
         {/* Modal for video player */}
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
           <DialogContent className="max-w-[90vw] max-h-[90vh] p-0 overflow-hidden bg-black/95 border-none">
+            <VisuallyHidden>
+              <DialogTitle>Vídeo do WhatsApp</DialogTitle>
+            </VisuallyHidden>
             <DialogClose className="absolute top-4 right-4 z-10 rounded-full bg-black/50 p-2 text-white hover:bg-black/70 transition-colors">
               <X className="h-5 w-5" />
             </DialogClose>
-            
+
             <div className="relative flex items-center justify-center w-full h-full min-h-[50vh]">
               <video
                 src={videoSrc}
@@ -225,39 +242,47 @@ export function WhatsAppVideoViewer({
 
   // Show placeholder with download button
   return (
-    <div 
+    <div
       className={cn(
         "flex flex-col items-center justify-center p-6 rounded-lg cursor-pointer transition-colors",
-        isOutgoing 
-          ? "bg-primary-foreground/10 hover:bg-primary-foreground/20" 
-          : "bg-muted/50 hover:bg-muted"
+        isOutgoing
+          ? "bg-primary-foreground/10 hover:bg-primary-foreground/20"
+          : "bg-muted/50 hover:bg-muted",
       )}
       onClick={handleDownload}
     >
-      <div className={cn(
-        "w-16 h-16 rounded-full flex items-center justify-center mb-3",
-        isOutgoing ? "bg-primary-foreground/20" : "bg-muted"
-      )}>
+      <div
+        className={cn(
+          "w-16 h-16 rounded-full flex items-center justify-center mb-3",
+          isOutgoing ? "bg-primary-foreground/20" : "bg-muted",
+        )}
+      >
         {isDownloading ? (
-          <Loader2 className={cn(
-            "h-8 w-8 animate-spin",
-            isOutgoing ? "text-primary-foreground" : "text-muted-foreground"
-          )} />
+          <Loader2
+            className={cn(
+              "h-8 w-8 animate-spin",
+              isOutgoing ? "text-primary-foreground" : "text-muted-foreground",
+            )}
+          />
         ) : (
-          <VideoIcon className={cn(
-            "h-8 w-8",
-            isOutgoing ? "text-primary-foreground" : "text-muted-foreground"
-          )} />
+          <VideoIcon
+            className={cn(
+              "h-8 w-8",
+              isOutgoing ? "text-primary-foreground" : "text-muted-foreground",
+            )}
+          />
         )}
       </div>
-      
-      <span className={cn(
-        "text-sm font-medium mb-2",
-        isOutgoing ? "text-primary-foreground" : "text-foreground"
-      )}>
+
+      <span
+        className={cn(
+          "text-sm font-medium mb-2",
+          isOutgoing ? "text-primary-foreground" : "text-foreground",
+        )}
+      >
         Vídeo
       </span>
-      
+
       <Button
         variant={isOutgoing ? "secondary" : "outline"}
         size="sm"

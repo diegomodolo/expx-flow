@@ -22,11 +22,16 @@ export function useAgentSkills(agentId: string) {
     queryFn: async () => {
       const [{ data: skills }, { data: enabled }] = await Promise.all([
         supabase.from("ia_agent_skills").select("*").order("category, name"),
-        supabase.from("ia_agent_enabled_skills").select("skill_id").eq("agent_id", agentId),
+        supabase
+          .from("ia_agent_enabled_skills")
+          .select("skill_id")
+          .eq("agent_id", agentId),
       ]);
 
       const allSkills = (skills as AgentSkill[]) || [];
-      const enabledSkillIds = new Set((enabled || []).map((e: { skill_id: string }) => e.skill_id));
+      const enabledSkillIds = new Set(
+        (enabled || []).map((e: { skill_id: string }) => e.skill_id),
+      );
 
       return { allSkills, enabledSkillIds };
     },
@@ -37,7 +42,13 @@ export function useAgentSkills(agentId: string) {
   const enabledSkillIds = data?.enabledSkillIds || new Set<string>();
 
   const toggleSkillMutation = useMutation({
-    mutationFn: async ({ skillId, enabled }: { skillId: string; enabled: boolean }) => {
+    mutationFn: async ({
+      skillId,
+      enabled,
+    }: {
+      skillId: string;
+      enabled: boolean;
+    }) => {
       if (enabled) {
         const skill = allSkills.find((s) => s.id === skillId);
         const autoEnableIds: string[] = [skillId];
@@ -52,9 +63,11 @@ export function useAgentSkills(agentId: string) {
 
         const { error } = await supabase
           .from("ia_agent_enabled_skills")
-          .insert(autoEnableIds.map((id) => ({ agent_id: agentId, skill_id: id })));
+          .insert(
+            autoEnableIds.map((id) => ({ agent_id: agentId, skill_id: id })),
+          );
         if (error) throw error;
-        
+
         return { autoEnabled: autoEnableIds.length > 1 };
       } else {
         const { error } = await supabase
@@ -115,18 +128,22 @@ export function useAgentSkills(agentId: string) {
     },
   });
 
-  const skillsByCategory = allSkills.reduce<Record<string, AgentSkill[]>>((acc, skill) => {
-    if (!acc[skill.category]) acc[skill.category] = [];
-    acc[skill.category].push(skill);
-    return acc;
-  }, {});
+  const skillsByCategory = allSkills.reduce<Record<string, AgentSkill[]>>(
+    (acc, skill) => {
+      if (!acc[skill.category]) acc[skill.category] = [];
+      acc[skill.category].push(skill);
+      return acc;
+    },
+    {},
+  );
 
   return {
     allSkills,
     enabledSkillIds,
     skillsByCategory,
     loading,
-    toggleSkill: async (skillId: string, enabled: boolean) => toggleSkillMutation.mutateAsync({ skillId, enabled }).catch(() => {}),
+    toggleSkill: async (skillId: string, enabled: boolean) =>
+      toggleSkillMutation.mutateAsync({ skillId, enabled }).catch(() => {}),
     enableAll: async () => enableAllMutation.mutateAsync().catch(() => {}),
     disableAll: async () => disableAllMutation.mutateAsync().catch(() => {}),
     enabledCount: enabledSkillIds.size,

@@ -1,5 +1,12 @@
 import { useState, useEffect } from "react";
-import { Check, ChevronsUpDown, Link2, Link2Off, Loader2, Building2 } from "lucide-react";
+import {
+  Check,
+  ChevronsUpDown,
+  Link2,
+  Link2Off,
+  Loader2,
+  Building2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -15,7 +22,11 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -28,7 +39,11 @@ interface WhatsAppClientLinkerProps {
   companyId: string | undefined;
   conversationPhone?: string; // Phone number from the conversation
   conversationContactName?: string | null; // Contact name from the conversation
-  onClientChange?: (clientId: string | null, clientName: string | null, clientLogoUrl?: string | null) => void;
+  onClientChange?: (
+    clientId: string | null,
+    clientName: string | null,
+    clientLogoUrl?: string | null,
+  ) => void;
   variant?: "badge" | "button" | "compact";
 }
 
@@ -43,9 +58,13 @@ export function WhatsAppClientLinker({
 }: WhatsAppClientLinkerProps) {
   const [open, setOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [selectedClientId, setSelectedClientId] = useState<string | null>(currentClientId);
-  const [selectedClientName, setSelectedClientName] = useState<string | null>(null);
-  
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(
+    currentClientId,
+  );
+  const [selectedClientName, setSelectedClientName] = useState<string | null>(
+    null,
+  );
+
   const { clients, loading: isLoadingClients } = useClients();
   const queryClient = useQueryClient();
 
@@ -60,7 +79,11 @@ export function WhatsAppClientLinker({
     }
   }, [currentClientId, clients]);
 
-  const handleSelect = async (clientId: string | null, conversationPhone?: string, conversationContactName?: string) => {
+  const handleSelect = async (
+    clientId: string | null,
+    conversationPhone?: string,
+    conversationContactName?: string,
+  ) => {
     if (clientId === selectedClientId) {
       setOpen(false);
       return;
@@ -76,8 +99,8 @@ export function WhatsAppClientLinker({
 
       if (error) throw error;
 
-      const selectedClient = clientId 
-        ? clients.find((c) => c.id === clientId) 
+      const selectedClient = clientId
+        ? clients.find((c) => c.id === clientId)
         : null;
       const clientName = selectedClient?.name || null;
       const clientLogoUrl = selectedClient?.avatar || null;
@@ -91,7 +114,11 @@ export function WhatsAppClientLinker({
 
       // If linking to a client, also create a contact record if it doesn't exist
       if (clientId && conversationPhone) {
-        await syncContactToClient(clientId, conversationPhone, conversationContactName || conversationPhone);
+        await syncContactToClient(
+          clientId,
+          conversationPhone,
+          conversationContactName || conversationPhone,
+        );
       }
 
       if (clientId) {
@@ -109,7 +136,11 @@ export function WhatsAppClientLinker({
   };
 
   // Sync the WhatsApp contact to the client's contact list
-  const syncContactToClient = async (clientId: string, phone: string, contactName: string) => {
+  const syncContactToClient = async (
+    clientId: string,
+    phone: string,
+    contactName: string,
+  ) => {
     if (!companyId) return;
 
     try {
@@ -128,15 +159,13 @@ export function WhatsAppClientLinker({
       }
 
       // Create new contact
-      await supabase
-        .from("whatsapp_client_contacts")
-        .insert({
-          company_id: companyId,
-          client_id: clientId,
-          contact_name: contactName,
-          phone: phone,
-          is_active: true,
-        });
+      await supabase.from("whatsapp_client_contacts").insert({
+        company_id: companyId,
+        client_id: clientId,
+        contact_name: contactName,
+        phone: phone,
+        is_active: true,
+      });
     } catch (err) {
       console.error("[WhatsAppClientLinker] Error syncing contact:", err);
       // Don't show error to user, this is a background sync
@@ -164,7 +193,13 @@ export function WhatsAppClientLinker({
               clients={clients}
               isLoading={isLoadingClients}
               selectedClientId={selectedClientId}
-              onSelect={(clientId) => handleSelect(clientId, conversationPhone, conversationContactName)}
+              onSelect={(clientId) =>
+                handleSelect(
+                  clientId,
+                  conversationPhone,
+                  conversationContactName,
+                )
+              }
             />
           </PopoverContent>
         </Popover>
@@ -174,8 +209,8 @@ export function WhatsAppClientLinker({
     return (
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
-          <Badge 
-            variant="secondary" 
+          <Badge
+            variant="secondary"
             className="cursor-pointer hover:bg-secondary/80 gap-1 text-xs font-normal"
           >
             <Building2 className="h-3 w-3" />
@@ -187,7 +222,9 @@ export function WhatsAppClientLinker({
             clients={clients}
             isLoading={isLoadingClients}
             selectedClientId={selectedClientId}
-            onSelect={(clientId) => handleSelect(clientId, conversationPhone, conversationContactName)}
+            onSelect={(clientId) =>
+              handleSelect(clientId, conversationPhone, conversationContactName)
+            }
           />
         </PopoverContent>
       </Popover>
@@ -200,8 +237,8 @@ export function WhatsAppClientLinker({
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           {selectedClient ? (
-            <Badge 
-              variant="outline" 
+            <Badge
+              variant="outline"
               className="cursor-pointer hover:bg-accent gap-1.5 py-1"
             >
               <Building2 className="h-3.5 w-3.5" />
@@ -209,8 +246,8 @@ export function WhatsAppClientLinker({
               {isUpdating && <Loader2 className="h-3 w-3 animate-spin" />}
             </Badge>
           ) : (
-            <Badge 
-              variant="outline" 
+            <Badge
+              variant="outline"
               className="cursor-pointer hover:bg-accent gap-1.5 py-1 text-muted-foreground"
             >
               <Link2Off className="h-3.5 w-3.5" />
@@ -224,7 +261,9 @@ export function WhatsAppClientLinker({
             clients={clients}
             isLoading={isLoadingClients}
             selectedClientId={selectedClientId}
-            onSelect={(clientId) => handleSelect(clientId, conversationPhone, conversationContactName)}
+            onSelect={(clientId) =>
+              handleSelect(clientId, conversationPhone, conversationContactName)
+            }
           />
         </PopoverContent>
       </Popover>
@@ -237,7 +276,8 @@ export function WhatsAppClientLinker({
       <Tooltip>
         <TooltipTrigger asChild>
           <PopoverTrigger asChild>
-            <Button aria-label="Fechar"
+            <Button
+              aria-label="Fechar"
               variant={selectedClient ? "secondary" : "ghost"}
               size="icon"
               disabled={isUpdating}
@@ -253,8 +293,8 @@ export function WhatsAppClientLinker({
           </PopoverTrigger>
         </TooltipTrigger>
         <TooltipContent>
-          {selectedClient 
-            ? `Vinculado: ${selectedClient.name}` 
+          {selectedClient
+            ? `Vinculado: ${selectedClient.name}`
             : "Vincular a cliente"}
         </TooltipContent>
       </Tooltip>
@@ -263,7 +303,9 @@ export function WhatsAppClientLinker({
           clients={clients}
           isLoading={isLoadingClients}
           selectedClientId={selectedClientId}
-          onSelect={(clientId) => handleSelect(clientId, conversationPhone, conversationContactName)}
+          onSelect={(clientId) =>
+            handleSelect(clientId, conversationPhone, conversationContactName)
+          }
         />
       </PopoverContent>
     </Popover>
@@ -300,7 +342,7 @@ function ClientSelector({
                 onSelect={() => onSelect(null)}
                 className={cn(
                   "flex items-center gap-2",
-                  !selectedClientId && "bg-accent"
+                  !selectedClientId && "bg-accent",
                 )}
               >
                 <Link2Off className="h-4 w-4 text-muted-foreground" />
@@ -316,14 +358,16 @@ function ClientSelector({
                   onSelect={() => onSelect(client.id)}
                   className={cn(
                     "flex items-center gap-2",
-                    selectedClientId === client.id && "bg-accent"
+                    selectedClientId === client.id && "bg-accent",
                   )}
                 >
                   <Building2 className="h-4 w-4 text-muted-foreground" />
                   <div className="flex flex-col">
                     <span className="font-medium">{client.name}</span>
                     {client.company && (
-                      <span className="text-xs text-muted-foreground">{client.company}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {client.company}
+                      </span>
                     )}
                   </div>
                   {selectedClientId === client.id && (

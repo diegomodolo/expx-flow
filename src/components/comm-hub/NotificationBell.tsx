@@ -1,16 +1,27 @@
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-import { useCompany } from '@/contexts/CompanyContext';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
-import { Bell, CheckCheck, MessageSquare, ClipboardList, AlertTriangle, Sparkles } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { formatDistanceToNow, parseISO } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useCompany } from "@/contexts/CompanyContext";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
+import {
+  Bell,
+  CheckCheck,
+  MessageSquare,
+  ClipboardList,
+  AlertTriangle,
+  Sparkles,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { formatDistanceToNow, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface Notification {
   id: string;
@@ -34,10 +45,10 @@ const priorityIcons: Record<string, typeof MessageSquare> = {
 };
 
 const priorityColors: Record<string, string> = {
-  urgent: 'text-destructive',
-  high: 'text-warning',
-  normal: 'text-primary',
-  low: 'text-muted-foreground',
+  urgent: "text-destructive",
+  high: "text-warning",
+  normal: "text-primary",
+  low: "text-muted-foreground",
 };
 
 export function NotificationBell() {
@@ -47,14 +58,14 @@ export function NotificationBell() {
   const queryClient = useQueryClient();
 
   const { data: notifications = [] } = useQuery<Notification[]>({
-    queryKey: ['internal-notifications', user?.id],
+    queryKey: ["internal-notifications", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
       const { data, error } = await supabase
-        .from('internal_notifications' as unknown)
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
+        .from("internal_notifications" as unknown)
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
         .limit(30);
 
       if (error) throw error;
@@ -64,56 +75,67 @@ export function NotificationBell() {
     refetchInterval: 15000,
   });
 
-  const unreadCount = notifications.filter(n => !n.is_read).length;
+  const unreadCount = notifications.filter((n) => !n.is_read).length;
 
   const markAllRead = useMutation({
     mutationFn: async () => {
       if (!user?.id) return;
       const { error } = await supabase
-        .from('internal_notifications' as unknown)
+        .from("internal_notifications" as unknown)
         .update({ is_read: true })
-        .eq('user_id', user.id)
-        .eq('is_read', false);
+        .eq("user_id", user.id)
+        .eq("is_read", false);
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['internal-notifications', user?.id] });
+      queryClient.invalidateQueries({
+        queryKey: ["internal-notifications", user?.id],
+      });
     },
   });
 
   const markOneRead = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from('internal_notifications' as unknown)
+        .from("internal_notifications" as unknown)
         .update({ is_read: true })
-        .eq('id', id);
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['internal-notifications', user?.id] });
+      queryClient.invalidateQueries({
+        queryKey: ["internal-notifications", user?.id],
+      });
     },
   });
 
   const getTypeIcon = (n: Notification) => {
-    if (n.type === 'task') return ClipboardList;
+    if (n.type === "task") return ClipboardList;
     return priorityIcons[n.priority] || MessageSquare;
   };
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button aria-label="Fechar" variant="ghost" size="icon" className="relative h-9 w-9">
+        <Button
+          aria-label="Fechar"
+          variant="ghost"
+          size="icon"
+          className="relative h-9 w-9"
+        >
           <Bell className="w-4 h-4" />
           {unreadCount > 0 && (
             <Badge className="absolute -top-1 -right-1 h-4 min-w-[16px] rounded-full px-1 text-[10px] bg-destructive text-destructive-foreground">
-              {unreadCount > 9 ? '9+' : unreadCount}
+              {unreadCount > 9 ? "9+" : unreadCount}
             </Badge>
           )}
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80 p-0">
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <h4 className="text-sm font-semibold text-foreground">Notificações</h4>
+          <h4 className="text-sm font-semibold text-foreground">
+            Notificações
+          </h4>
           {unreadCount > 0 && (
             <Button
               variant="ghost"
@@ -134,28 +156,45 @@ export function NotificationBell() {
             </div>
           ) : (
             <div className="divide-y divide-border">
-              {notifications.map(n => {
+              {notifications.map((n) => {
                 const Icon = getTypeIcon(n);
                 return (
                   <button
                     key={n.id}
-                    onClick={() => { if (!n.is_read) markOneRead.mutate(n.id); }}
+                    onClick={() => {
+                      if (!n.is_read) markOneRead.mutate(n.id);
+                    }}
                     className={cn(
-                      'w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-accent/50 transition-colors',
-                      !n.is_read && 'bg-primary/5'
+                      "w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-accent/50 transition-colors",
+                      !n.is_read && "bg-primary/5",
                     )}
                   >
-                    <Icon className={cn('w-4 h-4 mt-0.5 shrink-0', priorityColors[n.priority])} />
+                    <Icon
+                      className={cn(
+                        "w-4 h-4 mt-0.5 shrink-0",
+                        priorityColors[n.priority],
+                      )}
+                    />
                     <div className="flex-1 min-w-0">
-                      <p className={cn('text-sm line-clamp-1', !n.is_read && 'font-medium text-foreground')}>
+                      <p
+                        className={cn(
+                          "text-sm line-clamp-1",
+                          !n.is_read && "font-medium text-foreground",
+                        )}
+                      >
                         {n.title}
                       </p>
                       {n.body && (
-                        <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{n.body}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+                          {n.body}
+                        </p>
                       )}
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-[10px] text-muted-foreground">
-                          {formatDistanceToNow(parseISO(n.created_at), { addSuffix: true, locale: ptBR })}
+                          {formatDistanceToNow(parseISO(n.created_at), {
+                            addSuffix: true,
+                            locale: ptBR,
+                          })}
                         </span>
                         {n.ai_reason && (
                           <span className="text-[10px] text-primary flex items-center gap-0.5">

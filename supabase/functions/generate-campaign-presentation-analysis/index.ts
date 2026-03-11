@@ -2,7 +2,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
@@ -109,7 +110,7 @@ serve(async (req) => {
         ads?.map((a) => ({
           id: a.id,
           name: a.name,
-          campaign_name: (a.campaigns as any)?.name || "",
+          campaign_name: (a.campaigns as unknown)?.name || "",
           image_url: a.image_url,
           video_url: a.video_url,
           creative_type: a.creative_type,
@@ -124,7 +125,7 @@ serve(async (req) => {
 
     let executiveSummary = "";
     let actionPlan = "";
-    let campaignAnalyses: any[] = [];
+    let campaignAnalyses: unknown[] = [];
 
     // Generate AI analysis if OpenAI key is available
     if (openaiApiKey) {

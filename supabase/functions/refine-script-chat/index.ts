@@ -7,7 +7,8 @@ const openAIApiKey = Deno.env.get("OPENAI_API_KEY")!;
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
@@ -45,7 +46,7 @@ Deno.serve(async (req) => {
       .order("created_at", { ascending: true });
 
     // Build conversation history
-    const chatHistory = (messages || []).map((m: any) => ({
+    const chatHistory = (messages || []).map((m: unknown) => ({
       role: m.role,
       content: m.content,
     }));
@@ -142,7 +143,7 @@ IMPORTANTE:
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       },
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error in refine-script-chat:", error);
     return new Response(
       JSON.stringify({

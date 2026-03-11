@@ -41,7 +41,9 @@ export function SlideCarousel({
   const [fullscreenOpen, setFullscreenOpen] = useState(false);
   const [fullscreenIndex, setFullscreenIndex] = useState(0);
 
-  const completedSlides = slides.filter(s => s.image_url && s.status === "completed");
+  const completedSlides = slides.filter(
+    (s) => s.image_url && s.status === "completed",
+  );
 
   // Update current index when carousel changes
   const onSelect = () => {
@@ -80,14 +82,19 @@ export function SlideCarousel({
               const hasError = slide.status === "error";
 
               return (
-                <CarouselItem key={slide.id} className="pl-2 md:pl-4 basis-full md:basis-1/2 lg:basis-1/3">
+                <CarouselItem
+                  key={slide.id}
+                  className="pl-2 md:pl-4 basis-full md:basis-1/2 lg:basis-1/3"
+                >
                   <Card className="overflow-hidden group">
                     <CardContent className="p-0 relative">
                       <AspectRatio ratio={16 / 9}>
                         {isGenerating ? (
                           <div className="w-full h-full bg-muted flex flex-col items-center justify-center">
                             <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
-                            <p className="text-sm text-muted-foreground">Gerando...</p>
+                            <p className="text-sm text-muted-foreground">
+                              Gerando...
+                            </p>
                           </div>
                         ) : hasImage ? (
                           <img
@@ -98,7 +105,9 @@ export function SlideCarousel({
                         ) : hasError ? (
                           <div className="w-full h-full bg-destructive/10 flex flex-col items-center justify-center">
                             <ImageOff className="h-8 w-8 text-destructive mb-2" />
-                            <p className="text-sm text-destructive">Erro ao gerar</p>
+                            <p className="text-sm text-destructive">
+                              Erro ao gerar
+                            </p>
                             <Button
                               variant="outline"
                               size="sm"
@@ -111,7 +120,9 @@ export function SlideCarousel({
                           </div>
                         ) : (
                           <div className="w-full h-full bg-muted flex flex-col items-center justify-center p-4">
-                            <p className="text-sm font-medium text-center mb-1">{slide.title}</p>
+                            <p className="text-sm font-medium text-center mb-1">
+                              {slide.title}
+                            </p>
                             <p className="text-xs text-muted-foreground text-center line-clamp-3">
                               {slide.content}
                             </p>
@@ -122,21 +133,24 @@ export function SlideCarousel({
                       {/* Overlay controls */}
                       {hasImage && (
                         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                          <Button aria-label="Fechar"
+                          <Button
+                            aria-label="Fechar"
                             variant="secondary"
                             size="icon"
                             onClick={() => handleOpenFullscreen(index)}
                           >
                             <Expand className="h-4 w-4" />
                           </Button>
-                          <Button aria-label="Editar"
+                          <Button
+                            aria-label="Editar"
                             variant="secondary"
                             size="icon"
                             onClick={() => onEditSlide(slide)}
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          <Button aria-label="Atualizar"
+                          <Button
+                            aria-label="Atualizar"
                             variant="secondary"
                             size="icon"
                             onClick={() => onRegenerateImage(slide.id)}
@@ -154,12 +168,14 @@ export function SlideCarousel({
                   </Card>
 
                   {/* Slide title below */}
-                  <p className="mt-2 text-sm font-medium truncate px-1">{slide.title}</p>
+                  <p className="mt-2 text-sm font-medium truncate px-1">
+                    {slide.title}
+                  </p>
                 </CarouselItem>
               );
             })}
           </CarouselContent>
-          
+
           <CarouselPrevious className="-left-4 md:-left-6" />
           <CarouselNext className="-right-4 md:-right-6" />
         </Carousel>
@@ -171,7 +187,7 @@ export function SlideCarousel({
               key={index}
               className={cn(
                 "w-2 h-2 rounded-full transition-colors",
-                index === current ? "bg-primary" : "bg-muted-foreground/30"
+                index === current ? "bg-primary" : "bg-muted-foreground/30",
               )}
               onClick={() => api?.scrollTo(index)}
             />

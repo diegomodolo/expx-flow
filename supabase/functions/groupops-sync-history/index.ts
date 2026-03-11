@@ -2,8 +2,10 @@ import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 serve(async (req) => {
@@ -21,12 +23,18 @@ serve(async (req) => {
     // sync_value: number (msg count) or string (ISO date)
 
     if (!group_id || !instance_id) {
-      return new Response(JSON.stringify({ error: "group_id and instance_id required" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "group_id and instance_id required" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
-    console.log(`[groupops-sync-history] Starting sync for group ${group_id}, mode: ${sync_mode}, value: ${sync_value}`);
+    console.log(
+      `[groupops-sync-history] Starting sync for group ${group_id}, mode: ${sync_mode}, value: ${sync_value}`,
+    );
 
     // 1. Get group info
     const { data: group, error: groupErr } = await supabase
@@ -71,10 +79,12 @@ serve(async (req) => {
     }
 
     // 4. Fetch messages from UazapiGO via POST /message/find
-    const count = sync_mode === "quantity" ? (sync_value || 500) : 2000;
+    const count = sync_mode === "quantity" ? sync_value || 500 : 2000;
 
-    console.log(`[groupops-sync-history] Fetching via POST /message/find, chatId: ${chatId}, limit: ${count}`);
-    
+    console.log(
+      `[groupops-sync-history] Fetching via POST /message/find, chatId: ${chatId}, limit: ${count}`,
+    );
+
     const msgResponse = await fetch(`${endpoint}/message/find`, {
       method: "POST",
       headers: {
@@ -87,14 +97,20 @@ serve(async (req) => {
 
     if (!msgResponse.ok) {
       const errText = await msgResponse.text();
-      console.error(`[groupops-sync-history] POST /message/find returned ${msgResponse.status}: ${errText}`);
-      throw new Error(`UazapiGO /message/find error ${msgResponse.status}: ${errText}`);
+      console.error(
+        `[groupops-sync-history] POST /message/find returned ${msgResponse.status}: ${errText}`,
+      );
+      throw new Error(
+        `UazapiGO /message/find error ${msgResponse.status}: ${errText}`,
+      );
     }
 
     const responseData = await msgResponse.json();
-    console.log(`[groupops-sync-history] Response: type=${typeof responseData}, isArray=${Array.isArray(responseData)}, keys=${typeof responseData === 'object' && responseData ? Object.keys(responseData).join(',') : 'N/A'}, preview=${JSON.stringify(responseData).substring(0, 500)}`);
+    console.log(
+      `[groupops-sync-history] Response: type=${typeof responseData}, isArray=${Array.isArray(responseData)}, keys=${typeof responseData === "object" && responseData ? Object.keys(responseData).join(",") : "N/A"}, preview=${JSON.stringify(responseData).substring(0, 500)}`,
+    );
 
-    let messages: any[] = [];
+    let messages: unknown[] = [];
     if (Array.isArray(responseData)) {
       messages = responseData;
     } else if (responseData?.data && Array.isArray(responseData.data)) {
@@ -107,36 +123,71 @@ serve(async (req) => {
 
     console.log(`[groupops-sync-history] Parsed ${messages.length} messages`);
 
-    console.log(`[groupops-sync-history] Fetched ${messages.length} messages from API`);
+    console.log(
+      `[groupops-sync-history] Fetched ${messages.length} messages from API`,
+    );
 
     // 5. Filter by date if sync_mode is "date"
     if (sync_mode === "date" && sync_value) {
       const sinceDate = new Date(sync_value).getTime();
-      messages = messages.filter((m: any) => {
-        const ts = m.messageTimestamp || m.timestamp || m.message?.messageTimestamp;
+      messages = messages.filter((m: unknown) => {
+        const ts =
+          m.messageTimestamp || m.timestamp || m.message?.messageTimestamp;
         if (!ts) return false;
-        const msgTime = typeof ts === "number" ? (ts > 1e12 ? ts : ts * 1000) : new Date(ts).getTime();
+        const msgTime =
+          typeof ts === "number"
+            ? ts > 1e12
+              ? ts
+              : ts * 1000
+            : new Date(ts).getTime();
         return msgTime >= sinceDate;
       });
-      console.log(`[groupops-sync-history] After date filter: ${messages.length} messages`);
+      console.log(
+        `[groupops-sync-history] After date filter: ${messages.length} messages`,
+      );
     }
 
     // 6. Process messages: extract unique senders and build inserts
-    const memberMap = new Map<string, { display_name: string; phone: string; last_message_at: string; message_count: number }>();
-    const messageInserts: any[] = [];
+    const memberMap = new Map<
+      string,
+      {
+        display_name: string;
+        phone: string;
+        last_message_at: string;
+        message_count: number;
+      }
+    >();
+    const messageInserts: unknown[] = [];
     const now = new Date().toISOString();
 
     for (const msg of messages) {
       // Skip system messages
-      const msgType = msg.messageType || msg.message?.messageType || msg.type || "";
-      if (msgType === "protocolMessage" || msgType === "senderKeyDistributionMessage") continue;
+      const msgType =
+        msg.messageType || msg.message?.messageType || msg.type || "";
+      if (
+        msgType === "protocolMessage" ||
+        msgType === "senderKeyDistributionMessage"
+      )
+        continue;
 
       // In group messages, "participant" is the actual sender; "sender" is often the instance/group JID
-      const sender = msg.participant || msg.message?.participant || msg.sender || msg.message?.sender || "";
-      const senderName = msg.senderName || msg.message?.senderName || msg.pushName || "";
-      const text = msg.text || msg.content || msg.message?.text || msg.message?.content || "";
+      const sender =
+        msg.participant ||
+        msg.message?.participant ||
+        msg.sender ||
+        msg.message?.sender ||
+        "";
+      const senderName =
+        msg.senderName || msg.message?.senderName || msg.pushName || "";
+      const text =
+        msg.text ||
+        msg.content ||
+        msg.message?.text ||
+        msg.message?.content ||
+        "";
       const msgId = msg.id || msg.messageid || msg.message?.id || "";
-      const timestamp = msg.messageTimestamp || msg.timestamp || msg.message?.messageTimestamp;
+      const timestamp =
+        msg.messageTimestamp || msg.timestamp || msg.message?.messageTimestamp;
 
       if (!sender) continue;
 
@@ -147,7 +198,12 @@ serve(async (req) => {
 
       // Track member
       const memberKey = sender;
-      const msgTimeMs = typeof timestamp === "number" ? (timestamp > 1e12 ? timestamp : timestamp * 1000) : Date.now();
+      const msgTimeMs =
+        typeof timestamp === "number"
+          ? timestamp > 1e12
+            ? timestamp
+            : timestamp * 1000
+          : Date.now();
       const msgTimeISO = new Date(msgTimeMs).toISOString();
 
       const existing = memberMap.get(memberKey);
@@ -171,23 +227,41 @@ serve(async (req) => {
         company_id: group.company_id,
         group_id: group.id,
         provider_message_id: msgId || null,
-        text: typeof text === 'string' ? text.substring(0, 5000) : (text ? String(text).substring(0, 5000) : null),
-        media_type: msgType === "imageMessage" ? "image" : msgType === "videoMessage" ? "video" : msgType === "audioMessage" ? "audio" : msgType === "documentMessage" ? "document" : null,
+        text:
+          typeof text === "string"
+            ? text.substring(0, 5000)
+            : text
+              ? String(text).substring(0, 5000)
+              : null,
+        media_type:
+          msgType === "imageMessage"
+            ? "image"
+            : msgType === "videoMessage"
+              ? "video"
+              : msgType === "audioMessage"
+                ? "audio"
+                : msgType === "documentMessage"
+                  ? "document"
+                  : null,
         timestamp: msgTimeISO,
         _senderKey: memberKey, // temporary, will be replaced
       });
     }
 
-    console.log(`[groupops-sync-history] Unique senders: ${memberMap.size}, Messages to insert: ${messageInserts.length}`);
+    console.log(
+      `[groupops-sync-history] Unique senders: ${memberMap.size}, Messages to insert: ${messageInserts.length}`,
+    );
 
     // 7. Upsert members
-    const memberResults: any[] = [];
+    const memberResults: unknown[] = [];
     for (const [senderKey, info] of memberMap) {
       // Check if member already exists in this group by wa_user_id or phone
       let existingMember = null;
 
       if (info.phone) {
-        const phoneE164 = info.phone.startsWith("+") ? info.phone : `+${info.phone}`;
+        const phoneE164 = info.phone.startsWith("+")
+          ? info.phone
+          : `+${info.phone}`;
         const { data: byPhone } = await supabase
           .from("groupops_members")
           .select("id")
@@ -215,12 +289,20 @@ serve(async (req) => {
             last_message_at: info.last_message_at,
             display_name: info.display_name || undefined,
             updated_at: now,
-          } as any)
+          } as unknown)
           .eq("id", existingMember.id);
-        memberResults.push({ id: existingMember.id, wa_user_id: senderKey, action: "updated" });
+        memberResults.push({
+          id: existingMember.id,
+          wa_user_id: senderKey,
+          action: "updated",
+        });
       } else {
         // Insert new member
-        const phoneE164 = info.phone ? (info.phone.startsWith("+") ? info.phone : `+${info.phone}`) : null;
+        const phoneE164 = info.phone
+          ? info.phone.startsWith("+")
+            ? info.phone
+            : `+${info.phone}`
+          : null;
         const { data: newMember, error: insertErr } = await supabase
           .from("groupops_members")
           .insert({
@@ -231,42 +313,60 @@ serve(async (req) => {
             display_name: info.display_name || phoneE164 || senderKey,
             status: "active",
             last_message_at: info.last_message_at,
-          } as any)
+          } as unknown)
           .select("id")
           .single();
 
         if (insertErr) {
-          console.warn(`[groupops-sync-history] Error inserting member ${senderKey}:`, insertErr.message);
+          console.warn(
+            `[groupops-sync-history] Error inserting member ${senderKey}:`,
+            insertErr.message,
+          );
         } else {
-          memberResults.push({ id: newMember?.id, wa_user_id: senderKey, action: "created" });
+          memberResults.push({
+            id: newMember?.id,
+            wa_user_id: senderKey,
+            action: "created",
+          });
         }
       }
     }
 
     // 8. Resolve author_member_id on message inserts
     const senderToMemberId = new Map<string, string>();
-    memberResults.forEach(m => senderToMemberId.set(m.wa_user_id, m.id));
+    memberResults.forEach((m) => senderToMemberId.set(m.wa_user_id, m.id));
 
     // 9. Insert messages in batches (skip duplicates by provider_message_id)
     let messagesInserted = 0;
     const batchSize = 100;
     // Filter out messages without provider_message_id and resolve author
     const validInserts = messageInserts
-      .filter(m => m.provider_message_id)
-      .map(m => {
+      .filter((m) => m.provider_message_id)
+      .map((m) => {
         const { _senderKey, ...rest } = m;
-        return { ...rest, author_member_id: senderToMemberId.get(_senderKey) || null };
+        return {
+          ...rest,
+          author_member_id: senderToMemberId.get(_senderKey) || null,
+        };
       });
-    console.log(`[groupops-sync-history] Valid messages with provider_message_id: ${validInserts.length} of ${messageInserts.length}`);
-    
+    console.log(
+      `[groupops-sync-history] Valid messages with provider_message_id: ${validInserts.length} of ${messageInserts.length}`,
+    );
+
     for (let i = 0; i < validInserts.length; i += batchSize) {
       const batch = validInserts.slice(i, i + batchSize);
       const { error: msgErr } = await supabase
         .from("groupops_messages")
-        .upsert(batch, { onConflict: "provider_message_id", ignoreDuplicates: false });
+        .upsert(batch, {
+          onConflict: "provider_message_id",
+          ignoreDuplicates: false,
+        });
 
       if (msgErr) {
-        console.warn(`[groupops-sync-history] Batch insert error:`, msgErr.message);
+        console.warn(
+          `[groupops-sync-history] Batch insert error:`,
+          msgErr.message,
+        );
       } else {
         messagesInserted += batch.length;
       }
@@ -275,12 +375,18 @@ serve(async (req) => {
     // 9. Calculate scores: silent_days and streak for each member
     const memberUpdates: string[] = [];
     for (const [senderKey, info] of memberMap) {
-      const daysSinceLastMsg = Math.floor((Date.now() - new Date(info.last_message_at).getTime()) / (1000 * 60 * 60 * 24));
+      const daysSinceLastMsg = Math.floor(
+        (Date.now() - new Date(info.last_message_at).getTime()) /
+          (1000 * 60 * 60 * 24),
+      );
       const silentDays = daysSinceLastMsg;
-      const riskLevel = silentDays > 14 ? "high" : silentDays > 7 ? "medium" : "low";
+      const riskLevel =
+        silentDays > 14 ? "high" : silentDays > 7 ? "medium" : "low";
 
       // Find the member's DB id
-      const memberResult = memberResults.find(m => m.wa_user_id === senderKey);
+      const memberResult = memberResults.find(
+        (m) => m.wa_user_id === senderKey,
+      );
       if (memberResult?.id) {
         await supabase
           .from("groupops_members")
@@ -288,35 +394,48 @@ serve(async (req) => {
             silent_days: silentDays,
             risk_level: riskLevel,
             updated_at: now,
-          } as any)
+          } as unknown)
           .eq("id", memberResult.id);
         memberUpdates.push(memberResult.id);
       }
     }
 
-    const silentMembers = Array.from(memberMap.values()).filter(m => {
-      const days = Math.floor((Date.now() - new Date(m.last_message_at).getTime()) / (1000 * 60 * 60 * 24));
+    const silentMembers = Array.from(memberMap.values()).filter((m) => {
+      const days = Math.floor(
+        (Date.now() - new Date(m.last_message_at).getTime()) /
+          (1000 * 60 * 60 * 24),
+      );
       return days > 7;
     }).length;
 
-    console.log(`[groupops-sync-history] Sync complete. Members: ${memberResults.length}, Messages: ${messagesInserted}, Silent: ${silentMembers}`);
+    console.log(
+      `[groupops-sync-history] Sync complete. Members: ${memberResults.length}, Messages: ${messagesInserted}, Silent: ${silentMembers}`,
+    );
 
-    return new Response(JSON.stringify({
-      success: true,
-      members_processed: memberResults.length,
-      members_created: memberResults.filter(m => m.action === "created").length,
-      members_updated: memberResults.filter(m => m.action === "updated").length,
-      messages_imported: messagesInserted,
-      silent_members: silentMembers,
-      scores_updated: memberUpdates.length,
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-
-  } catch (error: any) {
+    return new Response(
+      JSON.stringify({
+        success: true,
+        members_processed: memberResults.length,
+        members_created: memberResults.filter((m) => m.action === "created")
+          .length,
+        members_updated: memberResults.filter((m) => m.action === "updated")
+          .length,
+        messages_imported: messagesInserted,
+        silent_members: silentMembers,
+        scores_updated: memberUpdates.length,
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
+  } catch (error: unknown) {
     console.error("[groupops-sync-history] Error:", error);
-    return new Response(JSON.stringify({ success: false, error: error.message }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ success: false, error: error.message }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   }
 });

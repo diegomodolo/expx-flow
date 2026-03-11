@@ -2,40 +2,48 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 interface TestNotificationPayload {
   triggerId: string;
   clientId: string;
-  destination: 'gestor' | 'cliente' | 'ambos';
+  destination: "gestor" | "cliente" | "ambos";
   companyId: string;
 }
 
 // Helper to format currency
 function formatCurrency(value: number | null | undefined): string {
-  if (value === null || value === undefined || isNaN(value)) return '0,00';
-  return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (value === null || value === undefined || isNaN(value)) return "0,00";
+  return value.toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 }
 
 // Helper to format percentage
 function formatPercentage(value: number | null | undefined): string {
-  if (value === null || value === undefined || isNaN(value)) return '0,00';
-  return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (value === null || value === undefined || isNaN(value)) return "0,00";
+  return value.toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 }
 
 // Helper to format number
 function formatNumber(value: number | null | undefined): string {
-  if (value === null || value === undefined || isNaN(value)) return '0';
-  return Math.round(value).toLocaleString('pt-BR');
+  if (value === null || value === undefined || isNaN(value)) return "0";
+  return Math.round(value).toLocaleString("pt-BR");
 }
 
 // Helper to calculate variation percentage
 function calcVariation(current: number, previous: number): string {
-  if (previous === 0) return current > 0 ? '+100%' : '0%';
+  if (previous === 0) return current > 0 ? "+100%" : "0%";
   const variation = ((current - previous) / previous) * 100;
-  const sign = variation >= 0 ? '+' : '';
+  const sign = variation >= 0 ? "+" : "";
   return `${sign}${variation.toFixed(1)}%`;
 }
 
@@ -60,29 +68,40 @@ serve(async (req) => {
 
     if (!triggerId || !clientId || !companyId) {
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: "triggerId, clientId e companyId são obrigatórios" 
+        JSON.stringify({
+          success: false,
+          error: "triggerId, clientId e companyId são obrigatórios",
         }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
     // Get trigger details
     const { data: trigger, error: triggerError } = await supabase
       .from("whatsapp_notification_triggers")
-      .select(`
+      .select(
+        `
         *,
         templates:whatsapp_message_templates(*)
-      `)
+      `,
+      )
       .eq("id", triggerId)
       .single();
 
     if (triggerError || !trigger) {
-      console.error("[test-send-notification] Trigger not found:", triggerError);
+      console.error(
+        "[test-send-notification] Trigger not found:",
+        triggerError,
+      );
       return new Response(
         JSON.stringify({ success: false, error: "Gatilho não encontrado" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -97,7 +116,10 @@ serve(async (req) => {
       console.error("[test-send-notification] Client not found:", clientError);
       return new Response(
         JSON.stringify({ success: false, error: "Cliente não encontrado" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -112,15 +134,27 @@ serve(async (req) => {
     if (configError || !config) {
       console.error("[test-send-notification] Config not found:", configError);
       return new Response(
-        JSON.stringify({ success: false, error: "Configuração do WhatsApp não encontrada ou inativa" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          success: false,
+          error: "Configuração do WhatsApp não encontrada ou inativa",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
     if (!config.is_connected) {
       return new Response(
-        JSON.stringify({ success: false, error: "WhatsApp não está conectado" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          success: false,
+          error: "WhatsApp não está conectado",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -131,14 +165,14 @@ serve(async (req) => {
     let previousPeriodStart: Date;
     let previousPeriodEnd: Date;
 
-    if (trigger.trigger_type === 'weekly_report') {
+    if (trigger.trigger_type === "weekly_report") {
       // Last 7 days
       periodStart = new Date(now);
       periodStart.setDate(periodStart.getDate() - 7);
       previousPeriodStart = new Date(periodStart);
       previousPeriodStart.setDate(previousPeriodStart.getDate() - 7);
       previousPeriodEnd = new Date(periodStart);
-    } else if (trigger.trigger_type === 'monthly_report') {
+    } else if (trigger.trigger_type === "monthly_report") {
       // Last 30 days
       periodStart = new Date(now);
       periodStart.setDate(periodStart.getDate() - 30);
@@ -169,7 +203,7 @@ serve(async (req) => {
     let totalConversions = 0;
     let totalFrequency = 0;
     let campaignCount = 0;
-    let bestCampaign = { name: '-', conversions: 0 };
+    let bestCampaign = { name: "-", conversions: 0 };
 
     if (currentCampaigns && currentCampaigns.length > 0) {
       for (const campaign of currentCampaigns) {
@@ -182,16 +216,21 @@ serve(async (req) => {
         campaignCount++;
 
         if ((campaign.conversions || 0) > bestCampaign.conversions) {
-          bestCampaign = { name: campaign.name, conversions: campaign.conversions || 0 };
+          bestCampaign = {
+            name: campaign.name,
+            conversions: campaign.conversions || 0,
+          };
         }
       }
     }
 
     // Calculate derived metrics
-    const avgCpm = totalImpressions > 0 ? (totalSpend / totalImpressions) * 1000 : 0;
+    const avgCpm =
+      totalImpressions > 0 ? (totalSpend / totalImpressions) * 1000 : 0;
     const avgCpc = totalClicks > 0 ? totalSpend / totalClicks : 0;
     const avgCpa = totalConversions > 0 ? totalSpend / totalConversions : 0;
-    const avgCtr = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
+    const avgCtr =
+      totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
     const avgFrequency = campaignCount > 0 ? totalFrequency / campaignCount : 0;
 
     // Get account balance if available
@@ -210,24 +249,27 @@ serve(async (req) => {
         accountBalance = (adAccount.balance || 0) / 100; // Balance is in cents
         // Calculate daily spend from last 7 days
         dailySpend = totalSpend / 7;
-        daysRemaining = dailySpend > 0 ? Math.floor(accountBalance / dailySpend) : 0;
+        daysRemaining =
+          dailySpend > 0 ? Math.floor(accountBalance / dailySpend) : 0;
       }
     }
 
     // Build dashboard link
-    const dashboardLink = client.dashboard_token 
+    const dashboardLink = client.dashboard_token
       ? `https://controledetrafego.com.br/dashboard-publico/${client.dashboard_token}`
-      : 'https://controledetrafego.com.br';
+      : "https://controledetrafego.com.br";
 
     const recipients: { phone: string; profile: string; name: string }[] = [];
 
     // Get gestor if needed
-    if (destination === 'gestor' || destination === 'ambos') {
+    if (destination === "gestor" || destination === "ambos") {
       const { data: settings } = await supabase
         .from("whatsapp_client_notification_settings")
-        .select(`
+        .select(
+          `
           gestor:employees(id, name, phone)
-        `)
+        `,
+        )
         .eq("company_id", companyId)
         .eq("client_id", clientId)
         .single();
@@ -235,14 +277,14 @@ serve(async (req) => {
       if (settings?.gestor?.phone) {
         recipients.push({
           phone: settings.gestor.phone,
-          profile: 'gestor',
+          profile: "gestor",
           name: settings.gestor.name,
         });
       }
     }
 
     // Get client contacts if needed
-    if (destination === 'cliente' || destination === 'ambos') {
+    if (destination === "cliente" || destination === "ambos") {
       // First try whatsapp_client_contacts
       const { data: whatsappContacts } = await supabase
         .from("whatsapp_client_contacts")
@@ -255,7 +297,7 @@ serve(async (req) => {
         for (const contact of whatsappContacts) {
           recipients.push({
             phone: contact.phone,
-            profile: 'cliente',
+            profile: "cliente",
             name: contact.contact_name,
           });
         }
@@ -271,10 +313,16 @@ serve(async (req) => {
       if (clientContacts) {
         for (const contact of clientContacts) {
           // Only add if phone exists and not already added
-          if (contact.phone && !recipients.some(r => r.phone.replace(/\D/g, '') === contact.phone.replace(/\D/g, ''))) {
+          if (
+            contact.phone &&
+            !recipients.some(
+              (r) =>
+                r.phone.replace(/\D/g, "") === contact.phone.replace(/\D/g, ""),
+            )
+          ) {
             recipients.push({
               phone: contact.phone,
-              profile: 'cliente',
+              profile: "cliente",
               name: contact.name,
             });
           }
@@ -284,24 +332,37 @@ serve(async (req) => {
 
     if (recipients.length === 0) {
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: "Nenhum destinatário encontrado. Cadastre contatos para este cliente ou associe um gestor." 
+        JSON.stringify({
+          success: false,
+          error:
+            "Nenhum destinatário encontrado. Cadastre contatos para este cliente ou associe um gestor.",
         }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
     // Get templates
     const templates = trigger.templates || [];
-    const gestorTemplate = templates.find((t: { recipient_profile: string; is_active: boolean }) => t.recipient_profile === 'gestor' && t.is_active);
-    const clienteTemplate = templates.find((t: { recipient_profile: string; is_active: boolean }) => t.recipient_profile === 'cliente' && t.is_active);
+    const gestorTemplate = templates.find(
+      (t: { recipient_profile: string; is_active: boolean }) =>
+        t.recipient_profile === "gestor" && t.is_active,
+    );
+    const clienteTemplate = templates.find(
+      (t: { recipient_profile: string; is_active: boolean }) =>
+        t.recipient_profile === "cliente" && t.is_active,
+    );
 
     // Replace variables in message
-    const replaceVariables = (template: string, vars: Record<string, string>) => {
+    const replaceVariables = (
+      template: string,
+      vars: Record<string, string>,
+    ) => {
       let result = template;
       for (const [key, value] of Object.entries(vars)) {
-        result = result.replace(new RegExp(`\\{${key}\\}`, 'g'), value);
+        result = result.replace(new RegExp(`\\{${key}\\}`, "g"), value);
       }
       return result;
     };
@@ -311,8 +372,8 @@ serve(async (req) => {
       // Identification
       cliente: client.name,
       empresa: client.company,
-      gestor: 'Gestor',
-      
+      gestor: "Gestor",
+
       // Performance metrics
       investimento: formatCurrency(totalSpend),
       impressoes: formatNumber(totalImpressions),
@@ -320,39 +381,42 @@ serve(async (req) => {
       alcance: formatNumber(totalReach),
       conversoes: formatNumber(totalConversions),
       frequencia: formatPercentage(avgFrequency),
-      
+
       // Cost metrics
       cpm: formatCurrency(avgCpm),
       cpc: formatCurrency(avgCpc),
       cpa_atual: formatCurrency(avgCpa),
       ctr: formatPercentage(avgCtr),
-      
+
       // Comparisons (mock data for test - will be real in production)
-      variacao_investimento: '+12,5%',
-      variacao_conversoes: '+8,3%',
-      variacao_ctr: '-2,1%',
-      variacao_alcance: '+15,7%',
-      variacao_cpa: '-5,2%',
-      
+      variacao_investimento: "+12,5%",
+      variacao_conversoes: "+8,3%",
+      variacao_ctr: "-2,1%",
+      variacao_alcance: "+15,7%",
+      variacao_cpa: "-5,2%",
+
       // Balance
       saldo: formatCurrency(accountBalance),
       gasto_diario: formatCurrency(dailySpend),
       dias_restantes: String(daysRemaining),
-      
+
       // Period
-      data: now.toLocaleDateString('pt-BR'),
-      hora: now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-      periodo_inicio: periodStart.toLocaleDateString('pt-BR'),
-      periodo_fim: periodEnd.toLocaleDateString('pt-BR'),
-      
+      data: now.toLocaleDateString("pt-BR"),
+      hora: now.toLocaleTimeString("pt-BR", {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      periodo_inicio: periodStart.toLocaleDateString("pt-BR"),
+      periodo_fim: periodEnd.toLocaleDateString("pt-BR"),
+
       // Campaigns
       campanha: bestCampaign.name,
       campanhas_ativas: String(campaignCount),
       melhor_campanha: bestCampaign.name,
-      
+
       // Links
       link_dashboard: dashboardLink,
-      
+
       // Legacy
       gatilho: trigger.trigger_name,
     };
@@ -360,10 +424,13 @@ serve(async (req) => {
     const results: Record<string, unknown>[] = [];
 
     for (const recipient of recipients) {
-      const template = recipient.profile === 'gestor' ? gestorTemplate : clienteTemplate;
-      
+      const template =
+        recipient.profile === "gestor" ? gestorTemplate : clienteTemplate;
+
       if (!template) {
-        console.log(`[test-send-notification] No template for profile ${recipient.profile}`);
+        console.log(
+          `[test-send-notification] No template for profile ${recipient.profile}`,
+        );
         continue;
       }
 
@@ -376,7 +443,9 @@ serve(async (req) => {
         formattedPhone = "55" + formattedPhone;
       }
 
-      console.log(`[test-send-notification] Sending to ${recipient.name} (${recipient.profile}): ${formattedPhone}`);
+      console.log(
+        `[test-send-notification] Sending to ${recipient.name} (${recipient.profile}): ${formattedPhone}`,
+      );
 
       // Create log entry
       const { data: logEntry } = await supabase
@@ -395,12 +464,14 @@ serve(async (req) => {
 
       // Send via Z-API
       const zapiUrl = `https://api.z-api.io/instances/${config.instance_id}/token/${config.token}/send-text`;
-      
+
       const zapiResponse = await fetch(zapiUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(config.client_token ? { "Client-Token": config.client_token } : {}),
+          ...(config.client_token
+            ? { "Client-Token": config.client_token }
+            : {}),
         },
         body: JSON.stringify({
           phone: formattedPhone,
@@ -409,7 +480,10 @@ serve(async (req) => {
       });
 
       const zapiData = await zapiResponse.json();
-      console.log(`[test-send-notification] Z-API response for ${recipient.name}:`, zapiData);
+      console.log(
+        `[test-send-notification] Z-API response for ${recipient.name}:`,
+        zapiData,
+      );
 
       // Update log
       if (logEntry) {
@@ -417,8 +491,11 @@ serve(async (req) => {
           .from("whatsapp_notification_log")
           .update({
             status: zapiResponse.ok ? "sent" : "failed",
-            zapi_message_id: zapiData.messageId || zapiData.zapiMessageId || null,
-            error_message: !zapiResponse.ok ? (zapiData.message || "Erro desconhecido") : null,
+            zapi_message_id:
+              zapiData.messageId || zapiData.zapiMessageId || null,
+            error_message: !zapiResponse.ok
+              ? zapiData.message || "Erro desconhecido"
+              : null,
           })
           .eq("id", logEntry.id);
       }
@@ -432,10 +509,12 @@ serve(async (req) => {
       });
     }
 
-    const successCount = results.filter(r => r.success).length;
-    const failCount = results.filter(r => !r.success).length;
+    const successCount = results.filter((r) => r.success).length;
+    const failCount = results.filter((r) => !r.success).length;
 
-    console.log(`[test-send-notification] Completed. Success: ${successCount}, Failed: ${failCount}`);
+    console.log(
+      `[test-send-notification] Completed. Success: ${successCount}, Failed: ${failCount}`,
+    );
 
     return new Response(
       JSON.stringify({
@@ -447,14 +526,22 @@ serve(async (req) => {
           total: results.length,
         },
       }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
-
   } catch (error) {
     console.error("[test-send-notification] Error:", error);
     return new Response(
-      JSON.stringify({ success: false, error: error.message || "Erro interno" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({
+        success: false,
+        error: error.message || "Erro interno",
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 });

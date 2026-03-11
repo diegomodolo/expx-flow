@@ -2,7 +2,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.53.0";
 import { Resend } from "npm:resend@4.0.0";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
@@ -32,33 +33,40 @@ Deno.serve(async (req: Request): Promise<Response> => {
       throw new Error("Não autorizado");
     }
 
-    const supabaseUser = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      global: { headers: { Authorization: authHeader } }
-    });
+    const supabaseUser = createClient(
+      supabaseUrl,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      {
+        global: { headers: { Authorization: authHeader } },
+      },
+    );
 
-    const { data: { user: requestingUser }, error: authError } = await supabaseUser.auth.getUser();
+    const {
+      data: { user: requestingUser },
+      error: authError,
+    } = await supabaseUser.auth.getUser();
     if (authError || !requestingUser) {
       throw new Error("Usuário não autenticado");
     }
 
     // Verificar se é admin/owner
     const { data: memberCheck } = await supabaseUser
-      .from('company_members')
-      .select('role, company_id, company:companies(name)')
-      .eq('user_id', requestingUser.id)
-      .in('role', ['owner', 'admin']);
+      .from("company_members")
+      .select("role, company_id, company:companies(name)")
+      .eq("user_id", requestingUser.id)
+      .in("role", ["owner", "admin"]);
 
     if (!memberCheck || memberCheck.length === 0) {
       throw new Error("Você não tem permissão para reenviar convites");
     }
 
-    const { 
-      userId, 
-      email, 
-      name, 
-      role, 
+    const {
+      userId,
+      email,
+      name,
+      role,
       companyName,
-      generateNewPassword = true 
+      generateNewPassword = true,
     }: ResendInviteRequest = await req.json();
 
     if (!userId || !email || !name) {
@@ -68,12 +76,12 @@ Deno.serve(async (req: Request): Promise<Response> => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Verificar se o colaborador pertence a uma empresa do admin
-    const companyIds = memberCheck.map(m => m.company_id);
+    const companyIds = memberCheck.map((m) => m.company_id);
     const { data: employeeCheck } = await supabase
-      .from('employees')
-      .select('id, company_id')
-      .eq('user_id', userId)
-      .in('company_id', companyIds)
+      .from("employees")
+      .select("id, company_id")
+      .eq("user_id", userId)
+      .in("company_id", companyIds)
       .limit(1);
 
     if (!employeeCheck || employeeCheck.length === 0) {
@@ -81,38 +89,43 @@ Deno.serve(async (req: Request): Promise<Response> => {
     }
 
     // Gerar nova senha temporária se solicitado
-    let tempPassword = '';
+    let tempPassword = "";
     if (generateNewPassword) {
-      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%&*';
+      const chars =
+        "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%&*";
       for (let i = 0; i < 10; i++) {
         tempPassword += chars.charAt(Math.floor(Math.random() * chars.length));
       }
 
       // Atualizar senha do usuário
-      const { error: updateError } = await supabase.auth.admin.updateUserById(userId, {
-        password: tempPassword
-      });
+      const { error: updateError } = await supabase.auth.admin.updateUserById(
+        userId,
+        {
+          password: tempPassword,
+        },
+      );
 
       if (updateError) {
         console.warn("Erro ao atualizar senha:", updateError);
         // Continuar mesmo se não conseguir atualizar a senha
-        tempPassword = '';
+        tempPassword = "";
       }
     }
 
     // Gerar novo magic link
-    const { data: magicLinkData, error: magicLinkError } = await supabase.auth.admin.generateLink({
-      type: 'magiclink',
-      email: email,
-      options: {
-        redirectTo: 'https://controledetrafego.com.br/',
-        data: {
-          full_name: name,
-          company_name: companyName,
-          role: role,
-        }
-      }
-    });
+    const { data: magicLinkData, error: magicLinkError } =
+      await supabase.auth.admin.generateLink({
+        type: "magiclink",
+        email: email,
+        options: {
+          redirectTo: "https://controledetrafego.com.br/",
+          data: {
+            full_name: name,
+            company_name: companyName,
+            role: role,
+          },
+        },
+      });
 
     if (magicLinkError) {
       throw new Error(`Erro ao gerar magic link: ${magicLinkError.message}`);
@@ -124,8 +137,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
     }
 
     const resend = new Resend(resendApiKey);
-    
-    const credentialsSection = tempPassword ? `
+
+    const credentialsSection = tempPassword
+      ? `
       <!-- Credentials Section -->
       <div style="background: #e8f5e8; border: 1px solid #c3e6c3; border-radius: 8px; padding: 25px; margin: 30px 0;">
         <h3 style="color: #2d5e2d; margin: 0 0 15px 0; font-size: 16px; font-weight: 600;">
@@ -142,7 +156,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
           ⚠️ Recomendamos alterar a senha após o primeiro acesso.
         </p>
       </div>
-    ` : '';
+    `
+      : "";
 
     await resend.emails.send({
       from: `${companyName} <noreply@controledetrafego.com.br>`,
@@ -208,23 +223,22 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     console.log("Email de reenvio enviado para:", email);
 
-    return new Response(JSON.stringify({ 
-      success: true, 
-      message: `Convite reenviado para ${email}`,
-      passwordGenerated: !!tempPassword
-    }), {
-      status: 200,
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message: `Convite reenviado para ${email}`,
+        passwordGenerated: !!tempPassword,
+      }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      },
+    );
+  } catch (error: unknown) {
+    console.error("Erro ao reenviar convite:", error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });
-
-  } catch (error: any) {
-    console.error("Erro ao reenviar convite:", error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
-    );
   }
 });

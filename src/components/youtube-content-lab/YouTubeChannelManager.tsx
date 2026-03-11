@@ -7,7 +7,15 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { YouTubeChannel } from "@/hooks/useYouTubeChannels";
 import { YouTubeCategory } from "@/hooks/useYouTubeCategories";
-import { Plus, RefreshCw, Trash2, Users, Video, Loader2, Tags } from "lucide-react";
+import {
+  Plus,
+  RefreshCw,
+  Trash2,
+  Users,
+  Video,
+  Loader2,
+  Tags,
+} from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -31,7 +39,10 @@ interface YouTubeChannelManagerProps {
   loading: boolean;
   analyzing: boolean;
   onAddChannel: (url: string, periodDays?: number) => Promise<unknown>;
-  onRefreshChannel: (channelId: string, periodDays?: number) => Promise<unknown>;
+  onRefreshChannel: (
+    channelId: string,
+    periodDays?: number,
+  ) => Promise<unknown>;
   onRemoveChannel: (channelId: string) => Promise<void>;
   categories?: YouTubeCategory[];
   onLinkChannel?: (categoryId: string, channelId: string) => Promise<void>;
@@ -68,10 +79,14 @@ export function YouTubeChannelManager({
   };
 
   const getChannelCategories = (channelId: string) => {
-    return categories.filter(cat => cat.channel_ids.includes(channelId));
+    return categories.filter((cat) => cat.channel_ids.includes(channelId));
   };
 
-  const toggleCategory = async (categoryId: string, channelId: string, isLinked: boolean) => {
+  const toggleCategory = async (
+    categoryId: string,
+    channelId: string,
+    isLinked: boolean,
+  ) => {
     if (isLinked) {
       await onUnlinkChannel?.(categoryId, channelId);
     } else {
@@ -106,7 +121,10 @@ export function YouTubeChannelManager({
               disabled={analyzing}
               className="flex-1"
             />
-            <Button onClick={handleAddChannel} disabled={analyzing || !channelUrl.trim()}>
+            <Button
+              onClick={handleAddChannel}
+              disabled={analyzing || !channelUrl.trim()}
+            >
               {analyzing ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -121,7 +139,8 @@ export function YouTubeChannelManager({
             </Button>
           </div>
           <p className="text-sm text-muted-foreground mt-2">
-            Adicione canais de referência para analisar o conteúdo de maior sucesso.
+            Adicione canais de referência para analisar o conteúdo de maior
+            sucesso.
           </p>
         </CardContent>
       </Card>
@@ -152,7 +171,10 @@ export function YouTubeChannelManager({
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold truncate" title={channel.channel_name}>
+                      <h3
+                        className="font-semibold truncate"
+                        title={channel.channel_name}
+                      >
                         {channel.channel_name}
                       </h3>
                       {channel.channel_handle && (
@@ -197,10 +219,13 @@ export function YouTubeChannelManager({
                       {channel.last_analyzed_at && (
                         <Badge variant="outline" className="text-xs">
                           Analisado{" "}
-                          {formatDistanceToNow(new Date(channel.last_analyzed_at), {
-                            addSuffix: true,
-                            locale: ptBR,
-                          })}
+                          {formatDistanceToNow(
+                            new Date(channel.last_analyzed_at),
+                            {
+                              addSuffix: true,
+                              locale: ptBR,
+                            },
+                          )}
                         </Badge>
                       )}
                     </div>
@@ -224,7 +249,9 @@ export function YouTubeChannelManager({
                             </p>
                             <div className="space-y-1">
                               {categories.map((cat) => {
-                                const isLinked = cat.channel_ids.includes(channel.id);
+                                const isLinked = cat.channel_ids.includes(
+                                  channel.id,
+                                );
                                 return (
                                   <label
                                     key={cat.id}
@@ -233,14 +260,20 @@ export function YouTubeChannelManager({
                                     <Checkbox
                                       checked={isLinked}
                                       onCheckedChange={() =>
-                                        toggleCategory(cat.id, channel.id, isLinked)
+                                        toggleCategory(
+                                          cat.id,
+                                          channel.id,
+                                          isLinked,
+                                        )
                                       }
                                     />
                                     <div
                                       className="h-2.5 w-2.5 rounded-full shrink-0"
                                       style={{ backgroundColor: cat.color }}
                                     />
-                                    <span className="text-sm truncate">{cat.name}</span>
+                                    <span className="text-sm truncate">
+                                      {cat.name}
+                                    </span>
                                   </label>
                                 );
                               })}
@@ -248,7 +281,8 @@ export function YouTubeChannelManager({
                           </PopoverContent>
                         </Popover>
                       )}
-                      <Button aria-label="Atualizar"
+                      <Button
+                        aria-label="Atualizar"
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8"
@@ -258,7 +292,8 @@ export function YouTubeChannelManager({
                       >
                         <RefreshCw className="h-4 w-4" />
                       </Button>
-                      <Button aria-label="Excluir"
+                      <Button
+                        aria-label="Excluir"
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 text-destructive"
@@ -277,12 +312,16 @@ export function YouTubeChannelManager({
       )}
 
       {/* Remove Confirmation Dialog */}
-      <AlertDialog open={!!removeChannelId} onOpenChange={() => setRemoveChannelId(null)}>
+      <AlertDialog
+        open={!!removeChannelId}
+        onOpenChange={() => setRemoveChannelId(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Remover canal?</AlertDialogTitle>
             <AlertDialogDescription>
-              O canal será removido do monitoramento, mas os dados de análise serão mantidos.
+              O canal será removido do monitoramento, mas os dados de análise
+              serão mantidos.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

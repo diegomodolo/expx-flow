@@ -2,8 +2,10 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 interface UrlParameters {
@@ -16,7 +18,7 @@ interface UrlParameters {
 }
 
 interface Creative {
-  type: 'IMAGE' | 'VIDEO' | 'CAROUSEL';
+  type: "IMAGE" | "VIDEO" | "CAROUSEL";
   media_urls: string[];
   body: string;
   title: string;
@@ -46,7 +48,7 @@ interface Campaign {
   objective: string;
   daily_budget?: number;
   lifetime_budget?: number;
-  status: 'ACTIVE' | 'PAUSED';
+  status: "ACTIVE" | "PAUSED";
 }
 
 interface RequestBody {
@@ -64,16 +66,18 @@ serve(async (req) => {
     // Use the anon key client first to authenticate the user
     const anonClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
     );
 
     // Get user from auth header and authenticate
     const authHeader = req.headers.get("Authorization");
     let userId: string | null = null;
-    
+
     if (authHeader) {
       const token = authHeader.replace("Bearer ", "");
-      const { data: { user } } = await anonClient.auth.getUser(token);
+      const {
+        data: { user },
+      } = await anonClient.auth.getUser(token);
       userId = user?.id || null;
     }
 
@@ -84,19 +88,23 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
       {
         global: {
-          headers: authHeader ? { Authorization: authHeader } : {}
-        }
-      }
+          headers: authHeader ? { Authorization: authHeader } : {},
+        },
+      },
     );
 
-    const { clientId, campaign, adSets } = await req.json() as RequestBody;
+    const { clientId, campaign, adSets } = (await req.json()) as RequestBody;
 
-    console.log(`Creating full campaign for client ${clientId}:`, { campaign, adSetCount: adSets.length });
+    console.log(`Creating full campaign for client ${clientId}:`, {
+      campaign,
+      adSetCount: adSets.length,
+    });
 
     // Get client with ad account and Facebook Page context
     const { data: client, error: clientError } = await supabaseClient
       .from("clients")
-      .select(`
+      .select(
+        `
         *,
         facebook_ad_accounts!clients_ad_account_id_fkey (
           account_id
@@ -106,7 +114,8 @@ serve(async (req) => {
           page_id,
           page_name
         )
-      `)
+      `,
+      )
       .eq("id", clientId)
       .single();
 
@@ -137,16 +146,20 @@ serve(async (req) => {
         // Fallback 1: Try to find a page with the same name as the client
         const clientName = client.name?.toLowerCase().trim() || "";
         const matchingPage = pages.find(
-          (p) => p.page_name?.toLowerCase().trim() === clientName
+          (p) => p.page_name?.toLowerCase().trim() === clientName,
         );
 
         if (matchingPage) {
           metaPageId = matchingPage.page_id;
-          console.log(`Using matching Facebook Page by name: ${matchingPage.page_name} (${matchingPage.page_id})`);
+          console.log(
+            `Using matching Facebook Page by name: ${matchingPage.page_name} (${matchingPage.page_id})`,
+          );
         } else if (pages.length === 1) {
           // Fallback 2: If only one page exists, use it
           metaPageId = pages[0].page_id;
-          console.log(`Using only available Facebook Page: ${pages[0].page_name} (${pages[0].page_id})`);
+          console.log(
+            `Using only available Facebook Page: ${pages[0].page_name} (${pages[0].page_id})`,
+          );
         }
       }
     }
@@ -154,12 +167,12 @@ serve(async (req) => {
     // If any creatives were requested, we must have a Facebook Page ID.
     const totalCreativesRequested = adSets.reduce(
       (sum, s) => sum + (s.creatives?.length ?? 0),
-      0
+      0,
     );
 
     if (totalCreativesRequested > 0 && !metaPageId) {
       throw new Error(
-        "Para subir criativos no Meta, este cliente precisa ter uma Página do Facebook vinculada (Facebook Page)."
+        "Para subir criativos no Meta, este cliente precisa ter uma Página do Facebook vinculada (Facebook Page).",
       );
     }
 
@@ -191,14 +204,16 @@ serve(async (req) => {
 
     const campaignResponse = await fetch(
       `https://graph.facebook.com/v21.0/${adAccountId}/campaigns`,
-      { method: "POST", body: campaignParams }
+      { method: "POST", body: campaignParams },
     );
 
     const campaignResult = await campaignResponse.json();
     console.log("Campaign creation result:", campaignResult);
 
     if (campaignResult.error) {
-      throw new Error(`Failed to create campaign: ${campaignResult.error.message}`);
+      throw new Error(
+        `Failed to create campaign: ${campaignResult.error.message}`,
+      );
     }
 
     const metaCampaignId = campaignResult.id;
@@ -206,29 +221,30 @@ serve(async (req) => {
     // Save campaign to local database
     // Use authenticated user ID if available, otherwise use client's user_id
     const effectiveUserId = userId || client.user_id;
-    
-    const { data: savedCampaign, error: saveCampaignError } = await supabaseClient
-      .from("campaigns")
-      .insert({
-        client_id: clientId,
-        company_id: client.company_id,
-        user_id: effectiveUserId,
-        name: campaign.name,
-        objective: campaign.objective,
-        facebook_id: metaCampaignId,
-        status: campaign.status === 'ACTIVE' ? 'active' : 'paused',
-        is_active: campaign.status === 'ACTIVE',
-        platforms: "Meta",
-        period: "ongoing",
-        daily_budget: campaign.daily_budget,
-        lifetime_budget: campaign.lifetime_budget,
-        spend: 0,
-        conversions: 0,
-        cpc: 0,
-        ctr: 0,
-      })
-      .select()
-      .single();
+
+    const { data: savedCampaign, error: saveCampaignError } =
+      await supabaseClient
+        .from("campaigns")
+        .insert({
+          client_id: clientId,
+          company_id: client.company_id,
+          user_id: effectiveUserId,
+          name: campaign.name,
+          objective: campaign.objective,
+          facebook_id: metaCampaignId,
+          status: campaign.status === "ACTIVE" ? "active" : "paused",
+          is_active: campaign.status === "ACTIVE",
+          platforms: "Meta",
+          period: "ongoing",
+          daily_budget: campaign.daily_budget,
+          lifetime_budget: campaign.lifetime_budget,
+          spend: 0,
+          conversions: 0,
+          cpc: 0,
+          ctr: 0,
+        })
+        .select()
+        .single();
 
     if (saveCampaignError) {
       console.error("Error saving campaign:", saveCampaignError);
@@ -244,7 +260,7 @@ serve(async (req) => {
       console.log(`Creating ad set: ${adSet.name}`);
 
       // Build targeting object
-      const targeting: any = {
+      const targeting: unknown = {
         geo_locations: { countries: ["BR"] }, // Default to Brazil
         // Disable Advantage+ audience expansion (required by Meta API)
         targeting_automation: {
@@ -254,20 +270,27 @@ serve(async (req) => {
 
       if (adSet.targeting.age_min) targeting.age_min = adSet.targeting.age_min;
       if (adSet.targeting.age_max) targeting.age_max = adSet.targeting.age_max;
-      if (adSet.targeting.genders?.length) targeting.genders = adSet.targeting.genders;
+      if (adSet.targeting.genders?.length)
+        targeting.genders = adSet.targeting.genders;
 
       // Add custom audiences
       if (adSet.targeting.custom_audiences?.length) {
-        targeting.custom_audiences = adSet.targeting.custom_audiences.map(id => ({ id }));
+        targeting.custom_audiences = adSet.targeting.custom_audiences.map(
+          (id) => ({ id }),
+        );
       }
       if (adSet.targeting.excluded_audiences?.length) {
-        targeting.excluded_custom_audiences = adSet.targeting.excluded_audiences.map(id => ({ id }));
+        targeting.excluded_custom_audiences =
+          adSet.targeting.excluded_audiences.map((id) => ({ id }));
       }
 
       // Create Ad Set with budget at ad set level (ABO mode)
       const hasPixelConversion = !!(adSet.pixel_id && adSet.conversion_event);
-      const optimizationGoal = getOptimizationGoalForAdSet(campaign.objective, hasPixelConversion);
-      
+      const optimizationGoal = getOptimizationGoalForAdSet(
+        campaign.objective,
+        hasPixelConversion,
+      );
+
       const adSetParams = new URLSearchParams({
         campaign_id: metaCampaignId,
         name: adSet.name,
@@ -281,42 +304,63 @@ serve(async (req) => {
 
       // Add daily budget at ad set level
       if (campaign.daily_budget) {
-        adSetParams.append("daily_budget", String(Math.round(campaign.daily_budget * 100)));
+        adSetParams.append(
+          "daily_budget",
+          String(Math.round(campaign.daily_budget * 100)),
+        );
       }
       if (campaign.lifetime_budget) {
-        adSetParams.append("lifetime_budget", String(Math.round(campaign.lifetime_budget * 100)));
+        adSetParams.append(
+          "lifetime_budget",
+          String(Math.round(campaign.lifetime_budget * 100)),
+        );
       }
 
       // promoted_object depends on the lead type:
       // - Website leads (pixel): OFFSITE_CONVERSIONS + pixel_id + custom_event_type
       // - Instant forms leads (no pixel): LEAD_GENERATION + page_id
-      if (hasPixelConversion && optimizationGoal === 'OFFSITE_CONVERSIONS') {
-        adSetParams.append("promoted_object", JSON.stringify({
-          pixel_id: adSet.pixel_id,
-          custom_event_type: adSet.conversion_event,
-        }));
-        console.log(`Adding promoted_object with pixel ${adSet.pixel_id} and event ${adSet.conversion_event}`);
-      } else if (optimizationGoal === 'LEAD_GENERATION') {
+      if (hasPixelConversion && optimizationGoal === "OFFSITE_CONVERSIONS") {
+        adSetParams.append(
+          "promoted_object",
+          JSON.stringify({
+            pixel_id: adSet.pixel_id,
+            custom_event_type: adSet.conversion_event,
+          }),
+        );
+        console.log(
+          `Adding promoted_object with pixel ${adSet.pixel_id} and event ${adSet.conversion_event}`,
+        );
+      } else if (optimizationGoal === "LEAD_GENERATION") {
         if (!metaPageId) {
-          console.warn('Missing Facebook Page (page_id) for LEAD_GENERATION ad set; Meta may reject this ad set.');
+          console.warn(
+            "Missing Facebook Page (page_id) for LEAD_GENERATION ad set; Meta may reject this ad set.",
+          );
         } else {
-          adSetParams.append("promoted_object", JSON.stringify({
-            page_id: metaPageId,
-          }));
-          console.log(`Adding promoted_object with page_id ${metaPageId} for lead generation`);
+          adSetParams.append(
+            "promoted_object",
+            JSON.stringify({
+              page_id: metaPageId,
+            }),
+          );
+          console.log(
+            `Adding promoted_object with page_id ${metaPageId} for lead generation`,
+          );
         }
       }
 
       const adSetResponse = await fetch(
         `https://graph.facebook.com/v21.0/${adAccountId}/adsets`,
-        { method: "POST", body: adSetParams }
+        { method: "POST", body: adSetParams },
       );
 
       const adSetResult = await adSetResponse.json();
       console.log("Ad set creation result:", adSetResult);
 
       if (adSetResult.error) {
-        console.error(`Failed to create ad set ${adSet.name}:`, adSetResult.error);
+        console.error(
+          `Failed to create ad set ${adSet.name}:`,
+          adSetResult.error,
+        );
         adSetCreationErrors.push(`${adSet.name}: ${adSetResult.error.message}`);
         continue;
       }
@@ -333,14 +377,18 @@ serve(async (req) => {
           user_id: effectiveUserId,
           name: adSet.name,
           facebook_id: metaAdSetId,
-          status: campaign.status === 'ACTIVE' ? 'active' : 'paused',
-          is_active: campaign.status === 'ACTIVE',
+          status: campaign.status === "ACTIVE" ? "active" : "paused",
+          is_active: campaign.status === "ACTIVE",
           targeting: JSON.stringify(targeting),
         })
         .select()
         .single();
 
-      createdAdSets.push({ ...adSet, metaId: metaAdSetId, localId: savedAdSet?.id });
+      createdAdSets.push({
+        ...adSet,
+        metaId: metaAdSetId,
+        localId: savedAdSet?.id,
+      });
 
       // 3. Create Ads for this Ad Set
       for (let i = 0; i < adSet.creatives.length; i++) {
@@ -354,7 +402,7 @@ serve(async (req) => {
             adAccountId,
             accessToken,
             creative,
-            metaPageId ?? undefined
+            metaPageId ?? undefined,
           );
 
           console.log("Ad creative creation result:", creativeData);
@@ -368,7 +416,9 @@ serve(async (req) => {
 
           if (!creativeData?.id) {
             console.error("Failed to create ad creative - no ID returned");
-            adCreationErrors.push(`${adSet.name}: Criativo criado sem ID (resposta inválida do Meta)`);
+            adCreationErrors.push(
+              `${adSet.name}: Criativo criado sem ID (resposta inválida do Meta)`,
+            );
             continue;
           }
 
@@ -383,7 +433,7 @@ serve(async (req) => {
 
           const adResponse = await fetch(
             `https://graph.facebook.com/v21.0/${adAccountId}/ads`,
-            { method: "POST", body: adParams }
+            { method: "POST", body: adParams },
           );
 
           const adResult = await adResponse.json();
@@ -391,7 +441,9 @@ serve(async (req) => {
 
           if (adResult.error) {
             console.error(`Failed to create ad:`, adResult.error);
-            adCreationErrors.push(`${adSet.name}: ${adResult.error.message || 'Erro ao criar anúncio'}`);
+            adCreationErrors.push(
+              `${adSet.name}: ${adResult.error.message || "Erro ao criar anúncio"}`,
+            );
             continue;
           }
 
@@ -406,24 +458,32 @@ serve(async (req) => {
               user_id: effectiveUserId,
               name: creative.title || `${adSet.name} - Ad ${i + 1}`,
               facebook_id: adResult.id,
-              status: campaign.status === 'ACTIVE' ? 'active' : 'paused',
-              is_active: campaign.status === 'ACTIVE',
+              status: campaign.status === "ACTIVE" ? "active" : "paused",
+              is_active: campaign.status === "ACTIVE",
               creative_type: creative.type,
               creative_body: creative.body,
               creative_title: creative.title,
               creative_description: creative.description,
               link_url: creative.link_url,
               call_to_action: creative.call_to_action,
-              image_url: creative.type !== 'VIDEO' ? creative.media_urls[0] : null,
-              video_url: creative.type === 'VIDEO' ? creative.media_urls[0] : null,
+              image_url:
+                creative.type !== "VIDEO" ? creative.media_urls[0] : null,
+              video_url:
+                creative.type === "VIDEO" ? creative.media_urls[0] : null,
             })
             .select()
             .single();
 
-          createdAds.push({ ...creative, metaId: adResult.id, localId: savedAd?.id });
-        } catch (adError: any) {
+          createdAds.push({
+            ...creative,
+            metaId: adResult.id,
+            localId: savedAd?.id,
+          });
+        } catch (adError: unknown) {
           console.error(`Error creating ad:`, adError);
-          adCreationErrors.push(`${adSet.name}: ${adError?.message || 'Erro inesperado ao criar anúncio/criativo'}`);
+          adCreationErrors.push(
+            `${adSet.name}: ${adError?.message || "Erro inesperado ao criar anúncio/criativo"}`,
+          );
         }
       }
     }
@@ -431,14 +491,14 @@ serve(async (req) => {
     // If none of the ad sets were created, surface an error (campaign may exist in Meta already)
     if (adSets.length > 0 && createdAdSets.length === 0) {
       throw new Error(
-        `Campanha criada no Meta, mas falhou ao criar o(s) conjunto(s) de anúncio. ${adSetCreationErrors[0] || ''}`.trim()
+        `Campanha criada no Meta, mas falhou ao criar o(s) conjunto(s) de anúncio. ${adSetCreationErrors[0] || ""}`.trim(),
       );
     }
 
     // If creatives were requested but no ads were created, surface a clear error
     if (totalCreativesRequested > 0 && createdAds.length === 0) {
       throw new Error(
-        `Campanha e conjunto(s) criados no Meta, mas falhou ao criar os criativos/anúncios. ${adCreationErrors[0] || ''}`.trim()
+        `Campanha e conjunto(s) criados no Meta, mas falhou ao criar os criativos/anúncios. ${adCreationErrors[0] || ""}`.trim(),
       );
     }
     return new Response(
@@ -451,35 +511,41 @@ serve(async (req) => {
         adSets: createdAdSets,
         ads: createdAds,
       }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error in create-meta-campaign-full:", error);
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
-      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 });
 
 function getOptimizationGoal(objective: string): string {
   const mapping: Record<string, string> = {
-    'OUTCOME_TRAFFIC': 'LINK_CLICKS',
-    'OUTCOME_ENGAGEMENT': 'POST_ENGAGEMENT',
-    'OUTCOME_LEADS': 'LEAD_GENERATION',
-    'OUTCOME_SALES': 'OFFSITE_CONVERSIONS',
-    'OUTCOME_AWARENESS': 'REACH',
-    'OUTCOME_APP_PROMOTION': 'APP_INSTALLS',
+    OUTCOME_TRAFFIC: "LINK_CLICKS",
+    OUTCOME_ENGAGEMENT: "POST_ENGAGEMENT",
+    OUTCOME_LEADS: "LEAD_GENERATION",
+    OUTCOME_SALES: "OFFSITE_CONVERSIONS",
+    OUTCOME_AWARENESS: "REACH",
+    OUTCOME_APP_PROMOTION: "APP_INSTALLS",
   };
-  return mapping[objective] || 'LINK_CLICKS';
+  return mapping[objective] || "LINK_CLICKS";
 }
 
-function getOptimizationGoalForAdSet(objective: string, hasPixelConversion: boolean): string {
+function getOptimizationGoalForAdSet(
+  objective: string,
+  hasPixelConversion: boolean,
+): string {
   // For OUTCOME_LEADS we support two modes:
   // - Website conversion leads (pixel): OFFSITE_CONVERSIONS
   // - Instant form leads (no pixel): LEAD_GENERATION
-  if (objective === 'OUTCOME_LEADS') {
-    return hasPixelConversion ? 'OFFSITE_CONVERSIONS' : 'LEAD_GENERATION';
+  if (objective === "OUTCOME_LEADS") {
+    return hasPixelConversion ? "OFFSITE_CONVERSIONS" : "LEAD_GENERATION";
   }
 
   return getOptimizationGoal(objective);
@@ -487,41 +553,47 @@ function getOptimizationGoalForAdSet(objective: string, hasPixelConversion: bool
 
 function buildUrlTags(params?: UrlParameters): string | undefined {
   if (!params) return undefined;
-  
+
   const parts: string[] = [];
-  if (params.utm_source) parts.push(`utm_source=${encodeURIComponent(params.utm_source)}`);
-  if (params.utm_medium) parts.push(`utm_medium=${encodeURIComponent(params.utm_medium)}`);
-  if (params.utm_campaign) parts.push(`utm_campaign=${encodeURIComponent(params.utm_campaign)}`);
-  if (params.utm_content) parts.push(`utm_content=${encodeURIComponent(params.utm_content)}`);
-  if (params.utm_term) parts.push(`utm_term=${encodeURIComponent(params.utm_term)}`);
+  if (params.utm_source)
+    parts.push(`utm_source=${encodeURIComponent(params.utm_source)}`);
+  if (params.utm_medium)
+    parts.push(`utm_medium=${encodeURIComponent(params.utm_medium)}`);
+  if (params.utm_campaign)
+    parts.push(`utm_campaign=${encodeURIComponent(params.utm_campaign)}`);
+  if (params.utm_content)
+    parts.push(`utm_content=${encodeURIComponent(params.utm_content)}`);
+  if (params.utm_term)
+    parts.push(`utm_term=${encodeURIComponent(params.utm_term)}`);
   if (params.customParams) parts.push(params.customParams);
-  
-  return parts.length > 0 ? parts.join('&') : undefined;
+
+  return parts.length > 0 ? parts.join("&") : undefined;
 }
 
 async function createAdCreative(
   adAccountId: string,
   accessToken: string,
   creative: Creative,
-  pageId?: string
-): Promise<any> {
+  pageId?: string,
+): Promise<unknown> {
   if (!pageId) {
     return {
       error: {
-        message: "Missing Facebook Page (page_id). Vincule uma Página do Facebook ao cliente antes de criar criativos.",
+        message:
+          "Missing Facebook Page (page_id). Vincule uma Página do Facebook ao cliente antes de criar criativos.",
         type: "ValidationError",
         code: 0,
       },
     };
   }
 
-  const objectStorySpec: any = {
+  const objectStorySpec: unknown = {
     page_id: pageId,
   };
 
   const urlTags = buildUrlTags(creative.url_parameters);
 
-  if (creative.type === 'VIDEO') {
+  if (creative.type === "VIDEO") {
     objectStorySpec.video_data = {
       video_url: creative.media_urls[0],
       message: creative.body,
@@ -532,7 +604,7 @@ async function createAdCreative(
         value: { link: creative.link_url },
       },
     };
-  } else if (creative.type === 'CAROUSEL') {
+  } else if (creative.type === "CAROUSEL") {
     objectStorySpec.link_data = {
       link: creative.link_url,
       message: creative.body,
@@ -562,18 +634,18 @@ async function createAdCreative(
   }
 
   const creativeParams = new URLSearchParams({
-    name: creative.title || 'Ad Creative',
+    name: creative.title || "Ad Creative",
     object_story_spec: JSON.stringify(objectStorySpec),
     access_token: accessToken,
   });
 
   // Meta error: url_tags is NOT allowed inside object_story_spec.link_data.
   // It must be a top-level param for the creative.
-  if (urlTags) creativeParams.append('url_tags', urlTags);
+  if (urlTags) creativeParams.append("url_tags", urlTags);
 
   const response = await fetch(
     `https://graph.facebook.com/v21.0/${adAccountId}/adcreatives`,
-    { method: "POST", body: creativeParams }
+    { method: "POST", body: creativeParams },
   );
 
   return response.json();

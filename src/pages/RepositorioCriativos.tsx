@@ -4,13 +4,56 @@ import { useAllCreatives, UnifiedCreative } from "@/hooks/useAllCreatives";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Images, Filter, Eye, Download, Calendar, User, Sparkles, Factory, Check, ChevronsUpDown, Megaphone, FileText, Search, X, LayoutGrid, ChevronLeft, ChevronRight, ImageOff, RefreshCw, Pencil } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Images,
+  Filter,
+  Eye,
+  Download,
+  Calendar,
+  User,
+  Sparkles,
+  Factory,
+  Check,
+  ChevronsUpDown,
+  Megaphone,
+  FileText,
+  Search,
+  X,
+  LayoutGrid,
+  ChevronLeft,
+  ChevronRight,
+  ImageOff,
+  RefreshCw,
+  Pencil,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -22,18 +65,40 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useCompany } from "@/contexts/CompanyContext";
 
-type SourceFilter = 'all' | 'fabrica_criativos' | 'gerador_criativos' | 'fabrica_anuncios' | 'fabrica_carrosseis';
-type StatusFilter = 'all' | 'pending' | 'approved' | 'published' | 'rejected' | 'completed' | 'generating';
+type SourceFilter =
+  | "all"
+  | "fabrica_criativos"
+  | "gerador_criativos"
+  | "fabrica_anuncios"
+  | "fabrica_carrosseis";
+type StatusFilter =
+  | "all"
+  | "pending"
+  | "approved"
+  | "published"
+  | "rejected"
+  | "completed"
+  | "generating";
 
 export default function RepositorioCriativos() {
   const { activeCompany } = useCompany();
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [comboboxOpen, setComboboxOpen] = useState(false);
-  const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all');
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const { creatives, allClients, loading, loadingMore, hasMore, loadMore, totalCounts, refetch } = useAllCreatives(selectedClientId || undefined);
-  const [selectedCreative, setSelectedCreative] = useState<UnifiedCreative | null>(null);
+  const {
+    creatives,
+    allClients,
+    loading,
+    loadingMore,
+    hasMore,
+    loadMore,
+    totalCounts,
+    refetch,
+  } = useAllCreatives(selectedClientId || undefined);
+  const [selectedCreative, setSelectedCreative] =
+    useState<UnifiedCreative | null>(null);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [showPresentationModal, setShowPresentationModal] = useState(false);
   const [showRegenerateModal, setShowRegenerateModal] = useState(false);
@@ -43,59 +108,59 @@ export default function RepositorioCriativos() {
   // Handler to update image in the correct table based on source
   const handleImageEdited = async (newImages: string[]) => {
     if (!selectedCreative || !newImages[0]) return;
-    
+
     const newImageUrl = newImages[0];
-    
+
     try {
       let error = null;
-      
+
       switch (selectedCreative.source) {
-        case 'fabrica_criativos': {
+        case "fabrica_criativos": {
           const { error: fcError } = await supabase
-            .from('creative_generation_queue')
+            .from("creative_generation_queue")
             .update({ image_url: newImageUrl })
-            .eq('id', selectedCreative.id);
+            .eq("id", selectedCreative.id);
           error = fcError;
           break;
         }
 
-        case 'gerador_criativos': {
+        case "gerador_criativos": {
           const { error: gcError } = await supabase
-            .from('visual_creatives')
+            .from("visual_creatives")
             .update({ image_url: newImageUrl })
-            .eq('id', selectedCreative.id);
+            .eq("id", selectedCreative.id);
           error = gcError;
           break;
         }
 
-        case 'fabrica_anuncios': {
+        case "fabrica_anuncios": {
           // Need to update generated_content JSON
           const { data: adData } = await supabase
-            .from('ad_generation_queue')
-            .select('generated_content')
-            .eq('id', selectedCreative.id)
+            .from("ad_generation_queue")
+            .select("generated_content")
+            .eq("id", selectedCreative.id)
             .single();
-          
+
           if (adData) {
-            const content = adData.generated_content as unknown || {};
+            const content = (adData.generated_content as unknown) || {};
             content.image_url = newImageUrl;
             content.creative_image_url = newImageUrl;
-            
+
             const { error: faError } = await supabase
-              .from('ad_generation_queue')
+              .from("ad_generation_queue")
               .update({ generated_content: content })
-              .eq('id', selectedCreative.id);
+              .eq("id", selectedCreative.id);
             error = faError;
           }
           break;
         }
 
-        case 'fabrica_carrosseis': {
+        case "fabrica_carrosseis": {
           // For carousels, update the current slide's image
           const { data: carouselData } = await supabase
-            .from('carousel_generation_queue')
-            .select('slides')
-            .eq('id', selectedCreative.id)
+            .from("carousel_generation_queue")
+            .select("slides")
+            .eq("id", selectedCreative.id)
             .single();
 
           if (carouselData && carouselData.slides) {
@@ -104,52 +169,59 @@ export default function RepositorioCriativos() {
               slides[currentSlideIndex].image_url = newImageUrl;
 
               const { error: ccError } = await supabase
-                .from('carousel_generation_queue')
+                .from("carousel_generation_queue")
                 .update({
                   slides: slides,
-                  cover_image_url: currentSlideIndex === 0 ? newImageUrl : undefined
+                  cover_image_url:
+                    currentSlideIndex === 0 ? newImageUrl : undefined,
                 })
-                .eq('id', selectedCreative.id);
+                .eq("id", selectedCreative.id);
               error = ccError;
             }
           }
           break;
         }
       }
-      
+
       if (error) {
-        console.error('Error updating image:', error);
-        toast.error('Erro ao salvar imagem editada');
+        console.error("Error updating image:", error);
+        toast.error("Erro ao salvar imagem editada");
         return;
       }
-      
-      toast.success('Imagem atualizada com sucesso!');
+
+      toast.success("Imagem atualizada com sucesso!");
       setShowImageEditorModal(false);
-      
+
       // Update local state
-      if (selectedCreative.source === 'fabrica_carrosseis' && selectedCreative.slides) {
+      if (
+        selectedCreative.source === "fabrica_carrosseis" &&
+        selectedCreative.slides
+      ) {
         const updatedSlides = [...selectedCreative.slides];
         if (updatedSlides[currentSlideIndex]) {
-          updatedSlides[currentSlideIndex] = { ...updatedSlides[currentSlideIndex], image_url: newImageUrl };
+          updatedSlides[currentSlideIndex] = {
+            ...updatedSlides[currentSlideIndex],
+            image_url: newImageUrl,
+          };
         }
         setSelectedCreative({
           ...selectedCreative,
           slides: updatedSlides,
-          image_url: currentSlideIndex === 0 ? newImageUrl : selectedCreative.image_url
+          image_url:
+            currentSlideIndex === 0 ? newImageUrl : selectedCreative.image_url,
         });
       } else {
         setSelectedCreative({
           ...selectedCreative,
-          image_url: newImageUrl
+          image_url: newImageUrl,
         });
       }
-      
+
       // Refetch to update list
       refetch?.();
-      
     } catch (err) {
-      console.error('Error updating image:', err);
-      toast.error('Erro ao salvar imagem editada');
+      console.error("Error updating image:", err);
+      toast.error("Erro ao salvar imagem editada");
     }
   };
 
@@ -161,9 +233,13 @@ export default function RepositorioCriativos() {
 
   // Get all images for carousel navigation
   const getCarouselImages = (creative: UnifiedCreative): string[] => {
-    if (creative.source === 'fabrica_carrosseis' && creative.slides && creative.slides.length > 0) {
+    if (
+      creative.source === "fabrica_carrosseis" &&
+      creative.slides &&
+      creative.slides.length > 0
+    ) {
       return creative.slides
-        .map(slide => slide.image_url)
+        .map((slide) => slide.image_url)
         .filter((url): url is string => !!url);
     }
     // Fallback to single image
@@ -171,12 +247,14 @@ export default function RepositorioCriativos() {
   };
 
   // Count missing images in carousel
-  const getMissingImagesInfo = (creative: UnifiedCreative): { missing: number; total: number } => {
-    if (creative.source !== 'fabrica_carrosseis' || !creative.slides) {
+  const getMissingImagesInfo = (
+    creative: UnifiedCreative,
+  ): { missing: number; total: number } => {
+    if (creative.source !== "fabrica_carrosseis" || !creative.slides) {
       return { missing: 0, total: 0 };
     }
     const total = creative.slides.length;
-    const missing = creative.slides.filter(slide => !slide.image_url).length;
+    const missing = creative.slides.filter((slide) => !slide.image_url).length;
     return { missing, total };
   };
 
@@ -192,62 +270,78 @@ export default function RepositorioCriativos() {
   const handlePrevSlide = () => {
     if (!selectedCreative) return;
     const images = getCarouselImages(selectedCreative);
-    setCurrentSlideIndex(prev => (prev === 0 ? images.length - 1 : prev - 1));
+    setCurrentSlideIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
   };
 
   const handleNextSlide = () => {
     if (!selectedCreative) return;
     const images = getCarouselImages(selectedCreative);
-    setCurrentSlideIndex(prev => (prev === images.length - 1 ? 0 : prev + 1));
+    setCurrentSlideIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
   };
 
   const selectedClientName = useMemo(() => {
     if (!selectedClientId) return "Todos os clientes";
-    const client = allClients.find(c => c.id === selectedClientId);
+    const client = allClients.find((c) => c.id === selectedClientId);
     return client?.name || "Todos os clientes";
   }, [selectedClientId, allClients]);
 
   // Filtrar criativos localmente
   const filteredCreatives = useMemo(() => {
-    return creatives.filter(creative => {
+    return creatives.filter((creative) => {
       // Filtro por origem/tipo de fábrica
-      if (sourceFilter !== 'all' && creative.source !== sourceFilter) {
+      if (sourceFilter !== "all" && creative.source !== sourceFilter) {
         return false;
       }
-      
+
       // Filtro por status
-      if (statusFilter !== 'all' && creative.status !== statusFilter) {
+      if (statusFilter !== "all" && creative.status !== statusFilter) {
         return false;
       }
-      
+
       // Filtro por busca textual (legenda, título, tema)
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
         const matchesCaption = creative.caption?.toLowerCase().includes(query);
         const matchesTitle = creative.title?.toLowerCase().includes(query);
         const matchesTheme = creative.theme?.toLowerCase().includes(query);
-        const matchesClient = creative.client_name?.toLowerCase().includes(query);
-        
-        if (!matchesCaption && !matchesTitle && !matchesTheme && !matchesClient) {
+        const matchesClient = creative.client_name
+          ?.toLowerCase()
+          .includes(query);
+
+        if (
+          !matchesCaption &&
+          !matchesTitle &&
+          !matchesTheme &&
+          !matchesClient
+        ) {
           return false;
         }
       }
-      
+
       return true;
     });
   }, [creatives, sourceFilter, statusFilter, searchQuery]);
 
-  const hasActiveFilters = sourceFilter !== 'all' || statusFilter !== 'all' || searchQuery.trim() !== '';
+  const hasActiveFilters =
+    sourceFilter !== "all" ||
+    statusFilter !== "all" ||
+    searchQuery.trim() !== "";
 
   const clearAllFilters = () => {
-    setSourceFilter('all');
-    setStatusFilter('all');
-    setSearchQuery('');
-    setSelectedClientId('');
+    setSourceFilter("all");
+    setStatusFilter("all");
+    setSearchQuery("");
+    setSelectedClientId("");
   };
 
   const getStatusBadge = (status: string) => {
-    const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+    const statusConfig: Record<
+      string,
+      {
+        label: string;
+        variant: "default" | "secondary" | "destructive" | "outline";
+      }
+    > = {
       pending: { label: "Pendente", variant: "secondary" },
       approved: { label: "Aprovado", variant: "default" },
       rejected: { label: "Rejeitado", variant: "destructive" },
@@ -256,12 +350,21 @@ export default function RepositorioCriativos() {
       failed: { label: "Falhou", variant: "destructive" },
       error: { label: "Erro", variant: "destructive" },
     };
-    const config = statusConfig[status] || { label: status, variant: "secondary" as const };
+    const config = statusConfig[status] || {
+      label: status,
+      variant: "secondary" as const,
+    };
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
-  const getSourceBadge = (source: 'fabrica_criativos' | 'gerador_criativos' | 'fabrica_anuncios' | 'fabrica_carrosseis') => {
-    if (source === 'fabrica_criativos') {
+  const getSourceBadge = (
+    source:
+      | "fabrica_criativos"
+      | "gerador_criativos"
+      | "fabrica_anuncios"
+      | "fabrica_carrosseis",
+  ) => {
+    if (source === "fabrica_criativos") {
       return (
         <Badge variant="outline" className="gap-1 bg-primary/5">
           <Factory className="h-3 w-3" />
@@ -269,17 +372,23 @@ export default function RepositorioCriativos() {
         </Badge>
       );
     }
-    if (source === 'fabrica_anuncios') {
+    if (source === "fabrica_anuncios") {
       return (
-        <Badge variant="outline" className="gap-1 bg-orange-500/10 text-orange-600 border-orange-500/30">
+        <Badge
+          variant="outline"
+          className="gap-1 bg-orange-500/10 text-orange-600 border-orange-500/30"
+        >
           <Megaphone className="h-3 w-3" />
           Fábrica Anúncios
         </Badge>
       );
     }
-    if (source === 'fabrica_carrosseis') {
+    if (source === "fabrica_carrosseis") {
       return (
-        <Badge variant="outline" className="gap-1 bg-purple-500/10 text-purple-600 border-purple-500/30">
+        <Badge
+          variant="outline"
+          className="gap-1 bg-purple-500/10 text-purple-600 border-purple-500/30"
+        >
           <LayoutGrid className="h-3 w-3" />
           Fábrica Carrosséis
         </Badge>
@@ -298,7 +407,7 @@ export default function RepositorioCriativos() {
       const response = await fetch(imageUrl);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
       a.download = fileName;
       document.body.appendChild(a);
@@ -306,7 +415,7 @@ export default function RepositorioCriativos() {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (error) {
-      console.error('Error downloading image:', error);
+      console.error("Error downloading image:", error);
     }
   };
 
@@ -321,10 +430,10 @@ export default function RepositorioCriativos() {
               Repositório de Criativos
             </h1>
             <p className="text-muted-foreground mt-1">
-              Todos os criativos gerados pela Fábrica de Criativos e Gerador de Criativos
+              Todos os criativos gerados pela Fábrica de Criativos e Gerador de
+              Criativos
             </p>
           </div>
-
         </div>
 
         {/* Filters Row */}
@@ -340,7 +449,7 @@ export default function RepositorioCriativos() {
             />
             {searchQuery && (
               <button
-                onClick={() => setSearchQuery('')}
+                onClick={() => setSearchQuery("")}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               >
                 <X className="h-4 w-4" />
@@ -358,7 +467,9 @@ export default function RepositorioCriativos() {
                 className="w-[200px] justify-between"
               >
                 <User className="h-4 w-4 mr-2 shrink-0 text-muted-foreground" />
-                <span className="truncate flex-1 text-left">{selectedClientName}</span>
+                <span className="truncate flex-1 text-left">
+                  {selectedClientName}
+                </span>
                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
               </Button>
             </PopoverTrigger>
@@ -378,7 +489,7 @@ export default function RepositorioCriativos() {
                       <Check
                         className={cn(
                           "mr-2 h-4 w-4",
-                          selectedClientId === "" ? "opacity-100" : "opacity-0"
+                          selectedClientId === "" ? "opacity-100" : "opacity-0",
                         )}
                       />
                       Todos os clientes
@@ -395,7 +506,9 @@ export default function RepositorioCriativos() {
                         <Check
                           className={cn(
                             "mr-2 h-4 w-4",
-                            selectedClientId === client.id ? "opacity-100" : "opacity-0"
+                            selectedClientId === client.id
+                              ? "opacity-100"
+                              : "opacity-0",
                           )}
                         />
                         {client.name}
@@ -408,22 +521,36 @@ export default function RepositorioCriativos() {
           </Popover>
 
           {/* Source Filter */}
-          <Select value={sourceFilter} onValueChange={(value) => setSourceFilter(value as SourceFilter)}>
+          <Select
+            value={sourceFilter}
+            onValueChange={(value) => setSourceFilter(value as SourceFilter)}
+          >
             <SelectTrigger className="w-[180px]">
               <Factory className="h-4 w-4 mr-2 text-muted-foreground" />
               <SelectValue placeholder="Origem" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas as origens</SelectItem>
-              <SelectItem value="fabrica_anuncios">Fábrica de Anúncios</SelectItem>
-              <SelectItem value="fabrica_criativos">Fábrica de Criativos</SelectItem>
-              <SelectItem value="fabrica_carrosseis">Fábrica de Carrosséis</SelectItem>
-              <SelectItem value="gerador_criativos">Gerador de Criativos</SelectItem>
+              <SelectItem value="fabrica_anuncios">
+                Fábrica de Anúncios
+              </SelectItem>
+              <SelectItem value="fabrica_criativos">
+                Fábrica de Criativos
+              </SelectItem>
+              <SelectItem value="fabrica_carrosseis">
+                Fábrica de Carrosséis
+              </SelectItem>
+              <SelectItem value="gerador_criativos">
+                Gerador de Criativos
+              </SelectItem>
             </SelectContent>
           </Select>
 
           {/* Status Filter */}
-          <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as StatusFilter)}>
+          <Select
+            value={statusFilter}
+            onValueChange={(value) => setStatusFilter(value as StatusFilter)}
+          >
             <SelectTrigger className="w-[160px]">
               <Filter className="h-4 w-4 mr-2 text-muted-foreground" />
               <SelectValue placeholder="Status" />
@@ -441,7 +568,12 @@ export default function RepositorioCriativos() {
 
           {/* Clear Filters */}
           {hasActiveFilters && (
-            <Button variant="ghost" size="sm" onClick={clearAllFilters} className="text-muted-foreground">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearAllFilters}
+              className="text-muted-foreground"
+            >
               <X className="h-4 w-4 mr-1" />
               Limpar filtros
             </Button>
@@ -450,7 +582,9 @@ export default function RepositorioCriativos() {
 
         {/* Stats */}
         <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-          <span className="font-medium text-foreground">{totalCounts.total} criativos no total</span>
+          <span className="font-medium text-foreground">
+            {totalCounts.total} criativos no total
+          </span>
           <span>•</span>
           <span>{totalCounts.fabricaAnuncios} da Fábrica de Anúncios</span>
           <span>•</span>
@@ -462,7 +596,9 @@ export default function RepositorioCriativos() {
           {hasActiveFilters && (
             <>
               <span>•</span>
-              <span className="text-primary font-medium">{filteredCreatives.length} filtrados</span>
+              <span className="text-primary font-medium">
+                {filteredCreatives.length} filtrados
+              </span>
             </>
           )}
         </div>
@@ -487,12 +623,16 @@ export default function RepositorioCriativos() {
             <p className="text-muted-foreground mt-1">
               {hasActiveFilters
                 ? "Nenhum criativo corresponde aos filtros selecionados."
-                : selectedClientId 
+                : selectedClientId
                   ? "Este cliente ainda não possui criativos gerados."
                   : "Comece gerando criativos através da Fábrica ou Gerador de Criativos."}
             </p>
             {hasActiveFilters && (
-              <Button variant="outline" onClick={clearAllFilters} className="mt-4">
+              <Button
+                variant="outline"
+                onClick={clearAllFilters}
+                className="mt-4"
+              >
                 Limpar filtros
               </Button>
             )}
@@ -500,8 +640,8 @@ export default function RepositorioCriativos() {
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             {filteredCreatives.map((creative) => (
-              <Card 
-                key={`${creative.source}-${creative.id}`} 
+              <Card
+                key={`${creative.source}-${creative.id}`}
                 className="overflow-hidden group hover:shadow-md transition-shadow cursor-pointer"
                 onClick={() => handleSelectCreative(creative)}
               >
@@ -510,7 +650,7 @@ export default function RepositorioCriativos() {
                   {creative.image_url ? (
                     <img
                       src={creative.image_url}
-                      alt={creative.title || creative.caption || 'Criativo'}
+                      alt={creative.title || creative.caption || "Criativo"}
                       className="w-full h-full object-cover"
                     />
                   ) : creative.video_url ? (
@@ -524,7 +664,7 @@ export default function RepositorioCriativos() {
                       <Images className="h-8 w-8 text-muted-foreground/30" />
                     </div>
                   )}
-                  
+
                   {/* Overlay on hover */}
                   <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                     <Button variant="secondary" size="sm" className="gap-1">
@@ -552,10 +692,16 @@ export default function RepositorioCriativos() {
                   </div>
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Calendar className="h-3 w-3" />
-                    <span>{format(new Date(creative.created_at), "dd MMM yyyy", { locale: ptBR })}</span>
+                    <span>
+                      {format(new Date(creative.created_at), "dd MMM yyyy", {
+                        locale: ptBR,
+                      })}
+                    </span>
                   </div>
                   {creative.theme && (
-                    <p className="text-xs text-muted-foreground truncate">{creative.theme}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {creative.theme}
+                    </p>
                   )}
                 </CardContent>
               </Card>
@@ -566,9 +712,9 @@ export default function RepositorioCriativos() {
         {/* Load More Button */}
         {!loading && creatives.length > 0 && hasMore && (
           <div className="flex justify-center pt-4">
-            <Button 
-              variant="outline" 
-              onClick={loadMore} 
+            <Button
+              variant="outline"
+              onClick={loadMore}
               disabled={loadingMore}
               className="min-w-[200px]"
             >
@@ -578,7 +724,10 @@ export default function RepositorioCriativos() {
         )}
 
         {/* Detail Modal */}
-        <Dialog open={!!selectedCreative} onOpenChange={() => setSelectedCreative(null)}>
+        <Dialog
+          open={!!selectedCreative}
+          onOpenChange={() => setSelectedCreative(null)}
+        >
           <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
@@ -594,21 +743,27 @@ export default function RepositorioCriativos() {
                   {(() => {
                     const carouselImages = getCarouselImages(selectedCreative);
                     const isCarousel = carouselImages.length > 1;
-                    const currentImage = carouselImages[currentSlideIndex] || selectedCreative.image_url;
+                    const currentImage =
+                      carouselImages[currentSlideIndex] ||
+                      selectedCreative.image_url;
 
                     if (currentImage) {
                       return (
                         <>
                           <img
                             src={currentImage}
-                            alt={selectedCreative.title || `Slide ${currentSlideIndex + 1}`}
+                            alt={
+                              selectedCreative.title ||
+                              `Slide ${currentSlideIndex + 1}`
+                            }
                             className="w-full max-h-[60vh] object-contain"
                           />
-                          
+
                           {/* Navigation Arrows for Carousel */}
                           {isCarousel && (
                             <>
-                              <Button aria-label="Voltar"
+                              <Button
+                                aria-label="Voltar"
                                 variant="secondary"
                                 size="icon"
                                 className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full opacity-80 hover:opacity-100"
@@ -616,7 +771,8 @@ export default function RepositorioCriativos() {
                               >
                                 <ChevronLeft className="w-5 h-5" />
                               </Button>
-                              <Button aria-label="Avançar"
+                              <Button
+                                aria-label="Avançar"
                                 variant="secondary"
                                 size="icon"
                                 className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full opacity-80 hover:opacity-100"
@@ -624,7 +780,7 @@ export default function RepositorioCriativos() {
                               >
                                 <ChevronRight className="w-5 h-5" />
                               </Button>
-                              
+
                               {/* Slide Indicators */}
                               <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
                                 {carouselImages.map((_, idx) => (
@@ -633,15 +789,18 @@ export default function RepositorioCriativos() {
                                     onClick={() => setCurrentSlideIndex(idx)}
                                     className={cn(
                                       "w-2.5 h-2.5 rounded-full transition-colors",
-                                      idx === currentSlideIndex ? "bg-white" : "bg-white/50 hover:bg-white/70"
+                                      idx === currentSlideIndex
+                                        ? "bg-white"
+                                        : "bg-white/50 hover:bg-white/70",
                                     )}
                                   />
                                 ))}
                               </div>
-                              
+
                               {/* Slide Counter */}
                               <Badge className="absolute top-3 right-3 bg-black/60">
-                                {currentSlideIndex + 1} / {carouselImages.length}
+                                {currentSlideIndex + 1} /{" "}
+                                {carouselImages.length}
                               </Badge>
                             </>
                           )}
@@ -679,7 +838,7 @@ export default function RepositorioCriativos() {
                               "shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors",
                               idx === currentSlideIndex
                                 ? "border-primary"
-                                : "border-transparent hover:border-muted-foreground/50"
+                                : "border-transparent hover:border-muted-foreground/50",
                             )}
                           >
                             <img
@@ -699,32 +858,46 @@ export default function RepositorioCriativos() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm font-medium">Cliente</p>
-                    <p className="text-sm text-muted-foreground">{selectedCreative.client_name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedCreative.client_name}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm font-medium">Data de Criação</p>
                     <p className="text-sm text-muted-foreground">
-                      {format(new Date(selectedCreative.created_at), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
+                      {format(
+                        new Date(selectedCreative.created_at),
+                        "dd 'de' MMMM 'de' yyyy 'às' HH:mm",
+                        { locale: ptBR },
+                      )}
                     </p>
                   </div>
                   <div>
                     <p className="text-sm font-medium">Status</p>
-                    <div className="mt-1">{getStatusBadge(selectedCreative.status)}</div>
+                    <div className="mt-1">
+                      {getStatusBadge(selectedCreative.status)}
+                    </div>
                   </div>
                   <div>
                     <p className="text-sm font-medium">Origem</p>
-                    <div className="mt-1">{getSourceBadge(selectedCreative.source)}</div>
+                    <div className="mt-1">
+                      {getSourceBadge(selectedCreative.source)}
+                    </div>
                   </div>
                   {selectedCreative.creative_type && (
                     <div>
                       <p className="text-sm font-medium">Tipo</p>
-                      <p className="text-sm text-muted-foreground">{selectedCreative.creative_type}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {selectedCreative.creative_type}
+                      </p>
                     </div>
                   )}
                   {selectedCreative.theme && (
                     <div>
                       <p className="text-sm font-medium">Tema</p>
-                      <p className="text-sm text-muted-foreground">{selectedCreative.theme}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {selectedCreative.theme}
+                      </p>
                     </div>
                   )}
                 </div>
@@ -741,7 +914,8 @@ export default function RepositorioCriativos() {
 
                 {/* Missing Images Warning for Carousels */}
                 {(() => {
-                  const { missing, total } = getMissingImagesInfo(selectedCreative);
+                  const { missing, total } =
+                    getMissingImagesInfo(selectedCreative);
                   if (missing > 0) {
                     return (
                       <div className="flex items-center justify-between p-3 rounded-lg bg-orange-500/10 border border-orange-500/30">
@@ -773,8 +947,8 @@ export default function RepositorioCriativos() {
 
                 {/* Actions */}
                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-2">
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
                     className="text-xs h-9 flex-col gap-0.5 py-1.5"
                     onClick={() => setShowScheduleModal(true)}
@@ -782,8 +956,8 @@ export default function RepositorioCriativos() {
                     <Calendar className="h-3.5 w-3.5" />
                     <span>Agendar</span>
                   </Button>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
                     className="text-xs h-9 flex-col gap-0.5 py-1.5"
                     onClick={() => setShowPresentationModal(true)}
@@ -793,14 +967,15 @@ export default function RepositorioCriativos() {
                   </Button>
                   {(() => {
                     const carouselImages = getCarouselImages(selectedCreative);
-                    const currentImage = carouselImages.length > 1 
-                      ? carouselImages[currentSlideIndex] 
-                      : selectedCreative.image_url;
-                    
+                    const currentImage =
+                      carouselImages.length > 1
+                        ? carouselImages[currentSlideIndex]
+                        : selectedCreative.image_url;
+
                     if (currentImage && activeCompany?.company_id) {
                       return (
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           size="sm"
                           className="text-xs h-9 flex-col gap-0.5 py-1.5"
                           onClick={() => setShowImageEditorModal(true)}
@@ -813,21 +988,23 @@ export default function RepositorioCriativos() {
                     return null;
                   })()}
                   {selectedCreative.image_url && (
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       size="sm"
                       className="text-xs h-9 flex-col gap-0.5 py-1.5"
-                      onClick={() => handleDownload(
-                        selectedCreative.image_url!, 
-                        `criativo-${selectedCreative.id}.jpg`
-                      )}
+                      onClick={() =>
+                        handleDownload(
+                          selectedCreative.image_url!,
+                          `criativo-${selectedCreative.id}.jpg`,
+                        )
+                      }
                     >
                       <Download className="h-3.5 w-3.5" />
                       <span>Baixar</span>
                     </Button>
                   )}
-                  <Button 
-                    variant="secondary" 
+                  <Button
+                    variant="secondary"
                     size="sm"
                     className="text-xs h-9 flex-col gap-0.5 py-1.5"
                     onClick={() => setSelectedCreative(null)}
@@ -866,37 +1043,41 @@ export default function RepositorioCriativos() {
         )}
 
         {/* Regenerate Carousel Images Modal */}
-        {selectedCreative && selectedCreative.source === 'fabrica_carrosseis' && (
-          <RegenerateCarouselModal
-            open={showRegenerateModal}
-            onOpenChange={setShowRegenerateModal}
-            carouselId={selectedCreative.id}
-            missingCount={getMissingImagesInfo(selectedCreative).missing}
-            totalSlides={getMissingImagesInfo(selectedCreative).total}
-            onComplete={handleRegenerateComplete}
-          />
-        )}
+        {selectedCreative &&
+          selectedCreative.source === "fabrica_carrosseis" && (
+            <RegenerateCarouselModal
+              open={showRegenerateModal}
+              onOpenChange={setShowRegenerateModal}
+              carouselId={selectedCreative.id}
+              missingCount={getMissingImagesInfo(selectedCreative).missing}
+              totalSlides={getMissingImagesInfo(selectedCreative).total}
+              onComplete={handleRegenerateComplete}
+            />
+          )}
 
         {/* Image Editor Modal */}
-        {selectedCreative && activeCompany?.company_id && (() => {
-          const carouselImages = getCarouselImages(selectedCreative);
-          const currentImage = carouselImages.length > 1 
-            ? carouselImages[currentSlideIndex] 
-            : selectedCreative.image_url;
-          
-          if (!currentImage) return null;
-          
-          return (
-            <ImageEditorModal
-              open={showImageEditorModal}
-              onOpenChange={setShowImageEditorModal}
-              images={[currentImage]}
-              onSave={handleImageEdited}
-              clientId={selectedCreative.client_id}
-              companyId={activeCompany.company_id}
-            />
-          );
-        })()}
+        {selectedCreative &&
+          activeCompany?.company_id &&
+          (() => {
+            const carouselImages = getCarouselImages(selectedCreative);
+            const currentImage =
+              carouselImages.length > 1
+                ? carouselImages[currentSlideIndex]
+                : selectedCreative.image_url;
+
+            if (!currentImage) return null;
+
+            return (
+              <ImageEditorModal
+                open={showImageEditorModal}
+                onOpenChange={setShowImageEditorModal}
+                images={[currentImage]}
+                onSave={handleImageEdited}
+                clientId={selectedCreative.client_id}
+                companyId={activeCompany.company_id}
+              />
+            );
+          })()}
       </div>
     </DashboardLayout>
   );

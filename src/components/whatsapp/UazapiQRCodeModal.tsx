@@ -40,9 +40,12 @@ export function UazapiQRCodeModal({
     setError(null);
 
     try {
-      const { data, error: fnError } = await supabase.functions.invoke("get-uazapi-qrcode", {
-        body: { instance_id: instanceId },
-      });
+      const { data, error: fnError } = await supabase.functions.invoke(
+        "get-uazapi-qrcode",
+        {
+          body: { instance_id: instanceId },
+        },
+      );
 
       if (fnError) throw fnError;
 
@@ -54,7 +57,8 @@ export function UazapiQRCodeModal({
         setPairCode(null);
         toast({
           title: "WhatsApp já conectado!",
-          description: data.profile_name || data.connected_phone || "Sessão ativa.",
+          description:
+            data.profile_name || data.connected_phone || "Sessão ativa.",
         });
         return;
       }
@@ -81,9 +85,12 @@ export function UazapiQRCodeModal({
 
   const checkConnection = useCallback(async () => {
     try {
-      const { data } = await supabase.functions.invoke("test-uazapi-connection", {
-        body: { instance_id: instanceId },
-      });
+      const { data } = await supabase.functions.invoke(
+        "test-uazapi-connection",
+        {
+          body: { instance_id: instanceId },
+        },
+      );
 
       if (data?.is_connected) {
         setIsConnected(true);
@@ -93,7 +100,10 @@ export function UazapiQRCodeModal({
         setPairCode(null);
         toast({
           title: "WhatsApp conectado!",
-          description: data.profile_name || data.connected_phone || "Conexão estabelecida.",
+          description:
+            data.profile_name ||
+            data.connected_phone ||
+            "Conexão estabelecida.",
         });
         return true;
       }
@@ -165,7 +175,9 @@ export function UazapiQRCodeModal({
           {isLoading ? (
             <div className="flex flex-col items-center gap-4">
               <Loader2 className="h-12 w-12 animate-spin text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">Carregando QR Code...</p>
+              <p className="text-sm text-muted-foreground">
+                Carregando QR Code...
+              </p>
             </div>
           ) : isConnected ? (
             <div className="flex flex-col items-center gap-4">
@@ -177,10 +189,14 @@ export function UazapiQRCodeModal({
                   WhatsApp Conectado!
                 </p>
                 {profileName && (
-                  <p className="text-sm text-muted-foreground mt-1">{profileName}</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {profileName}
+                  </p>
                 )}
                 {connectedPhone && (
-                  <p className="text-sm text-muted-foreground">📱 {connectedPhone}</p>
+                  <p className="text-sm text-muted-foreground">
+                    📱 {connectedPhone}
+                  </p>
                 )}
               </div>
               <Button onClick={handleClose}>Fechar</Button>
@@ -202,23 +218,31 @@ export function UazapiQRCodeModal({
                   className="w-64 h-64 object-contain"
                 />
               </div>
-              
+
               {pairCode && (
                 <div className="flex flex-col items-center gap-2 mt-2">
-                  <p className="text-sm text-muted-foreground">Ou use o código de pareamento:</p>
+                  <p className="text-sm text-muted-foreground">
+                    Ou use o código de pareamento:
+                  </p>
                   <div className="flex items-center gap-2">
                     <code className="bg-muted px-3 py-1.5 rounded text-lg font-mono">
                       {pairCode}
                     </code>
-                    <Button aria-label="Copiar" variant="ghost" size="icon" onClick={copyPairCode}>
+                    <Button
+                      aria-label="Copiar"
+                      variant="ghost"
+                      size="icon"
+                      onClick={copyPairCode}
+                    >
                       <Copy className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
               )}
-              
+
               <p className="text-sm text-muted-foreground text-center max-w-xs">
-                Abra o WhatsApp no seu celular, vá em <strong>Dispositivos conectados</strong> e escaneie este QR Code
+                Abra o WhatsApp no seu celular, vá em{" "}
+                <strong>Dispositivos conectados</strong> e escaneie este QR Code
               </p>
               <Button onClick={fetchQRCode} variant="outline" size="sm">
                 <RefreshCw className="h-4 w-4 mr-2" />
@@ -227,7 +251,9 @@ export function UazapiQRCodeModal({
             </div>
           ) : (
             <div className="flex flex-col items-center gap-4">
-              <p className="text-sm text-muted-foreground">Nenhum QR Code disponível</p>
+              <p className="text-sm text-muted-foreground">
+                Nenhum QR Code disponível
+              </p>
               <Button onClick={fetchQRCode} variant="outline">
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Gerar QR Code

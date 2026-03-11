@@ -1,8 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': Deno.env.get('FRONTEND_URL') ?? 'https://controledetrafego.com.br',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 interface ProspectRequest {
@@ -54,47 +56,55 @@ interface ExtractedLead {
 
 function normalizePhone(phone: string | undefined | null): string | null {
   if (!phone) return null;
-  const cleaned = phone.replace(/\D/g, '');
+  const cleaned = phone.replace(/\D/g, "");
   if (cleaned.length < 8) return null;
   return phone.trim();
 }
 
 function hasValue(val: string | null | undefined): boolean {
-  return val !== null && val !== undefined && val.trim() !== '';
+  return val !== null && val !== undefined && val.trim() !== "";
 }
 
 serve(async (req) => {
   // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const APIFY_TOKEN = Deno.env.get('APIFY_API_TOKEN');
+    const APIFY_TOKEN = Deno.env.get("APIFY_API_TOKEN");
     if (!APIFY_TOKEN) {
-      throw new Error('APIFY_API_TOKEN not configured');
+      throw new Error("APIFY_API_TOKEN not configured");
     }
 
     const body: ProspectRequest = await req.json();
-    const { 
-      state, 
-      city, 
-      businessType, 
+    const {
+      state,
+      city,
+      businessType,
       quantity = 20,
       requirePhone = false,
       requireEmail = false,
       requireWebsite = false,
-      requireAddress = false
+      requireAddress = false,
     } = body;
 
     if (!state || !city || !businessType) {
       return new Response(
-        JSON.stringify({ success: false, error: 'Missing required fields: state, city, businessType' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({
+          success: false,
+          error: "Missing required fields: state, city, businessType",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
-    console.log(`[Apify Maps] Starting search: ${businessType} in ${city}, ${state} (qty: ${quantity})`);
+    console.log(
+      `[Apify Maps] Starting search: ${businessType} in ${city}, ${state} (qty: ${quantity})`,
+    );
 
     // Start the Apify actor
     const actorInput = {
@@ -108,66 +118,66 @@ serve(async (req) => {
       skipClosedPlaces: true,
     };
 
-    console.log('[Apify Maps] Actor input:', JSON.stringify(actorInput));
+    console.log("[Apify Maps] Actor input:", JSON.stringify(actorInput));
 
     // Start the actor run
     const startResponse = await fetch(
       `https://api.apify.com/v2/acts/compass~crawler-google-places/runs?token=${APIFY_TOKEN}`,
       {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(actorInput),
-      }
+      },
     );
 
     if (!startResponse.ok) {
       const errorText = await startResponse.text();
-      console.error('[Apify Maps] Failed to start actor:', errorText);
+      console.error("[Apify Maps] Failed to start actor:", errorText);
       throw new Error(`Failed to start Apify actor: ${startResponse.status}`);
     }
 
     const runData = await startResponse.json();
     const runId = runData.data?.id;
-    console.log('[Apify Maps] Actor run started:', runId);
+    console.log("[Apify Maps] Actor run started:", runId);
 
     if (!runId) {
-      throw new Error('No run ID received from Apify');
+      throw new Error("No run ID received from Apify");
     }
 
     // Poll for completion (max 3 minutes)
     const maxWaitTime = 180000; // 3 minutes
     const pollInterval = 5000; // 5 seconds
     const startTime = Date.now();
-    let status = 'RUNNING';
+    let status = "RUNNING";
 
-    while (status === 'RUNNING' || status === 'READY') {
+    while (status === "RUNNING" || status === "READY") {
       if (Date.now() - startTime > maxWaitTime) {
-        console.warn('[Apify Maps] Timeout waiting for actor completion');
+        console.warn("[Apify Maps] Timeout waiting for actor completion");
         break;
       }
 
-      await new Promise(resolve => setTimeout(resolve, pollInterval));
+      await new Promise((resolve) => setTimeout(resolve, pollInterval));
 
       const statusResponse = await fetch(
-        `https://api.apify.com/v2/actor-runs/${runId}?token=${APIFY_TOKEN}`
+        `https://api.apify.com/v2/actor-runs/${runId}?token=${APIFY_TOKEN}`,
       );
       const statusData = await statusResponse.json();
       status = statusData.data?.status;
       console.log(`[Apify Maps] Run status: ${status}`);
     }
 
-    if (status !== 'SUCCEEDED') {
+    if (status !== "SUCCEEDED") {
       console.warn(`[Apify Maps] Actor finished with status: ${status}`);
     }
 
     // Get the dataset ID and fetch results
     const datasetId = runData.data?.defaultDatasetId;
     if (!datasetId) {
-      throw new Error('No dataset ID received from Apify');
+      throw new Error("No dataset ID received from Apify");
     }
 
     const resultsResponse = await fetch(
-      `https://api.apify.com/v2/datasets/${datasetId}/items?token=${APIFY_TOKEN}&limit=${quantity * 2}`
+      `https://api.apify.com/v2/datasets/${datasetId}/items?token=${APIFY_TOKEN}&limit=${quantity * 2}`,
     );
     const places: ApifyPlace[] = await resultsResponse.json();
 
@@ -180,7 +190,10 @@ serve(async (req) => {
       const phone = normalizePhone(place.phone || place.contactInfo?.phone);
       const email = place.email || place.contactInfo?.email || null;
       const website = place.website || null;
-      const endereco = place.address || [place.street, place.city, place.state].filter(Boolean).join(', ') || null;
+      const endereco =
+        place.address ||
+        [place.street, place.city, place.state].filter(Boolean).join(", ") ||
+        null;
 
       // Apply filters
       if (requirePhone && !hasValue(phone)) continue;
@@ -197,7 +210,9 @@ serve(async (req) => {
         email,
         endereco,
         cnpj: null, // Google Maps doesn't have CNPJ
-        source_url: place.url || `https://www.google.com/maps/place/?q=place_id:${place.placeId}`,
+        source_url:
+          place.url ||
+          `https://www.google.com/maps/place/?q=place_id:${place.placeId}`,
       });
 
       if (leads.length >= quantity) break;
@@ -210,21 +225,23 @@ serve(async (req) => {
         success: true,
         leads,
         query: `${businessType} em ${city}, ${state}`,
-        source: 'google_maps_apify',
+        source: "google_maps_apify",
         requested: quantity,
         totalFound: places.length,
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
-
   } catch (error) {
-    console.error('[Apify Maps] Error:', error);
+    console.error("[Apify Maps] Error:", error);
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+      JSON.stringify({
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
       }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 });
