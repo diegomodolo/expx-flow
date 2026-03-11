@@ -24,7 +24,7 @@ export default function AgentChat() {
     loadConversation,
     renameConversation,
     deleteConversation,
-    sendMessage
+    sendMessage,
   } = useIAAgents();
 
   useEffect(() => {
@@ -65,18 +65,31 @@ export default function AgentChat() {
         {/* Header */}
         <div className="border-b border-border p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/ia/agents')}>
+            <Button
+              aria-label="Voltar"
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate("/ia/agents")}
+            >
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <div>
-              <h2 className="text-lg font-semibold">{currentAgent.agent_name}</h2>
+              <h2 className="text-lg font-semibold">
+                {currentAgent.agent_name}
+              </h2>
               {currentAgent.description && (
-                <p className="text-sm text-muted-foreground">{currentAgent.description}</p>
+                <p className="text-sm text-muted-foreground">
+                  {currentAgent.description}
+                </p>
               )}
             </div>
           </div>
-          {hasPermission('editar-agentes') && (
-            <Button variant="outline" size="sm" onClick={() => navigate(`/ia/agents/${agentId}/edit`)}>
+          {hasPermission("editar-agentes") && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate(`/ia/agents/${agentId}/edit`)}
+            >
               <Edit className="w-4 h-4 mr-2" />
               Editar Agente
             </Button>
@@ -103,20 +116,24 @@ export default function AgentChat() {
                   <ChatMessages messages={messages} loading={loading} />
                 </div>
                 <div className="border-t border-border p-4">
-                  <ChatInput onSendMessage={handleSendMessage} disabled={loading} />
+                  <ChatInput
+                    onSendMessage={handleSendMessage}
+                    disabled={loading}
+                  />
                 </div>
               </>
             ) : (
               <div className="flex-1 flex items-center justify-center text-center">
                 <div>
                   <MessageCircle className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-medium mb-2">Nenhuma conversa selecionada</h3>
+                  <h3 className="text-lg font-medium mb-2">
+                    Nenhuma conversa selecionada
+                  </h3>
                   <p className="text-muted-foreground mb-4">
-                    Crie uma nova conversa para começar a interagir com {currentAgent.agent_name}
+                    Crie uma nova conversa para começar a interagir com{" "}
+                    {currentAgent.agent_name}
                   </p>
-                  <Button onClick={handleNewConversation}>
-                    Nova Conversa
-                  </Button>
+                  <Button onClick={handleNewConversation}>Nova Conversa</Button>
                 </div>
               </div>
             )}

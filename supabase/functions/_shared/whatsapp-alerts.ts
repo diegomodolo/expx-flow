@@ -16,7 +16,7 @@ interface WhatsAppAlertOptions {
  */
 export async function sendWhatsAppAlerts(
   supabase: ReturnType<typeof createClient>,
-  options: WhatsAppAlertOptions
+  options: WhatsAppAlertOptions,
 ): Promise<{ success: boolean; sentCount: number; errors: string[] }> {
   const {
     companyId,
@@ -32,7 +32,10 @@ export async function sendWhatsAppAlerts(
   let sentCount = 0;
 
   try {
-    console.log(`[WhatsApp Alert] Sending ${notificationType} alert for company:`, companyId);
+    console.log(
+      `[WhatsApp Alert] Sending ${notificationType} alert for company:`,
+      companyId,
+    );
 
     // Check if company has active WhatsApp config
     const { data: config, error: configError } = await supabase
@@ -49,7 +52,9 @@ export async function sendWhatsAppAlerts(
     }
 
     if (!config) {
-      console.log("[WhatsApp Alert] No active/connected config found for company");
+      console.log(
+        "[WhatsApp Alert] No active/connected config found for company",
+      );
       return { success: true, sentCount: 0, errors: [] }; // Not an error, just not configured
     }
 
@@ -63,7 +68,9 @@ export async function sendWhatsAppAlerts(
     // Check if this notification type is enabled
     const prefKey = `notify_${notificationType.replace(/-/g, "_")}`;
     if (prefs && prefs[prefKey] === false) {
-      console.log(`[WhatsApp Alert] Notification type ${notificationType} is disabled`);
+      console.log(
+        `[WhatsApp Alert] Notification type ${notificationType} is disabled`,
+      );
       return { success: true, sentCount: 0, errors: [] };
     }
 
@@ -72,8 +79,13 @@ export async function sendWhatsAppAlerts(
       const now = new Date();
       const currentTime = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
 
-      if (currentTime >= prefs.quiet_hours_start && currentTime <= prefs.quiet_hours_end) {
-        console.log("[WhatsApp Alert] Quiet hours active, skipping notification");
+      if (
+        currentTime >= prefs.quiet_hours_start &&
+        currentTime <= prefs.quiet_hours_end
+      ) {
+        console.log(
+          "[WhatsApp Alert] Quiet hours active, skipping notification",
+        );
         return { success: true, sentCount: 0, errors: [] };
       }
     }
@@ -95,7 +107,11 @@ export async function sendWhatsAppAlerts(
 
     if (recipientsError) {
       console.error("[WhatsApp Alert] Recipients error:", recipientsError);
-      return { success: false, sentCount: 0, errors: [recipientsError.message] };
+      return {
+        success: false,
+        sentCount: 0,
+        errors: [recipientsError.message],
+      };
     }
 
     if (!recipients || recipients.length === 0) {
@@ -136,7 +152,9 @@ export async function sendWhatsAppAlerts(
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            ...(config.client_token ? { "Client-Token": config.client_token } : {}),
+            ...(config.client_token
+              ? { "Client-Token": config.client_token }
+              : {}),
           },
           body: JSON.stringify({
             phone: phone,
@@ -152,8 +170,11 @@ export async function sendWhatsAppAlerts(
             .from("whatsapp_notification_log")
             .update({
               status: zapiResponse.ok ? "sent" : "failed",
-              zapi_message_id: zapiData.messageId || zapiData.zapiMessageId || null,
-              error_message: zapiResponse.ok ? null : (zapiData.message || zapiData.error || "Unknown error"),
+              zapi_message_id:
+                zapiData.messageId || zapiData.zapiMessageId || null,
+              error_message: zapiResponse.ok
+                ? null
+                : zapiData.message || zapiData.error || "Unknown error",
             })
             .eq("id", logEntry.id);
         }
@@ -162,21 +183,32 @@ export async function sendWhatsAppAlerts(
           sentCount++;
           console.log(`[WhatsApp Alert] Sent to ${recipient.name} (${phone})`);
         } else {
-          errors.push(`Failed to send to ${recipient.name}: ${zapiData.message || "Unknown error"}`);
-          console.error(`[WhatsApp Alert] Failed to send to ${recipient.name}:`, zapiData);
+          errors.push(
+            `Failed to send to ${recipient.name}: ${zapiData.message || "Unknown error"}`,
+          );
+          console.error(
+            `[WhatsApp Alert] Failed to send to ${recipient.name}:`,
+            zapiData,
+          );
         }
       } catch (err: unknown) {
-        errors.push(`Error sending to ${recipient.name}: ${err.message}`);
-        console.error(`[WhatsApp Alert] Error sending to ${recipient.name}:`, err);
+        const errMsg = err instanceof Error ? err.message : String(err);
+        errors.push(`Error sending to ${recipient.name}: ${errMsg}`);
+        console.error(
+          `[WhatsApp Alert] Error sending to ${recipient.name}:`,
+          err,
+        );
       }
     }
 
-    console.log(`[WhatsApp Alert] Completed: ${sentCount}/${recipients.length} sent`);
+    console.log(
+      `[WhatsApp Alert] Completed: ${sentCount}/${recipients.length} sent`,
+    );
     return { success: true, sentCount, errors };
-
   } catch (error: unknown) {
     console.error("[WhatsApp Alert] General error:", error);
-    return { success: false, sentCount: 0, errors: [error.message] };
+    const errMsg = error instanceof Error ? error.message : String(error);
+    return { success: false, sentCount: 0, errors: [errMsg] };
   }
 }
 
@@ -184,8 +216,13 @@ export async function sendWhatsAppAlerts(
  * Build formatted alert messages for different notification types
  */
 export function buildAlertMessage(
-  type: "high_cpa" | "low_balance" | "disabled_account" | "post_published" | "post_failed",
-  data: Record<string, unknown>
+  type:
+    | "high_cpa"
+    | "low_balance"
+    | "disabled_account"
+    | "post_published"
+    | "post_failed",
+  data: Record<string, unknown>,
 ): string {
   switch (type) {
     case "high_cpa":

@@ -3,7 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 function json(body: unknown, status = 200) {
@@ -13,11 +14,33 @@ function json(body: unknown, status = 200) {
   });
 }
 
-function findSpeechServiceDisabled(speechResult: unknown): { activationUrl?: string; projectNumber?: string } {
-  const err = speechResult?.error;
-  const details: unknown[] = Array.isArray(err?.details) ? err.details : [];
-  const info = details.find((d) => d?.["@type"]?.includes("google.rpc.ErrorInfo"));
-  if (info?.reason === "SERVICE_DISABLED" && info?.metadata?.service === "speech.googleapis.com") {
+interface ErrorInfoDetail {
+  "@type"?: string;
+  reason?: string;
+  metadata?: {
+    service?: string;
+    activationUrl?: string;
+    containerInfo?: string;
+  };
+}
+
+function findSpeechServiceDisabled(speechResult: unknown): {
+  activationUrl?: string;
+  projectNumber?: string;
+} {
+  const err = (speechResult as Record<string, unknown>)?.error as
+    | Record<string, unknown>
+    | undefined;
+  const details: ErrorInfoDetail[] = Array.isArray(err?.details)
+    ? (err.details as ErrorInfoDetail[])
+    : [];
+  const info = details.find((d) =>
+    d?.["@type"]?.includes("google.rpc.ErrorInfo"),
+  );
+  if (
+    info?.reason === "SERVICE_DISABLED" &&
+    info?.metadata?.service === "speech.googleapis.com"
+  ) {
     return {
       activationUrl: info?.metadata?.activationUrl,
       projectNumber: info?.metadata?.containerInfo,
@@ -39,7 +62,9 @@ interface GoogleCredentials {
 }
 
 // Generate JWT for Google Cloud authentication
-async function getGoogleAccessToken(credentials: GoogleCredentials): Promise<string> {
+async function getGoogleAccessToken(
+  credentials: GoogleCredentials,
+): Promise<string> {
   const header = { alg: "RS256", typ: "JWT" };
   const now = Math.floor(Date.now() / 1000);
   const payload = {
@@ -53,15 +78,25 @@ async function getGoogleAccessToken(credentials: GoogleCredentials): Promise<str
 
   // Encode header and payload
   const encoder = new TextEncoder();
-  const headerB64 = btoa(JSON.stringify(header)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-  const payloadB64 = btoa(JSON.stringify(payload)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  const headerB64 = btoa(JSON.stringify(header))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+  const payloadB64 = btoa(JSON.stringify(payload))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
   const signatureInput = `${headerB64}.${payloadB64}`;
 
   // Import private key and sign
   const pemHeader = "-----BEGIN PRIVATE KEY-----";
   const pemFooter = "-----END PRIVATE KEY-----";
   let pemContents = credentials.private_key;
-  pemContents = pemContents.replace(pemHeader, "").replace(pemFooter, "").replace(/\\n/g, "\n").replace(/\n/g, "");
+  pemContents = pemContents
+    .replace(pemHeader, "")
+    .replace(pemFooter, "")
+    .replace(/\\n/g, "\n")
+    .replace(/\n/g, "");
   const binaryKey = Uint8Array.from(atob(pemContents), (c) => c.charCodeAt(0));
 
   const cryptoKey = await crypto.subtle.importKey(
@@ -69,10 +104,14 @@ async function getGoogleAccessToken(credentials: GoogleCredentials): Promise<str
     binaryKey,
     { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
     false,
-    ["sign"]
+    ["sign"],
   );
 
-  const signature = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", cryptoKey, encoder.encode(signatureInput));
+  const signature = await crypto.subtle.sign(
+    "RSASSA-PKCS1-v1_5",
+    cryptoKey,
+    encoder.encode(signatureInput),
+  );
   const signatureB64 = btoa(String.fromCharCode(...new Uint8Array(signature)))
     .replace(/\+/g, "-")
     .replace(/\//g, "_")
@@ -107,19 +146,32 @@ serve(async (req) => {
 
   if (!gcpCredentialsJson) {
     console.error("[transcribe-audio] GCP_SERVICE_ACCOUNT_JSON not configured");
-    return json({ success: false, error: "Credenciais do Google Cloud não configuradas" }, 200);
+    return json(
+      { success: false, error: "Credenciais do Google Cloud não configuradas" },
+      200,
+    );
   }
 
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
-    const { messageId, instanceId, externalMessageId }: TranscribeRequest = await req.json();
+    const { messageId, instanceId, externalMessageId }: TranscribeRequest =
+      await req.json();
 
     if (!messageId || !instanceId || !externalMessageId) {
-      return json({ success: false, error: "messageId, instanceId e externalMessageId são obrigatórios" }, 200);
+      return json(
+        {
+          success: false,
+          error: "messageId, instanceId e externalMessageId são obrigatórios",
+        },
+        200,
+      );
     }
 
-    console.log("[transcribe-audio] Starting transcription for message:", messageId);
+    console.log(
+      "[transcribe-audio] Starting transcription for message:",
+      messageId,
+    );
 
     // Check if already transcribed
     const { data: existingMessage, error: msgError } = await supabase
@@ -135,7 +187,14 @@ serve(async (req) => {
 
     if (existingMessage.audio_transcription) {
       console.log("[transcribe-audio] Already transcribed, returning existing");
-      return json({ success: true, transcription: existingMessage.audio_transcription, cached: true }, 200);
+      return json(
+        {
+          success: true,
+          transcription: existingMessage.audio_transcription,
+          cached: true,
+        },
+        200,
+      );
     }
 
     if (existingMessage.transcription_status === "processing") {
@@ -144,7 +203,10 @@ serve(async (req) => {
     }
 
     // Mark as processing
-    await supabase.from("whatsapp_messages").update({ transcription_status: "processing" }).eq("id", messageId);
+    await supabase
+      .from("whatsapp_messages")
+      .update({ transcription_status: "processing" })
+      .eq("id", messageId);
 
     // Get instance and config for downloading audio
     const { data: instance, error: instanceError } = await supabase
@@ -154,7 +216,10 @@ serve(async (req) => {
       .single();
 
     if (instanceError || !instance) {
-      await supabase.from("whatsapp_messages").update({ transcription_status: "error" }).eq("id", messageId);
+      await supabase
+        .from("whatsapp_messages")
+        .update({ transcription_status: "error" })
+        .eq("id", messageId);
       return json({ success: false, error: "Instância não encontrada" }, 200);
     }
 
@@ -165,8 +230,14 @@ serve(async (req) => {
       .single();
 
     if (configError || !config?.uazapi_endpoint) {
-      await supabase.from("whatsapp_messages").update({ transcription_status: "error" }).eq("id", messageId);
-      return json({ success: false, error: "Configuração do WhatsApp não encontrada" }, 200);
+      await supabase
+        .from("whatsapp_messages")
+        .update({ transcription_status: "error" })
+        .eq("id", messageId);
+      return json(
+        { success: false, error: "Configuração do WhatsApp não encontrada" },
+        200,
+      );
     }
 
     // Download audio from UazapiGO
@@ -192,7 +263,10 @@ serve(async (req) => {
     if (!uazapiResp.ok) {
       const errText = await uazapiResp.text();
       console.error("[transcribe-audio] UazapiGO download failed:", errText);
-      await supabase.from("whatsapp_messages").update({ transcription_status: "error" }).eq("id", messageId);
+      await supabase
+        .from("whatsapp_messages")
+        .update({ transcription_status: "error" })
+        .eq("id", messageId);
       return json({ success: false, error: "Falha ao baixar áudio" }, 200);
     }
 
@@ -200,12 +274,23 @@ serve(async (req) => {
     const base64Audio = uazapiData.base64Data || uazapiData.base64;
 
     if (!base64Audio) {
-      console.error("[transcribe-audio] No base64 audio returned from UazapiGO");
-      await supabase.from("whatsapp_messages").update({ transcription_status: "error" }).eq("id", messageId);
-      return json({ success: false, error: "Áudio não retornado pela API" }, 200);
+      console.error(
+        "[transcribe-audio] No base64 audio returned from UazapiGO",
+      );
+      await supabase
+        .from("whatsapp_messages")
+        .update({ transcription_status: "error" })
+        .eq("id", messageId);
+      return json(
+        { success: false, error: "Áudio não retornado pela API" },
+        200,
+      );
     }
 
-    console.log("[transcribe-audio] Audio downloaded, size:", base64Audio.length);
+    console.log(
+      "[transcribe-audio] Audio downloaded, size:",
+      base64Audio.length,
+    );
 
     // Prepare Google Cloud Speech-to-Text request
     const credentials: GoogleCredentials = JSON.parse(gcpCredentialsJson);
@@ -213,32 +298,38 @@ serve(async (req) => {
 
     console.log("[transcribe-audio] Sending to Google Speech-to-Text...");
 
-    const speechResponse = await fetch("https://speech.googleapis.com/v1/speech:recognize", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
+    const speechResponse = await fetch(
+      "https://speech.googleapis.com/v1/speech:recognize",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          config: {
+            encoding: "MP3",
+            sampleRateHertz: 16000,
+            languageCode: "pt-BR",
+            alternativeLanguageCodes: ["en-US", "es-ES"],
+            enableAutomaticPunctuation: true,
+            model: "latest_long",
+          },
+          audio: {
+            content: base64Audio,
+          },
+        }),
       },
-      body: JSON.stringify({
-        config: {
-          encoding: "MP3",
-          sampleRateHertz: 16000,
-          languageCode: "pt-BR",
-          alternativeLanguageCodes: ["en-US", "es-ES"],
-          enableAutomaticPunctuation: true,
-          model: "latest_long",
-        },
-        audio: {
-          content: base64Audio,
-        },
-      }),
-    });
+    );
 
     const speechResult = await speechResponse.json();
 
     if (!speechResponse.ok) {
       console.error("[transcribe-audio] Google Speech error:", speechResult);
-      await supabase.from("whatsapp_messages").update({ transcription_status: "error" }).eq("id", messageId);
+      await supabase
+        .from("whatsapp_messages")
+        .update({ transcription_status: "error" })
+        .eq("id", messageId);
 
       const disabled = findSpeechServiceDisabled(speechResult);
       if (disabled.activationUrl) {
@@ -251,18 +342,19 @@ serve(async (req) => {
             activation_url: disabled.activationUrl,
             project_number: disabled.projectNumber,
           },
-          200
+          200,
         );
       }
 
       return json(
         {
           success: false,
-          error_code: speechResult?.error?.status || `HTTP_${speechResponse.status}`,
+          error_code:
+            speechResult?.error?.status || `HTTP_${speechResponse.status}`,
           error: "Erro na transcrição",
           details: speechResult,
         },
-        200
+        200,
       );
     }
 
@@ -270,12 +362,18 @@ serve(async (req) => {
     let transcription = "";
     if (speechResult.results && speechResult.results.length > 0) {
       transcription = speechResult.results
-        .map((result: unknown) => result.alternatives?.[0]?.transcript || "")
+        .map(
+          (result: { alternatives?: { transcript?: string }[] }) =>
+            result.alternatives?.[0]?.transcript || "",
+        )
         .join(" ")
         .trim();
     }
 
-    console.log("[transcribe-audio] Transcription result:", transcription.substring(0, 100));
+    console.log(
+      "[transcribe-audio] Transcription result:",
+      transcription.substring(0, 100),
+    );
 
     // Save transcription to database
     const { error: updateError } = await supabase
@@ -287,7 +385,10 @@ serve(async (req) => {
       .eq("id", messageId);
 
     if (updateError) {
-      console.error("[transcribe-audio] Error saving transcription:", updateError);
+      console.error(
+        "[transcribe-audio] Error saving transcription:",
+        updateError,
+      );
     }
 
     return json(
@@ -296,10 +397,13 @@ serve(async (req) => {
         transcription: transcription || "(sem fala detectada)",
         status: "completed",
       },
-      200
+      200,
     );
   } catch (error) {
     console.error("[transcribe-audio] Unhandled error:", error);
-    return json({ success: false, error: error?.message || String(error) }, 200);
+    return json(
+      { success: false, error: error?.message || String(error) },
+      200,
+    );
   }
 });

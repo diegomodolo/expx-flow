@@ -1,14 +1,35 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, X, Crown, Users, Eye, Loader2, Plus, Filter, ShieldCheck } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Search,
+  X,
+  Crown,
+  Users,
+  Eye,
+  Loader2,
+  Plus,
+  Filter,
+  ShieldCheck,
+} from "lucide-react";
 import { useTaskMembers, TaskMemberRole } from "@/hooks/useTaskMembers";
 import { useEmployees } from "@/hooks/useEmployees";
-import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  TooltipProvider,
+} from "@/components/ui/tooltip";
 
 interface TaskTeamTabProps {
   taskId: string | undefined;
@@ -22,35 +43,46 @@ interface TaskTeamTabProps {
   autoAssignAuthorizerId?: string | null;
 }
 
-const ROLE_CONFIG: Record<TaskMemberRole, { label: string; icon: React.ElementType; color: string; description: string }> = {
+const ROLE_CONFIG: Record<
+  TaskMemberRole,
+  { label: string; icon: React.ElementType; color: string; description: string }
+> = {
   responsible: {
-    label: 'Responsável',
+    label: "Responsável",
     icon: Crown,
-    color: 'text-amber-500',
-    description: 'Responsável principal pela execução',
+    color: "text-amber-500",
+    description: "Responsável principal pela execução",
   },
   authorizer: {
-    label: 'Autorizador',
+    label: "Autorizador",
     icon: ShieldCheck,
-    color: 'text-emerald-500',
-    description: 'Deve autorizar antes da execução',
+    color: "text-emerald-500",
+    description: "Deve autorizar antes da execução",
   },
   contributor: {
-    label: 'Contribuinte',
+    label: "Contribuinte",
     icon: Users,
-    color: 'text-blue-500',
-    description: 'Colabora ativamente na execução',
+    color: "text-blue-500",
+    description: "Colabora ativamente na execução",
   },
   observer: {
-    label: 'Observador',
+    label: "Observador",
     icon: Eye,
-    color: 'text-muted-foreground',
-    description: 'Acompanha o progresso',
+    color: "text-muted-foreground",
+    description: "Acompanha o progresso",
   },
 };
 
-function MemberCard({ member, onRemove }: {
-  member: { id: string; employee_name?: string; employee_avatar?: string; role: TaskMemberRole };
+function MemberCard({
+  member,
+  onRemove,
+}: {
+  member: {
+    id: string;
+    employee_name?: string;
+    employee_avatar?: string;
+    role: TaskMemberRole;
+  };
   onRemove: (id: string) => void;
 }) {
   const config = ROLE_CONFIG[member.role];
@@ -61,17 +93,20 @@ function MemberCard({ member, onRemove }: {
       <Avatar className="h-8 w-8">
         {member.employee_avatar && <AvatarImage src={member.employee_avatar} />}
         <AvatarFallback className="bg-muted text-muted-foreground text-xs">
-          {(member.employee_name || '?').charAt(0).toUpperCase()}
+          {(member.employee_name || "?").charAt(0).toUpperCase()}
         </AvatarFallback>
       </Avatar>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-foreground truncate">{member.employee_name}</p>
+        <p className="text-sm font-medium text-foreground truncate">
+          {member.employee_name}
+        </p>
         <div className="flex items-center gap-1 text-[11px]">
           <Icon className={`w-3 h-3 ${config.color}`} />
           <span className={config.color}>{config.label}</span>
         </div>
       </div>
       <Button
+        aria-label="Fechar"
         variant="ghost"
         size="icon"
         className="h-6 w-6 text-destructive hover:text-destructive shrink-0"
@@ -91,7 +126,12 @@ function RoleDropZone({
   onDrop,
 }: {
   role: TaskMemberRole;
-  members: Array<{ id: string; employee_name?: string; employee_avatar?: string; role: TaskMemberRole }>;
+  members: Array<{
+    id: string;
+    employee_name?: string;
+    employee_avatar?: string;
+    role: TaskMemberRole;
+  }>;
   onRemove: (id: string) => void;
   onDrop: (employeeId: string, role: TaskMemberRole) => void;
 }) {
@@ -101,16 +141,19 @@ function RoleDropZone({
 
   return (
     <div
-      onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+      onDragOver={(e) => {
+        e.preventDefault();
+        setIsDragOver(true);
+      }}
       onDragLeave={() => setIsDragOver(false)}
       onDrop={(e) => {
         e.preventDefault();
         setIsDragOver(false);
-        const eid = e.dataTransfer.getData('employeeId');
+        const eid = e.dataTransfer.getData("employeeId");
         if (eid) onDrop(eid, role);
       }}
       className={`rounded-lg border-2 border-dashed p-2.5 transition-colors ${
-        isDragOver ? 'border-primary bg-primary/5' : 'border-border bg-muted/10'
+        isDragOver ? "border-primary bg-primary/5" : "border-border bg-muted/10"
       }`}
     >
       <div className="flex items-center gap-2 mb-1.5">
@@ -121,13 +164,13 @@ function RoleDropZone({
       </div>
       {members.length > 0 ? (
         <div className="space-y-1.5">
-          {members.map(m => (
+          {members.map((m) => (
             <MemberCard key={m.id} member={m} onRemove={onRemove} />
           ))}
         </div>
       ) : (
         <p className="text-[11px] text-muted-foreground text-center py-1.5">
-          {isDragOver ? 'Solte aqui' : 'Arraste ou clique para adicionar'}
+          {isDragOver ? "Solte aqui" : "Arraste ou clique para adicionar"}
         </p>
       )}
     </div>
@@ -139,15 +182,20 @@ function EmployeeChip({
   onAdd,
   isAdding,
 }: {
-  employee: { id: string; name: string; avatar?: string; profile_avatar_url?: string };
+  employee: {
+    id: string;
+    name: string;
+    avatar?: string;
+    profile_avatar_url?: string;
+  };
   onAdd: (employeeId: string, role: TaskMemberRole) => void;
   isAdding: boolean;
 }) {
   const [showRoles, setShowRoles] = useState(false);
-  const avatarSrc = employee.avatar || employee.profile_avatar_url || '';
+  const avatarSrc = employee.avatar || employee.profile_avatar_url || "";
 
   const handleDragStart = (e: React.DragEvent) => {
-    e.dataTransfer.setData('employeeId', employee.id);
+    e.dataTransfer.setData("employeeId", employee.id);
   };
 
   return (
@@ -173,16 +221,23 @@ function EmployeeChip({
                 </div>
               </div>
               <span className="text-[10px] text-muted-foreground truncate w-full text-center leading-tight">
-                {employee.name.split(' ')[0]}
+                {employee.name.split(" ")[0]}
               </span>
             </div>
           </TooltipTrigger>
-          <TooltipContent side="top" className="text-xs">{employee.name}</TooltipContent>
+          <TooltipContent side="top" className="text-xs">
+            {employee.name}
+          </TooltipContent>
         </Tooltip>
 
         {showRoles && (
           <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-full bg-popover border border-border rounded-lg shadow-lg p-1.5 z-20 min-w-[120px]">
-            {(Object.entries(ROLE_CONFIG) as [TaskMemberRole, typeof ROLE_CONFIG.responsible][]).map(([role, cfg]) => {
+            {(
+              Object.entries(ROLE_CONFIG) as [
+                TaskMemberRole,
+                typeof ROLE_CONFIG.responsible,
+              ][]
+            ).map(([role, cfg]) => {
               const RoleIcon = cfg.icon;
               return (
                 <button
@@ -207,11 +262,30 @@ function EmployeeChip({
   );
 }
 
-export function TaskTeamTab({ taskId, companyId, fallbackResponsible, defaultTeamId, autoAssignAuthorizerId }: TaskTeamTabProps) {
-  const { members, responsible, authorizers, contributors, observers, isLoading, addMember, isAdding, updateRole, removeMember } = useTaskMembers(taskId, companyId);
+export function TaskTeamTab({
+  taskId,
+  companyId,
+  fallbackResponsible,
+  defaultTeamId,
+  autoAssignAuthorizerId,
+}: TaskTeamTabProps) {
+  const {
+    members,
+    responsible,
+    authorizers,
+    contributors,
+    observers,
+    isLoading,
+    addMember,
+    isAdding,
+    updateRole,
+    removeMember,
+  } = useTaskMembers(taskId, companyId);
   const { employees } = useEmployees();
-  const [search, setSearch] = useState('');
-  const [selectedTeamId, setSelectedTeamId] = useState<string>(defaultTeamId || 'all');
+  const [search, setSearch] = useState("");
+  const [selectedTeamId, setSelectedTeamId] = useState<string>(
+    defaultTeamId || "all",
+  );
   const lastAutoAssignedRef = useRef<string | null>(null);
 
   // Auto-assign authorizer when squad changes
@@ -222,30 +296,37 @@ export function TaskTeamTab({ taskId, companyId, fallbackResponsible, defaultTea
       !isLoading &&
       lastAutoAssignedRef.current !== autoAssignAuthorizerId
     ) {
-      const alreadyAuthorizer = authorizers.some(a => a.employee_id === autoAssignAuthorizerId);
+      const alreadyAuthorizer = authorizers.some(
+        (a) => a.employee_id === autoAssignAuthorizerId,
+      );
       if (!alreadyAuthorizer) {
-        addMember({ employeeId: autoAssignAuthorizerId, role: 'authorizer' });
+        addMember({ employeeId: autoAssignAuthorizerId, role: "authorizer" });
         lastAutoAssignedRef.current = autoAssignAuthorizerId;
       }
     }
   }, [autoAssignAuthorizerId, taskId, isLoading, authorizers]);
 
-  const assignedEmployeeIds = new Set(members.map(m => m.employee_id));
+  const assignedEmployeeIds = new Set(members.map((m) => m.employee_id));
 
   const teams = useMemo(() => {
     if (!employees) return [];
-    const teamMap = new Map<string, { id: string; name: string; color: string }>();
-    employees.forEach(e => {
+    const teamMap = new Map<
+      string,
+      { id: string; name: string; color: string }
+    >();
+    employees.forEach((e) => {
       if (e.team) teamMap.set(e.team.id, e.team);
     });
-    return Array.from(teamMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+    return Array.from(teamMap.values()).sort((a, b) =>
+      a.name.localeCompare(b.name),
+    );
   }, [employees]);
 
   const availableEmployees = useMemo(() => {
     return (employees || [])
-      .filter(e => !assignedEmployeeIds.has(e.id))
-      .filter(e => e.name.toLowerCase().includes(search.toLowerCase()))
-      .filter(e => selectedTeamId === 'all' || e.team_id === selectedTeamId)
+      .filter((e) => !assignedEmployeeIds.has(e.id))
+      .filter((e) => e.name.toLowerCase().includes(search.toLowerCase()))
+      .filter((e) => selectedTeamId === "all" || e.team_id === selectedTeamId)
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [employees, assignedEmployeeIds, search, selectedTeamId]);
 
@@ -257,7 +338,9 @@ export function TaskTeamTab({ taskId, companyId, fallbackResponsible, defaultTea
     return (
       <div className="space-y-5">
         <div>
-          <h3 className="text-base font-semibold text-foreground mb-1">Equipe</h3>
+          <h3 className="text-base font-semibold text-foreground mb-1">
+            Equipe
+          </h3>
           <p className="text-sm text-muted-foreground">
             Salve a tarefa primeiro para gerenciar os membros da equipe.
           </p>
@@ -270,7 +353,9 @@ export function TaskTeamTab({ taskId, companyId, fallbackResponsible, defaultTea
     <div className="flex flex-col gap-3 h-full">
       {/* Header */}
       <div>
-        <h3 className="text-base font-semibold text-foreground mb-0.5">Equipe</h3>
+        <h3 className="text-base font-semibold text-foreground mb-0.5">
+          Equipe
+        </h3>
         <p className="text-[11px] text-muted-foreground">
           Arraste colaboradores para as áreas ou clique para selecionar o papel.
         </p>
@@ -284,8 +369,8 @@ export function TaskTeamTab({ taskId, companyId, fallbackResponsible, defaultTea
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => {
             e.preventDefault();
-            const eid = e.dataTransfer.getData('employeeId');
-            if (eid) handleAddToRole(eid, 'responsible');
+            const eid = e.dataTransfer.getData("employeeId");
+            if (eid) handleAddToRole(eid, "responsible");
           }}
         >
           <div className="flex items-center gap-2 mb-1.5">
@@ -299,17 +384,23 @@ export function TaskTeamTab({ taskId, companyId, fallbackResponsible, defaultTea
           ) : fallbackResponsible?.name ? (
             <div className="flex items-center gap-2.5 p-2 rounded-lg border border-primary/30 bg-card">
               <Avatar className="h-8 w-8">
-                {fallbackResponsible.avatar && <AvatarImage src={fallbackResponsible.avatar} />}
+                {fallbackResponsible.avatar && (
+                  <AvatarImage src={fallbackResponsible.avatar} />
+                )}
                 <AvatarFallback className="bg-primary/10 text-primary text-xs">
                   {fallbackResponsible.name.charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">{fallbackResponsible.name}</p>
+                <p className="text-sm font-medium text-foreground truncate">
+                  {fallbackResponsible.name}
+                </p>
                 <div className="flex items-center gap-1 text-[11px]">
                   <Crown className="w-3 h-3 text-amber-500" />
                   <span className="text-amber-500">Responsável</span>
-                  <span className="text-muted-foreground ml-1">(aba Principal)</span>
+                  <span className="text-muted-foreground ml-1">
+                    (aba Principal)
+                  </span>
                 </div>
               </div>
             </div>
@@ -326,9 +417,24 @@ export function TaskTeamTab({ taskId, companyId, fallbackResponsible, defaultTea
           </div>
         ) : (
           <>
-            <RoleDropZone role="authorizer" members={authorizers} onRemove={removeMember} onDrop={handleAddToRole} />
-            <RoleDropZone role="contributor" members={contributors} onRemove={removeMember} onDrop={handleAddToRole} />
-            <RoleDropZone role="observer" members={observers} onRemove={removeMember} onDrop={handleAddToRole} />
+            <RoleDropZone
+              role="authorizer"
+              members={authorizers}
+              onRemove={removeMember}
+              onDrop={handleAddToRole}
+            />
+            <RoleDropZone
+              role="contributor"
+              members={contributors}
+              onRemove={removeMember}
+              onDrop={handleAddToRole}
+            />
+            <RoleDropZone
+              role="observer"
+              members={observers}
+              onRemove={removeMember}
+              onDrop={handleAddToRole}
+            />
           </>
         )}
       </div>
@@ -346,10 +452,15 @@ export function TaskTeamTab({ taskId, companyId, fallbackResponsible, defaultTea
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas as equipes</SelectItem>
-              {teams.map(t => (
+              {teams.map((t) => (
                 <SelectItem key={t.id} value={t.id}>
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: t.color || 'hsl(var(--muted))' }} />
+                    <div
+                      className="w-2 h-2 rounded-full shrink-0"
+                      style={{
+                        backgroundColor: t.color || "hsl(var(--muted))",
+                      }}
+                    />
                     {t.name}
                   </div>
                 </SelectItem>
@@ -371,7 +482,7 @@ export function TaskTeamTab({ taskId, companyId, fallbackResponsible, defaultTea
 
         {/* Compact avatar grid */}
         <div className="grid grid-cols-8 gap-1 max-h-[140px] overflow-y-auto pr-1">
-          {availableEmployees.map(emp => (
+          {availableEmployees.map((emp) => (
             <EmployeeChip
               key={emp.id}
               employee={emp}
@@ -381,7 +492,7 @@ export function TaskTeamTab({ taskId, companyId, fallbackResponsible, defaultTea
           ))}
           {availableEmployees.length === 0 && (
             <div className="col-span-8 text-[11px] text-muted-foreground text-center py-3">
-              {search ? 'Nenhum encontrado' : 'Todos já adicionados'}
+              {search ? "Nenhum encontrado" : "Todos já adicionados"}
             </div>
           )}
         </div>

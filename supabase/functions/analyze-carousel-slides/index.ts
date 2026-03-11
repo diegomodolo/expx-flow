@@ -52,7 +52,7 @@ serve(async (req) => {
 
   const supabase = createClient(supabaseUrl, supabaseKey);
 
-  let body: unknown;
+  let body: Record<string, unknown>;
   try {
     body = await req.json();
   } catch {

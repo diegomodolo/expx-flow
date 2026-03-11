@@ -1,8 +1,17 @@
-import { useState } from 'react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, ChevronLeft, ChevronRight } from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { cn } from '@/lib/utils';
+import { useState } from "react";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import {
+  Heart,
+  MessageCircle,
+  Send,
+  Bookmark,
+  MoreHorizontal,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { cn } from "@/lib/utils";
 
 interface InstagramPostPreviewModalProps {
   open: boolean;
@@ -19,21 +28,31 @@ export function InstagramPostPreviewModal({
   onOpenChange,
   imageUrl,
   caption,
-  username = 'usuario',
+  username = "usuario",
   profilePicture,
-  imageUrls
+  imageUrls,
 }: InstagramPostPreviewModalProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  
+
   const images = imageUrls && imageUrls.length > 1 ? imageUrls : [imageUrl];
   const isCarousel = images.length > 1;
 
   const nextImage = () => setCurrentIndex((prev) => (prev + 1) % images.length);
-  const prevImage = () => setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
+  const prevImage = () =>
+    setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) setCurrentIndex(0); }}>
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        onOpenChange(o);
+        if (!o) setCurrentIndex(0);
+      }}
+    >
       <DialogContent className="max-w-[420px] p-0 overflow-hidden bg-white dark:bg-zinc-900 border-0">
+        <VisuallyHidden>
+          <DialogTitle>Pré-visualização do post do Instagram</DialogTitle>
+        </VisuallyHidden>
         <div className="w-full">
           {/* Header */}
           <div className="flex items-center justify-between p-3 border-b border-gray-100 dark:border-zinc-800">
@@ -44,7 +63,9 @@ export function InstagramPostPreviewModal({
                   {username.charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              <span className="font-semibold text-sm text-black dark:text-white">{username}</span>
+              <span className="font-semibold text-sm text-black dark:text-white">
+                {username}
+              </span>
             </div>
             <button className="text-black dark:text-white">
               <MoreHorizontal className="w-5 h-5" />
@@ -58,7 +79,7 @@ export function InstagramPostPreviewModal({
               alt="Post preview"
               className="w-full h-full object-cover"
             />
-            
+
             {/* Carousel Navigation */}
             {isCarousel && (
               <>
@@ -74,7 +95,7 @@ export function InstagramPostPreviewModal({
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
-                
+
                 {/* Dots indicator */}
                 <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
                   {images.map((_, idx) => (
@@ -83,7 +104,9 @@ export function InstagramPostPreviewModal({
                       onClick={() => setCurrentIndex(idx)}
                       className={cn(
                         "w-1.5 h-1.5 rounded-full transition-all",
-                        idx === currentIndex ? "bg-blue-500 w-2" : "bg-white/70"
+                        idx === currentIndex
+                          ? "bg-blue-500 w-2"
+                          : "bg-white/70",
                       )}
                     />
                   ))}
@@ -111,11 +134,15 @@ export function InstagramPostPreviewModal({
               </button>
             </div>
 
-            <p className="font-semibold text-sm text-black dark:text-white">0 curtidas</p>
+            <p className="font-semibold text-sm text-black dark:text-white">
+              0 curtidas
+            </p>
 
             <div className="text-sm text-black dark:text-white">
               <span className="font-semibold mr-1">{username}</span>
-              <span className="whitespace-pre-wrap break-words line-clamp-3">{caption}</span>
+              <span className="whitespace-pre-wrap break-words line-clamp-3">
+                {caption}
+              </span>
             </div>
 
             <p className="text-xs text-gray-400 uppercase">Agora</p>

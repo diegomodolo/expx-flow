@@ -2,13 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { YouTubeSlide } from "@/hooks/useYouTubeSlides";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import {
-  ChevronLeft,
-  ChevronRight,
-  X,
-  Pencil,
-  Download,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, X, Pencil, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface SlideFullscreenViewerProps {
@@ -35,15 +29,21 @@ export function SlideFullscreenViewer({
     }
   }, [open, initialIndex]);
 
-  const completedSlides = slides.filter(s => s.image_url && s.status === "completed");
+  const completedSlides = slides.filter(
+    (s) => s.image_url && s.status === "completed",
+  );
   const currentSlide = completedSlides[currentIndex];
 
   const goToPrevious = useCallback(() => {
-    setCurrentIndex(prev => (prev > 0 ? prev - 1 : completedSlides.length - 1));
+    setCurrentIndex((prev) =>
+      prev > 0 ? prev - 1 : completedSlides.length - 1,
+    );
   }, [completedSlides.length]);
 
   const goToNext = useCallback(() => {
-    setCurrentIndex(prev => (prev < completedSlides.length - 1 ? prev + 1 : 0));
+    setCurrentIndex((prev) =>
+      prev < completedSlides.length - 1 ? prev + 1 : 0,
+    );
   }, [completedSlides.length]);
 
   // Keyboard navigation
@@ -72,7 +72,7 @@ export function SlideFullscreenViewer({
 
   const handleDownload = async () => {
     if (!currentSlide?.image_url) return;
-    
+
     try {
       const response = await fetch(currentSlide.image_url);
       const blob = await response.blob();
@@ -100,11 +100,14 @@ export function SlideFullscreenViewer({
           {/* Header */}
           <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between p-4 bg-gradient-to-b from-black/80 to-transparent">
             <div className="text-white">
-              <p className="text-sm opacity-70">Slide {currentIndex + 1} de {completedSlides.length}</p>
+              <p className="text-sm opacity-70">
+                Slide {currentIndex + 1} de {completedSlides.length}
+              </p>
               <h3 className="text-lg font-semibold">{currentSlide?.title}</h3>
             </div>
             <div className="flex items-center gap-2">
               <Button
+                aria-label="Baixar"
                 variant="ghost"
                 size="icon"
                 className="text-white hover:bg-white/20"
@@ -114,6 +117,7 @@ export function SlideFullscreenViewer({
               </Button>
               {onEditSlide && currentSlide && (
                 <Button
+                  aria-label="Editar"
                   variant="ghost"
                   size="icon"
                   className="text-white hover:bg-white/20"
@@ -126,6 +130,7 @@ export function SlideFullscreenViewer({
                 </Button>
               )}
               <Button
+                aria-label="Fechar"
                 variant="ghost"
                 size="icon"
                 className="text-white hover:bg-white/20"
@@ -149,6 +154,7 @@ export function SlideFullscreenViewer({
 
           {/* Navigation arrows */}
           <Button
+            aria-label="Voltar"
             variant="ghost"
             size="icon"
             className="absolute left-4 top-1/2 -translate-y-1/2 h-12 w-12 text-white hover:bg-white/20 rounded-full"
@@ -157,6 +163,7 @@ export function SlideFullscreenViewer({
             <ChevronLeft className="h-8 w-8" />
           </Button>
           <Button
+            aria-label="Avançar"
             variant="ghost"
             size="icon"
             className="absolute right-4 top-1/2 -translate-y-1/2 h-12 w-12 text-white hover:bg-white/20 rounded-full"
@@ -176,7 +183,7 @@ export function SlideFullscreenViewer({
                     "flex-shrink-0 w-16 h-9 rounded overflow-hidden border-2 transition-all",
                     index === currentIndex
                       ? "border-primary ring-2 ring-primary/50"
-                      : "border-transparent opacity-60 hover:opacity-100"
+                      : "border-transparent opacity-60 hover:opacity-100",
                   )}
                 >
                   <img

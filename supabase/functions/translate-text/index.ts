@@ -136,7 +136,10 @@ ${chunk.map((t: string, i: number) => `${i + 1}. "${t}"`).join("\n")}`;
   } catch (error: unknown) {
     console.error("Error in translate-text:", error);
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
+      JSON.stringify({
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      }),
       {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

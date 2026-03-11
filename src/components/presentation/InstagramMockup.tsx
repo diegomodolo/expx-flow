@@ -34,7 +34,12 @@ interface InstagramMockupProps {
   isCarousel?: boolean;
 }
 
-type AspectRatioType = "square" | "portrait" | "landscape" | "stories" | "reels";
+type AspectRatioType =
+  | "square"
+  | "portrait"
+  | "landscape"
+  | "stories"
+  | "reels";
 
 interface AspectRatioConfig {
   containerClass: string;
@@ -125,7 +130,10 @@ export function InstagramMockup({
       video.preload = "metadata";
 
       video.onloadedmetadata = () => {
-        const detectedRatio = detectAspectRatioType(video.videoWidth, video.videoHeight);
+        const detectedRatio = detectAspectRatioType(
+          video.videoWidth,
+          video.videoHeight,
+        );
         setAspectRatio(detectedRatio);
         setIsLoading(false);
       };
@@ -142,7 +150,10 @@ export function InstagramMockup({
       img.crossOrigin = "anonymous";
 
       img.onload = () => {
-        const detectedRatio = detectAspectRatioType(img.naturalWidth, img.naturalHeight);
+        const detectedRatio = detectAspectRatioType(
+          img.naturalWidth,
+          img.naturalHeight,
+        );
         setAspectRatio(detectedRatio);
         setIsLoading(false);
       };
@@ -162,7 +173,7 @@ export function InstagramMockup({
     <div
       className={cn(
         "bg-white rounded-xl shadow-2xl overflow-hidden flex flex-col transition-all duration-300",
-        isVertical ? "w-[320px] h-[95%]" : "w-full max-w-[500px] h-auto"
+        isVertical ? "w-[320px] h-[95%]" : "w-full max-w-[500px] h-auto",
       )}
     >
       {/* Instagram Header */}
@@ -191,7 +202,12 @@ export function InstagramMockup({
       </div>
 
       {/* Media Container - Dynamic aspect ratio */}
-      <div className={cn("relative bg-gray-100 overflow-hidden", config.containerClass)}>
+      <div
+        className={cn(
+          "relative bg-gray-100 overflow-hidden",
+          config.containerClass,
+        )}
+      >
         {isLoading ? (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="w-8 h-8 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
@@ -221,6 +237,7 @@ export function InstagramMockup({
         {isCarousel && media.length > 1 && (
           <>
             <Button
+              aria-label="Voltar"
               variant="secondary"
               size="icon"
               onClick={onPrev}
@@ -230,6 +247,7 @@ export function InstagramMockup({
               <ChevronLeft className="w-5 h-5 text-gray-700" />
             </Button>
             <Button
+              aria-label="Avançar"
               variant="secondary"
               size="icon"
               onClick={onNext}
@@ -246,14 +264,13 @@ export function InstagramMockup({
                   onClick={() => onDotClick(i)}
                   className={cn(
                     "w-2 h-2 rounded-full transition-all",
-                    i === currentIndex ? "bg-blue-500" : "bg-white/70"
+                    i === currentIndex ? "bg-blue-500" : "bg-white/70",
                   )}
                 />
               ))}
             </div>
           </>
         )}
-
       </div>
 
       {/* Instagram Actions */}
@@ -266,7 +283,9 @@ export function InstagramMockup({
           </div>
           <Bookmark className="w-7 h-7 text-gray-800 cursor-pointer hover:text-gray-500" />
         </div>
-        <p className="text-sm font-semibold text-gray-900 mb-1">1.234 curtidas</p>
+        <p className="text-sm font-semibold text-gray-900 mb-1">
+          1.234 curtidas
+        </p>
         {caption && (
           <div className="text-sm text-gray-800 max-h-40 overflow-y-auto">
             <span className="font-semibold">{username}</span>{" "}

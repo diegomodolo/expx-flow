@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,7 +23,9 @@ const conditionSchema = z.object({
 
 const conditionsGroupSchema = z.object({
   logic: z.enum(["AND", "OR"]),
-  conditions: z.array(conditionSchema).min(1, "Adicione pelo menos uma condição"),
+  conditions: z
+    .array(conditionSchema)
+    .min(1, "Adicione pelo menos uma condição"),
 });
 
 export type ConditionType = z.infer<typeof conditionSchema>;
@@ -51,10 +59,17 @@ const OPERATOR_LABELS = {
   "<=": "menor ou igual a",
 } as const;
 
-export const ConditionEditor = ({ value, onChange, isTemplate = false }: ConditionEditorProps) => {
+export const ConditionEditor = ({
+  value,
+  onChange,
+  isTemplate = false,
+}: ConditionEditorProps) => {
   const [errors, setErrors] = useState<Record<number, string>>({});
 
-  const validateCondition = (condition: ConditionType, index: number): boolean => {
+  const validateCondition = (
+    condition: ConditionType,
+    index: number,
+  ): boolean => {
     try {
       conditionSchema.parse(condition);
       const newErrors = { ...errors };
@@ -76,7 +91,7 @@ export const ConditionEditor = ({ value, onChange, isTemplate = false }: Conditi
       value: 100,
       type: "number",
     };
-    
+
     onChange({
       ...value,
       conditions: [...value.conditions, newCondition],
@@ -89,7 +104,7 @@ export const ConditionEditor = ({ value, onChange, isTemplate = false }: Conditi
       ...value,
       conditions: newConditions,
     });
-    
+
     const newErrors = { ...errors };
     delete newErrors[index];
     setErrors(newErrors);
@@ -98,21 +113,23 @@ export const ConditionEditor = ({ value, onChange, isTemplate = false }: Conditi
   const updateCondition = (index: number, updates: Partial<ConditionType>) => {
     const newConditions = [...value.conditions];
     const updatedCondition = { ...newConditions[index], ...updates };
-    
+
     // Auto-detect type based on field
     if (updates.field) {
-      const fieldOption = FIELD_OPTIONS.find(opt => opt.value === updates.field);
+      const fieldOption = FIELD_OPTIONS.find(
+        (opt) => opt.value === updates.field,
+      );
       if (fieldOption) {
         updatedCondition.type = fieldOption.type;
       }
     }
-    
+
     newConditions[index] = updatedCondition;
     onChange({
       ...value,
       conditions: newConditions,
     });
-    
+
     validateCondition(updatedCondition, index);
   };
 
@@ -127,7 +144,11 @@ export const ConditionEditor = ({ value, onChange, isTemplate = false }: Conditi
     <div className="space-y-4">
       <div className="space-y-2">
         <Label>Operador Lógico</Label>
-        <RadioGroup value={value.logic} onValueChange={updateLogic} className="flex gap-4">
+        <RadioGroup
+          value={value.logic}
+          onValueChange={updateLogic}
+          className="flex gap-4"
+        >
           <div className="flex items-center space-x-2">
             <RadioGroupItem value="AND" id="and" />
             <Label htmlFor="and" className="font-normal cursor-pointer">
@@ -146,7 +167,12 @@ export const ConditionEditor = ({ value, onChange, isTemplate = false }: Conditi
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <Label>Condições</Label>
-          <Button type="button" size="sm" variant="outline" onClick={addCondition}>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={addCondition}
+          >
             <Plus className="h-4 w-4 mr-2" />
             Adicionar Condição
           </Button>
@@ -155,13 +181,17 @@ export const ConditionEditor = ({ value, onChange, isTemplate = false }: Conditi
         {value.conditions.length === 0 && (
           <Card>
             <CardContent className="p-6 text-center text-muted-foreground">
-              Nenhuma condição definida. Clique em "Adicionar Condição" para começar.
+              Nenhuma condição definida. Clique em "Adicionar Condição" para
+              começar.
             </CardContent>
           </Card>
         )}
 
         {value.conditions.map((condition, index) => (
-          <Card key={index} className={errors[index] ? "border-destructive" : ""}>
+          <Card
+            key={index}
+            className={errors[index] ? "border-destructive" : ""}
+          >
             <CardContent className="p-4">
               <div className="flex items-start gap-3">
                 <div className="flex-1 grid grid-cols-3 gap-3">
@@ -169,7 +199,9 @@ export const ConditionEditor = ({ value, onChange, isTemplate = false }: Conditi
                     <Label className="text-xs">Campo</Label>
                     <Select
                       value={condition.field}
-                      onValueChange={(field) => updateCondition(index, { field })}
+                      onValueChange={(field) =>
+                        updateCondition(index, { field })
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -185,28 +217,36 @@ export const ConditionEditor = ({ value, onChange, isTemplate = false }: Conditi
                   </div>
 
                   <div className="space-y-1">
-                    <Label className="text-xs">Operador{isTemplate && " (Padrão)"}</Label>
+                    <Label className="text-xs">
+                      Operador{isTemplate && " (Padrão)"}
+                    </Label>
                     <Select
                       value={condition.operator || undefined}
-                      onValueChange={(operator) => 
-                        updateCondition(index, { operator: operator as ConditionType["operator"] })
+                      onValueChange={(operator) =>
+                        updateCondition(index, {
+                          operator: operator as ConditionType["operator"],
+                        })
                       }
                     >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {Object.entries(OPERATOR_LABELS).map(([value, label]) => (
-                          <SelectItem key={value} value={value}>
-                            {label}
-                          </SelectItem>
-                        ))}
+                        {Object.entries(OPERATOR_LABELS).map(
+                          ([value, label]) => (
+                            <SelectItem key={value} value={value}>
+                              {label}
+                            </SelectItem>
+                          ),
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
 
                   <div className="space-y-1">
-                    <Label className="text-xs">Valor{isTemplate && " (Padrão)"}</Label>
+                    <Label className="text-xs">
+                      Valor{isTemplate && " (Padrão)"}
+                    </Label>
                     <Input
                       type="number"
                       min="0"
@@ -220,13 +260,15 @@ export const ConditionEditor = ({ value, onChange, isTemplate = false }: Conditi
                     />
                     {isTemplate && (
                       <div className="text-xs text-muted-foreground mt-1">
-                        💡 Este valor será usado como padrão quando a regra for importada
+                        💡 Este valor será usado como padrão quando a regra for
+                        importada
                       </div>
                     )}
                   </div>
-                 </div>
+                </div>
 
                 <Button
+                  aria-label="Excluir"
                   type="button"
                   size="icon"
                   variant="ghost"
@@ -236,17 +278,22 @@ export const ConditionEditor = ({ value, onChange, isTemplate = false }: Conditi
                   <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>
               </div>
-              
+
               {errors[index] && (
                 <p className="text-xs text-destructive mt-2">{errors[index]}</p>
               )}
-              
-              {!isTemplate && condition.operator && condition.value !== null && (
-                <p className="text-xs text-muted-foreground mt-2">
-                  Se {FIELD_OPTIONS.find(f => f.value === condition.field)?.label.toLowerCase()} for{" "}
-                  {OPERATOR_LABELS[condition.operator]} {condition.value}
-                </p>
-              )}
+
+              {!isTemplate &&
+                condition.operator &&
+                condition.value !== null && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Se{" "}
+                    {FIELD_OPTIONS.find(
+                      (f) => f.value === condition.field,
+                    )?.label.toLowerCase()}{" "}
+                    for {OPERATOR_LABELS[condition.operator]} {condition.value}
+                  </p>
+                )}
               {isTemplate && (
                 <p className="text-xs text-warning mt-2">
                   ⚙️ Operador e valor serão configurados na importação

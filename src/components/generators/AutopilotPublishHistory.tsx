@@ -4,7 +4,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, Rocket, Eye, Heart, MessageCircle, Send, Bookmark, MoreHorizontal } from "lucide-react";
+import {
+  Loader2,
+  Rocket,
+  Eye,
+  Heart,
+  MessageCircle,
+  Send,
+  Bookmark,
+  MoreHorizontal,
+} from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -68,7 +77,8 @@ export function AutopilotPublishHistory() {
         // Buscar anúncios publicados com informações do schedule (onde está campanha/conjunto)
         const { data: adsData, error: adsError } = await supabase
           .from("ad_generation_queue")
-          .select(`
+          .select(
+            `
             id,
             published_at,
             generated_content,
@@ -81,7 +91,8 @@ export function AutopilotPublishHistory() {
               company,
               avatar
             )
-          `)
+          `,
+          )
           .eq("company_id", activeCompany.company_id)
           .eq("status", "published")
           .not("published_at", "is", null)
@@ -91,17 +102,19 @@ export function AutopilotPublishHistory() {
         if (adsError) throw adsError;
 
         // Buscar schedules para obter campanha/conjunto de cada cliente
-        const clientIds = [...new Set((adsData || []).map(a => a.client_id))];
-        
+        const clientIds = [...new Set((adsData || []).map((a) => a.client_id))];
+
         const { data: schedulesData } = await supabase
           .from("ad_generation_schedules")
-          .select(`
+          .select(
+            `
             client_id,
             target_campaign_id,
             target_adset_id,
             campaigns:target_campaign_id (id, name),
             ad_sets:target_adset_id (id, name)
-          `)
+          `,
+          )
           .in("client_id", clientIds);
 
         // Criar mapa de schedules por client_id
@@ -109,24 +122,27 @@ export function AutopilotPublishHistory() {
         (schedulesData || []).forEach((s: unknown) => {
           scheduleMap.set(s.client_id, {
             campaign: s.campaigns,
-            adset: s.ad_sets
+            adset: s.ad_sets,
           });
         });
 
-        const formattedData: PublishedAd[] = (adsData || []).map((item: unknown) => {
-          const scheduleInfo = scheduleMap.get(item.client_id) || {};
-          
-          return {
-            id: item.id,
-            published_at: item.published_at,
-            generated_content: item.generated_content as PublishedAd["generated_content"],
-            quality_score: item.quality_score,
-            meta_ad_id: item.meta_ad_id,
-            client: item.clients as unknown,
-            campaign: scheduleInfo.campaign || null,
-            adset: scheduleInfo.adset || null,
-          };
-        });
+        const formattedData: PublishedAd[] = (adsData || []).map(
+          (item: unknown) => {
+            const scheduleInfo = scheduleMap.get(item.client_id) || {};
+
+            return {
+              id: item.id,
+              published_at: item.published_at,
+              generated_content:
+                item.generated_content as PublishedAd["generated_content"],
+              quality_score: item.quality_score,
+              meta_ad_id: item.meta_ad_id,
+              client: item.clients as unknown,
+              campaign: scheduleInfo.campaign || null,
+              adset: scheduleInfo.adset || null,
+            };
+          },
+        );
 
         setPublishedAds(formattedData);
       } catch (error) {
@@ -154,7 +170,9 @@ export function AutopilotPublishHistory() {
   };
 
   const getAdText = (ad: PublishedAd) => {
-    return ad.generated_content?.primary_text || ad.generated_content?.body || "";
+    return (
+      ad.generated_content?.primary_text || ad.generated_content?.body || ""
+    );
   };
 
   const getAdImageUrl = (ad: PublishedAd) => {
@@ -204,11 +222,15 @@ export function AutopilotPublishHistory() {
                     <TableHead className="w-[200px]">Cliente</TableHead>
                     <TableHead className="w-[250px]">Headline</TableHead>
                     <TableHead>Legenda</TableHead>
-                    <TableHead className="w-[100px] text-center">Score</TableHead>
+                    <TableHead className="w-[100px] text-center">
+                      Score
+                    </TableHead>
                     <TableHead className="w-[180px] text-right">
                       Data de Publicação
                     </TableHead>
-                    <TableHead className="w-[80px] text-center">Ações</TableHead>
+                    <TableHead className="w-[80px] text-center">
+                      Ações
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -252,15 +274,15 @@ export function AutopilotPublishHistory() {
                               ad.quality_score >= 8
                                 ? "default"
                                 : ad.quality_score >= 6
-                                ? "secondary"
-                                : "outline"
+                                  ? "secondary"
+                                  : "outline"
                             }
                             className={
                               ad.quality_score >= 8
                                 ? "bg-green-500/10 text-green-600 border-green-500/20"
                                 : ad.quality_score >= 6
-                                ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
-                                : ""
+                                  ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
+                                  : ""
                             }
                           >
                             {ad.quality_score.toFixed(1)}
@@ -285,6 +307,7 @@ export function AutopilotPublishHistory() {
                       </TableCell>
                       <TableCell className="text-center">
                         <Button
+                          aria-label="Visualizar"
                           variant="ghost"
                           size="icon"
                           onClick={() => setSelectedAd(ad)}
@@ -330,17 +353,26 @@ export function AutopilotPublishHistory() {
                         <Avatar className="h-8 w-8">
                           <AvatarImage src={selectedAd.client?.avatar || ""} />
                           <AvatarFallback className="text-xs bg-primary/10 text-primary">
-                            {selectedAd.client ? getInitials(selectedAd.client.name) : "??"}
+                            {selectedAd.client
+                              ? getInitials(selectedAd.client.name)
+                              : "??"}
                           </AvatarFallback>
                         </Avatar>
                         <div>
                           <p className="text-sm font-semibold leading-tight">
                             {selectedAd.client?.name || "Anunciante"}
                           </p>
-                          <p className="text-xs text-muted-foreground">Patrocinado</p>
+                          <p className="text-xs text-muted-foreground">
+                            Patrocinado
+                          </p>
                         </div>
                       </div>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <Button
+                        aria-label="Ação"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                      >
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </div>
@@ -385,7 +417,9 @@ export function AutopilotPublishHistory() {
                       {/* Legenda */}
                       <div className="text-sm">
                         <span className="font-semibold">
-                          {selectedAd.client?.name?.toLowerCase().replace(/\s+/g, '') || "anunciante"}
+                          {selectedAd.client?.name
+                            ?.toLowerCase()
+                            .replace(/\s+/g, "") || "anunciante"}
                         </span>{" "}
                         <span className="whitespace-pre-wrap">
                           {truncateText(getAdText(selectedAd), 150)}
@@ -394,7 +428,11 @@ export function AutopilotPublishHistory() {
 
                       {/* Data */}
                       <p className="text-xs text-muted-foreground uppercase">
-                        {format(new Date(selectedAd.published_at), "d 'de' MMMM", { locale: ptBR })}
+                        {format(
+                          new Date(selectedAd.published_at),
+                          "d 'de' MMMM",
+                          { locale: ptBR },
+                        )}
                       </p>
                     </div>
                   </div>
@@ -415,7 +453,9 @@ export function AutopilotPublishHistory() {
                         <Avatar className="h-6 w-6">
                           <AvatarImage src={selectedAd.client?.avatar || ""} />
                           <AvatarFallback className="text-xs bg-primary/10 text-primary">
-                            {selectedAd.client ? getInitials(selectedAd.client.name) : "??"}
+                            {selectedAd.client
+                              ? getInitials(selectedAd.client.name)
+                              : "??"}
                           </AvatarFallback>
                         </Avatar>
                         <span className="text-sm font-medium">
@@ -430,7 +470,9 @@ export function AutopilotPublishHistory() {
                       </label>
                       <p className="text-sm font-medium">
                         {selectedAd.campaign?.name || (
-                          <span className="text-muted-foreground italic">Não encontrado</span>
+                          <span className="text-muted-foreground italic">
+                            Não encontrado
+                          </span>
                         )}
                       </p>
                     </div>
@@ -441,7 +483,9 @@ export function AutopilotPublishHistory() {
                       </label>
                       <p className="text-sm font-medium">
                         {selectedAd.adset?.name || (
-                          <span className="text-muted-foreground italic">Não encontrado</span>
+                          <span className="text-muted-foreground italic">
+                            Não encontrado
+                          </span>
                         )}
                       </p>
                     </div>
@@ -451,9 +495,13 @@ export function AutopilotPublishHistory() {
                         Data de Publicação
                       </label>
                       <p className="text-sm font-medium">
-                        {format(new Date(selectedAd.published_at), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", {
-                          locale: ptBR,
-                        })}
+                        {format(
+                          new Date(selectedAd.published_at),
+                          "dd 'de' MMMM 'de' yyyy 'às' HH:mm",
+                          {
+                            locale: ptBR,
+                          },
+                        )}
                       </p>
                     </div>
 
@@ -468,8 +516,8 @@ export function AutopilotPublishHistory() {
                               selectedAd.quality_score >= 8
                                 ? "bg-green-500/10 text-green-600 border-green-500/20"
                                 : selectedAd.quality_score >= 6
-                                ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
-                                : ""
+                                  ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
+                                  : ""
                             }
                           >
                             {selectedAd.quality_score.toFixed(1)}

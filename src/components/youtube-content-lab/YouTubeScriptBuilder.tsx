@@ -52,7 +52,7 @@ interface YouTubeScriptBuilderProps {
     scriptId: string,
     title: string,
     scriptContent: string,
-    suggestedTitles: string[]
+    suggestedTitles: string[],
   ) => Promise<string | null>;
   generatingThumbnail: boolean;
   thumbnailConfig: ThumbnailConfig | null;
@@ -75,7 +75,9 @@ export function YouTubeScriptBuilder({
 }: YouTubeScriptBuilderProps) {
   const [content, setContent] = useState(script.script_content);
   const [title, setTitle] = useState(script.title);
-  const [thumbnailUrl, setThumbnailUrl] = useState(script.thumbnail_url || null);
+  const [thumbnailUrl, setThumbnailUrl] = useState(
+    script.thumbnail_url || null,
+  );
   const [messages, setMessages] = useState<ScriptMessage[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -88,7 +90,9 @@ export function YouTubeScriptBuilder({
   const [showImageEditor, setShowImageEditor] = useState(false);
   const [imageToEdit, setImageToEdit] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [videoDescription, setVideoDescription] = useState(script.video_description || "");
+  const [videoDescription, setVideoDescription] = useState(
+    script.video_description || "",
+  );
   const [generatingDescription, setGeneratingDescription] = useState(false);
   const [descriptionCopied, setDescriptionCopied] = useState(false);
   const [seoTips, setSeoTips] = useState<string[]>([]);
@@ -132,26 +136,30 @@ export function YouTubeScriptBuilder({
     setGeneratingDescription(true);
     setSeoTips([]);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-youtube-description', {
-        body: { scriptId: script.id },
-      });
+      const { data, error } = await supabase.functions.invoke(
+        "generate-youtube-description",
+        {
+          body: { scriptId: script.id },
+        },
+      );
 
       if (error) throw error;
-      if (!data?.success) throw new Error(data?.error || 'Failed to generate description');
+      if (!data?.success)
+        throw new Error(data?.error || "Failed to generate description");
 
       setVideoDescription(data.description);
       setSeoTips(data.seo_tips || []);
-      
+
       toast({
-        title: 'Descrição gerada!',
-        description: 'Descrição SEO criada com sucesso.',
+        title: "Descrição gerada!",
+        description: "Descrição SEO criada com sucesso.",
       });
     } catch (error: unknown) {
-      console.error('Error generating description:', error);
+      console.error("Error generating description:", error);
       toast({
-        title: 'Erro ao gerar descrição',
+        title: "Erro ao gerar descrição",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
       });
     } finally {
       setGeneratingDescription(false);
@@ -230,15 +238,14 @@ export function YouTubeScriptBuilder({
   const handleGenerateThumbnail = async () => {
     setThumbnailError(null);
     setShowThumbnailModal(true);
-    
+
     try {
       const imageUrl = await onGenerateThumbnail(
         script.id,
         title,
         content,
-        script.suggested_titles
+        script.suggested_titles,
       );
-      
 
       if (imageUrl) {
         setThumbnailUrl(imageUrl);
@@ -251,7 +258,7 @@ export function YouTubeScriptBuilder({
         setThumbnailError("Não foi possível gerar a thumbnail");
       }
     } catch (error: unknown) {
-      console.error('Thumbnail generation error:', error);
+      console.error("Thumbnail generation error:", error);
       setThumbnailError(error.message || "Erro desconhecido");
     }
   };
@@ -262,16 +269,16 @@ export function YouTubeScriptBuilder({
         script.id,
         title,
         content,
-        script.suggested_titles
+        script.suggested_titles,
       );
-      
+
       if (imageUrl) {
         setThumbnailUrl(imageUrl);
         return imageUrl;
       }
       return null;
     } catch (error: unknown) {
-      console.error('Thumbnail generation error:', error);
+      console.error("Thumbnail generation error:", error);
       return null;
     }
   };
@@ -306,7 +313,12 @@ export function YouTubeScriptBuilder({
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={onClose}>
+          <Button
+            aria-label="Fechar"
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+          >
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
@@ -328,11 +340,15 @@ export function YouTubeScriptBuilder({
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={handleCopy}>
-            {copied ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
+            {copied ? (
+              <Check className="h-4 w-4 mr-2" />
+            ) : (
+              <Copy className="h-4 w-4 mr-2" />
+            )}
             {copied ? "Copiado!" : "Copiar"}
           </Button>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={handleGenerateThumbnail}
             disabled={generatingThumbnail}
           >
@@ -382,10 +398,19 @@ export function YouTubeScriptBuilder({
                   <CardHeader className="pb-3 flex-shrink-0">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-base">Roteiro</CardTitle>
-                      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "edit" | "preview")}>
+                      <Tabs
+                        value={activeTab}
+                        onValueChange={(v) =>
+                          setActiveTab(v as "edit" | "preview")
+                        }
+                      >
                         <TabsList className="h-8">
-                          <TabsTrigger value="edit" className="text-xs">Editar</TabsTrigger>
-                          <TabsTrigger value="preview" className="text-xs">Preview</TabsTrigger>
+                          <TabsTrigger value="edit" className="text-xs">
+                            Editar
+                          </TabsTrigger>
+                          <TabsTrigger value="preview" className="text-xs">
+                            Preview
+                          </TabsTrigger>
                         </TabsList>
                       </Tabs>
                     </div>
@@ -439,7 +464,12 @@ export function YouTubeScriptBuilder({
                 onLayout={(panelSizes) => {
                   if (panelSizes.length === 4) {
                     // Panel order: [0]=thumbnail, [1]=titles, [2]=description, [3]=chat
-                    setRightColumnSizes(panelSizes[0], panelSizes[3], panelSizes[1], panelSizes[2]);
+                    setRightColumnSizes(
+                      panelSizes[0],
+                      panelSizes[3],
+                      panelSizes[1],
+                      panelSizes[2],
+                    );
                   }
                 }}
               >
@@ -451,14 +481,18 @@ export function YouTubeScriptBuilder({
                         <CardTitle className="text-base">Thumbnail</CardTitle>
                         <div className="flex gap-2">
                           {thumbnailUrl && (
-                            <Button variant="ghost" size="sm" onClick={handleEditThumbnail}>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={handleEditThumbnail}
+                            >
                               <Pencil className="h-4 w-4 mr-1" />
                               Editar
                             </Button>
                           )}
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={handleGenerateThumbnail}
                             disabled={generatingThumbnail}
                           >
@@ -474,13 +508,13 @@ export function YouTubeScriptBuilder({
                     </CardHeader>
                     <CardContent className="flex-1 overflow-hidden pb-4">
                       {thumbnailUrl ? (
-                        <div 
+                        <div
                           className="relative h-full bg-muted rounded-lg overflow-hidden cursor-pointer group"
                           onClick={handleEditThumbnail}
                         >
-                          <img 
-                            src={thumbnailUrl} 
-                            alt="Thumbnail" 
+                          <img
+                            src={thumbnailUrl}
+                            alt="Thumbnail"
                             className="w-full h-full object-contain"
                           />
                           <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -488,12 +522,14 @@ export function YouTubeScriptBuilder({
                           </div>
                         </div>
                       ) : (
-                        <div 
+                        <div
                           className="h-full bg-muted rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-muted/80 transition-colors"
                           onClick={handleGenerateThumbnail}
                         >
                           <Image className="h-8 w-8 text-muted-foreground mb-2" />
-                          <p className="text-sm text-muted-foreground">Clique para gerar thumbnail</p>
+                          <p className="text-sm text-muted-foreground">
+                            Clique para gerar thumbnail
+                          </p>
                         </div>
                       )}
                     </CardContent>
@@ -507,17 +543,30 @@ export function YouTubeScriptBuilder({
                   <Card className="h-full flex flex-col overflow-hidden mt-2">
                     <CardHeader className="pb-3 flex-shrink-0">
                       <div className="flex items-center justify-between">
-                        <CardTitle className="text-base">Títulos Sugeridos</CardTitle>
-                        <Select onValueChange={handleGenerateTitles} disabled={generatingTitles}>
+                        <CardTitle className="text-base">
+                          Títulos Sugeridos
+                        </CardTitle>
+                        <Select
+                          onValueChange={handleGenerateTitles}
+                          disabled={generatingTitles}
+                        >
                           <SelectTrigger className="w-[120px] h-8">
-                            <SelectValue placeholder={generatingTitles ? "Gerando..." : "Gerar"} />
+                            <SelectValue
+                              placeholder={
+                                generatingTitles ? "Gerando..." : "Gerar"
+                              }
+                            />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="mixed">Variados</SelectItem>
-                            <SelectItem value="curiosity">Curiosidade</SelectItem>
+                            <SelectItem value="curiosity">
+                              Curiosidade
+                            </SelectItem>
                             <SelectItem value="urgency">Urgência</SelectItem>
                             <SelectItem value="benefit">Benefício</SelectItem>
-                            <SelectItem value="provocative">Provocativo</SelectItem>
+                            <SelectItem value="provocative">
+                              Provocativo
+                            </SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -537,9 +586,12 @@ export function YouTubeScriptBuilder({
                                   className="flex-1 justify-start h-auto py-2 px-3 text-left"
                                   onClick={() => handleSelectTitle(t)}
                                 >
-                                  <span className="line-clamp-2 text-sm">{t}</span>
+                                  <span className="line-clamp-2 text-sm">
+                                    {t}
+                                  </span>
                                 </Button>
                                 <Button
+                                  aria-label="Atualizar"
                                   variant="ghost"
                                   size="icon"
                                   className="h-8 w-8 shrink-0"
@@ -573,13 +625,21 @@ export function YouTubeScriptBuilder({
                         </CardTitle>
                         <div className="flex gap-1">
                           {videoDescription && (
-                            <Button variant="ghost" size="sm" onClick={handleCopyDescription}>
-                              {descriptionCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={handleCopyDescription}
+                            >
+                              {descriptionCopied ? (
+                                <Check className="h-4 w-4" />
+                              ) : (
+                                <Copy className="h-4 w-4" />
+                              )}
                             </Button>
                           )}
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={handleGenerateDescription}
                             disabled={generatingDescription}
                           >
@@ -598,26 +658,37 @@ export function YouTubeScriptBuilder({
                         <ScrollArea className="h-full">
                           <Textarea
                             value={videoDescription}
-                            onChange={(e) => setVideoDescription(e.target.value)}
+                            onChange={(e) =>
+                              setVideoDescription(e.target.value)
+                            }
                             className="min-h-[120px] text-sm resize-none border-none focus-visible:ring-0 p-0"
                             placeholder="Descrição do vídeo..."
                           />
                           {seoTips.length > 0 && (
                             <div className="mt-3 pt-3 border-t space-y-1">
-                              <p className="text-xs font-medium text-muted-foreground">💡 Dicas SEO:</p>
+                              <p className="text-xs font-medium text-muted-foreground">
+                                💡 Dicas SEO:
+                              </p>
                               {seoTips.map((tip, i) => (
-                                <p key={i} className="text-xs text-muted-foreground">• {tip}</p>
+                                <p
+                                  key={i}
+                                  className="text-xs text-muted-foreground"
+                                >
+                                  • {tip}
+                                </p>
                               ))}
                             </div>
                           )}
                         </ScrollArea>
                       ) : (
-                        <div 
+                        <div
                           className="h-full bg-muted rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-muted/80 transition-colors"
                           onClick={handleGenerateDescription}
                         >
                           <FileText className="h-8 w-8 text-muted-foreground mb-2" />
-                          <p className="text-sm text-muted-foreground">Clique para gerar descrição SEO</p>
+                          <p className="text-sm text-muted-foreground">
+                            Clique para gerar descrição SEO
+                          </p>
                         </div>
                       )}
                     </CardContent>
@@ -668,10 +739,19 @@ export function YouTubeScriptBuilder({
                           value={chatInput}
                           onChange={(e) => setChatInput(e.target.value)}
                           placeholder="Peça ajustes no roteiro..."
-                          onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSendMessage()}
+                          onKeyDown={(e) =>
+                            e.key === "Enter" &&
+                            !e.shiftKey &&
+                            handleSendMessage()
+                          }
                           disabled={sending}
                         />
-                        <Button size="icon" onClick={handleSendMessage} disabled={sending || !chatInput.trim()}>
+                        <Button
+                          aria-label="Enviar"
+                          size="icon"
+                          onClick={handleSendMessage}
+                          disabled={sending || !chatInput.trim()}
+                        >
                           <Send className="h-4 w-4" />
                         </Button>
                       </div>

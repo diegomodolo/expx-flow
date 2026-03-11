@@ -37,7 +37,14 @@ export function TreeNodeActionsDropdown({
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const { addSyncingItem, removeSyncingItem } = useSyncingItems();
-  const { duplicateEntity, isDuplicating, syncEntity, isSyncing, deleteEntity, isDeleting } = useTreeNodeActions({ 
+  const {
+    duplicateEntity,
+    isDuplicating,
+    syncEntity,
+    isSyncing,
+    deleteEntity,
+    isDeleting,
+  } = useTreeNodeActions({
     onSuccess: onRefresh,
     addSyncingItem,
     removeSyncingItem,
@@ -110,6 +117,7 @@ export function TreeNodeActionsDropdown({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
+            aria-label="Ação"
             variant="ghost"
             size="icon"
             className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -120,7 +128,7 @@ export function TreeNodeActionsDropdown({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
           {/* Sync option - always visible, highlighted when needsSync */}
-          <DropdownMenuItem 
+          <DropdownMenuItem
             onClick={handleSync}
             disabled={isSyncing}
             className={node.needsSync ? "text-amber-600 font-medium" : ""}
@@ -136,7 +144,7 @@ export function TreeNodeActionsDropdown({
           <DropdownMenuSeparator />
 
           {/* Duplicate option */}
-          <DropdownMenuItem 
+          <DropdownMenuItem
             onClick={() => setShowDuplicateModal(true)}
             disabled={node.needsSync}
           >
@@ -147,7 +155,7 @@ export function TreeNodeActionsDropdown({
           <DropdownMenuSeparator />
 
           {/* Delete option */}
-          <DropdownMenuItem 
+          <DropdownMenuItem
             onClick={() => setShowDeleteConfirm(true)}
             disabled={isDeleting || node.needsSync}
             className="text-destructive focus:text-destructive"
@@ -188,7 +196,9 @@ export function TreeNodeActionsDropdown({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>
+              Cancelar
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               disabled={isDeleting}

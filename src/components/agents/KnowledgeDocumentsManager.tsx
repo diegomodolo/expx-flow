@@ -1,10 +1,16 @@
-import React, { useRef } from 'react';
-import { FileText, Upload, Trash2, File } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { useAgentKnowledge } from '@/hooks/useAgentKnowledge';
-import { Separator } from '@/components/ui/separator';
+import React, { useRef } from "react";
+import { FileText, Upload, Trash2, File } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { useAgentKnowledge } from "@/hooks/useAgentKnowledge";
+import { Separator } from "@/components/ui/separator";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,8 +27,11 @@ interface KnowledgeDocumentsManagerProps {
   agentId: string;
 }
 
-export function KnowledgeDocumentsManager({ agentId }: KnowledgeDocumentsManagerProps) {
-  const { documents, loading, uploading, uploadDocument, deleteDocument } = useAgentKnowledge(agentId);
+export function KnowledgeDocumentsManager({
+  agentId,
+}: KnowledgeDocumentsManagerProps) {
+  const { documents, loading, uploading, uploadDocument, deleteDocument } =
+    useAgentKnowledge(agentId);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -30,15 +39,15 @@ export function KnowledgeDocumentsManager({ agentId }: KnowledgeDocumentsManager
     if (file) {
       await uploadDocument(file);
       if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+        fileInputRef.current.value = "";
       }
     }
   };
 
   const formatFileSize = (bytes: number) => {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    if (bytes < 1024) return bytes + " B";
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+    return (bytes / (1024 * 1024)).toFixed(1) + " MB";
   };
 
   const totalSize = documents.reduce((sum, doc) => sum + doc.file_size, 0);
@@ -57,7 +66,8 @@ export function KnowledgeDocumentsManager({ agentId }: KnowledgeDocumentsManager
             </CardDescription>
           </div>
           <Badge variant="outline">
-            {documents.length} {documents.length === 1 ? 'documento' : 'documentos'}
+            {documents.length}{" "}
+            {documents.length === 1 ? "documento" : "documentos"}
           </Badge>
         </div>
       </CardHeader>
@@ -73,7 +83,7 @@ export function KnowledgeDocumentsManager({ agentId }: KnowledgeDocumentsManager
             size="sm"
           >
             <Upload className="w-4 h-4 mr-2" />
-            {uploading ? 'Carregando...' : 'Adicionar Documento'}
+            {uploading ? "Carregando..." : "Adicionar Documento"}
           </Button>
           <input
             ref={fileInputRef}
@@ -110,7 +120,8 @@ export function KnowledgeDocumentsManager({ agentId }: KnowledgeDocumentsManager
                   <div className="min-w-0 flex-1">
                     <p className="font-medium truncate">{doc.file_name}</p>
                     <p className="text-sm text-muted-foreground">
-                      {formatFileSize(doc.file_size)} • {doc.file_type.toUpperCase()}
+                      {formatFileSize(doc.file_size)} •{" "}
+                      {doc.file_type.toUpperCase()}
                     </p>
                   </div>
                   {doc.content_text && (
@@ -121,7 +132,13 @@ export function KnowledgeDocumentsManager({ agentId }: KnowledgeDocumentsManager
                 </div>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button type="button" variant="ghost" size="icon" className="flex-shrink-0">
+                    <Button
+                      aria-label="Excluir"
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="flex-shrink-0"
+                    >
                       <Trash2 className="w-4 h-4 text-destructive" />
                     </Button>
                   </AlertDialogTrigger>
@@ -129,8 +146,9 @@ export function KnowledgeDocumentsManager({ agentId }: KnowledgeDocumentsManager
                     <AlertDialogHeader>
                       <AlertDialogTitle>Remover documento?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        Esta ação não pode ser desfeita. O documento "{doc.file_name}" será
-                        removido permanentemente da biblioteca de conhecimento.
+                        Esta ação não pode ser desfeita. O documento "
+                        {doc.file_name}" será removido permanentemente da
+                        biblioteca de conhecimento.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -152,8 +170,8 @@ export function KnowledgeDocumentsManager({ agentId }: KnowledgeDocumentsManager
         <div className="text-xs text-muted-foreground mt-4 p-3 rounded-lg bg-muted/50">
           <p className="font-medium mb-1">💡 Dica:</p>
           <p>
-            O agente usará automaticamente o conteúdo destes documentos para responder
-            perguntas mais precisas e contextualizadas.
+            O agente usará automaticamente o conteúdo destes documentos para
+            responder perguntas mais precisas e contextualizadas.
           </p>
         </div>
       </CardContent>

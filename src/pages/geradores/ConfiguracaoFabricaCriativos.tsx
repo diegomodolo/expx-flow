@@ -41,7 +41,9 @@ export default function ConfiguracaoFabricaCriativos() {
   const navigate = useNavigate();
   const [showNewDialog, setShowNewDialog] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
-  const [localValues, setLocalValues] = useState<Record<string, { time: string; qty: number }>>({});
+  const [localValues, setLocalValues] = useState<
+    Record<string, { time: string; qty: number }>
+  >({});
 
   const { data: clients } = useQuery({
     queryKey: ["clients-for-creative-factory", companyId],
@@ -58,14 +60,19 @@ export default function ConfiguracaoFabricaCriativos() {
     enabled: !!companyId,
   });
 
-  const { data: schedules, isLoading, refetch } = useQuery({
+  const {
+    data: schedules,
+    isLoading,
+    refetch,
+  } = useQuery({
     queryKey: ["creative-schedules", companyId],
     queryFn: async () => {
       if (!companyId) return [];
-      
+
       const { data } = await supabase
         .from("creative_generation_schedules")
-        .select(`
+        .select(
+          `
           id,
           client_id,
           is_active,
@@ -73,7 +80,8 @@ export default function ConfiguracaoFabricaCriativos() {
           creatives_per_day,
           last_generation_at,
           clients (name, company, avatar)
-        `)
+        `,
+        )
         .eq("company_id", companyId)
         .order("clients(name)");
 
@@ -86,7 +94,7 @@ export default function ConfiguracaoFabricaCriativos() {
   useEffect(() => {
     if (schedules) {
       const values: Record<string, { time: string; qty: number }> = {};
-      schedules.forEach(s => {
+      schedules.forEach((s) => {
         values[s.id] = {
           time: s.generation_time,
           qty: s.creatives_per_day,
@@ -99,7 +107,10 @@ export default function ConfiguracaoFabricaCriativos() {
   const handleToggleActive = async (id: string, currentValue: boolean) => {
     const { error } = await supabase
       .from("creative_generation_schedules")
-      .update({ is_active: !currentValue, updated_at: new Date().toISOString() })
+      .update({
+        is_active: !currentValue,
+        updated_at: new Date().toISOString(),
+      })
       .eq("id", id);
 
     if (error) {
@@ -110,8 +121,12 @@ export default function ConfiguracaoFabricaCriativos() {
     }
   };
 
-  const handleLocalChange = (id: string, field: "time" | "qty", value: string | number) => {
-    setLocalValues(prev => ({
+  const handleLocalChange = (
+    id: string,
+    field: "time" | "qty",
+    value: string | number,
+  ) => {
+    setLocalValues((prev) => ({
       ...prev,
       [id]: {
         ...prev[id],
@@ -120,14 +135,18 @@ export default function ConfiguracaoFabricaCriativos() {
     }));
   };
 
-  const handleSaveField = async (id: string, field: "generation_time" | "creatives_per_day") => {
-    const value = field === "generation_time" 
-      ? localValues[id]?.time 
-      : localValues[id]?.qty;
+  const handleSaveField = async (
+    id: string,
+    field: "generation_time" | "creatives_per_day",
+  ) => {
+    const value =
+      field === "generation_time"
+        ? localValues[id]?.time
+        : localValues[id]?.qty;
 
     const { error } = await supabase
       .from("creative_generation_schedules")
-      .update({ 
+      .update({
         [field]: value,
         updated_at: new Date().toISOString(),
       })
@@ -182,12 +201,17 @@ export default function ConfiguracaoFabricaCriativos() {
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Configurações</h1>
-          <p className="text-muted-foreground">Gerencie as fábricas de criativos</p>
+          <p className="text-muted-foreground">
+            Gerencie as fábricas de criativos
+          </p>
         </div>
         <Card>
           <CardContent className="p-4">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="flex items-center gap-4 py-3 border-b last:border-0">
+              <div
+                key={i}
+                className="flex items-center gap-4 py-3 border-b last:border-0"
+              >
                 <Skeleton className="h-6 w-6" />
                 <Skeleton className="h-4 w-48 flex-1" />
                 <Skeleton className="h-8 w-24" />
@@ -205,10 +229,17 @@ export default function ConfiguracaoFabricaCriativos() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Configurações</h1>
-          <p className="text-muted-foreground">Gerencie as fábricas de criativos</p>
+          <p className="text-muted-foreground">
+            Gerencie as fábricas de criativos
+          </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={() => refetch()}>
+          <Button
+            aria-label="Atualizar"
+            variant="outline"
+            size="icon"
+            onClick={() => refetch()}
+          >
             <RefreshCw className="h-4 w-4" />
           </Button>
           <Button onClick={() => setShowNewDialog(true)}>
@@ -221,7 +252,9 @@ export default function ConfiguracaoFabricaCriativos() {
       {schedules?.length === 0 ? (
         <Card>
           <CardContent className="p-8 text-center">
-            <p className="text-muted-foreground mb-4">Nenhuma fábrica de criativos configurada</p>
+            <p className="text-muted-foreground mb-4">
+              Nenhuma fábrica de criativos configurada
+            </p>
             <Button onClick={() => setShowNewDialog(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Criar Primeira Fábrica
@@ -246,28 +279,39 @@ export default function ConfiguracaoFabricaCriativos() {
 
               {/* Rows */}
               {schedules?.map((schedule) => (
-                <div 
-                  key={schedule.id} 
+                <div
+                  key={schedule.id}
                   className="grid grid-cols-[1fr,100px,100px,80px,60px] gap-4 py-3 px-3 items-center hover:bg-muted/50 rounded-md"
                 >
                   <div className="flex items-center gap-3">
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={schedule.clients?.avatar || undefined} alt={schedule.clients?.name} />
+                      <AvatarImage
+                        src={schedule.clients?.avatar || undefined}
+                        alt={schedule.clients?.name}
+                      />
                       <AvatarFallback className="text-xs">
                         <User className="h-4 w-4" />
                       </AvatarFallback>
                     </Avatar>
                     <div>
                       <p className="font-medium">{schedule.clients?.name}</p>
-                      <p className="text-xs text-muted-foreground">{schedule.clients?.company}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {schedule.clients?.company}
+                      </p>
                     </div>
                   </div>
 
                   <Input
                     type="time"
-                    value={localValues[schedule.id]?.time || schedule.generation_time}
-                    onChange={(e) => handleLocalChange(schedule.id, "time", e.target.value)}
-                    onBlur={() => handleSaveField(schedule.id, "generation_time")}
+                    value={
+                      localValues[schedule.id]?.time || schedule.generation_time
+                    }
+                    onChange={(e) =>
+                      handleLocalChange(schedule.id, "time", e.target.value)
+                    }
+                    onBlur={() =>
+                      handleSaveField(schedule.id, "generation_time")
+                    }
                     className="h-8 text-sm"
                   />
 
@@ -275,21 +319,39 @@ export default function ConfiguracaoFabricaCriativos() {
                     type="number"
                     min={1}
                     max={20}
-                    value={localValues[schedule.id]?.qty || schedule.creatives_per_day}
-                    onChange={(e) => handleLocalChange(schedule.id, "qty", parseInt(e.target.value) || 1)}
-                    onBlur={() => handleSaveField(schedule.id, "creatives_per_day")}
+                    value={
+                      localValues[schedule.id]?.qty ||
+                      schedule.creatives_per_day
+                    }
+                    onChange={(e) =>
+                      handleLocalChange(
+                        schedule.id,
+                        "qty",
+                        parseInt(e.target.value) || 1,
+                      )
+                    }
+                    onBlur={() =>
+                      handleSaveField(schedule.id, "creatives_per_day")
+                    }
                     className="h-8 text-sm"
                   />
 
                   <Switch
                     checked={schedule.is_active}
-                    onCheckedChange={() => handleToggleActive(schedule.id, schedule.is_active)}
+                    onCheckedChange={() =>
+                      handleToggleActive(schedule.id, schedule.is_active)
+                    }
                   />
 
                   <Button
+                    aria-label="Fechar"
                     variant="ghost"
                     size="icon"
-                    onClick={() => navigate(`/clientes/${schedule.client_id}/fabrica-criativos`)}
+                    onClick={() =>
+                      navigate(
+                        `/clientes/${schedule.client_id}/fabrica-criativos`,
+                      )
+                    }
                     title="Configuração avançada"
                   >
                     <ExternalLink className="h-4 w-4" />
@@ -320,7 +382,10 @@ export default function ConfiguracaoFabricaCriativos() {
               <Button variant="outline" onClick={() => setShowNewDialog(false)}>
                 Cancelar
               </Button>
-              <Button onClick={handleCreateNewFabrica} disabled={!selectedClientId}>
+              <Button
+                onClick={handleCreateNewFabrica}
+                disabled={!selectedClientId}
+              >
                 Criar Fábrica
               </Button>
             </div>

@@ -1,6 +1,12 @@
 import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Plus, AlertCircle, Settings } from "lucide-react";
@@ -12,9 +18,30 @@ import { TemplateGroupEditorDialog } from "@/components/automations/TemplateGrou
 import { CronMasterMonitor } from "@/components/automations/CronMasterMonitor";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreVertical, Download, Edit, Trash, Check, X, RotateCcw, ArrowRight } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  MoreVertical,
+  Download,
+  Edit,
+  Trash,
+  Check,
+  X,
+  RotateCcw,
+  ArrowRight,
+} from "lucide-react";
 import { TemplateEditorDialog } from "@/components/automations/TemplateEditorDialog";
 import { translateObjective } from "@/components/automations/CampaignObjectiveSelector";
 import { Input } from "@/components/ui/input";
@@ -27,38 +54,59 @@ const Automacoes = () => {
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<unknown>(null);
   const [templateGroupEditorOpen, setTemplateGroupEditorOpen] = useState(false);
-  const [editingTemplateGroup, setEditingTemplateGroup] = useState<unknown>(null);
+  const [editingTemplateGroup, setEditingTemplateGroup] =
+    useState<unknown>(null);
   const [prefixInput, setPrefixInput] = useState("");
-  const [entityTypeFilter, setEntityTypeFilter] = useState<string>('all');
-  const { templates, loading: templatesLoading, createTemplate, updateRule, deleteRule } = useAutomationRules();
-  const { templates: templateGroups, loading: templateGroupsLoading, createTemplate: createTemplateGroup, updateTemplate: updateTemplateGroup, deleteTemplate: deleteTemplateGroup } = useAutomationTemplates();
-  const { recommendations, approveRecommendation, rejectRecommendation } = useAutomationRecommendations();
-  const { settings, loading: settingsLoading, updateSettings } = useAutomationSettings();
+  const [entityTypeFilter, setEntityTypeFilter] = useState<string>("all");
+  const {
+    templates,
+    loading: templatesLoading,
+    createTemplate,
+    updateRule,
+    deleteRule,
+  } = useAutomationRules();
+  const {
+    templates: templateGroups,
+    loading: templateGroupsLoading,
+    createTemplate: createTemplateGroup,
+    updateTemplate: updateTemplateGroup,
+    deleteTemplate: deleteTemplateGroup,
+  } = useAutomationTemplates();
+  const { recommendations, approveRecommendation, rejectRecommendation } =
+    useAutomationRecommendations();
+  const {
+    settings,
+    loading: settingsLoading,
+    updateSettings,
+  } = useAutomationSettings();
   const { toast } = useToast();
 
   const getActionLabel = (actionType: string) => {
     const labels: Record<string, string> = {
-      pause_campaign: 'Pausar Campanha',
-      activate_campaign: 'Ativar Campanha',
-      increase_budget: 'Aumentar Orçamento',
-      decrease_budget: 'Reduzir Orçamento',
-      duplicate_campaign: 'Duplicar Campanha',
-      pause_adset: 'Pausar Ad Set',
-      activate_adset: 'Ativar Ad Set',
-      increase_adset_budget: 'Aumentar Orçamento Ad Set',
-      decrease_adset_budget: 'Reduzir Orçamento Ad Set',
-      duplicate_adset: 'Duplicar Ad Set',
-      pause_ad: 'Pausar Criativo',
-      activate_ad: 'Ativar Criativo',
-      duplicate_ad: 'Duplicar Criativo',
-      notify_only: 'Apenas Notificar',
-      duplicate_for_ab_test: 'Teste A/B',
+      pause_campaign: "Pausar Campanha",
+      activate_campaign: "Ativar Campanha",
+      increase_budget: "Aumentar Orçamento",
+      decrease_budget: "Reduzir Orçamento",
+      duplicate_campaign: "Duplicar Campanha",
+      pause_adset: "Pausar Ad Set",
+      activate_adset: "Ativar Ad Set",
+      increase_adset_budget: "Aumentar Orçamento Ad Set",
+      decrease_adset_budget: "Reduzir Orçamento Ad Set",
+      duplicate_adset: "Duplicar Ad Set",
+      pause_ad: "Pausar Criativo",
+      activate_ad: "Ativar Criativo",
+      duplicate_ad: "Duplicar Criativo",
+      notify_only: "Apenas Notificar",
+      duplicate_for_ab_test: "Teste A/B",
     };
     return labels[actionType] || actionType;
   };
 
-  const filteredTemplates = templates.filter(t => 
-    entityTypeFilter === 'all' || t.entity_type === entityTypeFilter || (!t.entity_type && entityTypeFilter === 'campaign')
+  const filteredTemplates = templates.filter(
+    (t) =>
+      entityTypeFilter === "all" ||
+      t.entity_type === entityTypeFilter ||
+      (!t.entity_type && entityTypeFilter === "campaign"),
   );
 
   const handleEditTemplate = (template: unknown) => {
@@ -90,7 +138,12 @@ const Automacoes = () => {
     if (editingTemplateGroup) {
       await updateTemplateGroup(editingTemplateGroup.id, data);
     } else {
-      await createTemplateGroup(data.name, data.description, data.category, data.ruleIds);
+      await createTemplateGroup(
+        data.name,
+        data.description,
+        data.category,
+        data.ruleIds,
+      );
     }
   };
 
@@ -111,7 +164,9 @@ const Automacoes = () => {
     <DashboardLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Automações de Campanhas</h1>
+          <h1 className="text-2xl font-bold text-foreground">
+            Automações de Campanhas
+          </h1>
           <p className="text-muted-foreground">
             Sistema de automação inteligente com templates e aprovação humana
           </p>
@@ -133,9 +188,7 @@ const Automacoes = () => {
                 </Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="logs">
-              📊 Histórico
-            </TabsTrigger>
+            <TabsTrigger value="logs">📊 Histórico</TabsTrigger>
             <TabsTrigger value="settings">
               <Settings className="mr-2 h-4 w-4" />
               Configurações
@@ -150,13 +203,16 @@ const Automacoes = () => {
                   <div>
                     <CardTitle>Regras de Automação</CardTitle>
                     <CardDescription>
-                      Crie regras individuais de automação para aplicar em clientes ou agrupar em templates
+                      Crie regras individuais de automação para aplicar em
+                      clientes ou agrupar em templates
                     </CardDescription>
                   </div>
-                  <Button onClick={() => {
-                    setEditingTemplate(null);
-                    setEditorOpen(true);
-                  }}>
+                  <Button
+                    onClick={() => {
+                      setEditingTemplate(null);
+                      setEditorOpen(true);
+                    }}
+                  >
                     <Plus className="mr-2 h-4 w-4" />
                     Nova Regra
                   </Button>
@@ -164,17 +220,36 @@ const Automacoes = () => {
               </CardHeader>
               <CardContent>
                 <div className="mb-4">
-                  <Tabs value={entityTypeFilter} onValueChange={setEntityTypeFilter}>
+                  <Tabs
+                    value={entityTypeFilter}
+                    onValueChange={setEntityTypeFilter}
+                  >
                     <TabsList>
-                      <TabsTrigger value="all">Todas ({templates.length})</TabsTrigger>
+                      <TabsTrigger value="all">
+                        Todas ({templates.length})
+                      </TabsTrigger>
                       <TabsTrigger value="campaign">
-                        📊 Campanhas ({templates.filter(t => t.entity_type === 'campaign' || !t.entity_type).length})
+                        📊 Campanhas (
+                        {
+                          templates.filter(
+                            (t) =>
+                              t.entity_type === "campaign" || !t.entity_type,
+                          ).length
+                        }
+                        )
                       </TabsTrigger>
                       <TabsTrigger value="adset">
-                        🎯 Ad Sets ({templates.filter(t => t.entity_type === 'adset').length})
+                        🎯 Ad Sets (
+                        {
+                          templates.filter((t) => t.entity_type === "adset")
+                            .length
+                        }
+                        )
                       </TabsTrigger>
                       <TabsTrigger value="ad">
-                        🎨 Criativos ({templates.filter(t => t.entity_type === 'ad').length})
+                        🎨 Criativos (
+                        {templates.filter((t) => t.entity_type === "ad").length}
+                        )
                       </TabsTrigger>
                     </TabsList>
                   </Tabs>
@@ -189,10 +264,9 @@ const Automacoes = () => {
                     <AlertCircle className="h-4 w-4" />
                     <AlertTitle>Nenhuma regra encontrada</AlertTitle>
                     <AlertDescription>
-                      {entityTypeFilter === 'all' 
-                        ? 'Crie sua primeira regra de automação para começar.'
-                        : `Nenhuma regra para ${entityTypeFilter === 'campaign' ? 'campanhas' : entityTypeFilter === 'adset' ? 'ad sets' : 'criativos'}.`
-                      }
+                      {entityTypeFilter === "all"
+                        ? "Crie sua primeira regra de automação para começar."
+                        : `Nenhuma regra para ${entityTypeFilter === "campaign" ? "campanhas" : entityTypeFilter === "adset" ? "ad sets" : "criativos"}.`}
                     </AlertDescription>
                   </Alert>
                 ) : (
@@ -205,21 +279,35 @@ const Automacoes = () => {
                               <CardTitle className="text-lg flex items-center gap-2">
                                 {template.rule_name}
                                 <Badge variant="outline">
-                                  {template.entity_type === 'adset' && '🎯 Ad Set'}
-                                  {template.entity_type === 'ad' && '🎨 Criativo'}
-                                  {(!template.entity_type || template.entity_type === 'campaign') && '📊 Campanha'}
+                                  {template.entity_type === "adset" &&
+                                    "🎯 Ad Set"}
+                                  {template.entity_type === "ad" &&
+                                    "🎨 Criativo"}
+                                  {(!template.entity_type ||
+                                    template.entity_type === "campaign") &&
+                                    "📊 Campanha"}
                                 </Badge>
-                                <Badge variant={template.is_active ? "default" : "secondary"}>
+                                <Badge
+                                  variant={
+                                    template.is_active ? "default" : "secondary"
+                                  }
+                                >
                                   {template.is_active ? "Ativo" : "Inativo"}
                                 </Badge>
                               </CardTitle>
                               {template.rule_description && (
-                                <CardDescription>{template.rule_description}</CardDescription>
+                                <CardDescription>
+                                  {template.rule_description}
+                                </CardDescription>
                               )}
                             </div>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
+                                <Button
+                                  aria-label="Ação"
+                                  variant="ghost"
+                                  size="icon"
+                                >
                                   <MoreVertical className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
@@ -228,13 +316,17 @@ const Automacoes = () => {
                                   <Download className="mr-2 h-4 w-4" />
                                   Importar para Cliente
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleEditTemplate(template)}>
+                                <DropdownMenuItem
+                                  onClick={() => handleEditTemplate(template)}
+                                >
                                   <Edit className="mr-2 h-4 w-4" />
                                   Editar Template
                                 </DropdownMenuItem>
-                                <DropdownMenuItem 
+                                <DropdownMenuItem
                                   className="text-red-600"
-                                  onClick={() => handleDeleteTemplate(template.id)}
+                                  onClick={() =>
+                                    handleDeleteTemplate(template.id)
+                                  }
                                 >
                                   <Trash className="mr-2 h-4 w-4" />
                                   Deletar
@@ -246,13 +338,16 @@ const Automacoes = () => {
                         <CardContent>
                           <div className="grid grid-cols-3 gap-4 text-sm">
                             <div>
-                              <span className="font-medium">Ação:</span> {getActionLabel(template.action_type)}
+                              <span className="font-medium">Ação:</span>{" "}
+                              {getActionLabel(template.action_type)}
                             </div>
                             <div>
-                              <span className="font-medium">Janela:</span> {template.time_window_days} dia(s)
+                              <span className="font-medium">Janela:</span>{" "}
+                              {template.time_window_days} dia(s)
                             </div>
                             <div>
-                              <span className="font-medium">Execuções:</span> {template.execution_count}x
+                              <span className="font-medium">Execuções:</span>{" "}
+                              {template.execution_count}x
                             </div>
                           </div>
                           <div className="mt-3 pt-3 border-t">
@@ -260,20 +355,27 @@ const Automacoes = () => {
                               ⚙️ Valores configuráveis na importação
                             </Badge>
                           </div>
-                          {template.campaign_objectives && template.campaign_objectives.length > 0 && (
-                            <div className="mt-3 pt-3 border-t">
-                              <div className="text-xs font-medium text-muted-foreground mb-2">
-                                Aplica-se apenas aos objetivos:
+                          {template.campaign_objectives &&
+                            template.campaign_objectives.length > 0 && (
+                              <div className="mt-3 pt-3 border-t">
+                                <div className="text-xs font-medium text-muted-foreground mb-2">
+                                  Aplica-se apenas aos objetivos:
+                                </div>
+                                <div className="flex flex-wrap gap-1">
+                                  {template.campaign_objectives.map(
+                                    (obj: string) => (
+                                      <Badge
+                                        key={obj}
+                                        variant="outline"
+                                        className="text-xs"
+                                      >
+                                        {translateObjective(obj)}
+                                      </Badge>
+                                    ),
+                                  )}
+                                </div>
                               </div>
-                              <div className="flex flex-wrap gap-1">
-                                {template.campaign_objectives.map((obj: string) => (
-                                  <Badge key={obj} variant="outline" className="text-xs">
-                                    {translateObjective(obj)}
-                                  </Badge>
-                                ))}
-                              </div>
-                            </div>
-                          )}
+                            )}
                         </CardContent>
                       </Card>
                     ))}
@@ -291,13 +393,16 @@ const Automacoes = () => {
                   <div>
                     <CardTitle>Templates de Regras</CardTitle>
                     <CardDescription>
-                      Agrupe múltiplas regras em templates para importar todas de uma vez em um cliente
+                      Agrupe múltiplas regras em templates para importar todas
+                      de uma vez em um cliente
                     </CardDescription>
                   </div>
-                  <Button onClick={() => {
-                    setEditingTemplateGroup(null);
-                    setTemplateGroupEditorOpen(true);
-                  }}>
+                  <Button
+                    onClick={() => {
+                      setEditingTemplateGroup(null);
+                      setTemplateGroupEditorOpen(true);
+                    }}
+                  >
                     <Plus className="mr-2 h-4 w-4" />
                     Novo Template
                   </Button>
@@ -313,7 +418,8 @@ const Automacoes = () => {
                     <AlertCircle className="h-4 w-4" />
                     <AlertTitle>Nenhum template encontrado</AlertTitle>
                     <AlertDescription>
-                      Crie seu primeiro template agrupando múltiplas regras da aba "Regras".
+                      Crie seu primeiro template agrupando múltiplas regras da
+                      aba "Regras".
                     </AlertDescription>
                   </Alert>
                 ) : (
@@ -323,7 +429,9 @@ const Automacoes = () => {
                         <CardHeader>
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
-                              <CardTitle className="text-lg">{template.name}</CardTitle>
+                              <CardTitle className="text-lg">
+                                {template.name}
+                              </CardTitle>
                               {template.description && (
                                 <CardDescription className="mt-1">
                                   {template.description}
@@ -331,30 +439,43 @@ const Automacoes = () => {
                               )}
                               <div className="flex gap-2 mt-2">
                                 {template.category && (
-                                  <Badge variant="outline">{template.category}</Badge>
+                                  <Badge variant="outline">
+                                    {template.category}
+                                  </Badge>
                                 )}
                                 <Badge variant="secondary">
-                                  {template.rules?.length || 0} {template.rules?.length === 1 ? 'regra' : 'regras'}
+                                  {template.rules?.length || 0}{" "}
+                                  {template.rules?.length === 1
+                                    ? "regra"
+                                    : "regras"}
                                 </Badge>
                               </div>
                             </div>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
+                                <Button
+                                  aria-label="Ação"
+                                  variant="ghost"
+                                  size="icon"
+                                >
                                   <MoreVertical className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => {
-                                  setEditingTemplateGroup(template);
-                                  setTemplateGroupEditorOpen(true);
-                                }}>
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setEditingTemplateGroup(template);
+                                    setTemplateGroupEditorOpen(true);
+                                  }}
+                                >
                                   <Edit className="mr-2 h-4 w-4" />
                                   Editar Template
                                 </DropdownMenuItem>
-                                <DropdownMenuItem 
+                                <DropdownMenuItem
                                   className="text-destructive"
-                                  onClick={() => handleDeleteTemplateGroup(template.id)}
+                                  onClick={() =>
+                                    handleDeleteTemplateGroup(template.id)
+                                  }
                                 >
                                   <Trash className="mr-2 h-4 w-4" />
                                   Deletar
@@ -370,27 +491,37 @@ const Automacoes = () => {
                                 Regras incluídas:
                               </div>
                               <div className="space-y-2">
-                                {template.rules.map((templateRule: unknown, index: number) => (
-                                  <div 
-                                    key={templateRule.id}
-                                    className="flex items-center gap-3 p-3 bg-accent/30 rounded-lg text-sm"
-                                  >
-                                    <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-medium">
-                                      {index + 1}
-                                    </div>
-                                    <div className="flex-1">
-                                      <div className="font-medium">{templateRule.rule?.rule_name}</div>
-                                      {templateRule.rule?.rule_description && (
-                                        <div className="text-muted-foreground text-xs mt-0.5">
-                                          {templateRule.rule.rule_description}
+                                {template.rules.map(
+                                  (templateRule: unknown, index: number) => (
+                                    <div
+                                      key={templateRule.id}
+                                      className="flex items-center gap-3 p-3 bg-accent/30 rounded-lg text-sm"
+                                    >
+                                      <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-medium">
+                                        {index + 1}
+                                      </div>
+                                      <div className="flex-1">
+                                        <div className="font-medium">
+                                          {templateRule.rule?.rule_name}
                                         </div>
-                                      )}
+                                        {templateRule.rule
+                                          ?.rule_description && (
+                                          <div className="text-muted-foreground text-xs mt-0.5">
+                                            {templateRule.rule.rule_description}
+                                          </div>
+                                        )}
+                                      </div>
+                                      <Badge
+                                        variant="outline"
+                                        className="text-xs"
+                                      >
+                                        {getActionLabel(
+                                          templateRule.rule?.action_type,
+                                        )}
+                                      </Badge>
                                     </div>
-                                    <Badge variant="outline" className="text-xs">
-                                      {getActionLabel(templateRule.rule?.action_type)}
-                                    </Badge>
-                                  </div>
-                                ))}
+                                  ),
+                                )}
                               </div>
                             </div>
                           )}
@@ -418,34 +549,39 @@ const Automacoes = () => {
                     <AlertCircle className="h-4 w-4" />
                     <AlertTitle>Nenhuma recomendação pendente</AlertTitle>
                     <AlertDescription>
-                      Quando regras com modo "Apenas Notificar" forem acionadas, aparecerão aqui.
+                      Quando regras com modo "Apenas Notificar" forem acionadas,
+                      aparecerão aqui.
                     </AlertDescription>
                   </Alert>
                 ) : (
                   <div className="space-y-4">
                     {recommendations.map((rec: unknown) => (
-                      <Card key={rec.id} className="border-l-4 border-l-yellow-500">
+                      <Card
+                        key={rec.id}
+                        className="border-l-4 border-l-yellow-500"
+                      >
                         <CardHeader>
                           <div className="flex items-start justify-between">
                             <div>
                               <CardTitle className="text-base">
-                                {rec.campaign?.name || 'Campanha'}
+                                {rec.campaign?.name || "Campanha"}
                               </CardTitle>
                               <CardDescription>
-                                {rec.client?.name} • {getActionLabel(rec.recommended_action)}
+                                {rec.client?.name} •{" "}
+                                {getActionLabel(rec.recommended_action)}
                               </CardDescription>
                             </div>
                             <div className="flex gap-2">
-                              <Button 
-                                size="sm" 
+                              <Button
+                                size="sm"
                                 variant="default"
                                 onClick={() => approveRecommendation(rec.id)}
                               >
                                 <Check className="mr-2 h-4 w-4" />
                                 Aprovar
                               </Button>
-                              <Button 
-                                size="sm" 
+                              <Button
+                                size="sm"
                                 variant="outline"
                                 onClick={() => rejectRecommendation(rec.id)}
                               >
@@ -460,7 +596,8 @@ const Automacoes = () => {
                             <strong>Motivo:</strong> {rec.reason}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            Sugerido há {new Date(rec.created_at).toLocaleString('pt-BR')}
+                            Sugerido há{" "}
+                            {new Date(rec.created_at).toLocaleString("pt-BR")}
                           </p>
                         </CardContent>
                       </Card>
@@ -504,11 +641,14 @@ const Automacoes = () => {
                         size="sm"
                         onClick={async () => {
                           try {
-                            const { error } = await supabase.functions.invoke('process-recovery-triggers');
+                            const { error } = await supabase.functions.invoke(
+                              "process-recovery-triggers",
+                            );
                             if (error) throw error;
                             toast({
                               title: "Recovery triggers processados!",
-                              description: "As reativações pendentes foram processadas com sucesso.",
+                              description:
+                                "As reativações pendentes foram processadas com sucesso.",
                             });
                           } catch (error: unknown) {
                             toast({
@@ -524,8 +664,10 @@ const Automacoes = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="prefix">Prefixo do Nome da Campanha</Label>
-                      <Input 
+                      <Label htmlFor="prefix">
+                        Prefixo do Nome da Campanha
+                      </Label>
+                      <Input
                         id="prefix"
                         value={prefixInput}
                         onChange={(e) => setPrefixInput(e.target.value)}
@@ -533,16 +675,21 @@ const Automacoes = () => {
                         maxLength={50}
                       />
                       <p className="text-sm text-muted-foreground">
-                        Este prefixo será adicionado ao nome das campanhas quando as automações fizerem alterações.
+                        Este prefixo será adicionado ao nome das campanhas
+                        quando as automações fizerem alterações.
                       </p>
                       <div className="mt-2 p-3 bg-muted rounded-md">
                         <p className="text-xs font-medium mb-1">Preview:</p>
                         <code className="text-xs bg-background px-2 py-1 rounded">
-                          [{prefixInput || 'SHEGrowth'}] Campanha Teste - Pausada (CPA Alto)
+                          [{prefixInput || "SHEGrowth"}] Campanha Teste -
+                          Pausada (CPA Alto)
                         </code>
                       </div>
                     </div>
-                    <Button onClick={handleSaveSettings} disabled={!prefixInput.trim()}>
+                    <Button
+                      onClick={handleSaveSettings}
+                      disabled={!prefixInput.trim()}
+                    >
                       Salvar Configurações
                     </Button>
                   </div>
@@ -553,7 +700,7 @@ const Automacoes = () => {
         </Tabs>
 
         <TemplateEditorDialog
-          key={editingTemplate?.id || 'new'}
+          key={editingTemplate?.id || "new"}
           open={editorOpen}
           onOpenChange={(open) => {
             setEditorOpen(open);
@@ -564,7 +711,7 @@ const Automacoes = () => {
         />
 
         <TemplateGroupEditorDialog
-          key={editingTemplateGroup?.id || 'new-group'}
+          key={editingTemplateGroup?.id || "new-group"}
           open={templateGroupEditorOpen}
           onOpenChange={(open) => {
             setTemplateGroupEditorOpen(open);

@@ -54,12 +54,14 @@ async function fetchTranscript(videoId: string): Promise<string | null> {
     }
 
     // Prefer Portuguese, then English, then any available
-    let selectedTrack = captionTracks.find((t: unknown) =>
-      t.languageCode?.startsWith("pt"),
+    let selectedTrack = captionTracks.find(
+      (t: { languageCode?: string; baseUrl?: string }) =>
+        t.languageCode?.startsWith("pt"),
     );
     if (!selectedTrack) {
-      selectedTrack = captionTracks.find((t: unknown) =>
-        t.languageCode?.startsWith("en"),
+      selectedTrack = captionTracks.find(
+        (t: { languageCode?: string; baseUrl?: string }) =>
+          t.languageCode?.startsWith("en"),
       );
     }
     if (!selectedTrack) {
@@ -173,7 +175,7 @@ Deno.serve(async (req) => {
     }
 
     // Fetch transcript
-    let transcript = await fetchTranscript(videoId);
+    const transcript = await fetchTranscript(videoId);
 
     if (!transcript) {
       console.log("No transcript available, returning empty");
@@ -240,7 +242,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
       }),
       {
         status: 500,

@@ -3,11 +3,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 interface CreativeData {
-  type: 'IMAGE' | 'VIDEO' | 'CAROUSEL';
+  type: "IMAGE" | "VIDEO" | "CAROUSEL";
   media_urls: string[];
   body: string;
   title: string;
@@ -22,7 +23,7 @@ interface UpdateRequest {
   facebookId: string;
   updates: {
     name?: string;
-    status?: 'ACTIVE' | 'PAUSED';
+    status?: "ACTIVE" | "PAUSED";
     creative?: CreativeData;
     pixel_id?: string; // Pixel ID to set on ad's tracking_specs
   };
@@ -36,17 +37,19 @@ serve(async (req) => {
   try {
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     );
 
-    const { clientId, adId, facebookId, updates } = await req.json() as UpdateRequest;
+    const { clientId, adId, facebookId, updates } =
+      (await req.json()) as UpdateRequest;
 
     console.log(`Updating ad ${facebookId} for client ${clientId}:`, updates);
 
     // Get client with ad account and page
     const { data: client, error: clientError } = await supabaseClient
       .from("clients")
-      .select(`
+      .select(
+        `
         *,
         facebook_ad_accounts!clients_ad_account_id_fkey (
           account_id
@@ -56,7 +59,8 @@ serve(async (req) => {
           page_id,
           page_name
         )
-      `)
+      `,
+      )
       .eq("id", clientId)
       .single();
 
@@ -79,7 +83,7 @@ serve(async (req) => {
     const adAccountId = client.facebook_ad_accounts?.account_id;
 
     // Track what was updated
-    const updatedFields: Record<string, unknown> = {};
+    const updatedFields: Record<string, string | boolean> = {};
 
     // Update name and/or status directly on Meta
     if (updates.name || updates.status) {
@@ -94,20 +98,22 @@ serve(async (req) => {
       if (updates.status) {
         updateParams.append("status", updates.status);
         updatedFields.status = updates.status.toLowerCase();
-        updatedFields.is_active = updates.status === 'ACTIVE';
+        updatedFields.is_active = updates.status === "ACTIVE";
       }
 
       console.log("Updating ad metadata on Meta...");
       const metaResponse = await fetch(
         `https://graph.facebook.com/v21.0/${facebookId}`,
-        { method: "POST", body: updateParams }
+        { method: "POST", body: updateParams },
       );
 
       const metaResult = await metaResponse.json();
       console.log("Meta update result:", metaResult);
 
       if (metaResult.error) {
-        throw new Error(`Failed to update ad on Meta: ${metaResult.error.message}`);
+        throw new Error(
+          `Failed to update ad on Meta: ${metaResult.error.message}`,
+        );
       }
     }
 
@@ -127,7 +133,10 @@ serve(async (req) => {
 
         if (pages && pages.length > 0) {
           const clientName = client.name?.toLowerCase().trim() || "";
-          const matchingPage = pages.find((p: unknown) => p.page_name?.toLowerCase().trim() === clientName);
+          const matchingPage = pages.find(
+            (p: { page_name?: string; page_id?: string }) =>
+              p.page_name?.toLowerCase().trim() === clientName,
+          );
 
           if (matchingPage) {
             metaPageId = matchingPage.page_id;
@@ -138,21 +147,23 @@ serve(async (req) => {
       }
 
       if (!metaPageId) {
-        throw new Error("Cliente precisa ter uma Página do Facebook vinculada para atualizar o criativo.");
+        throw new Error(
+          "Cliente precisa ter uma Página do Facebook vinculada para atualizar o criativo.",
+        );
       }
 
       const creative = updates.creative;
-      const ctaType = creative.call_to_action || 'LEARN_MORE';
+      const ctaType = creative.call_to_action || "LEARN_MORE";
       const finalUrl = creative.link_url;
 
-      let creativeData: unknown;
+      let creativeData: { id?: string; error?: { message: string } };
 
-      if (creative.type === 'CAROUSEL') {
+      if (creative.type === "CAROUSEL") {
         const childAttachments = creative.media_urls.map((url, index) => ({
           link: finalUrl,
           picture: url,
           name: creative.title || `Slide ${index + 1}`,
-          description: creative.description || '',
+          description: creative.description || "",
           call_to_action: { type: ctaType, value: { link: finalUrl } },
         }));
 
@@ -172,17 +183,17 @@ serve(async (req) => {
 
         const response = await fetch(
           `https://graph.facebook.com/v21.0/${adAccountId}/adcreatives`,
-          { method: "POST", body: creativeParams }
+          { method: "POST", body: creativeParams },
         );
         creativeData = await response.json();
-      } else if (creative.type === 'VIDEO') {
+      } else if (creative.type === "VIDEO") {
         // Extract video ID from URL or use raw ID
         // The media_urls[0] might be a URL like https://www.facebook.com/123456789
         // or a direct video ID like "123456789"
         let videoId = creative.media_urls[0];
-        
+
         // If it's a Facebook URL, extract the numeric ID from the path
-        if (videoId.includes('facebook.com/') || videoId.includes('fb.com/')) {
+        if (videoId.includes("facebook.com/") || videoId.includes("fb.com/")) {
           const match = videoId.match(/(?:facebook\.com|fb\.com)\/(\d+)/);
           if (match && match[1]) {
             videoId = match[1];
@@ -190,8 +201,14 @@ serve(async (req) => {
         }
         // If it's a full video URL (mp4), we cannot use it as video_id
         // In that case, we need to throw an error or skip video creative update
-        if (videoId.startsWith('http') && !videoId.includes('facebook.com') && !videoId.includes('fb.com')) {
-          throw new Error("Para atualizar criativos de vídeo, é necessário fazer upload de um novo vídeo ou manter o vídeo atual.");
+        if (
+          videoId.startsWith("http") &&
+          !videoId.includes("facebook.com") &&
+          !videoId.includes("fb.com")
+        ) {
+          throw new Error(
+            "Para atualizar criativos de vídeo, é necessário fazer upload de um novo vídeo ou manter o vídeo atual.",
+          );
         }
 
         console.log("Extracted video_id:", videoId);
@@ -203,8 +220,8 @@ serve(async (req) => {
             video_data: {
               video_id: videoId,
               message: creative.body,
-              title: creative.title || '',
-              link_description: creative.description || '',
+              title: creative.title || "",
+              link_description: creative.description || "",
               call_to_action: { type: ctaType, value: { link: finalUrl } },
             },
           }),
@@ -213,7 +230,7 @@ serve(async (req) => {
 
         const response = await fetch(
           `https://graph.facebook.com/v21.0/${adAccountId}/adcreatives`,
-          { method: "POST", body: creativeParams }
+          { method: "POST", body: creativeParams },
         );
         creativeData = await response.json();
       } else {
@@ -226,8 +243,8 @@ serve(async (req) => {
               link: finalUrl,
               message: creative.body,
               picture: creative.media_urls[0],
-              name: creative.title || '',
-              description: creative.description || '',
+              name: creative.title || "",
+              description: creative.description || "",
               call_to_action: { type: ctaType, value: { link: finalUrl } },
             },
           }),
@@ -236,7 +253,7 @@ serve(async (req) => {
 
         const response = await fetch(
           `https://graph.facebook.com/v21.0/${adAccountId}/adcreatives`,
-          { method: "POST", body: creativeParams }
+          { method: "POST", body: creativeParams },
         );
         creativeData = await response.json();
       }
@@ -244,7 +261,9 @@ serve(async (req) => {
       console.log("New creative result:", creativeData);
 
       if (creativeData.error) {
-        throw new Error(`Failed to create new creative: ${creativeData.error.message}`);
+        throw new Error(
+          `Failed to create new creative: ${creativeData.error.message}`,
+        );
       }
 
       const newCreativeId = creativeData.id;
@@ -258,14 +277,16 @@ serve(async (req) => {
       console.log("Updating ad to use new creative...");
       const updateAdResponse = await fetch(
         `https://graph.facebook.com/v21.0/${facebookId}`,
-        { method: "POST", body: updateAdParams }
+        { method: "POST", body: updateAdParams },
       );
 
       const updateAdResult = await updateAdResponse.json();
       console.log("Ad creative update result:", updateAdResult);
 
       if (updateAdResult.error) {
-        throw new Error(`Failed to update ad with new creative: ${updateAdResult.error.message}`);
+        throw new Error(
+          `Failed to update ad with new creative: ${updateAdResult.error.message}`,
+        );
       }
 
       // Add creative fields to updatedFields for local DB update
@@ -275,19 +296,23 @@ serve(async (req) => {
       updatedFields.creative_description = creative.description;
       updatedFields.link_url = finalUrl;
       updatedFields.call_to_action = creative.call_to_action;
-      updatedFields.image_url = creative.type !== 'VIDEO' ? creative.media_urls[0] : null;
-      updatedFields.video_url = creative.type === 'VIDEO' ? creative.media_urls[0] : null;
+      updatedFields.image_url =
+        creative.type !== "VIDEO" ? creative.media_urls[0] : null;
+      updatedFields.video_url =
+        creative.type === "VIDEO" ? creative.media_urls[0] : null;
     }
 
     // Update tracking_specs if pixel_id is provided
     if (updates.pixel_id) {
       console.log("Updating tracking_specs with pixel_id:", updates.pixel_id);
-      
-      const trackingSpecs = JSON.stringify([{
-        "action.type": "offsite_conversion",
-        "fb_pixel": [updates.pixel_id]
-      }]);
-      
+
+      const trackingSpecs = JSON.stringify([
+        {
+          "action.type": "offsite_conversion",
+          fb_pixel: [updates.pixel_id],
+        },
+      ]);
+
       const trackingParams = new URLSearchParams({
         tracking_specs: trackingSpecs,
         access_token: accessToken,
@@ -295,7 +320,7 @@ serve(async (req) => {
 
       const trackingResponse = await fetch(
         `https://graph.facebook.com/v21.0/${facebookId}`,
-        { method: "POST", body: trackingParams }
+        { method: "POST", body: trackingParams },
       );
 
       const trackingResult = await trackingResponse.json();
@@ -329,13 +354,19 @@ serve(async (req) => {
         success: true,
         updatedFields: Object.keys(updatedFields),
       }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (error: unknown) {
     console.error("Error in update-meta-ad:", error);
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
-      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      }),
+      {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 });

@@ -121,7 +121,7 @@ serve(async (req) => {
           continue;
         }
 
-        const client = urlData.clients as unknown;
+        const client = urlData.clients as Record<string, unknown> | null;
         const aiBriefing = client?.ai_briefing;
 
         if (!aiBriefing || aiBriefing.trim().length < 20) {
@@ -334,12 +334,13 @@ IMPORTANTE: Seja rigoroso! Qualquer conteúdo que não faça sentido para o neg�
         const newStatus =
           analysis.score < 50
             ? "suspicious"
-            : (urlData as unknown).validation_status === "suspicious"
+            : (urlData as Record<string, unknown>).validation_status ===
+                "suspicious"
               ? "ok"
               : undefined;
 
         // Update the URL with analysis results
-        const updateData: unknown = {
+        const updateData: Record<string, unknown> = {
           content_match_score: analysis.score,
           content_analysis_summary:
             analysis.summary +

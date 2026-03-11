@@ -3,16 +3,42 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Download, Filter, ChevronRight, Megaphone, Target, Users, Zap, ShoppingBag, RotateCcw, Heart, TrendingUp, MoreVertical } from "lucide-react";
+import {
+  Plus,
+  Search,
+  Download,
+  Filter,
+  ChevronRight,
+  Megaphone,
+  Target,
+  Users,
+  Zap,
+  ShoppingBag,
+  RotateCcw,
+  Heart,
+  TrendingUp,
+  MoreVertical,
+} from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useGeneratedCampaigns } from "@/hooks/useGeneratedCampaigns";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface CampaignsListProps {
   onNewCampaign: () => void;
@@ -26,7 +52,10 @@ const FUNNEL_ICONS: Record<string, React.ElementType> = {
   retencao: Heart,
 };
 
-const CAMPAIGN_TYPE_INFO: Record<string, { icon: React.ElementType; color: string }> = {
+const CAMPAIGN_TYPE_INFO: Record<
+  string,
+  { icon: React.ElementType; color: string }
+> = {
   awareness: { icon: Zap, color: "text-blue-600" },
   traffic: { icon: Target, color: "text-orange-600" },
   leads: { icon: Users, color: "text-green-600" },
@@ -35,14 +64,17 @@ const CAMPAIGN_TYPE_INFO: Record<string, { icon: React.ElementType; color: strin
   retention: { icon: Heart, color: "text-pink-600" },
 };
 
-export function CampaignsList({ onNewCampaign, onViewCampaign }: CampaignsListProps) {
+export function CampaignsList({
+  onNewCampaign,
+  onViewCampaign,
+}: CampaignsListProps) {
   const { campaigns, loading } = useGeneratedCampaigns();
   const [searchTerm, setSearchTerm] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
     funnelStage: "all",
     campaignType: "all",
-    client: "all"
+    client: "all",
   });
 
   if (loading) {
@@ -71,19 +103,23 @@ export function CampaignsList({ onNewCampaign, onViewCampaign }: CampaignsListPr
     );
   }
 
-  const filteredCampaigns = campaigns.filter(campaign => {
+  const filteredCampaigns = campaigns.filter((campaign) => {
     const searchLower = searchTerm.toLowerCase();
-    const matchesSearch = (
+    const matchesSearch =
       campaign.title.toLowerCase().includes(searchLower) ||
       campaign.clients?.name.toLowerCase().includes(searchLower) ||
       campaign.clients?.company.toLowerCase().includes(searchLower) ||
       campaign.campaign_type.toLowerCase().includes(searchLower) ||
-      campaign.funnel_stage.toLowerCase().includes(searchLower)
-    );
+      campaign.funnel_stage.toLowerCase().includes(searchLower);
 
-    const matchesFunnel = filters.funnelStage === "all" || campaign.funnel_stage === filters.funnelStage;
-    const matchesType = filters.campaignType === "all" || campaign.campaign_type === filters.campaignType;
-    const matchesClient = filters.client === "all" || campaign.clients?.company === filters.client;
+    const matchesFunnel =
+      filters.funnelStage === "all" ||
+      campaign.funnel_stage === filters.funnelStage;
+    const matchesType =
+      filters.campaignType === "all" ||
+      campaign.campaign_type === filters.campaignType;
+    const matchesClient =
+      filters.client === "all" || campaign.clients?.company === filters.client;
 
     return matchesSearch && matchesFunnel && matchesType && matchesClient;
   });
@@ -91,9 +127,9 @@ export function CampaignsList({ onNewCampaign, onViewCampaign }: CampaignsListPr
   const getFunnelStageLabel = (stage: string) => {
     const labels: Record<string, string> = {
       topo: "Topo",
-      meio: "Meio", 
+      meio: "Meio",
       fundo: "Fundo",
-      retencao: "Retenção"
+      retencao: "Retenção",
     };
     return labels[stage] || stage;
   };
@@ -105,37 +141,44 @@ export function CampaignsList({ onNewCampaign, onViewCampaign }: CampaignsListPr
       leads: "Leads",
       conversions: "Conversões",
       remarketing: "Remarketing",
-      retention: "Retenção"
+      retention: "Retenção",
     };
     return labels[type] || type;
   };
 
   const exportToCSV = () => {
     const headers = ["Título", "Cliente", "Empresa", "Funil", "Tipo", "Data"];
-    const csvData = filteredCampaigns.map(campaign => [
+    const csvData = filteredCampaigns.map((campaign) => [
       campaign.title,
-      campaign.clients?.name || 'N/A',
-      campaign.clients?.company || 'N/A',
+      campaign.clients?.name || "N/A",
+      campaign.clients?.company || "N/A",
       getFunnelStageLabel(campaign.funnel_stage),
       getCampaignTypeLabel(campaign.campaign_type),
-      format(new Date(campaign.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })
+      format(new Date(campaign.created_at), "dd/MM/yyyy HH:mm", {
+        locale: ptBR,
+      }),
     ]);
-    
+
     const csvContent = [headers, ...csvData]
-      .map(row => row.map(field => `"${field}"`).join(","))
+      .map((row) => row.map((field) => `"${field}"`).join(","))
       .join("\n");
-    
+
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
-    link.setAttribute("download", `campanhas-geradas-${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute(
+      "download",
+      `campanhas-geradas-${new Date().toISOString().split("T")[0]}.csv`,
+    );
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
-  const uniqueClients = [...new Set(campaigns.map(c => c.clients?.company).filter(Boolean))];
+  const uniqueClients = [
+    ...new Set(campaigns.map((c) => c.clients?.company).filter(Boolean)),
+  ];
 
   if (campaigns.length === 0) {
     return (
@@ -143,10 +186,17 @@ export function CampaignsList({ onNewCampaign, onViewCampaign }: CampaignsListPr
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-normal text-foreground tracking-tight">Campanhas Geradas</h1>
-            <p className="text-sm text-muted-foreground mt-1">Gerencie suas estratégias de campanha</p>
+            <h1 className="text-2xl font-normal text-foreground tracking-tight">
+              Campanhas Geradas
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Gerencie suas estratégias de campanha
+            </p>
           </div>
-          <Button onClick={onNewCampaign} className="gap-2 rounded-full px-6 shadow-google-sm">
+          <Button
+            onClick={onNewCampaign}
+            className="gap-2 rounded-full px-6 shadow-google-sm"
+          >
             <Plus className="w-4 h-4" />
             <span>Nova Campanha</span>
           </Button>
@@ -158,9 +208,12 @@ export function CampaignsList({ onNewCampaign, onViewCampaign }: CampaignsListPr
             <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
               <Megaphone className="w-8 h-8 text-primary" />
             </div>
-            <h3 className="text-lg font-medium text-foreground mb-2">Nenhuma campanha ainda</h3>
+            <h3 className="text-lg font-medium text-foreground mb-2">
+              Nenhuma campanha ainda
+            </h3>
             <p className="text-sm text-muted-foreground mb-6">
-              Crie sua primeira estratégia de campanha com inteligência artificial
+              Crie sua primeira estratégia de campanha com inteligência
+              artificial
             </p>
             <Button onClick={onNewCampaign} className="gap-2 rounded-full px-6">
               <Plus className="w-4 h-4" />
@@ -177,12 +230,18 @@ export function CampaignsList({ onNewCampaign, onViewCampaign }: CampaignsListPr
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-normal text-foreground tracking-tight">Campanhas Geradas</h1>
+          <h1 className="text-2xl font-normal text-foreground tracking-tight">
+            Campanhas Geradas
+          </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {filteredCampaigns.length} {filteredCampaigns.length === 1 ? 'campanha' : 'campanhas'}
+            {filteredCampaigns.length}{" "}
+            {filteredCampaigns.length === 1 ? "campanha" : "campanhas"}
           </p>
         </div>
-        <Button onClick={onNewCampaign} className="gap-2 rounded-full px-6 shadow-google-sm w-full sm:w-auto">
+        <Button
+          onClick={onNewCampaign}
+          className="gap-2 rounded-full px-6 shadow-google-sm w-full sm:w-auto"
+        >
           <Plus className="w-4 h-4" />
           <span>Nova Campanha</span>
         </Button>
@@ -201,19 +260,19 @@ export function CampaignsList({ onNewCampaign, onViewCampaign }: CampaignsListPr
               className="pl-10 h-11 rounded-full border-0 bg-muted/50 focus-visible:ring-1"
             />
           </div>
-          
+
           {/* Action Buttons */}
           <div className="flex gap-2">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="gap-2 rounded-full h-11"
               onClick={() => setShowFilters(!showFilters)}
             >
               <Filter className="w-4 h-4" />
               <span className="hidden sm:inline">Filtros</span>
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="gap-2 rounded-full h-11"
               onClick={exportToCSV}
             >
@@ -228,10 +287,14 @@ export function CampaignsList({ onNewCampaign, onViewCampaign }: CampaignsListPr
           <div className="mt-4 pt-4 border-t border-border">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Etapa do Funil</Label>
-                <Select 
-                  value={filters.funnelStage} 
-                  onValueChange={(value) => setFilters({ ...filters, funnelStage: value })}
+                <Label className="text-xs text-muted-foreground">
+                  Etapa do Funil
+                </Label>
+                <Select
+                  value={filters.funnelStage}
+                  onValueChange={(value) =>
+                    setFilters({ ...filters, funnelStage: value })
+                  }
                 >
                   <SelectTrigger className="h-10 rounded-lg">
                     <SelectValue placeholder="Todas" />
@@ -245,12 +308,16 @@ export function CampaignsList({ onNewCampaign, onViewCampaign }: CampaignsListPr
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Tipo de Campanha</Label>
-                <Select 
-                  value={filters.campaignType} 
-                  onValueChange={(value) => setFilters({ ...filters, campaignType: value })}
+                <Label className="text-xs text-muted-foreground">
+                  Tipo de Campanha
+                </Label>
+                <Select
+                  value={filters.campaignType}
+                  onValueChange={(value) =>
+                    setFilters({ ...filters, campaignType: value })
+                  }
                 >
                   <SelectTrigger className="h-10 rounded-lg">
                     <SelectValue placeholder="Todos" />
@@ -266,28 +333,42 @@ export function CampaignsList({ onNewCampaign, onViewCampaign }: CampaignsListPr
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div className="space-y-2">
                 <Label className="text-xs text-muted-foreground">Cliente</Label>
                 <SearchableClientSelect
-                  clients={uniqueClients.filter(Boolean).map(c => ({ id: c!, name: c! }))}
+                  clients={uniqueClients
+                    .filter(Boolean)
+                    .map((c) => ({ id: c!, name: c! }))}
                   value={filters.client}
-                  onValueChange={(value) => setFilters({ ...filters, client: value })}
+                  onValueChange={(value) =>
+                    setFilters({ ...filters, client: value })
+                  }
                   allLabel="Todos"
                   placeholder="Todos"
                   triggerClassName="h-10 rounded-lg"
                 />
               </div>
             </div>
-            
-            {(filters.funnelStage !== "all" || filters.campaignType !== "all" || filters.client !== "all") && (
+
+            {(filters.funnelStage !== "all" ||
+              filters.campaignType !== "all" ||
+              filters.client !== "all") && (
               <div className="mt-4 flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">Filtros ativos:</span>
-                <Button 
-                  variant="ghost" 
+                <span className="text-xs text-muted-foreground">
+                  Filtros ativos:
+                </span>
+                <Button
+                  variant="ghost"
                   size="sm"
                   className="h-7 text-xs text-primary hover:text-primary"
-                  onClick={() => setFilters({ funnelStage: "all", campaignType: "all", client: "all" })}
+                  onClick={() =>
+                    setFilters({
+                      funnelStage: "all",
+                      campaignType: "all",
+                      client: "all",
+                    })
+                  }
                 >
                   Limpar todos
                 </Button>
@@ -312,12 +393,15 @@ export function CampaignsList({ onNewCampaign, onViewCampaign }: CampaignsListPr
         <div className="divide-y divide-border">
           {filteredCampaigns.map((campaign) => {
             const FunnelIcon = FUNNEL_ICONS[campaign.funnel_stage] || Target;
-            const typeInfo = CAMPAIGN_TYPE_INFO[campaign.campaign_type] || { icon: Megaphone, color: "text-muted-foreground" };
+            const typeInfo = CAMPAIGN_TYPE_INFO[campaign.campaign_type] || {
+              icon: Megaphone,
+              color: "text-muted-foreground",
+            };
             const TypeIcon = typeInfo.icon;
 
             return (
-              <div 
-                key={campaign.id} 
+              <div
+                key={campaign.id}
                 className="group flex items-center gap-4 px-4 py-3 hover:bg-muted/30 transition-colors cursor-pointer"
                 onClick={() => onViewCampaign(campaign.id)}
               >
@@ -325,7 +409,8 @@ export function CampaignsList({ onNewCampaign, onViewCampaign }: CampaignsListPr
                 <Avatar className="h-10 w-10 flex-shrink-0">
                   <AvatarImage src={campaign.clients?.avatar || undefined} />
                   <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
-                    {campaign.clients?.name?.substring(0, 2).toUpperCase() || 'CA'}
+                    {campaign.clients?.name?.substring(0, 2).toUpperCase() ||
+                      "CA"}
                   </AvatarFallback>
                 </Avatar>
 
@@ -357,7 +442,9 @@ export function CampaignsList({ onNewCampaign, onViewCampaign }: CampaignsListPr
 
                 {/* Date - Desktop */}
                 <div className="hidden md:block w-24 text-sm text-muted-foreground">
-                  {format(new Date(campaign.created_at), "dd MMM yyyy", { locale: ptBR })}
+                  {format(new Date(campaign.created_at), "dd MMM yyyy", {
+                    locale: ptBR,
+                  })}
                 </div>
 
                 {/* Mobile Badges */}
@@ -370,9 +457,13 @@ export function CampaignsList({ onNewCampaign, onViewCampaign }: CampaignsListPr
                 {/* Arrow / Actions */}
                 <div className="flex items-center gap-1">
                   <DropdownMenu>
-                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                      <Button 
-                        variant="ghost" 
+                    <DropdownMenuTrigger
+                      asChild
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Button
+                        aria-label="Ação"
+                        variant="ghost"
                         size="icon"
                         className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
                       >
@@ -380,7 +471,9 @@ export function CampaignsList({ onNewCampaign, onViewCampaign }: CampaignsListPr
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => onViewCampaign(campaign.id)}>
+                      <DropdownMenuItem
+                        onClick={() => onViewCampaign(campaign.id)}
+                      >
                         Ver detalhes
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => exportToCSV()}>
@@ -399,13 +492,19 @@ export function CampaignsList({ onNewCampaign, onViewCampaign }: CampaignsListPr
         {filteredCampaigns.length === 0 && campaigns.length > 0 && (
           <div className="py-12 text-center">
             <Search className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground">Nenhuma campanha encontrada</p>
-            <Button 
-              variant="link" 
+            <p className="text-sm text-muted-foreground">
+              Nenhuma campanha encontrada
+            </p>
+            <Button
+              variant="link"
               className="text-sm mt-2"
               onClick={() => {
                 setSearchTerm("");
-                setFilters({ funnelStage: "all", campaignType: "all", client: "all" });
+                setFilters({
+                  funnelStage: "all",
+                  campaignType: "all",
+                  client: "all",
+                });
               }}
             >
               Limpar filtros

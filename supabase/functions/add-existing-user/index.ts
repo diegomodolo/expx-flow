@@ -20,7 +20,7 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    
+
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { userId, companyId }: AddExistingUserRequest = await req.json();
@@ -34,21 +34,26 @@ const handler = async (req: Request): Promise<Response> => {
       .maybeSingle();
 
     if (checkError) {
-      throw new Error(`Erro ao verificar membro existente: ${checkError.message}`);
+      throw new Error(
+        `Erro ao verificar membro existente: ${checkError.message}`,
+      );
     }
 
     if (existingMember) {
-      return new Response(JSON.stringify({ 
-        success: true, 
-        already_member: true,
-        message: "Usuário já é membro desta empresa"
-      }), {
-        status: 200,
-        headers: {
-          "Content-Type": "application/json",
-          ...corsHeaders,
+      return new Response(
+        JSON.stringify({
+          success: true,
+          already_member: true,
+          message: "Usuário já é membro desta empresa",
+        }),
+        {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+            ...corsHeaders,
+          },
         },
-      });
+      );
     }
 
     // Adicionar usuário à empresa
@@ -57,7 +62,7 @@ const handler = async (req: Request): Promise<Response> => {
       .insert({
         user_id: userId,
         company_id: companyId,
-        role: 'member',
+        role: "member",
         joined_at: new Date().toISOString(),
       });
 
@@ -65,26 +70,27 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error(`Erro ao adicionar membro: ${memberError.message}`);
     }
 
-    return new Response(JSON.stringify({ 
-      success: true, 
-      already_member: false,
-      message: "Usuário adicionado à empresa com sucesso"
-    }), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        ...corsHeaders,
+    return new Response(
+      JSON.stringify({
+        success: true,
+        already_member: false,
+        message: "Usuário adicionado à empresa com sucesso",
+      }),
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          ...corsHeaders,
+        },
       },
-    });
+    );
   } catch (error: unknown) {
     console.error("Erro ao adicionar usuário existente:", error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
-    );
+    const errObj = error as Error;
+    return new Response(JSON.stringify({ error: errObj.message }), {
+      status: 500,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
   }
 };
 

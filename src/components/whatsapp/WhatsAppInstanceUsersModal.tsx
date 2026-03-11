@@ -10,8 +10,21 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, User, Eye, Send, Star, Trash2, Search, UserPlus, Headphones } from "lucide-react";
-import { WhatsAppInstance, WhatsAppInstanceUser } from "@/hooks/useWhatsAppInstances";
+import {
+  Loader2,
+  User,
+  Eye,
+  Send,
+  Star,
+  Trash2,
+  Search,
+  UserPlus,
+  Headphones,
+} from "lucide-react";
+import {
+  WhatsAppInstance,
+  WhatsAppInstanceUser,
+} from "@/hooks/useWhatsAppInstances";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/CompanyContext";
 import {
@@ -69,7 +82,9 @@ export function WhatsAppInstanceUsersModal({
   const { activeCompany } = useCompany();
   const [isLoading, setIsLoading] = useState(false);
   const [companyUsers, setCompanyUsers] = useState<CompanyUser[]>([]);
-  const [assignedUsers, setAssignedUsers] = useState<AssignedUserWithProfile[]>([]);
+  const [assignedUsers, setAssignedUsers] = useState<AssignedUserWithProfile[]>(
+    [],
+  );
   const [comboOpen, setComboOpen] = useState(false);
 
   useEffect(() => {
@@ -92,29 +107,32 @@ export function WhatsAppInstanceUsersModal({
 
       if (employeesError) throw employeesError;
 
-      const users: CompanyUser[] = employeesData?.map(emp => ({
-        user_id: emp.user_id,
-        full_name: emp.name || "Colaborador",
-        role: emp.role || "member",
-        avatar_url: emp.avatar || null,
-      })) || [];
+      const users: CompanyUser[] =
+        employeesData?.map((emp) => ({
+          user_id: emp.user_id,
+          full_name: emp.name || "Colaborador",
+          role: emp.role || "member",
+          avatar_url: emp.avatar || null,
+        })) || [];
 
       setCompanyUsers(users);
 
       // Fetch assigned users
       const assigned = await fetchInstanceUsers(instance.id);
-      
+
       // Merge with employee data
-      const assignedWithProfiles: AssignedUserWithProfile[] = assigned.map(a => {
-        const employee = users.find(u => u.user_id === a.user_id);
-        return {
-          ...a,
-          full_name: employee?.full_name || "Colaborador",
-          role: employee?.role || "member",
-          avatar_url: employee?.avatar_url || null,
-        };
-      });
-      
+      const assignedWithProfiles: AssignedUserWithProfile[] = assigned.map(
+        (a) => {
+          const employee = users.find((u) => u.user_id === a.user_id);
+          return {
+            ...a,
+            full_name: employee?.full_name || "Colaborador",
+            role: employee?.role || "member",
+            avatar_url: employee?.avatar_url || null,
+          };
+        },
+      );
+
       setAssignedUsers(assignedWithProfiles);
     } catch (error) {
       console.error("Error loading users:", error);
@@ -125,8 +143,8 @@ export function WhatsAppInstanceUsersModal({
 
   // Users available to add (not yet assigned)
   const availableUsers = useMemo(() => {
-    const assignedIds = new Set(assignedUsers.map(u => u.user_id));
-    return companyUsers.filter(u => !assignedIds.has(u.user_id));
+    const assignedIds = new Set(assignedUsers.map((u) => u.user_id));
+    return companyUsers.filter((u) => !assignedIds.has(u.user_id));
   }, [companyUsers, assignedUsers]);
 
   const handleAddUser = (user: CompanyUser) => {
@@ -142,7 +160,7 @@ export function WhatsAppInstanceUsersModal({
     });
 
     // Add to local state immediately
-    setAssignedUsers(prev => [
+    setAssignedUsers((prev) => [
       ...prev,
       {
         id: crypto.randomUUID(),
@@ -166,28 +184,34 @@ export function WhatsAppInstanceUsersModal({
     if (!instance) return;
 
     onRemoveUser({ instance_id: instance.id, user_id: userId });
-    setAssignedUsers(prev => prev.filter(u => u.user_id !== userId));
+    setAssignedUsers((prev) => prev.filter((u) => u.user_id !== userId));
   };
 
-  const handleTogglePermission = (userId: string, permission: 'can_view' | 'can_send' | 'is_default' | 'is_attendant', newValue: boolean) => {
+  const handleTogglePermission = (
+    userId: string,
+    permission: "can_view" | "can_send" | "is_default" | "is_attendant",
+    newValue: boolean,
+  ) => {
     if (!instance) return;
 
-    const user = assignedUsers.find(u => u.user_id === userId);
+    const user = assignedUsers.find((u) => u.user_id === userId);
     if (!user) return;
 
     onAssignUser({
       instance_id: instance.id,
       user_id: userId,
-      can_view: permission === 'can_view' ? newValue : user.can_view ?? true,
-      can_send: permission === 'can_send' ? newValue : user.can_send ?? true,
-      is_default: permission === 'is_default' ? newValue : user.is_default ?? false,
-      is_attendant: permission === 'is_attendant' ? newValue : user.is_attendant ?? false,
+      can_view: permission === "can_view" ? newValue : (user.can_view ?? true),
+      can_send: permission === "can_send" ? newValue : (user.can_send ?? true),
+      is_default:
+        permission === "is_default" ? newValue : (user.is_default ?? false),
+      is_attendant:
+        permission === "is_attendant" ? newValue : (user.is_attendant ?? false),
     });
 
-    setAssignedUsers(prev =>
-      prev.map(u =>
-        u.user_id === userId ? { ...u, [permission]: newValue } : u
-      )
+    setAssignedUsers((prev) =>
+      prev.map((u) =>
+        u.user_id === userId ? { ...u, [permission]: newValue } : u,
+      ),
     );
   };
 
@@ -216,7 +240,9 @@ export function WhatsAppInstanceUsersModal({
                   className="w-full justify-start gap-2"
                 >
                   <UserPlus className="h-4 w-4" />
-                  <span className="text-muted-foreground">Adicionar colaborador...</span>
+                  <span className="text-muted-foreground">
+                    Adicionar colaborador...
+                  </span>
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-[400px] p-0" align="start">
@@ -225,7 +251,7 @@ export function WhatsAppInstanceUsersModal({
                   <CommandList>
                     <CommandEmpty>Nenhum colaborador disponível</CommandEmpty>
                     <CommandGroup>
-                      {availableUsers.map(user => (
+                      {availableUsers.map((user) => (
                         <CommandItem
                           key={user.user_id}
                           value={user.full_name}
@@ -233,8 +259,8 @@ export function WhatsAppInstanceUsersModal({
                           className="cursor-pointer"
                         >
                           {user.avatar_url ? (
-                            <img 
-                              src={user.avatar_url} 
+                            <img
+                              src={user.avatar_url}
                               alt={user.full_name}
                               className="h-6 w-6 rounded-full object-cover mr-2"
                             />
@@ -258,7 +284,7 @@ export function WhatsAppInstanceUsersModal({
               <Label className="text-xs text-muted-foreground uppercase tracking-wider">
                 Usuários com acesso ({assignedUsers.length})
               </Label>
-              
+
               <ScrollArea className="max-h-[300px]">
                 {assignedUsers.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground text-sm">
@@ -266,7 +292,7 @@ export function WhatsAppInstanceUsersModal({
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {assignedUsers.map(user => (
+                    {assignedUsers.map((user) => (
                       <div
                         key={user.user_id}
                         className="p-3 rounded-lg border bg-card"
@@ -274,8 +300,8 @@ export function WhatsAppInstanceUsersModal({
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center gap-3">
                             {user.avatar_url ? (
-                              <img 
-                                src={user.avatar_url} 
+                              <img
+                                src={user.avatar_url}
                                 alt={user.full_name}
                                 className="h-9 w-9 rounded-full object-cover"
                               />
@@ -285,11 +311,16 @@ export function WhatsAppInstanceUsersModal({
                               </div>
                             )}
                             <div>
-                              <p className="font-medium text-sm">{user.full_name}</p>
-                              <p className="text-xs text-muted-foreground capitalize">{user.role}</p>
+                              <p className="font-medium text-sm">
+                                {user.full_name}
+                              </p>
+                              <p className="text-xs text-muted-foreground capitalize">
+                                {user.role}
+                              </p>
                             </div>
                           </div>
                           <Button
+                            aria-label="Excluir"
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
@@ -304,21 +335,39 @@ export function WhatsAppInstanceUsersModal({
                             <Switch
                               id={`view-${user.user_id}`}
                               checked={user.can_view ?? true}
-                              onCheckedChange={(checked) => handleTogglePermission(user.user_id, 'can_view', checked)}
+                              onCheckedChange={(checked) =>
+                                handleTogglePermission(
+                                  user.user_id,
+                                  "can_view",
+                                  checked,
+                                )
+                              }
                             />
-                            <Label htmlFor={`view-${user.user_id}`} className="text-xs flex items-center gap-1 cursor-pointer">
+                            <Label
+                              htmlFor={`view-${user.user_id}`}
+                              className="text-xs flex items-center gap-1 cursor-pointer"
+                            >
                               <Eye className="h-3 w-3" />
                               Ver
                             </Label>
                           </div>
-                          
+
                           <div className="flex items-center gap-2">
                             <Switch
                               id={`send-${user.user_id}`}
                               checked={user.can_send ?? true}
-                              onCheckedChange={(checked) => handleTogglePermission(user.user_id, 'can_send', checked)}
+                              onCheckedChange={(checked) =>
+                                handleTogglePermission(
+                                  user.user_id,
+                                  "can_send",
+                                  checked,
+                                )
+                              }
                             />
-                            <Label htmlFor={`send-${user.user_id}`} className="text-xs flex items-center gap-1 cursor-pointer">
+                            <Label
+                              htmlFor={`send-${user.user_id}`}
+                              className="text-xs flex items-center gap-1 cursor-pointer"
+                            >
                               <Send className="h-3 w-3" />
                               Enviar
                             </Label>
@@ -328,9 +377,18 @@ export function WhatsAppInstanceUsersModal({
                             <Switch
                               id={`default-${user.user_id}`}
                               checked={user.is_default ?? false}
-                              onCheckedChange={(checked) => handleTogglePermission(user.user_id, 'is_default', checked)}
+                              onCheckedChange={(checked) =>
+                                handleTogglePermission(
+                                  user.user_id,
+                                  "is_default",
+                                  checked,
+                                )
+                              }
                             />
-                            <Label htmlFor={`default-${user.user_id}`} className="text-xs flex items-center gap-1 cursor-pointer">
+                            <Label
+                              htmlFor={`default-${user.user_id}`}
+                              className="text-xs flex items-center gap-1 cursor-pointer"
+                            >
                               <Star className="h-3 w-3" />
                               Padrão
                             </Label>
@@ -340,9 +398,18 @@ export function WhatsAppInstanceUsersModal({
                             <Switch
                               id={`attendant-${user.user_id}`}
                               checked={user.is_attendant ?? false}
-                              onCheckedChange={(checked) => handleTogglePermission(user.user_id, 'is_attendant', checked)}
+                              onCheckedChange={(checked) =>
+                                handleTogglePermission(
+                                  user.user_id,
+                                  "is_attendant",
+                                  checked,
+                                )
+                              }
                             />
-                            <Label htmlFor={`attendant-${user.user_id}`} className="text-xs flex items-center gap-1 cursor-pointer">
+                            <Label
+                              htmlFor={`attendant-${user.user_id}`}
+                              className="text-xs flex items-center gap-1 cursor-pointer"
+                            >
                               <Headphones className="h-3 w-3" />
                               Atendente
                             </Label>

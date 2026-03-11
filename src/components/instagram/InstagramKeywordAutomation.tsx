@@ -6,12 +6,37 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Trash2, Plus, Pencil, Zap, MessageSquare, Clock, ChevronDown, ChevronUp, RefreshCw, Check, Copy } from "lucide-react";
+import {
+  Trash2,
+  Plus,
+  Pencil,
+  Zap,
+  MessageSquare,
+  Clock,
+  ChevronDown,
+  ChevronUp,
+  RefreshCw,
+  Check,
+  Copy,
+} from "lucide-react";
 import { InstagramFlowEditor } from "./InstagramFlowEditor";
 
 interface KeywordTrigger {
@@ -34,7 +59,9 @@ export function InstagramKeywordAutomation() {
 
   const [isTriggerDialogOpen, setIsTriggerDialogOpen] = useState(false);
   const [isFlowDialogOpen, setIsFlowDialogOpen] = useState(false);
-  const [editingTrigger, setEditingTrigger] = useState<KeywordTrigger | null>(null);
+  const [editingTrigger, setEditingTrigger] = useState<KeywordTrigger | null>(
+    null,
+  );
   const [expandedLogs, setExpandedLogs] = useState<string | null>(null);
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [copiedToken, setCopiedToken] = useState(false);
@@ -50,9 +77,11 @@ export function InstagramKeywordAutomation() {
   const companyId = activeCompany?.company_id;
 
   const generateToken = () => {
-    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    const chars =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     let token = "";
-    for (let i = 0; i < 32; i++) token += chars.charAt(Math.floor(Math.random() * chars.length));
+    for (let i = 0; i < 32; i++)
+      token += chars.charAt(Math.floor(Math.random() * chars.length));
     return token;
   };
 
@@ -70,7 +99,8 @@ export function InstagramKeywordAutomation() {
     enabled: !!companyId,
   });
 
-  const globalVerifyToken = (waConfig as unknown)?.meta_webhook_verify_token ?? "";
+  const globalVerifyToken =
+    (waConfig as unknown)?.meta_webhook_verify_token ?? "";
 
   const saveGlobalVerifyToken = async () => {
     setSavingToken(true);
@@ -84,12 +114,23 @@ export function InstagramKeywordAutomation() {
       } else {
         await supabase
           .from("whatsapp_configs")
-          .insert({ company_id: companyId!, meta_webhook_verify_token: newToken } as unknown);
+          .insert({
+            company_id: companyId!,
+            meta_webhook_verify_token: newToken,
+          } as unknown);
       }
       await refetchWaConfig();
-      toast({ title: "Token gerado e salvo!", description: "Copie e cole no campo 'Verificar Token' do Meta for Developers." });
+      toast({
+        title: "Token gerado e salvo!",
+        description:
+          "Copie e cole no campo 'Verificar Token' do Meta for Developers.",
+      });
     } catch (err: unknown) {
-      toast({ title: "Erro ao salvar token", description: err.message, variant: "destructive" });
+      toast({
+        title: "Erro ao salvar token",
+        description: err.message,
+        variant: "destructive",
+      });
     } finally {
       setSavingToken(false);
     }
@@ -98,7 +139,10 @@ export function InstagramKeywordAutomation() {
   const { data: instagramAccounts } = useQuery({
     queryKey: ["company-instagram-accounts", companyId],
     queryFn: async () => {
-      const { data, error } = await supabase.from("instagram_accounts").select("*").eq("company_id", companyId!);
+      const { data, error } = await supabase
+        .from("instagram_accounts")
+        .select("*")
+        .eq("company_id", companyId!);
       if (error) throw error;
       return data;
     },
@@ -125,7 +169,9 @@ export function InstagramKeywordAutomation() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("instagram_keyword_triggers")
-        .select(`*, instagram_automation_flows(flow_name, flow_data), instagram_accounts(username)`)
+        .select(
+          `*, instagram_automation_flows(flow_name, flow_data), instagram_accounts(username)`,
+        )
         .eq("company_id", companyId!)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -159,46 +205,80 @@ export function InstagramKeywordAutomation() {
       if (editingTrigger) {
         const { error } = await supabase
           .from("instagram_keyword_triggers")
-          .update({ trigger_name: triggerName, keywords, match_mode: matchMode, instagram_account_id: selectedAccount, flow_id: selectedFlow })
+          .update({
+            trigger_name: triggerName,
+            keywords,
+            match_mode: matchMode,
+            instagram_account_id: selectedAccount,
+            flow_id: selectedFlow,
+          })
           .eq("id", editingTrigger.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("instagram_keyword_triggers").insert({
-          company_id: companyId!,
-          trigger_name: triggerName,
-          keywords,
-          match_mode: matchMode,
-          instagram_account_id: selectedAccount,
-          flow_id: selectedFlow,
-          is_active: true,
-        });
+        const { error } = await supabase
+          .from("instagram_keyword_triggers")
+          .insert({
+            company_id: companyId!,
+            trigger_name: triggerName,
+            keywords,
+            match_mode: matchMode,
+            instagram_account_id: selectedAccount,
+            flow_id: selectedFlow,
+            is_active: true,
+          });
         if (error) throw error;
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["instagram-keyword-triggers"] });
-      toast({ title: editingTrigger ? "Trigger atualizado!" : "Trigger criado!" });
+      queryClient.invalidateQueries({
+        queryKey: ["instagram-keyword-triggers"],
+      });
+      toast({
+        title: editingTrigger ? "Trigger atualizado!" : "Trigger criado!",
+      });
       setIsTriggerDialogOpen(false);
       resetTriggerForm();
     },
-    onError: (err: unknown) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+    onError: (err: unknown) =>
+      toast({
+        title: "Erro",
+        description: err.message,
+        variant: "destructive",
+      }),
   });
 
   const toggleTrigger = useMutation({
-    mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
-      const { error } = await supabase.from("instagram_keyword_triggers").update({ is_active }).eq("id", id);
+    mutationFn: async ({
+      id,
+      is_active,
+    }: {
+      id: string;
+      is_active: boolean;
+    }) => {
+      const { error } = await supabase
+        .from("instagram_keyword_triggers")
+        .update({ is_active })
+        .eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["instagram-keyword-triggers"] }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({
+        queryKey: ["instagram-keyword-triggers"],
+      }),
   });
 
   const deleteTrigger = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("instagram_keyword_triggers").delete().eq("id", id);
+      const { error } = await supabase
+        .from("instagram_keyword_triggers")
+        .delete()
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["instagram-keyword-triggers"] });
+      queryClient.invalidateQueries({
+        queryKey: ["instagram-keyword-triggers"],
+      });
       toast({ title: "Trigger removido" });
     },
   });
@@ -243,9 +323,13 @@ export function InstagramKeywordAutomation() {
         <CardContent className="space-y-4">
           {/* URL de Callback */}
           <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">URL de Callback</Label>
+            <Label className="text-xs text-muted-foreground">
+              URL de Callback
+            </Label>
             <div className="flex items-center gap-2">
-              <code className="text-xs bg-muted px-3 py-2 rounded flex-1 break-all">{webhookUrl}</code>
+              <code className="text-xs bg-muted px-3 py-2 rounded flex-1 break-all">
+                {webhookUrl}
+              </code>
               <Button
                 variant="outline"
                 size="sm"
@@ -256,16 +340,23 @@ export function InstagramKeywordAutomation() {
                   toast({ title: "URL copiada!" });
                 }}
               >
-                {copiedUrl ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                {copiedUrl ? (
+                  <Check className="w-4 h-4" />
+                ) : (
+                  <Copy className="w-4 h-4" />
+                )}
               </Button>
             </div>
           </div>
 
           {/* Token único global */}
           <div className="space-y-1.5 border-t pt-4">
-            <Label className="text-xs text-muted-foreground">Verificar Token (único para todas as contas)</Label>
+            <Label className="text-xs text-muted-foreground">
+              Verificar Token (único para todas as contas)
+            </Label>
             <p className="text-xs text-muted-foreground">
-              Este token é usado pelo Meta para verificar o webhook. É o mesmo para todas as suas contas do Instagram.
+              Este token é usado pelo Meta para verificar o webhook. É o mesmo
+              para todas as suas contas do Instagram.
             </p>
             <div className="flex items-center gap-2">
               <Input
@@ -281,7 +372,9 @@ export function InstagramKeywordAutomation() {
                 disabled={savingToken}
                 title="Gerar novo token"
               >
-                <RefreshCw className={`w-4 h-4 ${savingToken ? "animate-spin" : ""}`} />
+                <RefreshCw
+                  className={`w-4 h-4 ${savingToken ? "animate-spin" : ""}`}
+                />
               </Button>
               {globalVerifyToken && (
                 <Button
@@ -295,13 +388,24 @@ export function InstagramKeywordAutomation() {
                     toast({ title: "Token copiado!" });
                   }}
                 >
-                  {copiedToken ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  {copiedToken ? (
+                    <Check className="w-4 h-4" />
+                  ) : (
+                    <Copy className="w-4 h-4" />
+                  )}
                 </Button>
               )}
             </div>
             {!globalVerifyToken && (
-              <Button size="sm" onClick={saveGlobalVerifyToken} disabled={savingToken} className="w-full mt-1">
-                <RefreshCw className={`w-4 h-4 mr-2 ${savingToken ? "animate-spin" : ""}`} />
+              <Button
+                size="sm"
+                onClick={saveGlobalVerifyToken}
+                disabled={savingToken}
+                className="w-full mt-1"
+              >
+                <RefreshCw
+                  className={`w-4 h-4 mr-2 ${savingToken ? "animate-spin" : ""}`}
+                />
                 Gerar Token
               </Button>
             )}
@@ -313,7 +417,9 @@ export function InstagramKeywordAutomation() {
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-base font-semibold">Fluxos de Mensagens</h3>
-          <p className="text-sm text-muted-foreground">Sequências de mensagens enviadas quando um trigger é acionado</p>
+          <p className="text-sm text-muted-foreground">
+            Sequências de mensagens enviadas quando um trigger é acionado
+          </p>
         </div>
         <Button size="sm" onClick={() => setIsFlowDialogOpen(true)}>
           <Plus className="w-4 h-4 mr-2" />
@@ -324,7 +430,11 @@ export function InstagramKeywordAutomation() {
       {flows && flows.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {flows.map((flow: unknown) => (
-            <Card key={flow.id} className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setIsFlowDialogOpen(true)}>
+            <Card
+              key={flow.id}
+              className="cursor-pointer hover:border-primary/50 transition-colors"
+              onClick={() => setIsFlowDialogOpen(true)}
+            >
               <CardContent className="p-4">
                 <div className="flex items-start justify-between">
                   <div>
@@ -335,9 +445,15 @@ export function InstagramKeywordAutomation() {
                   </div>
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     <MessageSquare className="w-3 h-3" />
-                    {flow.flow_data?.steps?.filter((s: unknown) => s.type === "message").length ?? 0} msgs
+                    {flow.flow_data?.steps?.filter(
+                      (s: unknown) => s.type === "message",
+                    ).length ?? 0}{" "}
+                    msgs
                     <Clock className="w-3 h-3 ml-2" />
-                    {flow.flow_data?.steps?.filter((s: unknown) => s.type === "delay").length ?? 0} delays
+                    {flow.flow_data?.steps?.filter(
+                      (s: unknown) => s.type === "delay",
+                    ).length ?? 0}{" "}
+                    delays
                   </div>
                 </div>
               </CardContent>
@@ -348,7 +464,9 @@ export function InstagramKeywordAutomation() {
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-10">
             <MessageSquare className="w-8 h-8 text-muted-foreground mb-3" />
-            <p className="text-sm text-muted-foreground">Nenhum fluxo criado. Crie um fluxo antes de configurar triggers.</p>
+            <p className="text-sm text-muted-foreground">
+              Nenhum fluxo criado. Crie um fluxo antes de configurar triggers.
+            </p>
           </CardContent>
         </Card>
       )}
@@ -356,17 +474,30 @@ export function InstagramKeywordAutomation() {
       {/* Triggers Section */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-base font-semibold">Triggers por Palavra-Chave</h3>
-          <p className="text-sm text-muted-foreground">Regras que disparam um fluxo quando uma palavra é detectada</p>
+          <h3 className="text-base font-semibold">
+            Triggers por Palavra-Chave
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            Regras que disparam um fluxo quando uma palavra é detectada
+          </p>
         </div>
-        <Button size="sm" onClick={() => { resetTriggerForm(); setIsTriggerDialogOpen(true); }} disabled={!flows || flows.length === 0}>
+        <Button
+          size="sm"
+          onClick={() => {
+            resetTriggerForm();
+            setIsTriggerDialogOpen(true);
+          }}
+          disabled={!flows || flows.length === 0}
+        >
           <Plus className="w-4 h-4 mr-2" />
           Novo Trigger
         </Button>
       </div>
 
       {isLoading ? (
-        <div className="text-center py-8 text-muted-foreground text-sm">Carregando...</div>
+        <div className="text-center py-8 text-muted-foreground text-sm">
+          Carregando...
+        </div>
       ) : triggers && triggers.length > 0 ? (
         <div className="space-y-3">
           {triggers.map((trigger) => (
@@ -375,33 +506,66 @@ export function InstagramKeywordAutomation() {
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 space-y-2">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium text-sm">{trigger.trigger_name}</span>
-                      <Badge variant={trigger.is_active ? "default" : "secondary"} className="text-xs">
+                      <span className="font-medium text-sm">
+                        {trigger.trigger_name}
+                      </span>
+                      <Badge
+                        variant={trigger.is_active ? "default" : "secondary"}
+                        className="text-xs"
+                      >
                         {trigger.is_active ? "Ativo" : "Inativo"}
                       </Badge>
-                      <Badge variant="outline" className="text-xs">{matchModeLabel(trigger.match_mode)}</Badge>
+                      <Badge variant="outline" className="text-xs">
+                        {matchModeLabel(trigger.match_mode)}
+                      </Badge>
                     </div>
                     <div className="flex flex-wrap gap-1">
                       {trigger.keywords.map((kw) => (
-                        <span key={kw} className="bg-primary/10 text-primary text-xs px-2 py-0.5 rounded-full">
+                        <span
+                          key={kw}
+                          className="bg-primary/10 text-primary text-xs px-2 py-0.5 rounded-full"
+                        >
                           {kw}
                         </span>
                       ))}
                     </div>
                     <div className="text-xs text-muted-foreground flex items-center gap-3">
-                      <span>@{(trigger as unknown).instagram_accounts?.username ?? "—"}</span>
-                      <span>→ {(trigger as unknown).instagram_automation_flows?.flow_name ?? "—"}</span>
+                      <span>
+                        @
+                        {(trigger as unknown).instagram_accounts?.username ??
+                          "—"}
+                      </span>
+                      <span>
+                        →{" "}
+                        {(trigger as unknown).instagram_automation_flows
+                          ?.flow_name ?? "—"}
+                      </span>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <Switch
                       checked={trigger.is_active}
-                      onCheckedChange={(checked) => toggleTrigger.mutate({ id: trigger.id, is_active: checked })}
+                      onCheckedChange={(checked) =>
+                        toggleTrigger.mutate({
+                          id: trigger.id,
+                          is_active: checked,
+                        })
+                      }
                     />
-                    <Button variant="ghost" size="icon" onClick={() => openEditTrigger(trigger)}>
+                    <Button
+                      aria-label="Editar"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => openEditTrigger(trigger)}
+                    >
                       <Pencil className="w-4 h-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={() => deleteTrigger.mutate(trigger.id)}>
+                    <Button
+                      aria-label="Excluir"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => deleteTrigger.mutate(trigger.id)}
+                    >
                       <Trash2 className="w-4 h-4 text-destructive" />
                     </Button>
                   </div>
@@ -414,7 +578,9 @@ export function InstagramKeywordAutomation() {
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-10">
             <Zap className="w-8 h-8 text-muted-foreground mb-3" />
-            <p className="text-sm text-muted-foreground">Nenhum trigger configurado.</p>
+            <p className="text-sm text-muted-foreground">
+              Nenhum trigger configurado.
+            </p>
           </CardContent>
         </Card>
       )}
@@ -426,17 +592,33 @@ export function InstagramKeywordAutomation() {
             className="flex items-center gap-2 text-sm font-medium mb-3 hover:text-primary transition-colors"
             onClick={() => setExpandedLogs(expandedLogs ? null : "logs")}
           >
-            {expandedLogs ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            {expandedLogs ? (
+              <ChevronUp className="w-4 h-4" />
+            ) : (
+              <ChevronDown className="w-4 h-4" />
+            )}
             Execuções Recentes ({logs.length})
           </button>
           {expandedLogs && (
             <div className="space-y-2">
               {logs.map((log: unknown) => (
-                <div key={log.id} className="flex items-center justify-between text-xs bg-muted/50 rounded px-3 py-2">
-                  <span className="text-muted-foreground">{new Date(log.executed_at).toLocaleString("pt-BR")}</span>
+                <div
+                  key={log.id}
+                  className="flex items-center justify-between text-xs bg-muted/50 rounded px-3 py-2"
+                >
+                  <span className="text-muted-foreground">
+                    {new Date(log.executed_at).toLocaleString("pt-BR")}
+                  </span>
                   <span>Usuário: {log.ig_user_id?.substring(0, 12)}...</span>
-                  <span>Palavra: <strong>{log.matched_keyword}</strong></span>
-                  <Badge variant={log.status === "completed" ? "default" : "destructive"} className="text-xs">
+                  <span>
+                    Palavra: <strong>{log.matched_keyword}</strong>
+                  </span>
+                  <Badge
+                    variant={
+                      log.status === "completed" ? "default" : "destructive"
+                    }
+                    className="text-xs"
+                  >
                     {log.status}
                   </Badge>
                 </div>
@@ -447,60 +629,118 @@ export function InstagramKeywordAutomation() {
       )}
 
       {/* Trigger Dialog */}
-      <Dialog open={isTriggerDialogOpen} onOpenChange={(open) => { if (!open) resetTriggerForm(); setIsTriggerDialogOpen(open); }}>
+      <Dialog
+        open={isTriggerDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) resetTriggerForm();
+          setIsTriggerDialogOpen(open);
+        }}
+      >
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editingTrigger ? "Editar Trigger" : "Novo Trigger por Palavra-Chave"}</DialogTitle>
-            <DialogDescription>Configure palavras que disparam um fluxo de mensagens automáticas</DialogDescription>
+            <DialogTitle>
+              {editingTrigger
+                ? "Editar Trigger"
+                : "Novo Trigger por Palavra-Chave"}
+            </DialogTitle>
+            <DialogDescription>
+              Configure palavras que disparam um fluxo de mensagens automáticas
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
               <Label>Nome do Trigger</Label>
-              <Input value={triggerName} onChange={(e) => setTriggerName(e.target.value)} placeholder="Ex: Interesse em orçamento" />
+              <Input
+                value={triggerName}
+                onChange={(e) => setTriggerName(e.target.value)}
+                placeholder="Ex: Interesse em orçamento"
+              />
             </div>
             <div className="space-y-1.5">
               <Label>Conta do Instagram</Label>
-              <Select value={selectedAccount} onValueChange={setSelectedAccount}>
-                <SelectTrigger><SelectValue placeholder="Selecione a conta" /></SelectTrigger>
+              <Select
+                value={selectedAccount}
+                onValueChange={setSelectedAccount}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a conta" />
+                </SelectTrigger>
                 <SelectContent>
                   {instagramAccounts?.map((acc: unknown) => (
-                    <SelectItem key={acc.id} value={acc.id}>@{acc.username}</SelectItem>
+                    <SelectItem key={acc.id} value={acc.id}>
+                      @{acc.username}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label>Palavras-Chave <span className="text-muted-foreground text-xs">(separadas por vírgula)</span></Label>
-              <Input value={keywordsInput} onChange={(e) => setKeywordsInput(e.target.value)} placeholder="orcamento, preco, valor, quanto custa" />
+              <Label>
+                Palavras-Chave{" "}
+                <span className="text-muted-foreground text-xs">
+                  (separadas por vírgula)
+                </span>
+              </Label>
+              <Input
+                value={keywordsInput}
+                onChange={(e) => setKeywordsInput(e.target.value)}
+                placeholder="orcamento, preco, valor, quanto custa"
+              />
             </div>
             <div className="space-y-1.5">
               <Label>Modo de Correspondência</Label>
               <Select value={matchMode} onValueChange={setMatchMode}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="any">Qualquer uma (OR) — mensagem contém pelo menos uma</SelectItem>
-                  <SelectItem value="all">Todas (AND) — mensagem contém todas</SelectItem>
-                  <SelectItem value="exact">Exata — mensagem é exatamente a palavra</SelectItem>
+                  <SelectItem value="any">
+                    Qualquer uma (OR) — mensagem contém pelo menos uma
+                  </SelectItem>
+                  <SelectItem value="all">
+                    Todas (AND) — mensagem contém todas
+                  </SelectItem>
+                  <SelectItem value="exact">
+                    Exata — mensagem é exatamente a palavra
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
               <Label>Fluxo de Mensagens</Label>
               <Select value={selectedFlow} onValueChange={setSelectedFlow}>
-                <SelectTrigger><SelectValue placeholder="Selecione o fluxo" /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o fluxo" />
+                </SelectTrigger>
                 <SelectContent>
                   {flows?.map((flow: unknown) => (
-                    <SelectItem key={flow.id} value={flow.id}>{flow.flow_name}</SelectItem>
+                    <SelectItem key={flow.id} value={flow.id}>
+                      {flow.flow_name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { resetTriggerForm(); setIsTriggerDialogOpen(false); }}>Cancelar</Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                resetTriggerForm();
+                setIsTriggerDialogOpen(false);
+              }}
+            >
+              Cancelar
+            </Button>
             <Button
               onClick={() => saveTrigger.mutate()}
-              disabled={saveTrigger.isPending || !triggerName || !selectedAccount || !keywordsInput || !selectedFlow}
+              disabled={
+                saveTrigger.isPending ||
+                !triggerName ||
+                !selectedAccount ||
+                !keywordsInput ||
+                !selectedFlow
+              }
             >
               {saveTrigger.isPending ? "Salvando..." : "Salvar"}
             </Button>

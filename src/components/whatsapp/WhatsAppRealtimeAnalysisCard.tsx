@@ -1,5 +1,14 @@
 import { cn } from "@/lib/utils";
-import { Loader2, AlertTriangle, TrendingUp, TrendingDown, Minus, Bell, RefreshCw, Star } from "lucide-react";
+import {
+  Loader2,
+  AlertTriangle,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  Bell,
+  RefreshCw,
+  Star,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RealtimeAnalysis } from "@/hooks/useWhatsAppRealtimeAnalysis";
 
@@ -59,7 +68,12 @@ export function WhatsAppRealtimeAnalysisCard({
           <AlertTriangle className="h-4 w-4" />
           <span>{error}</span>
         </div>
-        <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={onRefresh}>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 text-xs"
+          onClick={onRefresh}
+        >
           <RefreshCw className="h-3 w-3 mr-1" />
           Tentar
         </Button>
@@ -92,7 +106,12 @@ export function WhatsAppRealtimeAnalysisCard({
       {/* Top row: Temperature, Score, Refresh */}
       <div className="flex items-center gap-2">
         {/* Temperature */}
-        <div className={cn("flex items-center gap-1.5 px-2 py-1 rounded-full border", tempConfig.bgClassName)}>
+        <div
+          className={cn(
+            "flex items-center gap-1.5 px-2 py-1 rounded-full border",
+            tempConfig.bgClassName,
+          )}
+        >
           <span className="text-sm">{tempConfig.emoji}</span>
           <span className={cn("text-xs font-medium", tempConfig.className)}>
             {tempConfig.label}
@@ -100,7 +119,12 @@ export function WhatsAppRealtimeAnalysisCard({
         </div>
 
         {/* Score */}
-        <div className={cn("flex items-center gap-1.5 px-2 py-1 rounded-full border", getScoreBgColor(score))}>
+        <div
+          className={cn(
+            "flex items-center gap-1.5 px-2 py-1 rounded-full border",
+            getScoreBgColor(score),
+          )}
+        >
           <Star className={cn("h-3 w-3", getScoreColor(score))} />
           <span className={cn("text-xs font-bold", getScoreColor(score))}>
             {score.toFixed(1)}
@@ -109,10 +133,11 @@ export function WhatsAppRealtimeAnalysisCard({
         </div>
 
         {/* Refresh */}
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="h-6 w-6 ml-auto" 
+        <Button
+          aria-label="Atualizar"
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6 ml-auto"
           onClick={onRefresh}
           disabled={isAnalyzing}
         >
@@ -127,7 +152,10 @@ export function WhatsAppRealtimeAnalysisCard({
             <Bell className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
             <div className="space-y-1">
               {analysis.alerts.map((alert, index) => (
-                <p key={index} className="text-xs text-amber-700 dark:text-amber-300">
+                <p
+                  key={index}
+                  className="text-xs text-amber-700 dark:text-amber-300"
+                >
                   {alert}
                 </p>
               ))}

@@ -4,7 +4,15 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Send, Loader2, Copy, Check, ArrowDown, Trash2 } from "lucide-react";
+import {
+  Sparkles,
+  Send,
+  Loader2,
+  Copy,
+  Check,
+  ArrowDown,
+  Trash2,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -26,12 +34,35 @@ interface Message {
 }
 
 const quickPrompts = [
-  { label: "Melhor Criativo", prompt: "Qual foi o criativo que melhor performou nos últimos 30 dias? Explique o porquê." },
-  { label: "Mais Engajamento", prompt: "Qual post gerou mais engajamento recentemente? Analise o que funcionou." },
-  { label: "Temas Cadastrados", prompt: "Quais são os temas cadastrados para este cliente? Sugira novos posts baseados neles." },
-  { label: "Headlines", prompt: "Sugira 5 headlines criativas baseadas nos criativos que mais performam." },
-  { label: "Ideias de Posts", prompt: "Sugira 10 ideias de posts baseadas no briefing e performance histórica." },
-  { label: "Análise CTR", prompt: "Quais criativos têm o melhor CTR? O que eles têm em comum?" },
+  {
+    label: "Melhor Criativo",
+    prompt:
+      "Qual foi o criativo que melhor performou nos últimos 30 dias? Explique o porquê.",
+  },
+  {
+    label: "Mais Engajamento",
+    prompt:
+      "Qual post gerou mais engajamento recentemente? Analise o que funcionou.",
+  },
+  {
+    label: "Temas Cadastrados",
+    prompt:
+      "Quais são os temas cadastrados para este cliente? Sugira novos posts baseados neles.",
+  },
+  {
+    label: "Headlines",
+    prompt:
+      "Sugira 5 headlines criativas baseadas nos criativos que mais performam.",
+  },
+  {
+    label: "Ideias de Posts",
+    prompt:
+      "Sugira 10 ideias de posts baseadas no briefing e performance histórica.",
+  },
+  {
+    label: "Análise CTR",
+    prompt: "Quais criativos têm o melhor CTR? O que eles têm em comum?",
+  },
 ];
 
 export function ContentPlanAIChat({
@@ -54,7 +85,7 @@ export function ContentPlanAIChat({
   // Load chat history on mount
   const loadChatHistory = useCallback(async () => {
     if (!contentPlanId || !companyId) return;
-    
+
     setIsLoadingHistory(true);
     try {
       const { data, error } = await supabase
@@ -72,7 +103,7 @@ export function ContentPlanAIChat({
             role: msg.role as "user" | "assistant",
             content: msg.content,
             timestamp: new Date(msg.created_at),
-          }))
+          })),
         );
       }
     } catch (error: unknown) {
@@ -87,7 +118,10 @@ export function ContentPlanAIChat({
   }, [loadChatHistory]);
 
   // Save message to database
-  const saveMessage = async (role: "user" | "assistant", content: string): Promise<string | null> => {
+  const saveMessage = async (
+    role: "user" | "assistant",
+    content: string,
+  ): Promise<string | null> => {
     if (!contentPlanId || !companyId) return null;
 
     try {
@@ -145,7 +179,7 @@ export function ContentPlanAIChat({
 
     // Save user message to DB first
     const userMsgId = await saveMessage("user", userContent);
-    
+
     const userMessage: Message = {
       id: userMsgId || Date.now().toString(),
       role: "user",
@@ -156,20 +190,26 @@ export function ContentPlanAIChat({
     setMessages((prev) => [...prev, userMessage]);
 
     try {
-      const { data, error } = await supabase.functions.invoke("content-plan-chat", {
-        body: {
-          messages: [
-            ...messages.map((m) => ({ role: m.role, content: m.content })),
-            { role: "user", content: userContent },
-          ],
-          clientId,
+      const { data, error } = await supabase.functions.invoke(
+        "content-plan-chat",
+        {
+          body: {
+            messages: [
+              ...messages.map((m) => ({ role: m.role, content: m.content })),
+              { role: "user", content: userContent },
+            ],
+            clientId,
+          },
         },
-      });
+      );
 
       if (error) throw error;
 
-      const assistantContent = data.content || data.message || "Desculpe, não consegui processar sua solicitação.";
-      
+      const assistantContent =
+        data.content ||
+        data.message ||
+        "Desculpe, não consegui processar sua solicitação.";
+
       // Save assistant message to DB
       const assistantMsgId = await saveMessage("assistant", assistantContent);
 
@@ -237,7 +277,10 @@ export function ContentPlanAIChat({
         </div>
 
         {!clientBriefing && (
-          <Badge variant="outline" className="text-xs text-amber-600 border-amber-300">
+          <Badge
+            variant="outline"
+            className="text-xs text-amber-600 border-amber-300"
+          >
             Cliente sem briefing configurado
           </Badge>
         )}
@@ -266,7 +309,9 @@ export function ContentPlanAIChat({
         {isLoadingHistory ? (
           <div className="flex flex-col items-center justify-center h-full text-center py-8">
             <Loader2 className="w-8 h-8 animate-spin text-muted-foreground/50 mb-4" />
-            <p className="text-xs text-muted-foreground">Carregando histórico...</p>
+            <p className="text-xs text-muted-foreground">
+              Carregando histórico...
+            </p>
           </div>
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center py-8">
@@ -285,7 +330,7 @@ export function ContentPlanAIChat({
                 key={message.id}
                 className={cn(
                   "flex",
-                  message.role === "user" ? "justify-end" : "justify-start"
+                  message.role === "user" ? "justify-end" : "justify-start",
                 )}
               >
                 <div
@@ -293,14 +338,17 @@ export function ContentPlanAIChat({
                     "max-w-[85%] rounded-lg p-3",
                     message.role === "user"
                       ? "bg-primary text-primary-foreground"
-                      : "bg-muted"
+                      : "bg-muted",
                   )}
                 >
-                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                  
+                  <p className="text-sm whitespace-pre-wrap">
+                    {message.content}
+                  </p>
+
                   {message.role === "assistant" && (
                     <div className="flex items-center gap-1 mt-2 pt-2 border-t border-border/50">
                       <Button
+                        aria-label="Fechar"
                         variant="ghost"
                         size="icon"
                         className="h-6 w-6"
@@ -316,7 +364,9 @@ export function ContentPlanAIChat({
                         variant="ghost"
                         size="sm"
                         className="h-6 text-xs gap-1"
-                        onClick={() => onInsertContent(message.content, "caption")}
+                        onClick={() =>
+                          onInsertContent(message.content, "caption")
+                        }
                       >
                         <ArrowDown className="w-3 h-3" />
                         Inserir
@@ -326,13 +376,15 @@ export function ContentPlanAIChat({
                 </div>
               </div>
             ))}
-            
+
             {isLoading && (
               <div className="flex justify-start">
                 <div className="bg-muted rounded-lg p-3">
                   <div className="flex items-center gap-2">
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span className="text-sm text-muted-foreground">Pensando...</span>
+                    <span className="text-sm text-muted-foreground">
+                      Pensando...
+                    </span>
                   </div>
                 </div>
               </div>
@@ -354,6 +406,7 @@ export function ContentPlanAIChat({
             rows={1}
           />
           <Button
+            aria-label="Enviar"
             onClick={handleSend}
             disabled={!input.trim() || isLoading}
             size="icon"

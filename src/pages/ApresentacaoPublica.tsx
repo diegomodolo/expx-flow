@@ -1,7 +1,17 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, ChevronLeft, ChevronRight, Calendar, Target, Hash, Image as ImageIcon, Play, Layers } from "lucide-react";
+import {
+  Loader2,
+  ChevronLeft,
+  ChevronRight,
+  Calendar,
+  Target,
+  Hash,
+  Image as ImageIcon,
+  Play,
+  Layers,
+} from "lucide-react";
 import { InstagramMockup } from "@/components/presentation/InstagramMockup";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -74,8 +84,18 @@ interface CreativeApproval {
 }
 
 const MONTHS = [
-  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+  "Janeiro",
+  "Fevereiro",
+  "Março",
+  "Abril",
+  "Maio",
+  "Junho",
+  "Julho",
+  "Agosto",
+  "Setembro",
+  "Outubro",
+  "Novembro",
+  "Dezembro",
 ];
 
 const CREATIVE_TYPE_LABELS: Record<string, string> = {
@@ -113,24 +133,29 @@ export default function ApresentacaoPublica() {
   const [isSavingApproval, setIsSavingApproval] = useState(false);
   const [isFinalizingMeeting, setIsFinalizingMeeting] = useState(false);
   const [rejectionModalOpen, setRejectionModalOpen] = useState(false);
-  const [currentRejectionCreativeId, setCurrentRejectionCreativeId] = useState<string | null>(null);
+  const [currentRejectionCreativeId, setCurrentRejectionCreativeId] = useState<
+    string | null
+  >(null);
 
   // Ref for debounced slide save
   const saveSlideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Save current slide to database (debounced)
-  const saveCurrentSlideToDb = useCallback(async (slideIndex: number, currentMeetingId: string | null) => {
-    if (!currentMeetingId) return;
-    
-    try {
-      await supabase
-        .from("presentation_meetings")
-        .update({ current_slide: slideIndex })
-        .eq("id", currentMeetingId);
-    } catch (err) {
-      console.error("Error saving slide position:", err);
-    }
-  }, []);
+  const saveCurrentSlideToDb = useCallback(
+    async (slideIndex: number, currentMeetingId: string | null) => {
+      if (!currentMeetingId) return;
+
+      try {
+        await supabase
+          .from("presentation_meetings")
+          .update({ current_slide: slideIndex })
+          .eq("id", currentMeetingId);
+      } catch (err) {
+        console.error("Error saving slide position:", err);
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     async function fetchPresentation() {
@@ -142,9 +167,11 @@ export default function ApresentacaoPublica() {
 
       try {
         // Fetch presentation by public token
-        const { data: presentationData, error: presentationError } = await supabase
-          .from("content_presentations")
-          .select(`
+        const { data: presentationData, error: presentationError } =
+          await supabase
+            .from("content_presentations")
+            .select(
+              `
             id,
             name,
             month,
@@ -166,9 +193,10 @@ export default function ApresentacaoPublica() {
                 username
               )
             )
-          `)
-          .eq("public_token", token)
-          .single();
+          `,
+            )
+            .eq("public_token", token)
+            .single();
 
         if (presentationError || !presentationData) {
           setError("Apresentação não encontrada");
@@ -179,7 +207,8 @@ export default function ApresentacaoPublica() {
         // Fetch creatives
         const { data: creativesData, error: creativesError } = await supabase
           .from("presentation_creatives")
-          .select(`
+          .select(
+            `
             id,
             creative_type,
             order_index,
@@ -199,7 +228,8 @@ export default function ApresentacaoPublica() {
               slide_headline,
               slide_subheadline
             )
-          `)
+          `,
+          )
           .eq("presentation_id", presentationData.id)
           .order("order_index", { ascending: true });
 
@@ -210,7 +240,11 @@ export default function ApresentacaoPublica() {
 
         const creatives = (creativesData || []).map((c: unknown) => ({
           ...c,
-          creative_media: c.creative_media?.sort((a: CreativeMedia, b: CreativeMedia) => a.order_index - b.order_index) || [],
+          creative_media:
+            c.creative_media?.sort(
+              (a: CreativeMedia, b: CreativeMedia) =>
+                a.order_index - b.order_index,
+            ) || [],
         }));
 
         const presentationObj: Presentation = {
@@ -219,12 +253,15 @@ export default function ApresentacaoPublica() {
             name: client?.name || "",
             company: client?.company || "",
             avatar: client?.avatar || null,
-            instagram_profile_picture: instagramAccount?.profile_picture_url || null,
+            instagram_profile_picture:
+              instagramAccount?.profile_picture_url || null,
             instagram_username: instagramAccount?.username || null,
             presentation_logo: client?.presentation_logo || null,
             presentation_bg_image: client?.presentation_bg_image || null,
-            presentation_overlay_color: client?.presentation_overlay_color || null,
-            presentation_overlay_opacity: client?.presentation_overlay_opacity ?? null,
+            presentation_overlay_color:
+              client?.presentation_overlay_color || null,
+            presentation_overlay_opacity:
+              client?.presentation_overlay_opacity ?? null,
           },
           creatives,
         };
@@ -265,28 +302,36 @@ export default function ApresentacaoPublica() {
             .eq("meeting_id", existingMeeting.id);
 
           if (approvalsData) {
-            setApprovals(creatives.map((c: Creative) => {
-              const approval = approvalsData.find(a => a.creative_id === c.id);
-              return {
-                creativeId: c.id,
-                headline: c.headline,
-                creativeType: c.creative_type,
-                status: (approval?.status as "pending" | "approved" | "rejected") || "pending",
-                rejectionReason: approval?.rejection_reason || null,
-              };
-            }));
+            setApprovals(
+              creatives.map((c: Creative) => {
+                const approval = approvalsData.find(
+                  (a) => a.creative_id === c.id,
+                );
+                return {
+                  creativeId: c.id,
+                  headline: c.headline,
+                  creativeType: c.creative_type,
+                  status:
+                    (approval?.status as "pending" | "approved" | "rejected") ||
+                    "pending",
+                  rejectionReason: approval?.rejection_reason || null,
+                };
+              }),
+            );
           }
 
           toast.info("Sessão anterior restaurada");
         } else {
           // Initialize fresh approvals state
-          setApprovals(creatives.map((c: Creative) => ({
-            creativeId: c.id,
-            headline: c.headline,
-            creativeType: c.creative_type,
-            status: "pending" as const,
-            rejectionReason: null,
-          })));
+          setApprovals(
+            creatives.map((c: Creative) => ({
+              creativeId: c.id,
+              headline: c.headline,
+              creativeType: c.creative_type,
+              status: "pending" as const,
+              rejectionReason: null,
+            })),
+          );
         }
 
         // Increment view count
@@ -294,7 +339,6 @@ export default function ApresentacaoPublica() {
           .from("content_presentations")
           .update({ view_count: (presentationData as unknown).view_count + 1 })
           .eq("id", presentationData.id);
-
       } catch (err: unknown) {
         setError(err.message);
       } finally {
@@ -306,45 +350,59 @@ export default function ApresentacaoPublica() {
   }, [token]);
 
   // Slide calculation: Cover + Participants + Creatives + Summary
-  const totalSlides = presentation ? 1 + 1 + presentation.creatives.length + 1 : 0;
+  const totalSlides = presentation
+    ? 1 + 1 + presentation.creatives.length + 1
+    : 0;
 
-  const goToSlide = useCallback((index: number) => {
-    if (index >= 0 && index < totalSlides) {
-      // Only allow advancing past participants slide if meeting started
-      if (index > 1 && !meetingStarted) {
-        return;
-      }
-      setCurrentSlide(index);
-      setCurrentCarouselIndex(0);
-
-      // Debounce save to database
-      if (meetingId && index >= 2) {
-        if (saveSlideTimeoutRef.current) {
-          clearTimeout(saveSlideTimeoutRef.current);
+  const goToSlide = useCallback(
+    (index: number) => {
+      if (index >= 0 && index < totalSlides) {
+        // Only allow advancing past participants slide if meeting started
+        if (index > 1 && !meetingStarted) {
+          return;
         }
-        saveSlideTimeoutRef.current = setTimeout(() => {
-          saveCurrentSlideToDb(index, meetingId);
-        }, 500);
-      }
-    }
-  }, [totalSlides, meetingStarted, meetingId, saveCurrentSlideToDb]);
+        setCurrentSlide(index);
+        setCurrentCarouselIndex(0);
 
-  const nextSlide = useCallback(() => goToSlide(currentSlide + 1), [currentSlide, goToSlide]);
-  const prevSlide = useCallback(() => goToSlide(currentSlide - 1), [currentSlide, goToSlide]);
+        // Debounce save to database
+        if (meetingId && index >= 2) {
+          if (saveSlideTimeoutRef.current) {
+            clearTimeout(saveSlideTimeoutRef.current);
+          }
+          saveSlideTimeoutRef.current = setTimeout(() => {
+            saveCurrentSlideToDb(index, meetingId);
+          }, 500);
+        }
+      }
+    },
+    [totalSlides, meetingStarted, meetingId, saveCurrentSlideToDb],
+  );
+
+  const nextSlide = useCallback(
+    () => goToSlide(currentSlide + 1),
+    [currentSlide, goToSlide],
+  );
+  const prevSlide = useCallback(
+    () => goToSlide(currentSlide - 1),
+    [currentSlide, goToSlide],
+  );
 
   const nextCarouselImage = () => {
     const creativeIndex = currentSlide - 2; // Adjusted for new slide order
     if (creativeIndex >= 0 && presentation) {
       const creative = presentation.creatives[creativeIndex];
-      if (creative && currentCarouselIndex < creative.creative_media.length - 1) {
-        setCurrentCarouselIndex(prev => prev + 1);
+      if (
+        creative &&
+        currentCarouselIndex < creative.creative_media.length - 1
+      ) {
+        setCurrentCarouselIndex((prev) => prev + 1);
       }
     }
   };
 
   const prevCarouselImage = () => {
     if (currentCarouselIndex > 0) {
-      setCurrentCarouselIndex(prev => prev - 1);
+      setCurrentCarouselIndex((prev) => prev - 1);
     }
   };
 
@@ -353,10 +411,11 @@ export default function ApresentacaoPublica() {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Don't handle navigation if user is typing in an input/textarea or modal is open
       const activeElement = document.activeElement;
-      const isTyping = activeElement instanceof HTMLInputElement || 
-                       activeElement instanceof HTMLTextAreaElement ||
-                       activeElement?.getAttribute('contenteditable') === 'true';
-      
+      const isTyping =
+        activeElement instanceof HTMLInputElement ||
+        activeElement instanceof HTMLTextAreaElement ||
+        activeElement?.getAttribute("contenteditable") === "true";
+
       if (isTyping || rejectionModalOpen) {
         return;
       }
@@ -376,11 +435,11 @@ export default function ApresentacaoPublica() {
 
   // Meeting functions
   const handleAddParticipant = (participant: Participant) => {
-    setParticipants(prev => [...prev, participant]);
+    setParticipants((prev) => [...prev, participant]);
   };
 
   const handleRemoveParticipant = (index: number) => {
-    setParticipants(prev => prev.filter((_, i) => i !== index));
+    setParticipants((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleStartPresentation = async () => {
@@ -411,7 +470,7 @@ export default function ApresentacaoPublica() {
       if (meetingError) throw meetingError;
 
       // Add participants
-      const participantsToInsert = participants.map(p => ({
+      const participantsToInsert = participants.map((p) => ({
         meeting_id: meetingData.id,
         name: p.name,
         role: p.role,
@@ -425,7 +484,7 @@ export default function ApresentacaoPublica() {
       if (participantsError) throw participantsError;
 
       // Create approval records for each creative
-      const approvalsToInsert = presentation.creatives.map(c => ({
+      const approvalsToInsert = presentation.creatives.map((c) => ({
         meeting_id: meetingData.id,
         creative_id: c.id,
         status: "pending",
@@ -440,7 +499,7 @@ export default function ApresentacaoPublica() {
       setMeetingId(meetingData.id);
       setMeetingDate(new Date(meetingData.meeting_date));
       setMeetingStarted(true);
-      
+
       // Go directly to first creative slide (index 2)
       setCurrentSlide(2);
 
@@ -460,21 +519,23 @@ export default function ApresentacaoPublica() {
     try {
       const { error } = await supabase
         .from("presentation_creative_approvals")
-        .update({ 
-          status: "approved", 
+        .update({
+          status: "approved",
           approved_at: new Date().toISOString(),
-          rejection_reason: null 
+          rejection_reason: null,
         })
         .eq("meeting_id", meetingId)
         .eq("creative_id", creativeId);
 
       if (error) throw error;
 
-      setApprovals(prev => prev.map(a => 
-        a.creativeId === creativeId 
-          ? { ...a, status: "approved" as const, rejectionReason: null }
-          : a
-      ));
+      setApprovals((prev) =>
+        prev.map((a) =>
+          a.creativeId === creativeId
+            ? { ...a, status: "approved" as const, rejectionReason: null }
+            : a,
+        ),
+      );
 
       toast.success("Criativo aprovado!");
     } catch (err: unknown) {
@@ -497,21 +558,23 @@ export default function ApresentacaoPublica() {
     try {
       const { error } = await supabase
         .from("presentation_creative_approvals")
-        .update({ 
-          status: "rejected", 
+        .update({
+          status: "rejected",
           rejection_reason: reason,
-          approved_at: null 
+          approved_at: null,
         })
         .eq("meeting_id", meetingId)
         .eq("creative_id", currentRejectionCreativeId);
 
       if (error) throw error;
 
-      setApprovals(prev => prev.map(a => 
-        a.creativeId === currentRejectionCreativeId 
-          ? { ...a, status: "rejected" as const, rejectionReason: reason }
-          : a
-      ));
+      setApprovals((prev) =>
+        prev.map((a) =>
+          a.creativeId === currentRejectionCreativeId
+            ? { ...a, status: "rejected" as const, rejectionReason: reason }
+            : a,
+        ),
+      );
 
       setRejectionModalOpen(false);
       setCurrentRejectionCreativeId(null);
@@ -530,19 +593,23 @@ export default function ApresentacaoPublica() {
     setIsFinalizingMeeting(true);
     try {
       // Calculate counts
-      const approvedCount = approvals.filter(a => a.status === 'approved').length;
-      const rejectedCount = approvals.filter(a => a.status === 'rejected').length;
+      const approvedCount = approvals.filter(
+        (a) => a.status === "approved",
+      ).length;
+      const rejectedCount = approvals.filter(
+        (a) => a.status === "rejected",
+      ).length;
 
       // Update meeting status with all data
       const { error: meetingError } = await supabase
         .from("presentation_meetings")
-        .update({ 
-          status: "completed", 
+        .update({
+          status: "completed",
           completed_at: new Date().toISOString(),
           ended_at: new Date().toISOString(),
           approved_count: approvedCount,
           rejected_count: rejectedCount,
-          summary_sent: true 
+          summary_sent: true,
         })
         .eq("id", meetingId);
 
@@ -551,28 +618,31 @@ export default function ApresentacaoPublica() {
       // Update each creative's current_status
       for (const approval of approvals) {
         await supabase
-          .from('presentation_creatives')
+          .from("presentation_creatives")
           .update({ current_status: approval.status })
-          .eq('id', approval.creativeId);
+          .eq("id", approval.creativeId);
       }
 
       // Send email summary
-      const { error: emailError } = await supabase.functions.invoke("send-presentation-summary", {
-        body: {
-          meetingId,
-          presentationName: presentation.name,
-          clientName: presentation.client.name,
-          participants,
-          creatives: approvals.map(a => ({
-            headline: a.headline,
-            creativeType: a.creativeType,
-            status: a.status,
-            rejectionReason: a.rejectionReason,
-          })),
-          meetingDate: meetingDate.toISOString(),
-          companyId: presentation.company_id,
+      const { error: emailError } = await supabase.functions.invoke(
+        "send-presentation-summary",
+        {
+          body: {
+            meetingId,
+            presentationName: presentation.name,
+            clientName: presentation.client.name,
+            participants,
+            creatives: approvals.map((a) => ({
+              headline: a.headline,
+              creativeType: a.creativeType,
+              status: a.status,
+              rejectionReason: a.rejectionReason,
+            })),
+            meetingDate: meetingDate.toISOString(),
+            companyId: presentation.company_id,
+          },
         },
-      });
+      );
 
       if (emailError) {
         console.error("Email error:", emailError);
@@ -601,8 +671,12 @@ export default function ApresentacaoPublica() {
   if (error || !presentation) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4">
-        <h1 className="text-2xl font-bold text-foreground">Apresentação não encontrada</h1>
-        <p className="text-muted-foreground">{error || "Esta apresentação não existe ou não está disponível."}</p>
+        <h1 className="text-2xl font-bold text-foreground">
+          Apresentação não encontrada
+        </h1>
+        <p className="text-muted-foreground">
+          {error || "Esta apresentação não existe ou não está disponível."}
+        </p>
       </div>
     );
   }
@@ -614,48 +688,54 @@ export default function ApresentacaoPublica() {
     // Cover slide (index 0)
     if (currentSlide === 0) {
       const hasBgImage = !!presentation.client.presentation_bg_image;
-      const overlayColor = presentation.client.presentation_overlay_color || primaryColor;
-      const overlayOpacity = presentation.client.presentation_overlay_opacity ?? 0.7;
+      const overlayColor =
+        presentation.client.presentation_overlay_color || primaryColor;
+      const overlayOpacity =
+        presentation.client.presentation_overlay_opacity ?? 0.7;
 
       return (
-        <div 
+        <div
           className="w-full h-full flex flex-col items-center justify-center text-white p-12 relative overflow-hidden"
-          style={hasBgImage ? { 
-            backgroundImage: `url(${presentation.client.presentation_bg_image})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-          } : {
-            background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`
-          }}
+          style={
+            hasBgImage
+              ? {
+                  backgroundImage: `url(${presentation.client.presentation_bg_image})`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                }
+              : {
+                  background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                }
+          }
         >
           {/* Overlay */}
           {hasBgImage && (
-            <div 
+            <div
               className="absolute inset-0"
-              style={{ 
+              style={{
                 backgroundColor: overlayColor,
-                opacity: overlayOpacity
+                opacity: overlayOpacity,
               }}
             />
           )}
-          
+
           {/* Content */}
           <div className="relative z-10 flex flex-col items-center justify-center">
             {/* Logo or Avatar */}
             {presentation.client.presentation_logo ? (
-              <img 
-                src={presentation.client.presentation_logo} 
-                alt={presentation.client.name} 
+              <img
+                src={presentation.client.presentation_logo}
+                alt={presentation.client.name}
                 className="max-h-32 md:max-h-40 max-w-[300px] md:max-w-[400px] object-contain mb-8"
               />
             ) : presentation.client.avatar ? (
-              <img 
-                src={presentation.client.avatar} 
-                alt={presentation.client.name} 
+              <img
+                src={presentation.client.avatar}
+                alt={presentation.client.name}
                 className="w-24 h-24 rounded-full object-cover border-4 border-white/30 mb-8"
               />
             ) : null}
-            
+
             <h1 className="text-4xl md:text-5xl font-bold text-center mb-4 drop-shadow-lg">
               {presentation.name}
             </h1>
@@ -710,10 +790,12 @@ export default function ApresentacaoPublica() {
 
     if (!creative) return null;
 
-    const isCarousel = creative.creative_type === "carrossel" && creative.creative_media.length > 1;
+    const isCarousel =
+      creative.creative_type === "carrossel" &&
+      creative.creative_media.length > 1;
     const currentMediaIndex = isCarousel ? currentCarouselIndex : 0;
     const currentMedia = creative.creative_media[currentMediaIndex];
-    const approval = approvals.find(a => a.creativeId === creative.id);
+    const approval = approvals.find((a) => a.creativeId === creative.id);
 
     return (
       <div className="w-full h-full bg-background flex overflow-hidden">
@@ -726,7 +808,10 @@ export default function ApresentacaoPublica() {
             onNext={nextCarouselImage}
             onDotClick={setCurrentCarouselIndex}
             profilePicture={presentation.client.instagram_profile_picture}
-            username={presentation.client.instagram_username || presentation.client.name.toLowerCase().replace(/\s+/g, '')}
+            username={
+              presentation.client.instagram_username ||
+              presentation.client.name.toLowerCase().replace(/\s+/g, "")
+            }
             primaryColor={primaryColor}
             caption={creative.caption}
             isCarousel={isCarousel}
@@ -736,12 +821,13 @@ export default function ApresentacaoPublica() {
         {/* Right side - Content */}
         <div className="w-1/2 h-full p-8 flex flex-col justify-center overflow-auto">
           {/* Type badge */}
-          <div 
+          <div
             className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium text-white w-fit mb-6"
             style={{ backgroundColor: primaryColor }}
           >
             {CREATIVE_TYPE_ICONS[creative.creative_type]}
-            {CREATIVE_TYPE_LABELS[creative.creative_type] || creative.creative_type}
+            {CREATIVE_TYPE_LABELS[creative.creative_type] ||
+              creative.creative_type}
           </div>
 
           {/* Headline */}
@@ -764,7 +850,8 @@ export default function ApresentacaoPublica() {
               <Calendar className="w-5 h-5" />
               <span>
                 {new Date(creative.scheduled_date).toLocaleDateString("pt-BR")}
-                {creative.scheduled_time && ` às ${creative.scheduled_time.slice(0, 5)}`}
+                {creative.scheduled_time &&
+                  ` às ${creative.scheduled_time.slice(0, 5)}`}
               </span>
             </div>
           )}
@@ -776,14 +863,18 @@ export default function ApresentacaoPublica() {
                 <Target className="w-5 h-5" />
                 Objetivo
               </div>
-              <p className="text-muted-foreground text-base">{creative.objective}</p>
+              <p className="text-muted-foreground text-base">
+                {creative.objective}
+              </p>
             </div>
           )}
 
           {/* Caption */}
           {creative.caption && (
             <div className="mb-5">
-              <div className="text-base font-medium text-foreground mb-2">Legenda</div>
+              <div className="text-base font-medium text-foreground mb-2">
+                Legenda
+              </div>
               <p className="text-base text-muted-foreground whitespace-pre-wrap">
                 {creative.caption}
               </p>
@@ -813,9 +904,10 @@ export default function ApresentacaoPublica() {
     );
   };
 
-  const currentCreative = currentSlide >= 2 && currentSlide < totalSlides - 1
-    ? presentation.creatives[currentSlide - 2]
-    : null;
+  const currentCreative =
+    currentSlide >= 2 && currentSlide < totalSlides - 1
+      ? presentation.creatives[currentSlide - 2]
+      : null;
 
   return (
     <div className="min-h-screen bg-black flex flex-col relative">
@@ -840,6 +932,7 @@ export default function ApresentacaoPublica() {
       {/* Navigation */}
       <div className="flex items-center justify-center gap-4 p-4 bg-black">
         <Button
+          aria-label="Voltar"
           variant="ghost"
           size="icon"
           onClick={prevSlide}
@@ -857,21 +950,25 @@ export default function ApresentacaoPublica() {
               disabled={i > 1 && !meetingStarted}
               className={cn(
                 "w-2 h-2 rounded-full transition-all",
-                currentSlide === i 
-                  ? "bg-white w-4" 
+                currentSlide === i
+                  ? "bg-white w-4"
                   : i > 1 && !meetingStarted
                     ? "bg-white/10"
-                    : "bg-white/30 hover:bg-white/50"
+                    : "bg-white/30 hover:bg-white/50",
               )}
             />
           ))}
         </div>
 
         <Button
+          aria-label="Avançar"
           variant="ghost"
           size="icon"
           onClick={nextSlide}
-          disabled={currentSlide === totalSlides - 1 || (currentSlide === 1 && !meetingStarted)}
+          disabled={
+            currentSlide === totalSlides - 1 ||
+            (currentSlide === 1 && !meetingStarted)
+          }
           className="text-white hover:bg-white/10"
         >
           <ChevronRight className="w-6 h-6" />

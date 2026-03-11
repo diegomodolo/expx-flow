@@ -4,7 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { YouTubeVideo } from "@/hooks/useYouTubeAnalytics";
 import { YouTubeChannel } from "@/hooks/useYouTubeChannels";
-import { Eye, ThumbsUp, MessageCircle, TrendingUp, ExternalLink } from "lucide-react";
+import {
+  Eye,
+  ThumbsUp,
+  MessageCircle,
+  TrendingUp,
+  ExternalLink,
+} from "lucide-react";
 
 type ChannelSortOption = "engagement" | "views" | "likes" | "comments";
 
@@ -27,7 +33,10 @@ interface YouTubeChannelRankingProps {
   channels: YouTubeChannel[];
 }
 
-export function YouTubeChannelRanking({ videos, channels }: YouTubeChannelRankingProps) {
+export function YouTubeChannelRanking({
+  videos,
+  channels,
+}: YouTubeChannelRankingProps) {
   const [sortBy, setSortBy] = useState<ChannelSortOption>("engagement");
 
   const formatNumber = (num: number) => {
@@ -56,7 +65,8 @@ export function YouTubeChannelRanking({ videos, channels }: YouTubeChannelRankin
         const ch = channels.find((c) => c.id === key);
         map.set(key, {
           channelId: key,
-          channelName: video.channel_name || ch?.channel_name || "Canal desconhecido",
+          channelName:
+            video.channel_name || ch?.channel_name || "Canal desconhecido",
           thumbnailUrl: ch?.thumbnail_url,
           totalViews: video.view_count,
           totalLikes: video.like_count,
@@ -173,22 +183,33 @@ export function YouTubeChannelRanking({ videos, channels }: YouTubeChannelRankin
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate">{ch.channelName}</p>
                   <p className="text-xs text-muted-foreground">
-                    {ch.videoCount} vídeos · {ch.longCount} longos · {ch.shortsCount} shorts
+                    {ch.videoCount} vídeos · {ch.longCount} longos ·{" "}
+                    {ch.shortsCount} shorts
                   </p>
                   <div className="flex items-center gap-4 mt-1.5 text-sm text-muted-foreground">
-                    <span className={`flex items-center gap-1 ${sortBy === "views" ? "text-primary font-semibold" : ""}`}>
+                    <span
+                      className={`flex items-center gap-1 ${sortBy === "views" ? "text-primary font-semibold" : ""}`}
+                    >
                       <Eye className="h-3.5 w-3.5" />
                       {formatNumber(ch.totalViews)}
                     </span>
-                    <span className={`flex items-center gap-1 ${sortBy === "likes" ? "text-primary font-semibold" : ""}`}>
+                    <span
+                      className={`flex items-center gap-1 ${sortBy === "likes" ? "text-primary font-semibold" : ""}`}
+                    >
                       <ThumbsUp className="h-3.5 w-3.5" />
                       {formatNumber(ch.totalLikes)}
                     </span>
-                    <span className={`flex items-center gap-1 ${sortBy === "comments" ? "text-primary font-semibold" : ""}`}>
+                    <span
+                      className={`flex items-center gap-1 ${sortBy === "comments" ? "text-primary font-semibold" : ""}`}
+                    >
                       <MessageCircle className="h-3.5 w-3.5" />
                       {formatNumber(ch.totalComments)}
                     </span>
-                    <Badge variant={sortBy === "engagement" ? "default" : "secondary"}>
+                    <Badge
+                      variant={
+                        sortBy === "engagement" ? "default" : "secondary"
+                      }
+                    >
                       {ch.avgEngagement.toFixed(2)}% eng.
                     </Badge>
                   </div>
@@ -196,6 +217,7 @@ export function YouTubeChannelRanking({ videos, channels }: YouTubeChannelRankin
 
                 {ch.channelUrl && (
                   <Button
+                    aria-label="Fechar"
                     size="icon"
                     variant="ghost"
                     className="opacity-0 group-hover:opacity-100 transition-opacity"

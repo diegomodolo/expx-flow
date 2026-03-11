@@ -1,23 +1,36 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { 
-  Tv, 
-  Copy, 
-  RefreshCw, 
-  ExternalLink, 
+import React, { useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  Tv,
+  Copy,
+  RefreshCw,
+  ExternalLink,
   Key,
   CheckCircle,
   Loader2,
-  Heart
-} from 'lucide-react';
-import { toast } from 'sonner';
-import { useCsTvDashboardToken } from '@/hooks/useCsTvDashboardToken';
+  Heart,
+} from "lucide-react";
+import { toast } from "sonner";
+import { useCsTvDashboardToken } from "@/hooks/useCsTvDashboardToken";
 
 export default function CSTVPage() {
-  const { token, loading, generating, generateToken, regenerateToken, getPublicUrl } = useCsTvDashboardToken();
+  const {
+    token,
+    loading,
+    generating,
+    generateToken,
+    regenerateToken,
+    getPublicUrl,
+  } = useCsTvDashboardToken();
   const [copied, setCopied] = useState(false);
 
   const publicUrl = getPublicUrl();
@@ -26,14 +39,14 @@ export default function CSTVPage() {
     if (publicUrl) {
       navigator.clipboard.writeText(publicUrl);
       setCopied(true);
-      toast.success('Link copiado para a área de transferência!');
+      toast.success("Link copiado para a área de transferência!");
       setTimeout(() => setCopied(false), 2000);
     }
   };
 
   const handleOpenDashboard = () => {
     if (publicUrl) {
-      window.open(publicUrl, '_blank');
+      window.open(publicUrl, "_blank");
     }
   };
 
@@ -54,7 +67,8 @@ export default function CSTVPage() {
           CS TV Dashboard
         </h1>
         <p className="text-muted-foreground mt-1">
-          Dashboard para exibição em TV com métricas de Customer Success em tempo real
+          Dashboard para exibição em TV com métricas de Customer Success em
+          tempo real
         </p>
       </div>
 
@@ -66,8 +80,8 @@ export default function CSTVPage() {
             Token de Acesso Público
           </CardTitle>
           <CardDescription>
-            O token permite acesso público ao dashboard sem necessidade de login.
-            Ideal para exibição em TVs corporativas.
+            O token permite acesso público ao dashboard sem necessidade de
+            login. Ideal para exibição em TVs corporativas.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -100,7 +114,10 @@ export default function CSTVPage() {
           ) : (
             <>
               <div className="flex items-center gap-2">
-                <Badge variant="outline" className="text-emerald-500 border-emerald-500/20">
+                <Badge
+                  variant="outline"
+                  className="text-emerald-500 border-emerald-500/20"
+                >
                   <CheckCircle className="w-3 h-3 mr-1" />
                   Token Ativo
                 </Badge>
@@ -109,13 +126,14 @@ export default function CSTVPage() {
               <div className="space-y-2">
                 <label className="text-sm font-medium">Link do Dashboard</label>
                 <div className="flex gap-2">
-                  <Input 
-                    value={publicUrl || ''} 
-                    readOnly 
+                  <Input
+                    value={publicUrl || ""}
+                    readOnly
                     className="font-mono text-sm"
                   />
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    aria-label="Copiar"
+                    variant="outline"
                     size="icon"
                     onClick={handleCopyLink}
                   >
@@ -125,8 +143,9 @@ export default function CSTVPage() {
                       <Copy className="w-4 h-4" />
                     )}
                   </Button>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    aria-label="Fechar"
+                    variant="outline"
                     size="icon"
                     onClick={handleOpenDashboard}
                   >
@@ -136,8 +155,8 @@ export default function CSTVPage() {
               </div>
 
               <div className="flex gap-2 pt-2">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={handleRegenerateToken}
                   disabled={generating}
                 >
@@ -167,41 +186,53 @@ export default function CSTVPage() {
           <div className="grid gap-4 md:grid-cols-2">
             <div className="p-4 bg-muted/50 rounded-lg">
               <h4 className="font-medium mb-2 flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm">1</span>
+                <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm">
+                  1
+                </span>
                 Gere o Token
               </h4>
               <p className="text-sm text-muted-foreground">
-                Clique em "Gerar Token" para criar um link público único para seu dashboard.
+                Clique em "Gerar Token" para criar um link público único para
+                seu dashboard.
               </p>
             </div>
 
             <div className="p-4 bg-muted/50 rounded-lg">
               <h4 className="font-medium mb-2 flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm">2</span>
+                <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm">
+                  2
+                </span>
                 Copie o Link
               </h4>
               <p className="text-sm text-muted-foreground">
-                Copie o link gerado e configure-o em sua TV ou dispositivo de exibição.
+                Copie o link gerado e configure-o em sua TV ou dispositivo de
+                exibição.
               </p>
             </div>
 
             <div className="p-4 bg-muted/50 rounded-lg">
               <h4 className="font-medium mb-2 flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm">3</span>
+                <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm">
+                  3
+                </span>
                 Configure a TV
               </h4>
               <p className="text-sm text-muted-foreground">
-                Abra o link em um navegador na TV. Use os controles para ajustar zoom e rotação.
+                Abra o link em um navegador na TV. Use os controles para ajustar
+                zoom e rotação.
               </p>
             </div>
 
             <div className="p-4 bg-muted/50 rounded-lg">
               <h4 className="font-medium mb-2 flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm">4</span>
+                <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm">
+                  4
+                </span>
                 Modo Kiosk
               </h4>
               <p className="text-sm text-muted-foreground">
-                Ative o modo Kiosk para ocultar controles. Os dados atualizam automaticamente.
+                Ative o modo Kiosk para ocultar controles. Os dados atualizam
+                automaticamente.
               </p>
             </div>
           </div>
@@ -209,8 +240,9 @@ export default function CSTVPage() {
           <div className="p-4 bg-pink-500/5 border border-pink-500/20 rounded-lg">
             <h4 className="font-medium text-pink-500 mb-2">💡 Dica</h4>
             <p className="text-sm text-muted-foreground">
-              O dashboard exibe métricas de saúde dos clientes, análise de sentimento do WhatsApp, 
-              clientes em risco e ações pendentes de CS. Perfeito para acompanhamento em tempo real!
+              O dashboard exibe métricas de saúde dos clientes, análise de
+              sentimento do WhatsApp, clientes em risco e ações pendentes de CS.
+              Perfeito para acompanhamento em tempo real!
             </p>
           </div>
         </CardContent>

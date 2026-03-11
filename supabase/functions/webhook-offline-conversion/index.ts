@@ -1,57 +1,66 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.53.0';
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.53.0";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
-async function sha256Hash(input: string | null | undefined): Promise<string | null> {
-  if (!input || input.trim() === '') return null;
-  
+async function sha256Hash(
+  input: string | null | undefined,
+): Promise<string | null> {
+  if (!input || input.trim() === "") return null;
+
   const normalized = input.toLowerCase().trim();
   const encoder = new TextEncoder();
   const data = encoder.encode(normalized);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  const hashHex = hashArray
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
   return hashHex;
 }
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const url = new URL(req.url);
-    const pathParts = url.pathname.split('/');
+    const pathParts = url.pathname.split("/");
     const token = pathParts[pathParts.length - 1];
 
-    console.log('[Webhook] Received request for token:', token?.substring(0, 10) + '...');
+    console.log(
+      "[Webhook] Received request for token:",
+      token?.substring(0, 10) + "...",
+    );
 
-    if (!token || token === 'webhook-offline-conversion') {
+    if (!token || token === "webhook-offline-conversion") {
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: 'Token is required in URL path: /webhook-offline-conversion/{token}' 
+        JSON.stringify({
+          success: false,
+          error:
+            "Token is required in URL path: /webhook-offline-conversion/{token}",
         }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
     const body = await req.json();
-    const { 
-      leadId, 
-      eventName, 
-      eventTime, 
-      value, 
-      currency, 
-      actionSource = 'crm',
-      userData, 
-      customData 
+    const {
+      leadId,
+      eventName,
+      eventTime,
+      value,
+      currency,
+      actionSource = "crm",
+      userData,
+      customData,
     } = body;
 
     const originalPayload = {
@@ -66,30 +75,40 @@ Deno.serve(async (req) => {
       receivedAt: new Date().toISOString(),
     };
 
-    console.log('[Webhook] Event received:', eventName);
+    console.log("[Webhook] Event received:", eventName);
 
     if (!eventName) {
       return new Response(
-        JSON.stringify({ success: false, error: 'eventName is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ success: false, error: "eventName is required" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
     if (!userData?.email && !userData?.phone) {
       return new Response(
-        JSON.stringify({ success: false, error: 'At least email or phone is required in userData' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({
+          success: false,
+          error: "At least email or phone is required in userData",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
     const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     );
 
     const { data: tokenData, error: tokenError } = await supabase
-      .from('offline_conversion_webhook_tokens')
-      .select(`
+      .from("offline_conversion_webhook_tokens")
+      .select(
+        `
         id,
         client_id,
         company_id,
@@ -100,72 +119,100 @@ Deno.serve(async (req) => {
           offline_event_set_id,
           company_id
         )
-      `)
-      .eq('token', token)
-      .eq('is_active', true)
+      `,
+      )
+      .eq("token", token)
+      .eq("is_active", true)
       .single();
 
     if (tokenError || !tokenData) {
-      console.error('[Webhook] Invalid or inactive token');
+      console.error("[Webhook] Invalid or inactive token");
       return new Response(
-        JSON.stringify({ success: false, error: 'Invalid or inactive webhook token' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({
+          success: false,
+          error: "Invalid or inactive webhook token",
+        }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
     const client = tokenData.clients;
     if (!client) {
-      console.error('[Webhook] Client not found');
+      console.error("[Webhook] Client not found");
       return new Response(
-        JSON.stringify({ success: false, error: 'Client not found' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ success: false, error: "Client not found" }),
+        {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
-    console.log('[Webhook] Token validated for client:', client.name);
+    console.log("[Webhook] Token validated for client:", client.name);
 
     if (!client.offline_event_set_id) {
-      console.error('[Webhook] Client does not have offline_event_set_id configured');
+      console.error(
+        "[Webhook] Client does not have offline_event_set_id configured",
+      );
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: 'Client does not have offline event set configured. Please configure it first.' 
+        JSON.stringify({
+          success: false,
+          error:
+            "Client does not have offline event set configured. Please configure it first.",
         }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
     const { data: integration, error: integrationError } = await supabase
-      .from('facebook_integrations')
-      .select('*')
-      .eq('company_id', client.company_id)
-      .eq('is_active', true)
+      .from("facebook_integrations")
+      .select("*")
+      .eq("company_id", client.company_id)
+      .eq("is_active", true)
       .single();
 
     if (integrationError || !integration) {
-      console.error('[Webhook] No active Facebook integration found');
+      console.error("[Webhook] No active Facebook integration found");
       return new Response(
-        JSON.stringify({ success: false, error: 'No active Facebook integration found for this client' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({
+          success: false,
+          error: "No active Facebook integration found for this client",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
     const expiresAt = new Date(integration.expires_at);
     if (expiresAt < new Date()) {
-      console.error('[Webhook] Facebook integration token expired');
+      console.error("[Webhook] Facebook integration token expired");
       return new Response(
-        JSON.stringify({ success: false, error: 'Facebook integration token has expired. Please reconnect.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({
+          success: false,
+          error: "Facebook integration token has expired. Please reconnect.",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
-    const hashedUserData: unknown = {};
-    
+    const hashedUserData: Record<string, string> = {};
+
     if (userData?.email) {
       hashedUserData.em = await sha256Hash(userData.email);
     }
     if (userData?.phone) {
-      const cleanPhone = userData.phone.replace(/\D/g, '');
+      const cleanPhone = userData.phone.replace(/\D/g, "");
       hashedUserData.ph = await sha256Hash(cleanPhone);
     }
     if (userData?.firstName) {
@@ -185,9 +232,9 @@ Deno.serve(async (req) => {
     }
     if (userData?.country) {
       const normalizedCountry = userData.country.toLowerCase().substring(0, 2);
-      console.log('[Webhook] Country before hash:', normalizedCountry);
+      console.log("[Webhook] Country before hash:", normalizedCountry);
       hashedUserData.country = await sha256Hash(normalizedCountry);
-      console.log('[Webhook] Country after hash:', hashedUserData.country);
+      console.log("[Webhook] Country after hash:", hashedUserData.country);
     }
     // Facebook cookies (fbc, fbp) should NOT be hashed
     if (userData?.fbc) {
@@ -197,23 +244,26 @@ Deno.serve(async (req) => {
       hashedUserData.fbp = userData.fbp;
     }
 
-    console.log('[Webhook] Hashed user data keys:', Object.keys(hashedUserData));
+    console.log(
+      "[Webhook] Hashed user data keys:",
+      Object.keys(hashedUserData),
+    );
 
     const finalEventTime = eventTime || Math.floor(Date.now() / 1000);
-    
+
     // Generate unique event_id for deduplication
-    const eventId = leadId 
+    const eventId = leadId
       ? `lead_${leadId}_${eventName}_${finalEventTime}`
       : `webhook_${client.id}_${eventName}_${finalEventTime}`;
-    
+
     // Prepare custom_data with lead_id
     const finalCustomData = {
       value: value || 0,
-      currency: currency || 'BRL',
+      currency: currency || "BRL",
       ...(leadId && { lead_id: leadId }),
       ...customData,
     };
-    
+
     const payload = {
       data: [
         {
@@ -227,14 +277,17 @@ Deno.serve(async (req) => {
       ],
     };
 
-    console.log('[Webhook] Sending conversion to Meta for event set:', client.offline_event_set_id);
-    console.log('[Webhook] Payload:', JSON.stringify(payload, null, 2));
+    console.log(
+      "[Webhook] Sending conversion to Meta for event set:",
+      client.offline_event_set_id,
+    );
+    console.log("[Webhook] Payload:", JSON.stringify(payload, null, 2));
 
     const metaUrl = `https://graph.facebook.com/v18.0/${client.offline_event_set_id}/events`;
     const metaResponse = await fetch(metaUrl, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         ...payload,
@@ -243,13 +296,14 @@ Deno.serve(async (req) => {
     });
 
     const metaData = await metaResponse.json();
-    const metaSuccess = metaResponse.ok && metaData.events_received !== undefined;
+    const metaSuccess =
+      metaResponse.ok && metaData.events_received !== undefined;
 
-    console.log('[Webhook] Meta API response:', metaData);
+    console.log("[Webhook] Meta API response:", metaData);
 
-    const validToken = tokenData as unknown;
+    const validToken = tokenData as Record<string, unknown>;
     const { error: logError } = await supabase
-      .from('offline_conversions')
+      .from("offline_conversions")
       .insert({
         client_id: client.id,
         company_id: client.company_id,
@@ -257,7 +311,7 @@ Deno.serve(async (req) => {
         event_name: eventName,
         event_time: finalEventTime,
         value: value || null,
-        currency: currency || 'BRL',
+        currency: currency || "BRL",
         user_email_hash: hashedUserData.em || null,
         user_phone_hash: hashedUserData.ph || null,
         user_first_name_hash: hashedUserData.fn || null,
@@ -268,54 +322,64 @@ Deno.serve(async (req) => {
         user_country_hash: hashedUserData.country || null,
         custom_data: finalCustomData,
         webhook_payload: originalPayload,
-        status: metaSuccess ? 'sent' : 'error',
+        status: metaSuccess ? "sent" : "error",
         meta_response: metaData,
-        error_message: metaSuccess ? null : (metaData.error?.message || 'Unknown error'),
+        error_message: metaSuccess
+          ? null
+          : metaData.error?.message || "Unknown error",
         sent_at: metaSuccess ? new Date().toISOString() : null,
-        source: 'webhook',
+        source: "webhook",
       });
 
     if (logError) {
-      console.error('[Webhook] Error logging conversion:', logError);
+      console.error("[Webhook] Error logging conversion:", logError);
     }
 
     await supabase
-      .from('offline_conversion_webhook_tokens')
+      .from("offline_conversion_webhook_tokens")
       .update({ last_used_at: new Date().toISOString() })
-      .eq('id', tokenData.id);
+      .eq("id", tokenData.id);
 
     if (!metaSuccess) {
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: 'Failed to send conversion to Meta', 
-          details: metaData 
+        JSON.stringify({
+          success: false,
+          error: "Failed to send conversion to Meta",
+          details: metaData,
         }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
-    console.log('[Webhook] Conversion processed successfully');
+    console.log("[Webhook] Conversion processed successfully");
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: 'Conversion sent successfully to Meta',
+      JSON.stringify({
+        success: true,
+        message: "Conversion sent successfully to Meta",
         eventsReceived: metaData.events_received,
         eventId,
-        client: client.name
+        client: client.name,
       }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
-
   } catch (error) {
-    console.error('[Webhook] Error processing webhook:', error);
+    console.error("[Webhook] Error processing webhook:", error);
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error.message || 'Internal server error' 
+      JSON.stringify({
+        success: false,
+        error: error.message || "Internal server error",
       }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 });

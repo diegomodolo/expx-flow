@@ -1,9 +1,14 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.53.0';
-import { getValidGoogleAdsToken, isTokenExpiredOrExpiring, refreshGoogleAdsToken } from '../_shared/googleAdsTokenRefresh.ts';
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.53.0";
+import {
+  getValidGoogleAdsToken,
+  isTokenExpiredOrExpiring,
+  refreshGoogleAdsToken,
+} from "../_shared/googleAdsTokenRefresh.ts";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 interface DashboardMetrics {
@@ -117,66 +122,78 @@ interface SocialMetrics {
  */
 function countConversionsFromActions(
   actions: unknown[] | undefined,
-  campaignObjective?: string, 
-  campaignName?: string
+  campaignObjective?: string,
+  campaignName?: string,
 ): number {
   if (!actions || !Array.isArray(actions)) {
     return 0;
   }
 
-  const norm = (s: unknown) => (s ?? '').toString().trim().toLowerCase();
+  const norm = (s: unknown) => (s ?? "").toString().trim().toLowerCase();
   const getVal = (a: unknown) => {
-    const toNum = (v: unknown) => (typeof v === 'string' ? parseFloat(v) : Number(v));
-    const click = toNum(a?.['7d_click']);
-    const view = toNum(a?.['1d_view']);
-    const val = toNum(a?.value);
-    const sumCv = (Number.isFinite(click) ? click : 0) + (Number.isFinite(view) ? view : 0);
-    const candidates = [sumCv, val, click, view].map(n => (Number.isFinite(n) ? n : 0));
+    const toNum = (v: unknown) =>
+      typeof v === "string" ? parseFloat(v) : Number(v);
+    const action = a as Record<string, unknown>;
+    const click = toNum(action?.["7d_click"]);
+    const view = toNum(action?.["1d_view"]);
+    const val = toNum(action?.["value"]);
+    const sumCv =
+      (Number.isFinite(click) ? click : 0) + (Number.isFinite(view) ? view : 0);
+    const candidates = [sumCv, val, click, view].map((n) =>
+      Number.isFinite(n) ? n : 0,
+    );
     const best = Math.max(...candidates, 0);
     return Math.round(best > 0 ? best : 0);
   };
 
   // Determine if this is a Lead objective campaign
-  const isLeadObjective = (campaignObjective || '').toUpperCase() === 'OUTCOME_LEADS';
+  const isLeadObjective =
+    (campaignObjective || "").toUpperCase() === "OUTCOME_LEADS";
 
   if (isLeadObjective) {
     // Lead campaigns: choose a single best source to avoid duplication
     const leadPriorityTypes = [
-      'lead',
-      'offsite_conversion.fb_pixel_lead',
-      'messaging_conversation_started',
-      'conversation_started',
-      'offsite_conversion.fb_pixel_custom',
-      'onsite_conversion.lead',
-      'omni_lead',
-      'on_facebook_lead',
-      'on_facebook_conversation_started',
-      'onsite_conversion.lead_grouped',
-      'website_lead',
-      'onsite_conversion.messaging_conversation_started_7d'
+      "lead",
+      "offsite_conversion.fb_pixel_lead",
+      "messaging_conversation_started",
+      "conversation_started",
+      "offsite_conversion.fb_pixel_custom",
+      "onsite_conversion.lead",
+      "omni_lead",
+      "on_facebook_lead",
+      "on_facebook_conversation_started",
+      "onsite_conversion.lead_grouped",
+      "website_lead",
+      "onsite_conversion.messaging_conversation_started_7d",
     ];
 
-    const normalized = actions.map(a => ({ 
-      type: norm(a?.action_type), 
-      val: getVal(a) 
+    const normalized = actions.map((a) => ({
+      type: norm((a as Record<string, unknown>)?.["action_type"]),
+      val: getVal(a),
     }));
 
     // Find the highest priority lead action with value > 0
     for (const priorityType of leadPriorityTypes) {
-      const found = normalized.find(n => n.type === priorityType && n.val > 0);
+      const found = normalized.find(
+        (n) => n.type === priorityType && n.val > 0,
+      );
       if (found) {
-        console.log(`Campaign ${campaignName}: Using priority "${priorityType}" = ${found.val}`);
+        console.log(
+          `Campaign ${campaignName}: Using priority "${priorityType}" = ${found.val}`,
+        );
         return found.val;
       }
     }
 
     // Fallback: any action type containing "lead" or "conversation"
-    const leadCandidates = normalized.filter(n => 
-      (n.type.includes('lead') || n.type.includes('conversation')) && n.val > 0
+    const leadCandidates = normalized.filter(
+      (n) =>
+        (n.type.includes("lead") || n.type.includes("conversation")) &&
+        n.val > 0,
     );
-    
+
     if (leadCandidates.length > 0) {
-      const maxVal = Math.max(...leadCandidates.map(n => n.val));
+      const maxVal = Math.max(...leadCandidates.map((n) => n.val));
       console.log(`Campaign ${campaignName}: Fallback max = ${maxVal}`);
       return maxVal;
     }
@@ -185,65 +202,66 @@ function countConversionsFromActions(
   } else {
     // Non-lead campaigns: sum allowed conversion-like actions
     const subscriptionConversions = [
-      'subscribe',
-      'subscription', 
-      'complete_registration',
-      'lead',
-      'offsite_conversion.fb_pixel_subscribe',
-      'offsite_conversion.fb_pixel_complete_registration',
-      'offsite_conversion.fb_pixel_lead',
-      'offsite_conversion.fb_pixel_custom',
-      'onsite_conversion.subscribe',
-      'onsite_conversion.subscription',
-      'onsite_conversion.lead_grouped',
-      'website_lead',
-      'messaging_conversation_started',
-      'messaging_conversation_started_7d',
-      'on_facebook_conversation_started',
-      'conversation_started'
+      "subscribe",
+      "subscription",
+      "complete_registration",
+      "lead",
+      "offsite_conversion.fb_pixel_subscribe",
+      "offsite_conversion.fb_pixel_complete_registration",
+      "offsite_conversion.fb_pixel_lead",
+      "offsite_conversion.fb_pixel_custom",
+      "onsite_conversion.subscribe",
+      "onsite_conversion.subscription",
+      "onsite_conversion.lead_grouped",
+      "website_lead",
+      "messaging_conversation_started",
+      "messaging_conversation_started_7d",
+      "on_facebook_conversation_started",
+      "conversation_started",
     ];
-    
+
     const excludedTypes = [
-      'link_click',
-      'landing_page_view', 
-      'page_engagement',
-      'post_engagement',
-      'video_view',
-      'post_reaction',
-      'like',
-      'comment',
-      'share',
-      'post',
-      'omni_landing_page_view'
+      "link_click",
+      "landing_page_view",
+      "page_engagement",
+      "post_engagement",
+      "video_view",
+      "post_reaction",
+      "like",
+      "comment",
+      "share",
+      "post",
+      "omni_landing_page_view",
     ];
-    
+
     let total = 0;
-    
+
     for (const a of actions) {
-      const type = norm(a?.action_type);
+      const type = norm((a as Record<string, unknown>)?.["action_type"]);
       const val = getVal(a);
-      
+
       if (!type || !Number.isFinite(val)) {
         continue;
       }
-      
-      if (excludedTypes.some(excluded => type.includes(excluded))) {
+
+      if (excludedTypes.some((excluded) => type.includes(excluded))) {
         continue;
       }
-      
-      const isSubscriptionConversion = subscriptionConversions.some(sub => type.includes(sub)) ||
-                                       type.includes('subscribe') ||
-                                       type.includes('subscription') ||
-                                       (type.includes('lead') && !type.includes('link')) ||
-                                       type.includes('complete_registration') ||
-                                       type.includes('messaging_conversation') ||
-                                       type.includes('conversation_started');
-      
+
+      const isSubscriptionConversion =
+        subscriptionConversions.some((sub) => type.includes(sub)) ||
+        type.includes("subscribe") ||
+        type.includes("subscription") ||
+        (type.includes("lead") && !type.includes("link")) ||
+        type.includes("complete_registration") ||
+        type.includes("messaging_conversation") ||
+        type.includes("conversation_started");
+
       if (isSubscriptionConversion) {
         total += val;
       }
     }
-    
+
     if (total > 0) {
       console.log(`Campaign ${campaignName}: Non-lead total = ${total}`);
     }
@@ -251,12 +269,16 @@ function countConversionsFromActions(
   }
 }
 
-async function fetchSocialMetrics(supabase: unknown, clientId: string): Promise<SocialMetrics> {
-  console.log('Fetching social metrics for client:', clientId);
-  
+async function fetchSocialMetrics(
+  supabase: ReturnType<typeof createClient>,
+  clientId: string,
+): Promise<SocialMetrics> {
+  console.log("Fetching social metrics for client:", clientId);
+
   const { data: clientFull, error: clientError } = await supabase
-    .from('clients')
-    .select(`
+    .from("clients")
+    .select(
+      `
       instagram_account_id,
       facebook_page_id,
       instagram_accounts!clients_instagram_account_id_fkey(
@@ -273,32 +295,37 @@ async function fetchSocialMetrics(supabase: unknown, clientId: string): Promise<
         page_category,
         page_access_token
       )
-    `)
-    .eq('id', clientId)
+    `,
+    )
+    .eq("id", clientId)
     .single();
 
   if (clientError) {
-    console.error('Error fetching client social accounts:', clientError);
+    console.error("Error fetching client social accounts:", clientError);
     return { instagram: null, facebook: null };
   }
 
-  console.log('Client social data:', {
+  console.log("Client social data:", {
     hasInstagram: !!clientFull?.instagram_accounts,
-    hasFacebook: !!clientFull?.facebook_pages
+    hasFacebook: !!clientFull?.facebook_pages,
   });
 
-  let instagramData: SocialMetrics['instagram'] = null;
-  let facebookData: SocialMetrics['facebook'] = null;
+  let instagramData: SocialMetrics["instagram"] = null;
+  let facebookData: SocialMetrics["facebook"] = null;
 
   // Buscar dados do Instagram
-  if (clientFull?.instagram_accounts && clientFull?.facebook_pages?.page_access_token) {
+  if (
+    clientFull?.instagram_accounts &&
+    clientFull?.facebook_pages?.page_access_token
+  ) {
     const igAccount = clientFull.instagram_accounts;
     const pageAccessToken = clientFull.facebook_pages.page_access_token;
-    
-    console.log('Fetching Instagram data for:', igAccount.username);
-    
+
+    console.log("Fetching Instagram data for:", igAccount.username);
+
     try {
-      const mediaUrl = `https://graph.facebook.com/v20.0/${igAccount.instagram_id}/media?` +
+      const mediaUrl =
+        `https://graph.facebook.com/v20.0/${igAccount.instagram_id}/media?` +
         `fields=id,caption,media_type,media_url,thumbnail_url,like_count,comments_count,permalink` +
         `&limit=25&access_token=${pageAccessToken}`;
 
@@ -315,28 +342,44 @@ async function fetchSocialMetrics(supabase: unknown, clientId: string): Promise<
         const posts = mediaData.data || [];
         postsCount = posts.length;
 
-        const mappedPosts: InstagramFeedPost[] = posts.map((p: unknown) => ({
-          id: p.id,
-          thumbnail_url: p.thumbnail_url || p.media_url || '',
-          caption: p.caption || '',
-          like_count: p.like_count || 0,
-          comments_count: p.comments_count || 0,
-          permalink: p.permalink || '',
-          media_type: p.media_type,
-        }));
+        const mappedPosts: InstagramFeedPost[] = posts.map((p: unknown) => {
+          const post = p as Record<string, unknown>;
+          return {
+            id: post.id as string,
+            thumbnail_url:
+              (post.thumbnail_url as string) ||
+              (post.media_url as string) ||
+              "",
+            caption: (post.caption as string) || "",
+            like_count: (post.like_count as number) || 0,
+            comments_count: (post.comments_count as number) || 0,
+            permalink: (post.permalink as string) || "",
+            media_type: post.media_type as string,
+          };
+        });
 
         recentPosts = mappedPosts.slice(0, 30);
 
-        totalLikes = mappedPosts.reduce((sum: number, p: unknown) => sum + (p.like_count || 0), 0);
-        totalComments = mappedPosts.reduce((sum: number, p: unknown) => sum + (p.comments_count || 0), 0);
-        avgEngagement = postsCount > 0 ? (totalLikes + totalComments) / postsCount : 0;
+        totalLikes = mappedPosts.reduce(
+          (sum: number, p: InstagramFeedPost) => sum + (p.like_count || 0),
+          0,
+        );
+        totalComments = mappedPosts.reduce(
+          (sum: number, p: InstagramFeedPost) => sum + (p.comments_count || 0),
+          0,
+        );
+        avgEngagement =
+          postsCount > 0 ? (totalLikes + totalComments) / postsCount : 0;
 
         topPosts = mappedPosts
           .map((p: InstagramFeedPost) => ({
             ...p,
             engagement: (p.like_count || 0) + (p.comments_count || 0),
           }))
-          .sort((a: TopEngagementPost, b: TopEngagementPost) => b.engagement - a.engagement)
+          .sort(
+            (a: TopEngagementPost, b: TopEngagementPost) =>
+              b.engagement - a.engagement,
+          )
           .slice(0, 6);
 
         console.log(`Fetched ${postsCount} Instagram posts`);
@@ -346,7 +389,7 @@ async function fetchSocialMetrics(supabase: unknown, clientId: string): Promise<
       let impressions = 0;
       let profileViews = 0;
       let websiteClicks = 0;
-      
+
       let timeline: InstagramTimeline = {
         reach: [],
         accounts_engaged: [],
@@ -354,7 +397,7 @@ async function fetchSocialMetrics(supabase: unknown, clientId: string): Promise<
         website_clicks: [],
         follower_count: [],
       };
-      
+
       let comparison: InstagramComparison = {
         reach_change_pct: 0,
         accounts_engaged_change_pct: 0,
@@ -365,101 +408,131 @@ async function fetchSocialMetrics(supabase: unknown, clientId: string): Promise<
 
       try {
         const now = new Date();
-        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        const thirtyDaysAgo = new Date(
+          now.getTime() - 30 * 24 * 60 * 60 * 1000,
+        );
         const since = Math.floor(thirtyDaysAgo.getTime() / 1000);
         const until = Math.floor(now.getTime() / 1000);
-        
-        const dailyMetricsUrl = `https://graph.facebook.com/v20.0/${igAccount.instagram_id}/insights?` +
+
+        const dailyMetricsUrl =
+          `https://graph.facebook.com/v20.0/${igAccount.instagram_id}/insights?` +
           `metric=reach,follower_count` +
           `&period=day` +
           `&since=${since}&until=${until}` +
           `&access_token=${pageAccessToken}`;
-        
+
         const dailyResponse = await fetch(dailyMetricsUrl);
-        
+
         if (dailyResponse.ok) {
           const dailyData = await dailyResponse.json();
-          
+
           if (dailyData.data) {
-            dailyData.data.forEach((metric: unknown) => {
+            dailyData.data.forEach((metric: any) => {
               const values = metric.values || [];
               const metricName = metric.name;
-              
-              const timelineArray = values.map((v: unknown) => ({
-                date: v.end_time?.split('T')[0] || '',
-                value: v.value || 0,
-              })).filter((v: unknown) => v.date);
-              
+
+              const timelineArray = values
+                .map((v: any) => ({
+                  date: v.end_time?.split("T")[0] || "",
+                  value: v.value || 0,
+                }))
+                .filter((v: any) => v.date);
+
               switch (metricName) {
-                case 'reach':
+                case "reach":
                   timeline.reach = timelineArray;
-                  reach = timelineArray.reduce((sum: number, v: unknown) => sum + v.value, 0);
+                  reach = timelineArray.reduce(
+                    (sum: number, v: any) => sum + v.value,
+                    0,
+                  );
                   break;
-                case 'follower_count':
+                case "follower_count":
                   timeline.follower_count = timelineArray;
                   break;
               }
             });
           }
         }
-        
-        const totalMetricsUrl = `https://graph.facebook.com/v20.0/${igAccount.instagram_id}/insights?` +
+
+        const totalMetricsUrl =
+          `https://graph.facebook.com/v20.0/${igAccount.instagram_id}/insights?` +
           `metric=accounts_engaged,profile_views,website_clicks` +
           `&period=day` +
           `&metric_type=total_value` +
           `&since=${since}&until=${until}` +
           `&access_token=${pageAccessToken}`;
-        
+
         const totalResponse = await fetch(totalMetricsUrl);
-        
+
         if (totalResponse.ok) {
           const totalData = await totalResponse.json();
-          
+
           if (totalData.data) {
-            totalData.data.forEach((metric: unknown) => {
+            totalData.data.forEach((metric: any) => {
               const metricName = metric.name;
               const totalValue = metric.total_value?.value || 0;
-              
+
               switch (metricName) {
-                case 'accounts_engaged':
+                case "accounts_engaged":
                   impressions = totalValue;
-                  timeline.accounts_engaged = [{ date: new Date().toISOString().split('T')[0], value: totalValue }];
+                  timeline.accounts_engaged = [
+                    {
+                      date: new Date().toISOString().split("T")[0],
+                      value: totalValue,
+                    },
+                  ];
                   break;
-                case 'profile_views':
+                case "profile_views":
                   profileViews = totalValue;
-                  timeline.profile_views = [{ date: new Date().toISOString().split('T')[0], value: totalValue }];
+                  timeline.profile_views = [
+                    {
+                      date: new Date().toISOString().split("T")[0],
+                      value: totalValue,
+                    },
+                  ];
                   break;
-                case 'website_clicks':
+                case "website_clicks":
                   websiteClicks = totalValue;
-                  timeline.website_clicks = [{ date: new Date().toISOString().split('T')[0], value: totalValue }];
+                  timeline.website_clicks = [
+                    {
+                      date: new Date().toISOString().split("T")[0],
+                      value: totalValue,
+                    },
+                  ];
                   break;
               }
             });
           }
         }
-        
+
         const calcComparison = (data: TimelineDataPoint2[]) => {
           if (data.length < 14) return 0;
           const last7 = data.slice(-7).reduce((sum, v) => sum + v.value, 0);
-          const prev7 = data.slice(-14, -7).reduce((sum, v) => sum + v.value, 0);
+          const prev7 = data
+            .slice(-14, -7)
+            .reduce((sum, v) => sum + v.value, 0);
           if (prev7 === 0) return last7 > 0 ? 100 : 0;
           return ((last7 - prev7) / prev7) * 100;
         };
-        
+
         comparison.reach_change_pct = calcComparison(timeline.reach);
-        
+
         if (timeline.follower_count.length >= 7) {
-          const lastFollowers = timeline.follower_count[timeline.follower_count.length - 1]?.value || 0;
-          const weekAgoFollowers = timeline.follower_count[timeline.follower_count.length - 7]?.value || 0;
+          const lastFollowers =
+            timeline.follower_count[timeline.follower_count.length - 1]
+              ?.value || 0;
+          const weekAgoFollowers =
+            timeline.follower_count[timeline.follower_count.length - 7]
+              ?.value || 0;
           comparison.followers_gained = lastFollowers - weekAgoFollowers;
         }
       } catch (insightsError) {
-        console.log('Error fetching Instagram insights:', insightsError);
+        console.log("Error fetching Instagram insights:", insightsError);
       }
 
       instagramData = {
         username: igAccount.username,
-        profile_picture_url: igAccount.profile_picture_url || '',
+        profile_picture_url: igAccount.profile_picture_url || "",
         followers_count: igAccount.followers_count || 0,
         posts_count: postsCount,
         total_likes: totalLikes,
@@ -475,11 +548,11 @@ async function fetchSocialMetrics(supabase: unknown, clientId: string): Promise<
         comparison: timeline.reach.length >= 14 ? comparison : undefined,
       };
     } catch (error) {
-      console.error('Error fetching Instagram data:', error);
-      
+      console.error("Error fetching Instagram data:", error);
+
       instagramData = {
         username: igAccount.username,
-        profile_picture_url: igAccount.profile_picture_url || '',
+        profile_picture_url: igAccount.profile_picture_url || "",
         followers_count: igAccount.followers_count || 0,
         posts_count: 0,
         total_likes: 0,
@@ -493,7 +566,7 @@ async function fetchSocialMetrics(supabase: unknown, clientId: string): Promise<
   if (clientFull?.facebook_pages) {
     const fbPage = clientFull.facebook_pages;
     const pageAccessToken = fbPage.page_access_token;
-    
+
     let followersCount = 0;
     let pageReach = 0;
     let pageImpressions = 0;
@@ -507,9 +580,10 @@ async function fetchSocialMetrics(supabase: unknown, clientId: string): Promise<
 
     if (pageAccessToken) {
       try {
-        const pageInfoUrl = `https://graph.facebook.com/v20.0/${fbPage.page_id}?` +
+        const pageInfoUrl =
+          `https://graph.facebook.com/v20.0/${fbPage.page_id}?` +
           `fields=followers_count,fan_count&access_token=${pageAccessToken}`;
-        
+
         const pageInfoResponse = await fetch(pageInfoUrl);
         if (pageInfoResponse.ok) {
           const pageInfo = await pageInfoResponse.json();
@@ -517,31 +591,35 @@ async function fetchSocialMetrics(supabase: unknown, clientId: string): Promise<
           pageFans = pageInfo.fan_count || 0;
         }
 
-        const pageInsightsUrl = `https://graph.facebook.com/v20.0/${fbPage.page_id}/insights?` +
+        const pageInsightsUrl =
+          `https://graph.facebook.com/v20.0/${fbPage.page_id}/insights?` +
           `metric=page_impressions_unique,page_post_engagements,page_consumptions,page_views_total` +
           `&period=day&date_preset=last_28d` +
           `&access_token=${pageAccessToken}`;
-        
+
         const pageInsightsResponse = await fetch(pageInsightsUrl);
         if (pageInsightsResponse.ok) {
           const insightsData = await pageInsightsResponse.json();
-          
+
           if (insightsData.data) {
-            insightsData.data.forEach((metric: unknown) => {
+            insightsData.data.forEach((metric: any) => {
               const values = metric.values || [];
-              const totalValue = values.reduce((sum: number, v: unknown) => sum + (v.value || 0), 0);
-              
+              const totalValue = values.reduce(
+                (sum: number, v: any) => sum + (v.value || 0),
+                0,
+              );
+
               switch (metric.name) {
-                case 'page_impressions_unique':
+                case "page_impressions_unique":
                   pageReach = totalValue;
                   break;
-                case 'page_post_engagements':
+                case "page_post_engagements":
                   pagePostEngagements = totalValue;
                   break;
-                case 'page_consumptions':
+                case "page_consumptions":
                   pageConsumptions = totalValue;
                   break;
-                case 'page_views_total':
+                case "page_views_total":
                   pageViews = totalValue;
                   break;
               }
@@ -549,19 +627,20 @@ async function fetchSocialMetrics(supabase: unknown, clientId: string): Promise<
           }
         }
 
-        const postsUrl = `https://graph.facebook.com/v20.0/${fbPage.page_id}/posts?` +
+        const postsUrl =
+          `https://graph.facebook.com/v20.0/${fbPage.page_id}/posts?` +
           `fields=id,message,created_time,full_picture,permalink_url,` +
           `likes.summary(true),comments.summary(true),shares` +
           `&limit=10&access_token=${pageAccessToken}`;
-        
+
         const postsResponse = await fetch(postsUrl);
         if (postsResponse.ok) {
           const postsData = await postsResponse.json();
           const posts = postsData.data || [];
-          
-          recentPosts = posts.map((p: unknown) => ({
+
+          recentPosts = posts.map((p: any) => ({
             id: p.id,
-            message: p.message || '',
+            message: p.message || "",
             created_time: p.created_time,
             full_picture: p.full_picture,
             permalink_url: p.permalink_url,
@@ -571,13 +650,13 @@ async function fetchSocialMetrics(supabase: unknown, clientId: string): Promise<
           }));
         }
       } catch (fbError) {
-        console.error('Error fetching Facebook Page data:', fbError);
+        console.error("Error fetching Facebook Page data:", fbError);
       }
     }
 
     facebookData = {
       page_name: fbPage.page_name,
-      page_category: fbPage.page_category || '',
+      page_category: fbPage.page_category || "",
       followers_count: followersCount,
       page_fans: pageFans,
       page_reach: pageReach,
@@ -599,11 +678,11 @@ async function fetchSocialMetrics(supabase: unknown, clientId: string): Promise<
  */
 function mapPresetToMeta(preset: string): string | null {
   const presetMap: Record<string, string> = {
-    'today': 'today',
-    'last_7d': 'last_7d',
-    'last_14d': 'last_14d',
-    'last_30d': 'last_30d',
-    'last_90d': 'last_90d',
+    today: "today",
+    last_7d: "last_7d",
+    last_14d: "last_14d",
+    last_30d: "last_30d",
+    last_90d: "last_90d",
   };
   return presetMap[preset] || null;
 }
@@ -611,7 +690,7 @@ function mapPresetToMeta(preset: string): string | null {
 // ========================== Google Ads Integration ==========================
 
 interface GoogleAdsMetrics {
-  campaigns: unknown[];
+  campaigns: any[];
   totalSpend: number;
   totalConversions: number;
   totalImpressions: number;
@@ -620,71 +699,85 @@ interface GoogleAdsMetrics {
 }
 
 async function fetchGoogleAdsData(
-  supabase: unknown,
+  supabase: any,
   clientId: string,
   googleAccountId: string,
-  period: { since: string; until: string }
+  period: { since: string; until: string },
 ): Promise<GoogleAdsMetrics | null> {
-  console.log('=== Fetching Google Ads data ===');
-  console.log('Client ID:', clientId, 'Google Account ID:', googleAccountId);
+  console.log("=== Fetching Google Ads data ===");
+  console.log("Client ID:", clientId, "Google Account ID:", googleAccountId);
 
   try {
     // 1. Get Google Ads account details (include parent_customer_id for MCC accounts)
     const { data: googleAccount, error: accountError } = await supabase
-      .from('google_ads_accounts')
-      .select('id, google_customer_id, integration_id, account_name, parent_customer_id')
-      .eq('id', googleAccountId)
+      .from("google_ads_accounts")
+      .select(
+        "id, google_customer_id, integration_id, account_name, parent_customer_id",
+      )
+      .eq("id", googleAccountId)
       .single();
 
     if (accountError || !googleAccount) {
-      console.error('Google Ads account not found:', accountError);
+      console.error("Google Ads account not found:", accountError);
       return null;
     }
 
-    console.log('Google Ads account found:', googleAccount.account_name, 'customerId:', googleAccount.google_customer_id);
+    console.log(
+      "Google Ads account found:",
+      googleAccount.account_name,
+      "customerId:",
+      googleAccount.google_customer_id,
+    );
 
     // 2. Get Google Ads integration with token
     const { data: integration, error: integrationError } = await supabase
-      .from('google_ads_integrations')
-      .select('id, access_token, refresh_token, expires_at, is_active')
-      .eq('id', googleAccount.integration_id)
+      .from("google_ads_integrations")
+      .select("id, access_token, refresh_token, expires_at, is_active")
+      .eq("id", googleAccount.integration_id)
       .single();
 
     if (integrationError || !integration) {
-      console.error('Google Ads integration not found:', integrationError);
+      console.error("Google Ads integration not found:", integrationError);
       return null;
     }
 
     if (!integration.is_active) {
-      console.error('Google Ads integration is not active');
+      console.error("Google Ads integration is not active");
       return null;
     }
 
     // 3. Get valid access token (refresh if needed)
-    const { accessToken, wasRefreshed } = await getValidGoogleAdsToken(supabase, integration);
-    console.log('Token obtained, was refreshed:', wasRefreshed);
+    const { accessToken, wasRefreshed } = await getValidGoogleAdsToken(
+      supabase,
+      integration,
+    );
+    console.log("Token obtained, was refreshed:", wasRefreshed);
 
     // 4. Call Google Ads API
-    const developerToken = Deno.env.get('GOOGLE_ADS_DEVELOPER_TOKEN');
+    const developerToken = Deno.env.get("GOOGLE_ADS_DEVELOPER_TOKEN");
     if (!developerToken) {
-      console.error('GOOGLE_ADS_DEVELOPER_TOKEN not configured');
+      console.error("GOOGLE_ADS_DEVELOPER_TOKEN not configured");
       return null;
     }
 
-    const customerId = googleAccount.google_customer_id.replace(/-/g, '');
+    const customerId = googleAccount.google_customer_id.replace(/-/g, "");
     // Use parent_customer_id from the google_ads_accounts table if available (for MCC accounts)
-    const loginCustomerId = googleAccount.parent_customer_id?.replace(/-/g, '') || customerId;
+    const loginCustomerId =
+      googleAccount.parent_customer_id?.replace(/-/g, "") || customerId;
 
     const headers: Record<string, string> = {
-      'Authorization': `Bearer ${accessToken}`,
-      'developer-token': developerToken,
-      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+      "developer-token": developerToken,
+      "Content-Type": "application/json",
     };
 
     // Only add login-customer-id if different from customerId (for MCC access)
     if (loginCustomerId !== customerId) {
-      headers['login-customer-id'] = loginCustomerId;
-      console.log('Using MCC login-customer-id:', loginCustomerId.slice(0, 4) + '***');
+      headers["login-customer-id"] = loginCustomerId;
+      console.log(
+        "Using MCC login-customer-id:",
+        loginCustomerId.slice(0, 4) + "***",
+      );
     }
 
     // 5. Build GAQL query for campaigns
@@ -703,48 +796,59 @@ async function fetchGoogleAdsData(
     `;
 
     // Use googleAds:search (v22) instead of searchStream (v18) - aligned with sync-google-ads-campaigns
-    const apiVersion = 'v22';
+    const apiVersion = "v22";
     const apiEndpoint = `https://googleads.googleapis.com/${apiVersion}/customers/${customerId}/googleAds:search`;
-    
-    console.log('Calling Google Ads API for campaigns using googleAds:search v22...');
-    console.log('GAQL Query:', gaqlQuery.replace(/\s+/g, ' ').trim());
-    console.log('Headers:', JSON.stringify({ ...headers, Authorization: 'Bearer ***', 'developer-token': '***' }));
+
+    console.log(
+      "Calling Google Ads API for campaigns using googleAds:search v22...",
+    );
+    console.log("GAQL Query:", gaqlQuery.replace(/\s+/g, " ").trim());
+    console.log(
+      "Headers:",
+      JSON.stringify({
+        ...headers,
+        Authorization: "Bearer ***",
+        "developer-token": "***",
+      }),
+    );
 
     // Fetch campaigns with pagination support
-    const campaignsMap = new Map<string, unknown>();
+    const campaignsMap = new Map<string, any>();
     let nextPageToken: string | undefined = undefined;
     let pageCount = 0;
     const maxPages = 10; // Safety limit
 
     do {
-      const requestBody: unknown = { query: gaqlQuery };
+      const requestBody: any = { query: gaqlQuery };
       if (nextPageToken) {
         requestBody.pageToken = nextPageToken;
       }
 
       const campaignsResponse = await fetch(apiEndpoint, {
-        method: 'POST',
+        method: "POST",
         headers,
         body: JSON.stringify(requestBody),
       });
 
       if (!campaignsResponse.ok) {
         const errorText = await campaignsResponse.text();
-        let errorJson: unknown = {};
+        let errorJson: any = {};
         try {
           errorJson = JSON.parse(errorText);
         } catch {
           // Not JSON
         }
-        console.error('Google Ads API error:', {
+        console.error("Google Ads API error:", {
           status: campaignsResponse.status,
           statusText: campaignsResponse.statusText,
           endpoint: apiEndpoint,
-          customerId: customerId.slice(0, 4) + '***',
+          customerId: customerId.slice(0, 4) + "***",
           errorCode: errorJson?.error?.code,
           errorStatus: errorJson?.error?.status,
           errorMessage: errorJson?.error?.message?.substring(0, 500),
-          errorDetails: JSON.stringify(errorJson?.error?.details || []).substring(0, 500),
+          errorDetails: JSON.stringify(
+            errorJson?.error?.details || [],
+          ).substring(0, 500),
           fullErrorMessage: errorJson?.error?.message,
         });
         return null;
@@ -752,12 +856,14 @@ async function fetchGoogleAdsData(
 
       const responseData = await campaignsResponse.json();
       pageCount++;
-      
+
       // Process results from this page
       const results = responseData.results || [];
-      console.log(`Google Ads campaigns page ${pageCount}: ${results.length} results`);
-      
-      results.forEach((result: unknown) => {
+      console.log(
+        `Google Ads campaigns page ${pageCount}: ${results.length} results`,
+      );
+
+      results.forEach((result: any) => {
         const campaignId = result.campaign?.id;
         if (!campaignId) return;
 
@@ -776,14 +882,14 @@ async function fetchGoogleAdsData(
           const status = result.campaign?.status;
           campaignsMap.set(campaignId, {
             id: campaignId,
-            name: result.campaign?.name || 'Unknown',
-            status: status === 'ENABLED' ? 'ACTIVE' : status || 'UNKNOWN',
+            name: result.campaign?.name || "Unknown",
+            status: status === "ENABLED" ? "ACTIVE" : status || "UNKNOWN",
             channelType: result.campaign?.advertisingChannelType,
             spend: costMicros / 1_000_000,
             impressions,
             clicks,
             conversions,
-            platform: 'google',
+            platform: "google",
           });
         }
       });
@@ -792,7 +898,9 @@ async function fetchGoogleAdsData(
     } while (nextPageToken && pageCount < maxPages);
 
     const campaigns = Array.from(campaignsMap.values());
-    console.log(`Processed ${campaigns.length} Google Ads campaigns across ${pageCount} page(s)`);
+    console.log(
+      `Processed ${campaigns.length} Google Ads campaigns across ${pageCount} page(s)`,
+    );
 
     // 6. Calculate totals
     let totalSpend = 0;
@@ -807,7 +915,9 @@ async function fetchGoogleAdsData(
       totalClicks += c.clicks;
     });
 
-    console.log(`Google Ads totals: spend=${totalSpend.toFixed(2)}, conversions=${totalConversions}, impressions=${totalImpressions}, clicks=${totalClicks}`);
+    console.log(
+      `Google Ads totals: spend=${totalSpend.toFixed(2)}, conversions=${totalConversions}, impressions=${totalImpressions}, clicks=${totalClicks}`,
+    );
 
     // 7. Fetch daily timeline data using googleAds:search v22
     const timelineQuery = `
@@ -823,34 +933,37 @@ async function fetchGoogleAdsData(
     let timelineNextPageToken: string | undefined = undefined;
     let timelinePageCount = 0;
 
-    console.log('Fetching Google Ads timeline data...');
+    console.log("Fetching Google Ads timeline data...");
 
     do {
-      const timelineRequestBody: unknown = { query: timelineQuery };
+      const timelineRequestBody: any = { query: timelineQuery };
       if (timelineNextPageToken) {
         timelineRequestBody.pageToken = timelineNextPageToken;
       }
 
       const timelineResponse = await fetch(apiEndpoint, {
-        method: 'POST',
+        method: "POST",
         headers,
         body: JSON.stringify(timelineRequestBody),
       });
 
       if (!timelineResponse.ok) {
         const errorText = await timelineResponse.text();
-        console.warn('Google Ads timeline API error (continuing without timeline):', {
-          status: timelineResponse.status,
-          error: errorText.substring(0, 200),
-        });
+        console.warn(
+          "Google Ads timeline API error (continuing without timeline):",
+          {
+            status: timelineResponse.status,
+            error: errorText.substring(0, 200),
+          },
+        );
         break;
       }
 
       const timelineData = await timelineResponse.json();
       timelinePageCount++;
-      
+
       const results = timelineData.results || [];
-      results.forEach((result: unknown) => {
+      results.forEach((result: any) => {
         const date = result.segments?.date;
         if (!date) return;
 
@@ -866,7 +979,9 @@ async function fetchGoogleAdsData(
       timelineNextPageToken = timelineData.nextPageToken;
     } while (timelineNextPageToken && timelinePageCount < maxPages);
 
-    console.log(`Google Ads timeline: ${timeline.size} days across ${timelinePageCount} page(s)`);
+    console.log(
+      `Google Ads timeline: ${timeline.size} days across ${timelinePageCount} page(s)`,
+    );
 
     return {
       campaigns,
@@ -877,49 +992,58 @@ async function fetchGoogleAdsData(
       timeline,
     };
   } catch (error) {
-    console.error('Error fetching Google Ads data:', error);
+    console.error("Error fetching Google Ads data:", error);
     return null;
   }
 }
 
 Deno.serve(async (req) => {
-  console.log('=== Client Dashboard Data Edge Function ===');
-  console.log('Request method:', req.method);
-  
-  if (req.method === 'OPTIONS') {
+  console.log("=== Client Dashboard Data Edge Function ===");
+  console.log("Request method:", req.method);
+
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const body = await req.json();
     const { token, start_date, end_date, preset, debug } = body;
-    
-    console.log('Request params:', { token, start_date, end_date, preset, debug });
+
+    console.log("Request params:", {
+      token,
+      start_date,
+      end_date,
+      preset,
+      debug,
+    });
 
     if (!token) {
-      return new Response(
-        JSON.stringify({ error: 'Token is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: "Token is required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    console.log('Fetching client by dashboard token:', token);
+    console.log("Fetching client by dashboard token:", token);
 
     const { data: client, error: clientError } = await supabase
-      .from('clients')
-      .select('id, name, company, ad_account_id, google_account_id, avatar')
-      .eq('dashboard_token', token)
+      .from("clients")
+      .select("id, name, company, ad_account_id, google_account_id, avatar")
+      .eq("dashboard_token", token)
       .single();
 
     if (clientError || !client) {
-      console.error('Client not found:', clientError);
+      console.error("Client not found:", clientError);
       return new Response(
-        JSON.stringify({ error: 'Invalid dashboard token' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: "Invalid dashboard token" }),
+        {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -932,10 +1056,10 @@ Deno.serve(async (req) => {
 
     if (!hasFacebook && !hasGoogle) {
       const socialMetrics = await socialMetricsPromise;
-      
+
       return new Response(
-        JSON.stringify({ 
-          error: 'No ad account linked to this client (Facebook or Google)',
+        JSON.stringify({
+          error: "No ad account linked to this client (Facebook or Google)",
           client: {
             name: client.name,
             company: client.company,
@@ -943,34 +1067,39 @@ Deno.serve(async (req) => {
           },
           social_metrics: socialMetrics,
         }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
-    console.log('Ad platforms configured:', { hasFacebook, hasGoogle });
+    console.log("Ad platforms configured:", { hasFacebook, hasGoogle });
 
     // Determinar o período
     const metaPreset = preset ? mapPresetToMeta(preset) : null;
     let since: string;
     let until: string;
-    
+
     if (metaPreset) {
       const now = new Date();
-      until = now.toISOString().split('T')[0];
-      
+      until = now.toISOString().split("T")[0];
+
       const daysMap: Record<string, number> = {
-        'today': 0,
-        'last_7d': 6,
-        'last_14d': 13,
-        'last_30d': 29,
-        'last_90d': 89,
+        today: 0,
+        last_7d: 6,
+        last_14d: 13,
+        last_30d: 29,
+        last_90d: 89,
       };
       const daysBack = daysMap[metaPreset] || 29;
       const fromDate = new Date(now);
       fromDate.setDate(fromDate.getDate() - daysBack);
-      since = fromDate.toISOString().split('T')[0];
-      
-      console.log(`Using Meta date_preset: ${metaPreset} (calculated: ${since} to ${until})`);
+      since = fromDate.toISOString().split("T")[0];
+
+      console.log(
+        `Using Meta date_preset: ${metaPreset} (calculated: ${since} to ${until})`,
+      );
     } else {
       since = start_date;
       until = end_date;
@@ -978,54 +1107,64 @@ Deno.serve(async (req) => {
     }
 
     // ===================== Fetch Data from Both Platforms in Parallel =====================
-    
+
     let facebookResult: {
-      campaigns: unknown[];
-      processedCampaigns: unknown[];
-      timelineMap: Map<string, { leads: number; messages: number; spend: number }>;
+      campaigns: any[];
+      processedCampaigns: any[];
+      timelineMap: Map<
+        string,
+        { leads: number; messages: number; spend: number }
+      >;
       totalSpend: number;
       totalConversions: number;
       totalMessages: number;
       totalImpressions: number;
       totalClicks: number;
       totalReach: number;
-      debugCampaigns: unknown[];
+      debugCampaigns: any[];
     } | null = null;
 
     let googleResult: GoogleAdsMetrics | null = null;
 
     // Start Google Ads fetch if configured
-    const googlePromise = hasGoogle 
-      ? fetchGoogleAdsData(supabase, client.id, client.google_account_id, { since, until })
+    const googlePromise = hasGoogle
+      ? fetchGoogleAdsData(supabase, client.id, client.google_account_id, {
+          since,
+          until,
+        })
       : Promise.resolve(null);
 
     // Fetch Facebook data if configured
     if (hasFacebook) {
-      console.log('Fetching Facebook ad account:', client.ad_account_id);
+      console.log("Fetching Facebook ad account:", client.ad_account_id);
 
       const { data: adAccount, error: adAccountError } = await supabase
-        .from('facebook_ad_accounts')
-        .select('account_id, integration_id')
-        .eq('id', client.ad_account_id)
+        .from("facebook_ad_accounts")
+        .select("account_id, integration_id")
+        .eq("id", client.ad_account_id)
         .single();
 
       if (!adAccountError && adAccount) {
         const { data: integration, error: integrationError } = await supabase
-          .from('facebook_integrations')
-          .select('access_token, is_active')
-          .eq('id', adAccount.integration_id)
+          .from("facebook_integrations")
+          .select("access_token, is_active")
+          .eq("id", adAccount.integration_id)
           .single();
 
         if (!integrationError && integration && integration.is_active) {
-          console.log('Facebook integration found, active:', integration.is_active);
+          console.log(
+            "Facebook integration found, active:",
+            integration.is_active,
+          );
 
-          const cleanAccountId = adAccount.account_id.replace(/^act_/, '');
-          
-          const dateParam = metaPreset 
-            ? `.date_preset(${metaPreset})` 
+          const cleanAccountId = adAccount.account_id.replace(/^act_/, "");
+
+          const dateParam = metaPreset
+            ? `.date_preset(${metaPreset})`
             : `.time_range({since:'${since}',until:'${until}'})`;
 
-          const campaignsUrl = `https://graph.facebook.com/v20.0/act_${cleanAccountId}/campaigns?` +
+          const campaignsUrl =
+            `https://graph.facebook.com/v20.0/act_${cleanAccountId}/campaigns?` +
             `fields=id,name,status,objective,` +
             `insights${dateParam}` +
             `.action_report_time(conversion)` +
@@ -1051,37 +1190,53 @@ Deno.serve(async (req) => {
               `&level=account` +
               `&access_token=${integration.access_token}`;
 
-          console.log('Fetching campaigns from Meta (aggregated data)');
+          console.log("Fetching campaigns from Meta (aggregated data)");
 
           const [campaignsResponse, timelineResponse] = await Promise.all([
             fetch(campaignsUrl),
-            fetch(timelineUrl)
+            fetch(timelineUrl),
           ]);
 
           if (campaignsResponse.ok) {
             const fbData = await campaignsResponse.json();
-            const timelineData = timelineResponse.ok ? await timelineResponse.json() : { data: [] };
-            
-            console.log(`Fetched ${fbData.data?.length || 0} campaigns from Facebook`);
+            const timelineData = timelineResponse.ok
+              ? await timelineResponse.json()
+              : { data: [] };
+
+            console.log(
+              `Fetched ${fbData.data?.length || 0} campaigns from Facebook`,
+            );
 
             const campaigns = fbData.data || [];
-            const timelineMap = new Map<string, { leads: number; messages: number; spend: number }>();
-            
+            const timelineMap = new Map<
+              string,
+              { leads: number; messages: number; spend: number }
+            >();
+
             if (timelineData.data && Array.isArray(timelineData.data)) {
-              timelineData.data.forEach((insight: unknown) => {
+              timelineData.data.forEach((insight: any) => {
                 const date = insight.date_start;
                 if (date) {
                   const combinedMetrics = [
                     ...(Array.isArray(insight.actions) ? insight.actions : []),
-                    ...(Array.isArray(insight.conversions) ? insight.conversions : [])
+                    ...(Array.isArray(insight.conversions)
+                      ? insight.conversions
+                      : []),
                   ];
-                  
-                  const conversions = countConversionsFromActions(combinedMetrics, undefined, `Timeline ${date}`);
-                  const messages = insight.actions?.find(
-                    (a: unknown) => a.action_type === 'onsite_conversion.messaging_conversation_started_7d'
-                  )?.value || 0;
-                  const spend = parseFloat(insight.spend || '0');
-                  
+
+                  const conversions = countConversionsFromActions(
+                    combinedMetrics,
+                    undefined,
+                    `Timeline ${date}`,
+                  );
+                  const messages =
+                    insight.actions?.find(
+                      (a: any) =>
+                        a.action_type ===
+                        "onsite_conversion.messaging_conversation_started_7d",
+                    )?.value || 0;
+                  const spend = parseFloat(insight.spend || "0");
+
                   timelineMap.set(date, {
                     leads: conversions,
                     messages: parseFloat(messages),
@@ -1095,11 +1250,11 @@ Deno.serve(async (req) => {
             let totalImpressions = 0;
             let totalClicks = 0;
             let totalReach = 0;
-            const debugCampaigns: unknown[] = [];
+            const debugCampaigns: any[] = [];
 
-            const processedCampaigns = campaigns.map((campaign: unknown) => {
+            const processedCampaigns = campaigns.map((campaign: any) => {
               const insights = campaign.insights?.data || [];
-              
+
               if (insights.length === 0) {
                 return {
                   id: campaign.id,
@@ -1112,7 +1267,7 @@ Deno.serve(async (req) => {
                   clicks: 0,
                   reach: 0,
                   frequency: 0,
-                  platform: 'facebook',
+                  platform: "facebook",
                 };
               }
 
@@ -1122,25 +1277,34 @@ Deno.serve(async (req) => {
               let totalCampaignImpressions = 0;
               let totalCampaignClicks = 0;
               let totalCampaignReach = 0;
-              
-              insights.forEach((insight: unknown) => {
-                const spend = parseFloat(insight.spend || '0');
-                const impressions = parseInt(insight.impressions || '0', 10);
-                const clicks = parseInt(insight.clicks || '0', 10);
-                const reach = parseInt(insight.reach || '0', 10);
-                
+
+              insights.forEach((insight: any) => {
+                const spend = parseFloat(insight.spend || "0");
+                const impressions = parseInt(insight.impressions || "0", 10);
+                const clicks = parseInt(insight.clicks || "0", 10);
+                const reach = parseInt(insight.reach || "0", 10);
+
                 const combinedMetrics = [
                   ...(Array.isArray(insight.actions) ? insight.actions : []),
-                  ...(Array.isArray(insight.conversions) ? insight.conversions : [])
+                  ...(Array.isArray(insight.conversions)
+                    ? insight.conversions
+                    : []),
                 ];
-                
-                const conversions = countConversionsFromActions(combinedMetrics, campaign.objective, campaign.name);
-                
-                const messages = insight.actions?.find(
-                  (a: unknown) => a.action_type === 'onsite_conversion.messaging_conversation_started_7d'
-                )?.value || 0;
+
+                const conversions = countConversionsFromActions(
+                  combinedMetrics,
+                  campaign.objective,
+                  campaign.name,
+                );
+
+                const messages =
+                  insight.actions?.find(
+                    (a: any) =>
+                      a.action_type ===
+                      "onsite_conversion.messaging_conversation_started_7d",
+                  )?.value || 0;
                 const messagesValue = parseFloat(messages);
-                
+
                 totalCampaignSpend += spend;
                 totalCampaignConversions += conversions;
                 totalCampaignMessages += messagesValue;
@@ -1153,7 +1317,7 @@ Deno.serve(async (req) => {
                     id: campaign.id,
                     name: campaign.name,
                     objective: campaign.objective,
-                    platform: 'facebook',
+                    platform: "facebook",
                     spend,
                     conversions,
                   });
@@ -1176,13 +1340,22 @@ Deno.serve(async (req) => {
                 impressions: totalCampaignImpressions,
                 clicks: totalCampaignClicks,
                 reach: totalCampaignReach,
-                frequency: totalCampaignReach > 0 ? totalCampaignImpressions / totalCampaignReach : 0,
-                platform: 'facebook',
+                frequency:
+                  totalCampaignReach > 0
+                    ? totalCampaignImpressions / totalCampaignReach
+                    : 0,
+                platform: "facebook",
               };
             });
 
-            const totalConversions = processedCampaigns.reduce((sum: number, c: unknown) => sum + (Number(c.conversions) || 0), 0);
-            const totalMessages = processedCampaigns.reduce((sum: number, c: unknown) => sum + (Number(c.messages) || 0), 0);
+            const totalConversions = processedCampaigns.reduce(
+              (sum: number, c: any) => sum + (Number(c.conversions) || 0),
+              0,
+            );
+            const totalMessages = processedCampaigns.reduce(
+              (sum: number, c: any) => sum + (Number(c.messages) || 0),
+              0,
+            );
 
             facebookResult = {
               campaigns,
@@ -1197,44 +1370,51 @@ Deno.serve(async (req) => {
               debugCampaigns,
             };
 
-            console.log(`Facebook totals: spend=${totalSpend.toFixed(2)}, conversions=${totalConversions}`);
+            console.log(
+              `Facebook totals: spend=${totalSpend.toFixed(2)}, conversions=${totalConversions}`,
+            );
           } else {
-            console.error('Facebook API error:', await campaignsResponse.text());
+            console.error(
+              "Facebook API error:",
+              await campaignsResponse.text(),
+            );
           }
         } else {
-          console.error('Facebook integration not active or not found');
+          console.error("Facebook integration not active or not found");
         }
       } else {
-        console.error('Facebook ad account not found:', adAccountError);
+        console.error("Facebook ad account not found:", adAccountError);
       }
     }
 
     // Await Google Ads data
     googleResult = await googlePromise;
-    
+
     // Aguardar métricas sociais
     const socialMetrics = await socialMetricsPromise;
 
     // ===================== Combine Data from Both Platforms =====================
-    
-    console.log('Combining data from platforms:', { 
-      hasFacebookData: !!facebookResult, 
-      hasGoogleData: !!googleResult 
+
+    console.log("Combining data from platforms:", {
+      hasFacebookData: !!facebookResult,
+      hasGoogleData: !!googleResult,
     });
 
     // If no data from any platform, keep going and return a "social-only" dashboard
     // (this avoids the public dashboard showing "Token inválido" when the real issue is ad-platform connectivity)
     if (!facebookResult && !googleResult) {
-      console.warn('No data returned from any ad platform; returning social-only dashboard response');
+      console.warn(
+        "No data returned from any ad platform; returning social-only dashboard response",
+      );
     }
 
     // Combine campaigns from both platforms
-    const allProcessedCampaigns: unknown[] = [];
-    
+    const allProcessedCampaigns: any[] = [];
+
     if (facebookResult) {
       allProcessedCampaigns.push(...facebookResult.processedCampaigns);
     }
-    
+
     if (googleResult) {
       googleResult.campaigns.forEach((c) => {
         allProcessedCampaigns.push({
@@ -1248,23 +1428,30 @@ Deno.serve(async (req) => {
           clicks: c.clicks,
           reach: 0,
           frequency: 0,
-          platform: 'google',
+          platform: "google",
         });
       });
     }
 
     // Combine timeline data
-    const combinedTimelineMap = new Map<string, { leads: number; messages: number; spend: number }>();
-    
+    const combinedTimelineMap = new Map<
+      string,
+      { leads: number; messages: number; spend: number }
+    >();
+
     if (facebookResult) {
       facebookResult.timelineMap.forEach((data, date) => {
         combinedTimelineMap.set(date, { ...data });
       });
     }
-    
+
     if (googleResult) {
       googleResult.timeline.forEach((data, date) => {
-        const existing = combinedTimelineMap.get(date) || { leads: 0, messages: 0, spend: 0 };
+        const existing = combinedTimelineMap.get(date) || {
+          leads: 0,
+          messages: 0,
+          spend: 0,
+        };
         existing.leads += data.leads;
         existing.spend += data.spend;
         combinedTimelineMap.set(date, existing);
@@ -1276,26 +1463,38 @@ Deno.serve(async (req) => {
       .sort((a, b) => a.date.localeCompare(b.date));
 
     // Calculate combined totals
-    const totalSpend = (facebookResult?.totalSpend || 0) + (googleResult?.totalSpend || 0);
-    const totalConversions = (facebookResult?.totalConversions || 0) + (googleResult?.totalConversions || 0);
+    const totalSpend =
+      (facebookResult?.totalSpend || 0) + (googleResult?.totalSpend || 0);
+    const totalConversions =
+      (facebookResult?.totalConversions || 0) +
+      (googleResult?.totalConversions || 0);
     const totalMessages = facebookResult?.totalMessages || 0;
-    const totalImpressions = (facebookResult?.totalImpressions || 0) + (googleResult?.totalImpressions || 0);
-    const totalClicks = (facebookResult?.totalClicks || 0) + (googleResult?.totalClicks || 0);
+    const totalImpressions =
+      (facebookResult?.totalImpressions || 0) +
+      (googleResult?.totalImpressions || 0);
+    const totalClicks =
+      (facebookResult?.totalClicks || 0) + (googleResult?.totalClicks || 0);
     const totalReach = facebookResult?.totalReach || 0;
 
-    console.log(`Combined totals: spend=${totalSpend.toFixed(2)}, conversions=${totalConversions}, messages=${totalMessages}`);
+    console.log(
+      `Combined totals: spend=${totalSpend.toFixed(2)}, conversions=${totalConversions}, messages=${totalMessages}`,
+    );
 
     const totalConversionsAll = totalConversions + totalMessages;
     const cpl = totalConversionsAll > 0 ? totalSpend / totalConversionsAll : 0;
-    const leadsPerK = totalSpend > 0 ? (totalConversionsAll / totalSpend) * 1000 : 0;
-    const cpm = totalImpressions > 0 ? (totalSpend / totalImpressions) * 1000 : 0;
+    const leadsPerK =
+      totalSpend > 0 ? (totalConversionsAll / totalSpend) * 1000 : 0;
+    const cpm =
+      totalImpressions > 0 ? (totalSpend / totalImpressions) * 1000 : 0;
     const cpc = totalClicks > 0 ? totalSpend / totalClicks : 0;
-    const ctr = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
+    const ctr =
+      totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
     const frequency = totalReach > 0 ? totalImpressions / totalReach : 0;
     const messages = totalMessages;
     const pageViews = Math.round(totalClicks * 0.8);
     const connectRate = pageViews > 0 ? (messages / pageViews) * 100 : 0;
-    const leadRate = pageViews > 0 ? (totalConversionsAll / pageViews) * 100 : 0;
+    const leadRate =
+      pageViews > 0 ? (totalConversionsAll / pageViews) * 100 : 0;
 
     const metrics: DashboardMetrics = {
       spend: totalSpend,
@@ -1316,18 +1515,19 @@ Deno.serve(async (req) => {
     };
 
     const topCampaigns = allProcessedCampaigns
-      .filter((c: unknown) => c.conversions > 0)
-      .sort((a: unknown, b: unknown) => b.conversions - a.conversions)
+      .filter((c: any) => c.conversions > 0)
+      .sort((a: any, b: any) => b.conversions - a.conversions)
       .slice(0, 5)
-      .map((c: unknown) => ({
+      .map((c: any) => ({
         name: c.name,
         conversions: c.conversions,
         spend: c.spend,
-        percentage: totalConversions > 0 ? (c.conversions / totalConversions) * 100 : 0,
+        percentage:
+          totalConversions > 0 ? (c.conversions / totalConversions) * 100 : 0,
         platform: c.platform,
       }));
 
-    const campaignsTable = allProcessedCampaigns.map((c: unknown) => ({
+    const campaignsTable = allProcessedCampaigns.map((c: any) => ({
       name: c.name,
       ad_sets_count: 0,
       ads_count: 0,
@@ -1340,51 +1540,87 @@ Deno.serve(async (req) => {
       platform: c.platform,
     }));
 
-    const daysDiff = Math.ceil((new Date(until).getTime() - new Date(since).getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    const daysDiff =
+      Math.ceil(
+        (new Date(until).getTime() - new Date(since).getTime()) /
+          (1000 * 60 * 60 * 24),
+      ) + 1;
 
     // Per-platform metrics breakdown
-    const metaMetrics = facebookResult ? {
-      spend: facebookResult.totalSpend,
-      leads: facebookResult.totalConversions,
-      messages: facebookResult.totalMessages,
-      impressions: facebookResult.totalImpressions,
-      clicks: facebookResult.totalClicks,
-      cpl: (facebookResult.totalConversions + facebookResult.totalMessages) > 0
-        ? facebookResult.totalSpend / (facebookResult.totalConversions + facebookResult.totalMessages) : 0,
-      leads_per_1k: facebookResult.totalSpend > 0
-        ? ((facebookResult.totalConversions + facebookResult.totalMessages) / facebookResult.totalSpend) * 1000 : 0,
-      cpm: facebookResult.totalImpressions > 0
-        ? (facebookResult.totalSpend / facebookResult.totalImpressions) * 1000 : 0,
-      cpc: facebookResult.totalClicks > 0
-        ? facebookResult.totalSpend / facebookResult.totalClicks : 0,
-      ctr: facebookResult.totalImpressions > 0
-        ? (facebookResult.totalClicks / facebookResult.totalImpressions) * 100 : 0,
-      frequency: facebookResult.totalReach > 0
-        ? facebookResult.totalImpressions / facebookResult.totalReach : 0,
-      reach: facebookResult.totalReach,
-    } : null;
+    const metaMetrics = facebookResult
+      ? {
+          spend: facebookResult.totalSpend,
+          leads: facebookResult.totalConversions,
+          messages: facebookResult.totalMessages,
+          impressions: facebookResult.totalImpressions,
+          clicks: facebookResult.totalClicks,
+          cpl:
+            facebookResult.totalConversions + facebookResult.totalMessages > 0
+              ? facebookResult.totalSpend /
+                (facebookResult.totalConversions + facebookResult.totalMessages)
+              : 0,
+          leads_per_1k:
+            facebookResult.totalSpend > 0
+              ? ((facebookResult.totalConversions +
+                  facebookResult.totalMessages) /
+                  facebookResult.totalSpend) *
+                1000
+              : 0,
+          cpm:
+            facebookResult.totalImpressions > 0
+              ? (facebookResult.totalSpend / facebookResult.totalImpressions) *
+                1000
+              : 0,
+          cpc:
+            facebookResult.totalClicks > 0
+              ? facebookResult.totalSpend / facebookResult.totalClicks
+              : 0,
+          ctr:
+            facebookResult.totalImpressions > 0
+              ? (facebookResult.totalClicks / facebookResult.totalImpressions) *
+                100
+              : 0,
+          frequency:
+            facebookResult.totalReach > 0
+              ? facebookResult.totalImpressions / facebookResult.totalReach
+              : 0,
+          reach: facebookResult.totalReach,
+        }
+      : null;
 
-    const googleMetrics = googleResult ? {
-      spend: googleResult.totalSpend,
-      leads: googleResult.totalConversions,
-      messages: 0,
-      impressions: googleResult.totalImpressions,
-      clicks: googleResult.totalClicks,
-      cpl: googleResult.totalConversions > 0
-        ? googleResult.totalSpend / googleResult.totalConversions : 0,
-      leads_per_1k: googleResult.totalSpend > 0
-        ? (googleResult.totalConversions / googleResult.totalSpend) * 1000 : 0,
-      cpm: googleResult.totalImpressions > 0
-        ? (googleResult.totalSpend / googleResult.totalImpressions) * 1000 : 0,
-      cpc: googleResult.totalClicks > 0
-        ? googleResult.totalSpend / googleResult.totalClicks : 0,
-      ctr: googleResult.totalImpressions > 0
-        ? (googleResult.totalClicks / googleResult.totalImpressions) * 100 : 0,
-      frequency: 0,
-      reach: 0,
-    } : null;
+    const googleMetrics = googleResult
+      ? {
+          spend: googleResult.totalSpend,
+          leads: googleResult.totalConversions,
+          messages: 0,
+          impressions: googleResult.totalImpressions,
+          clicks: googleResult.totalClicks,
+          cpl:
+            googleResult.totalConversions > 0
+              ? googleResult.totalSpend / googleResult.totalConversions
+              : 0,
+          leads_per_1k:
+            googleResult.totalSpend > 0
+              ? (googleResult.totalConversions / googleResult.totalSpend) * 1000
+              : 0,
+          cpm:
+            googleResult.totalImpressions > 0
+              ? (googleResult.totalSpend / googleResult.totalImpressions) * 1000
+              : 0,
+          cpc:
+            googleResult.totalClicks > 0
+              ? googleResult.totalSpend / googleResult.totalClicks
+              : 0,
+          ctr:
+            googleResult.totalImpressions > 0
+              ? (googleResult.totalClicks / googleResult.totalImpressions) * 100
+              : 0,
+          frequency: 0,
+          reach: 0,
+        }
+      : null;
 
-    const response: unknown = {
+    const response: any = {
       client: {
         name: client.name,
         company: client.company,
@@ -1420,17 +1656,17 @@ Deno.serve(async (req) => {
     }
 
     return new Response(JSON.stringify(response), {
-      headers: { 
-        ...corsHeaders, 
-        'Content-Type': 'application/json',
-        'Cache-Control': 'no-store'
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/json",
+        "Cache-Control": "no-store",
       },
     });
   } catch (error) {
-    console.error('Error fetching dashboard data:', error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    console.error("Error fetching dashboard data:", error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });

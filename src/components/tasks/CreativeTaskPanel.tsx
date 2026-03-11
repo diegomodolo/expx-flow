@@ -1,19 +1,42 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Upload, X, GripVertical, Play, Image as ImageIcon, ChevronLeft, ChevronRight, Volume2, VolumeX, SpellCheck, Loader2 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Heart,
+  MessageCircle,
+  Send,
+  Bookmark,
+  MoreHorizontal,
+  Upload,
+  X,
+  GripVertical,
+  Play,
+  Image as ImageIcon,
+  ChevronLeft,
+  ChevronRight,
+  Volume2,
+  VolumeX,
+  SpellCheck,
+  Loader2,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-export type PostType = 'feed' | 'stories' | 'reels';
+export type PostType = "feed" | "stories" | "reels";
 
 export interface CreativeFile {
   id: string;
   url: string;
   name: string;
-  type: 'image' | 'video';
+  type: "image" | "video";
   file?: File;
   localPreview?: string;
 }
@@ -33,7 +56,14 @@ interface CreativeTaskPanelProps {
   clientAvatar?: string;
 }
 
-export function CreativeTaskPanel({ data, onChange, companyId, taskId, clientName, clientAvatar }: CreativeTaskPanelProps) {
+export function CreativeTaskPanel({
+  data,
+  onChange,
+  companyId,
+  taskId,
+  clientName,
+  clientAvatar,
+}: CreativeTaskPanelProps) {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -44,69 +74,81 @@ export function CreativeTaskPanel({ data, onChange, companyId, taskId, clientNam
   const [isCheckingGrammar, setIsCheckingGrammar] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  const isVideoType = data.post_type === 'stories' || data.post_type === 'reels';
-  const acceptTypes = isVideoType ? 'video/*' : 'image/*';
+  const isVideoType =
+    data.post_type === "stories" || data.post_type === "reels";
+  const acceptTypes = isVideoType ? "video/*" : "image/*";
   const maxFiles = isVideoType ? 1 : 10;
 
-  const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles = Array.from(e.target.files || []);
-    if (!selectedFiles.length) return;
+  const handleFileSelect = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const selectedFiles = Array.from(e.target.files || []);
+      if (!selectedFiles.length) return;
 
-    const remaining = maxFiles - data.files.length;
-    const filesToAdd = selectedFiles.slice(0, remaining);
+      const remaining = maxFiles - data.files.length;
+      const filesToAdd = selectedFiles.slice(0, remaining);
 
-    const newFiles: CreativeFile[] = filesToAdd.map(file => ({
-      id: crypto.randomUUID(),
-      url: '',
-      name: file.name,
-      type: file.type.startsWith('video') ? 'video' : 'image',
-      file,
-      localPreview: URL.createObjectURL(file),
-    }));
+      const newFiles: CreativeFile[] = filesToAdd.map((file) => ({
+        id: crypto.randomUUID(),
+        url: "",
+        name: file.name,
+        type: file.type.startsWith("video") ? "video" : "image",
+        file,
+        localPreview: URL.createObjectURL(file),
+      }));
 
-    onChange({ ...data, files: [...data.files, ...newFiles] });
+      onChange({ ...data, files: [...data.files, ...newFiles] });
 
-    // Upload files to storage
-    if (companyId) {
-      setUploading(true);
-      try {
-        const uploadedFiles = await Promise.all(
-          newFiles.map(async (f) => {
-            if (!f.file) return f;
-            const ext = f.name.split('.').pop();
-            const path = `${companyId}/${taskId || 'new'}/${f.id}.${ext}`;
-            const { error } = await supabase.storage
-              .from('task-creatives')
-              .upload(path, f.file, { upsert: true });
+      // Upload files to storage
+      if (companyId) {
+        setUploading(true);
+        try {
+          const uploadedFiles = await Promise.all(
+            newFiles.map(async (f) => {
+              if (!f.file) return f;
+              const ext = f.name.split(".").pop();
+              const path = `${companyId}/${taskId || "new"}/${f.id}.${ext}`;
+              const { error } = await supabase.storage
+                .from("task-creatives")
+                .upload(path, f.file, { upsert: true });
 
-            if (error) {
-              console.error('Upload error:', error);
-              toast({ title: 'Erro no upload', description: error.message, variant: 'destructive' });
-              return f;
-            }
+              if (error) {
+                console.error("Upload error:", error);
+                toast({
+                  title: "Erro no upload",
+                  description: error.message,
+                  variant: "destructive",
+                });
+                return f;
+              }
 
-            const { data: urlData } = supabase.storage.from('task-creatives').getPublicUrl(path);
-            return { ...f, url: urlData.publicUrl, file: undefined, localPreview: undefined };
-          })
-        );
+              const { data: urlData } = supabase.storage
+                .from("task-creatives")
+                .getPublicUrl(path);
+              return {
+                ...f,
+                url: urlData.publicUrl,
+                file: undefined,
+                localPreview: undefined,
+              };
+            }),
+          );
 
-        onChange({
-          ...data,
-          files: [
-            ...data.files,
-            ...uploadedFiles,
-          ],
-        });
-      } finally {
-        setUploading(false);
+          onChange({
+            ...data,
+            files: [...data.files, ...uploadedFiles],
+          });
+        } finally {
+          setUploading(false);
+        }
       }
-    }
 
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  }, [data, companyId, taskId, maxFiles, onChange, toast]);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    },
+    [data, companyId, taskId, maxFiles, onChange, toast],
+  );
 
   const removeFile = (id: string) => {
-    const updated = data.files.filter(f => f.id !== id);
+    const updated = data.files.filter((f) => f.id !== id);
     onChange({ ...data, files: updated });
     if (currentSlide >= updated.length && updated.length > 0) {
       setCurrentSlide(updated.length - 1);
@@ -141,8 +183,8 @@ export function CreativeTaskPanel({ data, onChange, companyId, taskId, clientNam
 
   const handlePostTypeChange = (type: PostType) => {
     // Clear files if switching between image/video types
-    const wasVideo = data.post_type === 'stories' || data.post_type === 'reels';
-    const isNowVideo = type === 'stories' || type === 'reels';
+    const wasVideo = data.post_type === "stories" || data.post_type === "reels";
+    const isNowVideo = type === "stories" || type === "reels";
     const shouldClear = wasVideo !== isNowVideo;
     onChange({
       ...data,
@@ -158,22 +200,22 @@ export function CreativeTaskPanel({ data, onChange, companyId, taskId, clientNam
   // Aspect ratio based on post type
   const getAspectClass = () => {
     switch (data.post_type) {
-      case 'stories':
-      case 'reels':
-        return 'aspect-[9/16]';
+      case "stories":
+      case "reels":
+        return "aspect-[9/16]";
       default:
-        return 'aspect-[4/5]';
+        return "aspect-[4/5]";
     }
   };
 
-  const isCarousel = data.post_type === 'feed' && data.files.length > 1;
+  const isCarousel = data.post_type === "feed" && data.files.length > 1;
 
   const goToPrevSlide = () => {
-    setCurrentSlide(prev => Math.max(0, prev - 1));
+    setCurrentSlide((prev) => Math.max(0, prev - 1));
   };
 
   const goToNextSlide = () => {
-    setCurrentSlide(prev => Math.min(data.files.length - 1, prev + 1));
+    setCurrentSlide((prev) => Math.min(data.files.length - 1, prev + 1));
   };
 
   return (
@@ -186,24 +228,30 @@ export function CreativeTaskPanel({ data, onChange, companyId, taskId, clientNam
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 via-pink-500 to-purple-600 p-0.5">
               <div className="w-full h-full rounded-full bg-background flex items-center justify-center overflow-hidden">
                 {clientAvatar ? (
-                  <img src={clientAvatar} alt="" className="w-full h-full object-cover" />
+                  <img
+                    src={clientAvatar}
+                    alt=""
+                    className="w-full h-full object-cover"
+                  />
                 ) : (
                   <span className="text-xs font-bold text-foreground">
-                    {(clientName || 'U').charAt(0).toUpperCase()}
+                    {(clientName || "U").charAt(0).toUpperCase()}
                   </span>
                 )}
               </div>
             </div>
             <span className="text-sm font-semibold text-foreground flex-1 truncate">
-              {clientName || 'Seu Perfil'}
+              {clientName || "Seu Perfil"}
             </span>
             <MoreHorizontal className="w-5 h-5 text-muted-foreground" />
           </div>
 
           {/* Media Area */}
-          <div className={`relative bg-muted ${getAspectClass()} flex items-center justify-center overflow-hidden`}>
+          <div
+            className={`relative bg-muted ${getAspectClass()} flex items-center justify-center overflow-hidden`}
+          >
             {previewSrc ? (
-              previewFile?.type === 'video' ? (
+              previewFile?.type === "video" ? (
                 <video
                   ref={videoRef}
                   src={previewSrc}
@@ -215,7 +263,11 @@ export function CreativeTaskPanel({ data, onChange, companyId, taskId, clientNam
                   playsInline
                 />
               ) : (
-                <img src={previewSrc} alt="" className="w-full h-full object-cover" />
+                <img
+                  src={previewSrc}
+                  alt=""
+                  className="w-full h-full object-cover"
+                />
               )
             ) : (
               <div className="flex flex-col items-center gap-3 text-muted-foreground">
@@ -254,7 +306,9 @@ export function CreativeTaskPanel({ data, onChange, companyId, taskId, clientNam
                     key={i}
                     onClick={() => setCurrentSlide(i)}
                     className={`w-1.5 h-1.5 rounded-full transition-all ${
-                      i === currentSlide ? 'bg-primary w-3' : 'bg-muted-foreground/50'
+                      i === currentSlide
+                        ? "bg-primary w-3"
+                        : "bg-muted-foreground/50"
                     }`}
                   />
                 ))}
@@ -269,10 +323,10 @@ export function CreativeTaskPanel({ data, onChange, companyId, taskId, clientNam
             )}
 
             {/* Video sound toggle */}
-            {previewFile?.type === 'video' && (
+            {previewFile?.type === "video" && (
               <button
                 onClick={() => {
-                  setIsMuted(prev => !prev);
+                  setIsMuted((prev) => !prev);
                   if (videoRef.current) {
                     videoRef.current.muted = !videoRef.current.muted;
                   }
@@ -289,7 +343,7 @@ export function CreativeTaskPanel({ data, onChange, companyId, taskId, clientNam
           </div>
 
           {/* Actions */}
-          {data.post_type === 'feed' && (
+          {data.post_type === "feed" && (
             <>
               <div className="flex items-center px-3 py-2.5">
                 <div className="flex items-center gap-4 flex-1">
@@ -302,15 +356,21 @@ export function CreativeTaskPanel({ data, onChange, companyId, taskId, clientNam
 
               {/* Likes */}
               <div className="px-3 pb-1">
-                <span className="text-sm font-semibold text-foreground">♥ 0 curtidas</span>
+                <span className="text-sm font-semibold text-foreground">
+                  ♥ 0 curtidas
+                </span>
               </div>
 
               {/* Caption Preview */}
               {data.caption && (
                 <div className="px-3 pb-3">
                   <p className="text-sm text-foreground">
-                    <span className="font-semibold">{clientName || 'perfil'} </span>
-                    {data.caption.length > 100 ? data.caption.substring(0, 100) + '...' : data.caption}
+                    <span className="font-semibold">
+                      {clientName || "perfil"}{" "}
+                    </span>
+                    {data.caption.length > 100
+                      ? data.caption.substring(0, 100) + "..."
+                      : data.caption}
                   </p>
                 </div>
               )}
@@ -324,8 +384,13 @@ export function CreativeTaskPanel({ data, onChange, companyId, taskId, clientNam
         {/* Post Type */}
         <div>
           <Label className="text-sm font-semibold">Tipo do Post</Label>
-          <Select value={data.post_type} onValueChange={(v) => handlePostTypeChange(v as PostType)}>
-            <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
+          <Select
+            value={data.post_type}
+            onValueChange={(v) => handlePostTypeChange(v as PostType)}
+          >
+            <SelectTrigger className="mt-1.5">
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="feed">Feed</SelectItem>
               <SelectItem value="stories">Stories</SelectItem>
@@ -342,10 +407,12 @@ export function CreativeTaskPanel({ data, onChange, companyId, taskId, clientNam
           >
             <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
             <p className="text-sm font-medium text-foreground">
-              {uploading ? 'Enviando...' : 'Adicionar Arquivo'}
+              {uploading ? "Enviando..." : "Adicionar Arquivo"}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              {isVideoType ? 'Vídeo' : `Imagem${data.post_type === 'feed' ? ' (até 10 para carrossel)' : ''}`}
+              {isVideoType
+                ? "Vídeo"
+                : `Imagem${data.post_type === "feed" ? " (até 10 para carrossel)" : ""}`}
             </p>
           </div>
           <input
@@ -363,7 +430,11 @@ export function CreativeTaskPanel({ data, onChange, companyId, taskId, clientNam
           <div className="space-y-1.5">
             <Label className="text-sm font-semibold">
               Arquivos ({data.files.length})
-              {data.files.length > 1 && <span className="text-xs text-muted-foreground ml-1">— arraste para reordenar</span>}
+              {data.files.length > 1 && (
+                <span className="text-xs text-muted-foreground ml-1">
+                  — arraste para reordenar
+                </span>
+              )}
             </Label>
             <div className="space-y-1">
               {data.files.map((file, index) => (
@@ -373,32 +444,45 @@ export function CreativeTaskPanel({ data, onChange, companyId, taskId, clientNam
                   onDragStart={() => handleDragStart(index)}
                   onDragOver={(e) => handleDragOver(e, index)}
                   onDrop={() => handleDrop(index)}
-                  onDragEnd={() => { setDraggedIndex(null); setDragOverIndex(null); }}
+                  onDragEnd={() => {
+                    setDraggedIndex(null);
+                    setDragOverIndex(null);
+                  }}
                   onClick={() => setCurrentSlide(index)}
                   className={`flex items-center gap-2 px-2 py-1.5 rounded-md border cursor-pointer transition-all text-sm
-                    ${index === currentSlide ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50'}
-                    ${dragOverIndex === index ? 'border-primary border-dashed' : ''}
-                    ${draggedIndex === index ? 'opacity-50' : ''}
+                    ${index === currentSlide ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"}
+                    ${dragOverIndex === index ? "border-primary border-dashed" : ""}
+                    ${draggedIndex === index ? "opacity-50" : ""}
                   `}
                 >
                   {data.files.length > 1 && (
                     <GripVertical className="w-3.5 h-3.5 text-muted-foreground shrink-0 cursor-grab" />
                   )}
                   <div className="w-8 h-8 rounded bg-muted overflow-hidden shrink-0">
-                    {file.type === 'video' ? (
+                    {file.type === "video" ? (
                       <div className="w-full h-full flex items-center justify-center">
                         <Play className="w-4 h-4 text-muted-foreground" />
                       </div>
                     ) : (
-                      <img src={file.localPreview || file.url} alt="" className="w-full h-full object-cover" />
+                      <img
+                        src={file.localPreview || file.url}
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
                     )}
                   </div>
-                  <span className="flex-1 truncate text-foreground">{file.name}</span>
+                  <span className="flex-1 truncate text-foreground">
+                    {file.name}
+                  </span>
                   <Button
+                    aria-label="Fechar"
                     variant="ghost"
                     size="icon"
                     className="h-6 w-6 shrink-0"
-                    onClick={(e) => { e.stopPropagation(); removeFile(file.id); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeFile(file.id);
+                    }}
                   >
                     <X className="w-3.5 h-3.5" />
                   </Button>
@@ -429,22 +513,39 @@ export function CreativeTaskPanel({ data, onChange, companyId, taskId, clientNam
                 if (!data.caption.trim()) return;
                 setIsCheckingGrammar(true);
                 try {
-                  const { data: fnData, error } = await supabase.functions.invoke('validate-text-grammar', {
-                    body: { text: data.caption },
-                  });
+                  const { data: fnData, error } =
+                    await supabase.functions.invoke("validate-text-grammar", {
+                      body: { text: data.caption },
+                    });
                   if (error) throw error;
-                  if (fnData?.correctedText && !fnData.correctedText.startsWith('TEXTO_REJEITADO')) {
+                  if (
+                    fnData?.correctedText &&
+                    !fnData.correctedText.startsWith("TEXTO_REJEITADO")
+                  ) {
                     onChange({ ...data, caption: fnData.correctedText });
                     toast({
-                      title: fnData.hasChanges ? 'Texto corrigido' : 'Nenhum erro encontrado',
-                      description: fnData.hasChanges ? 'A legenda foi corrigida automaticamente.' : 'O texto já está correto.',
+                      title: fnData.hasChanges
+                        ? "Texto corrigido"
+                        : "Nenhum erro encontrado",
+                      description: fnData.hasChanges
+                        ? "A legenda foi corrigida automaticamente."
+                        : "O texto já está correto.",
                     });
                   } else {
-                    toast({ title: 'Erro', description: fnData?.correctedText || 'Não foi possível validar.', variant: 'destructive' });
+                    toast({
+                      title: "Erro",
+                      description:
+                        fnData?.correctedText || "Não foi possível validar.",
+                      variant: "destructive",
+                    });
                   }
                 } catch (err: unknown) {
-                  console.error('Grammar check error:', err);
-                  toast({ title: 'Erro', description: 'Falha ao verificar ortografia.', variant: 'destructive' });
+                  console.error("Grammar check error:", err);
+                  toast({
+                    title: "Erro",
+                    description: "Falha ao verificar ortografia.",
+                    variant: "destructive",
+                  });
                 } finally {
                   setIsCheckingGrammar(false);
                 }
