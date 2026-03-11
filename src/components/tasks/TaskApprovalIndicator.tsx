@@ -41,7 +41,7 @@ function TaskApprovalItem({ task, onClick }: TaskApprovalItemProps) {
           )}
         </div>
         <span className="text-[10px] text-muted-foreground mt-1 block">
-          {formatDistanceToNow(parseISO(task.updated_at), { addSuffix: true, locale: ptBR })}
+          {formatDistanceToNow(parseISO(task.created_at), { addSuffix: true, locale: ptBR })}
         </span>
       </div>
     </button>

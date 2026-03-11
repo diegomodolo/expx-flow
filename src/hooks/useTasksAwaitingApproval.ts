@@ -8,7 +8,7 @@ export interface TaskAwaitingApproval {
   title: string;
   client_name: string | null;
   submitted_by: string | null;
-  updated_at: string;
+  created_at: string;
 }
 
 export function useTasksAwaitingApproval() {
@@ -46,11 +46,11 @@ export function useTasksAwaitingApproval() {
       // 2. Get tasks in review status from those IDs
       const { data: tasksData, error: tasksError } = await supabase
         .from("tasks")
-        .select("id, title, client_id, updated_at")
+        .select("id, title, client_id, created_at")
         .eq("company_id", companyId)
         .eq("status", "review")
         .in("id", taskIds)
-        .order("updated_at", { ascending: false });
+        .order("created_at", { ascending: false });
 
       if (tasksError) throw tasksError;
       if (!tasksData || tasksData.length === 0) return [];
@@ -94,7 +94,7 @@ export function useTasksAwaitingApproval() {
         title: t.title,
         client_name: t.client_id ? (clientMap[t.client_id] || null) : null,
         submitted_by: responsibleMap[t.id] || null,
-        updated_at: t.updated_at,
+        created_at: t.created_at,
       })) as TaskAwaitingApproval[];
     },
     enabled: !!companyId && !!user?.id,

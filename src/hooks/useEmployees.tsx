@@ -81,8 +81,7 @@ export const useEmployees = () => {
 
       // Buscar profiles dos user_ids dos employees
       const userIds = employeesData.map(emp => emp.user_id);
-      console.log("Buscando profiles para user_ids:", userIds);
-      
+
       const { data: profilesData, error: profilesError } = await supabase
         .from("profiles")
         .select("user_id, avatar_url")
@@ -92,17 +91,12 @@ export const useEmployees = () => {
         console.warn("Error fetching profiles:", profilesError);
       }
 
-      console.log("Profiles encontrados:", profilesData?.length || 0, "de", userIds.length, "esperados");
-      console.log("Profiles data:", profilesData);
-
       // Verificar se todos os user_ids foram encontrados e fazer fallback se necessário
       let allProfiles = profilesData || [];
       const foundUserIds = allProfiles.map(p => p.user_id);
       const missingUserIds = userIds.filter(id => !foundUserIds.includes(id));
 
       if (missingUserIds.length > 0) {
-        console.log("User_ids não encontrados no batch, buscando individualmente:", missingUserIds);
-        
         // Buscar profiles faltantes individualmente
         const missingProfilesPromises = missingUserIds.map(async (userId) => {
           const { data } = await supabase
@@ -116,22 +110,15 @@ export const useEmployees = () => {
         const missingProfiles = await Promise.all(missingProfilesPromises);
         const validMissingProfiles = missingProfiles.filter(Boolean);
         allProfiles = [...allProfiles, ...validMissingProfiles];
-        console.log("Profiles encontrados após fallback:", allProfiles.length);
       }
 
       // Mapear os dados combinando employees com profiles
       const mappedData = employeesData.map((employee: unknown) => {
         const profile = allProfiles.find(p => p.user_id === employee.user_id);
-        const result = {
+        return {
           ...employee,
           profile_avatar_url: profile?.avatar_url || null
         };
-        
-        if (employee.name === "Jaysson") {
-          console.log("Debug Jaysson - user_id:", employee.user_id, "profile encontrado:", !!profile, "avatar_url:", profile?.avatar_url);
-        }
-        
-        return result;
       });
 
       setEmployees(mappedData);
@@ -166,7 +153,6 @@ export const useEmployees = () => {
       }
       
       // 1. Verificar se o colaborador já existe na empresa atual
-      console.log("Verificando colaborador existente para email:", employeeData.email);
       const { data: existingEmployeeInCompany, error: companySearchError } = await supabase
         .from('employees')
         .select('id, user_id, email, company_id')
@@ -180,11 +166,8 @@ export const useEmployees = () => {
       }
 
       if (existingEmployeeInCompany) {
-        console.log("Colaborador já existe nesta empresa:", existingEmployeeInCompany);
         throw new Error("Este email já está cadastrado como colaborador nesta empresa");
       }
-
-      console.log("Colaborador não existe nesta empresa, prosseguindo...");
 
       let userId: string;
       let isNewUser = true;
@@ -206,8 +189,6 @@ export const useEmployees = () => {
         userId = checkResult.user_id;
         isNewUser = false;
         shouldSendWelcome = false;
-
-        console.log("Usuário já existe na plataforma, vinculando à empresa:", userId);
 
         // Verificar se já é membro da empresa
         const { data: existingMember } = await supabase
@@ -242,15 +223,12 @@ export const useEmployees = () => {
               companyName: activeCompany.company?.name || 'Nova Empresa'
             }
           });
-          console.log("Notificação de nova empresa enviada");
         } catch (notifyError) {
-          console.warn("Erro ao enviar notificação de nova empresa:", notifyError);
+          // Falha silenciosa - nao bloqueia o processo
         }
 
       } else {
         // CASO A: Usuário não existe - criar novo com magic link
-        console.log("Usuário não existe, criando novo com magic link");
-        
         const { data: createResult, error: createError } = await supabase.functions.invoke('invite-with-magic-link', {
           body: {
             email: employeeData.email,
@@ -273,8 +251,6 @@ export const useEmployees = () => {
         userId = createResult.user_id;
         isNewUser = true;
         shouldSendWelcome = true;
-
-        console.log("Novo usuário criado com magic link:", createResult);
       }
 
       // 3. Criar registro de colaborador na empresa
@@ -292,8 +268,6 @@ export const useEmployees = () => {
         company_id: activeCompany.company_id,
       };
 
-      console.log("Criando registro de colaborador:", employeeInsertData);
-
       const { data: newEmployee, error: employeeError } = await supabase
         .from("employees")
         .insert([employeeInsertData])
@@ -310,8 +284,6 @@ export const useEmployees = () => {
       if (employeeError) {
         throw new Error(`Erro ao criar registro de colaborador: ${employeeError.message}`);
       }
-
-      console.log("Colaborador criado com sucesso:", newEmployee);
 
       // Atualizar lista de colaboradores
       await fetchEmployees();
