@@ -21,6 +21,33 @@ Deno.serve(async (req) => {
     // Resolve API key: company key > env var
     let apiKey = fallbackApiKey;
     if (companyId) {
+      // Validate that the authenticated user belongs to the company
+      const authHeader = req.headers.get("Authorization");
+      if (authHeader) {
+        const supabaseAuth = createClient(
+          supabaseUrl,
+          Deno.env.get("SUPABASE_ANON_KEY")!,
+        );
+        const token = authHeader.replace("Bearer ", "");
+        const {
+          data: { user },
+        } = await supabaseAuth.auth.getUser(token);
+
+        if (user) {
+          const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+          const { data: member } = await supabaseAdmin
+            .from("company_members")
+            .select("id")
+            .eq("company_id", companyId)
+            .eq("user_id", user.id)
+            .maybeSingle();
+
+          if (!member) {
+            throw new Error("Acesso negado: você não pertence a esta empresa");
+          }
+        }
+      }
+
       const supabase = createClient(supabaseUrl, supabaseServiceKey);
       const { data: keyData } = await supabase
         .from("ai_api_keys")
