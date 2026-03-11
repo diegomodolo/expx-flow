@@ -9,6 +9,83 @@ const SUPABASE_PUBLISHABLE_KEY =
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
+// Safe decode for Supabase Realtime (VSN 2.0.0 binary protocol).
+// Prevents uncaught TypeError when the server sends a JSON message whose
+// top-level value is not an array (e.g. `null`), which would otherwise
+// crash `const [join_ref, ref, topic, event, payload] = JSON.parse(...)`.
+const REALTIME_KINDS = { userBroadcast: 4 };
+const REALTIME_JSON_ENCODING = 1;
+const REALTIME_HEADER_LENGTH = 1;
+
+function safeRealtimeDecode(
+  rawPayload: ArrayBuffer | string,
+  callback: (msg: Record<string, unknown>) => void,
+): void {
+  try {
+    if (rawPayload instanceof ArrayBuffer) {
+      const view = new DataView(rawPayload);
+      const kind = view.getUint8(0);
+
+      if (kind === REALTIME_KINDS.userBroadcast) {
+        const topicSize = view.getUint8(1);
+        const userEventSize = view.getUint8(2);
+        const metadataSize = view.getUint8(3);
+        const payloadEncoding = view.getUint8(4);
+        let offset = REALTIME_HEADER_LENGTH + 4;
+        const decoder = new TextDecoder();
+
+        const topic = decoder.decode(
+          rawPayload.slice(offset, offset + topicSize),
+        );
+        offset += topicSize;
+        const userEvent = decoder.decode(
+          rawPayload.slice(offset, offset + userEventSize),
+        );
+        offset += userEventSize;
+        const metadata = decoder.decode(
+          rawPayload.slice(offset, offset + metadataSize),
+        );
+        offset += metadataSize;
+        const payloadData = rawPayload.slice(offset);
+
+        const parsedPayload =
+          payloadEncoding === REALTIME_JSON_ENCODING
+            ? JSON.parse(decoder.decode(payloadData))
+            : payloadData;
+
+        const data: Record<string, unknown> = {
+          type: "broadcast",
+          event: userEvent,
+          payload: parsedPayload,
+        };
+        if (metadataSize > 0) data["meta"] = JSON.parse(metadata);
+
+        return callback({
+          join_ref: null,
+          ref: null,
+          topic,
+          event: "broadcast",
+          payload: data,
+        });
+      }
+
+      return callback({});
+    }
+
+    if (typeof rawPayload === "string") {
+      const jsonPayload = JSON.parse(rawPayload);
+      if (!Array.isArray(jsonPayload)) return callback({});
+      const [join_ref, ref, topic, event, payload] = jsonPayload;
+      return callback({ join_ref, ref, topic, event, payload });
+    }
+
+    return callback({});
+  } catch (e) {
+    console.warn("[Supabase Realtime] Erro ao decodificar mensagem:", e);
+    return callback({});
+  }
+}
+
 // Fix: garante que mensagens binárias do WebSocket chegam como ArrayBuffer (não Blob).
 // Sem isso, o decodificador msgpack do Supabase Realtime recebe um Blob não-iterável
 // e lança "TypeError: a is not iterable" (Fixes #43).
@@ -29,6 +106,7 @@ export const supabase = createClient<Database>(
       autoRefreshToken: true,
     },
     realtime: {
+      decode: safeRealtimeDecode,
       transport: RealtimeWebSocket as typeof WebSocket,
     },
   },
