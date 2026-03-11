@@ -310,7 +310,7 @@ export function WorkloadTimeline({ members, tasks, startHour: _startHourProp = 0
       )}
 
       {/* Scrollable timeline area - single scroll for ruler + all rows */}
-      <div ref={scrollContainerRef} className="flex-1 min-h-0 overflow-auto">
+      <div ref={scrollContainerRef} className="flex-1 min-h-0 overflow-auto" data-timeline-scroll data-slot-width={slotWidth} data-slot-duration={slotDuration} data-start-hour={effectiveStartHour}>
         <div style={{ minWidth: `${192 + slotWidth * totalSlots}px` }}>
           {/* Time ruler - sticky top */}
           <div className="flex border-b border-border sticky top-0 z-10 bg-card">

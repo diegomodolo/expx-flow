@@ -71,6 +71,8 @@ export default function SquadCommandCenter() {
   const [draggingTask, setDraggingTask] = useState<CommandCenterTask | null>(null);
   const dropSlotRef = useRef<number | null>(null);
   const timelineContainerRef = useRef<HTMLDivElement | null>(null);
+  const lastMousePosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const dragMouseListenerRef = useRef<((e: MouseEvent) => void) | null>(null);
 
   // Backlog center hooks
   const { activeCompany } = useCompany();
@@ -141,10 +143,22 @@ export default function SquadCommandCenter() {
     const task = backlogTasks.find(t => t.id === start.draggableId);
     setDraggingTask(task || null);
     dropSlotRef.current = null;
+
+    // Track mouse position directly in the parent to avoid React re-render timing issues
+    const onMove = (e: MouseEvent) => {
+      lastMousePosRef.current = { x: e.clientX, y: e.clientY };
+    };
+    window.addEventListener('mousemove', onMove);
+    dragMouseListenerRef.current = onMove;
   }, [backlogTasks]);
 
   const handleDragEnd = useCallback(async (result: DropResult) => {
-    const currentDropSlot = dropSlotRef.current;
+    // Clean up mouse tracking listener
+    if (dragMouseListenerRef.current) {
+      window.removeEventListener('mousemove', dragMouseListenerRef.current);
+      dragMouseListenerRef.current = null;
+    }
+
     setDraggingTask(null);
     dropSlotRef.current = null;
     const { source, destination, draggableId } = result;
@@ -162,24 +176,34 @@ export default function SquadCommandCenter() {
     const task = backlogTasks.find(t => t.id === draggableId);
     if (!task) return;
 
-    // Use the exact slot from mouse position, fallback to next free slot
-    let startDate: Date;
-    if (currentDropSlot !== null && currentDropSlot >= 0) {
-      // Load timeline settings for slot duration and start hour
-      const saved = (() => { try { const r = localStorage.getItem("cc-timeline-settings"); return r ? JSON.parse(r) : null; } catch { return null; } })();
-      const slotDuration = saved?.slotDuration ?? 20;
-      const timelineStartHour = saved?.startHour ?? 0;
-      const minutesFromDayStart = timelineStartHour * 60 + currentDropSlot * slotDuration;
-      startDate = new Date(viewDate);
-      startDate.setHours(0, 0, 0, 0);
-      startDate.setMinutes(minutesFromDayStart);
-    } else {
+    // Compute drop slot from tracked mouse position + DOM attributes (avoids React timing issues and localStorage/DB mismatch)
+    let startDate: Date | null = null;
+    const container = document.querySelector('[data-timeline-scroll]') as HTMLElement | null;
+    if (container) {
+      const rect = container.getBoundingClientRect();
+      const scrollLeft = container.scrollLeft;
+      const currentSlotWidth = Number(container.getAttribute('data-slot-width')) || 56;
+      const currentSlotDuration = Number(container.getAttribute('data-slot-duration')) || 20;
+      const currentStartHour = Number(container.getAttribute('data-start-hour')) || 0;
+      const mouseX = lastMousePosRef.current.x - rect.left + scrollLeft - 192; // 192 = w-48 member column
+
+      if (mouseX >= 0) {
+        const slot = Math.max(0, Math.floor(mouseX / currentSlotWidth));
+        const minutesFromDayStart = currentStartHour * 60 + slot * currentSlotDuration;
+        startDate = new Date(viewDate);
+        startDate.setHours(0, 0, 0, 0);
+        startDate.setMinutes(minutesFromDayStart);
+      }
+    }
+
+    // Fallback to next free slot if we couldn't determine position
+    if (!startDate) {
       startDate = findNextFreeSlot(member.user_id);
     }
 
     try {
       await assignTask(draggableId, member.user_id, member.name, startDate);
-      
+
     } catch {
       toast({ title: "Erro ao atribuir", variant: "destructive" });
     }
