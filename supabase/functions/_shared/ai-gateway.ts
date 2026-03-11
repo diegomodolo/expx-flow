@@ -10,6 +10,178 @@ const DEFAULT_MODEL = "google/gemini-2.5-flash";
 const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1/chat/completions";
 const CACHE_TTL_MS = 60_000; // 1 minuto
 
+// Defaults por função — usado quando empresa não tem config específica
+const FUNCTION_DEFAULTS: Record<
+  string,
+  { primary: string; fallback: string | null }
+> = {
+  // Análise
+  "score-generated-ad": {
+    primary: "openai/gpt-4o",
+    fallback: "anthropic/claude-3.5-sonnet",
+  },
+  "generate-campaign-presentation-analysis": {
+    primary: "anthropic/claude-3.5-sonnet",
+    fallback: "openai/gpt-4o",
+  },
+  "scrape-competitor-ads": {
+    primary: "openai/gpt-4o-mini",
+    fallback: "google/gemini-2.5-flash",
+  },
+  "youtube-posting-behavior-report": {
+    primary: "google/gemini-2.5-pro",
+    fallback: "openai/gpt-4o",
+  },
+
+  // Campanhas
+  "generate-campaign-strategy": {
+    primary: "anthropic/claude-3-opus",
+    fallback: "anthropic/claude-3.5-sonnet",
+  },
+  "generate-campaign-recommendation": {
+    primary: "openai/gpt-4o",
+    fallback: "anthropic/claude-3.5-sonnet",
+  },
+  "generate-ai-campaign": {
+    primary: "anthropic/claude-3.5-sonnet",
+    fallback: "openai/gpt-4o",
+  },
+  "generate-ai-campaign-image": {
+    primary: "openai/gpt-4o-mini",
+    fallback: "anthropic/claude-3.5-sonnet",
+  },
+  "generate-campaign-creatives": {
+    primary: "anthropic/claude-3.5-sonnet",
+    fallback: "openai/gpt-4o",
+  },
+  "generate-client-briefing": {
+    primary: "anthropic/claude-3.5-sonnet",
+    fallback: "google/gemini-2.5-pro",
+  },
+  "generate-creative-context": {
+    primary: "google/gemini-2.5-pro",
+    fallback: "anthropic/claude-3.5-sonnet",
+  },
+  "generate-visual-creative": {
+    primary: "openai/gpt-4o",
+    fallback: "google/gemini-2.5-flash",
+  },
+
+  // Vídeo & YouTube
+  "generate-video-script": {
+    primary: "anthropic/claude-3.5-sonnet",
+    fallback: "google/gemini-2.5-pro",
+  },
+  "generate-video-suggestions": {
+    primary: "anthropic/claude-3.5-sonnet",
+    fallback: "openai/gpt-4o",
+  },
+  "generate-youtube-description": {
+    primary: "openai/gpt-4o-mini",
+    fallback: "google/gemini-2.5-flash",
+  },
+  "generate-youtube-titles": {
+    primary: "anthropic/claude-3.5-sonnet",
+    fallback: "openai/gpt-4o-mini",
+  },
+  "generate-youtube-thumbnail": {
+    primary: "openai/gpt-4o",
+    fallback: "anthropic/claude-3.5-sonnet",
+  },
+  "generate-presentation-slides": {
+    primary: "anthropic/claude-3.5-sonnet",
+    fallback: "google/gemini-2.5-pro",
+  },
+  "generate-slide-image": {
+    primary: "openai/gpt-4o-mini",
+    fallback: "google/gemini-2.5-flash",
+  },
+  "transcribe-youtube-video": {
+    primary: "google/gemini-2.5-flash",
+    fallback: "openai/gpt-4o-mini",
+  },
+
+  // Imagens & Carrosséis
+  "generate-image-ai": {
+    primary: "anthropic/claude-3.5-sonnet",
+    fallback: "openai/gpt-4o-mini",
+  },
+  "regenerate-carousel-images": {
+    primary: "anthropic/claude-3.5-sonnet",
+    fallback: "openai/gpt-4o",
+  },
+  "daily-carousel-generator": {
+    primary: "anthropic/claude-3.5-sonnet",
+    fallback: "google/gemini-2.5-pro",
+  },
+  "daily-carousel-generator-stream": {
+    primary: "google/gemini-2.5-flash",
+    fallback: "openai/gpt-4o-mini",
+  },
+  "daily-ad-generator": {
+    primary: "openai/gpt-4o",
+    fallback: "anthropic/claude-3.5-sonnet",
+  },
+  "daily-creative-generator": {
+    primary: "anthropic/claude-3.5-sonnet",
+    fallback: "meta-llama/llama-3.1-70b-instruct",
+  },
+  "validate-image-text": {
+    primary: "google/gemini-2.5-flash",
+    fallback: "openai/gpt-4o-mini",
+  },
+
+  // Utilitários
+  "translate-text": {
+    primary: "openai/gpt-4o-mini",
+    fallback: "google/gemini-2.5-flash",
+  },
+  "validate-text-grammar": {
+    primary: "openai/gpt-4o-mini",
+    fallback: "google/gemini-2.5-flash",
+  },
+  "validate-portuguese": {
+    primary: "anthropic/claude-3.5-sonnet",
+    fallback: "openai/gpt-4o-mini",
+  },
+  "organize-tasks-with-ai": {
+    primary: "openai/gpt-4o",
+    fallback: "anthropic/claude-3.5-sonnet",
+  },
+  "prioritize-notification": {
+    primary: "openai/gpt-4o-mini",
+    fallback: "google/gemini-2.5-flash",
+  },
+  "extract-image-text": {
+    primary: "google/gemini-2.5-flash",
+    fallback: "openai/gpt-4o",
+  },
+  "sync-release-notes": {
+    primary: "anthropic/claude-3.5-sonnet",
+    fallback: "openai/gpt-4o",
+  },
+  "google-meet-process-summary": {
+    primary: "google/gemini-2.5-pro",
+    fallback: "openai/gpt-4o",
+  },
+  "prospect-google-leads": {
+    primary: "openai/gpt-4o-mini",
+    fallback: "google/gemini-2.5-flash",
+  },
+  "shotstack-webhook": {
+    primary: "openai/gpt-4o-mini",
+    fallback: "meta-llama/llama-3.1-8b-instruct",
+  },
+  "squad-orchestrator": {
+    primary: "openai/gpt-4o",
+    fallback: "anthropic/claude-3.5-sonnet",
+  },
+  "generate-weekly-insights": {
+    primary: "anthropic/claude-3.5-sonnet",
+    fallback: "google/gemini-2.5-pro",
+  },
+};
+
 // --- Types ---
 
 export interface CallAIOptions {
@@ -73,11 +245,12 @@ async function resolveConfig(
   apiKey: string;
 }> {
   const fallbackApiKey = Deno.env.get("OPENROUTER_API_KEY") || "";
+  const fnDefault = FUNCTION_DEFAULTS[functionName];
 
   if (!companyId) {
     return {
-      primaryModel: DEFAULT_MODEL,
-      fallbackModel: null,
+      primaryModel: fnDefault?.primary || DEFAULT_MODEL,
+      fallbackModel: fnDefault?.fallback || null,
       apiKey: fallbackApiKey,
     };
   }
@@ -108,8 +281,8 @@ async function resolveConfig(
     .maybeSingle();
 
   const result: CachedConfig = {
-    primaryModel: config?.primary_model || DEFAULT_MODEL,
-    fallbackModel: config?.fallback_model || null,
+    primaryModel: config?.primary_model || fnDefault?.primary || DEFAULT_MODEL,
+    fallbackModel: config?.fallback_model || fnDefault?.fallback || null,
     apiKey: keyData?.openrouter_api_key || fallbackApiKey,
     cachedAt: Date.now(),
   };

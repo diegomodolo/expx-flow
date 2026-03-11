@@ -169,6 +169,8 @@ const handler = async (req: Request): Promise<Response> => {
       ? new Date(lastNote.published_at).toISOString()
       : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
+    console.log("[sync-release-notes] sinceDate:", sinceDate);
+
     const ghHeaders = {
       Authorization: `Bearer ${githubPat}`,
       Accept: "application/vnd.github+json",
@@ -187,22 +189,38 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const commits: GitHubCommit[] = await commitsRes.json();
+    console.log(`[sync-release-notes] Commits fetched: ${commits.length}`);
 
-    // Fetch merged PRs
-    const prsRes = await fetch(
-      `https://api.github.com/repos/${repoOwner}/${repoName}/pulls?state=closed&sort=updated&direction=desc&per_page=100`,
-      { headers: ghHeaders },
-    );
+    // Fetch merged PRs (paginated — GitHub PRs API does not support 'since')
+    // Sort by 'updated' desc. We fetch multiple pages because sort != filter field.
+    let allPrs: GitHubPR[] = [];
+    const MAX_PR_PAGES = 3;
 
-    if (!prsRes.ok) {
-      const errText = await prsRes.text();
-      console.error("GitHub PRs API error:", errText);
-      throw new Error("Erro ao buscar PRs do GitHub");
+    for (let prsPage = 1; prsPage <= MAX_PR_PAGES; prsPage++) {
+      const prsRes = await fetch(
+        `https://api.github.com/repos/${repoOwner}/${repoName}/pulls?state=closed&sort=updated&direction=desc&per_page=100&page=${prsPage}`,
+        { headers: ghHeaders },
+      );
+
+      if (!prsRes.ok) {
+        const errText = await prsRes.text();
+        console.error("GitHub PRs API error:", errText);
+        throw new Error("Erro ao buscar PRs do GitHub");
+      }
+
+      const pagePrs: GitHubPR[] = await prsRes.json();
+      if (pagePrs.length === 0) break;
+      allPrs = allPrs.concat(pagePrs);
+
+      // If we got fewer than 100, no more pages
+      if (pagePrs.length < 100) break;
     }
 
-    const allPrs: GitHubPR[] = await prsRes.json();
     const mergedPrs = allPrs.filter(
       (pr) => pr.merged_at && new Date(pr.merged_at) >= new Date(sinceDate),
+    );
+    console.log(
+      `[sync-release-notes] PRs fetched: ${allPrs.length}, merged since sinceDate: ${mergedPrs.length}`,
     );
 
     // Build set of merge commit SHAs from PRs (to deduplicate)
@@ -247,6 +265,10 @@ const handler = async (req: Request): Promise<Response> => {
         published_at: commit.commit.author.date,
       });
     }
+
+    console.log(
+      `[sync-release-notes] Total entries to upsert: ${entries.length} (PRs: ${mergedPrs.length}, commits: ${entries.length - mergedPrs.length})`,
+    );
 
     if (entries.length === 0) {
       return new Response(JSON.stringify({ success: true, synced_count: 0 }), {

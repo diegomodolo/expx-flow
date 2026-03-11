@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
+import { toast } from "sonner";
 
 export interface ReleaseNote {
   id: string;
@@ -70,9 +71,19 @@ export function useReleaseNotes() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["release-notes"] });
       queryClient.invalidateQueries({ queryKey: ["release-notes-stats"] });
+      const count = data?.synced_count ?? 0;
+      toast.success(
+        count > 0
+          ? `${count} novidades sincronizadas com sucesso!`
+          : "Nenhuma novidade encontrada no momento.",
+      );
+    },
+    onError: (error) => {
+      console.error("Erro ao sincronizar release notes:", error);
+      toast.error("Erro ao sincronizar novidades. Verifique os logs.");
     },
   });
 

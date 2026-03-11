@@ -68,10 +68,25 @@ export function AISettings() {
     field: "primary" | "fallback",
   ): string => {
     const config = configs.find((c) => c.function_name === functionName);
-    if (!config) return field === "primary" ? "Padrão" : "Nenhum";
+    const fnDef = AI_FUNCTIONS.find((f) => f.functionName === functionName);
+    const fallbackDefault =
+      field === "primary"
+        ? fnDef?.defaultPrimary || "google/gemini-2.5-flash"
+        : fnDef?.defaultFallback || null;
+
+    if (!config) {
+      return (
+        fallbackDefault ||
+        (field === "primary" ? "google/gemini-2.5-flash" : "Nenhum")
+      );
+    }
     const model =
       field === "primary" ? config.primary_model : config.fallback_model;
-    return model || (field === "primary" ? "Padrão" : "Nenhum");
+    return (
+      model ||
+      fallbackDefault ||
+      (field === "primary" ? "google/gemini-2.5-flash" : "Nenhum")
+    );
   };
 
   return (
