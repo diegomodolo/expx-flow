@@ -11,6 +11,32 @@ export function useWorkspaceShares(resourceType?: 'folder' | 'document', resourc
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  const { data: companyUsers = [] } = useQuery({
+    queryKey: ['company-users-for-share', activeCompany?.company_id],
+    queryFn: async () => {
+      if (!activeCompany?.company_id) return [];
+      
+      // Get only active employees from the company
+      const { data: employees, error: employeesError } = await supabase
+        .from('employees')
+        .select('user_id, name, avatar')
+        .eq('company_id', activeCompany.company_id)
+        .eq('status', 'active');
+      
+      if (employeesError) throw employeesError;
+      if (!employees || employees.length === 0) return [];
+      
+      return employees
+        .filter((emp: unknown) => emp.user_id) // Only employees with linked user accounts
+        .map((emp: unknown) => ({
+          user_id: emp.user_id,
+          full_name: emp.name || 'Usuário',
+          avatar_url: emp.avatar,
+        }));
+    },
+    enabled: !!activeCompany?.company_id,
+  });
+
   const { data: rawShares = [], isLoading } = useQuery({
     queryKey: ['workspace-shares', resourceType, resourceId],
     queryFn: async () => {
@@ -38,32 +64,6 @@ export function useWorkspaceShares(resourceType?: 'folder' | 'document', resourc
         avatar_url: userInfo.avatar_url,
       } : undefined,
     };
-  });
-
-  const { data: companyUsers = [] } = useQuery({
-    queryKey: ['company-users-for-share', activeCompany?.company_id],
-    queryFn: async () => {
-      if (!activeCompany?.company_id) return [];
-      
-      // Get only active employees from the company
-      const { data: employees, error: employeesError } = await supabase
-        .from('employees')
-        .select('user_id, name, avatar')
-        .eq('company_id', activeCompany.company_id)
-        .eq('status', 'active');
-      
-      if (employeesError) throw employeesError;
-      if (!employees || employees.length === 0) return [];
-      
-      return employees
-        .filter((emp: unknown) => emp.user_id) // Only employees with linked user accounts
-        .map((emp: unknown) => ({
-          user_id: emp.user_id,
-          full_name: emp.name || 'Usuário',
-          avatar_url: emp.avatar,
-        }));
-    },
-    enabled: !!activeCompany?.company_id,
   });
 
   const createShare = useMutation({
