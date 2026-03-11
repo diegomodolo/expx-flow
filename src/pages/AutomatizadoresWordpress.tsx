@@ -100,7 +100,7 @@ export default function AutomatizadoresWordpress() {
           },
         });
       } catch (e) {
-
+        // intentionally empty
       }
 
       return config;

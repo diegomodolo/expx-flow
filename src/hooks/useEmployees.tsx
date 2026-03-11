@@ -88,7 +88,7 @@ export const useEmployees = () => {
         .in("user_id", userIds);
 
       if (profilesError) {
-
+        // intentionally empty
       }
 
       // Verificar se todos os user_ids foram encontrados e fazer fallback se necessário
@@ -210,7 +210,7 @@ export const useEmployees = () => {
             }]);
 
           if (memberError) {
-
+            // intentionally empty
           }
         }
 

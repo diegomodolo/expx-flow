@@ -201,7 +201,7 @@ export function useGoogleAdsCampaignSync() {
       if (error) {
         console.error('[validateCompanyUrls] URL validation failed:', error.message);
       } else {
-
+        // intentionally empty
       }
     } catch (urlError: unknown) {
       console.error('[validateCompanyUrls] URL validation error:', urlError.message);
@@ -331,7 +331,7 @@ export function useGoogleAdsCampaignSync() {
       if (logError) {
         console.error('[syncAllClients] Error creating execution log:', logError);
       } else {
-
+        // intentionally empty
       }
 
       // ========== VALIDAR URLs APÓS SINCRONIZAÇÃO ==========

@@ -133,6 +133,7 @@ export default function AdminLeadReports() {
           window.dispatchEvent(new CustomEvent('refreshNotificationCount'));
         }, 2000);
       } else {
+        // intentionally empty
       }
     };
     

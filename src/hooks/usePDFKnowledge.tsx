@@ -139,7 +139,7 @@ export function usePDFKnowledge(configId: string, companyId: string) {
               .remove([pathMatch[1]]);
           }
         } catch (e) {
-
+          // intentionally empty
         }
       }
     },

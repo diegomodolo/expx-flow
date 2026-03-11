@@ -46,7 +46,7 @@ export function usePlannerTasks(plannedDate: Date) {
         .in("user_id", userIds);
 
       if (profilesError) {
-
+        // intentionally empty
       }
 
       // Combinar dados

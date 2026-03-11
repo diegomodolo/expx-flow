@@ -186,7 +186,7 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
             .eq('id', data.id);
 
           if (fixError) {
-
+            // intentionally empty
           }
         }
 

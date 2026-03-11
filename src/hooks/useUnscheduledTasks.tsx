@@ -44,7 +44,7 @@ export function useUnscheduledTasks() {
           .in("user_id", userIds);
 
         if (profilesError) {
-
+          // intentionally empty
         } else {
           profilesData = profiles || [];
         }

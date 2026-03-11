@@ -325,7 +325,7 @@ export function CampaignGeneratorSimplified({ onBack, existingCampaign }: Campai
             });
           }
         } catch (creativesErr) {
-
+          // intentionally empty
         }
 
         setEditableStrategy(strategy);

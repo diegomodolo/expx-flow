@@ -214,7 +214,7 @@ export function useCommandCenter() {
         boardColumnId = todoCol?.id || columns[0]?.id || null;
       }
     } catch (e) {
-
+      // intentionally empty
     }
 
     // Optimistic update: move task from backlog to timeline locally

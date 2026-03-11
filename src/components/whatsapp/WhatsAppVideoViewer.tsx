@@ -63,7 +63,7 @@ export function WhatsAppVideoViewer({
           setThumbnailSrc(thumbUrl);
         }
       } catch (e) {
-
+        // intentionally empty
       }
     };
     

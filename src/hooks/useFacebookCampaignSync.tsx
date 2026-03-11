@@ -81,7 +81,7 @@ export const useFacebookCampaignSync = () => {
       if (error) {
         console.error('[validateCompanyUrls] URL validation failed:', error.message);
       } else {
-
+        // intentionally empty
       }
     } catch (urlError: unknown) {
       console.error('[validateCompanyUrls] URL validation error:', urlError.message);

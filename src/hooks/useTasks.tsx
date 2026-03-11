@@ -92,7 +92,7 @@ export function useTasks() {
         .in("user_id", userIds);
 
       if (profilesError) {
-
+        // intentionally empty
       }
 
       // Buscar campanhas relacionadas se existirem
