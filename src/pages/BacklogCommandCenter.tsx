@@ -9,9 +9,12 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/componen
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Radar, Inbox } from "lucide-react";
+import { Radar, Inbox, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { TaskDialog } from "@/components/tasks/TaskDialog";
+import { useTasks } from "@/hooks/useTasks";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function BacklogCommandCenterPage() {
   const { activeCompany } = useCompany();
@@ -39,6 +42,9 @@ export default function BacklogCommandCenterPage() {
   } = useBacklogCommandCenter();
 
   const [releasing, setReleasing] = useState(false);
+  const [newTaskDialogOpen, setNewTaskDialogOpen] = useState(false);
+  const { createTask } = useTasks();
+  const queryClient = useQueryClient();
 
   const handleRelease = async () => {
     if (selectedTaskIds.size === 0) return;
@@ -75,15 +81,26 @@ export default function BacklogCommandCenterPage() {
           selectedSquadId={selectedSquadId}
           onSquadChange={setSelectedSquadId}
           leading={
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate('/squad-command-center')}
-              className="gap-2"
-            >
-              <Radar className="w-4 h-4" />
-              Command Center
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setNewTaskDialogOpen(true)}
+                className="gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                Nova Tarefa
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/squad-command-center')}
+                className="gap-2"
+              >
+                <Radar className="w-4 h-4" />
+                Command Center
+              </Button>
+            </div>
           }
           title={
             <div className="flex items-center gap-2">
@@ -131,6 +148,21 @@ export default function BacklogCommandCenterPage() {
           </ResizablePanel>
         </ResizablePanelGroup>
       </div>
+
+      <TaskDialog
+        open={newTaskDialogOpen}
+        onOpenChange={setNewTaskDialogOpen}
+        onSave={async (data) => {
+          await createTask({
+            ...data,
+            task_state: "backlog",
+            team_id: selectedSquadId || data.team_id,
+          });
+          queryClient.invalidateQueries({ queryKey: ["backlog-center-tasks"] });
+          queryClient.invalidateQueries({ queryKey: ["backlog-center-task-clients"] });
+          setNewTaskDialogOpen(false);
+        }}
+      />
     </DashboardLayout>
   );
 }
