@@ -135,9 +135,11 @@ jobs:
               -f "client_payload[head_branch]=$HEAD_BRANCH"
           fi
 
-      # Notificacao Telegram
+      # Notificacao Telegram com detalhes
       - name: Notificar Telegram
         if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if [ "${{ job.status }}" = "success" ]; then
             EMOJI="✅"; STATUS="Concluido"
@@ -148,9 +150,56 @@ jobs:
           ISSUE_NUMBER="${{ github.event.issue.number || '?' }}"
           ISSUE_URL="${{ github.event.issue.html_url || '' }}"
 
+          # Buscar estado da issue (open/closed) e motivo
+          ISSUE_STATE=$(gh issue view "$ISSUE_NUMBER" --json state --jq '.state' 2>/dev/null || echo "UNKNOWN")
+          ISSUE_LABELS=$(gh issue view "$ISSUE_NUMBER" --json labels --jq '[.labels[].name] | join(", ")' 2>/dev/null || echo "")
+
+          # Buscar ultimo comentario do bot na issue
+          CLAUDE_COMMENT=$(gh issue view "$ISSUE_NUMBER" --json comments --jq '[.comments[] | select(.author.login == "github-actions[bot]" or .author.login == "github-actions" or (.author.login | contains("claude")))] | last | .body // ""' 2>/dev/null || echo "")
+          # Truncar para 500 chars
+          if [ ${#CLAUDE_COMMENT} -gt 500 ]; then
+            CLAUDE_COMMENT="${CLAUDE_COMMENT:0:500}..."
+          fi
+
+          # Buscar PR criado
+          PR_INFO=""
+          PR_NUMBER=$(gh pr list --state open --head "claude/fix-issue-${ISSUE_NUMBER}" --json number,url --jq '.[0] | "#\(.number) - \(.url)"' 2>/dev/null || echo "")
+          if [ -z "$PR_NUMBER" ] || [ "$PR_NUMBER" = "null" ]; then
+            PR_NUMBER=$(gh pr list --state open --head "claude/feature-issue-${ISSUE_NUMBER}" --json number,url --jq '.[0] | "#\(.number) - \(.url)"' 2>/dev/null || echo "")
+          fi
+          if [ -n "$PR_NUMBER" ] && [ "$PR_NUMBER" != "null" ]; then
+            PR_INFO="🔀 *PR:* ${PR_NUMBER}"
+          fi
+
+          # Determinar resultado
+          if [ "$ISSUE_STATE" = "CLOSED" ]; then
+            RESULTADO="✅ *Implementado e issue fechada*"
+          elif [ "${{ job.status }}" = "success" ]; then
+            RESULTADO="📝 *Analisado pelo Claude*"
+          else
+            RESULTADO="⚠️ *Workflow falhou*"
+          fi
+
+          # Montar mensagem
           MESSAGE="${EMOJI} *Claude Code — ${STATUS}*
 
           📋 *Issue:* [#${ISSUE_NUMBER} — ${ISSUE_TITLE}](${ISSUE_URL})
+          🏷️ *Labels:* ${ISSUE_LABELS}
+          ${RESULTADO}"
+
+          if [ -n "$PR_INFO" ]; then
+            MESSAGE="${MESSAGE}
+          ${PR_INFO}"
+          fi
+
+          if [ -n "$CLAUDE_COMMENT" ] && [ "$CLAUDE_COMMENT" != "null" ]; then
+            MESSAGE="${MESSAGE}
+
+          💬 *Resposta do Claude:*
+          ${CLAUDE_COMMENT}"
+          fi
+
+          MESSAGE="${MESSAGE}
 
           [Ver no GitHub](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})"
 
