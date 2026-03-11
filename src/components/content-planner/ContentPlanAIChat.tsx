@@ -300,7 +300,7 @@ export function ContentPlanAIChat({
                   
                   {message.role === "assistant" && (
                     <div className="flex items-center gap-1 mt-2 pt-2 border-t border-border/50">
-                      <Button
+                      <Button aria-label="Fechar"
                         variant="ghost"
                         size="icon"
                         className="h-6 w-6"
@@ -353,7 +353,7 @@ export function ContentPlanAIChat({
             className="min-h-[44px] max-h-[120px] resize-none"
             rows={1}
           />
-          <Button
+          <Button aria-label="Enviar"
             onClick={handleSend}
             disabled={!input.trim() || isLoading}
             size="icon"

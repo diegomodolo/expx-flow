@@ -553,7 +553,7 @@ export function ClientNotificationConfig({ companyId, triggers }: ClientNotifica
                               checked={settings.is_active}
                               onCheckedChange={(checked) => updateSettings({ id: settings.id, isActive: checked })}
                             />
-                            <Button
+                            <Button aria-label="Editar"
                               variant="ghost"
                               size="icon"
                               onClick={(e) => {
@@ -564,7 +564,7 @@ export function ClientNotificationConfig({ companyId, triggers }: ClientNotifica
                             >
                               <Pencil className="h-4 w-4" />
                             </Button>
-                            <Button
+                            <Button aria-label="Excluir"
                               variant="ghost"
                               size="icon"
                               onClick={(e) => {
@@ -631,7 +631,7 @@ export function ClientNotificationConfig({ companyId, triggers }: ClientNotifica
                                           </div>
                                         </div>
                                         <div className="flex items-center gap-1">
-                                          <Button
+                                          <Button aria-label="Editar"
                                             variant="ghost"
                                             size="icon"
                                             className="h-7 w-7"
@@ -639,7 +639,7 @@ export function ClientNotificationConfig({ companyId, triggers }: ClientNotifica
                                           >
                                             <Pencil className="h-3 w-3" />
                                           </Button>
-                                          <Button
+                                          <Button aria-label="Excluir"
                                             variant="ghost"
                                             size="icon"
                                             className="h-7 w-7 text-destructive hover:text-destructive"

@@ -376,7 +376,7 @@ export function WhatsAppMessageInput({
       <div className="flex flex-col border-t bg-background">
         <div className="flex items-center gap-3 p-3">
           {/* Cancel button */}
-          <Button
+          <Button aria-label="Ação"
             variant="ghost"
             size="icon"
             onClick={cancelRecording}
@@ -412,7 +412,7 @@ export function WhatsAppMessageInput({
           </div>
 
           {/* Stop/Send button */}
-          <Button
+          <Button aria-label="Ação"
             size="icon"
             onClick={stopRecording}
             className="shrink-0"
@@ -430,7 +430,7 @@ export function WhatsAppMessageInput({
       <div className="flex flex-col border-t bg-background">
         <div className="flex items-center gap-3 p-3">
           {/* Cancel/Delete button */}
-          <Button
+          <Button aria-label="Ação"
             variant="ghost"
             size="icon"
             onClick={cancelRecording}
@@ -454,7 +454,7 @@ export function WhatsAppMessageInput({
           </div>
 
           {/* Send button */}
-          <Button
+          <Button aria-label="Enviar"
             size="icon"
             onClick={sendAudioMessage}
             disabled={isSending}
@@ -521,7 +521,7 @@ export function WhatsAppMessageInput({
                 {formatFileSize(attachment.file.size)}
               </p>
             </div>
-            <Button
+            <Button aria-label="Ação"
               variant="ghost"
               size="icon"
               onClick={removeAttachment}
@@ -545,7 +545,7 @@ export function WhatsAppMessageInput({
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button
+            <Button aria-label="Ação"
               variant="ghost"
               size="icon"
               disabled={isSending}
@@ -603,7 +603,7 @@ export function WhatsAppMessageInput({
             <Mic className="h-4 w-4" />
           </Button>
         ) : (
-          <Button 
+          <Button aria-label="Enviar"
             size="icon" 
             onClick={handleSend} 
             disabled={(!message.trim() && !attachment) || isSending}

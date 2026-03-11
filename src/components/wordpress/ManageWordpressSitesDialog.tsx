@@ -229,7 +229,7 @@ export function ManageWordpressSitesDialog({ open, onOpenChange, companyId }: Ma
             {viewMode === 'add' && (
               <>
                 <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="icon" onClick={handleBack} className="h-8 w-8">
+                  <Button aria-label="Ação" variant="ghost" size="icon" onClick={handleBack} className="h-8 w-8">
                     <ArrowLeft className="w-4 h-4" />
                   </Button>
                   <DialogTitle>Adicionar Site WordPress</DialogTitle>
@@ -242,7 +242,7 @@ export function ManageWordpressSitesDialog({ open, onOpenChange, companyId }: Ma
             {viewMode === 'edit' && (
               <>
                 <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="icon" onClick={handleBack} className="h-8 w-8">
+                  <Button aria-label="Ação" variant="ghost" size="icon" onClick={handleBack} className="h-8 w-8">
                     <ArrowLeft className="w-4 h-4" />
                   </Button>
                   <DialogTitle>Editar Site WordPress</DialogTitle>
@@ -291,7 +291,7 @@ export function ManageWordpressSitesDialog({ open, onOpenChange, companyId }: Ma
                             </p>
                           </div>
                           <div className="flex items-center gap-1 flex-shrink-0">
-                            <Button
+                            <Button aria-label="Ação"
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8"
@@ -304,7 +304,7 @@ export function ManageWordpressSitesDialog({ open, onOpenChange, companyId }: Ma
                                 <RefreshCw className="w-4 h-4" />
                               )}
                             </Button>
-                            <Button
+                            <Button aria-label="Ação"
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8"
@@ -312,7 +312,7 @@ export function ManageWordpressSitesDialog({ open, onOpenChange, companyId }: Ma
                             >
                               <Pencil className="w-4 h-4" />
                             </Button>
-                            <Button
+                            <Button aria-label="Ação"
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8 text-destructive hover:text-destructive"

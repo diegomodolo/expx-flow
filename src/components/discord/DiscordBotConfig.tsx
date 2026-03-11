@@ -147,7 +147,7 @@ export const DiscordBotConfig = () => {
               className="pr-20"
             />
             <div className="absolute right-1 top-1/2 -translate-y-1/2 flex gap-1">
-              <Button
+              <Button aria-label="Visualizar"
                 type="button"
                 variant="ghost"
                 size="icon"

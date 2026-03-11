@@ -104,7 +104,7 @@ export function SlideFullscreenViewer({
               <h3 className="text-lg font-semibold">{currentSlide?.title}</h3>
             </div>
             <div className="flex items-center gap-2">
-              <Button
+              <Button aria-label="Baixar"
                 variant="ghost"
                 size="icon"
                 className="text-white hover:bg-white/20"
@@ -113,7 +113,7 @@ export function SlideFullscreenViewer({
                 <Download className="h-5 w-5" />
               </Button>
               {onEditSlide && currentSlide && (
-                <Button
+                <Button aria-label="Ação"
                   variant="ghost"
                   size="icon"
                   className="text-white hover:bg-white/20"
@@ -125,7 +125,7 @@ export function SlideFullscreenViewer({
                   <Pencil className="h-5 w-5" />
                 </Button>
               )}
-              <Button
+              <Button aria-label="Ação"
                 variant="ghost"
                 size="icon"
                 className="text-white hover:bg-white/20"
@@ -148,7 +148,7 @@ export function SlideFullscreenViewer({
           </div>
 
           {/* Navigation arrows */}
-          <Button
+          <Button aria-label="Ação"
             variant="ghost"
             size="icon"
             className="absolute left-4 top-1/2 -translate-y-1/2 h-12 w-12 text-white hover:bg-white/20 rounded-full"
@@ -156,7 +156,7 @@ export function SlideFullscreenViewer({
           >
             <ChevronLeft className="h-8 w-8" />
           </Button>
-          <Button
+          <Button aria-label="Ação"
             variant="ghost"
             size="icon"
             className="absolute right-4 top-1/2 -translate-y-1/2 h-12 w-12 text-white hover:bg-white/20 rounded-full"

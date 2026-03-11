@@ -109,7 +109,7 @@ export function WhatsAppRealtimeAnalysisCard({
         </div>
 
         {/* Refresh */}
-        <Button 
+        <Button aria-label="Atualizar"
           variant="ghost" 
           size="icon" 
           className="h-6 w-6 ml-auto" 

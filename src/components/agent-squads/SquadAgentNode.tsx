@@ -43,7 +43,7 @@ export const SquadAgentNode = memo(({ id, data }: NodeProps) => {
             <Bot className="h-4 w-4 shrink-0" style={{ color: config.color }} />
             <span className="font-medium text-sm text-foreground truncate">{nodeData.label}</span>
           </div>
-          <Button
+          <Button aria-label="Editar"
             variant="ghost"
             size="icon"
             className="h-6 w-6 shrink-0"

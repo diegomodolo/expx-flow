@@ -117,7 +117,7 @@ export function ContentPlanList({ onSelectPlan, onCreateNew }: ContentPlanListPr
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button
+          <Button aria-label="Voltar"
             variant="ghost"
             size="icon"
             onClick={() => navigate("/geradores")}
@@ -285,7 +285,7 @@ export function ContentPlanList({ onSelectPlan, onCreateNew }: ContentPlanListPr
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
-                      <Button
+                      <Button aria-label="Editar"
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8"
@@ -296,7 +296,7 @@ export function ContentPlanList({ onSelectPlan, onCreateNew }: ContentPlanListPr
                       >
                         <Edit className="w-4 h-4" />
                       </Button>
-                      <Button
+                      <Button aria-label="Excluir"
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 text-destructive hover:text-destructive"

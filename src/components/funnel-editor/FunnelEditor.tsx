@@ -331,7 +331,7 @@ function FunnelEditorContent() {
       {/* Header */}
       <div className="border-b bg-card px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/editor-funil")}>
+          <Button aria-label="Ação" variant="ghost" size="icon" onClick={() => navigate("/editor-funil")}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
@@ -347,10 +347,10 @@ function FunnelEditorContent() {
                   }}
                   className="h-8 text-lg font-semibold"
                 />
-                <Button size="icon" variant="ghost" onClick={handleSaveName}>
+                <Button aria-label="Ação" size="icon" variant="ghost" onClick={handleSaveName}>
                   <Check className="h-4 w-4" />
                 </Button>
-                <Button size="icon" variant="ghost" onClick={handleCancelEditingName}>
+                <Button aria-label="Ação" size="icon" variant="ghost" onClick={handleCancelEditingName}>
                   <X className="h-4 w-4" />
                 </Button>
               </div>
@@ -377,7 +377,7 @@ function FunnelEditorContent() {
             )}
             Salvar
           </Button>
-          <Button variant="outline" size="icon" onClick={toggleFullscreen}>
+          <Button aria-label="Ação" variant="outline" size="icon" onClick={toggleFullscreen}>
             <Maximize2 className="h-4 w-4" />
           </Button>
         </div>

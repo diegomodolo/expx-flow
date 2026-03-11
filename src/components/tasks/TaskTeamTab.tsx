@@ -71,7 +71,7 @@ function MemberCard({ member, onRemove }: {
           <span className={config.color}>{config.label}</span>
         </div>
       </div>
-      <Button
+      <Button aria-label="Fechar"
         variant="ghost"
         size="icon"
         className="h-6 w-6 text-destructive hover:text-destructive shrink-0"

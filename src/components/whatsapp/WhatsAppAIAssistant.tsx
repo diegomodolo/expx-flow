@@ -480,7 +480,7 @@ Siga as instruções do atendente para ajustar a resposta.`;
             </Button>
           )}
           {!forceRealtimeAnalysis && (
-            <Button variant="ghost" size="icon" onClick={onClose}>
+            <Button aria-label="Fechar" variant="ghost" size="icon" onClick={onClose}>
               <X className="h-4 w-4" />
             </Button>
           )}
@@ -659,7 +659,7 @@ Siga as instruções do atendente para ajustar a resposta.`;
             disabled={isGenerating}
             className="text-sm"
           />
-          <Button
+          <Button aria-label="Enviar"
             onClick={handleSend}
             disabled={!input.trim() || isGenerating}
             size="icon"

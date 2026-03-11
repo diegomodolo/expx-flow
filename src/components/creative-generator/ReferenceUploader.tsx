@@ -238,7 +238,7 @@ export function ReferenceUploader({ references, onReferencesChange, clientId }: 
                       alt={`Referência ${index + 1}`}
                       className="w-full h-full object-cover"
                     />
-                    <Button
+                    <Button aria-label="Avançar"
                       variant="destructive"
                       size="icon"
                       className="absolute top-2 right-2 w-6 h-6"

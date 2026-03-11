@@ -398,10 +398,10 @@ export function InstagramKeywordAutomation() {
                       checked={trigger.is_active}
                       onCheckedChange={(checked) => toggleTrigger.mutate({ id: trigger.id, is_active: checked })}
                     />
-                    <Button variant="ghost" size="icon" onClick={() => openEditTrigger(trigger)}>
+                    <Button aria-label="Editar" variant="ghost" size="icon" onClick={() => openEditTrigger(trigger)}>
                       <Pencil className="w-4 h-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={() => deleteTrigger.mutate(trigger.id)}>
+                    <Button aria-label="Excluir" variant="ghost" size="icon" onClick={() => deleteTrigger.mutate(trigger.id)}>
                       <Trash2 className="w-4 h-4 text-destructive" />
                     </Button>
                   </div>

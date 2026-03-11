@@ -255,7 +255,7 @@ export const ApiKeysSettings = () => {
                         <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
                           {showKeys[key.id] ? key.api_key : maskApiKey(key.api_key)}
                         </code>
-                        <Button
+                        <Button aria-label="Visualizar"
                           size="icon"
                           variant="ghost"
                           className="h-6 w-6"
@@ -267,7 +267,7 @@ export const ApiKeysSettings = () => {
                             <Eye className="h-3 w-3" />
                           )}
                         </Button>
-                        <Button
+                        <Button aria-label="Copiar"
                           size="icon"
                           variant="ghost"
                           className="h-6 w-6"
@@ -299,7 +299,7 @@ export const ApiKeysSettings = () => {
                     <TableCell className="text-right">
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive">
+                          <Button aria-label="Excluir" size="icon" variant="ghost" className="h-8 w-8 text-destructive">
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </AlertDialogTrigger>

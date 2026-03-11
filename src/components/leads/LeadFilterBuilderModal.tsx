@@ -439,7 +439,7 @@ export const LeadFilterBuilderModal = ({ open, onOpenChange, filter, companyId }
                           )}
                         </div>
 
-                        <Button
+                        <Button aria-label="Excluir"
                           variant="ghost"
                           size="icon"
                           onClick={() => removeCondition(condition.id)}

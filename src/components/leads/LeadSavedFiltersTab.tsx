@@ -208,7 +208,7 @@ export const LeadSavedFiltersTab = ({ companyId }: LeadSavedFiltersTabProps) => 
                           <Eye className="h-4 w-4 mr-1" />
                           Ver Resultados
                         </Button>
-                        <Button
+                        <Button aria-label="Ação"
                           variant="ghost"
                           size="icon"
                           onClick={() => toggleFavoriteMutation.mutate({ 
@@ -222,14 +222,14 @@ export const LeadSavedFiltersTab = ({ companyId }: LeadSavedFiltersTabProps) => 
                             <Star className="h-4 w-4" />
                           )}
                         </Button>
-                        <Button
+                        <Button aria-label="Editar"
                           variant="ghost"
                           size="icon"
                           onClick={() => handleEdit(filter)}
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button
+                        <Button aria-label="Excluir"
                           variant="ghost"
                           size="icon"
                           onClick={() => handleDelete(filter.id)}

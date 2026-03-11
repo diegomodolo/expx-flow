@@ -181,7 +181,7 @@ export const LeadFilterResultsView = ({ filter, onBack }: Props) => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={onBack}>
+        <Button aria-label="Voltar" variant="ghost" size="icon" onClick={onBack}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>

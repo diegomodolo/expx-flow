@@ -314,7 +314,7 @@ export function WhatsAppMessageBubble({ message, allMessages, contactName, insta
         <div className="flex items-center gap-1 mr-1 opacity-0 group-hover:opacity-100 transition-opacity">
           {/* Reply button */}
           {onReply && (
-            <Button
+            <Button aria-label="Ação"
               variant="ghost"
               size="icon"
               className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted"
@@ -328,7 +328,7 @@ export function WhatsAppMessageBubble({ message, allMessages, contactName, insta
           {/* Delete button */}
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button
+              <Button aria-label="Ação"
                 variant="ghost"
                 size="icon"
                 className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
@@ -365,7 +365,7 @@ export function WhatsAppMessageBubble({ message, allMessages, contactName, insta
 
           {/* Edit button - only for text messages with external_id */}
           {canEditMessage && (
-            <Button
+            <Button aria-label="Ação"
               variant="ghost"
               size="icon"
               className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted"
@@ -402,7 +402,7 @@ export function WhatsAppMessageBubble({ message, allMessages, contactName, insta
         <div className="flex items-center gap-1 ml-1 opacity-0 group-hover:opacity-100 transition-opacity order-last">
           {/* Reply button */}
           {onReply && (
-            <Button
+            <Button aria-label="Ação"
               variant="ghost"
               size="icon"
               className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted"
@@ -623,7 +623,7 @@ export function WhatsAppMessageBubble({ message, allMessages, contactName, insta
         <div className="flex items-center gap-0.5 ml-1 opacity-0 group-hover:opacity-100 transition-opacity">
           {/* AI Assistant button */}
           {isTextMessage && onOpenAIAssistant && (
-            <Button
+            <Button aria-label="Ação"
               variant="ghost"
               size="icon"
               className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-primary/10"

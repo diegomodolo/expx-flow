@@ -89,7 +89,7 @@ export function UazapiConnectionCard({
               onChange={(e) => setAdmintoken(e.target.value)}
               className="pr-10"
             />
-            <Button
+            <Button aria-label="Avançar"
               type="button"
               variant="ghost"
               size="icon"
@@ -115,7 +115,7 @@ export function UazapiConnectionCard({
               onChange={(e) => setToken(e.target.value)}
               className="pr-10"
             />
-            <Button
+            <Button aria-label="Avançar"
               type="button"
               variant="ghost"
               size="icon"

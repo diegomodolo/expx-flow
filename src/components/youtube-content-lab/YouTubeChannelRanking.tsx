@@ -195,7 +195,7 @@ export function YouTubeChannelRanking({ videos, channels }: YouTubeChannelRankin
                 </div>
 
                 {ch.channelUrl && (
-                  <Button
+                  <Button aria-label="Fechar"
                     size="icon"
                     variant="ghost"
                     className="opacity-0 group-hover:opacity-100 transition-opacity"

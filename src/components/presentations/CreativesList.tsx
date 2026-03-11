@@ -171,14 +171,14 @@ export function CreativesList({ presentationId, onEdit }: CreativesListProps) {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <Button 
+                    <Button aria-label="Editar"
                       variant="ghost" 
                       size="icon"
                       onClick={() => onEdit(creative.id)}
                     >
                       <Pencil className="w-4 h-4" />
                     </Button>
-                    <Button 
+                    <Button aria-label="Excluir"
                       variant="ghost" 
                       size="icon"
                       onClick={() => setDeletingId(creative.id)}

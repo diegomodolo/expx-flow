@@ -159,7 +159,7 @@ export function TaskSubtasksTab({ taskId, onParentTypeChange }: TaskSubtasksTabP
           onChange={(e) => setNewTitle(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddSubtask())}
         />
-        <Button
+        <Button aria-label="Adicionar"
           variant="outline"
           size="icon"
           onClick={handleAddSubtask}

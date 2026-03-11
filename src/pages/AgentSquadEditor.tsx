@@ -306,7 +306,7 @@ function SquadEditorContent() {
       {/* Header */}
       <div className="border-b bg-card px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/ia/squads")}>
+          <Button aria-label="Voltar" variant="ghost" size="icon" onClick={() => navigate("/ia/squads")}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>

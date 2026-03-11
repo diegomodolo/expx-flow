@@ -48,7 +48,7 @@ export default function AgentEdit() {
     <DashboardLayout>
       <div className="space-y-6">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/ia/agents')}>
+          <Button aria-label="Voltar" variant="ghost" size="icon" onClick={() => navigate('/ia/agents')}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div>

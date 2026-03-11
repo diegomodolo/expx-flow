@@ -98,7 +98,7 @@ export function AgentCard({ agent, index }: AgentCardProps) {
       {hasPermission('editar-agentes') && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-            <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity">
+            <Button aria-label="Ação" variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity">
               <MoreVertical className="w-4 h-4" />
             </Button>
           </DropdownMenuTrigger>

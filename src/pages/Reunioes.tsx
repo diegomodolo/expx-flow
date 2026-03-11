@@ -235,7 +235,7 @@ export default function Reunioes() {
                     <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-1">
                         {meeting.meeting_uri && (
-                          <Button
+                          <Button aria-label="Ação"
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8"
@@ -246,7 +246,7 @@ export default function Reunioes() {
                           </Button>
                         )}
                         {meeting.meeting_uri && (
-                          <Button
+                          <Button aria-label="Ação"
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8"
@@ -257,7 +257,7 @@ export default function Reunioes() {
                           </Button>
                         )}
                         {meeting.status === 'completed' && meeting.transcript_status !== 'completed' && (
-                          <Button
+                          <Button aria-label="Ação"
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8"
@@ -269,7 +269,7 @@ export default function Reunioes() {
                           </Button>
                         )}
                         {meeting.transcript_status === 'completed' && !meeting.ai_summary && (
-                          <Button
+                          <Button aria-label="Ação"
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8"
@@ -280,7 +280,7 @@ export default function Reunioes() {
                             <Brain className={`h-3.5 w-3.5 ${processingId === meeting.id ? 'animate-spin' : ''}`} />
                           </Button>
                         )}
-                        <Button
+                        <Button aria-label="Ação"
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8"

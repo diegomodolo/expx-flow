@@ -986,7 +986,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
               <div className="flex items-center gap-1">
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={handleZoomOut} disabled={ZOOM_LEVELS.indexOf(zoomWidth) <= 0}>
+                    <Button aria-label="Diminuir zoom" variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={handleZoomOut} disabled={ZOOM_LEVELS.indexOf(zoomWidth) <= 0}>
                       <ZoomOut className="w-3.5 h-3.5" />
                     </Button>
                   </TooltipTrigger>
@@ -994,13 +994,13 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={handleZoomIn} disabled={ZOOM_LEVELS.indexOf(zoomWidth) >= ZOOM_LEVELS.length - 1}>
+                    <Button aria-label="Aumentar zoom" variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={handleZoomIn} disabled={ZOOM_LEVELS.indexOf(zoomWidth) >= ZOOM_LEVELS.length - 1}>
                       <ZoomIn className="w-3.5 h-3.5" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>Aumentar</TooltipContent>
                 </Tooltip>
-                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => onOpenChange(false)}>
+                <Button aria-label="Ação" variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => onOpenChange(false)}>
                   <X className="w-3.5 h-3.5" />
                 </Button>
               </div>
@@ -1602,7 +1602,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                           <span className={`text-sm flex-1 ${item.completed ? 'line-through text-muted-foreground' : ''}`}>
                             {item.text}
                           </span>
-                          <Button
+                          <Button aria-label="Ação"
                             variant="ghost"
                             size="icon"
                             className="h-7 w-7 text-destructive hover:text-destructive"
@@ -1620,7 +1620,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                         onChange={(e) => setNewChecklistItem(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addChecklistItem())}
                       />
-                      <Button variant="outline" size="icon" onClick={addChecklistItem}>
+                      <Button aria-label="Adicionar item" variant="outline" size="icon" onClick={addChecklistItem}>
                         <Plus className="w-4 h-4" />
                       </Button>
                     </div>

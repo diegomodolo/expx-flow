@@ -94,7 +94,7 @@ export function BacklogBucket({
           <TableCell onClick={(e) => e.stopPropagation()}>
             <div className={cn("flex items-center gap-1", isSubtask && "pl-6")}>
               {hasSubtasks && (
-                <Button
+                <Button aria-label="Fechar"
                   variant="ghost"
                   size="icon"
                   className="h-5 w-5 p-0 hover:bg-transparent"
@@ -206,7 +206,7 @@ export function BacklogBucket({
             )}
           </TableCell>
           <TableCell>
-            <Button
+            <Button aria-label="Editar"
               variant="ghost"
               size="icon"
               className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"

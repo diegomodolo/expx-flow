@@ -14,3 +14,8 @@
 
 **Learning:** Some status badges use light colors on white backgrounds with insufficient contrast ratio.
 **Action:** Ensure all text meets WCAG AA minimum contrast ratio of 4.5:1 for normal text.
+
+## 2026-03-11 - Bulk Accessibility Updates
+
+**Learning:** When generating images or having large amounts of components with `<Button size="icon">` or `<img>` it's common to miss `aria-label` or `alt` tags.
+**Action:** Use script-based automated updates for legacy codebase. Ensure all new components automatically include `aria-label` for icon-only buttons and descriptive `alt` for images in Brazilian Portuguese.

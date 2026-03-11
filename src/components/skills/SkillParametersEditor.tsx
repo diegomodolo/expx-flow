@@ -114,7 +114,7 @@ export function SkillParametersEditor({ toolParameters, onChange, label = "Parâ
                   />
                 </div>
               </div>
-              <Button variant="ghost" size="icon" className="mt-5" onClick={() => removeField(idx)}>
+              <Button aria-label="Excluir" variant="ghost" size="icon" className="mt-5" onClick={() => removeField(idx)}>
                 <Trash2 className="h-4 w-4 text-destructive" />
               </Button>
             </div>
