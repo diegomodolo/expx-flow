@@ -166,8 +166,9 @@ export function useTaskTimeTracking(taskId: string | null) {
       queryClient.invalidateQueries({ queryKey });
       toast({ title: 'Sessão adicionada' });
     },
-    onError: () => {
-      toast({ title: 'Erro ao adicionar sessão', variant: 'destructive' });
+    onError: (error: Error) => {
+      console.error('Erro ao adicionar sessão manual:', error);
+      toast({ title: 'Erro ao adicionar sessão', description: error.message, variant: 'destructive' });
     },
   });
 

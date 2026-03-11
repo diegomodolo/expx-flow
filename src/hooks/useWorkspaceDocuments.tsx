@@ -140,12 +140,14 @@ export function useWorkspaceDocuments(folderId?: string | null) {
 
   const deleteDocument = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('workspace_documents')
         .delete()
-        .eq('id', id);
-      
+        .eq('id', id)
+        .select('id');
+
       if (error) throw error;
+      if (!data || data.length === 0) throw new Error('Sem permissão para excluir este documento');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workspace-documents'] });
