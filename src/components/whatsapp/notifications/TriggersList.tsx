@@ -172,10 +172,10 @@ export function TriggersList({
                           onToggleTrigger({ triggerId: trigger.id, isActive: checked })
                         }
                       />
-                      <Button variant="ghost" size="icon" onClick={() => handleEdit(trigger)}>
+                      <Button aria-label="Editar" variant="ghost" size="icon" onClick={() => handleEdit(trigger)}>
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button 
+                      <Button aria-label="Excluir"
                         variant="ghost" 
                         size="icon" 
                         onClick={() => setDeleteTriggerId(trigger.id)}

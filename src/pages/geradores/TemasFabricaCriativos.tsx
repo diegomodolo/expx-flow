@@ -143,7 +143,7 @@ export default function TemasFabricaCriativos() {
             allOptionLabel="Todos os clientes"
             className="w-56"
           />
-          <Button variant="outline" size="icon" onClick={() => refetch()}>
+          <Button aria-label="Atualizar" variant="outline" size="icon" onClick={() => refetch()}>
             <RefreshCw className="h-4 w-4" />
           </Button>
         </div>
@@ -171,7 +171,7 @@ export default function TemasFabricaCriativos() {
                       {insight.clients?.name} • {insight.clients?.company}
                     </p>
                   </div>
-                  <Button
+                  <Button aria-label="Fechar"
                     variant="ghost"
                     size="icon"
                     className="shrink-0"

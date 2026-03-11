@@ -167,7 +167,7 @@ export function WordpressAutoPostsManager({ configId, companyId }: WordpressAuto
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/automatizadores/wordpress')}>
+          <Button aria-label="Voltar" variant="ghost" size="icon" onClick={() => navigate('/automatizadores/wordpress')}>
             <ChevronLeft className="w-5 h-5" />
           </Button>
           <div>
@@ -534,7 +534,7 @@ export function WordpressAutoPostsManager({ configId, companyId }: WordpressAuto
                         </p>
                       </div>
                       <div className="flex gap-1">
-                        <Button
+                        <Button aria-label="Excluir"
                           variant="ghost"
                           size="icon"
                           onClick={() => deletePost(post.id)}
@@ -566,7 +566,7 @@ export function WordpressAutoPostsManager({ configId, companyId }: WordpressAuto
                         </p>
                       </div>
                       {post.wordpress_post_url && (
-                        <Button
+                        <Button aria-label="Fechar"
                           variant="ghost"
                           size="icon"
                           onClick={() => window.open(post.wordpress_post_url!, '_blank')}

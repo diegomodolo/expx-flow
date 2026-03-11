@@ -121,7 +121,7 @@ export function KnowledgeDocumentsManager({ agentId }: KnowledgeDocumentsManager
                 </div>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button type="button" variant="ghost" size="icon" className="flex-shrink-0">
+                    <Button aria-label="Excluir" type="button" variant="ghost" size="icon" className="flex-shrink-0">
                       <Trash2 className="w-4 h-4 text-destructive" />
                     </Button>
                   </AlertDialogTrigger>

@@ -149,7 +149,7 @@ export const CustomNode = memo(({ id, data }: NodeProps) => {
               {nodeData.label}
             </span>
           </div>
-          <Button
+          <Button aria-label="Editar"
             variant="ghost"
             size="icon"
             className="h-6 w-6 shrink-0"

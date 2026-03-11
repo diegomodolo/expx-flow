@@ -288,7 +288,7 @@ const Squad = () => {
                             <div className="flex items-center justify-end gap-1">
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <Button
+                                  <Button aria-label="Fechar"
                                     variant="ghost"
                                     size="icon"
                                     className="h-8 w-8"
@@ -304,7 +304,7 @@ const Squad = () => {
                               </Tooltip>
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <Button
+                                  <Button aria-label="Editar"
                                     variant="ghost"
                                     size="icon"
                                     className="h-8 w-8"
@@ -321,7 +321,7 @@ const Squad = () => {
                               </Tooltip>
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <Button
+                                  <Button aria-label="Excluir"
                                     variant="ghost"
                                     size="icon"
                                     className="h-8 w-8 text-destructive hover:text-destructive"

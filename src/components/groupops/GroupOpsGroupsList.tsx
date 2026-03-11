@@ -592,7 +592,7 @@ export default function GroupOpsGroupsList() {
                   <Button size="icon" variant="ghost" title="Sincronizar histórico" onClick={() => setSyncGroup(group)}>
                     <History className="h-4 w-4" />
                   </Button>
-                  <Button size="icon" variant="ghost" onClick={() => { setEditGroup(group); setConfigOpen(true); }}>
+                  <Button aria-label="Editar" size="icon" variant="ghost" onClick={() => { setEditGroup(group); setConfigOpen(true); }}>
                     <Settings className="h-4 w-4" />
                   </Button>
                   <AlertDialog>

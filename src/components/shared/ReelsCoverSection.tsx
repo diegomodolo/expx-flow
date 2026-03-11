@@ -99,7 +99,7 @@ export function ReelsCoverSection({
                 className="w-full h-full object-cover"
               />
             </div>
-            <Button
+            <Button aria-label="Avançar"
               variant="destructive"
               size="icon"
               className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"

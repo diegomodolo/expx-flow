@@ -57,7 +57,7 @@ export function SquadAgentLibrary({ clientId, onDragStart }: SquadAgentLibraryPr
             <h3 className="font-semibold text-sm">Agentes Disponíveis</h3>
             <p className="text-xs text-muted-foreground mt-1">Arraste para o canvas</p>
           </div>
-          <Button
+          <Button aria-label="Adicionar"
             variant="outline"
             size="icon"
             className="h-8 w-8 shrink-0"

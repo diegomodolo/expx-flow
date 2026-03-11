@@ -120,7 +120,7 @@ export function GeneratedCarouselPreview({
 
   return (
     <Card className="relative">
-      <Button
+      <Button aria-label="Fechar"
         variant="ghost"
         size="icon"
         className="absolute top-2 right-2 h-7 w-7 z-10"
@@ -182,7 +182,7 @@ export function GeneratedCarouselPreview({
               {/* Navigation arrows */}
               {carousel.slides.length > 1 && (
                 <>
-                  <Button
+                  <Button aria-label="Voltar"
                     variant="secondary"
                     size="icon"
                     className="absolute left-1.5 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full shadow-md bg-white/90 hover:bg-white"
@@ -190,7 +190,7 @@ export function GeneratedCarouselPreview({
                   >
                     <ChevronLeft className="h-3 w-3 text-black" />
                   </Button>
-                  <Button
+                  <Button aria-label="Avançar"
                     variant="secondary"
                     size="icon"
                     className="absolute right-1.5 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full shadow-md bg-white/90 hover:bg-white"
@@ -273,7 +273,7 @@ export function GeneratedCarouselPreview({
                 {/* Navigation for preview */}
                 {carousel.slides.length > 1 && (
                   <>
-                    <Button
+                    <Button aria-label="Voltar"
                       variant="secondary"
                       size="icon"
                       className="absolute left-2 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full shadow-lg z-10"
@@ -283,7 +283,7 @@ export function GeneratedCarouselPreview({
                     >
                       <ChevronLeft className="h-5 w-5" />
                     </Button>
-                    <Button
+                    <Button aria-label="Avançar"
                       variant="secondary"
                       size="icon"
                       className="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full shadow-lg z-10"

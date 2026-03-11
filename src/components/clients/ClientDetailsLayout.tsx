@@ -268,7 +268,7 @@ export function ClientDetailsLayout({ children, clientId, clientName, dashboardT
               <p className="font-medium truncate flex-1" title={clientName}>
                 {clientName}
               </p>
-              <Button
+              <Button aria-label="Voltar"
                 variant="ghost"
                 size="icon"
                 className="h-7 w-7 shrink-0"
@@ -277,7 +277,7 @@ export function ClientDetailsLayout({ children, clientId, clientName, dashboardT
               >
                 <ArrowLeftRight className="h-4 w-4" />
               </Button>
-              <Button
+              <Button aria-label="Editar"
                 variant="ghost"
                 size="icon"
                 className="h-7 w-7 shrink-0"

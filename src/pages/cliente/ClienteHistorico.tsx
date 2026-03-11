@@ -171,7 +171,7 @@ export function ClienteHistorico() {
                           {isOwner && (
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
-                                <Button
+                                <Button aria-label="Excluir"
                                   variant="ghost"
                                   size="icon"
                                   className="h-8 w-8 shrink-0"

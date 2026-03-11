@@ -102,7 +102,7 @@ export function SuspiciousUrlsCard({
                           </p>
                         </div>
                         <div className="flex items-center shrink-0">
-                          <Button
+                          <Button aria-label="Buscar"
                             variant="ghost"
                             size="icon"
                             className="h-5 w-5"
@@ -114,7 +114,7 @@ export function SuspiciousUrlsCard({
                           >
                             <Search className={`h-2.5 w-2.5 ${isAnalyzing ? 'animate-pulse' : ''}`} />
                           </Button>
-                          <Button
+                          <Button aria-label="Fechar"
                             variant="ghost"
                             size="icon"
                             className="h-5 w-5"

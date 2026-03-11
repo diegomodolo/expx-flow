@@ -119,7 +119,7 @@ export function DashboardHeader() {
           <NotificationCenter />
 
           {/* Workspace Quick Access */}
-          <Button
+          <Button aria-label="Fechar"
             variant="ghost"
             size="icon"
             onClick={() => navigate('/workspace')}
@@ -131,7 +131,7 @@ export function DashboardHeader() {
 
           {/* WhatsApp Chat - Only show if user has instances assigned */}
           {hasWhatsAppInstances && (
-            <Button
+            <Button aria-label="Fechar"
               variant="ghost"
               size="icon"
               onClick={() => setIsWhatsAppOpen(true)}

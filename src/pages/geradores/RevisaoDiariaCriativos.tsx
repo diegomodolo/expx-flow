@@ -161,7 +161,7 @@ export default function RevisaoDiariaCriativos() {
             allOptionLabel="Todos os clientes"
             className="w-56"
           />
-          <Button variant="outline" size="icon" onClick={() => refetch()}>
+          <Button aria-label="Atualizar" variant="outline" size="icon" onClick={() => refetch()}>
             <RefreshCw className="h-4 w-4" />
           </Button>
         </div>

@@ -303,13 +303,13 @@ const Agendamento = () => {
               {/* Calendar */}
               <Card className="lg:col-span-2">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
+                  <Button aria-label="Voltar" variant="ghost" size="icon" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
                   <CardTitle className="text-lg">
                     {format(currentMonth, 'MMMM yyyy', { locale: ptBR })}
                   </CardTitle>
-                  <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
+                  <Button aria-label="Avançar" variant="ghost" size="icon" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </CardHeader>
