@@ -53,7 +53,7 @@ export function AdReviewGrid({
 
   const handleApproveClick = (ad: GeneratedAdType) => {
     if (!clientId || !companyId) {
-      toast.error('Selecione um cliente primeiro');
+      toast.error("Selecione um cliente primeiro");
       return;
     }
     setSelectedAd(ad);
@@ -70,29 +70,34 @@ export function AdReviewGrid({
   const handleViewDetails = (ad: GeneratedAdType) => {
     // Now uses the same modal as approve
     if (!clientId || !companyId) {
-      toast.error('Selecione um cliente primeiro');
+      toast.error("Selecione um cliente primeiro");
       return;
     }
     setSelectedAd(ad);
     setDialogOpen(true);
   };
 
-  const handleApproveAndPublish = async (destinations: SelectedDestination[], adConfig: AdConfig) => {
+  const handleApproveAndPublish = async (
+    destinations: SelectedDestination[],
+    adConfig: AdConfig,
+  ) => {
     if (!selectedAd || !clientId || !companyId) return;
 
-
-    const { data, error } = await supabase.functions.invoke('publish-approved-ads', {
-      body: {
-        client_id: clientId,
-        company_id: companyId,
-        ad_id: selectedAd.id,
-        destinations,
-        ad_config: adConfig,
+    const { data, error } = await supabase.functions.invoke(
+      "publish-approved-ads",
+      {
+        body: {
+          client_id: clientId,
+          company_id: companyId,
+          ad_id: selectedAd.id,
+          destinations,
+          ad_config: adConfig,
+        },
       },
-    });
+    );
 
     if (error) {
-      console.error('[AdReviewGrid] Publish error:', error);
+      console.error("[AdReviewGrid] Publish error:", error);
       throw new Error(error.message);
     }
 
@@ -106,7 +111,7 @@ export function AdReviewGrid({
         toast.warning(`${data.failed} destino(s) falharam`);
       }
     } else {
-      toast.error('Nenhum anúncio foi publicado');
+      toast.error("Nenhum anúncio foi publicado");
     }
 
     // Refresh the list
@@ -136,7 +141,8 @@ export function AdReviewGrid({
           Nenhum anúncio encontrado
         </h3>
         <p className="text-muted-foreground max-w-md">
-          Clique em "Gerar Anúncios" para criar novos anúncios com IA ou ajuste os filtros.
+          Clique em "Gerar Anúncios" para criar novos anúncios com IA ou ajuste
+          os filtros.
         </p>
       </div>
     );
@@ -162,7 +168,7 @@ export function AdReviewGrid({
         <ApprovalDestinationDialogV2
           open={dialogOpen}
           onOpenChange={handleDialogClose}
-          adId={selectedAd?.id || ''}
+          adId={selectedAd?.id || ""}
           clientId={clientId}
           companyId={companyId}
           defaultCampaignId={defaultCampaignId}

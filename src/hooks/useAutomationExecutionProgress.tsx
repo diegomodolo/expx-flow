@@ -23,22 +23,21 @@ interface ExecutionProgress {
 
 export function useAutomationExecutionProgress(executionId?: string | null) {
   return useQuery({
-    queryKey: ['automation-execution-progress', executionId],
+    queryKey: ["automation-execution-progress", executionId],
     queryFn: async () => {
       if (!executionId) return [];
 
-
       const { data, error } = await supabase
-        .from('automation_execution_progress')
-        .select('*')
-        .eq('execution_id', executionId)
-        .order('created_at', { ascending: true });
+        .from("automation_execution_progress")
+        .select("*")
+        .eq("execution_id", executionId)
+        .order("created_at", { ascending: true });
 
       if (error) {
-        console.error('Error fetching execution progress:', error);
+        console.error("Error fetching execution progress:", error);
         throw error;
       }
-      
+
       return data as ExecutionProgress[];
     },
     enabled: !!executionId,

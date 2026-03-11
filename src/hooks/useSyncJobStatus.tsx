@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useState, useEffect, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface SyncJobProgress {
   campaigns: { current: number; total: number };
@@ -10,7 +10,7 @@ export interface SyncJobProgress {
 
 export interface SyncJob {
   id: string;
-  status: 'pending' | 'processing' | 'completed' | 'error';
+  status: "pending" | "processing" | "completed" | "error";
   progress: SyncJobProgress;
   error_message: string | null;
   started_at: string | null;
@@ -33,13 +33,13 @@ export const useSyncJobStatus = (jobId: string | null) => {
     // Initial fetch
     const fetchJobStatus = async () => {
       const { data, error } = await supabase
-        .from('sync_jobs')
-        .select('*')
-        .eq('id', jobId)
+        .from("sync_jobs")
+        .select("*")
+        .eq("id", jobId)
         .single();
 
       if (error) {
-        console.error('Error fetching sync job:', error);
+        console.error("Error fetching sync job:", error);
         setLoading(false);
         return;
       }
@@ -54,19 +54,18 @@ export const useSyncJobStatus = (jobId: string | null) => {
     const channel = supabase
       .channel(`sync-job-${jobId}`)
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'sync_jobs',
-          filter: `id=eq.${jobId}`
+          event: "UPDATE",
+          schema: "public",
+          table: "sync_jobs",
+          filter: `id=eq.${jobId}`,
         },
         (payload) => {
           setJob(payload.new as unknown as SyncJob);
-        }
+        },
       )
-      .subscribe((status) => {
-      });
+      .subscribe((status) => {});
 
     // Cleanup subscription on unmount or jobId change
     return () => {
@@ -78,11 +77,11 @@ export const useSyncJobStatus = (jobId: string | null) => {
     if (!job || !job.progress) return 0;
 
     const { campaigns, adsets, ads } = job.progress;
-    
+
     const campaignsTotal = campaigns?.total || 0;
     const adsetsTotal = adsets?.total || 0;
     const adsTotal = ads?.total || 0;
-    
+
     const total = campaignsTotal + adsetsTotal + adsTotal;
     if (total === 0) return 0;
 
@@ -98,9 +97,9 @@ export const useSyncJobStatus = (jobId: string | null) => {
     job,
     loading,
     progressPercentage: getProgressPercentage(),
-    isComplete: job?.status === 'completed',
-    isError: job?.status === 'error',
-    isProcessing: job?.status === 'processing' || job?.status === 'pending',
-    currentEntity: job?.progress?.current_entity || ''
+    isComplete: job?.status === "completed",
+    isError: job?.status === "error",
+    isProcessing: job?.status === "processing" || job?.status === "pending",
+    currentEntity: job?.progress?.current_entity || "",
   };
 };

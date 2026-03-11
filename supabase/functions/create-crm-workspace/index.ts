@@ -192,14 +192,12 @@ Deno.serve(async (req) => {
       },
     ];
 
-    const { error: stagesError } = await supabase
-      .from("crm_stages")
-      .insert(
-        defaultStages.map((stage) => ({
-          ...stage,
-          workspace_id: workspace.id,
-        })),
-      );
+    const { error: stagesError } = await supabase.from("crm_stages").insert(
+      defaultStages.map((stage) => ({
+        ...stage,
+        workspace_id: workspace.id,
+      })),
+    );
 
     if (stagesError) {
       console.error(

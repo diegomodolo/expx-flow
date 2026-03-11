@@ -14,11 +14,23 @@ import { CSTVMessageVolume } from "@/components/cs-tv-dashboard/CSTVMessageVolum
 import { CSTVSentimentVolume } from "@/components/cs-tv-dashboard/CSTVSentimentVolume";
 import { CSTVResponseTimeBreakdown } from "@/components/cs-tv-dashboard/CSTVResponseTimeBreakdown";
 import { CSTVControls } from "@/components/cs-tv-dashboard/CSTVControls";
-import { CSTVCriticalAlertOverlay, CriticalAlert } from "@/components/cs-tv-dashboard/CSTVCriticalAlertOverlay";
-import { CSTVCelebrationOverlay, CelebrationAlert } from "@/components/cs-tv-dashboard/CSTVCelebrationOverlay";
-import { CSTVDailyRankingOverlay, RankingAttendant } from "@/components/cs-tv-dashboard/CSTVDailyRankingOverlay";
+import {
+  CSTVCriticalAlertOverlay,
+  CriticalAlert,
+} from "@/components/cs-tv-dashboard/CSTVCriticalAlertOverlay";
+import {
+  CSTVCelebrationOverlay,
+  CelebrationAlert,
+} from "@/components/cs-tv-dashboard/CSTVCelebrationOverlay";
+import {
+  CSTVDailyRankingOverlay,
+  RankingAttendant,
+} from "@/components/cs-tv-dashboard/CSTVDailyRankingOverlay";
 import { supabasePublic } from "@/integrations/supabase/publicClient";
-import { useCSTVRealtimeAlerts, useMarkAlertAsDisplayed } from "@/hooks/useCSTVRealtimeAlerts";
+import {
+  useCSTVRealtimeAlerts,
+  useMarkAlertAsDisplayed,
+} from "@/hooks/useCSTVRealtimeAlerts";
 import { useCSTVDailyRanking } from "@/hooks/useCSTVDailyRanking";
 
 interface AttendantPerformance {
@@ -126,82 +138,88 @@ interface CSTVDashboardData {
 export default function DashboardCSTVPublic() {
   const { token } = useParams<{ token: string }>();
   const [refreshInterval, setRefreshInterval] = useState(() => {
-    const saved = localStorage.getItem('cs-tv-refresh-interval');
+    const saved = localStorage.getItem("cs-tv-refresh-interval");
     return saved ? parseInt(saved) : 300000; // 5 minutes default
   });
   const [zoom, setZoom] = useState(() => {
-    const saved = localStorage.getItem('cs-tv-zoom');
+    const saved = localStorage.getItem("cs-tv-zoom");
     return saved ? parseInt(saved) : 100;
   });
   const [rotation, setRotation] = useState(() => {
-    const saved = localStorage.getItem('cs-tv-rotation');
+    const saved = localStorage.getItem("cs-tv-rotation");
     return saved ? parseInt(saved) : 0;
   });
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   // Track company ID for realtime subscription
   const [companyId, setCompanyId] = useState<string | null>(null);
-  
+
   // Active alerts state (no localStorage, uses database persistence via useCSTVRealtimeAlerts)
   const [activeAlerts, setActiveAlerts] = useState<CriticalAlert[]>([]);
-  const [activeCelebrations, setActiveCelebrations] = useState<CelebrationAlert[]>([]);
-  
+  const [activeCelebrations, setActiveCelebrations] = useState<
+    CelebrationAlert[]
+  >([]);
+
   // Daily ranking state
   const [showDailyRanking, setShowDailyRanking] = useState(false);
-  
+
   // Track IDs of alerts currently being displayed (to avoid duplicates from periodic fetch)
   const displayedAlertIdsRef = useRef<Set<string>>(new Set());
   const displayedCelebrationIdsRef = useRef<Set<string>>(new Set());
-  
+
   // Helper hook to mark alerts as displayed in the database
   const { markAsDisplayed } = useMarkAlertAsDisplayed();
 
   const handleZoomChange = (newZoom: number) => {
     setZoom(newZoom);
-    localStorage.setItem('cs-tv-zoom', newZoom.toString());
+    localStorage.setItem("cs-tv-zoom", newZoom.toString());
   };
 
   const handleRotationChange = (newRotation: number) => {
     setRotation(newRotation);
-    localStorage.setItem('cs-tv-rotation', newRotation.toString());
+    localStorage.setItem("cs-tv-rotation", newRotation.toString());
   };
 
-  const { data, isLoading, error, refetch, isFetching } = useQuery<CSTVDashboardData>({
-    queryKey: ['cs-tv-dashboard', token, selectedDate?.toISOString()],
-    queryFn: async () => {
-      const body: { token: string; date?: string } = { token: token! };
-      
-      // If a date is selected, send it to the API
-      if (selectedDate) {
-        body.date = selectedDate.toISOString().split('T')[0]; // YYYY-MM-DD format
-      }
-      
-      const { data, error } = await supabasePublic.functions.invoke('cs-tv-dashboard-data', {
-        body,
-      });
+  const { data, isLoading, error, refetch, isFetching } =
+    useQuery<CSTVDashboardData>({
+      queryKey: ["cs-tv-dashboard", token, selectedDate?.toISOString()],
+      queryFn: async () => {
+        const body: { token: string; date?: string } = { token: token! };
 
-      if (error) {
-        let message = error.message || 'Erro ao carregar dados';
-
-        const ctx = (error as unknown)?.context;
-        if (ctx) {
-          try {
-            const errorData = await ctx.json();
-            message = errorData?.error || message;
-          } catch {
-            // ignore parse errors
-          }
+        // If a date is selected, send it to the API
+        if (selectedDate) {
+          body.date = selectedDate.toISOString().split("T")[0]; // YYYY-MM-DD format
         }
 
-        throw new Error(message);
-      }
+        const { data, error } = await supabasePublic.functions.invoke(
+          "cs-tv-dashboard-data",
+          {
+            body,
+          },
+        );
 
-      return data as CSTVDashboardData;
-    },
-    enabled: !!token,
-    refetchInterval: selectedDate ? false : refreshInterval, // Disable auto-refresh when viewing historical data
-    staleTime: 60000,
-  });
+        if (error) {
+          let message = error.message || "Erro ao carregar dados";
+
+          const ctx = (error as unknown)?.context;
+          if (ctx) {
+            try {
+              const errorData = await ctx.json();
+              message = errorData?.error || message;
+            } catch {
+              // ignore parse errors
+            }
+          }
+
+          throw new Error(message);
+        }
+
+        return data as CSTVDashboardData;
+      },
+      enabled: !!token,
+      refetchInterval: selectedDate ? false : refreshInterval, // Disable auto-refresh when viewing historical data
+      staleTime: 60000,
+    });
 
   // Extract company ID from the data response
   useEffect(() => {
@@ -215,16 +233,16 @@ export default function DashboardCSTVPublic() {
     token: token || "",
     companyId,
     onNewCriticalAlert: useCallback((alert: CriticalAlert) => {
-      setActiveAlerts(prev => {
+      setActiveAlerts((prev) => {
         // Avoid duplicates
-        if (prev.some(a => a.id === alert.id)) return prev;
+        if (prev.some((a) => a.id === alert.id)) return prev;
         return [...prev, alert];
       });
     }, []),
     onNewCelebrationAlert: useCallback((alert: CelebrationAlert) => {
-      setActiveCelebrations(prev => {
+      setActiveCelebrations((prev) => {
         // Avoid duplicates
-        if (prev.some(a => a.id === alert.id)) return prev;
+        if (prev.some((a) => a.id === alert.id)) return prev;
         return [...prev, alert];
       });
     }, []),
@@ -235,16 +253,15 @@ export default function DashboardCSTVPublic() {
   useEffect(() => {
     if (!data?.recentCriticalAlerts || !companyId) return;
 
-    const newAlerts = data.recentCriticalAlerts.filter(alert => {
+    const newAlerts = data.recentCriticalAlerts.filter((alert) => {
       // Skip if already displayed in this session
       if (displayedAlertIdsRef.current.has(alert.id)) return false;
       // Skip if already active
-      if (activeAlerts.some(a => a.id === alert.id)) return false;
+      if (activeAlerts.some((a) => a.id === alert.id)) return false;
       return true;
     });
 
     if (newAlerts.length > 0) {
-
       // Mark them as displayed in the database and add to active
       newAlerts.forEach(async (alert) => {
         displayedAlertIdsRef.current.add(alert.id);
@@ -255,10 +272,10 @@ export default function DashboardCSTVPublic() {
           attendantName: alert.attendantName || undefined,
         });
       });
-      
-      setActiveAlerts(prev => {
-        const existingIds = new Set(prev.map(a => a.id));
-        const trulyNew = newAlerts.filter(a => !existingIds.has(a.id));
+
+      setActiveAlerts((prev) => {
+        const existingIds = new Set(prev.map((a) => a.id));
+        const trulyNew = newAlerts.filter((a) => !existingIds.has(a.id));
         return trulyNew.length > 0 ? [...prev, ...trulyNew] : prev;
       });
     }
@@ -268,14 +285,13 @@ export default function DashboardCSTVPublic() {
   useEffect(() => {
     if (!data?.recentCelebrationAlerts || !companyId) return;
 
-    const newCelebrations = data.recentCelebrationAlerts.filter(alert => {
+    const newCelebrations = data.recentCelebrationAlerts.filter((alert) => {
       if (displayedCelebrationIdsRef.current.has(alert.id)) return false;
-      if (activeCelebrations.some(a => a.id === alert.id)) return false;
+      if (activeCelebrations.some((a) => a.id === alert.id)) return false;
       return true;
     });
 
     if (newCelebrations.length > 0) {
-
       newCelebrations.forEach(async (alert) => {
         displayedCelebrationIdsRef.current.add(alert.id);
         await markAsDisplayed(companyId, alert.id, "celebration", {
@@ -285,32 +301,39 @@ export default function DashboardCSTVPublic() {
           attendantName: alert.attendantName || undefined,
         });
       });
-      
-      setActiveCelebrations(prev => {
-        const existingIds = new Set(prev.map(a => a.id));
-        const trulyNew = newCelebrations.filter(a => !existingIds.has(a.id));
+
+      setActiveCelebrations((prev) => {
+        const existingIds = new Set(prev.map((a) => a.id));
+        const trulyNew = newCelebrations.filter((a) => !existingIds.has(a.id));
         return trulyNew.length > 0 ? [...prev, ...trulyNew] : prev;
       });
     }
-  }, [data?.recentCelebrationAlerts, companyId, activeCelebrations, markAsDisplayed]);
+  }, [
+    data?.recentCelebrationAlerts,
+    companyId,
+    activeCelebrations,
+    markAsDisplayed,
+  ]);
 
   const handleDismissAlert = useCallback((alertId: string) => {
-    setActiveAlerts(prev => prev.filter(a => a.id !== alertId));
+    setActiveAlerts((prev) => prev.filter((a) => a.id !== alertId));
     displayedAlertIdsRef.current.add(alertId);
   }, []);
 
   const handleDismissAllAlerts = useCallback(() => {
-    activeAlerts.forEach(a => displayedAlertIdsRef.current.add(a.id));
+    activeAlerts.forEach((a) => displayedAlertIdsRef.current.add(a.id));
     setActiveAlerts([]);
   }, [activeAlerts]);
 
   const handleDismissCelebration = useCallback((alertId: string) => {
-    setActiveCelebrations(prev => prev.filter(a => a.id !== alertId));
+    setActiveCelebrations((prev) => prev.filter((a) => a.id !== alertId));
     displayedCelebrationIdsRef.current.add(alertId);
   }, []);
 
   const handleDismissAllCelebrations = useCallback(() => {
-    activeCelebrations.forEach(a => displayedCelebrationIdsRef.current.add(a.id));
+    activeCelebrations.forEach((a) =>
+      displayedCelebrationIdsRef.current.add(a.id),
+    );
     setActiveCelebrations([]);
   }, [activeCelebrations]);
 
@@ -324,55 +347,60 @@ export default function DashboardCSTVPublic() {
         ...realAlert,
         id: `test-${realAlert.id}-${Date.now()}`,
       };
-      setActiveAlerts(prev => [...prev, testAlert]);
+      setActiveAlerts((prev) => [...prev, testAlert]);
     } else {
       // Fallback to fake alert if no real alerts exist
       const testAlert: CriticalAlert = {
         id: `test-critical-${Date.now()}`,
-        conversationId: 'test-conversation',
-        contactName: 'Cliente Teste',
-        contactPhone: '(11) 99999-9999',
-        clientName: 'Empresa Teste Ltda',
+        conversationId: "test-conversation",
+        contactName: "Cliente Teste",
+        contactPhone: "(11) 99999-9999",
+        clientName: "Empresa Teste Ltda",
         score: 2,
-        temperature: 'critical',
-        interpretation: 'Este é um alerta de teste. Não há alertas críticos recentes no sistema.',
-        suggestion: 'Nenhum alerta real disponível para teste.',
+        temperature: "critical",
+        interpretation:
+          "Este é um alerta de teste. Não há alertas críticos recentes no sistema.",
+        suggestion: "Nenhum alerta real disponível para teste.",
         attendantId: null,
         attendantName: null,
         analyzedAt: new Date().toISOString(),
       };
-      setActiveAlerts(prev => [...prev, testAlert]);
+      setActiveAlerts((prev) => [...prev, testAlert]);
     }
   }, [data?.recentCriticalAlerts]);
 
   const handleTestCelebrationAlert = useCallback(() => {
     // Try to get a real celebration alert from the data, fallback to a test one
-    if (data?.recentCelebrationAlerts && data.recentCelebrationAlerts.length > 0) {
+    if (
+      data?.recentCelebrationAlerts &&
+      data.recentCelebrationAlerts.length > 0
+    ) {
       const realAlert = data.recentCelebrationAlerts[0];
       // Create a copy with a test ID so it doesn't get marked as dismissed
       const testCelebration: CelebrationAlert = {
         ...realAlert,
         id: `test-${realAlert.id}-${Date.now()}`,
       };
-      setActiveCelebrations(prev => [...prev, testCelebration]);
+      setActiveCelebrations((prev) => [...prev, testCelebration]);
     } else {
       // Fallback to fake alert if no real celebrations exist
       const testCelebration: CelebrationAlert = {
         id: `test-celebration-${Date.now()}`,
-        conversationId: 'test-conversation',
-        contactName: 'Cliente Satisfeito',
-        contactPhone: '(11) 88888-8888',
-        clientName: 'Empresa Feliz S.A.',
+        conversationId: "test-conversation",
+        contactName: "Cliente Satisfeito",
+        contactPhone: "(11) 88888-8888",
+        clientName: "Empresa Feliz S.A.",
         squadName: null,
         score: 10,
-        temperature: 'positive',
-        interpretation: 'Este é um alerta de teste. Não há celebrações recentes no sistema.',
-        lastClientMessage: 'Nenhuma celebração real disponível para teste.',
+        temperature: "positive",
+        interpretation:
+          "Este é um alerta de teste. Não há celebrações recentes no sistema.",
+        lastClientMessage: "Nenhuma celebração real disponível para teste.",
         attendantId: null,
         attendantName: null,
         analyzedAt: new Date().toISOString(),
       };
-      setActiveCelebrations(prev => [...prev, testCelebration]);
+      setActiveCelebrations((prev) => [...prev, testCelebration]);
     }
   }, [data?.recentCelebrationAlerts]);
 
@@ -387,10 +415,11 @@ export default function DashboardCSTVPublic() {
   }, []);
 
   // Get ranking data - sort attendants by average score
-  const rankingData: RankingAttendant[] = data?.attendantPerformance
-    ?.filter(a => a.averageScore !== null)
-    ?.sort((a, b) => (b.averageScore || 0) - (a.averageScore || 0))
-    ?.slice(0, 3) || [];
+  const rankingData: RankingAttendant[] =
+    data?.attendantPerformance
+      ?.filter((a) => a.averageScore !== null)
+      ?.sort((a, b) => (b.averageScore || 0) - (a.averageScore || 0))
+      ?.slice(0, 3) || [];
 
   useEffect(() => {
     if (data?.companyName) {
@@ -417,7 +446,9 @@ export default function DashboardCSTVPublic() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
           <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary" />
-          <p className="text-muted-foreground">Carregando CS Dashboard WhatsApp...</p>
+          <p className="text-muted-foreground">
+            Carregando CS Dashboard WhatsApp...
+          </p>
         </div>
       </div>
     );
@@ -430,7 +461,9 @@ export default function DashboardCSTVPublic() {
           <AlertTriangle className="h-16 w-16 mx-auto text-destructive" />
           <h1 className="text-2xl font-bold">Erro ao carregar dados</h1>
           <p className="text-muted-foreground">
-            {error instanceof Error ? error.message : 'Token inválido ou expirado'}
+            {error instanceof Error
+              ? error.message
+              : "Token inválido ou expirado"}
           </p>
           <Button onClick={() => refetch()}>Tentar novamente</Button>
         </div>
@@ -443,7 +476,7 @@ export default function DashboardCSTVPublic() {
   return (
     <>
       {/* Critical Alert Overlay - show first (priority) */}
-      <CSTVCriticalAlertOverlay 
+      <CSTVCriticalAlertOverlay
         alerts={activeAlerts}
         onDismiss={handleDismissAlert}
         onDismissAll={handleDismissAllAlerts}
@@ -453,7 +486,7 @@ export default function DashboardCSTVPublic() {
 
       {/* Celebration Overlay - show when no critical alerts */}
       {activeAlerts.length === 0 && (
-        <CSTVCelebrationOverlay 
+        <CSTVCelebrationOverlay
           alerts={activeCelebrations}
           onDismiss={handleDismissCelebration}
           onDismissAll={handleDismissAllCelebrations}
@@ -463,35 +496,40 @@ export default function DashboardCSTVPublic() {
       )}
 
       {/* Daily Ranking Overlay - highest z-index, show when triggered */}
-      <CSTVDailyRankingOverlay 
+      <CSTVDailyRankingOverlay
         ranking={rankingData}
         isVisible={showDailyRanking}
         onClose={handleCloseDailyRanking}
         rotation={rotation}
         zoom={zoom}
       />
-      <div 
+      <div
         className="min-h-screen bg-background overflow-hidden"
         style={{
           transform: `rotate(${rotation}deg)`,
-          transformOrigin: rotation === 90 ? 'top left' : rotation === 270 ? 'bottom right' : 'center',
-          width: isRotated ? '100vh' : '100%',
-          height: isRotated ? '100vw' : '100%',
-          position: isRotated ? 'absolute' : 'relative',
-          top: rotation === 90 ? 0 : rotation === 270 ? 'auto' : undefined,
-          left: rotation === 90 ? '100vw' : undefined,
-          bottom: rotation === 270 ? '100vh' : undefined,
+          transformOrigin:
+            rotation === 90
+              ? "top left"
+              : rotation === 270
+                ? "bottom right"
+                : "center",
+          width: isRotated ? "100vh" : "100%",
+          height: isRotated ? "100vw" : "100%",
+          position: isRotated ? "absolute" : "relative",
+          top: rotation === 90 ? 0 : rotation === 270 ? "auto" : undefined,
+          left: rotation === 90 ? "100vw" : undefined,
+          bottom: rotation === 270 ? "100vh" : undefined,
           right: rotation === 270 ? 0 : undefined,
         }}
       >
-        <div 
+        <div
           className="p-6 space-y-6 origin-top-left"
-          style={{ 
+          style={{
             transform: `scale(${zoom / 100})`,
-            width: `${10000 / zoom}%`
+            width: `${10000 / zoom}%`,
           }}
         >
-          <CSTVHeader 
+          <CSTVHeader
             companyName={data.companyName}
             lastUpdatedAt={data.lastUpdatedAt}
           />
@@ -506,7 +544,7 @@ export default function DashboardCSTVPublic() {
           </div>
 
           {/* Message Volume Chart */}
-          <CSTVMessageVolume 
+          <CSTVMessageVolume
             hourlyVolume={data.hourlyMessageVolume}
             totalMessagesToday={data.whatsappMetrics.totalMessagesToday}
             totalMessagesThisWeek={data.whatsappMetrics.totalMessagesThisWeek}
@@ -518,13 +556,15 @@ export default function DashboardCSTVPublic() {
           {/* Attendant Performance + Pending Conversations */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <CSTVAttendantPerformance attendants={data.attendantPerformance} />
-            <CSTVPendingConversations conversations={data.pendingConversations} />
+            <CSTVPendingConversations
+              conversations={data.pendingConversations}
+            />
           </div>
 
           {/* Critical Conversations + Recent Evaluations */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <CSTVCriticalConversations 
-              conversations={data.criticalConversations.map(c => ({
+            <CSTVCriticalConversations
+              conversations={data.criticalConversations.map((c) => ({
                 id: c.id,
                 contactName: c.contactName,
                 contactPhone: c.contactPhone,
@@ -536,7 +576,7 @@ export default function DashboardCSTVPublic() {
                 lastAnalysis: c.lastAnalysis,
                 attendantId: c.attendantId,
                 attendantName: c.attendantName,
-              }))} 
+              }))}
             />
             <CSTVRecentEvaluations evaluations={data.recentEvaluations} />
           </div>
@@ -546,7 +586,7 @@ export default function DashboardCSTVPublic() {
           refreshInterval={refreshInterval}
           onRefreshIntervalChange={(interval) => {
             setRefreshInterval(interval);
-            localStorage.setItem('cs-tv-refresh-interval', interval.toString());
+            localStorage.setItem("cs-tv-refresh-interval", interval.toString());
           }}
           onRefreshNow={() => refetch()}
           isRefreshing={isFetching}

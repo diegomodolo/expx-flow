@@ -12,7 +12,11 @@ interface CacheMediaParams {
 /**
  * Upload media to Supabase Storage and update the message with cached URL
  */
-export async function cacheWhatsAppMedia({ messageId, blob, fileExtension }: CacheMediaParams): Promise<string | null> {
+export async function cacheWhatsAppMedia({
+  messageId,
+  blob,
+  fileExtension,
+}: CacheMediaParams): Promise<string | null> {
   try {
     const fileName = `${messageId}.${fileExtension}`;
     const filePath = `media/${fileName}`;
@@ -44,7 +48,10 @@ export async function cacheWhatsAppMedia({ messageId, blob, fileExtension }: Cac
       .eq("id", messageId);
 
     if (updateError) {
-      console.error("[useWhatsAppMediaCache] Update message error:", updateError);
+      console.error(
+        "[useWhatsAppMediaCache] Update message error:",
+        updateError,
+      );
       // Still return the URL even if update failed - file is cached
     }
 
@@ -58,7 +65,9 @@ export async function cacheWhatsAppMedia({ messageId, blob, fileExtension }: Cac
 /**
  * Check if a message has cached media
  */
-export function hasCachedMedia(cachedMediaUrl: string | null | undefined): boolean {
+export function hasCachedMedia(
+  cachedMediaUrl: string | null | undefined,
+): boolean {
   return !!cachedMediaUrl && cachedMediaUrl.length > 0;
 }
 
@@ -90,12 +99,11 @@ export async function downloadAndCacheMedia({
 
     const functionUrl = `${SUPABASE_URL}/functions/v1/download-whatsapp-media`;
 
-
     const response = await fetch(functionUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
       },
       body: JSON.stringify({
         instanceId,
@@ -106,7 +114,11 @@ export async function downloadAndCacheMedia({
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("[downloadAndCacheMedia] Download failed:", response.status, errorText);
+      console.error(
+        "[downloadAndCacheMedia] Download failed:",
+        response.status,
+        errorText,
+      );
       return null;
     }
 
@@ -116,7 +128,6 @@ export async function downloadAndCacheMedia({
       console.error("[downloadAndCacheMedia] Empty file");
       return null;
     }
-
 
     // Cache the media
     let cachedUrl: string | null = null;

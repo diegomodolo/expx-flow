@@ -13,29 +13,33 @@ export function useUnscheduledTasks() {
     error,
     refetch: fetchUnscheduledTasks,
   } = useQuery({
-    queryKey: ['unscheduled-tasks', activeCompany?.company_id],
+    queryKey: ["unscheduled-tasks", activeCompany?.company_id],
     queryFn: async () => {
       if (!user || !activeCompany?.company_id) return [];
-      
+
       // Buscar todas as tarefas sem start_date definido
       const { data: tasksData, error: tasksError } = await supabase
         .from("tasks")
-        .select(`
+        .select(
+          `
           *,
           team:teams(name, color)
-        `)
+        `,
+        )
         .eq("company_id", activeCompany.company_id)
         .neq("status", "done")
         .is("start_date", null)
         .order("deadline", { ascending: true, nullsFirst: false });
 
       if (tasksError) throw tasksError;
-      
+
       if (!tasksData || tasksData.length === 0) return [];
 
       // Buscar perfis dos usuários
-      const userIds = [...new Set(tasksData.map(task => task.user_id).filter(Boolean))];
-      
+      const userIds = [
+        ...new Set(tasksData.map((task) => task.user_id).filter(Boolean)),
+      ];
+
       let profilesData = [];
       if (userIds.length > 0) {
         const { data: profiles, error: profilesError } = await supabase
@@ -51,11 +55,12 @@ export function useUnscheduledTasks() {
       }
 
       // Combinar dados
-      const tasksWithProfiles = tasksData.map(task => ({
+      const tasksWithProfiles = tasksData.map((task) => ({
         ...task,
-        user_profile: profilesData.find(profile => profile.user_id === task.user_id) || null
+        user_profile:
+          profilesData.find((profile) => profile.user_id === task.user_id) ||
+          null,
       }));
-
 
       return tasksWithProfiles;
     },

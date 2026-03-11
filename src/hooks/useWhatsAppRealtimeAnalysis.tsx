@@ -1,6 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useWhatsAppAIAgentConfig, WhatsAppAIAgentConfig, defaultConfig } from "./useWhatsAppAIAgentConfig";
+import {
+  useWhatsAppAIAgentConfig,
+  WhatsAppAIAgentConfig,
+  defaultConfig,
+} from "./useWhatsAppAIAgentConfig";
 
 export interface RealtimeAnalysis {
   temperature: "positive" | "neutral" | "negative";
@@ -76,157 +80,188 @@ export function useWhatsAppRealtimeAnalysis({
   // This was causing duplicated analysis blocks being saved to whatsapp_ai_chat_messages.
   const inFlightMessageId = useRef<string | null>(null);
   const currentConversationId = useRef<string | null>(null);
-  
+
   const { config } = useWhatsAppAIAgentConfig(companyId, instanceId);
 
   // Load stored analysis from database
-  const loadStoredAnalysis = useCallback(async (convId: string): Promise<{ analysis: RealtimeAnalysis | null; lastMessageId: string | null }> => {
-    if (!companyId || !convId) return { analysis: null, lastMessageId: null };
+  const loadStoredAnalysis = useCallback(
+    async (
+      convId: string,
+    ): Promise<{
+      analysis: RealtimeAnalysis | null;
+      lastMessageId: string | null;
+    }> => {
+      if (!companyId || !convId) return { analysis: null, lastMessageId: null };
 
-    try {
-      setIsLoadingStored(true);
+      try {
+        setIsLoadingStored(true);
 
-      const { data, error } = await supabase
-        .from("whatsapp_realtime_analysis")
-        .select("*")
-        .eq("conversation_id", convId)
-        .maybeSingle();
+        const { data, error } = await supabase
+          .from("whatsapp_realtime_analysis")
+          .select("*")
+          .eq("conversation_id", convId)
+          .maybeSingle();
 
-      if (error) {
-        console.error("[useWhatsAppRealtimeAnalysis] Error loading stored analysis:", error);
-        return { analysis: null, lastMessageId: null };
-      }
-
-      if (data) {
-        const storedData = data as StoredAnalysis;
-        
-        // Parse stored insight JSON if exists
-        let departmentInsight = {
-          type: "general",
-          insight: storedData.insight || "",
-          actionItems: [],
-        };
-        
-        try {
-          if (storedData.insight && storedData.insight.startsWith("{")) {
-            departmentInsight = JSON.parse(storedData.insight);
-          }
-        } catch (e) {
-          // Keep default structure if parsing fails
+        if (error) {
+          console.error(
+            "[useWhatsAppRealtimeAnalysis] Error loading stored analysis:",
+            error,
+          );
+          return { analysis: null, lastMessageId: null };
         }
 
-        const analysis: RealtimeAnalysis = {
-          temperature: storedData.temperature as "positive" | "neutral" | "negative",
-          interpretation: storedData.interpretation || "",
-          suggestion: storedData.suggestion || "",
-          departmentInsight,
-          alerts: storedData.alerts || [],
-          score: storedData.score || 5,
-          needsResponse: storedData.needs_response ?? true, // Default to true for backwards compatibility
-          readyMessage: storedData.ready_message || "",
-          timestamp: storedData.updated_at,
-        };
+        if (data) {
+          const storedData = data as StoredAnalysis;
 
-        return { 
-          analysis, 
-          lastMessageId: storedData.last_analyzed_message_id 
-        };
+          // Parse stored insight JSON if exists
+          let departmentInsight = {
+            type: "general",
+            insight: storedData.insight || "",
+            actionItems: [],
+          };
+
+          try {
+            if (storedData.insight && storedData.insight.startsWith("{")) {
+              departmentInsight = JSON.parse(storedData.insight);
+            }
+          } catch (e) {
+            // Keep default structure if parsing fails
+          }
+
+          const analysis: RealtimeAnalysis = {
+            temperature: storedData.temperature as
+              | "positive"
+              | "neutral"
+              | "negative",
+            interpretation: storedData.interpretation || "",
+            suggestion: storedData.suggestion || "",
+            departmentInsight,
+            alerts: storedData.alerts || [],
+            score: storedData.score || 5,
+            needsResponse: storedData.needs_response ?? true, // Default to true for backwards compatibility
+            readyMessage: storedData.ready_message || "",
+            timestamp: storedData.updated_at,
+          };
+
+          return {
+            analysis,
+            lastMessageId: storedData.last_analyzed_message_id,
+          };
+        }
+
+        return { analysis: null, lastMessageId: null };
+      } catch (err) {
+        console.error(
+          "[useWhatsAppRealtimeAnalysis] Failed to load stored analysis:",
+          err,
+        );
+        return { analysis: null, lastMessageId: null };
+      } finally {
+        setIsLoadingStored(false);
       }
-
-      return { analysis: null, lastMessageId: null };
-    } catch (err) {
-      console.error("[useWhatsAppRealtimeAnalysis] Failed to load stored analysis:", err);
-      return { analysis: null, lastMessageId: null };
-    } finally {
-      setIsLoadingStored(false);
-    }
-  }, [companyId]);
+    },
+    [companyId],
+  );
 
   // Save analysis to database (both current and history)
-  const saveAnalysis = useCallback(async (
-    analysisData: RealtimeAnalysis, 
-    convId: string,
-    messageCount: number = 0,
-    lastMessageDirection: string = "inbound",
-    lastMsgId: string | null = null
-  ) => {
-    if (!companyId || !convId) return;
+  const saveAnalysis = useCallback(
+    async (
+      analysisData: RealtimeAnalysis,
+      convId: string,
+      messageCount: number = 0,
+      lastMessageDirection: string = "inbound",
+      lastMsgId: string | null = null,
+    ) => {
+      if (!companyId || !convId) return;
 
-    try {
+      try {
+        const now = new Date().toISOString();
 
-      const now = new Date().toISOString();
+        // Data for current analysis (upsert - keeps only latest)
+        const currentDataToSave = {
+          conversation_id: convId,
+          company_id: companyId,
+          temperature: analysisData.temperature,
+          sentiment_score: 0,
+          score: analysisData.score,
+          alerts: analysisData.alerts,
+          interpretation: analysisData.interpretation,
+          suggestion: analysisData.suggestion,
+          insight: JSON.stringify(analysisData.departmentInsight),
+          ready_message: analysisData.readyMessage || null,
+          needs_response: analysisData.needsResponse ?? true,
+          last_analyzed_message_id: lastMsgId,
+          updated_at: now,
+        };
 
-      // Data for current analysis (upsert - keeps only latest)
-      const currentDataToSave = {
-        conversation_id: convId,
-        company_id: companyId,
-        temperature: analysisData.temperature,
-        sentiment_score: 0,
-        score: analysisData.score,
-        alerts: analysisData.alerts,
-        interpretation: analysisData.interpretation,
-        suggestion: analysisData.suggestion,
-        insight: JSON.stringify(analysisData.departmentInsight),
-        ready_message: analysisData.readyMessage || null,
-        needs_response: analysisData.needsResponse ?? true,
-        last_analyzed_message_id: lastMsgId,
-        updated_at: now,
-      };
+        // Data for history (always insert - keeps all records)
+        const historyDataToSave = {
+          conversation_id: convId,
+          company_id: companyId,
+          temperature: analysisData.temperature,
+          score: analysisData.score,
+          alerts: analysisData.alerts,
+          interpretation: analysisData.interpretation,
+          suggestion: analysisData.suggestion,
+          insight: analysisData.departmentInsight, // JSONB directly
+          ready_message: analysisData.readyMessage || null,
+          needs_response: analysisData.needsResponse ?? true,
+          message_count: messageCount,
+          last_message_direction: lastMessageDirection,
+          analyzed_at: now,
+        };
 
-      // Data for history (always insert - keeps all records)
-      const historyDataToSave = {
-        conversation_id: convId,
-        company_id: companyId,
-        temperature: analysisData.temperature,
-        score: analysisData.score,
-        alerts: analysisData.alerts,
-        interpretation: analysisData.interpretation,
-        suggestion: analysisData.suggestion,
-        insight: analysisData.departmentInsight, // JSONB directly
-        ready_message: analysisData.readyMessage || null,
-        needs_response: analysisData.needsResponse ?? true,
-        message_count: messageCount,
-        last_message_direction: lastMessageDirection,
-        analyzed_at: now,
-      };
+        // Save both in parallel
+        const [currentResult, historyResult] = await Promise.all([
+          // Update current analysis
+          supabase
+            .from("whatsapp_realtime_analysis")
+            .upsert(currentDataToSave, { onConflict: "conversation_id" })
+            .select("id")
+            .single(),
+          // Insert into history
+          supabase
+            .from("whatsapp_realtime_analysis_history")
+            .insert(historyDataToSave)
+            .select("id")
+            .single(),
+        ]);
 
-      // Save both in parallel
-      const [currentResult, historyResult] = await Promise.all([
-        // Update current analysis
-        supabase
-          .from("whatsapp_realtime_analysis")
-          .upsert(currentDataToSave, { onConflict: "conversation_id" })
-          .select("id")
-          .single(),
-        // Insert into history
-        supabase
-          .from("whatsapp_realtime_analysis_history")
-          .insert(historyDataToSave)
-          .select("id")
-          .single(),
-      ]);
+        if (currentResult.error) {
+          console.error(
+            "[useWhatsAppRealtimeAnalysis] Error saving current analysis:",
+            currentResult.error,
+          );
+        }
+        if (historyResult.error) {
+          console.error(
+            "[useWhatsAppRealtimeAnalysis] Error saving analysis history:",
+            historyResult.error,
+          );
+        }
 
-      if (currentResult.error) {
-        console.error("[useWhatsAppRealtimeAnalysis] Error saving current analysis:", currentResult.error);
+        if (!currentResult.error && !historyResult.error) {
+          // Alert events are now automatically dispatched by database trigger
+        }
+      } catch (err) {
+        console.error(
+          "[useWhatsAppRealtimeAnalysis] Failed to save analysis:",
+          err,
+        );
       }
-      if (historyResult.error) {
-        console.error("[useWhatsAppRealtimeAnalysis] Error saving analysis history:", historyResult.error);
-      }
-      
-      if (!currentResult.error && !historyResult.error) {
-        // Alert events are now automatically dispatched by database trigger
-      }
-    } catch (err) {
-      console.error("[useWhatsAppRealtimeAnalysis] Failed to save analysis:", err);
-    }
-  }, [companyId]);
+    },
+    [companyId],
+  );
 
   // Load stored analysis when conversation changes
   useEffect(() => {
-    if (!enabled || !conversationId || conversationId === currentConversationId.current) {
+    if (
+      !enabled ||
+      !conversationId ||
+      conversationId === currentConversationId.current
+    ) {
       return;
     }
-
 
     // Clear current analysis immediately when switching
     setAnalysis(null);
@@ -248,112 +283,132 @@ export function useWhatsAppRealtimeAnalysis({
     });
   }, [conversationId, enabled, loadStoredAnalysis]);
 
-  const analyzeConversation = useCallback(async (latestMessages: typeof messages) => {
-    if (!companyId || latestMessages.length === 0 || !conversationId) return;
-    
-    // Skip analysis for group conversations if ignore_group_analysis is enabled
-    if (isGroupConversation && (config?.ignore_group_analysis ?? true)) {
-      return;
-    }
+  const analyzeConversation = useCallback(
+    async (latestMessages: typeof messages) => {
+      if (!companyId || latestMessages.length === 0 || !conversationId) return;
 
-    const lastMessage = latestMessages[latestMessages.length - 1];
-    
-    // Don't re-analyze if we already analyzed this message
-    if (lastMessage.id === lastAnalyzedMessageId.current) return;
-
-    // Avoid duplicate parallel analyses for the same message id
-    if (inFlightMessageId.current === lastMessage.id) {
-      return;
-    }
-
-    // Check if last message is audio and waiting for transcription
-    const isAudioMessage = lastMessage.message_type === "audio" || lastMessage.message_type === "ptt";
-    const isTranscriptionPending = lastMessage.transcription_status === "processing" || 
-                                   lastMessage.transcription_status === "pending";
-    const hasNoTranscription = isAudioMessage && !lastMessage.audio_transcription;
-
-    if (isAudioMessage && (isTranscriptionPending || hasNoTranscription)) {
-      return; // Wait for transcription to be ready
-    }
-
-    inFlightMessageId.current = lastMessage.id;
-    setIsAnalyzing(true);
-    setError(null);
-
-    try {
-      // Get last 15 messages for context, using transcription for audio messages
-      const contextMessages = latestMessages.slice(-15).map((m) => {
-        const isAudio = m.message_type === "audio" || m.message_type === "ptt";
-        // Use transcription for audio messages, otherwise use content
-        const messageContent = isAudio && m.audio_transcription 
-          ? `[Áudio] ${m.audio_transcription}` 
-          : m.content;
-
-        return {
-          role: m.direction === "inbound" ? "customer" : "agent",
-          content: messageContent,
-          timestamp: m.created_at,
-        };
-      });
-
-      const agentConfig = config || defaultConfig;
-
-      const response = await supabase.functions.invoke("whatsapp-ai-assistant", {
-        body: {
-          mode: "analyze",
-          messages: contextMessages,
-          agentConfig: {
-            department: agentConfig.department,
-            primary_objective: agentConfig.primary_objective,
-            agent_name: agentConfig.agent_name,
-          },
-        },
-      });
-
-      if (response.error) throw response.error;
-
-      const analysisResult = response.data?.analysis;
-      
-      if (analysisResult) {
-        const newAnalysis: RealtimeAnalysis = {
-          ...analysisResult,
-          needsResponse: analysisResult.needsResponse ?? true, // Default to true if not provided
-          timestamp: new Date().toISOString(),
-        };
-        
-        setAnalysis(newAnalysis);
-        setIsNewAnalysis(true); // This is a newly generated analysis
-        lastAnalyzedMessageId.current = lastMessage.id;
-
-        // Save to database (both current and history) with the message ID
-        await saveAnalysis(
-          newAnalysis, 
-          conversationId, 
-          latestMessages.length,
-          lastMessage.direction,
-          lastMessage.id
-        );
+      // Skip analysis for group conversations if ignore_group_analysis is enabled
+      if (isGroupConversation && (config?.ignore_group_analysis ?? true)) {
+        return;
       }
-    } catch (err) {
-      console.error("[useWhatsAppRealtimeAnalysis] Error:", err);
-      setError("Erro ao analisar conversa");
-    } finally {
-      setIsAnalyzing(false);
-      // Clear in-flight lock (only if it still refers to the same message)
+
+      const lastMessage = latestMessages[latestMessages.length - 1];
+
+      // Don't re-analyze if we already analyzed this message
+      if (lastMessage.id === lastAnalyzedMessageId.current) return;
+
+      // Avoid duplicate parallel analyses for the same message id
       if (inFlightMessageId.current === lastMessage.id) {
-        inFlightMessageId.current = null;
+        return;
       }
-    }
-  }, [companyId, conversationId, config, saveAnalysis, isGroupConversation]);
+
+      // Check if last message is audio and waiting for transcription
+      const isAudioMessage =
+        lastMessage.message_type === "audio" ||
+        lastMessage.message_type === "ptt";
+      const isTranscriptionPending =
+        lastMessage.transcription_status === "processing" ||
+        lastMessage.transcription_status === "pending";
+      const hasNoTranscription =
+        isAudioMessage && !lastMessage.audio_transcription;
+
+      if (isAudioMessage && (isTranscriptionPending || hasNoTranscription)) {
+        return; // Wait for transcription to be ready
+      }
+
+      inFlightMessageId.current = lastMessage.id;
+      setIsAnalyzing(true);
+      setError(null);
+
+      try {
+        // Get last 15 messages for context, using transcription for audio messages
+        const contextMessages = latestMessages.slice(-15).map((m) => {
+          const isAudio =
+            m.message_type === "audio" || m.message_type === "ptt";
+          // Use transcription for audio messages, otherwise use content
+          const messageContent =
+            isAudio && m.audio_transcription
+              ? `[Áudio] ${m.audio_transcription}`
+              : m.content;
+
+          return {
+            role: m.direction === "inbound" ? "customer" : "agent",
+            content: messageContent,
+            timestamp: m.created_at,
+          };
+        });
+
+        const agentConfig = config || defaultConfig;
+
+        const response = await supabase.functions.invoke(
+          "whatsapp-ai-assistant",
+          {
+            body: {
+              mode: "analyze",
+              messages: contextMessages,
+              agentConfig: {
+                department: agentConfig.department,
+                primary_objective: agentConfig.primary_objective,
+                agent_name: agentConfig.agent_name,
+              },
+            },
+          },
+        );
+
+        if (response.error) throw response.error;
+
+        const analysisResult = response.data?.analysis;
+
+        if (analysisResult) {
+          const newAnalysis: RealtimeAnalysis = {
+            ...analysisResult,
+            needsResponse: analysisResult.needsResponse ?? true, // Default to true if not provided
+            timestamp: new Date().toISOString(),
+          };
+
+          setAnalysis(newAnalysis);
+          setIsNewAnalysis(true); // This is a newly generated analysis
+          lastAnalyzedMessageId.current = lastMessage.id;
+
+          // Save to database (both current and history) with the message ID
+          await saveAnalysis(
+            newAnalysis,
+            conversationId,
+            latestMessages.length,
+            lastMessage.direction,
+            lastMessage.id,
+          );
+        }
+      } catch (err) {
+        console.error("[useWhatsAppRealtimeAnalysis] Error:", err);
+        setError("Erro ao analisar conversa");
+      } finally {
+        setIsAnalyzing(false);
+        // Clear in-flight lock (only if it still refers to the same message)
+        if (inFlightMessageId.current === lastMessage.id) {
+          inFlightMessageId.current = null;
+        }
+      }
+    },
+    [companyId, conversationId, config, saveAnalysis, isGroupConversation],
+  );
 
   // Trigger analysis when messages change and analysis is enabled
   useEffect(() => {
-    if (!enabled || messages.length === 0 || conversationId !== currentConversationId.current) return;
+    if (
+      !enabled ||
+      messages.length === 0 ||
+      conversationId !== currentConversationId.current
+    )
+      return;
 
     const lastMessage = messages[messages.length - 1];
-    
+
     // Only analyze if there's a new message
-    if (lastMessage.id !== lastAnalyzedMessageId.current && inFlightMessageId.current !== lastMessage.id) {
+    if (
+      lastMessage.id !== lastAnalyzedMessageId.current &&
+      inFlightMessageId.current !== lastMessage.id
+    ) {
       // Small debounce to avoid multiple rapid calls
       const timeoutId = setTimeout(() => {
         analyzeConversation(messages);

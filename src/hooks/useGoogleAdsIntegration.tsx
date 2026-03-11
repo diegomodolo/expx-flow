@@ -28,9 +28,11 @@ export interface GoogleAdsIntegration {
 export function useGoogleAdsIntegration() {
   const { activeCompany } = useCompany();
   const [loading, setLoading] = useState(true);
-  const [integration, setIntegration] = useState<GoogleAdsIntegration | null>(null);
+  const [integration, setIntegration] = useState<GoogleAdsIntegration | null>(
+    null,
+  );
   const [adAccounts, setAdAccounts] = useState<GoogleAdAccount[]>([]);
-  
+
   // Ref para prevenir múltiplas chamadas com o mesmo código
   const processingCodeRef = useRef<string | null>(null);
 
@@ -38,16 +40,17 @@ export function useGoogleAdsIntegration() {
     const clientId = import.meta.env.VITE_GOOGLE_ADS_CLIENT_ID;
     // Use URL dinâmica baseada no domínio atual
     const redirectUri = `${window.location.origin}/google-ads/callback`;
-    const scope = 'https://www.googleapis.com/auth/adwords';
-    
+    const scope = "https://www.googleapis.com/auth/adwords";
 
-    return `https://accounts.google.com/o/oauth2/v2/auth?` +
+    return (
+      `https://accounts.google.com/o/oauth2/v2/auth?` +
       `client_id=${clientId}` +
       `&redirect_uri=${encodeURIComponent(redirectUri)}` +
       `&response_type=code` +
       `&scope=${encodeURIComponent(scope)}` +
       `&access_type=offline` +
-      `&prompt=consent`;
+      `&prompt=consent`
+    );
   };
 
   const connectGoogle = () => {
@@ -56,16 +59,17 @@ export function useGoogleAdsIntegration() {
   };
 
   const handleCallback = async (code: string, companyId: string) => {
-    
     // Prevenir reprocessamento do mesmo código
     if (processingCodeRef.current === code) {
-      throw new Error('Code already being processed');
+      throw new Error("Code already being processed");
     }
 
     try {
       processingCodeRef.current = code;
 
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
       if (!session) {
         throw new Error("No active session");
@@ -74,31 +78,33 @@ export function useGoogleAdsIntegration() {
       // Use redirect_uri dinâmico baseado no domínio atual
       const redirectUri = `${window.location.origin}/google-ads/callback`;
 
-      const { data, error } = await supabase.functions.invoke('google-ads-oauth', {
-        body: {
-          action: 'exchange',
-          code,
-          companyId,
-          redirectUri,
+      const { data, error } = await supabase.functions.invoke(
+        "google-ads-oauth",
+        {
+          body: {
+            action: "exchange",
+            code,
+            companyId,
+            redirectUri,
+          },
         },
-      });
-
+      );
 
       if (error) {
-        console.error('Edge function returned error:', error);
+        console.error("Edge function returned error:", error);
         throw error;
       }
 
       if (data.error) {
-        console.error('Data contains error:', data.error);
+        console.error("Data contains error:", data.error);
         throw new Error(data.error);
       }
 
       toast.success("Google Ads conectado com sucesso!");
-      
+
       // Limpar o código processado após sucesso
       processingCodeRef.current = null;
-      
+
       return data;
     } catch (error: unknown) {
       console.error("Error in handleCallback:", error);
@@ -114,10 +120,10 @@ export function useGoogleAdsIntegration() {
       setLoading(true);
 
       const { data: integrationData, error: integrationError } = await supabase
-        .from('google_ads_integrations')
-        .select('*')
-        .eq('company_id', companyId)
-        .eq('is_active', true)
+        .from("google_ads_integrations")
+        .select("*")
+        .eq("company_id", companyId)
+        .eq("is_active", true)
         .maybeSingle();
 
       if (integrationError) throw integrationError;
@@ -126,11 +132,11 @@ export function useGoogleAdsIntegration() {
 
       if (integrationData) {
         const { data: accountsData, error: accountsError } = await supabase
-          .from('google_ads_accounts')
-          .select('*')
-          .eq('company_id', companyId)
-          .eq('is_active', true)
-          .order('account_name');
+          .from("google_ads_accounts")
+          .select("*")
+          .eq("company_id", companyId)
+          .eq("is_active", true)
+          .order("account_name");
 
         if (accountsError) throw accountsError;
         setAdAccounts(accountsData || []);
@@ -150,9 +156,9 @@ export function useGoogleAdsIntegration() {
 
     try {
       const { error } = await supabase
-        .from('google_ads_integrations')
+        .from("google_ads_integrations")
         .update({ is_active: false })
-        .eq('id', integration.id);
+        .eq("id", integration.id);
 
       if (error) throw error;
 
@@ -170,27 +176,31 @@ export function useGoogleAdsIntegration() {
       toast.error("Nenhuma integração ativa encontrada");
       return;
     }
-    
+
     setLoading(true);
     try {
-
-      const { data, error } = await supabase.functions.invoke('google-ads-oauth', {
-        body: {
-          action: 'refresh_accounts',
-          integrationId: integration.id,
-          companyId: activeCompany.company_id,
-        }
-      });
+      const { data, error } = await supabase.functions.invoke(
+        "google-ads-oauth",
+        {
+          body: {
+            action: "refresh_accounts",
+            integrationId: integration.id,
+            companyId: activeCompany.company_id,
+          },
+        },
+      );
 
       if (error) throw error;
       if (data.error) throw new Error(data.error);
 
-      toast.success(`${data.accounts?.length || 0} conta(s) recarregada(s) com sucesso!`);
-      
+      toast.success(
+        `${data.accounts?.length || 0} conta(s) recarregada(s) com sucesso!`,
+      );
+
       // Reload integration data
       await loadIntegration(activeCompany.company_id);
     } catch (error: unknown) {
-      console.error('Error refreshing accounts:', error);
+      console.error("Error refreshing accounts:", error);
       toast.error(`Erro ao recarregar contas: ${error.message}`);
     } finally {
       setLoading(false);
@@ -202,26 +212,28 @@ export function useGoogleAdsIntegration() {
       toast.error("Nenhuma empresa ativa encontrada");
       return;
     }
-    
+
     setLoading(true);
     try {
-
-      const { data, error } = await supabase.functions.invoke('google-ads-oauth', {
-        body: {
-          action: 'refresh_token',
-          companyId: activeCompany.company_id,
-        }
-      });
+      const { data, error } = await supabase.functions.invoke(
+        "google-ads-oauth",
+        {
+          body: {
+            action: "refresh_token",
+            companyId: activeCompany.company_id,
+          },
+        },
+      );
 
       if (error) throw error;
       if (data.error) throw new Error(data.error);
 
-      toast.success(data.message || 'Token renovado com sucesso!');
-      
+      toast.success(data.message || "Token renovado com sucesso!");
+
       // Reload integration data
       await loadIntegration(activeCompany.company_id);
     } catch (error: unknown) {
-      console.error('Error refreshing token:', error);
+      console.error("Error refreshing token:", error);
       toast.error(`Erro ao renovar token: ${error.message}`);
     } finally {
       setLoading(false);
@@ -236,20 +248,24 @@ export function useGoogleAdsIntegration() {
 
     try {
       // Validar formato do Customer ID (deve ser numérico, com ou sem hífens)
-      const cleanId = customerId.replace(/[-\s]/g, '');
+      const cleanId = customerId.replace(/[-\s]/g, "");
       if (!/^\d{10}$/.test(cleanId)) {
-        toast.error("Customer ID inválido. Deve ter 10 dígitos (formato: 123-456-7890)");
+        toast.error(
+          "Customer ID inválido. Deve ter 10 dígitos (formato: 123-456-7890)",
+        );
         return;
       }
 
-
-      const { data, error } = await supabase.functions.invoke('google-ads-fetch-account', {
-        body: {
-          customerId: cleanId,
-          companyId: activeCompany.company_id,
-          clientId: clientId || null,
+      const { data, error } = await supabase.functions.invoke(
+        "google-ads-fetch-account",
+        {
+          body: {
+            customerId: cleanId,
+            companyId: activeCompany.company_id,
+            clientId: clientId || null,
+          },
         },
-      });
+      );
 
       if (error) throw error;
       if (data.error) throw new Error(data.error);

@@ -3,7 +3,10 @@ import { Image as ImageIcon, Download, Loader2, X, ZoomIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogClose } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { downloadAndCacheMedia, hasCachedMedia } from "@/hooks/useWhatsAppMediaCache";
+import {
+  downloadAndCacheMedia,
+  hasCachedMedia,
+} from "@/hooks/useWhatsAppMediaCache";
 
 interface WhatsAppImageViewerProps {
   mediaUrl: string | null;
@@ -47,7 +50,9 @@ export function WhatsAppImageViewer({
       // Try direct URL as fallback
       if (mediaUrl) {
         try {
-          const testResponse = await fetch(mediaUrl, { method: "HEAD" }).catch(() => null);
+          const testResponse = await fetch(mediaUrl, { method: "HEAD" }).catch(
+            () => null,
+          );
           if (testResponse?.ok) {
             setImageSrc(mediaUrl);
             setImageLoaded(true);
@@ -65,7 +70,6 @@ export function WhatsAppImageViewer({
     setError(null);
 
     try {
-
       const result = await downloadAndCacheMedia({
         instanceId,
         externalMessageId: messageId,
@@ -99,7 +103,7 @@ export function WhatsAppImageViewer({
 
   const handleSaveImage = useCallback(() => {
     if (!imageSrc) return;
-    
+
     const link = document.createElement("a");
     link.href = imageSrc;
     link.download = `whatsapp_image_${Date.now()}.jpg`;
@@ -121,7 +125,7 @@ export function WhatsAppImageViewer({
   if (imageLoaded && imageSrc) {
     return (
       <>
-        <div 
+        <div
           className="relative cursor-pointer group"
           onClick={() => setIsModalOpen(true)}
         >
@@ -141,7 +145,7 @@ export function WhatsAppImageViewer({
             <DialogClose className="absolute top-4 right-4 z-10 rounded-full bg-black/50 p-2 text-white hover:bg-black/70 transition-colors">
               <X className="h-5 w-5" />
             </DialogClose>
-            
+
             <div className="relative flex items-center justify-center w-full h-full min-h-[50vh]">
               <img
                 src={imageSrc}
@@ -169,39 +173,47 @@ export function WhatsAppImageViewer({
 
   // Show placeholder with download button
   return (
-    <div 
+    <div
       className={cn(
         "flex flex-col items-center justify-center p-6 rounded-lg cursor-pointer transition-colors",
-        isOutgoing 
-          ? "bg-primary-foreground/10 hover:bg-primary-foreground/20" 
-          : "bg-muted/50 hover:bg-muted"
+        isOutgoing
+          ? "bg-primary-foreground/10 hover:bg-primary-foreground/20"
+          : "bg-muted/50 hover:bg-muted",
       )}
       onClick={handleDownload}
     >
-      <div className={cn(
-        "w-16 h-16 rounded-full flex items-center justify-center mb-3",
-        isOutgoing ? "bg-primary-foreground/20" : "bg-muted"
-      )}>
+      <div
+        className={cn(
+          "w-16 h-16 rounded-full flex items-center justify-center mb-3",
+          isOutgoing ? "bg-primary-foreground/20" : "bg-muted",
+        )}
+      >
         {isDownloading ? (
-          <Loader2 className={cn(
-            "h-8 w-8 animate-spin",
-            isOutgoing ? "text-primary-foreground" : "text-muted-foreground"
-          )} />
+          <Loader2
+            className={cn(
+              "h-8 w-8 animate-spin",
+              isOutgoing ? "text-primary-foreground" : "text-muted-foreground",
+            )}
+          />
         ) : (
-          <ImageIcon className={cn(
-            "h-8 w-8",
-            isOutgoing ? "text-primary-foreground" : "text-muted-foreground"
-          )} />
+          <ImageIcon
+            className={cn(
+              "h-8 w-8",
+              isOutgoing ? "text-primary-foreground" : "text-muted-foreground",
+            )}
+          />
         )}
       </div>
-      
-      <span className={cn(
-        "text-sm font-medium mb-2",
-        isOutgoing ? "text-primary-foreground" : "text-foreground"
-      )}>
+
+      <span
+        className={cn(
+          "text-sm font-medium mb-2",
+          isOutgoing ? "text-primary-foreground" : "text-foreground",
+        )}
+      >
         Imagem
       </span>
-      
+
       <Button
         variant={isOutgoing ? "secondary" : "outline"}
         size="sm"

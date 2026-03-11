@@ -2,7 +2,13 @@ import { useEffect, useState } from "react";
 import { useCompany } from "@/contexts/CompanyContext";
 import { supabase } from "@/integrations/supabase/client";
 import { PermissionsSettings } from "./PermissionsSettings";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Shield, AlertTriangle } from "lucide-react";
 
 export function PermissionsProtectedRoute() {
@@ -17,46 +23,48 @@ export function PermissionsProtectedRoute() {
   const checkAdminPermissions = async () => {
     try {
       setLoading(true);
-      
-      
+
       if (!activeCompany?.company_id) {
         setIsAdmin(false);
         return;
       }
 
       // Check role directly from company context first
-      const isOwnerOrAdmin = activeCompany.role === 'owner' || activeCompany.role === 'admin';
-      
+      const isOwnerOrAdmin =
+        activeCompany.role === "owner" || activeCompany.role === "admin";
+
       if (isOwnerOrAdmin) {
         setIsAdmin(true);
         return;
       }
 
       // Fallback: verify in database
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) {
         setIsAdmin(false);
         return;
       }
 
-
       const { data: member, error } = await supabase
-        .from('company_members')
-        .select('role')
-        .eq('user_id', user.id)
-        .eq('company_id', activeCompany.company_id)
+        .from("company_members")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("company_id", activeCompany.company_id)
         .single();
 
       if (error) {
-        console.error('Error checking company member:', error);
+        console.error("Error checking company member:", error);
         setIsAdmin(false);
         return;
       }
 
-      const isAdminFromDB = member?.role === 'owner' || member?.role === 'admin';
+      const isAdminFromDB =
+        member?.role === "owner" || member?.role === "admin";
       setIsAdmin(isAdminFromDB);
     } catch (error) {
-      console.error('Error checking admin permissions:', error);
+      console.error("Error checking admin permissions:", error);
       setIsAdmin(false);
     } finally {
       setLoading(false);
@@ -89,9 +97,7 @@ export function PermissionsProtectedRoute() {
             <Shield className="h-5 w-5" />
             Permissões
           </CardTitle>
-          <CardDescription>
-            Acesso negado
-          </CardDescription>
+          <CardDescription>Acesso negado</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center justify-center py-8 text-center">
@@ -100,7 +106,7 @@ export function PermissionsProtectedRoute() {
               Acesso Restrito
             </h3>
             <p className="text-muted-foreground max-w-md">
-              Apenas administradores e proprietários da empresa podem gerenciar 
+              Apenas administradores e proprietários da empresa podem gerenciar
               as permissões de acesso dos colaboradores.
             </p>
           </div>

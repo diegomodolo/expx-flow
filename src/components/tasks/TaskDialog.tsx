@@ -8,6 +8,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -1099,7 +1100,11 @@ export function TaskDialog({
           hideCloseButton
           className="p-0 gap-0 overflow-hidden"
           style={{ maxWidth: `${zoomWidth}px` }}
+          aria-describedby={undefined}
         >
+          <VisuallyHidden>
+            <DialogTitle>{formData.title || "Detalhes da Tarefa"}</DialogTitle>
+          </VisuallyHidden>
           <div className="flex max-h-[90vh]">
             {/* Left Sidebar */}
             <div className="w-20 border-r border-border bg-muted/30 flex flex-col items-center py-4 gap-1 shrink-0">

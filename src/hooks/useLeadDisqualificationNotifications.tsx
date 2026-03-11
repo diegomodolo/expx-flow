@@ -16,17 +16,17 @@ export const useLeadDisqualificationNotifications = () => {
 
     try {
       const { data, error } = await supabase
-        .from('lead_disqualification_reports')
-        .select('id')
-        .eq('company_id', activeCompany.company_id)
-        .is('viewed_at', null);
+        .from("lead_disqualification_reports")
+        .select("id")
+        .eq("company_id", activeCompany.company_id)
+        .is("viewed_at", null);
 
       if (error) throw error;
 
       const count = data?.length || 0;
       setUnviewedCount(count);
     } catch (err) {
-      console.error('Error fetching unviewed count:', err);
+      console.error("Error fetching unviewed count:", err);
     }
   };
 
@@ -40,14 +40,13 @@ export const useLeadDisqualificationNotifications = () => {
 
       // Primeiro buscar quantos reports precisam ser marcados
       const { data: unviewedReports, error: fetchError } = await supabase
-        .from('lead_disqualification_reports')
-        .select('id, reporter_name, created_at')
-        .eq('company_id', activeCompany.company_id)
-        .is('viewed_at', null);
-
+        .from("lead_disqualification_reports")
+        .select("id, reporter_name, created_at")
+        .eq("company_id", activeCompany.company_id)
+        .is("viewed_at", null);
 
       if (fetchError) {
-        console.error('markAllAsViewed: Erro ao buscar reports:', fetchError);
+        console.error("markAllAsViewed: Erro ao buscar reports:", fetchError);
         throw fetchError;
       }
 
@@ -56,28 +55,28 @@ export const useLeadDisqualificationNotifications = () => {
         return;
       }
 
-
       const { data: updateResult, error: updateError } = await supabase
-        .from('lead_disqualification_reports')
+        .from("lead_disqualification_reports")
         .update({
           viewed_at: new Date().toISOString(),
-          viewed_by: user.id
+          viewed_by: user.id,
         })
-        .eq('company_id', activeCompany.company_id)
-        .is('viewed_at', null)
-        .select('id');
-
+        .eq("company_id", activeCompany.company_id)
+        .is("viewed_at", null)
+        .select("id");
 
       if (updateError) {
-        console.error('markAllAsViewed: Erro ao atualizar records:', updateError);
+        console.error(
+          "markAllAsViewed: Erro ao atualizar records:",
+          updateError,
+        );
         throw updateError;
       }
 
       // Atualizar imediatamente o contador local
       setUnviewedCount(0);
-      
     } catch (err) {
-      console.error('markAllAsViewed: Erro completo:', err);
+      console.error("markAllAsViewed: Erro completo:", err);
       toast({
         title: "Erro",
         description: "Não foi possível marcar os reports como visualizados",
@@ -96,19 +95,19 @@ export const useLeadDisqualificationNotifications = () => {
       fetchUnviewedCount();
     };
 
-    window.addEventListener('refreshNotificationCount', handleRefresh);
+    window.addEventListener("refreshNotificationCount", handleRefresh);
 
     // Setup realtime subscription
     if (activeCompany?.company_id) {
       const channel = supabase
-        .channel('lead-disqualification-notifications')
+        .channel("lead-disqualification-notifications")
         .on(
-          'postgres_changes',
+          "postgres_changes",
           {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'lead_disqualification_reports',
-            filter: `company_id=eq.${activeCompany.company_id}`
+            event: "INSERT",
+            schema: "public",
+            table: "lead_disqualification_reports",
+            filter: `company_id=eq.${activeCompany.company_id}`,
           },
           () => {
             fetchUnviewedCount();
@@ -116,33 +115,33 @@ export const useLeadDisqualificationNotifications = () => {
               title: "Novo lead desqualificado",
               description: "Um novo report de lead desqualificado foi recebido",
             });
-          }
+          },
         )
         .on(
-          'postgres_changes',
+          "postgres_changes",
           {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'lead_disqualification_reports',
-            filter: `company_id=eq.${activeCompany.company_id}`
+            event: "UPDATE",
+            schema: "public",
+            table: "lead_disqualification_reports",
+            filter: `company_id=eq.${activeCompany.company_id}`,
           },
           (payload) => {
             // Só atualizar se não estamos na tela de admin (para evitar loops)
-            if (window.location.pathname !== '/leads-desqualificados') {
+            if (window.location.pathname !== "/leads-desqualificados") {
               fetchUnviewedCount();
             }
-          }
+          },
         )
         .subscribe();
 
       return () => {
-        window.removeEventListener('refreshNotificationCount', handleRefresh);
+        window.removeEventListener("refreshNotificationCount", handleRefresh);
         supabase.removeChannel(channel);
       };
     }
 
     return () => {
-      window.removeEventListener('refreshNotificationCount', handleRefresh);
+      window.removeEventListener("refreshNotificationCount", handleRefresh);
     };
   }, [activeCompany?.company_id]);
 
@@ -150,6 +149,6 @@ export const useLeadDisqualificationNotifications = () => {
     unviewedCount,
     loading,
     markAllAsViewed,
-    fetchUnviewedCount
+    fetchUnviewedCount,
   };
 };

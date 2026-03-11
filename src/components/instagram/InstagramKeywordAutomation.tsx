@@ -112,12 +112,10 @@ export function InstagramKeywordAutomation() {
           .update({ meta_webhook_verify_token: newToken } as unknown)
           .eq("id", (waConfig as unknown).id);
       } else {
-        await supabase
-          .from("whatsapp_configs")
-          .insert({
-            company_id: companyId!,
-            meta_webhook_verify_token: newToken,
-          } as unknown);
+        await supabase.from("whatsapp_configs").insert({
+          company_id: companyId!,
+          meta_webhook_verify_token: newToken,
+        } as unknown);
       }
       await refetchWaConfig();
       toast({

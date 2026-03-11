@@ -1,7 +1,20 @@
 import { useState } from "react";
-import { Copy, RefreshCw, AlertCircle, ExternalLink, Download, Eye } from "lucide-react";
+import {
+  Copy,
+  RefreshCw,
+  AlertCircle,
+  ExternalLink,
+  Download,
+  Eye,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,19 +32,32 @@ interface LeadDisqualificationTabProps {
   clientId: string;
 }
 
-export function LeadDisqualificationTab({ clientId }: LeadDisqualificationTabProps) {
+export function LeadDisqualificationTab({
+  clientId,
+}: LeadDisqualificationTabProps) {
   const { toast } = useToast();
-  const { tokens, loading: tokensLoading, getPublicReportUrl } = useLeadDisqualificationTokens(clientId);
-  const { reports, loading: reportsLoading, getReasonLabel } = useLeadDisqualificationReports({ clientId });
-  
-  const [modalImage, setModalImage] = useState<{ url: string; fileName: string } | null>(null);
+  const {
+    tokens,
+    loading: tokensLoading,
+    getPublicReportUrl,
+  } = useLeadDisqualificationTokens(clientId);
+  const {
+    reports,
+    loading: reportsLoading,
+    getReasonLabel,
+  } = useLeadDisqualificationReports({ clientId });
+
+  const [modalImage, setModalImage] = useState<{
+    url: string;
+    fileName: string;
+  } | null>(null);
 
   const currentToken = tokens[0]; // Primeiro token ativo
-  const publicUrl = currentToken ? getPublicReportUrl(currentToken.token) : '';
+  const publicUrl = currentToken ? getPublicReportUrl(currentToken.token) : "";
 
   const handleCopyUrl = async () => {
     if (!publicUrl) return;
-    
+
     try {
       await navigator.clipboard.writeText(publicUrl);
       toast({
@@ -51,14 +77,16 @@ export function LeadDisqualificationTab({ clientId }: LeadDisqualificationTabPro
 
   const handleOpenPublicPage = () => {
     if (publicUrl) {
-      window.open(publicUrl, '_blank');
+      window.open(publicUrl, "_blank");
     }
   };
 
   const handleViewEvidence = async (evidenceFileUrl: string) => {
     try {
       // Verificar se o usuário está autenticado
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) {
         toast({
           title: "Erro de Autenticação",
@@ -68,12 +96,11 @@ export function LeadDisqualificationTab({ clientId }: LeadDisqualificationTabPro
         return;
       }
 
-
       // Verificar se o arquivo realmente existe
       const { data: listData, error: listError } = await supabase.storage
-        .from('lead-evidence')
-        .list(evidenceFileUrl.split('/')[0], {
-          search: evidenceFileUrl.split('/')[1]
+        .from("lead-evidence")
+        .list(evidenceFileUrl.split("/")[0], {
+          search: evidenceFileUrl.split("/")[1],
         });
 
       if (listError || !listData || listData.length === 0) {
@@ -89,18 +116,19 @@ export function LeadDisqualificationTab({ clientId }: LeadDisqualificationTabPro
       if (file.metadata?.size === 2) {
         toast({
           title: "Arquivo corrompido",
-          description: "O arquivo de evidência parece estar corrompido (2 bytes). Entre em contato com o suporte.",
+          description:
+            "O arquivo de evidência parece estar corrompido (2 bytes). Entre em contato com o suporte.",
           variant: "destructive",
         });
         return;
       }
-      
+
       const { data, error } = await supabase.storage
-        .from('lead-evidence')
+        .from("lead-evidence")
         .createSignedUrl(evidenceFileUrl, 60 * 60); // URL válida por 1 hora
 
       if (error) {
-        console.error('Error creating signed URL:', error);
+        console.error("Error creating signed URL:", error);
         toast({
           title: "Erro ao Acessar Evidência",
           description: `Erro: ${error.message}`,
@@ -110,20 +138,21 @@ export function LeadDisqualificationTab({ clientId }: LeadDisqualificationTabPro
       }
 
       if (data?.signedUrl) {
-
         // Verificar se é imagem para visualizar ou fazer download
-        const fileExtension = evidenceFileUrl.split('.').pop()?.toLowerCase();
-        const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExtension || '');
-        
+        const fileExtension = evidenceFileUrl.split(".").pop()?.toLowerCase();
+        const isImage = ["jpg", "jpeg", "png", "gif", "webp"].includes(
+          fileExtension || "",
+        );
+
         if (isImage) {
           // Abrir modal para visualizar imagem
-          const fileName = evidenceFileUrl.split('/').pop() || 'evidencia';
+          const fileName = evidenceFileUrl.split("/").pop() || "evidencia";
           setModalImage({ url: data.signedUrl, fileName });
         } else {
           // Fazer download do arquivo
-          const link = document.createElement('a');
+          const link = document.createElement("a");
           link.href = data.signedUrl;
-          link.download = evidenceFileUrl.split('/').pop() || 'evidencia';
+          link.download = evidenceFileUrl.split("/").pop() || "evidencia";
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
@@ -136,7 +165,7 @@ export function LeadDisqualificationTab({ clientId }: LeadDisqualificationTabPro
         });
       }
     } catch (err) {
-      console.error('Error viewing evidence:', err);
+      console.error("Error viewing evidence:", err);
       toast({
         title: "Erro",
         description: "Erro ao tentar acessar a evidência",
@@ -166,7 +195,8 @@ export function LeadDisqualificationTab({ clientId }: LeadDisqualificationTabPro
             Link de Report de Lead Desqualificado
           </CardTitle>
           <CardDescription>
-            Compartilhe este link com o cliente para que ele possa reportar leads desqualificados
+            Compartilhe este link com o cliente para que ele possa reportar
+            leads desqualificados
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -207,7 +237,8 @@ export function LeadDisqualificationTab({ clientId }: LeadDisqualificationTabPro
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  Este link é público e permanente. O cliente pode usá-lo quantas vezes precisar para reportar leads desqualificados.
+                  Este link é público e permanente. O cliente pode usá-lo
+                  quantas vezes precisar para reportar leads desqualificados.
                 </AlertDescription>
               </Alert>
             </>
@@ -215,7 +246,8 @@ export function LeadDisqualificationTab({ clientId }: LeadDisqualificationTabPro
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                Nenhum token ativo encontrado para este cliente. Entre em contato com o suporte.
+                Nenhum token ativo encontrado para este cliente. Entre em
+                contato com o suporte.
               </AlertDescription>
             </Alert>
           )}
@@ -240,7 +272,9 @@ export function LeadDisqualificationTab({ clientId }: LeadDisqualificationTabPro
             <div className="text-center py-8 text-muted-foreground">
               <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
               <p>Nenhum report foi enviado ainda</p>
-              <p className="text-sm">Os reports aparecerão aqui quando o cliente os enviar</p>
+              <p className="text-sm">
+                Os reports aparecerão aqui quando o cliente os enviar
+              </p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -259,7 +293,9 @@ export function LeadDisqualificationTab({ clientId }: LeadDisqualificationTabPro
                       </span>
                     </div>
                     <span className="text-sm text-muted-foreground">
-                      {format(new Date(report.created_at), "PPP 'às' HH:mm", { locale: ptBR })}
+                      {format(new Date(report.created_at), "PPP 'às' HH:mm", {
+                        locale: ptBR,
+                      })}
                     </span>
                   </div>
 
@@ -267,7 +303,9 @@ export function LeadDisqualificationTab({ clientId }: LeadDisqualificationTabPro
                     <div>
                       <span className="font-medium">Data do Lead:</span>
                       <br />
-                      {format(new Date(report.lead_received_date), "PPP", { locale: ptBR })}
+                      {format(new Date(report.lead_received_date), "PPP", {
+                        locale: ptBR,
+                      })}
                     </div>
                     {report.conversation_link && (
                       <div>
@@ -301,7 +339,9 @@ export function LeadDisqualificationTab({ clientId }: LeadDisqualificationTabPro
                         variant="outline"
                         size="sm"
                         className="h-8"
-                        onClick={() => handleViewEvidence(report.evidence_file_url!)}
+                        onClick={() =>
+                          handleViewEvidence(report.evidence_file_url!)
+                        }
                       >
                         <Download className="h-3 w-3 mr-1" />
                         Ver Evidência
@@ -314,13 +354,13 @@ export function LeadDisqualificationTab({ clientId }: LeadDisqualificationTabPro
           )}
         </CardContent>
       </Card>
-      
+
       {/* Modal para visualizar evidências */}
       <EvidenceViewerModal
         isOpen={!!modalImage}
         onClose={() => setModalImage(null)}
-        imageUrl={modalImage?.url || ''}
-        fileName={modalImage?.fileName || ''}
+        imageUrl={modalImage?.url || ""}
+        fileName={modalImage?.fileName || ""}
       />
     </div>
   );

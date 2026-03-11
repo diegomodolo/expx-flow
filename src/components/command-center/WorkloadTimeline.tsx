@@ -90,17 +90,15 @@ function usePersistedTimelineSettings() {
       } = await supabase.auth.getUser();
       if (!user) return;
 
-      await supabase
-        .from("user_ui_settings" as unknown)
-        .upsert(
-          {
-            user_id: user.id,
-            setting_key: SETTING_KEY,
-            setting_value: s as unknown,
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: "user_id,setting_key" },
-        );
+      await supabase.from("user_ui_settings" as unknown).upsert(
+        {
+          user_id: user.id,
+          setting_key: SETTING_KEY,
+          setting_value: s as unknown,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id,setting_key" },
+      );
     } catch (err) {
       console.error("[TimelineSettings] Failed to persist:", err);
     }

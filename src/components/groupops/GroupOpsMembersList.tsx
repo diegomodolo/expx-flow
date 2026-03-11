@@ -246,15 +246,13 @@ export default function GroupOpsMembersList() {
         .delete()
         .eq("company_id", companyId)
         .eq("phone", phone);
-      const { error } = await supabase
-        .from("whatsapp_client_contacts")
-        .insert({
-          company_id: companyId,
-          client_id: clientId,
-          phone,
-          contact_name: memberName || phone,
-          is_active: true,
-        } as unknown);
+      const { error } = await supabase.from("whatsapp_client_contacts").insert({
+        company_id: companyId,
+        client_id: clientId,
+        phone,
+        contact_name: memberName || phone,
+        is_active: true,
+      } as unknown);
       if (error) throw error;
       toast.success(`Número associado a ${clientName}`);
       queryClient.invalidateQueries({ queryKey: ["groupops-client-matches"] });

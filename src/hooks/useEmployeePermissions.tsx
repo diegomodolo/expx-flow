@@ -3,64 +3,64 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useCompany } from "@/contexts/CompanyContext";
 
-export type MenuItemType = 
-  | 'dashboard' 
-  | 'clientes' 
-  | 'campanhas' 
-  | 'squad'
-  | 'tarefas'
-  | 'colaboradores'
-  | 'relatorios'
-  | 'gerador-campanhas'
-  | 'gerador-conteudo'
-  | 'gerador-criativos'
-  | 'geradores'
-  | 'ia'
-  | 'configuracoes'
-  | 'agentes-ia'
-  | 'editar-agentes'
-  | 'editor-funil'
-  | 'whatsapp'
-  | 'ver-quadros-outros'
-  | 'radar-saude'
-  | 'rotinas'
-  | 'lead-intelligence'
-  | 'cs-cockpit'
-  | 'cs-carteira'
-  | 'cs-jornada'
-  | 'cs-acoes'
-  | 'cs-clientes'
-  | 'cs-tv'
-  | 'agendamento'
-  | 'automatizadores'
-  | 'social-tv'
-  | 'editor-imagens'
-  | 'planejador-conteudo'
-  | 'repositorio-criativos'
-  | 'alertas'
-  | 'tarefas-recorrentes'
-  | 'workspace'
-  | 'automacoes'
-  | 'campanhas-unificadas'
-  | 'marketing-tv'
-  | 'keyword-planner'
-  | 'radar-tv'
-  | 'relatorios-marketing'
-  | 'skills-ia'
-  | 'editar-skills'
-  | 'roteiros'
-  | 'command-center'
-  | 'reunioes'
-  | 'planner'
-  | 'checklists'
-  | 'fluxos'
-  | 'mapas-mentais'
-  | 'dashboard-equipe'
-  | 'groupops'
-  | 'youtube-content-lab'
-  | 'squads-ia'
-  | 'parametros-performance'
-  | 'reportes';
+export type MenuItemType =
+  | "dashboard"
+  | "clientes"
+  | "campanhas"
+  | "squad"
+  | "tarefas"
+  | "colaboradores"
+  | "relatorios"
+  | "gerador-campanhas"
+  | "gerador-conteudo"
+  | "gerador-criativos"
+  | "geradores"
+  | "ia"
+  | "configuracoes"
+  | "agentes-ia"
+  | "editar-agentes"
+  | "editor-funil"
+  | "whatsapp"
+  | "ver-quadros-outros"
+  | "radar-saude"
+  | "rotinas"
+  | "lead-intelligence"
+  | "cs-cockpit"
+  | "cs-carteira"
+  | "cs-jornada"
+  | "cs-acoes"
+  | "cs-clientes"
+  | "cs-tv"
+  | "agendamento"
+  | "automatizadores"
+  | "social-tv"
+  | "editor-imagens"
+  | "planejador-conteudo"
+  | "repositorio-criativos"
+  | "alertas"
+  | "tarefas-recorrentes"
+  | "workspace"
+  | "automacoes"
+  | "campanhas-unificadas"
+  | "marketing-tv"
+  | "keyword-planner"
+  | "radar-tv"
+  | "relatorios-marketing"
+  | "skills-ia"
+  | "editar-skills"
+  | "roteiros"
+  | "command-center"
+  | "reunioes"
+  | "planner"
+  | "checklists"
+  | "fluxos"
+  | "mapas-mentais"
+  | "dashboard-equipe"
+  | "groupops"
+  | "youtube-content-lab"
+  | "squads-ia"
+  | "parametros-performance"
+  | "reportes";
 
 export interface EmployeePermission {
   id: string;
@@ -78,8 +78,12 @@ export interface EmployeeWithPermissions {
 }
 
 export function useEmployeePermissions() {
-  const [employeesWithPermissions, setEmployeesWithPermissions] = useState<EmployeeWithPermissions[]>([]);
-  const [currentUserPermissions, setCurrentUserPermissions] = useState<MenuItemType[]>([]);
+  const [employeesWithPermissions, setEmployeesWithPermissions] = useState<
+    EmployeeWithPermissions[]
+  >([]);
+  const [currentUserPermissions, setCurrentUserPermissions] = useState<
+    MenuItemType[]
+  >([]);
   const [isOwner, setIsOwner] = useState(false);
   const [loading, setLoading] = useState(true);
   const [permissionsLoading, setPermissionsLoading] = useState(true);
@@ -100,8 +104,9 @@ export function useEmployeePermissions() {
 
       // Buscar colaboradores com suas permissões (LEFT JOIN para incluir colaboradores sem permissões)
       const { data: employees, error: employeesError } = await supabase
-        .from('employees')
-        .select(`
+        .from("employees")
+        .select(
+          `
           id,
           name,
           email,
@@ -112,25 +117,27 @@ export function useEmployeePermissions() {
             menu_item,
             is_enabled
           )
-        `)
-        .eq('company_id', activeCompany.company_id)
-        .eq('status', 'active');
+        `,
+        )
+        .eq("company_id", activeCompany.company_id)
+        .eq("status", "active");
 
       if (employeesError) {
-        console.error('Error fetching employees:', employeesError);
+        console.error("Error fetching employees:", employeesError);
         throw employeesError;
       }
 
-      const employeesWithPerms: EmployeeWithPermissions[] = employees?.map(emp => ({
-        id: emp.id,
-        name: emp.name,
-        email: emp.email,
-        role: emp.role,
-        permissions: emp.employee_permissions || []
-      })) || [];
+      const employeesWithPerms: EmployeeWithPermissions[] =
+        employees?.map((emp) => ({
+          id: emp.id,
+          name: emp.name,
+          email: emp.email,
+          role: emp.role,
+          permissions: emp.employee_permissions || [],
+        })) || [];
       setEmployeesWithPermissions(employeesWithPerms);
     } catch (err: unknown) {
-      console.error('Erro ao buscar permissões:', err);
+      console.error("Erro ao buscar permissões:", err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -146,8 +153,10 @@ export function useEmployeePermissions() {
 
     try {
       setPermissionsLoading(true);
-      
-      const { data: { user } } = await supabase.auth.getUser();
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) {
         setPermissionsLoading(false);
         return;
@@ -155,31 +164,70 @@ export function useEmployeePermissions() {
 
       // Verificar se é proprietário da empresa
       const { data: member, error: memberError } = await supabase
-        .from('company_members')
-        .select('role')
-        .eq('user_id', user.id)
-        .eq('company_id', activeCompany.company_id)
+        .from("company_members")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("company_id", activeCompany.company_id)
         .single();
 
       if (memberError) {
-        console.error('Erro ao buscar membro da empresa:', memberError);
+        console.error("Erro ao buscar membro da empresa:", memberError);
       }
 
-      const userIsOwner = member?.role === 'owner';
-      
+      const userIsOwner = member?.role === "owner";
+
       setIsOwner(userIsOwner);
 
       // Se for proprietário, não precisa verificar permissões específicas
       if (userIsOwner) {
         const allPermissions: MenuItemType[] = [
-          'dashboard', 'clientes', 'campanhas', 'squad', 'tarefas', 'colaboradores', 'relatorios',
-          'gerador-campanhas', 'gerador-conteudo', 'gerador-criativos', 'geradores', 'ia', 'configuracoes',
-          'agentes-ia', 'editar-agentes', 'editor-funil', 'whatsapp', 'ver-quadros-outros',
-          'radar-saude', 'rotinas', 'lead-intelligence', 'cs-cockpit', 'cs-carteira', 'cs-jornada',
-          'cs-acoes', 'cs-clientes', 'cs-tv', 'agendamento', 'automatizadores', 'social-tv',
-          'editor-imagens', 'planejador-conteudo', 'repositorio-criativos', 'alertas', 'tarefas-recorrentes',
-          'workspace', 'automacoes', 'campanhas-unificadas', 'marketing-tv', 'keyword-planner', 'radar-tv',
-          'relatorios-marketing', 'skills-ia', 'editar-skills', 'roteiros', 'command-center', 'reportes'
+          "dashboard",
+          "clientes",
+          "campanhas",
+          "squad",
+          "tarefas",
+          "colaboradores",
+          "relatorios",
+          "gerador-campanhas",
+          "gerador-conteudo",
+          "gerador-criativos",
+          "geradores",
+          "ia",
+          "configuracoes",
+          "agentes-ia",
+          "editar-agentes",
+          "editor-funil",
+          "whatsapp",
+          "ver-quadros-outros",
+          "radar-saude",
+          "rotinas",
+          "lead-intelligence",
+          "cs-cockpit",
+          "cs-carteira",
+          "cs-jornada",
+          "cs-acoes",
+          "cs-clientes",
+          "cs-tv",
+          "agendamento",
+          "automatizadores",
+          "social-tv",
+          "editor-imagens",
+          "planejador-conteudo",
+          "repositorio-criativos",
+          "alertas",
+          "tarefas-recorrentes",
+          "workspace",
+          "automacoes",
+          "campanhas-unificadas",
+          "marketing-tv",
+          "keyword-planner",
+          "radar-tv",
+          "relatorios-marketing",
+          "skills-ia",
+          "editar-skills",
+          "roteiros",
+          "command-center",
+          "reportes",
         ];
         setCurrentUserPermissions(allPermissions);
         setPermissionsLoading(false);
@@ -188,10 +236,10 @@ export function useEmployeePermissions() {
 
       // Buscar colaborador atual
       const { data: employee } = await supabase
-        .from('employees')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('company_id', activeCompany.company_id)
+        .from("employees")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("company_id", activeCompany.company_id)
         .single();
 
       if (!employee) {
@@ -201,121 +249,125 @@ export function useEmployeePermissions() {
 
       // Buscar permissões habilitadas (individuais)
       const { data: permissions } = await supabase
-        .from('employee_permissions')
-        .select('menu_item')
-        .eq('employee_id', employee.id)
-        .eq('is_enabled', true);
+        .from("employee_permissions")
+        .select("menu_item")
+        .eq("employee_id", employee.id)
+        .eq("is_enabled", true);
 
-      const individualMenus = permissions?.map(p => p.menu_item as MenuItemType) || [];
+      const individualMenus =
+        permissions?.map((p) => p.menu_item as MenuItemType) || [];
 
       // Buscar permissões de grupos
       const { data: groupMemberships } = await supabase
-        .from('permission_group_members')
-        .select('group_id')
-        .eq('employee_id', employee.id);
+        .from("permission_group_members")
+        .select("group_id")
+        .eq("employee_id", employee.id);
 
       let groupMenus: MenuItemType[] = [];
       if (groupMemberships && groupMemberships.length > 0) {
-        const groupIds = groupMemberships.map(gm => gm.group_id);
+        const groupIds = groupMemberships.map((gm) => gm.group_id);
         const { data: groupItems } = await supabase
-          .from('permission_group_items')
-          .select('menu_item')
-          .in('group_id', groupIds);
-        
-        groupMenus = groupItems?.map(gi => gi.menu_item as MenuItemType) || [];
+          .from("permission_group_items")
+          .select("menu_item")
+          .in("group_id", groupIds);
+
+        groupMenus =
+          groupItems?.map((gi) => gi.menu_item as MenuItemType) || [];
       }
 
       // Merge individual + group permissions (union)
       const enabledMenus = [...new Set([...individualMenus, ...groupMenus])];
       setCurrentUserPermissions(enabledMenus);
     } catch (err: unknown) {
-      console.error('Erro ao buscar permissões do usuário atual:', err);
+      console.error("Erro ao buscar permissões do usuário atual:", err);
     } finally {
       setPermissionsLoading(false);
     }
   };
 
   // Alternar permissão de um colaborador
-  const togglePermission = async (employeeId: string, menuItem: MenuItemType) => {
+  const togglePermission = async (
+    employeeId: string,
+    menuItem: MenuItemType,
+  ) => {
     try {
-
       // Primeiro buscar o valor atual
       const { data: currentPerm } = await supabase
-        .from('employee_permissions')
-        .select('is_enabled')
-        .eq('employee_id', employeeId)
-        .eq('menu_item', menuItem as unknown)
+        .from("employee_permissions")
+        .select("is_enabled")
+        .eq("employee_id", employeeId)
+        .eq("menu_item", menuItem as unknown)
         .single();
-
 
       // Se não existir a permissão, criar primeiro
       if (!currentPerm) {
         const { error: insertError } = await supabase
-          .from('employee_permissions')
+          .from("employee_permissions")
           .insert({
             employee_id: employeeId,
             company_id: activeCompany?.company_id,
             menu_item: menuItem as unknown,
-            is_enabled: true
+            is_enabled: true,
           } as unknown);
 
         if (insertError) {
-          console.error('Error inserting permission:', insertError);
+          console.error("Error inserting permission:", insertError);
           throw insertError;
         }
 
-
         // Atualizar estado local
-        setEmployeesWithPermissions(prev => 
-          prev.map(emp => {
+        setEmployeesWithPermissions((prev) =>
+          prev.map((emp) => {
             if (emp.id === employeeId) {
               return {
                 ...emp,
-                permissions: [...emp.permissions, {
-                  id: `new-${employeeId}-${menuItem}`,
-                  employee_id: employeeId,
-                  menu_item: menuItem,
-                  is_enabled: true
-                }]
+                permissions: [
+                  ...emp.permissions,
+                  {
+                    id: `new-${employeeId}-${menuItem}`,
+                    employee_id: employeeId,
+                    menu_item: menuItem,
+                    is_enabled: true,
+                  },
+                ],
               };
             }
             return emp;
-          })
+          }),
         );
       } else {
         // Alternar o valor existente
         const newValue = !currentPerm.is_enabled;
 
         const { error } = await supabase
-          .from('employee_permissions')
-          .update({ 
+          .from("employee_permissions")
+          .update({
             is_enabled: newValue,
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
           })
-          .eq('employee_id', employeeId)
-          .eq('menu_item', menuItem as unknown);
+          .eq("employee_id", employeeId)
+          .eq("menu_item", menuItem as unknown);
 
         if (error) {
-          console.error('Error updating permission:', error);
+          console.error("Error updating permission:", error);
           throw error;
         }
 
-
         // Atualizar estado local
-        setEmployeesWithPermissions(prev => 
-          prev.map(emp => {
+        setEmployeesWithPermissions((prev) =>
+          prev.map((emp) => {
             if (emp.id === employeeId) {
               return {
                 ...emp,
-                permissions: emp.permissions.map(perm => 
-                  perm.menu_item === menuItem 
+                permissions: emp.permissions.map((perm) =>
+                  perm.menu_item === menuItem
                     ? { ...perm, is_enabled: newValue }
-                    : perm
-                )
+                    : perm,
+                ),
               };
             }
             return emp;
-          })
+          }),
         );
       }
 
@@ -324,7 +376,7 @@ export function useEmployeePermissions() {
         description: "A permissão foi alterada com sucesso.",
       });
     } catch (err: unknown) {
-      console.error('Erro ao alterar permissão:', err);
+      console.error("Erro ao alterar permissão:", err);
       toast({
         title: "Erro",
         description: "Erro ao alterar permissão: " + err.message,
@@ -338,16 +390,16 @@ export function useEmployeePermissions() {
     try {
       // Desabilitar todas as permissões
       await supabase
-        .from('employee_permissions')
+        .from("employee_permissions")
         .update({ is_enabled: false })
-        .eq('employee_id', employeeId);
+        .eq("employee_id", employeeId);
 
       // Habilitar apenas dashboard e tarefas
       await supabase
-        .from('employee_permissions')
+        .from("employee_permissions")
         .update({ is_enabled: true })
-        .eq('employee_id', employeeId)
-        .in('menu_item', ['dashboard', 'tarefas']);
+        .eq("employee_id", employeeId)
+        .in("menu_item", ["dashboard", "tarefas"]);
 
       await fetchAllEmployeePermissions();
 
@@ -356,7 +408,7 @@ export function useEmployeePermissions() {
         description: "As permissões foram resetadas para o padrão.",
       });
     } catch (err: unknown) {
-      console.error('Erro ao resetar permissões:', err);
+      console.error("Erro ao resetar permissões:", err);
       toast({
         title: "Erro",
         description: "Erro ao resetar permissões: " + err.message,
@@ -368,23 +420,23 @@ export function useEmployeePermissions() {
   // Verificar se usuário tem permissão para acessar um menu
   const hasPermission = (menuItem: MenuItemType): boolean => {
     // Check if user is owner directly from company context
-    const isOwnerFromContext = activeCompany?.role === 'owner';
-    
+    const isOwnerFromContext = activeCompany?.role === "owner";
+
     // Owners have access to everything - check both sources
     if (isOwner || isOwnerFromContext) {
       return true;
     }
-    
+
     // During loading, only allow dashboard and tarefas for non-owners
     if (permissionsLoading) {
-      return menuItem === 'dashboard' || menuItem === 'tarefas';
+      return menuItem === "dashboard" || menuItem === "tarefas";
     }
 
     // Dashboard e tarefas são sempre acessíveis para todos os colaboradores
-    if (menuItem === 'dashboard' || menuItem === 'tarefas') {
+    if (menuItem === "dashboard" || menuItem === "tarefas") {
       return true;
     }
-    
+
     const hasAccess = currentUserPermissions.includes(menuItem);
     return hasAccess;
   };

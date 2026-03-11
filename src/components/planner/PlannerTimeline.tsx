@@ -2,7 +2,11 @@ import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Calendar, Clock, Plus, FileText, Settings, Zap } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -31,18 +35,25 @@ interface PlannerTimelineProps {
   filteredTasks?: unknown[];
 }
 
-export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({ 
-  selectedDate, 
+export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
+  selectedDate,
   onDateChange,
-  filteredTasks
- }) => {
+  filteredTasks,
+}) => {
   const { timeSlots, loading: slotsLoading } = usePlannerSlots();
-  const { tasks: plannerTasks, getTasksBySlot, getTasksWithoutTime, loading: plannerLoading, fetchPlannerTasks } = usePlannerTasks(selectedDate);
-  const { unscheduledTasks, loading: unscheduledLoading } = useUnscheduledTasks();
+  const {
+    tasks: plannerTasks,
+    getTasksBySlot,
+    getTasksWithoutTime,
+    loading: plannerLoading,
+    fetchPlannerTasks,
+  } = usePlannerTasks(selectedDate);
+  const { unscheduledTasks, loading: unscheduledLoading } =
+    useUnscheduledTasks();
   const { createTask, updateTask, deleteTask } = useTasks();
   const { employees } = useEmployees();
   const { toast } = useToast();
-  
+
   // Usar tarefas filtradas se fornecidas, senão usar as do hook
   const tasks = filteredTasks || plannerTasks;
 
@@ -71,28 +82,33 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
   // Função para filtrar tarefas por slot específico e data selecionada
   const getFilteredTasksBySlot = (timeSlot: unknown) => {
     if (!tasks) return [];
-    
-    return tasks.filter((task: unknown) => {
-      if (!task.start_date) return false;
-      
-      const taskDate = new Date(task.start_date);
-      const taskTime = format(taskDate, 'HH:mm');
-      const slotStart = timeSlot.start_time;
-      const slotEnd = timeSlot.end_time;
-      
-      const isSameDay = format(taskDate, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd');
-      const isInTimeRange = taskTime >= slotStart && taskTime < slotEnd;
-      
-      return isSameDay && isInTimeRange;
-    }).sort((a: unknown, b: unknown) => {
-      // Priorizar tarefas com start_date definido
-      if (a.start_date && !b.start_date) return -1;
-      if (!a.start_date && b.start_date) return 1;
-      if (a.start_date && b.start_date) {
-        return new Date(a.start_date).getTime() - new Date(b.start_date).getTime();
-      }
-      return 0;
-    });
+
+    return tasks
+      .filter((task: unknown) => {
+        if (!task.start_date) return false;
+
+        const taskDate = new Date(task.start_date);
+        const taskTime = format(taskDate, "HH:mm");
+        const slotStart = timeSlot.start_time;
+        const slotEnd = timeSlot.end_time;
+
+        const isSameDay =
+          format(taskDate, "yyyy-MM-dd") === format(selectedDate, "yyyy-MM-dd");
+        const isInTimeRange = taskTime >= slotStart && taskTime < slotEnd;
+
+        return isSameDay && isInTimeRange;
+      })
+      .sort((a: unknown, b: unknown) => {
+        // Priorizar tarefas com start_date definido
+        if (a.start_date && !b.start_date) return -1;
+        if (!a.start_date && b.start_date) return 1;
+        if (a.start_date && b.start_date) {
+          return (
+            new Date(a.start_date).getTime() - new Date(b.start_date).getTime()
+          );
+        }
+        return 0;
+      });
   };
 
   const handleDragEnd = async (result: DropResult) => {
@@ -103,41 +119,37 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
     }
 
     // Extrair o ID da tarefa do draggableId (remover o prefixo "planner-task-")
-    const taskId = draggableId.replace('planner-task-', '');
+    const taskId = draggableId.replace("planner-task-", "");
     const newSlotId = destination.droppableId;
-    
 
     // Encontrar o slot de destino
-    const targetSlot = timeSlots.find(slot => slot.id === newSlotId);
+    const targetSlot = timeSlots.find((slot) => slot.id === newSlotId);
     if (!targetSlot) {
-      console.error('❌ Target slot not found:', newSlotId);
+      console.error("❌ Target slot not found:", newSlotId);
       return;
     }
 
     // Calcular novo horário baseado no slot
-    const [hours, minutes] = targetSlot.start_time.split(':');
+    const [hours, minutes] = targetSlot.start_time.split(":");
     const newStartDate = new Date(selectedDate);
     newStartDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-    
+
     // Calcular end_date baseado no horário de fim do slot
-    const [endHours, endMinutes] = targetSlot.end_time.split(':');
+    const [endHours, endMinutes] = targetSlot.end_time.split(":");
     const newEndDate = new Date(selectedDate);
     newEndDate.setHours(parseInt(endHours), parseInt(endMinutes), 0, 0);
-
 
     try {
       await updateTask(taskId, {
         start_date: newStartDate.toISOString(),
         due_date: newEndDate.toISOString(),
-        deadline: format(selectedDate, 'yyyy-MM-dd')
+        deadline: format(selectedDate, "yyyy-MM-dd"),
       });
 
-
       // Invalidar queries para atualizar a UI
-      queryClient.invalidateQueries({ queryKey: ['planner-tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ["planner-tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
       fetchPlannerTasks();
-
     } catch (error) {
       console.error("Erro ao mover tarefa:", error);
     }
@@ -150,9 +162,9 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
       } else {
         // Se tem slot selecionado, configurar horário baseado no slot
         if (selectedSlotId) {
-          const slot = timeSlots.find(s => s.id === selectedSlotId);
+          const slot = timeSlots.find((s) => s.id === selectedSlotId);
           if (slot && !taskData.start_date) {
-            const [hours, minutes] = slot.start_time.split(':');
+            const [hours, minutes] = slot.start_time.split(":");
             const startDate = new Date(selectedDate);
             startDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
             taskData.start_date = startDate.toISOString();
@@ -169,7 +181,7 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
   };
 
   const handleAddTask = (slotId: string) => {
-    const slot = timeSlots.find(s => s.id === slotId);
+    const slot = timeSlots.find((s) => s.id === slotId);
     if (slot) {
       setSelectedSlot(slot);
       setSelectedSlotId(slotId);
@@ -182,12 +194,16 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
       if (!selectedSlot || !selectedSlotId) return;
 
       // Calcular start_date e due_date baseado no slot e data selecionada
-      const [startHours, startMinutes] = selectedSlot.start_time.split(':').map(Number);
-      const [endHours, endMinutes] = selectedSlot.end_time.split(':').map(Number);
-      
+      const [startHours, startMinutes] = selectedSlot.start_time
+        .split(":")
+        .map(Number);
+      const [endHours, endMinutes] = selectedSlot.end_time
+        .split(":")
+        .map(Number);
+
       const startDate = new Date(selectedDate);
       startDate.setHours(startHours, startMinutes, 0, 0);
-      
+
       const endDate = new Date(selectedDate);
       endDate.setHours(endHours, endMinutes, 0, 0);
 
@@ -196,22 +212,19 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
       await updateTask(taskId, {
         start_date: startDate.toISOString(),
         due_date: endDate.toISOString(),
-        deadline: format(selectedDate, 'yyyy-MM-dd'),
+        deadline: format(selectedDate, "yyyy-MM-dd"),
       });
-
 
       toast({
         title: "Tarefa adicionada ao slot",
         description: "A tarefa foi agendada com sucesso!",
       });
-      
+
       // Invalidar queries para atualizar a UI
-      queryClient.invalidateQueries({ queryKey: ['planner-tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['unscheduled-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ["planner-tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["unscheduled-tasks"] });
       fetchPlannerTasks();
-      
-      
     } catch (error) {
       console.error("Error adding task to slot:", error);
       toast({
@@ -227,12 +240,16 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
       if (!selectedSlot || !selectedSlotId) return;
 
       // Calcular start_date e due_date baseado no slot e data selecionada
-      const [startHours, startMinutes] = selectedSlot.start_time.split(':').map(Number);
-      const [endHours, endMinutes] = selectedSlot.end_time.split(':').map(Number);
-      
+      const [startHours, startMinutes] = selectedSlot.start_time
+        .split(":")
+        .map(Number);
+      const [endHours, endMinutes] = selectedSlot.end_time
+        .split(":")
+        .map(Number);
+
       const startDate = new Date(selectedDate);
       startDate.setHours(startHours, startMinutes, 0, 0);
-      
+
       const endDate = new Date(selectedDate);
       endDate.setHours(endHours, endMinutes, 0, 0);
 
@@ -241,9 +258,9 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
         ...taskData,
         start_date: startDate.toISOString(),
         due_date: endDate.toISOString(),
-        deadline: format(selectedDate, 'yyyy-MM-dd'),
+        deadline: format(selectedDate, "yyyy-MM-dd"),
         company_id: activeCompany?.company_id,
-        origin: 'manual',
+        origin: "manual",
       };
 
       await createTask(completeTaskData);
@@ -252,14 +269,12 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
         title: "Nova tarefa criada",
         description: "A tarefa foi criada e agendada no slot!",
       });
-      
+
       // Invalidar queries para atualizar a UI
-      queryClient.invalidateQueries({ queryKey: ['planner-tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['unscheduled-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ["planner-tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["unscheduled-tasks"] });
       fetchPlannerTasks();
-      
-      
     } catch (error) {
       console.error("Error creating task in slot:", error);
       toast({
@@ -287,29 +302,31 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
   const exportDaySummary = () => {
     try {
       const summary = generateDaySummary();
-      const blob = new Blob([summary], { type: 'text/plain;charset=utf-8' });
+      const blob = new Blob([summary], { type: "text/plain;charset=utf-8" });
       const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
-      link.download = `resumo-${format(selectedDate, 'yyyy-MM-dd')}.txt`;
+      link.download = `resumo-${format(selectedDate, "yyyy-MM-dd")}.txt`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-      
     } catch (error) {
       console.error("Erro ao exportar resumo:", error);
     }
   };
 
   const generateDaySummary = () => {
-    const dateStr = format(selectedDate, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+    const dateStr = format(selectedDate, "EEEE, dd 'de' MMMM 'de' yyyy", {
+      locale: ptBR,
+    });
     let summary = `RESUMO DIÁRIO - ${dateStr.toUpperCase()}\n`;
-    summary += `${'='.repeat(50)}\n\n`;
+    summary += `${"=".repeat(50)}\n\n`;
 
     // Estatísticas gerais
     const totalTasks = tasks?.length || 0;
-    const completedTasks = tasks?.filter(t => t.status === 'done').length || 0;
+    const completedTasks =
+      tasks?.filter((t) => t.status === "done").length || 0;
     const pendingTasks = totalTasks - completedTasks;
 
     summary += `📊 ESTATÍSTICAS:\n`;
@@ -320,16 +337,16 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
 
     // Resumo por slot
     summary += `⏰ CRONOGRAMA:\n`;
-    timeSlots.forEach(slot => {
+    timeSlots.forEach((slot) => {
       const slotTasks = getFilteredTasksBySlot(slot);
       summary += `\n${slot.start_time} - ${slot.end_time} | ${slot.name}\n`;
-      summary += `${'-'.repeat(30)}\n`;
-      
+      summary += `${"-".repeat(30)}\n`;
+
       if (slotTasks.length === 0) {
         summary += `  (Nenhuma tarefa agendada)\n`;
       } else {
-        slotTasks.forEach(task => {
-          const status = task.status === 'done' ? '✅' : '⏳';
+        slotTasks.forEach((task) => {
+          const status = task.status === "done" ? "✅" : "⏳";
           summary += `  ${status} ${task.title}\n`;
           if (task.description) {
             summary += `     ${task.description}\n`;
@@ -342,22 +359,21 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
     const unscheduledTasks = getTasksWithoutTime();
     if (unscheduledTasks.length > 0) {
       summary += `\n📋 TAREFAS SEM HORÁRIO DEFINIDO:\n`;
-      summary += `${'-'.repeat(30)}\n`;
-      unscheduledTasks.forEach(task => {
-        const status = task.status === 'done' ? '✅' : '⏳';
+      summary += `${"-".repeat(30)}\n`;
+      unscheduledTasks.forEach((task) => {
+        const status = task.status === "done" ? "✅" : "⏳";
         summary += `  ${status} ${task.title}\n`;
       });
     }
 
-    summary += `\n${'='.repeat(50)}\n`;
-    summary += `Gerado em: ${format(new Date(), 'dd/MM/yyyy HH:mm')}\n`;
+    summary += `\n${"=".repeat(50)}\n`;
+    summary += `Gerado em: ${format(new Date(), "dd/MM/yyyy HH:mm")}\n`;
 
     return summary;
   };
 
   // Organizar com IA - Abrir modal de escopo
   const handleOrganizeWithAI = () => {
-
     if (unscheduledTasks.length === 0) {
       toast({
         title: "Nenhuma tarefa para organizar",
@@ -369,7 +385,8 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
     if (timeSlots.length === 0) {
       toast({
         title: "Configure os slots primeiro",
-        description: "É necessário ter slots de tempo configurados para organizar as tarefas.",
+        description:
+          "É necessário ter slots de tempo configurados para organizar as tarefas.",
         variant: "destructive",
       });
       return;
@@ -382,10 +399,10 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
   const handleConfirmScope = async (scope: unknown) => {
     let tasksToOrganize = [];
 
-    if (scope.type === 'specific' && scope.employeeId) {
+    if (scope.type === "specific" && scope.employeeId) {
       // Filtrar tarefas do colaborador específico das tarefas não agendadas
-      tasksToOrganize = unscheduledTasks.filter((task: unknown) => 
-        task.user_id === scope.employeeId
+      tasksToOrganize = unscheduledTasks.filter(
+        (task: unknown) => task.user_id === scope.employeeId,
       );
     } else {
       // Todas as tarefas sem horário definido
@@ -395,12 +412,13 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
     // Se incluir tarefas sem responsável, elas já estão em unscheduledTasks
     // Apenas garantir que não há duplicatas
     if (scope.includeUnassigned) {
-      const unassignedTasks = unscheduledTasks.filter((task: unknown) => 
-        !task.user_id
+      const unassignedTasks = unscheduledTasks.filter(
+        (task: unknown) => !task.user_id,
       );
       // Evitar duplicatas
-      const unassignedNotInList = unassignedTasks.filter(unassigned =>
-        !tasksToOrganize.some(task => task.id === unassigned.id)
+      const unassignedNotInList = unassignedTasks.filter(
+        (unassigned) =>
+          !tasksToOrganize.some((task) => task.id === unassigned.id),
       );
       tasksToOrganize = [...tasksToOrganize, ...unassignedNotInList];
     }
@@ -408,7 +426,7 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
     await organizeTasksWithAI({
       tasks: tasksToOrganize,
       timeSlots,
-      startDate: format(selectedDate, 'yyyy-MM-dd'),
+      startDate: format(selectedDate, "yyyy-MM-dd"),
       daysToOrganize: scope.includePeriod,
       scope,
       employees,
@@ -428,9 +446,12 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
       <Card>
         <CardContent className="flex flex-col items-center justify-center py-12">
           <Clock className="h-12 w-12 text-muted-foreground mb-4" />
-          <h3 className="text-lg font-semibold mb-2">Nenhum slot configurado</h3>
+          <h3 className="text-lg font-semibold mb-2">
+            Nenhum slot configurado
+          </h3>
           <p className="text-muted-foreground text-center mb-4">
-            Configure os horários do seu dia para começar a organizar suas tarefas.
+            Configure os horários do seu dia para começar a organizar suas
+            tarefas.
           </p>
           <Button onClick={() => setSettingsModalOpen(true)}>
             <Settings className="h-4 w-4 mr-2" />
@@ -455,7 +476,9 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
                     variant="ghost"
                     className="h-auto p-0 font-semibold text-xl hover:bg-transparent hover:text-primary"
                   >
-                    {format(selectedDate, "EEEE, dd 'de' MMMM", { locale: ptBR })}
+                    {format(selectedDate, "EEEE, dd 'de' MMMM", {
+                      locale: ptBR,
+                    })}
                     <Calendar className="h-4 w-4 ml-2" />
                   </Button>
                 </PopoverTrigger>
@@ -471,11 +494,7 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
               </Popover>
             </div>
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={exportDaySummary}
-              >
+              <Button variant="outline" size="sm" onClick={exportDaySummary}>
                 <FileText className="h-4 w-4 mr-2" />
                 Exportar
               </Button>
@@ -538,7 +557,7 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
                   <div>
                     <p className="font-medium">{task.title}</p>
                     <p className="text-sm text-muted-foreground">
-                      {task.responsible_name || 'Sem responsável'}
+                      {task.responsible_name || "Sem responsável"}
                     </p>
                   </div>
                   <Button

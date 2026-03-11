@@ -8,13 +8,13 @@ interface SocialMetricsData {
 
 export function useSocialMetrics(clientId: string) {
   return useQuery({
-    queryKey: ['social-metrics', clientId],
+    queryKey: ["social-metrics", clientId],
     queryFn: async (): Promise<SocialMetricsData> => {
       // Get client's dashboard token
       const { data: client } = await supabase
-        .from('clients')
-        .select('dashboard_token')
-        .eq('id', clientId)
+        .from("clients")
+        .select("dashboard_token")
+        .eq("id", clientId)
         .single();
 
       if (!client?.dashboard_token) {
@@ -22,27 +22,30 @@ export function useSocialMetrics(clientId: string) {
       }
 
       // Calculate date range (last 30 days)
-      const endDate = new Date().toISOString().split('T')[0];
-      const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-
+      const endDate = new Date().toISOString().split("T")[0];
+      const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split("T")[0];
 
       // Fetch dashboard data which includes social metrics
-      const { data, error } = await supabase.functions.invoke('client-dashboard-data', {
-        body: { 
-          token: client.dashboard_token, 
-          start_date: startDate, 
-          end_date: endDate 
-        }
-      });
+      const { data, error } = await supabase.functions.invoke(
+        "client-dashboard-data",
+        {
+          body: {
+            token: client.dashboard_token,
+            start_date: startDate,
+            end_date: endDate,
+          },
+        },
+      );
 
       if (error) {
-        console.error('Error fetching social metrics:', error);
+        console.error("Error fetching social metrics:", error);
         throw error;
       }
 
-
       return {
-        social_metrics: data?.social_metrics || null
+        social_metrics: data?.social_metrics || null,
       };
     },
     enabled: !!clientId,

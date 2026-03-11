@@ -3,7 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ImageUploader } from "@/components/ui/image-uploader";
 import { useCompany } from "@/contexts/CompanyContext";
@@ -39,23 +45,23 @@ export const CompanySettings = () => {
 
     try {
       setLoading(true);
-      
+
       await updateCompany(activeCompany.company.id, {
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
         logo: formData.logo,
       });
-      
+
       // Refresh companies to get updated data
       await refreshCompanies();
-      
+
       toast({
         title: "Empresa atualizada!",
         description: "As configurações da empresa foram salvas com sucesso.",
       });
     } catch (error) {
-      console.error('Error in handleSubmit:', error);
+      console.error("Error in handleSubmit:", error);
       toast({
         title: "Erro ao salvar",
         description: "Não foi possível salvar as configurações da empresa.",
@@ -99,12 +105,14 @@ export const CompanySettings = () => {
                   <Building className="h-8 w-8" />
                 </AvatarFallback>
               </Avatar>
-              
+
               <ImageUploader
                 bucket="company-logos"
                 folder={activeCompany?.company?.id}
                 currentImageUrl={formData.logo}
-                onImageUploaded={(url) => setFormData({ ...formData, logo: url })}
+                onImageUploaded={(url) =>
+                  setFormData({ ...formData, logo: url })
+                }
                 onImageRemoved={() => setFormData({ ...formData, logo: "" })}
                 maxSize={5}
                 className="flex-1"
@@ -119,7 +127,9 @@ export const CompanySettings = () => {
               <Input
                 id="name"
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
                 placeholder="Nome da sua empresa"
                 required
               />
@@ -133,7 +143,9 @@ export const CompanySettings = () => {
                   id="email"
                   type="email"
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
                   placeholder="contato@empresa.com"
                   className="pl-10"
                 />
@@ -147,7 +159,9 @@ export const CompanySettings = () => {
                 <Input
                   id="phone"
                   value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, phone: e.target.value })
+                  }
                   placeholder="(11) 99999-9999"
                   className="pl-10"
                 />
@@ -159,7 +173,9 @@ export const CompanySettings = () => {
               <Input
                 id="logo"
                 value={formData.logo}
-                onChange={(e) => setFormData({ ...formData, logo: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, logo: e.target.value })
+                }
                 placeholder="https://exemplo.com/logo.png"
               />
             </div>
@@ -169,12 +185,14 @@ export const CompanySettings = () => {
             <Button
               type="button"
               variant="outline"
-              onClick={() => setFormData({
-                name: activeCompany.company?.name || "",
-                email: activeCompany.company?.email || "",
-                phone: activeCompany.company?.phone || "",
-                logo: activeCompany.company?.logo || "",
-              })}
+              onClick={() =>
+                setFormData({
+                  name: activeCompany.company?.name || "",
+                  email: activeCompany.company?.email || "",
+                  phone: activeCompany.company?.phone || "",
+                  logo: activeCompany.company?.logo || "",
+                })
+              }
             >
               Cancelar
             </Button>

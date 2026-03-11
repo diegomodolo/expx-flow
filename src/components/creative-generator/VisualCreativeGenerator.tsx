@@ -9,17 +9,17 @@ import { useVisualCreatives } from "@/hooks/useVisualCreatives";
 import { useFacebookPages } from "@/hooks/useFacebookPages";
 import { CreativeData } from "./CreativeGenerator";
 import { NewPostModal } from "@/components/scheduling/NewPostModal";
-import { 
-  Wand2, 
-  Download, 
-  RefreshCw, 
-  Save, 
-  Loader2, 
-  CheckCircle, 
+import {
+  Wand2,
+  Download,
+  RefreshCw,
+  Save,
+  Loader2,
+  CheckCircle,
   AlertTriangle,
   Image as ImageIcon,
   Copy,
-  CalendarPlus
+  CalendarPlus,
 } from "lucide-react";
 
 interface VisualCreativeGeneratorProps {
@@ -27,7 +27,10 @@ interface VisualCreativeGeneratorProps {
   onImageGenerated: (url: string) => void;
 }
 
-export function VisualCreativeGenerator({ data, onImageGenerated }: VisualCreativeGeneratorProps) {
+export function VisualCreativeGenerator({
+  data,
+  onImageGenerated,
+}: VisualCreativeGeneratorProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [generationError, setGenerationError] = useState<string | null>(null);
@@ -40,7 +43,7 @@ export function VisualCreativeGenerator({ data, onImageGenerated }: VisualCreati
   const handleGenerateImage = async () => {
     setIsGenerating(true);
     setGenerationError(null);
-    
+
     try {
       // Converter referências para base64 se existirem
       let references: string[] = [];
@@ -48,11 +51,11 @@ export function VisualCreativeGenerator({ data, onImageGenerated }: VisualCreati
         references = await Promise.all(
           data.references.map(async (item) => {
             // Se for URL, usar diretamente
-            if (item.type === 'url' && item.url) {
+            if (item.type === "url" && item.url) {
               return item.url;
             }
             // Se for arquivo, converter para base64
-            if (item.type === 'file' && item.file) {
+            if (item.type === "file" && item.file) {
               return new Promise<string>((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onload = () => resolve(reader.result as string);
@@ -60,10 +63,10 @@ export function VisualCreativeGenerator({ data, onImageGenerated }: VisualCreati
                 reader.readAsDataURL(item.file!);
               });
             }
-            return '';
-          })
+            return "";
+          }),
         );
-        references = references.filter(r => r !== '');
+        references = references.filter((r) => r !== "");
       }
 
       const requestBody = {
@@ -75,23 +78,24 @@ export function VisualCreativeGenerator({ data, onImageGenerated }: VisualCreati
         references: references.length > 0 ? references : undefined,
         approvedText: data.context.copy,
       };
-      
 
-      const { data: result, error } = await supabase.functions.invoke('generate-visual-creative', {
-        body: requestBody,
-      });
-
+      const { data: result, error } = await supabase.functions.invoke(
+        "generate-visual-creative",
+        {
+          body: requestBody,
+        },
+      );
 
       if (error) throw error;
 
       if (result?.imageUrl) {
         onImageGenerated(result.imageUrl);
-        
+
         // Se uma legenda foi gerada, armazenar no contexto
         if (result?.suggestedCaption && data.context) {
           data.context.caption = result.suggestedCaption;
         }
-        
+
         toast({
           title: "Criativo gerado com sucesso!",
           description: "Sua imagem foi gerada e está pronta para uso.",
@@ -100,8 +104,10 @@ export function VisualCreativeGenerator({ data, onImageGenerated }: VisualCreati
         throw new Error("Nenhuma imagem foi gerada");
       }
     } catch (error: unknown) {
-      console.error('Error generating creative:', error);
-      setGenerationError(error.message || "Erro desconhecido ao gerar criativo");
+      console.error("Error generating creative:", error);
+      setGenerationError(
+        error.message || "Erro desconhecido ao gerar criativo",
+      );
       toast({
         title: "Erro ao gerar criativo",
         description: "Não foi possível gerar a imagem. Tente novamente.",
@@ -114,38 +120,38 @@ export function VisualCreativeGenerator({ data, onImageGenerated }: VisualCreati
 
   const handleSaveCreative = async () => {
     if (!data.generatedImageUrl || !activeCompany?.company_id) return;
-    
+
     setIsSaving(true);
     try {
       // Buscar nome do cliente no banco
       const { data: clientData } = await supabase
-        .from('clients')
-        .select('name')
-        .eq('id', data.clientId)
+        .from("clients")
+        .select("name")
+        .eq("id", data.clientId)
         .single();
 
       const creativeData = {
         company_id: activeCompany.company_id,
         client_id: data.clientId,
-        client_name: clientData?.name || 'Cliente não encontrado',
+        client_name: clientData?.name || "Cliente não encontrado",
         creative_type: data.creativeType,
         theme: data.theme,
-        title: data.context.title || 'Criativo sem título',
-        description: data.context.description || 'Criativo gerado automaticamente',
-        objective: data.context.objective || 'Sem objetivo definido',
+        title: data.context.title || "Criativo sem título",
+        description:
+          data.context.description || "Criativo gerado automaticamente",
+        objective: data.context.objective || "Sem objetivo definido",
         target_audience: data.context.targetAudience || null,
         copy_text: data.context.copy || null,
         caption: data.context.caption || null,
         image_url: data.generatedImageUrl,
-        status: 'completed' as const
+        status: "completed" as const,
       };
 
-
       await createCreative(creativeData);
-      
+
       // Remover o toast aqui pois já é exibido no hook
     } catch (error: unknown) {
-      console.error('Error saving creative:', error);
+      console.error("Error saving creative:", error);
       // O erro já é tratado no hook, mas mantemos um log aqui
     } finally {
       setIsSaving(false);
@@ -154,10 +160,10 @@ export function VisualCreativeGenerator({ data, onImageGenerated }: VisualCreati
 
   const handleDownload = () => {
     if (!data.generatedImageUrl) return;
-    
-    const link = document.createElement('a');
+
+    const link = document.createElement("a");
     link.href = data.generatedImageUrl;
-    link.download = `criativo-${data.context.title.toLowerCase().replace(/\s+/g, '-')}.jpg`;
+    link.download = `criativo-${data.context.title.toLowerCase().replace(/\s+/g, "-")}.jpg`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -173,26 +179,26 @@ export function VisualCreativeGenerator({ data, onImageGenerated }: VisualCreati
 
   const formatCreativeTypeName = (type: string) => {
     const typeMap: Record<string, string> = {
-      'instagram-feed': 'Post para Feed',
-      'instagram-stories': 'Stories',
-      'facebook-cover': 'Capa de Facebook',
-      'youtube-cover': 'Capa de YouTube',
-      'youtube-thumbnail': 'Thumbnail para vídeo',
-      'facebook-ad': 'Criativo para Anúncio',
-      'email-banner': 'Banner para E-mail',
-      'website-banner': 'Banner para Site',
-      'whatsapp-business': 'WhatsApp Business',
-      'pinterest-pin': 'Pin do Pinterest',
-      'reels-cover': 'Capa para Reels',
-      'tiktok-cover': 'Capa para TikTok',
-      'linkedin-post': 'Post do LinkedIn',
-      'carousel-post': 'Carrossel',
-      'remarketing-ad': 'Remarketing',
-      'awareness-campaign': 'Campanha de Conscientização',
-      'institutional-post': 'Post Institucional',
-      'event-promotion': 'Divulgação de Evento',
-      'seasonal-post': 'Post Comemorativo',
-      'product-mockup': 'Mockup de Produto',
+      "instagram-feed": "Post para Feed",
+      "instagram-stories": "Stories",
+      "facebook-cover": "Capa de Facebook",
+      "youtube-cover": "Capa de YouTube",
+      "youtube-thumbnail": "Thumbnail para vídeo",
+      "facebook-ad": "Criativo para Anúncio",
+      "email-banner": "Banner para E-mail",
+      "website-banner": "Banner para Site",
+      "whatsapp-business": "WhatsApp Business",
+      "pinterest-pin": "Pin do Pinterest",
+      "reels-cover": "Capa para Reels",
+      "tiktok-cover": "Capa para TikTok",
+      "linkedin-post": "Post do LinkedIn",
+      "carousel-post": "Carrossel",
+      "remarketing-ad": "Remarketing",
+      "awareness-campaign": "Campanha de Conscientização",
+      "institutional-post": "Post Institucional",
+      "event-promotion": "Divulgação de Evento",
+      "seasonal-post": "Post Comemorativo",
+      "product-mockup": "Mockup de Produto",
     };
     return typeMap[type] || type;
   };
@@ -209,7 +215,9 @@ export function VisualCreativeGenerator({ data, onImageGenerated }: VisualCreati
       {/* Resumo do Contexto */}
       <Card className="bg-blue-50 border-blue-200">
         <CardHeader className="pb-3">
-          <CardTitle className="text-base text-blue-900">Resumo do Criativo</CardTitle>
+          <CardTitle className="text-base text-blue-900">
+            Resumo do Criativo
+          </CardTitle>
         </CardHeader>
         <CardContent className="pt-0 space-y-3">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
@@ -224,14 +232,14 @@ export function VisualCreativeGenerator({ data, onImageGenerated }: VisualCreati
               <span className="ml-2 text-blue-700">{data.theme}</span>
             </div>
           </div>
-          
+
           {data.context.title && (
             <div>
               <span className="font-medium text-blue-900">Título:</span>
               <span className="ml-2 text-blue-700">{data.context.title}</span>
             </div>
           )}
-          
+
           {data.context.copy && (
             <div>
               <span className="font-medium text-blue-900">Copy da imagem:</span>
@@ -253,7 +261,8 @@ export function VisualCreativeGenerator({ data, onImageGenerated }: VisualCreati
                   <Loader2 className="w-12 h-12 mx-auto animate-spin text-primary" />
                   <h4 className="font-medium">Gerando seu criativo...</h4>
                   <p className="text-muted-foreground text-sm">
-                    Isso pode levar alguns minutos. Aguarde enquanto a IA cria sua imagem.
+                    Isso pode levar alguns minutos. Aguarde enquanto a IA cria
+                    sua imagem.
                   </p>
                 </>
               ) : (
@@ -265,7 +274,7 @@ export function VisualCreativeGenerator({ data, onImageGenerated }: VisualCreati
                   <p className="text-muted-foreground text-sm">
                     Clique no botão abaixo para gerar seu criativo visual com IA
                   </p>
-                  <Button 
+                  <Button
                     onClick={handleGenerateImage}
                     size="lg"
                     className="gap-2"
@@ -289,8 +298,8 @@ export function VisualCreativeGenerator({ data, onImageGenerated }: VisualCreati
               <div className="space-y-2">
                 <h5 className="font-medium text-red-900">Erro na Geração</h5>
                 <p className="text-sm text-red-700">{generationError}</p>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="sm"
                   onClick={handleGenerateImage}
                   disabled={isGenerating}
@@ -319,20 +328,24 @@ export function VisualCreativeGenerator({ data, onImageGenerated }: VisualCreati
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="bg-gray-50 rounded-lg p-4 flex justify-center">
-                <img 
-                  src={data.generatedImageUrl} 
+                <img
+                  src={data.generatedImageUrl}
                   alt="Criativo gerado"
                   className="max-w-full h-auto max-h-96 rounded-lg shadow-sm border"
                 />
               </div>
-              
+
               <div className="flex flex-wrap gap-2">
-                <Button onClick={handleDownload} variant="outline" className="gap-2">
+                <Button
+                  onClick={handleDownload}
+                  variant="outline"
+                  className="gap-2"
+                >
                   <Download className="w-4 h-4" />
                   Baixar Imagem
                 </Button>
-                
-                <Button 
+
+                <Button
                   onClick={handleSaveCreative}
                   disabled={isSaving}
                   className="gap-2"
@@ -344,8 +357,8 @@ export function VisualCreativeGenerator({ data, onImageGenerated }: VisualCreati
                   )}
                   Salvar no Histórico
                 </Button>
-                
-                <Button 
+
+                <Button
                   onClick={handleGenerateImage}
                   variant="outline"
                   disabled={isGenerating}
@@ -355,7 +368,7 @@ export function VisualCreativeGenerator({ data, onImageGenerated }: VisualCreati
                   Gerar Nova Versão
                 </Button>
 
-                <Button 
+                <Button
                   onClick={() => setShowScheduleModal(true)}
                   variant="secondary"
                   className="gap-2"
@@ -375,7 +388,9 @@ export function VisualCreativeGenerator({ data, onImageGenerated }: VisualCreati
               </CardHeader>
               <CardContent>
                 <div className="bg-gray-50 rounded-lg p-4 relative">
-                  <p className="text-sm whitespace-pre-line">{data.context.caption}</p>
+                  <p className="text-sm whitespace-pre-line">
+                    {data.context.caption}
+                  </p>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -398,8 +413,10 @@ export function VisualCreativeGenerator({ data, onImageGenerated }: VisualCreati
         onClose={() => setShowScheduleModal(false)}
         pages={pages}
         instagramAccounts={instagramAccounts}
-        initialMediaUrls={data.generatedImageUrl ? [data.generatedImageUrl] : []}
-        initialCaption={data.context.caption || ''}
+        initialMediaUrls={
+          data.generatedImageUrl ? [data.generatedImageUrl] : []
+        }
+        initialCaption={data.context.caption || ""}
         initialClientId={data.clientId}
       />
     </div>

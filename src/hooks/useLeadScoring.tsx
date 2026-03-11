@@ -458,7 +458,6 @@ export function useLeadScoring() {
         return 0;
       }
 
-
       // Process in batches of 100 to avoid Supabase limits
       const BATCH_SIZE = 100;
       let totalProcessed = 0;
@@ -481,7 +480,6 @@ export function useLeadScoring() {
           console.warn(`Batch ${i / BATCH_SIZE + 1}: No leads found`);
           continue;
         }
-
 
         // Score and update each lead in the batch
         for (const lead of leads) {
@@ -527,7 +525,6 @@ export function useLeadScoring() {
       return 0;
     }
 
-
     // Fetch all lead IDs for company (handle pagination for large datasets)
     let allLeadIds: string[] = [];
     let page = 0;
@@ -552,7 +549,6 @@ export function useLeadScoring() {
       if (leads.length < PAGE_SIZE) break;
       page++;
     }
-
 
     if (allLeadIds.length === 0) return 0;
 
