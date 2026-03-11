@@ -11,25 +11,29 @@ export function useWorkspaceDocuments(folderId?: string | null) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: documents = [], isLoading, error } = useQuery({
-    queryKey: ['workspace-documents', activeCompany?.company_id, folderId],
+  const {
+    data: documents = [],
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["workspace-documents", activeCompany?.company_id, folderId],
     queryFn: async () => {
       if (!activeCompany?.company_id) return [];
-      
+
       let query = supabase
-        .from('workspace_documents')
-        .select('*')
-        .eq('company_id', activeCompany.company_id)
-        .order('updated_at', { ascending: false });
-      
+        .from("workspace_documents")
+        .select("*")
+        .eq("company_id", activeCompany.company_id)
+        .order("updated_at", { ascending: false });
+
       if (folderId === null) {
-        query = query.is('folder_id', null);
+        query = query.is("folder_id", null);
       } else if (folderId) {
-        query = query.eq('folder_id', folderId);
+        query = query.eq("folder_id", folderId);
       }
-      
+
       const { data, error } = await query;
-      
+
       if (error) throw error;
       return data as WorkspaceDocument[];
     },
@@ -37,16 +41,16 @@ export function useWorkspaceDocuments(folderId?: string | null) {
   });
 
   const { data: allDocuments = [] } = useQuery({
-    queryKey: ['workspace-documents-all', activeCompany?.company_id],
+    queryKey: ["workspace-documents-all", activeCompany?.company_id],
     queryFn: async () => {
       if (!activeCompany?.company_id) return [];
-      
+
       const { data, error } = await supabase
-        .from('workspace_documents')
-        .select('*')
-        .eq('company_id', activeCompany.company_id)
-        .order('updated_at', { ascending: false });
-      
+        .from("workspace_documents")
+        .select("*")
+        .eq("company_id", activeCompany.company_id)
+        .order("updated_at", { ascending: false });
+
       if (error) throw error;
       return data as WorkspaceDocument[];
     },
@@ -54,17 +58,17 @@ export function useWorkspaceDocuments(folderId?: string | null) {
   });
 
   const { data: favoriteDocuments = [] } = useQuery({
-    queryKey: ['workspace-documents-favorites', activeCompany?.company_id],
+    queryKey: ["workspace-documents-favorites", activeCompany?.company_id],
     queryFn: async () => {
       if (!activeCompany?.company_id) return [];
-      
+
       const { data, error } = await supabase
-        .from('workspace_documents')
-        .select('*')
-        .eq('company_id', activeCompany.company_id)
-        .eq('is_favorite', true)
-        .order('updated_at', { ascending: false });
-      
+        .from("workspace_documents")
+        .select("*")
+        .eq("company_id", activeCompany.company_id)
+        .eq("is_favorite", true)
+        .order("updated_at", { ascending: false });
+
       if (error) throw error;
       return data as WorkspaceDocument[];
     },
@@ -72,45 +76,66 @@ export function useWorkspaceDocuments(folderId?: string | null) {
   });
 
   const createDocument = useMutation({
-    mutationFn: async ({ title, folderId, icon }: { title?: string; folderId?: string | null; icon?: string }) => {
-      if (!activeCompany?.company_id || !user?.id) throw new Error('Missing company or user');
-      
+    mutationFn: async ({
+      title,
+      folderId,
+      icon,
+    }: {
+      title?: string;
+      folderId?: string | null;
+      icon?: string;
+    }) => {
+      if (!activeCompany?.company_id || !user?.id)
+        throw new Error("Missing company or user");
+
       const { data, error } = await supabase
-        .from('workspace_documents')
+        .from("workspace_documents")
         .insert({
           company_id: activeCompany.company_id,
           folder_id: folderId || null,
-          title: title || 'Sem título',
+          title: title || "Sem título",
           content: [],
-          icon: icon || '📄',
+          icon: icon || "📄",
           created_by: user.id,
         })
         .select()
         .single();
-      
+
       if (error) throw error;
       return data as WorkspaceDocument;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['workspace-documents'] });
-      queryClient.invalidateQueries({ queryKey: ['workspace-documents-all'] });
+      queryClient.invalidateQueries({ queryKey: ["workspace-documents"] });
+      queryClient.invalidateQueries({ queryKey: ["workspace-documents-all"] });
     },
     onError: (error: unknown) => {
-      toast({ title: 'Erro ao criar documento', description: error.message, variant: 'destructive' });
+      toast({
+        title: "Erro ao criar documento",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
   const updateDocument = useMutation({
-    mutationFn: async ({ id, title, content, icon, folderId, isFavorite, coverImage }: { 
-      id: string; 
-      title?: string; 
-      content?: unknown; 
+    mutationFn: async ({
+      id,
+      title,
+      content,
+      icon,
+      folderId,
+      isFavorite,
+      coverImage,
+    }: {
+      id: string;
+      title?: string;
+      content?: unknown;
       icon?: string;
       folderId?: string | null;
       isFavorite?: boolean;
       coverImage?: string | null;
     }) => {
-      const updates: unknown = {};
+      const updates: Record<string, unknown> = {};
       if (title !== undefined) updates.title = title;
       if (content !== undefined) updates.content = content;
       if (icon !== undefined) updates.icon = icon;
@@ -119,67 +144,96 @@ export function useWorkspaceDocuments(folderId?: string | null) {
       if (coverImage !== undefined) updates.cover_image = coverImage;
 
       const { data, error } = await supabase
-        .from('workspace_documents')
+        .from("workspace_documents")
         .update(updates)
-        .eq('id', id)
+        .eq("id", id)
         .select()
         .single();
-      
+
       if (error) throw error;
       return data as WorkspaceDocument;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['workspace-documents'] });
-      queryClient.invalidateQueries({ queryKey: ['workspace-documents-all'] });
-      queryClient.invalidateQueries({ queryKey: ['workspace-documents-favorites'] });
+      queryClient.invalidateQueries({ queryKey: ["workspace-documents"] });
+      queryClient.invalidateQueries({ queryKey: ["workspace-documents-all"] });
+      queryClient.invalidateQueries({
+        queryKey: ["workspace-documents-favorites"],
+      });
     },
     onError: (error: unknown) => {
-      toast({ title: 'Erro ao atualizar documento', description: error.message, variant: 'destructive' });
+      toast({
+        title: "Erro ao atualizar documento",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
   const deleteDocument = useMutation({
     mutationFn: async (id: string) => {
       const { data, error } = await supabase
-        .from('workspace_documents')
+        .from("workspace_documents")
         .delete()
-        .eq('id', id)
-        .select('id');
+        .eq("id", id)
+        .select("id");
 
       if (error) throw error;
-      if (!data || data.length === 0) throw new Error('Sem permissão para excluir este documento');
+      if (!data || data.length === 0)
+        throw new Error("Sem permissão para excluir este documento");
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['workspace-documents'] });
-      queryClient.invalidateQueries({ queryKey: ['workspace-documents-all'] });
-      queryClient.invalidateQueries({ queryKey: ['workspace-documents-favorites'] });
-      toast({ title: 'Documento excluído!' });
+      queryClient.invalidateQueries({ queryKey: ["workspace-documents"] });
+      queryClient.invalidateQueries({ queryKey: ["workspace-documents-all"] });
+      queryClient.invalidateQueries({
+        queryKey: ["workspace-documents-favorites"],
+      });
+      toast({ title: "Documento excluído!" });
     },
     onError: (error: unknown) => {
-      toast({ title: 'Erro ao excluir documento', description: error.message, variant: 'destructive' });
+      toast({
+        title: "Erro ao excluir documento",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
   const toggleFavorite = useMutation({
-    mutationFn: async ({ id, isFavorite }: { id: string; isFavorite: boolean }) => {
+    mutationFn: async ({
+      id,
+      isFavorite,
+    }: {
+      id: string;
+      isFavorite: boolean;
+    }) => {
       const { data, error } = await supabase
-        .from('workspace_documents')
+        .from("workspace_documents")
         .update({ is_favorite: isFavorite })
-        .eq('id', id)
+        .eq("id", id)
         .select()
         .single();
-      
+
       if (error) throw error;
       return data as WorkspaceDocument;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['workspace-documents'] });
-      queryClient.invalidateQueries({ queryKey: ['workspace-documents-all'] });
-      queryClient.invalidateQueries({ queryKey: ['workspace-documents-favorites'] });
-      toast({ title: data.is_favorite ? 'Adicionado aos favoritos!' : 'Removido dos favoritos' });
+      queryClient.invalidateQueries({ queryKey: ["workspace-documents"] });
+      queryClient.invalidateQueries({ queryKey: ["workspace-documents-all"] });
+      queryClient.invalidateQueries({
+        queryKey: ["workspace-documents-favorites"],
+      });
+      toast({
+        title: data.is_favorite
+          ? "Adicionado aos favoritos!"
+          : "Removido dos favoritos",
+      });
     },
     onError: (error: unknown) => {
-      toast({ title: 'Erro ao atualizar favorito', description: error.message, variant: 'destructive' });
+      toast({
+        title: "Erro ao atualizar favorito",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
