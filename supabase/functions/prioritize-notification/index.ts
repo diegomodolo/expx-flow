@@ -3,8 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.53.0";
 import { callAI } from "../_shared/ai-gateway.ts";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin":
-    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+  "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
@@ -236,8 +235,7 @@ async function createNotificationFallback(
     JSON.stringify({ success: true, priority: "normal", fallback: true }),
     {
       headers: {
-        "Access-Control-Allow-Origin":
-          Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+        "Access-Control-Allow-Origin": "*",
         "Content-Type": "application/json",
       },
     },

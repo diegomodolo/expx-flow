@@ -6,8 +6,7 @@ import {
 } from "../_shared/googleAdsTokenRefresh.ts";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin":
-    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+  "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
