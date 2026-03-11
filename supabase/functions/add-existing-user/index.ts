@@ -76,7 +76,7 @@ const handler = async (req: Request): Promise<Response> => {
         ...corsHeaders,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao adicionar usuário existente:", error);
     return new Response(
       JSON.stringify({ error: error.message }),
