@@ -117,7 +117,7 @@ export function ReportDetailAccordion({
           <div className="bg-primary/5 border border-primary/10 rounded p-3">
             <div className="flex items-center gap-2 mb-2">
               <Bot className="h-4 w-4 text-primary" />
-              <span className="text-xs font-bold text-primary">Claude Code</span>
+              <span className="text-xs font-bold text-primary">Resposta do Analista</span>
             </div>
             <div className="text-sm text-muted-foreground whitespace-pre-wrap">
               {report.claude_response}
