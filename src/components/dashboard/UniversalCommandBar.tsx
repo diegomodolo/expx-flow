@@ -12,7 +12,6 @@ import {
   CommandItem,
   CommandSeparator,
 } from "@/components/ui/command";
-import { DialogTitle } from "@/components/ui/dialog";
 import {
   Search,
   Users,
@@ -412,8 +411,11 @@ export function UniversalCommandBar() {
         </kbd>
       </button>
 
-      <CommandDialog open={open} onOpenChange={setOpen}>
-        <DialogTitle className="sr-only">Barra de Comandos</DialogTitle>
+      <CommandDialog
+        open={open}
+        onOpenChange={setOpen}
+        title="Barra de Comandos"
+      >
         <CommandInput placeholder="Buscar clientes, menus, tarefas, pessoas..." />
         <CommandList>
           <CommandEmpty>Nenhum resultado encontrado.</CommandEmpty>
