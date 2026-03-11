@@ -61,7 +61,9 @@ export type MenuItemType =
   | "squads-ia"
   | "parametros-performance"
   | "reportes"
-  | "configurar-ia";
+  | "configurar-ia"
+  | "calendario"
+  | "calendario-admin";
 
 export interface EmployeePermission {
   id: string;

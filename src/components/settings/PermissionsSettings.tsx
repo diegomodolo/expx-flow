@@ -196,6 +196,18 @@ const MENU_ITEMS: {
     category: "Equipe",
   },
   {
+    key: "calendario",
+    label: "Calendário",
+    description: "Visualização do calendário de eventos e reuniões",
+    category: "Equipe",
+  },
+  {
+    key: "calendario-admin",
+    label: "Calendário Admin",
+    description: "Ver calendário de todos os colaboradores",
+    category: "Equipe",
+  },
+  {
     key: "squad",
     label: "Squad",
     description: "Gestão de equipes",

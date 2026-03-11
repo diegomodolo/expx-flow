@@ -100,6 +100,8 @@ const MENU_ITEMS: { key: MenuItemType; label: string; category: string }[] = [
   { key: "dashboard-equipe", label: "Dashboard Equipe", category: "Equipe" },
   { key: "relatorios", label: "Relatórios", category: "Equipe" },
   { key: "reunioes", label: "Reuniões", category: "Equipe" },
+  { key: "calendario", label: "Calendário", category: "Equipe" },
+  { key: "calendario-admin", label: "Calendário Admin", category: "Equipe" },
   { key: "squad", label: "Squad", category: "Equipe" },
   // Rotina
   { key: "tarefas", label: "Tarefas Diárias", category: "Rotina" },

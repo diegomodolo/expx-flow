@@ -160,6 +160,7 @@ import TaskFlowEditorPage from "./pages/TaskFlowEditorPage";
 import MapasMentais from "./pages/MapasMentais";
 import MapaMentalEditor from "./pages/MapaMentalEditor";
 import Reunioes from "./pages/Reunioes";
+import Calendario from "./pages/Calendario";
 import YouTubeContentLabListPage from "./pages/YouTubeContentLabListPage";
 import YouTubeContentLabPage from "./pages/YouTubeContentLabPage";
 import Reportes from "./pages/Reportes";
@@ -438,6 +439,14 @@ const App = () => {
                       <PermissionProtectedRoute requiredPermission="squad">
                         <Reunioes />
                       </PermissionProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/calendario"
+                    element={
+                      <ProtectedRoute>
+                        <Calendario />
+                      </ProtectedRoute>
                     }
                   />
                   <Route
