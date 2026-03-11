@@ -187,7 +187,6 @@ export const useDashboardAlerts = () => {
             continue;
           }
 
-          console.log('Sending campaign data to AI:', campaignData, 'Issue type:', issueType);
 
           const recommendation = await generateRecommendation(campaignData, issueType);
           updatedAlerts[i] = { ...alert, recommendation };

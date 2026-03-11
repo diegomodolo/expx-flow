@@ -1,8 +1,10 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 Deno.serve(async (req) => {
@@ -26,7 +28,11 @@ Deno.serve(async (req) => {
       matchedKeyword,
     } = body;
 
-    console.log("[instagram-automation-executor] Starting execution:", { triggerId, flowId, igUserId });
+    console.log("[instagram-automation-executor] Starting execution:", {
+      triggerId,
+      flowId,
+      igUserId,
+    });
 
     // Fetch the flow data
     const { data: flow, error: flowError } = await supabase
@@ -71,15 +77,18 @@ Deno.serve(async (req) => {
             await sleep(step.delay_seconds * 1000);
           }
 
-          const { error: sendError } = await supabase.functions.invoke("send-instagram-message", {
-            body: {
-              company_id: companyId,
-              instagram_account_id: instagramAccountId,
-              ig_user_id: igUserId,
-              message: messageContent,
-              conversation_id: conversationId,
+          const { error: sendError } = await supabase.functions.invoke(
+            "send-instagram-message",
+            {
+              body: {
+                company_id: companyId,
+                instagram_account_id: instagramAccountId,
+                ig_user_id: igUserId,
+                message: messageContent,
+                conversation_id: conversationId,
+              },
             },
-          });
+          );
 
           if (sendError) {
             throw new Error(`Failed to send message: ${sendError.message}`);
@@ -91,7 +100,7 @@ Deno.serve(async (req) => {
           await sleep(delayMs);
           stepsExecuted++;
         }
-      } catch (stepError: any) {
+      } catch (stepError: unknown) {
         console.error(`[instagram-automation-executor] Step error:`, stepError);
         hasError = true;
         errorMessage = stepError.message;
@@ -107,23 +116,32 @@ Deno.serve(async (req) => {
       conversation_id: conversationId,
       ig_user_id: igUserId,
       matched_keyword: matchedKeyword,
-      status: hasError ? (stepsExecuted > 0 ? "partial" : "failed") : "completed",
+      status: hasError
+        ? stepsExecuted > 0
+          ? "partial"
+          : "failed"
+        : "completed",
       steps_executed: stepsExecuted,
       error_message: hasError ? errorMessage : null,
     });
 
-    console.log(`[instagram-automation-executor] Completed. Steps: ${stepsExecuted}, Error: ${hasError}`);
+    console.log(
+      `[instagram-automation-executor] Completed. Steps: ${stepsExecuted}, Error: ${hasError}`,
+    );
 
     return new Response(
       JSON.stringify({ success: !hasError, steps_executed: stepsExecuted }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[instagram-automation-executor] Fatal error:", error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
 
@@ -131,7 +149,10 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function substituteVariables(text: string, vars: Record<string, string>): string {
+function substituteVariables(
+  text: string,
+  vars: Record<string, string>,
+): string {
   return text.replace(/\{([^}]+)\}/g, (match, key) => {
     return vars[key.trim()] ?? match;
   });

@@ -1,7 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Mic, Square, Play, Pause, Trash2, Check, Loader2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import React, { useState, useRef, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Mic, Square, Play, Pause, Trash2, Check, Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface WhatsAppVoiceRecorderProps {
   onRecordingComplete: (blob: Blob, duration: number) => void;
@@ -9,10 +9,10 @@ interface WhatsAppVoiceRecorderProps {
   isUploading?: boolean;
 }
 
-export function WhatsAppVoiceRecorder({ 
-  onRecordingComplete, 
+export function WhatsAppVoiceRecorder({
+  onRecordingComplete,
   onCancel,
-  isUploading = false 
+  isUploading = false,
 }: WhatsAppVoiceRecorderProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -21,7 +21,7 @@ export function WhatsAppVoiceRecorder({
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackTime, setPlaybackTime] = useState(0);
-  
+
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -34,7 +34,7 @@ export function WhatsAppVoiceRecorder({
       if (timerRef.current) clearInterval(timerRef.current);
       if (audioUrl) URL.revokeObjectURL(audioUrl);
       if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current.getTracks().forEach((track) => track.stop());
       }
     };
   }, [audioUrl]);
@@ -42,58 +42,57 @@ export function WhatsAppVoiceRecorder({
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
   const startRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
+      const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true,
-        } 
+        },
       });
-      
+
       streamRef.current = stream;
       audioChunksRef.current = [];
-      
+
       // Use webm for better compatibility, will be converted if needed
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
-        ? 'audio/webm;codecs=opus' 
-        : 'audio/webm';
-      
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus"
+        : "audio/webm";
+
       const mediaRecorder = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = mediaRecorder;
-      
+
       mediaRecorder.ondataavailable = (e) => {
         if (e.data.size > 0) {
           audioChunksRef.current.push(e.data);
         }
       };
-      
+
       mediaRecorder.onstop = () => {
         const blob = new Blob(audioChunksRef.current, { type: mimeType });
         setAudioBlob(blob);
         const url = URL.createObjectURL(blob);
         setAudioUrl(url);
-        
+
         // Stop all tracks
-        stream.getTracks().forEach(track => track.stop());
+        stream.getTracks().forEach((track) => track.stop());
       };
-      
+
       mediaRecorder.start(100); // Collect data every 100ms
       setIsRecording(true);
       setRecordingTime(0);
-      
+
       // Start timer
       timerRef.current = setInterval(() => {
-        setRecordingTime(prev => prev + 1);
+        setRecordingTime((prev) => prev + 1);
       }, 1000);
-      
     } catch (err) {
-      console.error('Error accessing microphone:', err);
-      alert('Não foi possível acessar o microfone. Verifique as permissões.');
+      console.error("Error accessing microphone:", err);
+      alert("Não foi possível acessar o microfone. Verifique as permissões.");
     }
   };
 
@@ -110,7 +109,7 @@ export function WhatsAppVoiceRecorder({
 
   const togglePlayback = () => {
     if (!audioRef.current || !audioUrl) return;
-    
+
     if (isPlaying) {
       audioRef.current.pause();
       setIsPlaying(false);
@@ -162,14 +161,14 @@ export function WhatsAppVoiceRecorder({
             </div>
             <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-destructive animate-pulse" />
           </div>
-          
+
           {/* Timer */}
           <div className="text-2xl font-mono font-semibold text-destructive">
             {formatTime(recordingTime)}
           </div>
-          
+
           <p className="text-sm text-muted-foreground">Gravando...</p>
-          
+
           {/* Stop button */}
           <Button
             type="button"
@@ -196,11 +195,12 @@ export function WhatsAppVoiceRecorder({
           onEnded={handleAudioEnded}
           onTimeUpdate={handleTimeUpdate}
         />
-        
+
         <div className="flex flex-col items-center gap-4">
           {/* Playback controls */}
           <div className="flex items-center gap-4">
-            <Button aria-label="Fazer upload"
+            <Button
+              aria-label="Fazer upload"
               type="button"
               variant="outline"
               size="icon"
@@ -214,14 +214,16 @@ export function WhatsAppVoiceRecorder({
                 <Play className="h-5 w-5 ml-0.5" />
               )}
             </Button>
-            
+
             <div className="text-lg font-mono">
               {formatTime(isPlaying ? playbackTime : recordingTime)}
             </div>
           </div>
-          
-          <p className="text-sm text-muted-foreground">Mensagem de voz gravada</p>
-          
+
+          <p className="text-sm text-muted-foreground">
+            Mensagem de voz gravada
+          </p>
+
           {/* Action buttons */}
           <div className="flex gap-2 w-full max-w-xs">
             <Button
@@ -246,7 +248,7 @@ export function WhatsAppVoiceRecorder({
               ) : (
                 <Check className="h-4 w-4 mr-2" />
               )}
-              {isUploading ? 'Salvando...' : 'Usar Áudio'}
+              {isUploading ? "Salvando..." : "Usar Áudio"}
             </Button>
           </div>
         </div>
@@ -261,14 +263,14 @@ export function WhatsAppVoiceRecorder({
         <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
           <Mic className="h-8 w-8 text-muted-foreground" />
         </div>
-        
+
         <div className="space-y-1">
           <p className="text-sm font-medium">Gravar Mensagem de Voz</p>
           <p className="text-xs text-muted-foreground">
             Clique para iniciar a gravação
           </p>
         </div>
-        
+
         <Button
           type="button"
           variant="default"

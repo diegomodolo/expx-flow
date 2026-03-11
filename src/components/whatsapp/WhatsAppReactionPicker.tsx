@@ -33,7 +33,9 @@ export function WhatsAppReactionPicker({
 }: WhatsAppReactionPickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isSending, setIsSending] = useState(false);
-  const [selectedEmoji, setSelectedEmoji] = useState<string | null>(currentReaction || null);
+  const [selectedEmoji, setSelectedEmoji] = useState<string | null>(
+    currentReaction || null,
+  );
 
   const handleReaction = async (emoji: string) => {
     if (!messageId || !instanceId) {
@@ -42,20 +44,23 @@ export function WhatsAppReactionPicker({
     }
 
     setIsSending(true);
-    
+
     // If clicking the same emoji, remove reaction (send empty string)
     const emojiToSend = emoji === selectedEmoji ? "" : emoji;
 
     try {
-      const { data, error } = await supabase.functions.invoke("send-whatsapp-reaction", {
-        body: {
-          company_id: companyId,
-          instance_id: instanceId,
-          message_id: messageId,
-          emoji: emojiToSend,
-          remote_jid: remoteJid,
+      const { data, error } = await supabase.functions.invoke(
+        "send-whatsapp-reaction",
+        {
+          body: {
+            company_id: companyId,
+            instance_id: instanceId,
+            message_id: messageId,
+            emoji: emojiToSend,
+            remote_jid: remoteJid,
+          },
         },
-      });
+      );
 
       if (error) throw error;
 
@@ -63,7 +68,7 @@ export function WhatsAppReactionPicker({
         setSelectedEmoji(emojiToSend || null);
         onReactionSent?.(emojiToSend);
         setIsOpen(false);
-        
+
         if (emojiToSend) {
           toast.success(`Reação ${emojiToSend} enviada!`);
         } else {
@@ -90,16 +95,17 @@ export function WhatsAppReactionPicker({
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
-        <Button aria-label="Enviar"
+        <Button
+          aria-label="Enviar"
           variant="ghost"
           size="icon"
           className={cn(
             "h-6 w-6 transition-opacity",
             // Show if there's a current reaction or on hover
             selectedEmoji ? "opacity-100" : "opacity-0 group-hover:opacity-100",
-            isOutgoing 
-              ? "text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10" 
-              : "text-muted-foreground hover:text-foreground hover:bg-muted"
+            isOutgoing
+              ? "text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted",
           )}
           disabled={isSending}
         >
@@ -112,20 +118,21 @@ export function WhatsAppReactionPicker({
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent 
-        className="w-auto p-2" 
+      <PopoverContent
+        className="w-auto p-2"
         side={isOutgoing ? "left" : "right"}
         align="center"
       >
         <div className="flex gap-1">
           {REACTIONS.map((emoji) => (
-            <Button aria-label="Enviar"
+            <Button
+              aria-label="Enviar"
               key={emoji}
               variant="ghost"
               size="icon"
               className={cn(
                 "h-8 w-8 text-lg hover:scale-125 transition-transform",
-                selectedEmoji === emoji && "bg-muted ring-2 ring-primary"
+                selectedEmoji === emoji && "bg-muted ring-2 ring-primary",
               )}
               onClick={() => handleReaction(emoji)}
               disabled={isSending}

@@ -1,7 +1,15 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Instagram, Heart, MessageCircle, ExternalLink, Play, RefreshCw, ChevronDown } from "lucide-react";
+import {
+  Instagram,
+  Heart,
+  MessageCircle,
+  ExternalLink,
+  Play,
+  RefreshCw,
+  ChevronDown,
+} from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 
@@ -26,23 +34,23 @@ interface InstagramFeedPreviewProps {
 
 function formatNumber(num: number): string {
   if (num >= 1000000) {
-    return (num / 1000000).toFixed(1) + 'M';
+    return (num / 1000000).toFixed(1) + "M";
   }
   if (num >= 1000) {
-    return (num / 1000).toFixed(1) + 'K';
+    return (num / 1000).toFixed(1) + "K";
   }
-  return num.toLocaleString('pt-BR');
+  return num.toLocaleString("pt-BR");
 }
 
 const POSTS_PER_PAGE = 6;
 
-export function InstagramFeedPreview({ 
-  posts, 
-  username, 
+export function InstagramFeedPreview({
+  posts,
+  username,
   profilePicture,
   followersCount,
   onRefresh,
-  isRefreshing
+  isRefreshing,
 }: InstagramFeedPreviewProps) {
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [visibleCount, setVisibleCount] = useState(POSTS_PER_PAGE);
@@ -55,7 +63,7 @@ export function InstagramFeedPreview({
   const hasMore = visibleCount < posts.length;
 
   const handleLoadMore = () => {
-    setVisibleCount(prev => Math.min(prev + POSTS_PER_PAGE, posts.length));
+    setVisibleCount((prev) => Math.min(prev + POSTS_PER_PAGE, posts.length));
   };
 
   return (
@@ -67,27 +75,32 @@ export function InstagramFeedPreview({
             <Avatar className="h-10 w-10 ring-2 ring-pink-500/30">
               <AvatarImage src={profilePicture} alt={username} />
               <AvatarFallback className="bg-gradient-to-br from-pink-500 to-purple-500 text-white">
-                {username?.charAt(0)?.toUpperCase() || 'I'}
+                {username?.charAt(0)?.toUpperCase() || "I"}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1">
               <div className="flex items-center gap-2">
                 <Instagram className="h-4 w-4 text-pink-500" />
-                <span className="text-title-sm text-foreground font-medium">Feed do Instagram</span>
+                <span className="text-title-sm text-foreground font-medium">
+                  Feed do Instagram
+                </span>
               </div>
               <p className="text-body-sm text-muted-foreground">
                 @{username} • {formatNumber(followersCount)} seguidores
               </p>
             </div>
             {onRefresh && (
-              <Button aria-label="Atualizar"
+              <Button
+                aria-label="Atualizar"
                 variant="ghost"
                 size="icon"
                 onClick={onRefresh}
                 disabled={isRefreshing}
                 className="h-8 w-8"
               >
-                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <RefreshCw
+                  className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`}
+                />
               </Button>
             )}
           </div>
@@ -102,9 +115,9 @@ export function InstagramFeedPreview({
               className="relative aspect-square bg-muted overflow-hidden group focus:outline-none focus:ring-2 focus:ring-primary focus:ring-inset"
             >
               {post.thumbnail_url ? (
-                <img 
-                  src={post.thumbnail_url} 
-                  alt="" 
+                <img
+                  src={post.thumbnail_url}
+                  alt=""
                   className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
                 />
               ) : (
@@ -112,21 +125,25 @@ export function InstagramFeedPreview({
                   <Instagram className="h-6 w-6 text-muted-foreground" />
                 </div>
               )}
-              
+
               {/* Overlay com métricas no hover */}
               <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
                 <div className="flex items-center gap-1.5 text-white">
                   <Heart className="h-4 w-4 fill-white" />
-                  <span className="text-label-sm font-medium">{formatNumber(post.like_count)}</span>
+                  <span className="text-label-sm font-medium">
+                    {formatNumber(post.like_count)}
+                  </span>
                 </div>
                 <div className="flex items-center gap-1.5 text-white">
                   <MessageCircle className="h-4 w-4 fill-white" />
-                  <span className="text-label-sm font-medium">{formatNumber(post.comments_count)}</span>
+                  <span className="text-label-sm font-medium">
+                    {formatNumber(post.comments_count)}
+                  </span>
                 </div>
               </div>
 
               {/* Indicador de vídeo */}
-              {post.media_type === 'VIDEO' && (
+              {post.media_type === "VIDEO" && (
                 <div className="absolute top-2 right-2">
                   <Play className="h-4 w-4 text-white drop-shadow-lg fill-white" />
                 </div>
@@ -161,9 +178,9 @@ export function InstagramFeedPreview({
             {/* Imagem do post */}
             <div className="md:w-1/2 bg-black flex items-center justify-center min-h-[300px]">
               {selectedPost?.thumbnail_url ? (
-                <img 
-                  src={selectedPost.thumbnail_url} 
-                  alt="" 
+                <img
+                  src={selectedPost.thumbnail_url}
+                  alt=""
                   className="w-full h-full object-contain max-h-[500px]"
                 />
               ) : (
@@ -181,13 +198,15 @@ export function InstagramFeedPreview({
                     {username?.charAt(0)?.toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                <span className="text-title-sm text-foreground font-medium">@{username}</span>
+                <span className="text-title-sm text-foreground font-medium">
+                  @{username}
+                </span>
               </div>
 
               {/* Caption */}
               <div className="flex-1 p-4 overflow-y-auto max-h-[300px]">
                 <p className="text-body-sm text-foreground whitespace-pre-wrap">
-                  {selectedPost?.caption || 'Sem legenda'}
+                  {selectedPost?.caption || "Sem legenda"}
                 </p>
               </div>
 
@@ -196,18 +215,22 @@ export function InstagramFeedPreview({
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2 text-foreground">
                     <Heart className="h-5 w-5 text-destructive" />
-                    <span className="text-title-sm">{formatNumber(selectedPost?.like_count || 0)}</span>
+                    <span className="text-title-sm">
+                      {formatNumber(selectedPost?.like_count || 0)}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2 text-foreground">
                     <MessageCircle className="h-5 w-5 text-primary" />
-                    <span className="text-title-sm">{formatNumber(selectedPost?.comments_count || 0)}</span>
+                    <span className="text-title-sm">
+                      {formatNumber(selectedPost?.comments_count || 0)}
+                    </span>
                   </div>
                 </div>
 
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="w-full"
-                  onClick={() => window.open(selectedPost?.permalink, '_blank')}
+                  onClick={() => window.open(selectedPost?.permalink, "_blank")}
                 >
                   <ExternalLink className="h-4 w-4 mr-2" />
                   Ver no Instagram

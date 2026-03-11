@@ -388,7 +388,6 @@ export function useInternalChat() {
    * Returns the channel id.
    */
   const getOrCreateDMChannel = async (otherUserId: string, otherUserName: string): Promise<string | null> => {
-    console.log('[DM] getOrCreateDMChannel called', { otherUserId, otherUserName, companyId, userId: user?.id });
 
     if (!companyId || !user?.id) {
       console.error('[DM] Missing companyId or user.id', { companyId, userId: user?.id });
@@ -396,7 +395,6 @@ export function useInternalChat() {
     }
 
     const pair = [user.id, otherUserId].sort().join(':');
-    console.log('[DM] pair string:', pair);
 
     // Check if DM channel already exists
     const { data: existing, error: fetchError } = await supabase
@@ -407,19 +405,16 @@ export function useInternalChat() {
       .eq('reference_id', pair)
       .maybeSingle();
 
-    console.log('[DM] fetch existing result:', { existing, fetchError });
 
     if (fetchError) {
       console.error('[DM] Failed to fetch DM channel:', fetchError.message, fetchError.details, fetchError.hint, fetchError.code);
     }
 
     if (existing) {
-      console.log('[DM] Found existing channel:', existing.id);
       return existing.id;
     }
 
     // Create new DM channel
-    console.log('[DM] Creating new DM channel...');
     const { data: created, error } = await supabase
       .from('internal_channels')
       .insert({
@@ -432,7 +427,6 @@ export function useInternalChat() {
       .select('id')
       .single();
 
-    console.log('[DM] create result:', { created, error });
 
     if (error) {
       console.error('[DM] Failed to create DM channel:', error.message, error.details, error.hint, error.code);
@@ -442,7 +436,6 @@ export function useInternalChat() {
     // Invalidate channels cache so the new DM appears in the sidebar
     await queryClient.invalidateQueries({ queryKey: ['internal-channels', companyId] });
 
-    console.log('[DM] Created channel:', created.id);
     return created.id;
   };
 

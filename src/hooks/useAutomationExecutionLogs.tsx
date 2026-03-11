@@ -33,14 +33,7 @@ export const useAutomationExecutionLogs = (
   const { data: logs, isLoading, refetch } = useQuery({
     queryKey: ['automation-execution-logs', activeCompany?.company_id, clientId, limit, periodFilter],
     queryFn: async () => {
-      console.log('=== DEBUG EXECUTION LOGS START ===');
-      console.log('User ID:', user?.id);
-      console.log('User Full:', user);
-      console.log('Active Company ID:', activeCompany?.company_id);
-      console.log('Active Company Full:', activeCompany);
-      console.log('Client ID Filter:', clientId);
-      console.log('Period Filter:', periodFilter);
-      
+
       if (!user) {
         console.error('❌ No user authenticated');
         toast.error('Usuário não autenticado');
@@ -55,7 +48,6 @@ export const useAutomationExecutionLogs = (
 
       try {
         // Test query to verify user has access to company
-        console.log('🔍 Testing user access to company...');
         const { data: accessTest, error: accessError } = await supabase
           .from('company_members')
           .select('company_id, role')
@@ -63,17 +55,14 @@ export const useAutomationExecutionLogs = (
           .eq('company_id', activeCompany.company_id)
           .single();
         
-        console.log('Access Test Result:', accessTest);
-        console.log('Access Test Error:', accessError);
-        
+
         if (accessError || !accessTest) {
           console.error('❌ User does not have access to this company');
           toast.error('Você não tem acesso a esta empresa');
           return [];
         }
         
-        console.log('✅ User has access to company with role:', accessTest.role);
-        
+
         // Calculate date filter based on period
         let dateFilter: string | null = null;
         const now = new Date();
@@ -100,8 +89,7 @@ export const useAutomationExecutionLogs = (
             break;
         }
         
-        console.log('📅 Date filter:', dateFilter);
-        
+
         const query = supabase
           .from('automation_execution_logs' as unknown)
           .select('*')
@@ -110,16 +98,13 @@ export const useAutomationExecutionLogs = (
           .limit(limit);
 
         if (clientId) {
-          console.log('🎯 Filtering by client:', clientId);
           query.eq('client_id', clientId);
         }
 
         if (dateFilter) {
-          console.log('📆 Filtering by date >= ', dateFilter);
           query.gte('started_at', dateFilter);
         }
 
-        console.log('🚀 Executing query...');
         const { data, error } = await query;
 
         if (error) {
@@ -128,10 +113,7 @@ export const useAutomationExecutionLogs = (
           return [];
         }
 
-        console.log('✅ Execution logs fetched successfully:', data?.length || 0, 'logs');
-        console.log('📊 Logs data:', data);
-        console.log('=== DEBUG EXECUTION LOGS END ===');
-        
+
         return (data || []) as unknown as AutomationExecutionLog[];
       } catch (error) {
         console.error('❌ Exception in execution logs query:', error);

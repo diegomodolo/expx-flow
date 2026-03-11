@@ -45,38 +45,43 @@ export function ReelsCoverSection({
 
     setGenerating(true);
     try {
-      const approvedText = [headline, subheadline].filter(Boolean).join('\n');
+      const approvedText = [headline, subheadline].filter(Boolean).join("\n");
 
-      const { data, error } = await supabase.functions.invoke('generate-visual-creative', {
-        body: {
-          clientId,
-          companyId,
-          creativeType: 'instagram_feed',
-          theme: headline || objective || 'Capa do Reels',
-          approvedText: approvedText || undefined,
-          context: {
-            title: headline,
-            description: subheadline,
-            contextOnly: {
-              objective,
-              script,
-              isReelsCover: true,
+      const { data, error } = await supabase.functions.invoke(
+        "generate-visual-creative",
+        {
+          body: {
+            clientId,
+            companyId,
+            creativeType: "instagram_feed",
+            theme: headline || objective || "Capa do Reels",
+            approvedText: approvedText || undefined,
+            context: {
+              title: headline,
+              description: subheadline,
+              contextOnly: {
+                objective,
+                script,
+                isReelsCover: true,
+              },
             },
           },
         },
-      });
+      );
 
       if (error) throw error;
 
       if (data?.imageUrl) {
         onCoverChange(data.imageUrl);
-        toast.success('Capa do Reels gerada com sucesso!');
+        toast.success("Capa do Reels gerada com sucesso!");
       } else {
-        throw new Error('Nenhuma imagem foi gerada');
+        throw new Error("Nenhuma imagem foi gerada");
       }
     } catch (error: unknown) {
-      console.error('Error generating reels cover:', error);
-      toast.error('Erro ao gerar capa: ' + (error.message || 'Erro desconhecido'));
+      console.error("Error generating reels cover:", error);
+      toast.error(
+        "Erro ao gerar capa: " + (error.message || "Erro desconhecido"),
+      );
     } finally {
       setGenerating(false);
     }
@@ -99,7 +104,8 @@ export function ReelsCoverSection({
                 className="w-full h-full object-cover"
               />
             </div>
-            <Button aria-label="Avançar"
+            <Button
+              aria-label="Avançar"
               variant="destructive"
               size="icon"
               className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -189,7 +195,7 @@ export function ReelsCoverSection({
           onSave={(newImages) => {
             if (newImages[0] && newImages[0] !== coverUrl) {
               onCoverChange(newImages[0]);
-              toast.success('Capa do Reels atualizada!');
+              toast.success("Capa do Reels atualizada!");
             }
           }}
           clientId={clientId}

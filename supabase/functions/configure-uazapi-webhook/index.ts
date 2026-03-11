@@ -2,8 +2,10 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 interface ConfigureWebhookPayload {
@@ -25,12 +27,18 @@ serve(async (req) => {
     const payload: ConfigureWebhookPayload = await req.json();
     const { instance_id, receive_group_messages = false } = payload;
 
-    console.log("[configure-uazapi-webhook] Configurando webhook para instância:", instance_id);
+    console.log(
+      "[configure-uazapi-webhook] Configurando webhook para instância:",
+      instance_id,
+    );
 
     if (!instance_id) {
       return new Response(
         JSON.stringify({ success: false, error: "instance_id é obrigatório" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -42,10 +50,16 @@ serve(async (req) => {
       .single();
 
     if (instanceError || !instance) {
-      console.error("[configure-uazapi-webhook] Instância não encontrada:", instanceError);
+      console.error(
+        "[configure-uazapi-webhook] Instância não encontrada:",
+        instanceError,
+      );
       return new Response(
         JSON.stringify({ success: false, error: "Instância não encontrada" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -57,10 +71,19 @@ serve(async (req) => {
       .single();
 
     if (configError || !config) {
-      console.error("[configure-uazapi-webhook] Config não encontrada:", configError);
+      console.error(
+        "[configure-uazapi-webhook] Config não encontrada:",
+        configError,
+      );
       return new Response(
-        JSON.stringify({ success: false, error: "Configuração base não encontrada" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          success: false,
+          error: "Configuração base não encontrada",
+        }),
+        {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -68,10 +91,14 @@ serve(async (req) => {
     const webhookCallbackUrl = `${supabaseUrl}/functions/v1/whatsapp-webhook`;
 
     console.log("[configure-uazapi-webhook] Endpoint UazapiGO:", cleanEndpoint);
-    console.log("[configure-uazapi-webhook] Webhook callback URL:", webhookCallbackUrl);
+    console.log(
+      "[configure-uazapi-webhook] Webhook callback URL:",
+      webhookCallbackUrl,
+    );
 
     // Identificador da instância para endpoints por instância
-    const instanceIdentifier = instance.uazapi_instance_id || instance.instance_name;
+    const instanceIdentifier =
+      instance.uazapi_instance_id || instance.instance_name;
 
     // Configuração específica do UazapiGO conforme documentação:
     // - events: "messages" para escutar mensagens
@@ -80,8 +107,11 @@ serve(async (req) => {
     if (!receive_group_messages) {
       excludeList.push("isGroupYes");
     }
-    
-    console.log("[configure-uazapi-webhook] Receber grupos:", receive_group_messages);
+
+    console.log(
+      "[configure-uazapi-webhook] Receber grupos:",
+      receive_group_messages,
+    );
     console.log("[configure-uazapi-webhook] Exclude list:", excludeList);
 
     const webhookPayload = {
@@ -91,10 +121,13 @@ serve(async (req) => {
       enabled: true,
     };
 
-    console.log("[configure-uazapi-webhook] Payload enviado:", JSON.stringify(webhookPayload));
+    console.log(
+      "[configure-uazapi-webhook] Payload enviado:",
+      JSON.stringify(webhookPayload),
+    );
 
     let webhookConfigured = false;
-    let successResponse: any = null;
+    let successResponse: unknown = null;
     const attemptLogs: string[] = [];
 
     // Tentar criar/atualizar webhook usando diferentes métodos
@@ -111,19 +144,23 @@ serve(async (req) => {
 
     for (const endpoint of webhookEndpointsWithMethods) {
       try {
-        console.log(`[configure-uazapi-webhook] Tentando: ${endpoint.method} ${endpoint.url}`);
-        
+        console.log(
+          `[configure-uazapi-webhook] Tentando: ${endpoint.method} ${endpoint.url}`,
+        );
+
         const response = await fetch(endpoint.url, {
           method: endpoint.method,
           headers: {
             "Content-Type": "application/json",
-            "token": instance.uazapi_token,
+            token: instance.uazapi_token,
           },
           body: JSON.stringify(webhookPayload),
         });
 
         const responseText = await response.text();
-        console.log(`[configure-uazapi-webhook] Status: ${response.status}, Response: ${responseText.substring(0, 500)}`);
+        console.log(
+          `[configure-uazapi-webhook] Status: ${response.status}, Response: ${responseText.substring(0, 500)}`,
+        );
 
         if (response.ok) {
           webhookConfigured = true;
@@ -135,25 +172,32 @@ serve(async (req) => {
           attemptLogs.push(`✅ ${endpoint.url}: ${response.status}`);
           break;
         } else {
-          attemptLogs.push(`❌ ${endpoint.url}: ${response.status} - ${responseText.substring(0, 100)}`);
+          attemptLogs.push(
+            `❌ ${endpoint.url}: ${response.status} - ${responseText.substring(0, 100)}`,
+          );
         }
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : String(err);
         attemptLogs.push(`❌ ${endpoint.url}: Error - ${errorMsg}`);
-        console.error(`[configure-uazapi-webhook] Erro em ${endpoint.url}:`, err);
+        console.error(
+          `[configure-uazapi-webhook] Erro em ${endpoint.url}:`,
+          err,
+        );
       }
     }
 
     if (webhookConfigured) {
-      console.log("[configure-uazapi-webhook] Webhook configurado com sucesso!");
-      
+      console.log(
+        "[configure-uazapi-webhook] Webhook configurado com sucesso!",
+      );
+
       // Atualizar instância para marcar que webhook foi configurado E salvar preferência de grupos
       await supabase
         .from("whatsapp_instances")
-        .update({ 
+        .update({
           status: "connected",
           receive_group_messages: receive_group_messages,
-          updated_at: new Date().toISOString() 
+          updated_at: new Date().toISOString(),
         })
         .eq("id", instance_id);
 
@@ -165,25 +209,38 @@ serve(async (req) => {
           response: successResponse,
           attempts: attemptLogs,
         }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     } else {
-      console.error("[configure-uazapi-webhook] Falha em todas as tentativas de configurar webhook");
+      console.error(
+        "[configure-uazapi-webhook] Falha em todas as tentativas de configurar webhook",
+      );
       return new Response(
         JSON.stringify({
           success: false,
           error: "Não foi possível configurar o webhook em nenhum endpoint",
           attempts: attemptLogs,
         }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
-
   } catch (error) {
     console.error("[configure-uazapi-webhook] Erro:", error);
     return new Response(
-      JSON.stringify({ success: false, error: error.message || "Erro interno" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({
+        success: false,
+        error: error.message || "Erro interno",
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 });

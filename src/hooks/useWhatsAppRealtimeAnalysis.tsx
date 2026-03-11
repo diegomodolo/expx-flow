@@ -85,7 +85,6 @@ export function useWhatsAppRealtimeAnalysis({
 
     try {
       setIsLoadingStored(true);
-      console.log("[useWhatsAppRealtimeAnalysis] Loading stored analysis for conversation:", convId);
 
       const { data, error } = await supabase
         .from("whatsapp_realtime_analysis")
@@ -99,7 +98,6 @@ export function useWhatsAppRealtimeAnalysis({
       }
 
       if (data) {
-        console.log("[useWhatsAppRealtimeAnalysis] Found stored analysis:", data);
         const storedData = data as StoredAnalysis;
         
         // Parse stored insight JSON if exists
@@ -155,7 +153,6 @@ export function useWhatsAppRealtimeAnalysis({
     if (!companyId || !convId) return;
 
     try {
-      console.log("[useWhatsAppRealtimeAnalysis] Saving analysis for conversation:", convId, "with lastMsgId:", lastMsgId);
 
       const now = new Date().toISOString();
 
@@ -217,7 +214,6 @@ export function useWhatsAppRealtimeAnalysis({
       }
       
       if (!currentResult.error && !historyResult.error) {
-        console.log("[useWhatsAppRealtimeAnalysis] Analysis saved to both tables successfully");
         // Alert events are now automatically dispatched by database trigger
       }
     } catch (err) {
@@ -231,8 +227,7 @@ export function useWhatsAppRealtimeAnalysis({
       return;
     }
 
-    console.log("[useWhatsAppRealtimeAnalysis] Conversation changed from", currentConversationId.current, "to", conversationId);
-    
+
     // Clear current analysis immediately when switching
     setAnalysis(null);
     setIsNewAnalysis(false);
@@ -248,7 +243,6 @@ export function useWhatsAppRealtimeAnalysis({
         // Set the lastAnalyzedMessageId from the stored value to prevent re-analysis
         if (result.lastMessageId) {
           lastAnalyzedMessageId.current = result.lastMessageId;
-          console.log("[useWhatsAppRealtimeAnalysis] Restored lastAnalyzedMessageId:", result.lastMessageId);
         }
       }
     });
@@ -259,7 +253,6 @@ export function useWhatsAppRealtimeAnalysis({
     
     // Skip analysis for group conversations if ignore_group_analysis is enabled
     if (isGroupConversation && (config?.ignore_group_analysis ?? true)) {
-      console.log("[useWhatsAppRealtimeAnalysis] Skipping analysis for group conversation (ignore_group_analysis=true)");
       return;
     }
 
@@ -270,7 +263,6 @@ export function useWhatsAppRealtimeAnalysis({
 
     // Avoid duplicate parallel analyses for the same message id
     if (inFlightMessageId.current === lastMessage.id) {
-      console.log("[useWhatsAppRealtimeAnalysis] Analysis already in-flight for message:", lastMessage.id);
       return;
     }
 
@@ -281,7 +273,6 @@ export function useWhatsAppRealtimeAnalysis({
     const hasNoTranscription = isAudioMessage && !lastMessage.audio_transcription;
 
     if (isAudioMessage && (isTranscriptionPending || hasNoTranscription)) {
-      console.log("[useWhatsAppRealtimeAnalysis] Waiting for audio transcription...");
       return; // Wait for transcription to be ready
     }
 

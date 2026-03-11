@@ -29,7 +29,20 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { Check, ChevronsUpDown, Plus, Search, Loader2, Users, Bot, Edit, Trash2, Crown, Shield, Wrench } from "lucide-react";
+import {
+  Check,
+  ChevronsUpDown,
+  Plus,
+  Search,
+  Loader2,
+  Users,
+  Bot,
+  Edit,
+  Trash2,
+  Crown,
+  Shield,
+  Wrench,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   AlertDialog,
@@ -55,7 +68,11 @@ export default function AgentSquads() {
   const [searchTerm, setSearchTerm] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [formData, setFormData] = useState({ name: "", description: "", client_id: "" });
+  const [formData, setFormData] = useState({
+    name: "",
+    description: "",
+    client_id: "",
+  });
 
   const [clientPopoverOpen, setClientPopoverOpen] = useState(false);
 
@@ -63,12 +80,14 @@ export default function AgentSquads() {
     ? [...clients].sort((a, b) => a.name.localeCompare(b.name))
     : [];
 
-  const selectedClientName = sortedClients.find(c => c.id === formData.client_id)?.name;
+  const selectedClientName = sortedClients.find(
+    (c) => c.id === formData.client_id,
+  )?.name;
 
   const filtered = squads.filter(
     (s) =>
       s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      s.client?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+      s.client?.name?.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   const handleCreate = async () => {
@@ -154,14 +173,20 @@ export default function AgentSquads() {
                         <Bot className="w-5 h-5 text-primary" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-foreground">{squad.name}</h3>
+                        <h3 className="font-semibold text-foreground">
+                          {squad.name}
+                        </h3>
                         {squad.client && (
-                          <p className="text-xs text-muted-foreground">{squad.client.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {squad.client.name}
+                          </p>
                         )}
                       </div>
                     </div>
                     <Badge
-                      variant={squad.status === "active" ? "default" : "secondary"}
+                      variant={
+                        squad.status === "active" ? "default" : "secondary"
+                      }
                       className="text-xs"
                     >
                       {squad.status === "active" ? "Ativo" : squad.status}
@@ -180,7 +205,8 @@ export default function AgentSquads() {
                       <span>{squad.members_count || 0} agentes</span>
                     </div>
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button aria-label="Editar"
+                      <Button
+                        aria-label="Editar"
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8"
@@ -191,7 +217,8 @@ export default function AgentSquads() {
                       >
                         <Edit className="w-4 h-4" />
                       </Button>
-                      <Button aria-label="Excluir"
+                      <Button
+                        aria-label="Excluir"
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 text-destructive"
@@ -221,7 +248,9 @@ export default function AgentSquads() {
                 <Label>Nome da Squad</Label>
                 <Input
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
                   placeholder="Ex: Squad de Redes Sociais"
                 />
               </div>
@@ -229,13 +258,18 @@ export default function AgentSquads() {
                 <Label>Descrição</Label>
                 <Textarea
                   value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, description: e.target.value })
+                  }
                   placeholder="Descreva o objetivo da squad..."
                 />
               </div>
               <div>
                 <Label>Cliente</Label>
-                <Popover open={clientPopoverOpen} onOpenChange={setClientPopoverOpen}>
+                <Popover
+                  open={clientPopoverOpen}
+                  onOpenChange={setClientPopoverOpen}
+                >
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
@@ -265,7 +299,9 @@ export default function AgentSquads() {
                               <Check
                                 className={cn(
                                   "mr-2 h-4 w-4",
-                                  formData.client_id === c.id ? "opacity-100" : "opacity-0"
+                                  formData.client_id === c.id
+                                    ? "opacity-100"
+                                    : "opacity-0",
                                 )}
                               />
                               {c.name}
@@ -282,7 +318,10 @@ export default function AgentSquads() {
               <Button variant="outline" onClick={() => setCreateOpen(false)}>
                 Cancelar
               </Button>
-              <Button onClick={handleCreate} disabled={!formData.name || !formData.client_id}>
+              <Button
+                onClick={handleCreate}
+                disabled={!formData.name || !formData.client_id}
+              >
                 Criar Squad
               </Button>
             </DialogFooter>

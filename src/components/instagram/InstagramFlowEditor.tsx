@@ -73,13 +73,13 @@ export function InstagramFlowEditor({ companyId, onClose }: Props) {
 
   const saveFlow = useMutation({
     mutationFn: async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       const flowData = { steps } as any;
       if (selectedFlowId === "new") {
         const { error } = await supabase.from("instagram_automation_flows").insert([{
           company_id: companyId,
           flow_name: flowName,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+           
           flow_data: flowData as any,
           is_active: true,
         }]);
@@ -87,7 +87,7 @@ export function InstagramFlowEditor({ companyId, onClose }: Props) {
       } else {
         const { error } = await supabase
           .from("instagram_automation_flows")
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+           
           .update({ flow_name: flowName, flow_data: flowData as any })
           .eq("id", selectedFlowId);
         if (error) throw error;

@@ -1,7 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.53.0";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
@@ -15,7 +16,7 @@ function determineStatus(
   issueState: string,
   labels: string[],
   hasClaudeComment: boolean,
-  hasMergedPR: boolean
+  hasMergedPR: boolean,
 ): string {
   if (issueState === "open") {
     return hasClaudeComment ? "em_analise" : "aberto";
@@ -39,10 +40,11 @@ interface GitHubLabel {
 }
 
 function extractClaudeResponse(comments: GitHubComment[]): string | null {
-  const claudeComments = comments.filter((c) =>
-    c.user?.login?.includes("github-actions") ||
-    c.user?.login?.includes("claude") ||
-    c.user?.type === "Bot"
+  const claudeComments = comments.filter(
+    (c) =>
+      c.user?.login?.includes("github-actions") ||
+      c.user?.login?.includes("claude") ||
+      c.user?.type === "Bot",
   );
 
   if (claudeComments.length === 0) return null;
@@ -65,10 +67,11 @@ const handler = async (req: Request): Promise<Response> => {
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    const { report_id, github_issue_number }: FetchStatusRequest = await req.json();
+    const { report_id, github_issue_number }: FetchStatusRequest =
+      await req.json();
 
     const issueRes = await fetch(
       `https://api.github.com/repos/${repoOwner}/${repoName}/issues/${github_issue_number}`,
@@ -77,7 +80,7 @@ const handler = async (req: Request): Promise<Response> => {
           Authorization: `Bearer ${githubPat}`,
           Accept: "application/vnd.github+json",
         },
-      }
+      },
     );
 
     if (!issueRes.ok) {
@@ -89,7 +92,7 @@ const handler = async (req: Request): Promise<Response> => {
           .single();
         return new Response(
           JSON.stringify({ success: true, data: cached, from_cache: true }),
-          { headers: { "Content-Type": "application/json", ...corsHeaders } }
+          { headers: { "Content-Type": "application/json", ...corsHeaders } },
         );
       }
       throw new Error("Não foi possível consultar o GitHub");
@@ -104,19 +107,19 @@ const handler = async (req: Request): Promise<Response> => {
           Authorization: `Bearer ${githubPat}`,
           Accept: "application/vnd.github+json",
         },
-      }
+      },
     );
 
     const comments = commentsRes.ok ? await commentsRes.json() : [];
 
     const labels = (issueData.labels || []).map((l: string | GitHubLabel) =>
-      typeof l === "string" ? l : l.name
+      typeof l === "string" ? l : l.name,
     );
     const hasClaudeComment = (comments as GitHubComment[]).some(
       (c) =>
         c.user?.login?.includes("github-actions") ||
         c.user?.login?.includes("claude") ||
-        c.user?.type === "Bot"
+        c.user?.type === "Bot",
     );
 
     // Check if issue has a merged PR (via timeline events)
@@ -129,17 +132,29 @@ const handler = async (req: Request): Promise<Response> => {
             Authorization: `Bearer ${githubPat}`,
             Accept: "application/vnd.github+json",
           },
-        }
+        },
       );
       if (eventsRes.ok) {
         const events = await eventsRes.json();
-        hasMergedPR = (events as Array<{ event?: string; source?: { issue?: { pull_request?: { merged_at?: string } } } }>).some(
-          (e) => e.event === "cross-referenced" && e.source?.issue?.pull_request?.merged_at
+        hasMergedPR = (
+          events as Array<{
+            event?: string;
+            source?: { issue?: { pull_request?: { merged_at?: string } } };
+          }>
+        ).some(
+          (e) =>
+            e.event === "cross-referenced" &&
+            e.source?.issue?.pull_request?.merged_at,
         );
       }
     }
 
-    const newStatus = determineStatus(issueData.state, labels, hasClaudeComment, hasMergedPR);
+    const newStatus = determineStatus(
+      issueData.state,
+      labels,
+      hasClaudeComment,
+      hasMergedPR,
+    );
     const claudeResponse = extractClaudeResponse(comments as GitHubComment[]);
 
     const { data: updated, error: updateError } = await supabase
@@ -157,23 +172,18 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Erro ao atualizar status do reporte");
     }
 
-    return new Response(
-      JSON.stringify({ success: true, data: updated }),
-      {
-        status: 200,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
-    );
+    return new Response(JSON.stringify({ success: true, data: updated }), {
+      status: 200,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
   } catch (error: unknown) {
     console.error("Erro ao buscar status:", error);
-    const message = error instanceof Error ? error.message : "Erro desconhecido";
-    return new Response(
-      JSON.stringify({ success: false, error: message }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
-    );
+    const message =
+      error instanceof Error ? error.message : "Erro desconhecido";
+    return new Response(JSON.stringify({ success: false, error: message }), {
+      status: 500,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
   }
 };
 

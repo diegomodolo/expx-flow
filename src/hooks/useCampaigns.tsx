@@ -140,7 +140,7 @@ export function useCampaigns(clientId?: string) {
 
       } catch (facebookError) {
         console.warn('Facebook API update failed, falling back to local update:', facebookError);
-        
+
         // Fallback to local update only
         const { error } = await supabase
           .from("campaigns")

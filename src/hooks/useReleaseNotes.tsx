@@ -56,9 +56,8 @@ export function useReleaseNotes() {
 
   const syncMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke(
-        "sync-release-notes"
-      );
+      const { data, error } =
+        await supabase.functions.invoke("sync-release-notes");
       if (error) throw error;
       return data;
     },

@@ -32,7 +32,6 @@ export function WhatsAppVideoViewer({
   // Check if we have cached media on mount
   useEffect(() => {
     if (hasCachedMedia(cachedMediaUrl)) {
-      console.log("[WhatsAppVideoViewer] Using cached video URL:", cachedMediaUrl);
       setVideoSrc(cachedMediaUrl!);
       setVideoLoaded(true);
       // Generate thumbnail from cached video
@@ -63,12 +62,11 @@ export function WhatsAppVideoViewer({
           setThumbnailSrc(thumbUrl);
         }
       } catch (e) {
-        console.log("[WhatsAppVideoViewer] Thumbnail generation failed:", e);
+        // intentionally empty
       }
     };
     
     video.onerror = () => {
-      console.log("[WhatsAppVideoViewer] Video metadata load failed for thumbnail");
     };
   }, []);
 
@@ -102,7 +100,6 @@ export function WhatsAppVideoViewer({
     setError(null);
 
     try {
-      console.log("[WhatsAppVideoViewer] Downloading and caching video...");
 
       const result = await downloadAndCacheMedia({
         instanceId,
@@ -129,7 +126,6 @@ export function WhatsAppVideoViewer({
       setVideoSrc(url);
       setVideoLoaded(true);
       generateThumbnail(url);
-      console.log("[WhatsAppVideoViewer] Video ready, cached:", !!cachedUrl);
     } catch (err: unknown) {
       console.error("[WhatsAppVideoViewer] Error:", err);
       setError(err.message || "Erro ao carregar vídeo");

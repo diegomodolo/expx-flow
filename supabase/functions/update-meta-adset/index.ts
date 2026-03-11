@@ -2,8 +2,10 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 interface UpdateAdSetRequest {
@@ -36,12 +38,16 @@ serve(async (req) => {
   try {
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     );
 
-    const { clientId, adSetId, facebookId, updates } = await req.json() as UpdateAdSetRequest;
+    const { clientId, adSetId, facebookId, updates } =
+      (await req.json()) as UpdateAdSetRequest;
 
-    console.log(`Updating ad set ${facebookId} for client ${clientId}:`, updates);
+    console.log(
+      `Updating ad set ${facebookId} for client ${clientId}:`,
+      updates,
+    );
 
     // Get client with company_id
     const { data: client, error: clientError } = await supabaseClient
@@ -105,7 +111,8 @@ serve(async (req) => {
         targeting.custom_audiences = updates.targeting.custom_audiences;
       }
       if (updates.targeting.excluded_custom_audiences?.length) {
-        targeting.excluded_custom_audiences = updates.targeting.excluded_custom_audiences;
+        targeting.excluded_custom_audiences =
+          updates.targeting.excluded_custom_audiences;
       }
       if (updates.targeting.flexible_spec?.length) {
         targeting.flexible_spec = updates.targeting.flexible_spec;
@@ -117,14 +124,20 @@ serve(async (req) => {
 
     // Update Ad Set in Meta with retry logic for transient errors
     const maxRetries = 3;
-    let lastError: { message: string; code?: number; is_transient?: boolean } | null = null;
-    
+    let lastError: {
+      message: string;
+      code?: number;
+      is_transient?: boolean;
+    } | null = null;
+
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      console.log(`Sending update to Meta API (attempt ${attempt}/${maxRetries})...`);
-      
+      console.log(
+        `Sending update to Meta API (attempt ${attempt}/${maxRetries})...`,
+      );
+
       const updateResponse = await fetch(
         `https://graph.facebook.com/v21.0/${facebookId}`,
-        { method: "POST", body: updateParams }
+        { method: "POST", body: updateParams },
       );
 
       const updateResult = await updateResponse.json();
@@ -140,7 +153,7 @@ serve(async (req) => {
       if (updateResult.error.is_transient || updateResult.error.code === 2) {
         lastError = updateResult.error;
         console.log(`Transient error, retrying in ${attempt * 1000}ms...`);
-        await new Promise(resolve => setTimeout(resolve, attempt * 1000)); // Exponential backoff
+        await new Promise((resolve) => setTimeout(resolve, attempt * 1000)); // Exponential backoff
         continue;
       }
 
@@ -149,7 +162,9 @@ serve(async (req) => {
     }
 
     if (lastError) {
-      throw new Error(`Failed to update ad set after ${maxRetries} attempts: ${lastError.message}`);
+      throw new Error(
+        `Failed to update ad set after ${maxRetries} attempts: ${lastError.message}`,
+      );
     }
 
     // Update local database
@@ -161,8 +176,8 @@ serve(async (req) => {
       localUpdates.name = updates.name;
     }
     if (updates.status) {
-      localUpdates.status = updates.status === 'ACTIVE' ? 'active' : 'paused';
-      localUpdates.is_active = updates.status === 'ACTIVE';
+      localUpdates.status = updates.status === "ACTIVE" ? "active" : "paused";
+      localUpdates.is_active = updates.status === "ACTIVE";
     }
     if (updates.daily_budget !== undefined) {
       // Convert from cents to reais for local storage
@@ -187,13 +202,19 @@ serve(async (req) => {
         success: true,
         message: "Ad set updated successfully",
       }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (error: unknown) {
     console.error("Error in update-meta-adset:", error);
     return new Response(
-      JSON.stringify({ success: false, error: error instanceof Error ? error.message : String(error) }),
-      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      }),
+      {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 });

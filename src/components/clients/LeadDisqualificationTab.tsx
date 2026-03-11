@@ -68,8 +68,7 @@ export function LeadDisqualificationTab({ clientId }: LeadDisqualificationTabPro
         return;
       }
 
-      console.log('Tentando acessar evidência:', evidenceFileUrl);
-      
+
       // Verificar se o arquivo realmente existe
       const { data: listData, error: listError } = await supabase.storage
         .from('lead-evidence')
@@ -111,8 +110,7 @@ export function LeadDisqualificationTab({ clientId }: LeadDisqualificationTabPro
       }
 
       if (data?.signedUrl) {
-        console.log('Signed URL criada com sucesso:', data.signedUrl);
-        
+
         // Verificar se é imagem para visualizar ou fazer download
         const fileExtension = evidenceFileUrl.split('.').pop()?.toLowerCase();
         const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExtension || '');

@@ -2,8 +2,10 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 const LOCATION = "us-central1";
@@ -12,7 +14,7 @@ const SCENE_DURATION = 6; // 5-8 seconds per scene, using 6 as middle ground
 const MAX_SCENES = 5;
 
 // Helper para criar JWT assinado com RS256
-async function createSignedJWT(serviceAccount: any): Promise<string> {
+async function createSignedJWT(serviceAccount: unknown): Promise<string> {
   const header = { alg: "RS256", typ: "JWT" };
   const now = Math.floor(Date.now() / 1000);
 
@@ -64,7 +66,7 @@ async function createSignedJWT(serviceAccount: any): Promise<string> {
   return `${signatureInput}.${signatureB64}`;
 }
 
-async function getGCPAccessToken(serviceAccount: any): Promise<string> {
+async function getGCPAccessToken(serviceAccount: unknown): Promise<string> {
   const signedJwt = await createSignedJWT(serviceAccount);
 
   const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
@@ -83,43 +85,50 @@ async function getGCPAccessToken(serviceAccount: any): Promise<string> {
 }
 
 // Parse script to extract scenes
-function parseScriptToScenes(script: string, headline: string, subheadline: string): { sceneNumber: number; prompt: string }[] {
+function parseScriptToScenes(
+  script: string,
+  headline: string,
+  subheadline: string,
+): { sceneNumber: number; prompt: string }[] {
   const scenes: { sceneNumber: number; prompt: string }[] = [];
-  
+
   // Try to parse structured script format: CENA 1 (Xs): [ação] - "fala"
   const sceneRegex = /CENA\s*(\d+)[^:]*:\s*([^\n]+)/gi;
   let match;
-  
-  while ((match = sceneRegex.exec(script)) !== null && scenes.length < MAX_SCENES) {
+
+  while (
+    (match = sceneRegex.exec(script)) !== null &&
+    scenes.length < MAX_SCENES
+  ) {
     const sceneNumber = parseInt(match[1]);
     const sceneContent = match[2].trim();
-    
+
     // Create video prompt from scene content - NO TEXT, pure visual
     const prompt = `Create a professional vertical video scene for social media. 
 Scene description: ${sceneContent}
 Context: ${headline}. ${subheadline}
 Style: Modern, dynamic, engaging, cinematic lighting, smooth camera movement.
 CRITICAL: Generate ONLY visual content. NO TEXT, NO TITLES, NO CAPTIONS, NO WORDS, NO OVERLAYS of any kind. Pure visual scene only.`;
-    
+
     scenes.push({ sceneNumber, prompt });
   }
-  
+
   // If no structured scenes found, create scenes from paragraphs or sentences
   if (scenes.length === 0) {
-    const paragraphs = script.split(/\n+/).filter(p => p.trim().length > 10);
+    const paragraphs = script.split(/\n+/).filter((p) => p.trim().length > 10);
     const scenesToCreate = Math.min(paragraphs.length, MAX_SCENES);
-    
+
     for (let i = 0; i < scenesToCreate; i++) {
       const prompt = `Create a professional vertical video scene for social media.
 Scene ${i + 1} description: ${paragraphs[i].trim()}
 Context: ${headline}. ${subheadline}
 Style: Modern, dynamic, engaging, cinematic lighting, smooth camera movement.
 CRITICAL: Generate ONLY visual content. NO TEXT, NO TITLES, NO CAPTIONS, NO WORDS, NO OVERLAYS of any kind. Pure visual scene only.`;
-      
+
       scenes.push({ sceneNumber: i + 1, prompt });
     }
   }
-  
+
   // Ensure we have at least 1 scene
   if (scenes.length === 0) {
     const prompt = `Create a professional vertical video for social media.
@@ -127,10 +136,10 @@ Topic: ${headline}. ${subheadline}
 Script summary: ${script.substring(0, 200)}
 Style: Modern, dynamic, engaging, cinematic lighting, smooth camera movement.
 CRITICAL: Generate ONLY visual content. NO TEXT, NO TITLES, NO CAPTIONS, NO WORDS, NO OVERLAYS of any kind. Pure visual scene only.`;
-    
+
     scenes.push({ sceneNumber: 1, prompt });
   }
-  
+
   return scenes;
 }
 
@@ -148,11 +157,14 @@ async function startSceneGeneration(
       aspectRatio: "9:16",
       durationSeconds: SCENE_DURATION,
       sampleCount: 1,
-      negativePrompt: "text, titles, captions, subtitles, overlays, words, letters, typography, watermarks, logos, brand logos, written content, signs with text, any written words, lettering, headlines, slogans",
+      negativePrompt:
+        "text, titles, captions, subtitles, overlays, words, letters, typography, watermarks, logos, brand logos, written content, signs with text, any written words, lettering, headlines, slogans",
     },
   };
 
-  console.log("Starting scene generation:", { prompt: prompt.substring(0, 100) + "..." });
+  console.log("Starting scene generation:", {
+    prompt: prompt.substring(0, 100) + "...",
+  });
 
   const response = await fetch(endpoint, {
     method: "POST",
@@ -175,7 +187,7 @@ async function startSceneGeneration(
 
 // ========== VERTEX PROTOBUF JSON NORMALIZER ==========
 // Vertex AI often returns protobuf-wrapped JSON. This unwraps it.
-function normalizeVertexValue(val: any): any {
+function normalizeVertexValue(val: unknown): unknown {
   if (val === null || val === undefined) return val;
   if (typeof val !== "object") return val;
 
@@ -190,7 +202,7 @@ function normalizeVertexValue(val: any): any {
   }
 
   if ("structValue" in val && val.structValue?.fields) {
-    const result: Record<string, any> = {};
+    const result: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(val.structValue.fields)) {
       result[k] = normalizeVertexValue(v);
     }
@@ -203,7 +215,7 @@ function normalizeVertexValue(val: any): any {
   }
 
   // If it's a plain object, normalize each field
-  const result: Record<string, any> = {};
+  const result: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(val)) {
     result[k] = normalizeVertexValue(v);
   }
@@ -211,11 +223,20 @@ function normalizeVertexValue(val: any): any {
 }
 
 // Deep-walk an object looking for video URIs
-function findVideoUri(obj: any, depth = 0): { uri: string; mimeType?: string } | null {
+function findVideoUri(
+  obj: unknown,
+  depth = 0,
+): { uri: string; mimeType?: string } | null {
   if (depth > 10 || obj === null || obj === undefined) return null;
 
   if (typeof obj === "string") {
-    if (obj.startsWith("gs://") || (obj.startsWith("https://") && (obj.includes("storage.googleapis.com") || obj.includes(".mp4") || obj.includes(".webm")))) {
+    if (
+      obj.startsWith("gs://") ||
+      (obj.startsWith("https://") &&
+        (obj.includes("storage.googleapis.com") ||
+          obj.includes(".mp4") ||
+          obj.includes(".webm")))
+    ) {
       return { uri: obj };
     }
     return null;
@@ -286,7 +307,10 @@ async function checkOperationStatus(
   }
 
   if (rawData.error) {
-    return { done: true, error: rawData.error.message || JSON.stringify(rawData.error) };
+    return {
+      done: true,
+      error: rawData.error.message || JSON.stringify(rawData.error),
+    };
   }
 
   // Normalize the entire response to handle protobuf wrappers
@@ -295,7 +319,10 @@ async function checkOperationStatus(
 
   console.log("[checkOperationStatus] operationName:", operationName);
   console.log("[checkOperationStatus] Top-level keys:", Object.keys(data));
-  console.log("[checkOperationStatus] Response keys:", resp ? Object.keys(resp) : "N/A");
+  console.log(
+    "[checkOperationStatus] Response keys:",
+    resp ? Object.keys(resp) : "N/A",
+  );
 
   // 1) Try to extract inline base64 (common in GenerateVideoResponse)
   let videoBase64: string | undefined;
@@ -312,15 +339,31 @@ async function checkOperationStatus(
   if (!videoBase64) {
     const predictions = resp?.predictions || data.predictions || [];
     if (predictions.length > 0) {
-      videoBase64 = predictions[0].bytesBase64Encoded || predictions[0].video?.bytesBase64Encoded;
-      base64MimeType = predictions[0].mimeType || predictions[0].mime_type || predictions[0].video?.mimeType || predictions[0].video?.mime_type;
+      videoBase64 =
+        predictions[0].bytesBase64Encoded ||
+        predictions[0].video?.bytesBase64Encoded;
+      base64MimeType =
+        predictions[0].mimeType ||
+        predictions[0].mime_type ||
+        predictions[0].video?.mimeType ||
+        predictions[0].video?.mime_type;
     }
 
     if (!videoBase64) {
-      const samples = resp?.generatedSamples || resp?.generated_samples || data.generatedSamples || data.generated_samples || [];
+      const samples =
+        resp?.generatedSamples ||
+        resp?.generated_samples ||
+        data.generatedSamples ||
+        data.generated_samples ||
+        [];
       if (samples.length > 0) {
-        videoBase64 = samples[0].video?.bytesBase64Encoded || samples[0].bytesBase64Encoded;
-        base64MimeType = samples[0].mimeType || samples[0].mime_type || samples[0].video?.mimeType || samples[0].video?.mime_type;
+        videoBase64 =
+          samples[0].video?.bytesBase64Encoded || samples[0].bytesBase64Encoded;
+        base64MimeType =
+          samples[0].mimeType ||
+          samples[0].mime_type ||
+          samples[0].video?.mimeType ||
+          samples[0].video?.mime_type;
       }
     }
   }
@@ -330,9 +373,8 @@ async function checkOperationStatus(
     return { done: true, videoBase64, mimeType: base64MimeType };
   }
 
-
   // 2) Veo commonly returns a URI (usually gs://...) in several possible locations.
-  const candidates: any[] = [
+  const candidates: unknown[] = [
     resp?.videos?.[0],
     resp?.result?.videos?.[0],
     resp?.generatedVideos?.[0],
@@ -349,11 +391,21 @@ async function checkOperationStatus(
   ].filter(Boolean);
 
   for (const c of candidates) {
-    const uri = c.gcsUri || c.uri || c.video?.gcsUri || c.video?.uri || c.videoUri || c.video_uri;
-    const mimeType = c.mimeType || c.mime_type || c.video?.mimeType || c.video?.mime_type;
+    const uri =
+      c.gcsUri ||
+      c.uri ||
+      c.video?.gcsUri ||
+      c.video?.uri ||
+      c.videoUri ||
+      c.video_uri;
+    const mimeType =
+      c.mimeType || c.mime_type || c.video?.mimeType || c.video?.mime_type;
 
     if (typeof uri === "string" && uri.length > 0) {
-      console.log("[checkOperationStatus] Found video URI from candidates:", uri);
+      console.log(
+        "[checkOperationStatus] Found video URI from candidates:",
+        uri,
+      );
       if (uri.startsWith("gs://")) {
         return { done: true, videoGcsUri: uri, mimeType };
       }
@@ -364,20 +416,36 @@ async function checkOperationStatus(
   // 3) Deep-walk fallback: search entire response for video URIs
   const foundUri = findVideoUri(resp) || findVideoUri(data);
   if (foundUri) {
-    console.log("[checkOperationStatus] Found video URI via deep-walk:", foundUri.uri);
+    console.log(
+      "[checkOperationStatus] Found video URI via deep-walk:",
+      foundUri.uri,
+    );
     if (foundUri.uri.startsWith("gs://")) {
-      return { done: true, videoGcsUri: foundUri.uri, mimeType: foundUri.mimeType };
+      return {
+        done: true,
+        videoGcsUri: foundUri.uri,
+        mimeType: foundUri.mimeType,
+      };
     }
     return { done: true, videoUri: foundUri.uri, mimeType: foundUri.mimeType };
   }
 
   // Log detailed info when video not found
-  console.error("[checkOperationStatus] Video not found. Full response (truncated):", JSON.stringify(resp).substring(0, 3000));
+  console.error(
+    "[checkOperationStatus] Video not found. Full response (truncated):",
+    JSON.stringify(resp).substring(0, 3000),
+  );
 
-  return { done: true, error: "Video format not recognized - check logs for response structure" };
+  return {
+    done: true,
+    error: "Video format not recognized - check logs for response structure",
+  };
 }
 
-function decodeBase64DataUriToBytes(input: string): { bytes: Uint8Array; contentType: string } {
+function decodeBase64DataUriToBytes(input: string): {
+  bytes: Uint8Array;
+  contentType: string;
+} {
   // Supports both raw base64 and data URIs like: data:video/mp4;base64,AAAA...
   let contentType = "video/mp4";
   let base64 = input;
@@ -416,7 +484,10 @@ async function downloadVideoUriToBytes(
     headers["Authorization"] = `Bearer ${accessToken}`;
   }
 
-  const resp = await fetch(uri, Object.keys(headers).length ? { headers } : undefined);
+  const resp = await fetch(
+    uri,
+    Object.keys(headers).length ? { headers } : undefined,
+  );
   if (!resp.ok) {
     const t = await resp.text();
     throw new Error(`Failed to download video URI: ${resp.status} ${t}`);
@@ -428,7 +499,10 @@ async function downloadVideoUriToBytes(
   return { bytes: new Uint8Array(buf), contentType };
 }
 
-async function downloadGcsVideoToBytes(accessToken: string, gcsUri: string): Promise<Uint8Array> {
+async function downloadGcsVideoToBytes(
+  accessToken: string,
+  gcsUri: string,
+): Promise<Uint8Array> {
   const match = gcsUri.match(/^gs:\/\/([^/]+)\/(.+)$/);
   if (!match) throw new Error(`Invalid gcsUri: ${gcsUri}`);
 
@@ -454,7 +528,7 @@ async function downloadGcsVideoToBytes(accessToken: string, gcsUri: string): Pro
 
 // Upload video to storage
 async function uploadVideoToStorage(
-  supabase: any,
+  supabase: unknown,
   videoBytes: Uint8Array,
   clientId: string,
   fileName: string,
@@ -483,10 +557,10 @@ async function uploadVideoToStorage(
 
 // Update post progress in database
 async function updateProgress(
-  supabase: any,
+  supabase: unknown,
   postId: string,
   status: string,
-  progress: any,
+  progress: unknown,
 ) {
   await supabase
     .from("content_plan_posts")
@@ -529,7 +603,11 @@ serve(async (req) => {
       console.log("Starting Reels video generation for post:", postId);
 
       // Parse script into scenes
-      const scenes = parseScriptToScenes(script, headline || "", subheadline || "");
+      const scenes = parseScriptToScenes(
+        script,
+        headline || "",
+        subheadline || "",
+      );
       console.log(`Parsed ${scenes.length} scenes from script`);
 
       // Initialize progress
@@ -556,11 +634,15 @@ serve(async (req) => {
       // Start all video generations in parallel
       const operationPromises = scenes.map(async (scene, index) => {
         try {
-          const operationName = await startSceneGeneration(accessToken, projectId, scene.prompt);
+          const operationName = await startSceneGeneration(
+            accessToken,
+            projectId,
+            scene.prompt,
+          );
           progress.scenes[index].operationName = operationName;
           progress.scenes[index].status = "generating";
           return { index, operationName, error: null };
-        } catch (error: any) {
+        } catch (error: unknown) {
           progress.scenes[index].status = "error";
           progress.scenes[index].error = error.message;
           return { index, operationName: null, error: error.message };
@@ -568,7 +650,7 @@ serve(async (req) => {
       });
 
       const results = await Promise.all(operationPromises);
-      
+
       // Update progress with operation names
       await updateProgress(supabase, postId, "generating", progress);
 
@@ -587,8 +669,15 @@ serve(async (req) => {
     if (action === "status") {
       if (!postId) {
         return new Response(
-          JSON.stringify({ error: "postId is required", status: "idle", progress: {} }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          JSON.stringify({
+            error: "postId is required",
+            status: "idle",
+            progress: {},
+          }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
         );
       }
 
@@ -602,7 +691,11 @@ serve(async (req) => {
       if (fetchError || !post) {
         console.error("Post not found for status check:", postId, fetchError);
         return new Response(
-          JSON.stringify({ status: "idle", progress: {}, error: "Post not found" }),
+          JSON.stringify({
+            status: "idle",
+            progress: {},
+            error: "Post not found",
+          }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
@@ -618,25 +711,36 @@ serve(async (req) => {
       }
 
       // Initialize hasError based on existing scene statuses (fix for stuck generating)
-      let hasError = scenes.some((s: any) => s.status === "error");
+      let hasError = scenes.some((s: unknown) => s.status === "error");
 
       // Check status of pending/generating scenes
       const accessToken = await getGCPAccessToken(serviceAccount);
 
       for (let i = 0; i < scenes.length; i++) {
         const scene = scenes[i];
-        
+
         if (scene.status === "generating" && scene.operationName) {
           try {
-            const status = await checkOperationStatus(accessToken, scene.operationName, projectId);
+            const status = await checkOperationStatus(
+              accessToken,
+              scene.operationName,
+              projectId,
+            );
 
             if (status.done) {
               if (status.error) {
                 scene.status = "error";
                 scene.error = status.error;
                 hasError = true;
-                console.log(`[status] Scene ${scene.sceneNumber} failed:`, status.error);
-              } else if (status.videoBase64 || status.videoGcsUri || status.videoUri) {
+                console.log(
+                  `[status] Scene ${scene.sceneNumber} failed:`,
+                  status.error,
+                );
+              } else if (
+                status.videoBase64 ||
+                status.videoGcsUri ||
+                status.videoUri
+              ) {
                 const resolvedClientId = progress.clientId || clientId;
                 if (!resolvedClientId) {
                   throw new Error("clientId not available for video upload");
@@ -646,12 +750,17 @@ serve(async (req) => {
                 let contentType = status.mimeType || "video/mp4";
 
                 if (status.videoBase64) {
-                  const decoded = decodeBase64DataUriToBytes(status.videoBase64);
+                  const decoded = decodeBase64DataUriToBytes(
+                    status.videoBase64,
+                  );
                   videoBytes = decoded.bytes;
                   contentType = decoded.contentType || contentType;
                 } else {
                   const uri = (status.videoGcsUri || status.videoUri) as string;
-                  const downloaded = await downloadVideoUriToBytes(accessToken, uri);
+                  const downloaded = await downloadVideoUriToBytes(
+                    accessToken,
+                    uri,
+                  );
                   videoBytes = downloaded.bytes;
                   contentType = downloaded.contentType || contentType;
                 }
@@ -668,10 +777,13 @@ serve(async (req) => {
                 scene.videoUrl = videoUrl;
                 scene.status = "completed";
                 progress.currentScene = (progress.currentScene || 0) + 1;
-                console.log(`[status] Scene ${scene.sceneNumber} completed:`, videoUrl);
+                console.log(
+                  `[status] Scene ${scene.sceneNumber} completed:`,
+                  videoUrl,
+                );
               }
             }
-          } catch (error: any) {
+          } catch (error: unknown) {
             console.error(`Error checking scene ${scene.sceneNumber}:`, error);
 
             const msg = String(error?.message || error);
@@ -684,9 +796,15 @@ serve(async (req) => {
       }
 
       // Compute terminal status correctly
-      const completedCount = scenes.filter((s: any) => s.status === "completed").length;
-      const errorCount = scenes.filter((s: any) => s.status === "error").length;
-      const pendingOrGenerating = scenes.filter((s: any) => s.status === "pending" || s.status === "generating").length;
+      const completedCount = scenes.filter(
+        (s: unknown) => s.status === "completed",
+      ).length;
+      const errorCount = scenes.filter(
+        (s: unknown) => s.status === "error",
+      ).length;
+      const pendingOrGenerating = scenes.filter(
+        (s: unknown) => s.status === "pending" || s.status === "generating",
+      ).length;
       const allTerminal = pendingOrGenerating === 0;
 
       let newStatus: string;
@@ -723,15 +841,28 @@ serve(async (req) => {
     // ACTION: REGENERATE_SCENES - Regenerate specific failed scenes
     if (action === "regenerate_scenes") {
       const { sceneNumbers } = body;
-      
-      if (!postId || !sceneNumbers || !Array.isArray(sceneNumbers) || sceneNumbers.length === 0) {
+
+      if (
+        !postId ||
+        !sceneNumbers ||
+        !Array.isArray(sceneNumbers) ||
+        sceneNumbers.length === 0
+      ) {
         return new Response(
-          JSON.stringify({ error: "postId and sceneNumbers array are required" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          JSON.stringify({
+            error: "postId and sceneNumbers array are required",
+          }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
         );
       }
 
-      console.log(`[regenerate_scenes] Regenerating scenes ${sceneNumbers.join(", ")} for post:`, postId);
+      console.log(
+        `[regenerate_scenes] Regenerating scenes ${sceneNumbers.join(", ")} for post:`,
+        postId,
+      );
 
       // Get current progress from database
       const { data: post, error: fetchError } = await supabase
@@ -741,10 +872,10 @@ serve(async (req) => {
         .single();
 
       if (fetchError || !post) {
-        return new Response(
-          JSON.stringify({ error: "Post not found" }),
-          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
+        return new Response(JSON.stringify({ error: "Post not found" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
       const progress = post.reels_generation_progress || {};
@@ -753,7 +884,10 @@ serve(async (req) => {
       if (scenes.length === 0) {
         return new Response(
           JSON.stringify({ error: "No scenes found to regenerate" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
         );
       }
 
@@ -762,29 +896,45 @@ serve(async (req) => {
 
       // Start regeneration for specified scenes
       const regeneratePromises = sceneNumbers.map(async (sceneNum: number) => {
-        const sceneIndex = scenes.findIndex((s: any) => s.sceneNumber === sceneNum);
+        const sceneIndex = scenes.findIndex(
+          (s: unknown) => s.sceneNumber === sceneNum,
+        );
         if (sceneIndex === -1) {
           return { sceneNumber: sceneNum, error: "Scene not found" };
         }
 
         const scene = scenes[sceneIndex];
-        
+
         try {
           // Restart generation with the existing prompt
-          const operationName = await startSceneGeneration(accessToken, projectId, scene.prompt);
-          
+          const operationName = await startSceneGeneration(
+            accessToken,
+            projectId,
+            scene.prompt,
+          );
+
           scenes[sceneIndex].operationName = operationName;
           scenes[sceneIndex].status = "generating";
           scenes[sceneIndex].error = null;
           scenes[sceneIndex].videoUrl = null;
-          
-          console.log(`[regenerate_scenes] Scene ${sceneNum} regeneration started:`, operationName);
+
+          console.log(
+            `[regenerate_scenes] Scene ${sceneNum} regeneration started:`,
+            operationName,
+          );
           return { sceneNumber: sceneNum, operationName, error: null };
-        } catch (error: any) {
+        } catch (error: unknown) {
           scenes[sceneIndex].status = "error";
           scenes[sceneIndex].error = error.message;
-          console.error(`[regenerate_scenes] Scene ${sceneNum} failed to start:`, error.message);
-          return { sceneNumber: sceneNum, operationName: null, error: error.message };
+          console.error(
+            `[regenerate_scenes] Scene ${sceneNum} failed to start:`,
+            error.message,
+          );
+          return {
+            sceneNumber: sceneNum,
+            operationName: null,
+            error: error.message,
+          };
         }
       });
 
@@ -809,20 +959,18 @@ serve(async (req) => {
     // ACTION: RESET - Cancel/reset generation
     if (action === "reset") {
       await updateProgress(supabase, postId, "idle", {});
-      
-      return new Response(
-        JSON.stringify({ success: true }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     throw new Error(`Unknown action: ${action}`);
-
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error in generate-reels-video:", error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });

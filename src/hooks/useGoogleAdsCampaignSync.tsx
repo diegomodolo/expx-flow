@@ -193,7 +193,6 @@ export function useGoogleAdsCampaignSync() {
 
   const validateCompanyUrls = async (companyId: string) => {
     try {
-      console.log('[validateCompanyUrls] Starting URL validation for company:', companyId);
       const { data, error } = await supabase.functions.invoke('validate-client-urls', {
         body: { company_id: companyId }
       });
@@ -201,7 +200,7 @@ export function useGoogleAdsCampaignSync() {
       if (error) {
         console.error('[validateCompanyUrls] URL validation failed:', error.message);
       } else {
-        console.log('[validateCompanyUrls] URL validation completed:', data?.summary || data?.message);
+        // intentionally empty
       }
     } catch (urlError: unknown) {
       console.error('[validateCompanyUrls] URL validation error:', urlError.message);
@@ -226,8 +225,6 @@ export function useGoogleAdsCampaignSync() {
       setSyncing(true);
       setProgress({ current: 0, total: 0 });
 
-      console.log('[syncAllClients] Starting sync for company:', companyId);
-      console.log('[syncAllClients] Options:', options);
 
       // Get all clients with Google Ads accounts
       let query = supabase
@@ -243,7 +240,6 @@ export function useGoogleAdsCampaignSync() {
 
       const { data: clients, error } = await query;
 
-      console.log('[syncAllClients] Query result:', { clients, error, count: clients?.length });
 
       if (error) throw error;
 
@@ -333,7 +329,7 @@ export function useGoogleAdsCampaignSync() {
       if (logError) {
         console.error('[syncAllClients] Error creating execution log:', logError);
       } else {
-        console.log('[syncAllClients] Execution log created successfully');
+        // intentionally empty
       }
 
       // ========== VALIDAR URLs APÓS SINCRONIZAÇÃO ==========

@@ -111,7 +111,6 @@ export const ListaCnaeSettings = () => {
   const credits = creditsData?.credits;
   
   // Debug log to understand credits structure
-  console.log("Credits data:", creditsData);
 
   return (
     <div className="space-y-6">

@@ -39,12 +39,6 @@ export const CompanySettings = () => {
 
     try {
       setLoading(true);
-      console.log('Updating company with data:', {
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
-        logo: formData.logo,
-      });
       
       await updateCompany(activeCompany.company.id, {
         name: formData.name,

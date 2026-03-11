@@ -54,8 +54,7 @@ export const useTaskOrganizer = () => {
   // Mutation para chamar a Edge Function de organização
   const organizeMutation = useMutation({
     mutationFn: async (params: OrganizeTasksParams) => {
-      console.log('🚀 Starting AI organization with params:', params);
-      
+
       // Simular progresso das etapas
       setOrganizingStep(0);
       setOrganizingMessage("Analisando tarefas e contexto...");
@@ -84,7 +83,6 @@ export const useTaskOrganizer = () => {
       return data as OrganizationPlan;
     },
     onSuccess: (data) => {
-      console.log('✅ Organization plan received:', data);
       setOrganizationPlan(data);
       toast({
         title: "Organização criada",
@@ -156,13 +154,6 @@ export const useTaskOrganizer = () => {
             ai_organization_date: new Date().toISOString() // Registrar quando foi organizada
           };
 
-          console.log(`📅 Updating task ${taskId} with specific timing:`, {
-            title: organizedTask.taskTitle || 'Título não encontrado',
-            slot: organizedTask.slotName || 'Slot não encontrado',
-            taskTime: `${String(taskStartHour).padStart(2, '0')}:${String(taskStartMin).padStart(2, '0')} - ${String(taskEndHour).padStart(2, '0')}:${String(taskEndMin).padStart(2, '0')}`,
-            estimatedMinutes,
-            updates
-          });
 
           const { error: updateError } = await supabase
             .from('tasks')
@@ -181,8 +172,7 @@ export const useTaskOrganizer = () => {
       return updates;
     },
     onSuccess: (updates) => {
-      console.log('✅ Organization plan applied successfully:', updates);
-      
+
       // Invalidar queries para atualizar a UI
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['planner-tasks'] });

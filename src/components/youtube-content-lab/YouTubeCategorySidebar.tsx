@@ -34,16 +34,31 @@ interface YouTubeCategorySidebarProps {
   channels: YouTubeChannel[];
   selectedCategoryId: string | null;
   onSelectCategory: (id: string | null) => void;
-  onCreateCategory: (name: string, description?: string, color?: string) => Promise<unknown>;
-  onUpdateCategory: (id: string, updates: { name?: string; description?: string; color?: string }) => Promise<void>;
+  onCreateCategory: (
+    name: string,
+    description?: string,
+    color?: string,
+  ) => Promise<unknown>;
+  onUpdateCategory: (
+    id: string,
+    updates: { name?: string; description?: string; color?: string },
+  ) => Promise<void>;
   onDeleteCategory: (id: string) => Promise<void>;
   onLinkChannel: (categoryId: string, channelId: string) => Promise<void>;
   onUnlinkChannel: (categoryId: string, channelId: string) => Promise<void>;
 }
 
 const COLORS = [
-  "#6366f1", "#ec4899", "#f59e0b", "#10b981", "#3b82f6",
-  "#8b5cf6", "#ef4444", "#14b8a6", "#f97316", "#06b6d4",
+  "#6366f1",
+  "#ec4899",
+  "#f59e0b",
+  "#10b981",
+  "#3b82f6",
+  "#8b5cf6",
+  "#ef4444",
+  "#14b8a6",
+  "#f97316",
+  "#06b6d4",
 ];
 
 export function YouTubeCategorySidebar({
@@ -59,7 +74,9 @@ export function YouTubeCategorySidebar({
 }: YouTubeCategorySidebarProps) {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState<string | null>(null);
-  const [showChannelsDialog, setShowChannelsDialog] = useState<string | null>(null);
+  const [showChannelsDialog, setShowChannelsDialog] = useState<string | null>(
+    null,
+  );
   const [newName, setNewName] = useState("");
   const [newColor, setNewColor] = useState(COLORS[0]);
   const [editName, setEditName] = useState("");
@@ -75,7 +92,10 @@ export function YouTubeCategorySidebar({
 
   const handleEdit = async () => {
     if (!showEditDialog || !editName.trim()) return;
-    await onUpdateCategory(showEditDialog, { name: editName.trim(), color: editColor });
+    await onUpdateCategory(showEditDialog, {
+      name: editName.trim(),
+      color: editColor,
+    });
     setShowEditDialog(null);
   };
 
@@ -85,7 +105,11 @@ export function YouTubeCategorySidebar({
     setShowEditDialog(cat.id);
   };
 
-  const toggleChannelLink = async (categoryId: string, channelId: string, isLinked: boolean) => {
+  const toggleChannelLink = async (
+    categoryId: string,
+    channelId: string,
+    isLinked: boolean,
+  ) => {
     if (isLinked) {
       await onUnlinkChannel(categoryId, channelId);
     } else {
@@ -93,7 +117,7 @@ export function YouTubeCategorySidebar({
     }
   };
 
-  const managingCategory = categories.find(c => c.id === showChannelsDialog);
+  const managingCategory = categories.find((c) => c.id === showChannelsDialog);
 
   return (
     <div className="w-56 border-r border-border flex flex-col bg-muted/30 shrink-0">
@@ -102,7 +126,8 @@ export function YouTubeCategorySidebar({
           <span className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">
             Categorias
           </span>
-          <Button aria-label="Adicionar"
+          <Button
+            aria-label="Adicionar"
             variant="ghost"
             size="icon"
             className="h-6 w-6"
@@ -122,12 +147,14 @@ export function YouTubeCategorySidebar({
               "w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors text-left",
               selectedCategoryId === null
                 ? "bg-primary/10 text-primary font-medium"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground",
             )}
           >
             <Layers className="h-4 w-4 shrink-0" />
             <span className="truncate">Todas</span>
-            <span className="ml-auto text-xs opacity-60">{channels.length}</span>
+            <span className="ml-auto text-xs opacity-60">
+              {channels.length}
+            </span>
           </button>
 
           {categories.map((cat) => (
@@ -138,7 +165,7 @@ export function YouTubeCategorySidebar({
                   "flex-1 flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors text-left min-w-0",
                   selectedCategoryId === cat.id
                     ? "bg-primary/10 text-primary font-medium"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
                 )}
               >
                 <div
@@ -146,12 +173,15 @@ export function YouTubeCategorySidebar({
                   style={{ backgroundColor: cat.color }}
                 />
                 <span className="truncate">{cat.name}</span>
-                <span className="ml-auto text-xs opacity-60">{cat.channel_ids.length}</span>
+                <span className="ml-auto text-xs opacity-60">
+                  {cat.channel_ids.length}
+                </span>
               </button>
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button aria-label="Ação"
+                  <Button
+                    aria-label="Ação"
                     variant="ghost"
                     size="icon"
                     className="h-6 w-6 opacity-0 group-hover:opacity-100 shrink-0"
@@ -160,7 +190,9 @@ export function YouTubeCategorySidebar({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-40">
-                  <DropdownMenuItem onClick={() => setShowChannelsDialog(cat.id)}>
+                  <DropdownMenuItem
+                    onClick={() => setShowChannelsDialog(cat.id)}
+                  >
                     <Link2 className="h-4 w-4 mr-2" />
                     Canais
                   </DropdownMenuItem>
@@ -205,7 +237,9 @@ export function YouTubeCategorySidebar({
               onKeyDown={(e) => e.key === "Enter" && handleCreate()}
             />
             <div>
-              <span className="text-sm text-muted-foreground mb-2 block">Cor</span>
+              <span className="text-sm text-muted-foreground mb-2 block">
+                Cor
+              </span>
               <div className="flex gap-2 flex-wrap">
                 {COLORS.map((c) => (
                   <button
@@ -213,7 +247,9 @@ export function YouTubeCategorySidebar({
                     onClick={() => setNewColor(c)}
                     className={cn(
                       "h-7 w-7 rounded-full border-2 transition-all",
-                      newColor === c ? "border-foreground scale-110" : "border-transparent"
+                      newColor === c
+                        ? "border-foreground scale-110"
+                        : "border-transparent",
                     )}
                     style={{ backgroundColor: c }}
                   />
@@ -222,7 +258,10 @@ export function YouTubeCategorySidebar({
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setShowCreateDialog(false)}
+            >
               Cancelar
             </Button>
             <Button onClick={handleCreate} disabled={!newName.trim()}>
@@ -233,7 +272,10 @@ export function YouTubeCategorySidebar({
       </Dialog>
 
       {/* Edit Dialog */}
-      <Dialog open={!!showEditDialog} onOpenChange={() => setShowEditDialog(null)}>
+      <Dialog
+        open={!!showEditDialog}
+        onOpenChange={() => setShowEditDialog(null)}
+      >
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Editar Categoria</DialogTitle>
@@ -246,7 +288,9 @@ export function YouTubeCategorySidebar({
               onKeyDown={(e) => e.key === "Enter" && handleEdit()}
             />
             <div>
-              <span className="text-sm text-muted-foreground mb-2 block">Cor</span>
+              <span className="text-sm text-muted-foreground mb-2 block">
+                Cor
+              </span>
               <div className="flex gap-2 flex-wrap">
                 {COLORS.map((c) => (
                   <button
@@ -254,7 +298,9 @@ export function YouTubeCategorySidebar({
                     onClick={() => setEditColor(c)}
                     className={cn(
                       "h-7 w-7 rounded-full border-2 transition-all",
-                      editColor === c ? "border-foreground scale-110" : "border-transparent"
+                      editColor === c
+                        ? "border-foreground scale-110"
+                        : "border-transparent",
                     )}
                     style={{ backgroundColor: c }}
                   />
@@ -274,12 +320,13 @@ export function YouTubeCategorySidebar({
       </Dialog>
 
       {/* Manage Channels Dialog */}
-      <Dialog open={!!showChannelsDialog} onOpenChange={() => setShowChannelsDialog(null)}>
+      <Dialog
+        open={!!showChannelsDialog}
+        onOpenChange={() => setShowChannelsDialog(null)}
+      >
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>
-              Canais em "{managingCategory?.name}"
-            </DialogTitle>
+            <DialogTitle>Canais em "{managingCategory?.name}"</DialogTitle>
           </DialogHeader>
           <div className="space-y-2 max-h-64 overflow-y-auto">
             {channels.length === 0 ? (
@@ -288,7 +335,8 @@ export function YouTubeCategorySidebar({
               </p>
             ) : (
               channels.map((ch) => {
-                const isLinked = managingCategory?.channel_ids.includes(ch.id) || false;
+                const isLinked =
+                  managingCategory?.channel_ids.includes(ch.id) || false;
                 return (
                   <label
                     key={ch.id}
@@ -297,7 +345,8 @@ export function YouTubeCategorySidebar({
                     <Checkbox
                       checked={isLinked}
                       onCheckedChange={() =>
-                        showChannelsDialog && toggleChannelLink(showChannelsDialog, ch.id, isLinked)
+                        showChannelsDialog &&
+                        toggleChannelLink(showChannelsDialog, ch.id, isLinked)
                       }
                     />
                     {ch.thumbnail_url && (

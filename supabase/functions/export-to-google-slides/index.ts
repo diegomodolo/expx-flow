@@ -2,7 +2,8 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
@@ -21,7 +22,7 @@ interface RequestBody {
   shareWithEmail?: string;
 }
 
-async function getGoogleAccessToken(credentials: any): Promise<string> {
+async function getGoogleAccessToken(credentials: unknown): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
   const exp = now + 3600;
 
@@ -32,15 +33,22 @@ async function getGoogleAccessToken(credentials: any): Promise<string> {
 
   const claim = {
     iss: credentials.client_email,
-    scope: "https://www.googleapis.com/auth/presentations https://www.googleapis.com/auth/drive.file",
+    scope:
+      "https://www.googleapis.com/auth/presentations https://www.googleapis.com/auth/drive.file",
     aud: "https://oauth2.googleapis.com/token",
     exp: exp,
     iat: now,
   };
 
   const encoder = new TextEncoder();
-  const headerB64 = btoa(JSON.stringify(header)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
-  const claimB64 = btoa(JSON.stringify(claim)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+  const headerB64 = btoa(JSON.stringify(header))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=/g, "");
+  const claimB64 = btoa(JSON.stringify(claim))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=/g, "");
   const unsignedToken = `${headerB64}.${claimB64}`;
 
   // Import the private key
@@ -58,14 +66,14 @@ async function getGoogleAccessToken(credentials: any): Promise<string> {
       hash: "SHA-256",
     },
     false,
-    ["sign"]
+    ["sign"],
   );
 
   // Sign the token
   const signature = await crypto.subtle.sign(
     "RSASSA-PKCS1-v1_5",
     privateKey,
-    encoder.encode(unsignedToken)
+    encoder.encode(unsignedToken),
   );
 
   const signatureB64 = btoa(String.fromCharCode(...new Uint8Array(signature)))
@@ -108,14 +116,20 @@ serve(async (req) => {
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Missing authorization header" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "Missing authorization header" }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -124,34 +138,48 @@ serve(async (req) => {
       });
     }
 
-    const { scriptId, scriptTitle, slides, shareWithEmail } = await req.json() as RequestBody;
+    const { scriptId, scriptTitle, slides, shareWithEmail } =
+      (await req.json()) as RequestBody;
 
     if (!scriptId || !slides || slides.length === 0) {
-      return new Response(JSON.stringify({ error: "scriptId and slides are required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "scriptId and slides are required" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
     // Filter slides that have images
-    const slidesWithImages = slides.filter(s => s.image_url).sort((a, b) => a.slide_order - b.slide_order);
+    const slidesWithImages = slides
+      .filter((s) => s.image_url)
+      .sort((a, b) => a.slide_order - b.slide_order);
 
     if (slidesWithImages.length === 0) {
-      return new Response(JSON.stringify({ error: "No slides with images to export" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "No slides with images to export" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
-    console.log(`Exporting ${slidesWithImages.length} slides to Google Slides for script: ${scriptTitle}`);
+    console.log(
+      `Exporting ${slidesWithImages.length} slides to Google Slides for script: ${scriptTitle}`,
+    );
 
     // Get GCP credentials
     const gcpCredentialsJson = Deno.env.get("GCP_SERVICE_ACCOUNT_JSON");
     if (!gcpCredentialsJson) {
-      return new Response(JSON.stringify({ error: "GCP credentials not configured" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "GCP credentials not configured" }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
     const credentials = JSON.parse(gcpCredentialsJson);
@@ -160,16 +188,19 @@ serve(async (req) => {
     console.log("Got access token, creating presentation...");
 
     // Create a new presentation
-    const createResponse = await fetch("https://slides.googleapis.com/v1/presentations", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
+    const createResponse = await fetch(
+      "https://slides.googleapis.com/v1/presentations",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: scriptTitle || "Apresentação sem título",
+        }),
       },
-      body: JSON.stringify({
-        title: scriptTitle || "Apresentação sem título",
-      }),
-    });
+    );
 
     if (!createResponse.ok) {
       const errorText = await createResponse.text();
@@ -184,7 +215,7 @@ serve(async (req) => {
     // Build batch update requests
     // First, delete the default slide
     const defaultSlideId = presentation.slides?.[0]?.objectId;
-    const requests: any[] = [];
+    const requests: unknown[] = [];
 
     // Create new slides with images
     for (let i = 0; i < slidesWithImages.length; i++) {
@@ -247,7 +278,7 @@ serve(async (req) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ requests }),
-      }
+      },
     );
 
     if (!batchResponse.ok) {
@@ -261,7 +292,7 @@ serve(async (req) => {
     // If shareWithEmail is provided, share the presentation
     if (shareWithEmail) {
       console.log(`Sharing presentation with: ${shareWithEmail}`);
-      
+
       const shareResponse = await fetch(
         `https://www.googleapis.com/drive/v3/files/${presentationId}/permissions`,
         {
@@ -275,11 +306,14 @@ serve(async (req) => {
             role: "writer",
             emailAddress: shareWithEmail,
           }),
-        }
+        },
       );
 
       if (!shareResponse.ok) {
-        console.warn("Failed to share presentation:", await shareResponse.text());
+        console.warn(
+          "Failed to share presentation:",
+          await shareResponse.text(),
+        );
         // Don't fail the whole request, just log the warning
       } else {
         console.log("Presentation shared successfully");
@@ -299,11 +333,14 @@ serve(async (req) => {
           type: "anyone",
           role: "reader",
         }),
-      }
+      },
     );
 
     if (!publicShareResponse.ok) {
-      console.warn("Failed to make presentation public:", await publicShareResponse.text());
+      console.warn(
+        "Failed to make presentation public:",
+        await publicShareResponse.text(),
+      );
     }
 
     const presentationUrl = `https://docs.google.com/presentation/d/${presentationId}/edit`;
@@ -319,16 +356,18 @@ serve(async (req) => {
       {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      },
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error exporting to Google Slides:", error);
     return new Response(
-      JSON.stringify({ error: error.message || "Failed to export to Google Slides" }),
+      JSON.stringify({
+        error: error.message || "Failed to export to Google Slides",
+      }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      },
     );
   }
 });

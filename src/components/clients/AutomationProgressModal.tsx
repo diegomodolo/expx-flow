@@ -81,7 +81,6 @@ export function AutomationProgressModal({
         filter: `execution_id=eq.${executionId}`
       }, payload => {
         const newUpdate = payload.new as ProgressUpdate;
-        console.log('📥 Realtime update received:', newUpdate);
         setUpdates(prev => [...prev, newUpdate]);
         lastUpdateTimeRef.current = Date.now();
         

@@ -81,13 +81,11 @@ export function usePlannerTasks(plannedDate: Date) {
         const slotStartTime = timeSlot.start_time.length === 5 ? `${timeSlot.start_time}:00` : timeSlot.start_time;
         const slotEndTime = timeSlot.end_time.length === 5 ? `${timeSlot.end_time}:00` : timeSlot.end_time;
         
-        console.log(`🔍 Checking task "${task.title}" - taskTime: ${taskTime}, slot: ${slotStartTime} to ${slotEndTime}`);
-        
+
         // Comparar strings de tempo diretamente
         const isInSlot = taskTime >= slotStartTime && taskTime <= slotEndTime;
         
-        console.log(`📍 Task "${task.title}" ${isInSlot ? 'MATCHES' : 'does not match'} slot "${timeSlot.name}"`);
-        
+
         return isInSlot;
       }
       

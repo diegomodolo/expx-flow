@@ -2,8 +2,10 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 interface RequestBody {
@@ -24,7 +26,8 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { action, clientId, companyId, pixelId, localPixelId } = await req.json() as RequestBody;
+    const { action, clientId, companyId, pixelId, localPixelId } =
+      (await req.json()) as RequestBody;
 
     console.log(`[manage-meta-pixels] Action: ${action}, Client: ${clientId}`);
 
@@ -40,7 +43,10 @@ serve(async (req) => {
       console.error("Integration not found:", integrationError);
       return new Response(
         JSON.stringify({ error: "Facebook integration not found" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -55,13 +61,16 @@ serve(async (req) => {
       console.error("Client ad account not found:", clientError);
       return new Response(
         JSON.stringify({ error: "Client ad account not configured" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
     // Remove act_ prefix if already present to avoid duplication
-    const rawAccountId = (client.facebook_ad_accounts as any).account_id;
-    const adAccountId = rawAccountId.replace(/^act_/, '');
+    const rawAccountId = (client.facebook_ad_accounts as unknown).account_id;
+    const adAccountId = rawAccountId.replace(/^act_/, "");
     const accessToken = integration.access_token;
 
     switch (action) {
@@ -69,9 +78,9 @@ serve(async (req) => {
       case "sync": {
         // Fetch pixels from Meta API
         const pixelsUrl = `https://graph.facebook.com/v21.0/act_${adAccountId}/adspixels?fields=id,name,creation_time,is_unavailable,data_use_setting,last_fired_time&access_token=${accessToken}`;
-        
+
         console.log(`Fetching pixels from Meta for ad account: ${adAccountId}`);
-        
+
         const pixelsResponse = await fetch(pixelsUrl);
         const pixelsData = await pixelsResponse.json();
 
@@ -79,7 +88,10 @@ serve(async (req) => {
           console.error("Meta API error:", pixelsData.error);
           return new Response(
             JSON.stringify({ error: pixelsData.error.message }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            {
+              status: 400,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            },
           );
         }
 
@@ -91,17 +103,20 @@ serve(async (req) => {
           for (const pixel of metaPixels) {
             const { error: upsertError } = await supabase
               .from("meta_pixels")
-              .upsert({
-                client_id: clientId,
-                company_id: companyId,
-                pixel_id: pixel.id,
-                pixel_name: pixel.name,
-                creation_time: pixel.creation_time,
-                is_unavailable: pixel.is_unavailable || false,
-                data_use_setting: pixel.data_use_setting,
-                last_fired_time: pixel.last_fired_time,
-                updated_at: new Date().toISOString(),
-              }, { onConflict: "client_id,pixel_id" });
+              .upsert(
+                {
+                  client_id: clientId,
+                  company_id: companyId,
+                  pixel_id: pixel.id,
+                  pixel_name: pixel.name,
+                  creation_time: pixel.creation_time,
+                  is_unavailable: pixel.is_unavailable || false,
+                  data_use_setting: pixel.data_use_setting,
+                  last_fired_time: pixel.last_fired_time,
+                  updated_at: new Date().toISOString(),
+                },
+                { onConflict: "client_id,pixel_id" },
+              );
 
             if (upsertError) {
               console.error("Error upserting pixel:", upsertError);
@@ -127,21 +142,21 @@ serve(async (req) => {
           .order("pixel_name");
 
         return new Response(
-          JSON.stringify({ 
-            success: true, 
+          JSON.stringify({
+            success: true,
             pixels: localPixels || [],
-            metaPixels: metaPixels
+            metaPixels: metaPixels,
           }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
 
       case "get-stats": {
         if (!pixelId) {
-          return new Response(
-            JSON.stringify({ error: "Pixel ID required" }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
+          return new Response(JSON.stringify({ error: "Pixel ID required" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
         }
 
         // Get pixel stats from Meta
@@ -153,11 +168,11 @@ serve(async (req) => {
           console.error("Stats API error:", statsData.error);
           // Return empty stats instead of error
           return new Response(
-            JSON.stringify({ 
-              success: true, 
-              stats: { data: [] }
+            JSON.stringify({
+              success: true,
+              stats: { data: [] },
             }),
-            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } },
           );
         }
 
@@ -165,25 +180,25 @@ serve(async (req) => {
         if (localPixelId) {
           await supabase
             .from("meta_pixels")
-            .update({ 
+            .update({
               stats: statsData,
-              updated_at: new Date().toISOString()
+              updated_at: new Date().toISOString(),
             })
             .eq("id", localPixelId);
         }
 
         return new Response(
           JSON.stringify({ success: true, stats: statsData }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
 
       case "get-details": {
         if (!pixelId) {
-          return new Response(
-            JSON.stringify({ error: "Pixel ID required" }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
+          return new Response(JSON.stringify({ error: "Pixel ID required" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
         }
 
         // Get detailed pixel info
@@ -195,13 +210,16 @@ serve(async (req) => {
           console.error("Details API error:", detailsData.error);
           return new Response(
             JSON.stringify({ error: detailsData.error.message }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            {
+              status: 400,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            },
           );
         }
 
         return new Response(
           JSON.stringify({ success: true, details: detailsData }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
 
@@ -209,7 +227,10 @@ serve(async (req) => {
         if (!localPixelId) {
           return new Response(
             JSON.stringify({ error: "Local Pixel ID required" }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            {
+              status: 400,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            },
           );
         }
 
@@ -225,23 +246,22 @@ serve(async (req) => {
           .update({ is_primary: true })
           .eq("id", localPixelId);
 
-        return new Response(
-          JSON.stringify({ success: true }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return new Response(JSON.stringify({ success: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
       default:
-        return new Response(
-          JSON.stringify({ error: "Invalid action" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return new Response(JSON.stringify({ error: "Invalid action" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
     }
   } catch (error) {
     console.error("Error in manage-meta-pixels:", error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });

@@ -3,19 +3,19 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { 
-  Settings, 
-  RefreshCw, 
-  Maximize, 
-  Minimize, 
-  Moon, 
+import {
+  Settings,
+  RefreshCw,
+  Maximize,
+  Minimize,
+  Moon,
   Sun,
   X,
   Eye,
   EyeOff,
   ZoomIn,
   Plus,
-  Minus
+  Minus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "next-themes";
@@ -29,13 +29,13 @@ interface TVControlsProps {
   onZoomChange?: (zoom: number) => void;
 }
 
-export function TVControls({ 
-  refreshInterval, 
-  onRefreshIntervalChange, 
+export function TVControls({
+  refreshInterval,
+  onRefreshIntervalChange,
   onRefreshNow,
   isRefreshing,
   zoom = 100,
-  onZoomChange
+  onZoomChange,
 }: TVControlsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -48,7 +48,8 @@ export function TVControls({
       setIsFullscreen(!!document.fullscreenElement);
     };
     document.addEventListener("fullscreenchange", handleFullscreenChange);
-    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    return () =>
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
 
   // Hide controls in kiosk mode after delay
@@ -84,13 +85,14 @@ export function TVControls({
   return (
     <>
       {/* Floating controls button */}
-      <Button aria-label="Fechar"
+      <Button
+        aria-label="Fechar"
         variant="outline"
         size="icon"
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
           "fixed bottom-4 right-4 z-50 rounded-full h-12 w-12 elevation-2",
-          isOpen && "bg-primary text-primary-foreground"
+          isOpen && "bg-primary text-primary-foreground",
         )}
       >
         <Settings className={cn("h-5 w-5", isOpen && "animate-spin")} />
@@ -101,7 +103,12 @@ export function TVControls({
         <div className="fixed bottom-20 right-4 z-50 w-80 bg-card rounded-2xl elevation-3 p-6 space-y-6 max-h-[80vh] overflow-y-auto">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold text-lg">Controles TV</h3>
-            <Button aria-label="Fechar" variant="ghost" size="icon" onClick={() => setIsOpen(false)}>
+            <Button
+              aria-label="Fechar"
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsOpen(false)}
+            >
               <X className="h-4 w-4" />
             </Button>
           </div>
@@ -119,7 +126,8 @@ export function TVControls({
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <Button aria-label="Fechar"
+                <Button
+                  aria-label="Fechar"
                   variant="outline"
                   size="icon"
                   className="h-8 w-8 shrink-0"
@@ -136,7 +144,8 @@ export function TVControls({
                   step={5}
                   className="flex-1"
                 />
-                <Button aria-label="Adicionar"
+                <Button
+                  aria-label="Adicionar"
                   variant="outline"
                   size="icon"
                   className="h-8 w-8 shrink-0"
@@ -148,9 +157,9 @@ export function TVControls({
               </div>
               <div className="flex justify-between text-xs text-muted-foreground">
                 <span>50%</span>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
+                <Button
+                  variant="ghost"
+                  size="sm"
                   className="h-6 px-2 text-xs"
                   onClick={() => onZoomChange(100)}
                 >
@@ -177,14 +186,16 @@ export function TVControls({
               step={1}
               className="w-full"
             />
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={onRefreshNow}
               disabled={isRefreshing}
               className="w-full"
             >
-              <RefreshCw className={cn("h-4 w-4 mr-2", isRefreshing && "animate-spin")} />
+              <RefreshCw
+                className={cn("h-4 w-4 mr-2", isRefreshing && "animate-spin")}
+              />
               Atualizar Agora
             </Button>
           </div>
@@ -201,7 +212,9 @@ export function TVControls({
             </div>
             <Switch
               checked={theme === "dark"}
-              onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
+              onCheckedChange={(checked) =>
+                setTheme(checked ? "dark" : "light")
+              }
             />
           </div>
 
@@ -215,10 +228,7 @@ export function TVControls({
               )}
               <Label>Tela Cheia</Label>
             </div>
-            <Switch
-              checked={isFullscreen}
-              onCheckedChange={toggleFullscreen}
-            />
+            <Switch checked={isFullscreen} onCheckedChange={toggleFullscreen} />
           </div>
 
           {/* Kiosk mode toggle */}
@@ -231,12 +241,9 @@ export function TVControls({
               )}
               <Label>Modo Kiosk</Label>
             </div>
-            <Switch
-              checked={isKioskMode}
-              onCheckedChange={setIsKioskMode}
-            />
+            <Switch checked={isKioskMode} onCheckedChange={setIsKioskMode} />
           </div>
-          
+
           <p className="text-xs text-muted-foreground">
             O modo Kiosk oculta os controles automaticamente.
           </p>

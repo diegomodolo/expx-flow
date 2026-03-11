@@ -2,8 +2,24 @@ import React, { useState } from "react";
 import { Plus, Trash2, MessageCircle, Edit2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -29,13 +45,17 @@ export function AgentConversationsSidebar({
   onConversationSelect,
   onConversationDelete,
   onConversationRename,
-  onNewConversation
+  onNewConversation,
 }: AgentConversationsSidebarProps) {
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
-  const [renamingConversation, setRenamingConversation] = useState<Conversation | null>(null);
+  const [renamingConversation, setRenamingConversation] =
+    useState<Conversation | null>(null);
   const [newTitle, setNewTitle] = useState("");
 
-  const handleRenameClick = (conversation: Conversation, e: React.MouseEvent) => {
+  const handleRenameClick = (
+    conversation: Conversation,
+    e: React.MouseEvent,
+  ) => {
     e.stopPropagation();
     setRenamingConversation(conversation);
     setNewTitle(conversation.title);
@@ -85,16 +105,23 @@ export function AgentConversationsSidebar({
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
                     <p className="font-medium truncate">{conversation.title}</p>
-                    <p className={`text-xs mt-1 ${
-                      currentConversation?.id === conversation.id
-                        ? "text-primary-foreground/70"
-                        : "text-muted-foreground"
-                    }`}>
-                      {format(new Date(conversation.updated_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                    <p
+                      className={`text-xs mt-1 ${
+                        currentConversation?.id === conversation.id
+                          ? "text-primary-foreground/70"
+                          : "text-muted-foreground"
+                      }`}
+                    >
+                      {format(
+                        new Date(conversation.updated_at),
+                        "dd/MM/yyyy HH:mm",
+                        { locale: ptBR },
+                      )}
                     </p>
                   </div>
                   <div className="flex gap-1">
-                    <Button aria-label="Editar"
+                    <Button
+                      aria-label="Editar"
                       variant="ghost"
                       size="icon"
                       className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8"
@@ -103,8 +130,12 @@ export function AgentConversationsSidebar({
                       <Edit2 className="w-3 h-3" />
                     </Button>
                     <AlertDialog>
-                      <AlertDialogTrigger asChild onClick={(e) => e.stopPropagation()}>
-                        <Button aria-label="Excluir"
+                      <AlertDialogTrigger
+                        asChild
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Button
+                          aria-label="Excluir"
                           variant="ghost"
                           size="icon"
                           className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8"
@@ -116,7 +147,8 @@ export function AgentConversationsSidebar({
                         <AlertDialogHeader>
                           <AlertDialogTitle>Excluir conversa?</AlertDialogTitle>
                           <AlertDialogDescription>
-                            Esta ação não pode ser desfeita. Todas as mensagens desta conversa serão perdidas.
+                            Esta ação não pode ser desfeita. Todas as mensagens
+                            desta conversa serão perdidas.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -156,12 +188,13 @@ export function AgentConversationsSidebar({
             }}
           />
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRenameDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setRenameDialogOpen(false)}
+            >
               Cancelar
             </Button>
-            <Button onClick={handleRenameSubmit}>
-              Salvar
-            </Button>
+            <Button onClick={handleRenameSubmit}>Salvar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -4,11 +4,50 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Plus, Video, Brain, Copy, ExternalLink, RefreshCw, Clock, Users, Search, Trash2, Pencil, Film } from "lucide-react";
-import { useGoogleMeetMeetings, GoogleMeetMeeting } from "@/hooks/useGoogleMeetMeetings";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  Plus,
+  Video,
+  Brain,
+  Copy,
+  ExternalLink,
+  RefreshCw,
+  Clock,
+  Users,
+  Search,
+  Trash2,
+  Pencil,
+  Film,
+} from "lucide-react";
+import {
+  useGoogleMeetMeetings,
+  GoogleMeetMeeting,
+} from "@/hooks/useGoogleMeetMeetings";
 import { CreateMeetingModal } from "@/components/meetings/CreateMeetingModal";
 import { EditMeetingModal } from "@/components/meetings/EditMeetingModal";
 import { MeetingDetailsModal } from "@/components/meetings/MeetingDetailsModal";
@@ -19,7 +58,8 @@ import { toast } from "sonner";
 
 const statusColors: Record<string, string> = {
   scheduled: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
-  in_progress: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
+  in_progress:
+    "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
   completed: "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300",
   failed: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
 };
@@ -40,10 +80,21 @@ const transcriptStatusLabels: Record<string, string> = {
 };
 
 export default function Reunioes() {
-  const { meetings, loading, createMeeting, creating, updateMeeting, deleteMeeting, checkTranscript, processSummary } = useGoogleMeetMeetings();
+  const {
+    meetings,
+    loading,
+    createMeeting,
+    creating,
+    updateMeeting,
+    deleteMeeting,
+    checkTranscript,
+    processSummary,
+  } = useGoogleMeetMeetings();
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [selectedMeeting, setSelectedMeeting] = useState<GoogleMeetMeeting | null>(null);
-  const [editingMeeting, setEditingMeeting] = useState<GoogleMeetMeeting | null>(null);
+  const [selectedMeeting, setSelectedMeeting] =
+    useState<GoogleMeetMeeting | null>(null);
+  const [editingMeeting, setEditingMeeting] =
+    useState<GoogleMeetMeeting | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -57,12 +108,20 @@ export default function Reunioes() {
       if (searchTerm) {
         const term = searchTerm.toLowerCase();
         const matchTitle = m.title.toLowerCase().includes(term);
-        const matchClient = (m.clients as unknown)?.name?.toLowerCase().includes(term);
-        const matchTeam = (m.teams as unknown)?.name?.toLowerCase().includes(term);
+        const matchClient = (m.clients as unknown)?.name
+          ?.toLowerCase()
+          .includes(term);
+        const matchTeam = (m.teams as unknown)?.name
+          ?.toLowerCase()
+          .includes(term);
         if (!matchTitle && !matchClient && !matchTeam) return false;
       }
       if (statusFilter !== "all" && m.status !== statusFilter) return false;
-      if (transcriptFilter !== "all" && m.transcript_status !== transcriptFilter) return false;
+      if (
+        transcriptFilter !== "all" &&
+        m.transcript_status !== transcriptFilter
+      )
+        return false;
       return true;
     });
   }, [meetings, searchTerm, statusFilter, transcriptFilter]);
@@ -99,7 +158,8 @@ export default function Reunioes() {
           <div>
             <h1 className="text-2xl font-semibold text-foreground">Reuniões</h1>
             <p className="text-muted-foreground text-sm mt-1">
-              Crie reuniões no Google Meet e obtenha transcrições e resumos automáticos
+              Crie reuniões no Google Meet e obtenha transcrições e resumos
+              automáticos
             </p>
           </div>
           <Button onClick={() => setShowCreateModal(true)} className="gap-2">
@@ -132,7 +192,10 @@ export default function Reunioes() {
                 <SelectItem value="failed">Falhou</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={transcriptFilter} onValueChange={setTranscriptFilter}>
+            <Select
+              value={transcriptFilter}
+              onValueChange={setTranscriptFilter}
+            >
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Transcrição" />
               </SelectTrigger>
@@ -157,7 +220,9 @@ export default function Reunioes() {
           <Card className="p-12 text-center">
             <Video className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
             <h3 className="text-lg font-medium text-foreground mb-2">
-              {meetings.length === 0 ? "Nenhuma reunião ainda" : "Nenhuma reunião encontrada"}
+              {meetings.length === 0
+                ? "Nenhuma reunião ainda"
+                : "Nenhuma reunião encontrada"}
             </h3>
             <p className="text-muted-foreground text-sm mb-4">
               {meetings.length === 0
@@ -165,7 +230,11 @@ export default function Reunioes() {
                 : "Tente ajustar os filtros de busca"}
             </p>
             {meetings.length === 0 && (
-              <Button onClick={() => setShowCreateModal(true)} variant="outline" className="gap-2">
+              <Button
+                onClick={() => setShowCreateModal(true)}
+                variant="outline"
+                className="gap-2"
+              >
                 <Plus className="h-4 w-4" />
                 Criar Reunião
               </Button>
@@ -204,17 +273,30 @@ export default function Reunioes() {
                     </TableCell>
                     <TableCell className="text-muted-foreground whitespace-nowrap">
                       {meeting.scheduled_at
-                        ? format(new Date(meeting.scheduled_at), "dd/MM/yyyy HH:mm", { locale: ptBR })
-                        : format(new Date(meeting.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                        ? format(
+                            new Date(meeting.scheduled_at),
+                            "dd/MM/yyyy HH:mm",
+                            { locale: ptBR },
+                          )
+                        : format(
+                            new Date(meeting.created_at),
+                            "dd/MM/yyyy HH:mm",
+                            { locale: ptBR },
+                          )}
                     </TableCell>
                     <TableCell>
-                      <Badge className={statusColors[meeting.status] || statusColors.scheduled}>
+                      <Badge
+                        className={
+                          statusColors[meeting.status] || statusColors.scheduled
+                        }
+                      >
                         {statusLabels[meeting.status] || meeting.status}
                       </Badge>
                     </TableCell>
                     <TableCell>
                       <span className="text-xs text-muted-foreground">
-                        {transcriptStatusLabels[meeting.transcript_status] || meeting.transcript_status}
+                        {transcriptStatusLabels[meeting.transcript_status] ||
+                          meeting.transcript_status}
                       </span>
                     </TableCell>
                     <TableCell>
@@ -232,55 +314,73 @@ export default function Reunioes() {
                         <span className="text-xs text-muted-foreground">—</span>
                       )}
                     </TableCell>
-                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                    <TableCell
+                      className="text-right"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <div className="flex items-center justify-end gap-1">
                         {meeting.meeting_uri && (
-                          <Button aria-label="Copiar"
+                          <Button
+                            aria-label="Copiar"
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8"
-                            onClick={(e) => handleCopyLink(meeting.meeting_uri, e)}
+                            onClick={(e) =>
+                              handleCopyLink(meeting.meeting_uri, e)
+                            }
                             title="Copiar link"
                           >
                             <Copy className="h-3.5 w-3.5" />
                           </Button>
                         )}
                         {meeting.meeting_uri && (
-                          <Button aria-label="Fechar"
+                          <Button
+                            aria-label="Fechar"
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8"
-                            onClick={() => window.open(meeting.meeting_uri, '_blank')}
+                            onClick={() =>
+                              window.open(meeting.meeting_uri, "_blank")
+                            }
                             title="Abrir no Meet"
                           >
                             <ExternalLink className="h-3.5 w-3.5" />
                           </Button>
                         )}
-                        {meeting.status === 'completed' && meeting.transcript_status !== 'completed' && (
-                          <Button aria-label="Atualizar"
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => handleCheckTranscript(meeting.id)}
-                            disabled={processingId === meeting.id}
-                            title="Buscar transcrição"
-                          >
-                            <RefreshCw className={`h-3.5 w-3.5 ${processingId === meeting.id ? 'animate-spin' : ''}`} />
-                          </Button>
-                        )}
-                        {meeting.transcript_status === 'completed' && !meeting.ai_summary && (
-                          <Button aria-label="Ação"
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => handleProcessSummary(meeting.id)}
-                            disabled={processingId === meeting.id}
-                            title="Gerar resumo IA"
-                          >
-                            <Brain className={`h-3.5 w-3.5 ${processingId === meeting.id ? 'animate-spin' : ''}`} />
-                          </Button>
-                        )}
-                        <Button aria-label="Editar"
+                        {meeting.status === "completed" &&
+                          meeting.transcript_status !== "completed" && (
+                            <Button
+                              aria-label="Atualizar"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => handleCheckTranscript(meeting.id)}
+                              disabled={processingId === meeting.id}
+                              title="Buscar transcrição"
+                            >
+                              <RefreshCw
+                                className={`h-3.5 w-3.5 ${processingId === meeting.id ? "animate-spin" : ""}`}
+                              />
+                            </Button>
+                          )}
+                        {meeting.transcript_status === "completed" &&
+                          !meeting.ai_summary && (
+                            <Button
+                              aria-label="Ação"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => handleProcessSummary(meeting.id)}
+                              disabled={processingId === meeting.id}
+                              title="Gerar resumo IA"
+                            >
+                              <Brain
+                                className={`h-3.5 w-3.5 ${processingId === meeting.id ? "animate-spin" : ""}`}
+                              />
+                            </Button>
+                          )}
+                        <Button
+                          aria-label="Editar"
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8"
@@ -302,9 +402,13 @@ export default function Reunioes() {
                           </AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader>
-                              <AlertDialogTitle>Excluir reunião</AlertDialogTitle>
+                              <AlertDialogTitle>
+                                Excluir reunião
+                              </AlertDialogTitle>
                               <AlertDialogDescription>
-                                Tem certeza que deseja excluir a reunião "{meeting.title}"? Essa ação não pode ser desfeita.
+                                Tem certeza que deseja excluir a reunião "
+                                {meeting.title}"? Essa ação não pode ser
+                                desfeita.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>

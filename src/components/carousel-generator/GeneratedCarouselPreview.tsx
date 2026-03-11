@@ -1,10 +1,28 @@
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { CheckCircle2, ChevronLeft, ChevronRight, X, Heart, MessageCircle, Send, Bookmark, CalendarPlus, FileText, Presentation } from "lucide-react";
+import {
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  X,
+  Heart,
+  MessageCircle,
+  Send,
+  Bookmark,
+  CalendarPlus,
+  FileText,
+  Presentation,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GeneratedSlideEditCard } from "./GeneratedSlideEditCard";
 import { SlideImageEditModal } from "./SlideImageEditModal";
@@ -44,10 +62,14 @@ export function GeneratedCarouselPreview({
   const [carousel, setCarousel] = useState<GeneratedCarousel | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
-  const [editingSlideIndex, setEditingSlideIndex] = useState<number | null>(null);
+  const [editingSlideIndex, setEditingSlideIndex] = useState<number | null>(
+    null,
+  );
   const [isSlideEditModalOpen, setIsSlideEditModalOpen] = useState(false);
-  const [previewImageIndex, setPreviewImageIndex] = useState<number | null>(null);
-  
+  const [previewImageIndex, setPreviewImageIndex] = useState<number | null>(
+    null,
+  );
+
   // Modal states
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [showPlanModal, setShowPlanModal] = useState(false);
@@ -64,12 +86,13 @@ export function GeneratedCarouselPreview({
           .single();
 
         if (error) throw error;
-        
+
         // Parse slides if needed
-        const slides = typeof data.slides === "string" 
-          ? JSON.parse(data.slides) 
-          : data.slides;
-        
+        const slides =
+          typeof data.slides === "string"
+            ? JSON.parse(data.slides)
+            : data.slides;
+
         setCarousel({
           ...data,
           slides: slides as CarouselSlide[],
@@ -86,15 +109,15 @@ export function GeneratedCarouselPreview({
 
   const handlePrev = () => {
     if (!carousel) return;
-    setActiveSlideIndex((prev) => 
-      prev === 0 ? carousel.slides.length - 1 : prev - 1
+    setActiveSlideIndex((prev) =>
+      prev === 0 ? carousel.slides.length - 1 : prev - 1,
     );
   };
 
   const handleNext = () => {
     if (!carousel) return;
-    setActiveSlideIndex((prev) => 
-      prev === carousel.slides.length - 1 ? 0 : prev + 1
+    setActiveSlideIndex((prev) =>
+      prev === carousel.slides.length - 1 ? 0 : prev + 1,
     );
   };
 
@@ -120,7 +143,8 @@ export function GeneratedCarouselPreview({
 
   return (
     <Card className="relative">
-      <Button aria-label="Fechar"
+      <Button
+        aria-label="Fechar"
         variant="ghost"
         size="icon"
         className="absolute top-2 right-2 h-7 w-7 z-10"
@@ -155,7 +179,11 @@ export function GeneratedCarouselPreview({
                 <p className="text-[11px] text-muted-foreground">Patrocinado</p>
               </div>
               <button className="text-muted-foreground">
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <svg
+                  className="w-5 h-5"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
                   <circle cx="12" cy="6" r="1.5" />
                   <circle cx="12" cy="12" r="1.5" />
                   <circle cx="12" cy="18" r="1.5" />
@@ -182,7 +210,8 @@ export function GeneratedCarouselPreview({
               {/* Navigation arrows */}
               {carousel.slides.length > 1 && (
                 <>
-                  <Button aria-label="Voltar"
+                  <Button
+                    aria-label="Voltar"
                     variant="secondary"
                     size="icon"
                     className="absolute left-1.5 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full shadow-md bg-white/90 hover:bg-white"
@@ -190,7 +219,8 @@ export function GeneratedCarouselPreview({
                   >
                     <ChevronLeft className="h-3 w-3 text-black" />
                   </Button>
-                  <Button aria-label="Avançar"
+                  <Button
+                    aria-label="Avançar"
                     variant="secondary"
                     size="icon"
                     className="absolute right-1.5 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full shadow-md bg-white/90 hover:bg-white"
@@ -211,9 +241,9 @@ export function GeneratedCarouselPreview({
                       onClick={() => setActiveSlideIndex(idx)}
                       className={cn(
                         "w-1.5 h-1.5 rounded-full transition-colors",
-                        idx === activeSlideIndex 
-                          ? "bg-blue-500" 
-                          : "bg-white/60"
+                        idx === activeSlideIndex
+                          ? "bg-blue-500"
+                          : "bg-white/60",
                       )}
                     />
                   ))}
@@ -231,7 +261,7 @@ export function GeneratedCarouselPreview({
                 </div>
                 <Bookmark className="w-5 h-5" />
               </div>
-              
+
               <p className="text-[10px] font-semibold mb-1">1.234 curtidas</p>
               <p className="text-[10px] line-clamp-2">
                 <span className="font-semibold">sua_marca</span>{" "}
@@ -266,62 +296,77 @@ export function GeneratedCarouselPreview({
         </div>
 
         {/* Fullscreen Image Preview Modal */}
-        <Dialog open={previewImageIndex !== null} onOpenChange={(open) => !open && setPreviewImageIndex(null)}>
+        <Dialog
+          open={previewImageIndex !== null}
+          onOpenChange={(open) => !open && setPreviewImageIndex(null)}
+        >
           <DialogContent className="max-w-4xl w-[95vw] p-2 bg-background">
-            {previewImageIndex !== null && carousel.slides[previewImageIndex]?.image_url && (
-              <div className="relative">
-                {/* Navigation for preview */}
-                {carousel.slides.length > 1 && (
-                  <>
-                    <Button aria-label="Voltar"
-                      variant="secondary"
-                      size="icon"
-                      className="absolute left-2 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full shadow-lg z-10"
-                      onClick={() => setPreviewImageIndex(prev => 
-                        prev === null ? 0 : prev === 0 ? carousel.slides.length - 1 : prev - 1
-                      )}
-                    >
-                      <ChevronLeft className="h-5 w-5" />
-                    </Button>
-                    <Button aria-label="Avançar"
-                      variant="secondary"
-                      size="icon"
-                      className="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full shadow-lg z-10"
-                      onClick={() => setPreviewImageIndex(prev => 
-                        prev === null ? 0 : prev === carousel.slides.length - 1 ? 0 : prev + 1
-                      )}
-                    >
-                      <ChevronRight className="h-5 w-5" />
-                    </Button>
-                  </>
-                )}
-                
-                <img
-                  src={carousel.slides[previewImageIndex].image_url}
-                  alt={`Slide ${previewImageIndex + 1} ampliado`}
-                  className="w-full h-auto max-h-[85vh] object-contain rounded-lg"
-                />
-                
-                {/* Slide indicator */}
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 text-white text-sm px-3 py-1.5 rounded-full">
-                  Slide {previewImageIndex + 1} de {carousel.slides.length}
+            {previewImageIndex !== null &&
+              carousel.slides[previewImageIndex]?.image_url && (
+                <div className="relative">
+                  {/* Navigation for preview */}
+                  {carousel.slides.length > 1 && (
+                    <>
+                      <Button
+                        aria-label="Voltar"
+                        variant="secondary"
+                        size="icon"
+                        className="absolute left-2 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full shadow-lg z-10"
+                        onClick={() =>
+                          setPreviewImageIndex((prev) =>
+                            prev === null
+                              ? 0
+                              : prev === 0
+                                ? carousel.slides.length - 1
+                                : prev - 1,
+                          )
+                        }
+                      >
+                        <ChevronLeft className="h-5 w-5" />
+                      </Button>
+                      <Button
+                        aria-label="Avançar"
+                        variant="secondary"
+                        size="icon"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full shadow-lg z-10"
+                        onClick={() =>
+                          setPreviewImageIndex((prev) =>
+                            prev === null
+                              ? 0
+                              : prev === carousel.slides.length - 1
+                                ? 0
+                                : prev + 1,
+                          )
+                        }
+                      >
+                        <ChevronRight className="h-5 w-5" />
+                      </Button>
+                    </>
+                  )}
+
+                  <img
+                    src={carousel.slides[previewImageIndex].image_url}
+                    alt={`Slide ${previewImageIndex + 1} ampliado`}
+                    className="w-full h-auto max-h-[85vh] object-contain rounded-lg"
+                  />
+
+                  {/* Slide indicator */}
+                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 text-white text-sm px-3 py-1.5 rounded-full">
+                    Slide {previewImageIndex + 1} de {carousel.slides.length}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
           </DialogContent>
         </Dialog>
 
         {/* Action Buttons - 3 in a row */}
         <div className="grid grid-cols-3 gap-2">
-          <Button 
-            onClick={() => setShowScheduleModal(true)}
-            size="sm"
-          >
+          <Button onClick={() => setShowScheduleModal(true)} size="sm">
             <CalendarPlus className="w-3.5 h-3.5 mr-1.5" />
             Agendar
           </Button>
-          
-          <Button 
+
+          <Button
             onClick={() => setShowPlanModal(true)}
             variant="outline"
             size="sm"
@@ -329,8 +374,8 @@ export function GeneratedCarouselPreview({
             <FileText className="w-3.5 h-3.5 mr-1.5" />
             Planejamento
           </Button>
-          
-          <Button 
+
+          <Button
             onClick={() => setShowPresentationModal(true)}
             variant="outline"
             size="sm"
@@ -372,7 +417,11 @@ export function GeneratedCarouselPreview({
           open={isSlideEditModalOpen}
           onOpenChange={setIsSlideEditModalOpen}
           slideNumber={editingSlideIndex !== null ? editingSlideIndex + 1 : 1}
-          currentImageUrl={editingSlideIndex !== null ? carousel.slides[editingSlideIndex]?.image_url || "" : ""}
+          currentImageUrl={
+            editingSlideIndex !== null
+              ? carousel.slides[editingSlideIndex]?.image_url || ""
+              : ""
+          }
           carouselId={carouselId}
           clientId={clientId}
           companyId={companyId}

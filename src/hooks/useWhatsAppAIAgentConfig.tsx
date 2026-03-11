@@ -161,7 +161,6 @@ export function useWhatsAppAIAgentConfig(companyId: string | undefined, instance
 
     try {
       setIsSaving(true);
-      console.log("[useWhatsAppAIAgentConfig] Saving config...", { companyId, instanceId, hasExistingConfig: !!config?.id });
 
       const dataToSave = {
         ...defaultConfig,
@@ -179,7 +178,6 @@ export function useWhatsAppAIAgentConfig(companyId: string | undefined, instance
       
       if (config?.id) {
         // Update existing
-        console.log("[useWhatsAppAIAgentConfig] Updating existing config:", config.id);
         const { data, error } = await supabase
           .from("whatsapp_ai_agent_config")
           .update(dataToSave)
@@ -194,7 +192,6 @@ export function useWhatsAppAIAgentConfig(companyId: string | undefined, instance
         result = data;
       } else {
         // Insert new
-        console.log("[useWhatsAppAIAgentConfig] Inserting new config");
         const { data, error } = await supabase
           .from("whatsapp_ai_agent_config")
           .insert(dataToSave)
@@ -208,7 +205,6 @@ export function useWhatsAppAIAgentConfig(companyId: string | undefined, instance
         result = data;
       }
 
-      console.log("[useWhatsAppAIAgentConfig] Save successful:", result);
       setConfig(result as WhatsAppAIAgentConfig);
 
       // Notify other parts of the app to refetch this config (chat window, etc.)

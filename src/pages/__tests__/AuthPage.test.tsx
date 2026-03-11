@@ -40,7 +40,9 @@ describe("AuthPage", () => {
       expect(screen.getAllByText("Entrar no Sistema")[0]).toBeInTheDocument();
       expect(screen.getByLabelText("Email")).toBeInTheDocument();
       expect(screen.getByLabelText("Senha")).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: /entrar no sistema/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /entrar no sistema/i }),
+      ).toBeInTheDocument();
     });
   });
 
@@ -52,7 +54,9 @@ describe("AuthPage", () => {
 
     const emailInput = screen.getByLabelText("Email");
     const passwordInput = screen.getByLabelText("Senha");
-    const submitBtn = screen.getByRole("button", { name: /entrar no sistema/i });
+    const submitBtn = screen.getByRole("button", {
+      name: /entrar no sistema/i,
+    });
 
     await user.type(emailInput, "test@test.com");
     await user.type(passwordInput, "123456");
@@ -62,33 +66,46 @@ describe("AuthPage", () => {
     expect(mockToast).toHaveBeenCalledWith(
       expect.objectContaining({
         title: "Login realizado com sucesso!",
-      })
+      }),
     );
   });
 
   it("deve exibir loading enquanto carrega", async () => {
     const user = userEvent.setup();
-    mockSignIn.mockImplementation(() => new Promise((resolve) => setTimeout(() => resolve({ error: null }), 500)));
+    mockSignIn.mockImplementation(
+      () =>
+        new Promise((resolve) =>
+          setTimeout(() => resolve({ error: null }), 500),
+        ),
+    );
 
     renderWithProviders(<AuthPage />);
 
-    const submitBtn = screen.getByRole("button", { name: /entrar no sistema/i });
+    const submitBtn = screen.getByRole("button", {
+      name: /entrar no sistema/i,
+    });
     expect(submitBtn).toBeInTheDocument();
 
     await user.type(screen.getByLabelText("Email"), "test@test.com");
     await user.type(screen.getByLabelText("Senha"), "123456");
     await user.click(submitBtn);
 
-    expect(screen.getByRole("button", { name: /entrando.../i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /entrando.../i }),
+    ).toBeInTheDocument();
   });
 
   it("deve tratar erro de login corretamente", async () => {
     const user = userEvent.setup();
-    mockSignIn.mockResolvedValueOnce({ error: { message: "Credenciais invalidas" } });
+    mockSignIn.mockResolvedValueOnce({
+      error: { message: "Credenciais invalidas" },
+    });
 
     renderWithProviders(<AuthPage />);
 
-    const submitBtn = screen.getByRole("button", { name: /entrar no sistema/i });
+    const submitBtn = screen.getByRole("button", {
+      name: /entrar no sistema/i,
+    });
 
     await user.type(screen.getByLabelText("Email"), "test@test.com");
     await user.type(screen.getByLabelText("Senha"), "wrong");
@@ -102,7 +119,7 @@ describe("AuthPage", () => {
       expect.objectContaining({
         variant: "destructive",
         title: "Erro no login",
-      })
+      }),
     );
   });
 

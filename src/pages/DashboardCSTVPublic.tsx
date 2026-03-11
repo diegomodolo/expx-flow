@@ -206,7 +206,6 @@ export default function DashboardCSTVPublic() {
   // Extract company ID from the data response
   useEffect(() => {
     if (data?.companyId && !companyId) {
-      console.log("[DashboardCSTVPublic] Company ID received from edge function:", data.companyId);
       setCompanyId(data.companyId);
     }
   }, [data?.companyId, companyId]);
@@ -216,7 +215,6 @@ export default function DashboardCSTVPublic() {
     token: token || "",
     companyId,
     onNewCriticalAlert: useCallback((alert: CriticalAlert) => {
-      console.log("[DashboardCSTVPublic] New critical alert from realtime:", alert.id);
       setActiveAlerts(prev => {
         // Avoid duplicates
         if (prev.some(a => a.id === alert.id)) return prev;
@@ -224,7 +222,6 @@ export default function DashboardCSTVPublic() {
       });
     }, []),
     onNewCelebrationAlert: useCallback((alert: CelebrationAlert) => {
-      console.log("[DashboardCSTVPublic] New celebration alert from realtime:", alert.id);
       setActiveCelebrations(prev => {
         // Avoid duplicates
         if (prev.some(a => a.id === alert.id)) return prev;
@@ -247,8 +244,7 @@ export default function DashboardCSTVPublic() {
     });
 
     if (newAlerts.length > 0) {
-      console.log("[DashboardCSTVPublic] New critical alerts from fetch:", newAlerts.length);
-      
+
       // Mark them as displayed in the database and add to active
       newAlerts.forEach(async (alert) => {
         displayedAlertIdsRef.current.add(alert.id);
@@ -279,8 +275,7 @@ export default function DashboardCSTVPublic() {
     });
 
     if (newCelebrations.length > 0) {
-      console.log("[DashboardCSTVPublic] New celebration alerts from fetch:", newCelebrations.length);
-      
+
       newCelebrations.forEach(async (alert) => {
         displayedCelebrationIdsRef.current.add(alert.id);
         await markAsDisplayed(companyId, alert.id, "celebration", {

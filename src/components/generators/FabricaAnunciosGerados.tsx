@@ -194,7 +194,6 @@ export function FabricaAnunciosGerados({ clientId }: Props) {
   const handleApproveAndPublish = async (destinations: SelectedDestination[], adConfig: AdConfig) => {
     if (!selectedAd || !activeCompany?.company_id) return;
 
-    console.log('[FabricaAnunciosGerados] Publishing ad:', selectedAd.id, 'to destinations:', destinations);
 
     const { data, error } = await supabase.functions.invoke('publish-approved-ads', {
       body: {

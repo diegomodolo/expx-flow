@@ -74,7 +74,6 @@ export function useWhatsAppMessages(conversationId: string | null, companyId: st
         },
         (payload) => {
           const newMessage = payload.new as WhatsAppMessage;
-          console.log("[useWhatsAppMessages] Realtime INSERT:", newMessage.id);
           queryClient.setQueryData<WhatsAppMessage[]>(
             ["whatsapp-messages", conversationId],
             (old) => {
@@ -96,7 +95,6 @@ export function useWhatsAppMessages(conversationId: string | null, companyId: st
         },
         (payload) => {
           const updated = payload.new as WhatsAppMessage;
-          console.log("[useWhatsAppMessages] Realtime UPDATE:", updated.id, "content:", updated.content?.substring(0, 30));
           queryClient.setQueryData<WhatsAppMessage[]>(
             ["whatsapp-messages", conversationId],
             (old) => {
@@ -121,7 +119,6 @@ export function useWhatsAppMessages(conversationId: string | null, companyId: st
     if (!forceRefresh && hasFetchedFromApi) return;
 
     setIsFetchingFromApi(true);
-    console.log("[useWhatsAppMessages] Buscando mensagens da API para:", conversationId, "forceRefresh:", forceRefresh);
 
     try {
       const { data, error } = await supabase.functions.invoke("fetch-whatsapp-messages", {
@@ -139,7 +136,6 @@ export function useWhatsAppMessages(conversationId: string | null, companyId: st
           variant: "destructive",
         });
       } else if (data?.success) {
-        console.log(`[useWhatsAppMessages] Mensagens obtidas: ${data.fetched}, salvas: ${data.saved}`);
         // Invalidate to reload from DB with new messages
         queryClient.invalidateQueries({ queryKey: ["whatsapp-messages", conversationId] });
       } else if (data?.error) {

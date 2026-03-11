@@ -225,7 +225,6 @@ export function ReferenceSelectionDialog({
         if (error) throw error;
         
         if (data.success && data.url) {
-          console.log('Image copied successfully:', data.url);
           permanentUrls.push(data.url);
         } else {
           console.error('Failed to copy image:', data.error);

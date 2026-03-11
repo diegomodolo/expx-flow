@@ -2,8 +2,10 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 const LOCATION = "us-central1";
@@ -15,7 +17,7 @@ const VEO_MODELS: Record<string, { id: string; durations: number[] }> = {
 };
 
 // Helper para criar JWT assinado com RS256
-async function createSignedJWT(serviceAccount: any): Promise<string> {
+async function createSignedJWT(serviceAccount: unknown): Promise<string> {
   const header = { alg: "RS256", typ: "JWT" };
   const now = Math.floor(Date.now() / 1000);
 
@@ -69,14 +71,13 @@ async function createSignedJWT(serviceAccount: any): Promise<string> {
 }
 
 // Obter access token do GCP
-async function getGCPAccessToken(serviceAccount: any): Promise<string> {
+async function getGCPAccessToken(serviceAccount: unknown): Promise<string> {
   const signedJwt = await createSignedJWT(serviceAccount);
 
   const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body:
-      `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${signedJwt}`,
+    body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${signedJwt}`,
   });
 
   if (!tokenResponse.ok) {
@@ -90,7 +91,11 @@ async function getGCPAccessToken(serviceAccount: any): Promise<string> {
 }
 
 // Validar parâmetros antes de chamar a API
-function validateVideoParams(model: string, duration: number, aspectRatio: string): string | null {
+function validateVideoParams(
+  model: string,
+  duration: number,
+  aspectRatio: string,
+): string | null {
   const modelConfig = VEO_MODELS[model];
   if (!modelConfig) {
     return `Modelo "${model}" não suportado. Use: ${Object.keys(VEO_MODELS).join(", ")}`;
@@ -121,19 +126,26 @@ async function startVideoGeneration(
     negativePrompt?: string;
   },
 ): Promise<string> {
-  const { model = "veo-2.0", aspectRatio = "9:16", duration = 5, imageReference, negativePrompt } = options;
+  const {
+    model = "veo-2.0",
+    aspectRatio = "9:16",
+    duration = 5,
+    imageReference,
+    negativePrompt,
+  } = options;
 
   // Obter o ID do modelo
   const modelConfig = VEO_MODELS[model] || VEO_MODELS["veo-2.0"];
   const modelId = modelConfig.id;
 
-  const endpoint =
-    `https://${LOCATION}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${LOCATION}/publishers/google/models/${modelId}:predictLongRunning`;
+  const endpoint = `https://${LOCATION}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${LOCATION}/publishers/google/models/${modelId}:predictLongRunning`;
 
-  const requestBody: any = {
-    instances: [{
-      prompt: prompt,
-    }],
+  const requestBody: unknown = {
+    instances: [
+      {
+        prompt: prompt,
+      },
+    ],
     parameters: {
       aspectRatio: aspectRatio,
       durationSeconds: duration,
@@ -150,11 +162,20 @@ async function startVideoGeneration(
   // Se tiver referência de imagem (image-to-video)
   if (imageReference) {
     requestBody.instances[0].image = {
-      bytesBase64Encoded: imageReference.replace(/^data:image\/\w+;base64,/, ""),
+      bytesBase64Encoded: imageReference.replace(
+        /^data:image\/\w+;base64,/,
+        "",
+      ),
     };
   }
 
-  console.log("Starting video generation with Vertex AI:", { model, modelId, aspectRatio, duration, endpoint });
+  console.log("Starting video generation with Vertex AI:", {
+    model,
+    modelId,
+    aspectRatio,
+    duration,
+    endpoint,
+  });
 
   const response = await fetch(endpoint, {
     method: "POST",
@@ -193,16 +214,23 @@ async function checkOperationStatus(
 ): Promise<{ done: boolean; videoBase64?: string; error?: string }> {
   // Extrair modelId do operationName
   const modelId = extractModelIdFromOperationName(operationName);
-  
+
   if (!modelId) {
-    console.error("Could not extract modelId from operationName:", operationName);
+    console.error(
+      "Could not extract modelId from operationName:",
+      operationName,
+    );
     throw new Error(`Invalid operationName format: ${operationName}`);
   }
 
   // Usar o endpoint :fetchPredictOperation (POST) conforme documentação do Veo
   const endpoint = `https://${LOCATION}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${LOCATION}/publishers/google/models/${modelId}:fetchPredictOperation`;
 
-  console.log("Polling operation status:", { endpoint, operationName, modelId });
+  console.log("Polling operation status:", {
+    endpoint,
+    operationName,
+    modelId,
+  });
 
   const response = await fetch(endpoint, {
     method: "POST",
@@ -215,14 +243,24 @@ async function checkOperationStatus(
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error("fetchPredictOperation error:", { status: response.status, body: errorText });
+    console.error("fetchPredictOperation error:", {
+      status: response.status,
+      body: errorText,
+    });
     throw new Error(`Operation check error (${response.status}): ${errorText}`);
   }
 
   const data = await response.json();
-  console.log("Operation status response:", { done: data.done, hasError: !!data.error, hasResponse: !!data.response });
+  console.log("Operation status response:", {
+    done: data.done,
+    hasError: !!data.error,
+    hasResponse: !!data.response,
+  });
 
-  if (data.done === false || data.done === undefined && !data.response && !data.error) {
+  if (
+    data.done === false ||
+    (data.done === undefined && !data.response && !data.error)
+  ) {
     return { done: false };
   }
 
@@ -239,7 +277,9 @@ async function checkOperationStatus(
   // Formato 1: response.predictions[].bytesBase64Encoded
   const predictions = data.response?.predictions || data.predictions || [];
   if (predictions.length > 0) {
-    videoBase64 = predictions[0].bytesBase64Encoded || predictions[0].video?.bytesBase64Encoded;
+    videoBase64 =
+      predictions[0].bytesBase64Encoded ||
+      predictions[0].video?.bytesBase64Encoded;
   }
 
   // Formato 2: response.videos[].bytesBase64Encoded
@@ -252,32 +292,40 @@ async function checkOperationStatus(
 
   // Formato 3: response.generatedSamples[].video.bytesBase64Encoded
   if (!videoBase64) {
-    const samples = data.response?.generatedSamples || data.generatedSamples || [];
+    const samples =
+      data.response?.generatedSamples || data.generatedSamples || [];
     if (samples.length > 0) {
-      videoBase64 = samples[0].video?.bytesBase64Encoded || samples[0].bytesBase64Encoded;
+      videoBase64 =
+        samples[0].video?.bytesBase64Encoded || samples[0].bytesBase64Encoded;
     }
   }
 
   if (videoBase64) {
-    console.log("Video generated successfully, base64 length:", videoBase64.length);
+    console.log(
+      "Video generated successfully, base64 length:",
+      videoBase64.length,
+    );
     return { done: true, videoBase64 };
   }
 
   // Log completo da resposta para debug (sem o base64 gigante)
   const debugResponse = JSON.stringify(data, (key, value) => {
-    if (typeof value === 'string' && value.length > 100) {
+    if (typeof value === "string" && value.length > 100) {
       return `[string of ${value.length} chars]`;
     }
     return value;
   });
   console.log("Full response structure:", debugResponse);
 
-  return { done: true, error: "Operação concluída, mas formato de resposta não reconhecido." };
+  return {
+    done: true,
+    error: "Operação concluída, mas formato de resposta não reconhecido.",
+  };
 }
 
 // Upload do vídeo para Supabase Storage
 async function uploadVideoToStorage(
-  supabase: any,
+  supabase: unknown,
   base64Video: string,
   clientId: string,
 ): Promise<string> {
@@ -327,16 +375,23 @@ serve(async (req) => {
     const serviceAccount = JSON.parse(gcpJson);
     const projectId = serviceAccount.project_id;
 
-    const handleStatusCheck = async (operationName: string, creativeId?: string | null) => {
+    const handleStatusCheck = async (
+      operationName: string,
+      creativeId?: string | null,
+    ) => {
       console.log("Checking status for:", { operationName, creativeId });
-      
+
       const accessToken = await getGCPAccessToken(serviceAccount);
-      const status = await checkOperationStatus(accessToken, operationName, projectId);
+      const status = await checkOperationStatus(
+        accessToken,
+        operationName,
+        projectId,
+      );
 
       // Concluiu com erro
       if (status.done && status.error) {
         console.log("Generation failed with error:", status.error);
-        
+
         if (creativeId) {
           await supabase
             .from("visual_creatives")
@@ -358,7 +413,7 @@ serve(async (req) => {
       // Concluiu com vídeo
       if (status.done && status.videoBase64 && creativeId) {
         console.log("Video completed, uploading to storage...");
-        
+
         const { data: creative } = await supabase
           .from("visual_creatives")
           .select("client_id")
@@ -366,7 +421,11 @@ serve(async (req) => {
           .single();
 
         if (creative?.client_id) {
-          const videoUrl = await uploadVideoToStorage(supabase, status.videoBase64, creative.client_id);
+          const videoUrl = await uploadVideoToStorage(
+            supabase,
+            status.videoBase64,
+            creative.client_id,
+          );
           console.log("Video uploaded:", videoUrl);
 
           await supabase
@@ -389,9 +448,12 @@ serve(async (req) => {
 
       // Ainda processando
       console.log("Still processing...");
-      return new Response(JSON.stringify({ done: false, status: "processing" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ done: false, status: "processing" }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     };
 
     const url = new URL(req.url);
@@ -439,16 +501,20 @@ serve(async (req) => {
       // Validar parâmetros
       const validationError = validateVideoParams(model, duration, aspectRatio);
       if (validationError) {
-        return new Response(
-          JSON.stringify({ error: validationError }),
-          {
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          },
-        );
+        return new Response(JSON.stringify({ error: validationError }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
-      console.log("Video generation request:", { clientId, companyId, theme, aspectRatio, duration, model });
+      console.log("Video generation request:", {
+        clientId,
+        companyId,
+        theme,
+        aspectRatio,
+        duration,
+        model,
+      });
 
       // Criar registro do criativo em status "generating"
       const { data: newCreative, error: insertError } = await supabase
@@ -470,7 +536,9 @@ serve(async (req) => {
 
       if (insertError) {
         console.error("Insert error:", insertError);
-        throw new Error(`Failed to create creative record: ${insertError.message}`);
+        throw new Error(
+          `Failed to create creative record: ${insertError.message}`,
+        );
       }
 
       // Obter access token
@@ -478,27 +546,32 @@ serve(async (req) => {
 
       // Construir prompt para o vídeo
       // Se noTextInVideo=true, colocar instrução NO INÍCIO do prompt (maior peso) + usar negativePrompt
-      const noTextInstruction = noTextInVideo 
-        ? "CRITICAL: Generate a purely VISUAL video with absolutely NO TEXT, NO TITLES, NO CAPTIONS, NO WORDS, NO LETTERS, NO OVERLAYS, NO LOGOS, NO BRAND MARKS, NO COMPANY LOGOS, NO GRAPHIC ELEMENTS WITH BRANDING of any kind. The video must contain ONLY visual scenes without any identifying marks or text. " 
+      const noTextInstruction = noTextInVideo
+        ? "CRITICAL: Generate a purely VISUAL video with absolutely NO TEXT, NO TITLES, NO CAPTIONS, NO WORDS, NO LETTERS, NO OVERLAYS, NO LOGOS, NO BRAND MARKS, NO COMPANY LOGOS, NO GRAPHIC ELEMENTS WITH BRANDING of any kind. The video must contain ONLY visual scenes without any identifying marks or text. "
         : "";
       const videoPrompt = `${noTextInstruction}Create a professional marketing video for: ${theme}.\nStyle: Modern, engaging, suitable for social media marketing.\nDuration: ${duration} seconds.\nAspect ratio: ${aspectRatio}.\nMake it visually appealing and attention-grabbing.`;
 
       // negativePrompt para reforçar exclusão de texto E logos
-      const negativePrompt = noTextInVideo 
-        ? "text, titles, captions, subtitles, overlays, words, letters, typography, watermarks, logos, brand logos, company logos, brand marks, corporate identity, brand elements, graphic logos, emblems, insignias, written content, signs with text, any written words, lettering, headlines, slogans, trademarks, brand symbols" 
+      const negativePrompt = noTextInVideo
+        ? "text, titles, captions, subtitles, overlays, words, letters, typography, watermarks, logos, brand logos, company logos, brand marks, corporate identity, brand elements, graphic logos, emblems, insignias, written content, signs with text, any written words, lettering, headlines, slogans, trademarks, brand symbols"
         : undefined;
 
       console.log("Video prompt:", videoPrompt);
       if (negativePrompt) console.log("Negative prompt:", negativePrompt);
 
       // Iniciar geração
-      const operationName = await startVideoGeneration(accessToken, projectId, videoPrompt, {
-        model,
-        aspectRatio,
-        duration,
-        imageReference,
-        negativePrompt,
-      });
+      const operationName = await startVideoGeneration(
+        accessToken,
+        projectId,
+        videoPrompt,
+        {
+          model,
+          aspectRatio,
+          duration,
+          imageReference,
+          negativePrompt,
+        },
+      );
 
       // Atualizar criativo com o operation ID
       await supabase
@@ -524,7 +597,7 @@ serve(async (req) => {
       status: 405,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error in generate-video-creative:", error);
     return new Response(
       JSON.stringify({

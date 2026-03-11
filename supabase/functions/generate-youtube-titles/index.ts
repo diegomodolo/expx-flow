@@ -7,7 +7,8 @@ const openAIApiKey = Deno.env.get("OPENAI_API_KEY")!;
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
@@ -126,7 +127,7 @@ Retorne em formato JSON:
 
     // Update script with new titles if provided
     if (scriptId && result.titles) {
-      const newTitles = result.titles.map((t: any) => t.title);
+      const newTitles = result.titles.map((t: unknown) => t.title);
 
       const { data: currentScript } = await supabase
         .from("youtube_scripts")
@@ -154,7 +155,7 @@ Retorne em formato JSON:
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       },
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error in generate-youtube-titles:", error);
     return new Response(
       JSON.stringify({

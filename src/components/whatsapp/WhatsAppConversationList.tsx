@@ -5,9 +5,17 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, Search, MessageSquarePlus } from "lucide-react";
 import { WhatsAppConversationItem } from "./WhatsAppConversationItem";
 import { WhatsAppConversation } from "@/hooks/useWhatsAppConversations";
-import { WhatsAppAssignmentFilters, AssignmentFilter } from "./WhatsAppAssignmentFilters";
+import {
+  WhatsAppAssignmentFilters,
+  AssignmentFilter,
+} from "./WhatsAppAssignmentFilters";
 import { WhatsAppAssignment } from "@/hooks/useWhatsAppAssignments";
-import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  TooltipProvider,
+} from "@/components/ui/tooltip";
 
 interface WhatsAppConversationListProps {
   conversations: WhatsAppConversation[];
@@ -35,10 +43,11 @@ export function WhatsAppConversationList({
   onNewConversation,
 }: WhatsAppConversationListProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [assignmentFilter, setAssignmentFilter] = useState<AssignmentFilter>("all");
+  const [assignmentFilter, setAssignmentFilter] =
+    useState<AssignmentFilter>("all");
 
   // Create a map for quick assignment lookup
-  const assignmentMap = new Map(assignments.map(a => [a.conversation_id, a]));
+  const assignmentMap = new Map(assignments.map((a) => [a.conversation_id, a]));
 
   // Filter by search query
   const searchFilteredConversations = conversations.filter((conv) => {
@@ -60,7 +69,11 @@ export function WhatsAppConversationList({
       case "my-squad":
         // "Meu Squad" here means: conversations linked to clients that belong to the squad
         // where the logged-in user is the WhatsApp responsible (teams.id === clients.team_id)
-        return !!conv.client_id && !!currentUserTeamId && conv.client_team_id === currentUserTeamId;
+        return (
+          !!conv.client_id &&
+          !!currentUserTeamId &&
+          conv.client_team_id === currentUserTeamId
+        );
       case "unassigned":
         return !assignment;
       case "no-squad":
@@ -74,30 +87,28 @@ export function WhatsAppConversationList({
 
   // Calculate counts for filters
   const myConversationsCount = searchFilteredConversations.filter(
-    c => assignmentMap.get(c.id)?.assigned_to_user_id === currentUserId
+    (c) => assignmentMap.get(c.id)?.assigned_to_user_id === currentUserId,
   ).length;
-  
+
   const mySquadConversationsCount = currentUserTeamId
     ? searchFilteredConversations.filter(
-        c => !!c.client_id && c.client_team_id === currentUserTeamId
+        (c) => !!c.client_id && c.client_team_id === currentUserTeamId,
       ).length
     : 0;
-  
+
   const unassignedCount = searchFilteredConversations.filter(
-    c => !assignmentMap.get(c.id)
+    (c) => !assignmentMap.get(c.id),
   ).length;
 
   const noSquadCount = searchFilteredConversations.filter(
-    c => !c.client_id || !c.client_team_id
+    (c) => !c.client_id || !c.client_team_id,
   ).length;
 
   return (
     <div className="flex flex-col h-full">
       {/* Instance selector */}
       {instanceSelector && (
-        <div className="p-3 border-b">
-          {instanceSelector}
-        </div>
+        <div className="p-3 border-b">{instanceSelector}</div>
       )}
 
       {/* Assignment filters */}
@@ -109,7 +120,7 @@ export function WhatsAppConversationList({
         unassignedCount={unassignedCount}
         noSquadCount={noSquadCount}
       />
-      
+
       {/* Search + New Conversation */}
       <div className="p-3 border-b">
         <div className="flex items-center gap-2">
@@ -126,7 +137,8 @@ export function WhatsAppConversationList({
             <TooltipProvider delayDuration={300}>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button aria-label="Adicionar"
+                  <Button
+                    aria-label="Adicionar"
                     variant="outline"
                     size="icon"
                     onClick={onNewConversation}
@@ -151,7 +163,9 @@ export function WhatsAppConversationList({
         ) : filteredConversations.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
             <p className="text-sm text-muted-foreground">
-              {searchQuery ? "Nenhuma conversa encontrada" : "Nenhuma conversa ainda"}
+              {searchQuery
+                ? "Nenhuma conversa encontrada"
+                : "Nenhuma conversa ainda"}
             </p>
             {!searchQuery && (
               <p className="text-xs text-muted-foreground mt-1">
@@ -168,7 +182,11 @@ export function WhatsAppConversationList({
                 isSelected={selectedId === conversation.id}
                 onClick={() => onSelect(conversation.id)}
                 assignment={assignmentMap.get(conversation.id) || null}
-                hasTodayReminder={conversation.client_id ? clientIdsWithTodayReminders.has(conversation.client_id) : false}
+                hasTodayReminder={
+                  conversation.client_id
+                    ? clientIdsWithTodayReminders.has(conversation.client_id)
+                    : false
+                }
               />
             ))}
           </div>

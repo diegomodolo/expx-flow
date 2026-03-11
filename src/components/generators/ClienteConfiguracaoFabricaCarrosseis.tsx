@@ -1,5 +1,11 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,10 +15,28 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCompany } from "@/contexts/CompanyContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { 
-  Clock, Save, Loader2, Trash2, Settings, Lightbulb, Sparkles, 
-  RotateCcw, History, Image, Upload, X, Wand2, Copy,
-  BookOpen, Users, LayoutGrid, Moon, Sun, MessageSquare, Bookmark
+import {
+  Clock,
+  Save,
+  Loader2,
+  Trash2,
+  Settings,
+  Lightbulb,
+  Sparkles,
+  RotateCcw,
+  History,
+  Image,
+  Upload,
+  X,
+  Wand2,
+  Copy,
+  BookOpen,
+  Users,
+  LayoutGrid,
+  Moon,
+  Sun,
+  MessageSquare,
+  Bookmark,
 } from "lucide-react";
 import { ReferenceSelectionDialog } from "@/components/clients/ReferenceSelectionDialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -96,7 +120,11 @@ interface Props {
   onDelete?: () => void;
 }
 
-export function ClienteConfiguracaoFabricaCarrosseis({ clientId, onSave, onDelete }: Props) {
+export function ClienteConfiguracaoFabricaCarrosseis({
+  clientId,
+  onSave,
+  onDelete,
+}: Props) {
   const { activeCompany } = useCompany();
   const [config, setConfig] = useState<ScheduleConfig>(defaultConfig);
   const [loading, setLoading] = useState(true);
@@ -118,26 +146,26 @@ export function ClienteConfiguracaoFabricaCarrosseis({ clientId, onSave, onDelet
 
     try {
       const { count: themesCount } = await supabase
-        .from('market_research_insights')
-        .select('id', { count: 'exact', head: true })
-        .eq('client_id', clientId)
-        .eq('company_id', activeCompany.company_id);
-      
+        .from("market_research_insights")
+        .select("id", { count: "exact", head: true })
+        .eq("client_id", clientId)
+        .eq("company_id", activeCompany.company_id);
+
       setHasResearchThemes((themesCount || 0) > 0);
     } catch (error) {
-      console.error('Error checking availability:', error);
+      console.error("Error checking availability:", error);
     }
   };
 
   const loadConfig = async () => {
     if (!clientId) return;
-    
+
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from('carousel_generation_schedules')
-        .select('*')
-        .eq('client_id', clientId)
+        .from("carousel_generation_schedules")
+        .select("*")
+        .eq("client_id", clientId)
         .maybeSingle();
 
       if (error) throw error;
@@ -173,7 +201,7 @@ export function ClienteConfiguracaoFabricaCarrosseis({ clientId, onSave, onDelet
         setConfig(defaultConfig);
       }
     } catch (error) {
-      console.error('Error loading config:', error);
+      console.error("Error loading config:", error);
       setConfig(defaultConfig);
     } finally {
       setLoading(false);
@@ -215,25 +243,25 @@ export function ClienteConfiguracaoFabricaCarrosseis({ clientId, onSave, onDelet
 
       if (config.id) {
         const { error } = await supabase
-          .from('carousel_generation_schedules')
+          .from("carousel_generation_schedules")
           .update(configData)
-          .eq('id', config.id);
-        
+          .eq("id", config.id);
+
         if (error) throw error;
       } else {
         const { error } = await supabase
-          .from('carousel_generation_schedules')
+          .from("carousel_generation_schedules")
           .insert(configData);
-        
+
         if (error) throw error;
       }
 
-      toast.success('Configurações salvas!');
+      toast.success("Configurações salvas!");
       onSave?.();
       loadConfig();
     } catch (error: unknown) {
-      console.error('Error saving config:', error);
-      toast.error('Erro ao salvar: ' + error.message);
+      console.error("Error saving config:", error);
+      toast.error("Erro ao salvar: " + error.message);
     } finally {
       setSaving(false);
     }
@@ -244,39 +272,39 @@ export function ClienteConfiguracaoFabricaCarrosseis({ clientId, onSave, onDelet
 
     try {
       const { error } = await supabase
-        .from('carousel_generation_schedules')
+        .from("carousel_generation_schedules")
         .delete()
-        .eq('id', config.id);
-      
+        .eq("id", config.id);
+
       if (error) throw error;
 
-      toast.success('Fábrica removida!');
+      toast.success("Fábrica removida!");
       onDelete?.();
     } catch (error: unknown) {
-      console.error('Error deleting config:', error);
-      toast.error('Erro ao remover: ' + error.message);
+      console.error("Error deleting config:", error);
+      toast.error("Erro ao remover: " + error.message);
     }
   };
 
   const resetGenerationForToday = async () => {
     if (!config.id) {
-      toast.error('Salve a configuração primeiro');
+      toast.error("Salve a configuração primeiro");
       return;
     }
 
     setResetting(true);
     try {
       const { error } = await supabase
-        .from('carousel_generation_schedules')
+        .from("carousel_generation_schedules")
         .update({ last_generation_at: null })
-        .eq('id', config.id);
+        .eq("id", config.id);
 
       if (error) throw error;
 
-      toast.success('Reset realizado! Geração habilitada para hoje.');
+      toast.success("Reset realizado! Geração habilitada para hoje.");
     } catch (error: unknown) {
-      console.error('Error resetting:', error);
-      toast.error('Erro ao resetar: ' + error.message);
+      console.error("Error resetting:", error);
+      toast.error("Erro ao resetar: " + error.message);
     } finally {
       setResetting(false);
     }
@@ -285,25 +313,25 @@ export function ClienteConfiguracaoFabricaCarrosseis({ clientId, onSave, onDelet
   const handleImageUpload = async (file: File, index: number) => {
     setUploading(index);
     try {
-      const fileExt = file.name.split('.').pop();
+      const fileExt = file.name.split(".").pop();
       const fileName = `${clientId}/carousels/${Date.now()}-ref-${index}.${fileExt}`;
-      
+
       const { error: uploadError } = await supabase.storage
-        .from('visual-creatives')
+        .from("visual-creatives")
         .upload(fileName, file);
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('visual-creatives')
-        .getPublicUrl(fileName);
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("visual-creatives").getPublicUrl(fileName);
 
       const fieldName = `reference_image_${index}` as keyof ScheduleConfig;
-      setConfig(prev => ({ ...prev, [fieldName]: publicUrl }));
-      toast.success('Imagem enviada!');
+      setConfig((prev) => ({ ...prev, [fieldName]: publicUrl }));
+      toast.success("Imagem enviada!");
     } catch (error: unknown) {
-      console.error('Error uploading image:', error);
-      toast.error('Erro ao enviar imagem');
+      console.error("Error uploading image:", error);
+      toast.error("Erro ao enviar imagem");
     } finally {
       setUploading(null);
     }
@@ -311,17 +339,18 @@ export function ClienteConfiguracaoFabricaCarrosseis({ clientId, onSave, onDelet
 
   const handleRemoveImage = (index: number) => {
     const fieldName = `reference_image_${index}` as keyof ScheduleConfig;
-    setConfig(prev => ({ ...prev, [fieldName]: null }));
+    setConfig((prev) => ({ ...prev, [fieldName]: null }));
   };
 
   const handleImportReferences = (urls: string[]) => {
-    const currentImages = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => 
-      config[`reference_image_${i}` as keyof ScheduleConfig] as string | null
+    const currentImages = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(
+      (i) =>
+        config[`reference_image_${i}` as keyof ScheduleConfig] as string | null,
     );
-    
+
     let urlIndex = 0;
     const newConfig = { ...config };
-    
+
     for (let i = 1; i <= 10 && urlIndex < urls.length; i++) {
       const fieldName = `reference_image_${i}` as keyof ScheduleConfig;
       if (!currentImages[i - 1]) {
@@ -329,31 +358,47 @@ export function ClienteConfiguracaoFabricaCarrosseis({ clientId, onSave, onDelet
         urlIndex++;
       }
     }
-    
+
     setConfig(newConfig);
     toast.success(`${urlIndex} imagem(ns) importada(s)!`);
   };
 
-  const referenceImages = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => ({
+  const referenceImages = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => ({
     index: i,
-    url: config[`reference_image_${i}` as keyof ScheduleConfig] as string | null,
+    url: config[`reference_image_${i}` as keyof ScheduleConfig] as
+      | string
+      | null,
   }));
 
   // Update percentages maintaining total = 100%
   const updatePercentage = (field: keyof ScheduleConfig, value: number) => {
-    const fields = ['tutorial_percentage', 'comparison_percentage', 'behind_scenes_percentage', 'curated_list_percentage'] as const;
-    const currentTotal = fields.reduce((sum, f) => sum + (config[f] as number), 0);
-    const otherFields = fields.filter(f => f !== field);
-    const otherTotal = otherFields.reduce((sum, f) => sum + (config[f] as number), 0);
-    
+    const fields = [
+      "tutorial_percentage",
+      "comparison_percentage",
+      "behind_scenes_percentage",
+      "curated_list_percentage",
+    ] as const;
+    const currentTotal = fields.reduce(
+      (sum, f) => sum + (config[f] as number),
+      0,
+    );
+    const otherFields = fields.filter((f) => f !== field);
+    const otherTotal = otherFields.reduce(
+      (sum, f) => sum + (config[f] as number),
+      0,
+    );
+
     // Ensure value doesn't exceed 100 minus minimum for others
-    const maxValue = Math.min(value, 100 - (otherFields.length * 0));
-    
-    setConfig(prev => ({ ...prev, [field]: maxValue }));
+    const maxValue = Math.min(value, 100 - otherFields.length * 0);
+
+    setConfig((prev) => ({ ...prev, [field]: maxValue }));
   };
 
-  const totalPercentage = config.tutorial_percentage + config.comparison_percentage + 
-                          config.behind_scenes_percentage + config.curated_list_percentage;
+  const totalPercentage =
+    config.tutorial_percentage +
+    config.comparison_percentage +
+    config.behind_scenes_percentage +
+    config.curated_list_percentage;
 
   if (loading) {
     return (
@@ -383,7 +428,9 @@ export function ClienteConfiguracaoFabricaCarrosseis({ clientId, onSave, onDelet
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={deleteConfig}>Remover</AlertDialogAction>
+                <AlertDialogAction onClick={deleteConfig}>
+                  Remover
+                </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
@@ -431,7 +478,9 @@ export function ClienteConfiguracaoFabricaCarrosseis({ clientId, onSave, onDelet
                   <Clock className="h-5 w-5" />
                   Geração Diária
                 </CardTitle>
-                <CardDescription>Configure a geração automática de carrosseis</CardDescription>
+                <CardDescription>
+                  Configure a geração automática de carrosseis
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="flex items-center justify-between">
@@ -439,7 +488,9 @@ export function ClienteConfiguracaoFabricaCarrosseis({ clientId, onSave, onDelet
                   <Switch
                     id="is_active"
                     checked={config.is_active}
-                    onCheckedChange={(checked) => setConfig({ ...config, is_active: checked })}
+                    onCheckedChange={(checked) =>
+                      setConfig({ ...config, is_active: checked })
+                    }
                   />
                 </div>
 
@@ -450,18 +501,24 @@ export function ClienteConfiguracaoFabricaCarrosseis({ clientId, onSave, onDelet
                     max={5}
                     step={1}
                     value={[config.carousels_per_day]}
-                    onValueChange={([value]) => setConfig({ ...config, carousels_per_day: value })}
+                    onValueChange={([value]) =>
+                      setConfig({ ...config, carousels_per_day: value })
+                    }
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Slides por carrossel: {config.slides_per_carousel}</Label>
+                  <Label>
+                    Slides por carrossel: {config.slides_per_carousel}
+                  </Label>
                   <Slider
                     min={7}
                     max={10}
                     step={1}
                     value={[config.slides_per_carousel]}
-                    onValueChange={([value]) => setConfig({ ...config, slides_per_carousel: value })}
+                    onValueChange={([value]) =>
+                      setConfig({ ...config, slides_per_carousel: value })
+                    }
                   />
                   <p className="text-xs text-muted-foreground">
                     Recomendado: 8 slides (estrutura PAS completa)
@@ -475,11 +532,16 @@ export function ClienteConfiguracaoFabricaCarrosseis({ clientId, onSave, onDelet
                       id="generation_time"
                       type="time"
                       value={config.generation_time}
-                      onChange={(e) => setConfig({ ...config, generation_time: e.target.value })}
+                      onChange={(e) =>
+                        setConfig({
+                          ...config,
+                          generation_time: e.target.value,
+                        })
+                      }
                       className="flex-1"
                     />
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       size="icon"
                       onClick={resetGenerationForToday}
                       disabled={resetting || !config.id}
@@ -520,7 +582,9 @@ export function ClienteConfiguracaoFabricaCarrosseis({ clientId, onSave, onDelet
                   </div>
                   <Switch
                     checked={config.use_dark_mode}
-                    onCheckedChange={(checked) => setConfig({ ...config, use_dark_mode: checked })}
+                    onCheckedChange={(checked) =>
+                      setConfig({ ...config, use_dark_mode: checked })
+                    }
                   />
                 </div>
 
@@ -536,7 +600,9 @@ export function ClienteConfiguracaoFabricaCarrosseis({ clientId, onSave, onDelet
                   </div>
                   <Switch
                     checked={config.show_ui_screenshots}
-                    onCheckedChange={(checked) => setConfig({ ...config, show_ui_screenshots: checked })}
+                    onCheckedChange={(checked) =>
+                      setConfig({ ...config, show_ui_screenshots: checked })
+                    }
                   />
                 </div>
 
@@ -552,7 +618,9 @@ export function ClienteConfiguracaoFabricaCarrosseis({ clientId, onSave, onDelet
                   </div>
                   <Switch
                     checked={config.include_proof_social}
-                    onCheckedChange={(checked) => setConfig({ ...config, include_proof_social: checked })}
+                    onCheckedChange={(checked) =>
+                      setConfig({ ...config, include_proof_social: checked })
+                    }
                   />
                 </div>
 
@@ -568,7 +636,9 @@ export function ClienteConfiguracaoFabricaCarrosseis({ clientId, onSave, onDelet
                   </div>
                   <Switch
                     checked={config.include_save_bait}
-                    onCheckedChange={(checked) => setConfig({ ...config, include_save_bait: checked })}
+                    onCheckedChange={(checked) =>
+                      setConfig({ ...config, include_save_bait: checked })
+                    }
                   />
                 </div>
               </CardContent>
@@ -589,14 +659,24 @@ export function ClienteConfiguracaoFabricaCarrosseis({ clientId, onSave, onDelet
             <CardContent className="space-y-4">
               <Textarea
                 placeholder="Instruções personalizadas..."
-                value={config.custom_image_prompt || ''}
-                onChange={(e) => setConfig({ ...config, custom_image_prompt: e.target.value || null })}
+                value={config.custom_image_prompt || ""}
+                onChange={(e) =>
+                  setConfig({
+                    ...config,
+                    custom_image_prompt: e.target.value || null,
+                  })
+                }
                 rows={4}
               />
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setConfig({ ...config, custom_image_prompt: SUGGESTED_PROMPT })}
+                onClick={() =>
+                  setConfig({
+                    ...config,
+                    custom_image_prompt: SUGGESTED_PROMPT,
+                  })
+                }
               >
                 <Copy className="h-4 w-4 mr-2" />
                 Usar Prompt Sugerido
@@ -626,7 +706,8 @@ export function ClienteConfiguracaoFabricaCarrosseis({ clientId, onSave, onDelet
                           alt={`Referência ${index}`}
                           className="w-full h-full object-cover rounded-lg"
                         />
-                        <Button aria-label="Avançar"
+                        <Button
+                          aria-label="Avançar"
                           variant="destructive"
                           size="icon"
                           className="absolute -top-2 -right-2 h-6 w-6"
@@ -681,7 +762,8 @@ export function ClienteConfiguracaoFabricaCarrosseis({ clientId, onSave, onDelet
               {totalPercentage !== 100 && (
                 <Alert variant="destructive">
                   <AlertDescription>
-                    A soma das porcentagens deve ser 100%. Atual: {totalPercentage}%
+                    A soma das porcentagens deve ser 100%. Atual:{" "}
+                    {totalPercentage}%
                   </AlertDescription>
                 </Alert>
               )}
@@ -693,17 +775,22 @@ export function ClienteConfiguracaoFabricaCarrosseis({ clientId, onSave, onDelet
                       <BookOpen className="h-4 w-4 text-blue-500" />
                       <Label>Tutorial/Hack</Label>
                     </div>
-                    <span className="text-lg font-semibold">{config.tutorial_percentage}%</span>
+                    <span className="text-lg font-semibold">
+                      {config.tutorial_percentage}%
+                    </span>
                   </div>
                   <Slider
                     value={[config.tutorial_percentage]}
-                    onValueChange={([value]) => updatePercentage('tutorial_percentage', value)}
+                    onValueChange={([value]) =>
+                      updatePercentage("tutorial_percentage", value)
+                    }
                     min={0}
                     max={100}
                     step={5}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Ensina o usuário a resolver um problema. Foco em salvamentos.
+                    Ensina o usuário a resolver um problema. Foco em
+                    salvamentos.
                   </p>
                 </div>
 
@@ -713,11 +800,15 @@ export function ClienteConfiguracaoFabricaCarrosseis({ clientId, onSave, onDelet
                       <Users className="h-4 w-4 text-orange-500" />
                       <Label>Nós vs. Eles (Comparação)</Label>
                     </div>
-                    <span className="text-lg font-semibold">{config.comparison_percentage}%</span>
+                    <span className="text-lg font-semibold">
+                      {config.comparison_percentage}%
+                    </span>
                   </div>
                   <Slider
                     value={[config.comparison_percentage]}
-                    onValueChange={([value]) => updatePercentage('comparison_percentage', value)}
+                    onValueChange={([value]) =>
+                      updatePercentage("comparison_percentage", value)
+                    }
                     min={0}
                     max={100}
                     step={5}
@@ -733,11 +824,15 @@ export function ClienteConfiguracaoFabricaCarrosseis({ clientId, onSave, onDelet
                       <Sparkles className="h-4 w-4 text-purple-500" />
                       <Label>Bastidores / Build in Public</Label>
                     </div>
-                    <span className="text-lg font-semibold">{config.behind_scenes_percentage}%</span>
+                    <span className="text-lg font-semibold">
+                      {config.behind_scenes_percentage}%
+                    </span>
                   </div>
                   <Slider
                     value={[config.behind_scenes_percentage]}
-                    onValueChange={([value]) => updatePercentage('behind_scenes_percentage', value)}
+                    onValueChange={([value]) =>
+                      updatePercentage("behind_scenes_percentage", value)
+                    }
                     min={0}
                     max={100}
                     step={5}
@@ -753,17 +848,22 @@ export function ClienteConfiguracaoFabricaCarrosseis({ clientId, onSave, onDelet
                       <LayoutGrid className="h-4 w-4 text-green-500" />
                       <Label>Curadoria / Listas</Label>
                     </div>
-                    <span className="text-lg font-semibold">{config.curated_list_percentage}%</span>
+                    <span className="text-lg font-semibold">
+                      {config.curated_list_percentage}%
+                    </span>
                   </div>
                   <Slider
                     value={[config.curated_list_percentage]}
-                    onValueChange={([value]) => updatePercentage('curated_list_percentage', value)}
+                    onValueChange={([value]) =>
+                      updatePercentage("curated_list_percentage", value)
+                    }
                     min={0}
                     max={100}
                     step={5}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Lista de ferramentas com o produto incluso. Foco em viralização.
+                    Lista de ferramentas com o produto incluso. Foco em
+                    viralização.
                   </p>
                 </div>
               </div>

@@ -27,7 +27,8 @@ export function ClienteHistorico() {
   const { client } = useClientContext();
   const { user } = useAuth();
   const { toast } = useToast();
-  const { notes, profilesByUserId, loading, addNote, deleteNote } = useClientNotes(client.id);
+  const { notes, profilesByUserId, loading, addNote, deleteNote } =
+    useClientNotes(client.id);
   const [newNote, setNewNote] = useState("");
   const [isAdding, setIsAdding] = useState(false);
 
@@ -93,7 +94,9 @@ export function ClienteHistorico() {
       {/* Adicionar novo histórico */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Adicionar novo registro ao histórico</CardTitle>
+          <CardTitle className="text-base">
+            Adicionar novo registro ao histórico
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <Textarea
@@ -104,7 +107,10 @@ export function ClienteHistorico() {
             disabled={isAdding}
           />
           <div className="flex justify-end">
-            <Button onClick={handleAddNote} disabled={isAdding || !newNote.trim()}>
+            <Button
+              onClick={handleAddNote}
+              disabled={isAdding || !newNote.trim()}
+            >
               {isAdding && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Adicionar ao Histórico
             </Button>
@@ -135,7 +141,9 @@ export function ClienteHistorico() {
             <CardContent className="pt-6">
               <div className="text-center py-8 text-muted-foreground">
                 <p>Nenhum histórico registrado ainda.</p>
-                <p className="text-sm mt-1">Adicione o primeiro registro acima.</p>
+                <p className="text-sm mt-1">
+                  Adicione o primeiro registro acima.
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -171,7 +179,8 @@ export function ClienteHistorico() {
                           {isOwner && (
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
-                                <Button aria-label="Excluir"
+                                <Button
+                                  aria-label="Excluir"
                                   variant="ghost"
                                   size="icon"
                                   className="h-8 w-8 shrink-0"
@@ -181,14 +190,18 @@ export function ClienteHistorico() {
                               </AlertDialogTrigger>
                               <AlertDialogContent>
                                 <AlertDialogHeader>
-                                  <AlertDialogTitle>Remover registro?</AlertDialogTitle>
+                                  <AlertDialogTitle>
+                                    Remover registro?
+                                  </AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    Esta ação não pode ser desfeita. O registro será
-                                    permanentemente removido do histórico.
+                                    Esta ação não pode ser desfeita. O registro
+                                    será permanentemente removido do histórico.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogCancel>
+                                    Cancelar
+                                  </AlertDialogCancel>
                                   <AlertDialogAction
                                     onClick={() => handleDeleteNote(note.id)}
                                     className="bg-destructive text-destructive-foreground hover:bg-destructive/90"

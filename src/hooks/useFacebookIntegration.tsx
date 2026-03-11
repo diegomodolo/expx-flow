@@ -76,7 +76,6 @@ export const useFacebookIntegration = () => {
   const handleCallback = async (code: string, companyId: string) => {
     setLoading(true);
     try {
-      console.log("Handling Facebook callback with code:", code);
 
       const { data, error } = await supabase.functions.invoke(
         "facebook-oauth?action=exchange",
@@ -97,7 +96,6 @@ export const useFacebookIntegration = () => {
         throw new Error(data.error || "Erro ao processar OAuth");
       }
 
-      console.log("Facebook OAuth success:", data);
 
       setIntegration(data.integration);
       setAdAccounts(data.adAccounts || []);
@@ -217,7 +215,6 @@ export const useFacebookIntegration = () => {
         throw new Error(data.error || "Erro ao atualizar contas");
       }
 
-      console.log("Ad accounts refreshed:", data);
 
       setAdAccounts(data.adAccounts || []);
 

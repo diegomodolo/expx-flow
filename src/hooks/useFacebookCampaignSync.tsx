@@ -73,7 +73,6 @@ export const useFacebookCampaignSync = () => {
 
   const validateCompanyUrls = async (companyId: string) => {
     try {
-      console.log('[validateCompanyUrls] Starting URL validation for company:', companyId);
       const { data, error } = await supabase.functions.invoke('validate-client-urls', {
         body: { company_id: companyId }
       });
@@ -81,7 +80,7 @@ export const useFacebookCampaignSync = () => {
       if (error) {
         console.error('[validateCompanyUrls] URL validation failed:', error.message);
       } else {
-        console.log('[validateCompanyUrls] URL validation completed:', data?.summary || data?.message);
+        // intentionally empty
       }
     } catch (urlError: unknown) {
       console.error('[validateCompanyUrls] URL validation error:', urlError.message);

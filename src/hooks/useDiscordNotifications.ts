@@ -127,7 +127,6 @@ export async function sendDiscordTaskNotification(
 
     if (!channelId) {
       // No channel mapped for this squad, skip
-      console.log("[Discord] No channel mapped for team", payload.team_id);
       return;
     }
 
@@ -143,7 +142,6 @@ export async function sendDiscordTaskNotification(
       },
     });
 
-    console.log(`[Discord] Notification '${type}' sent to channel ${channelId}`);
   } catch (err) {
     console.error("[Discord] Failed to send notification:", err);
     // Don't throw - notifications are fire-and-forget

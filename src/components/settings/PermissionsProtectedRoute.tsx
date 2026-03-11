@@ -18,13 +18,8 @@ export function PermissionsProtectedRoute() {
     try {
       setLoading(true);
       
-      console.log('Checking admin permissions for:', { 
-        companyId: activeCompany?.company_id, 
-        role: activeCompany?.role 
-      });
       
       if (!activeCompany?.company_id) {
-        console.log('No active company found');
         setIsAdmin(false);
         return;
       }
@@ -33,7 +28,6 @@ export function PermissionsProtectedRoute() {
       const isOwnerOrAdmin = activeCompany.role === 'owner' || activeCompany.role === 'admin';
       
       if (isOwnerOrAdmin) {
-        console.log('User is owner/admin from context:', activeCompany.role);
         setIsAdmin(true);
         return;
       }
@@ -41,12 +35,10 @@ export function PermissionsProtectedRoute() {
       // Fallback: verify in database
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        console.log('No user found');
         setIsAdmin(false);
         return;
       }
 
-      console.log('Checking database for user role:', user.id, 'in company:', activeCompany.company_id);
 
       const { data: member, error } = await supabase
         .from('company_members')
@@ -62,7 +54,6 @@ export function PermissionsProtectedRoute() {
       }
 
       const isAdminFromDB = member?.role === 'owner' || member?.role === 'admin';
-      console.log('Database role check result:', member?.role, 'isAdmin:', isAdminFromDB);
       setIsAdmin(isAdminFromDB);
     } catch (error) {
       console.error('Error checking admin permissions:', error);

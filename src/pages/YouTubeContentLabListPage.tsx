@@ -39,7 +39,8 @@ export default function YouTubeContentLabListPage() {
   const navigate = useNavigate();
   const { activeCompany } = useCompany();
   const companyId = activeCompany?.company_id || "";
-  const { labs, loading, createLab, deleteLab } = useYouTubeContentLabs(companyId);
+  const { labs, loading, createLab, deleteLab } =
+    useYouTubeContentLabs(companyId);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [newLabName, setNewLabName] = useState("");
@@ -48,8 +49,8 @@ export default function YouTubeContentLabListPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearch = useDebounce(searchQuery, 300);
 
-  const filteredLabs = labs.filter(l =>
-    l.name.toLowerCase().includes(debouncedSearch.toLowerCase())
+  const filteredLabs = labs.filter((l) =>
+    l.name.toLowerCase().includes(debouncedSearch.toLowerCase()),
   );
 
   const handleCreate = async () => {
@@ -133,7 +134,7 @@ export default function YouTubeContentLabListPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredLabs.map(lab => (
+              {filteredLabs.map((lab) => (
                 <TableRow
                   key={lab.id}
                   className="cursor-pointer"
@@ -153,7 +154,8 @@ export default function YouTubeContentLabListPage() {
                   </TableCell>
                   <TableCell>
                     {!lab.client_id && (
-                      <Button aria-label="Excluir"
+                      <Button
+                        aria-label="Excluir"
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7"
@@ -206,7 +208,7 @@ export default function YouTubeContentLabListPage() {
                 value={newLabName}
                 onChange={(e) => setNewLabName(e.target.value)}
                 placeholder="Ex: Pesquisa Concorrentes, Canais de Referência..."
-                onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
+                onKeyDown={(e) => e.key === "Enter" && handleCreate()}
               />
             </div>
           </div>
@@ -214,7 +216,10 @@ export default function YouTubeContentLabListPage() {
             <Button variant="outline" onClick={() => setCreateOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleCreate} disabled={!newLabName.trim() || creating}>
+            <Button
+              onClick={handleCreate}
+              disabled={!newLabName.trim() || creating}
+            >
               {creating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Criar
             </Button>
@@ -223,17 +228,24 @@ export default function YouTubeContentLabListPage() {
       </Dialog>
 
       {/* Delete Confirmation */}
-      <AlertDialog open={!!deleteLabId} onOpenChange={() => setDeleteLabId(null)}>
+      <AlertDialog
+        open={!!deleteLabId}
+        onOpenChange={() => setDeleteLabId(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir Lab?</AlertDialogTitle>
             <AlertDialogDescription>
-              Todos os canais, análises, sugestões e roteiros deste lab serão excluídos permanentemente.
+              Todos os canais, análises, sugestões e roteiros deste lab serão
+              excluídos permanentemente.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground"
+            >
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>

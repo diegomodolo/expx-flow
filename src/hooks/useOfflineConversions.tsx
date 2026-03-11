@@ -88,7 +88,6 @@ export const useOfflineConversions = (clientId: string) => {
   // Send a new offline conversion
   const sendConversionMutation = useMutation({
     mutationFn: async (params: SendConversionParams) => {
-      console.log('Sending offline conversion:', params);
 
       const { data, error } = await supabase.functions.invoke('send-offline-conversion', {
         body: params,
@@ -106,8 +105,7 @@ export const useOfflineConversions = (clientId: string) => {
       return data;
     },
     onSuccess: (data) => {
-      console.log('Offline conversion sent successfully:', data);
-      
+
       toast({
         title: "Conversão enviada!",
         description: "A conversão offline foi registrada no Meta com sucesso.",

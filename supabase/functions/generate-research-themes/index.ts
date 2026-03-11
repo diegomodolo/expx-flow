@@ -2,7 +2,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
@@ -238,7 +239,7 @@ IMPORTANTE: Retorne APENAS o array JSON, sem markdown, sem \`\`\`, sem explicaç
     console.log(`Generated ${themes.length} research themes`);
 
     // Normalize relevance_score to be within 0.1-9.9 range
-    const normalizedThemes = themes.slice(0, 10).map((theme: any) => {
+    const normalizedThemes = themes.slice(0, 10).map((theme: unknown) => {
       let score = Number(theme.relevance_score) || 5;
       // If score is in 1-100 range, convert to 0.1-9.9
       if (score > 10) {

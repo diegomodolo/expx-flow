@@ -62,17 +62,14 @@ export const useSyncJobStatus = (jobId: string | null) => {
           filter: `id=eq.${jobId}`
         },
         (payload) => {
-          console.log('[useSyncJobStatus] Realtime update received:', payload.new?.status);
           setJob(payload.new as unknown as SyncJob);
         }
       )
       .subscribe((status) => {
-        console.log('[useSyncJobStatus] Realtime subscription status:', status);
       });
 
     // Cleanup subscription on unmount or jobId change
     return () => {
-      console.log('[useSyncJobStatus] Cleaning up realtime subscription for job:', jobId);
       supabase.removeChannel(channel);
     };
   }, [jobId]);
