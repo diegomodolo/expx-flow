@@ -6,7 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-async function getValidAccessToken(supabaseClient: any, companyId: string) {
+async function getValidAccessToken(supabaseClient: unknown, companyId: string) {
   const { data: integration, error } = await supabaseClient
     .from('google_meet_integrations')
     .select('*')
@@ -143,8 +143,8 @@ serve(async (req) => {
         const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // 1 hour default
 
         const attendees = (participants || [])
-          .filter((p: any) => p.email)
-          .map((p: any) => ({ email: p.email, displayName: p.name || undefined }));
+          .filter((p: unknown) => p.email)
+          .map((p: unknown) => ({ email: p.email, displayName: p.name || undefined }));
 
         const calendarEvent = {
           summary: title,

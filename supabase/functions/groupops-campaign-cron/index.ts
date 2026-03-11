@@ -259,7 +259,7 @@ serve(async (req) => {
 
             if (template.category === "POLL") {
               // Send as poll/enquete via /send/menu (type: poll)
-              const pollData = template.constraints_json as any;
+              const pollData = template.constraints_json as unknown;
               const pollOptions = pollData?.poll_options ?? [];
               const selectableCount = pollData?.selectable_count ?? 1;
 
@@ -350,7 +350,7 @@ serve(async (req) => {
         }
 
         executed++;
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error(`[groupops-campaign-cron] Error processing campaign ${campaign.id}:`, err);
         errors.push(`Campaign ${campaign.id}: ${err.message}`);
       }
@@ -362,7 +362,7 @@ serve(async (req) => {
       JSON.stringify({ success: true, executed, errors }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[groupops-campaign-cron] Fatal error:", error);
     return new Response(
       JSON.stringify({ success: false, error: error.message }),

@@ -190,7 +190,7 @@ Deno.serve(async (req) => {
 
               if (!conversation) {
                 // Get contact profile from payload
-                const contact = value.contacts?.find((c: any) => c.wa_id === from);
+                const contact = value.contacts?.find((c: unknown) => c.wa_id === from);
                 const profileName = contact?.profile?.name || from;
 
                 const { data: newConv } = await supabaseAdmin

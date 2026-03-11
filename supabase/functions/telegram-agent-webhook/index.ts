@@ -214,7 +214,7 @@ async function handleBuiltinQuery(
             "ai_reference_image_2",
             "ai_reference_image_3",
           ]) {
-            const url = (clientData as any)[key];
+            const url = (clientData as unknown)[key];
             if (url && typeof url === "string" && url.startsWith("http")) {
               referenceImages.push(url);
             }
@@ -506,7 +506,7 @@ async function chatWithToolCalling(
         role: "tool",
         tool_call_id: toolCall.id,
         content: JSON.stringify(result),
-      } as any);
+      } as unknown);
     }
   }
 
@@ -726,7 +726,7 @@ ${client.ai_briefing ? `\n[BRIEFING DETALHADO]\n${client.ai_briefing}\n` : ""}`;
       conversationMessages =
         (existingConv.messages as Array<{ role: string; content: string }>) ||
         [];
-      resolvedClientId = (existingConv as any).resolved_client_id || null;
+      resolvedClientId = (existingConv as unknown).resolved_client_id || null;
     }
     conversationMessages.push({ role: "user", content: userText });
     if (conversationMessages.length > 20) {
@@ -735,7 +735,7 @@ ${client.ai_briefing ? `\n[BRIEFING DETALHADO]\n${client.ai_briefing}\n` : ""}`;
 
     // Build enabled skills
     const enabledSkills: SkillRecord[] = (enabledSkillsResult.data || [])
-      .map((row: any) => row.ia_agent_skills)
+      .map((row: unknown) => row.ia_agent_skills)
       .filter(Boolean);
 
     const hasFixedClient = !!agent.client_id;

@@ -25,6 +25,8 @@ export const useDynamicPagination = ({
     const availableHeight = containerHeight - headerHeight - footerHeight;
     const calculatedItems = Math.floor(availableHeight / itemHeight);
     
+
+
     // Garantir que está dentro dos limites
     return Math.max(minItemsPerPage, Math.min(maxItemsPerPage, calculatedItems));
   };
@@ -35,7 +37,7 @@ export const useDynamicPagination = ({
       requestAnimationFrame(() => {
         const newItemsPerPage = calculateItemsPerPage();
         setItemsPerPage(newItemsPerPage);
-      });
+
     };
 
     // Aguardar um pouco antes de calcular inicialmente
@@ -51,7 +53,7 @@ export const useDynamicPagination = ({
     // Observer para mudanças na altura do container com debounce
     const resizeObserver = new ResizeObserver(() => {
       setTimeout(updateItemsPerPage, 50);
-    });
+
 
     if (containerRef.current) {
       resizeObserver.observe(containerRef.current);

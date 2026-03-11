@@ -52,7 +52,7 @@ serve(async (req) => {
       throw new Error("Ad not found");
     }
 
-    const content = ad.generated_content as any;
+    const content = ad.generated_content as unknown;
 
     console.log("[score-generated-ad] Ad content:", {
       headline: content?.headline?.substring(0, 50),

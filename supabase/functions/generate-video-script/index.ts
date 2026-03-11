@@ -15,7 +15,7 @@ const corsHeaders = {
 async function generateScript(
   topic: string,
   clientContext: string,
-  referenceVideos: any[],
+  referenceVideos: unknown[],
   durationTarget: number,
 ): Promise<string> {
   const durationMinutes = Math.round(durationTarget / 60);
@@ -112,7 +112,7 @@ Escreva o roteiro completo, detalhado e pronto para gravação. Use linguagem na
 
 async function generateTitles(
   topic: string,
-  referenceVideos: any[],
+  referenceVideos: unknown[],
 ): Promise<string[]> {
   const prompt = `Gere 5 títulos altamente engajantes para um vídeo do YouTube sobre: "${topic}"
 
@@ -200,7 +200,7 @@ Deno.serve(async (req) => {
     }
 
     // Fetch reference videos if provided
-    let referenceVideos: any[] = [];
+    let referenceVideos: unknown[] = [];
     if (referenceVideoIds && referenceVideoIds.length > 0) {
       const { data: videos } = await supabase
         .from("youtube_video_analyses")
@@ -302,7 +302,7 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       },
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error in generate-video-script:", error);
     return new Response(
       JSON.stringify({

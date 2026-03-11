@@ -80,7 +80,7 @@ export const EditorAIChat: React.FC<EditorAIChatProps> = ({
 
       const response = await fetch(url);
       if (!response.ok) {
-
+        console.warn('Failed to fetch image:', url.substring(0, 50));
         return null;
       }
 
@@ -118,11 +118,9 @@ export const EditorAIChat: React.FC<EditorAIChatProps> = ({
       // This is CRITICAL because blob: URLs can't be fetched by the server
       let referenceImageBase64 = currentImageUrl;
       if (currentImageUrl.startsWith('blob:') || !currentImageUrl.startsWith('data:image/')) {
-
         const converted = await urlToBase64(currentImageUrl);
         if (converted) {
           referenceImageBase64 = converted;
-
         } else {
           throw new Error('Falha ao processar a imagem de referência');
         }

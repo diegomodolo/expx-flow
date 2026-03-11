@@ -15,7 +15,6 @@ export const useLeadDisqualificationNotifications = () => {
     if (!activeCompany?.company_id) return;
 
     try {
-
       const { data, error } = await supabase
         .from('lead_disqualification_reports')
         .select('id')
@@ -25,7 +24,6 @@ export const useLeadDisqualificationNotifications = () => {
       if (error) throw error;
 
       const count = data?.length || 0;
-
       setUnviewedCount(count);
     } catch (err) {
       console.error('Error fetching unviewed count:', err);
@@ -34,7 +32,6 @@ export const useLeadDisqualificationNotifications = () => {
 
   const markAllAsViewed = async () => {
     if (!activeCompany?.company_id || !user?.id) {
-
       return;
     }
 
@@ -55,7 +52,6 @@ export const useLeadDisqualificationNotifications = () => {
       }
 
       if (!unviewedReports || unviewedReports.length === 0) {
-
         setUnviewedCount(0);
         return;
       }
@@ -80,7 +76,6 @@ export const useLeadDisqualificationNotifications = () => {
       // Atualizar imediatamente o contador local
       setUnviewedCount(0);
       
-
     } catch (err) {
       console.error('markAllAsViewed: Erro completo:', err);
       toast({
@@ -98,7 +93,6 @@ export const useLeadDisqualificationNotifications = () => {
 
     // Escutar evento customizado para forçar refresh
     const handleRefresh = () => {
-
       fetchUnviewedCount();
     };
 
@@ -117,7 +111,6 @@ export const useLeadDisqualificationNotifications = () => {
             filter: `company_id=eq.${activeCompany.company_id}`
           },
           () => {
-
             fetchUnviewedCount();
             toast({
               title: "Novo lead desqualificado",
@@ -134,7 +127,6 @@ export const useLeadDisqualificationNotifications = () => {
             filter: `company_id=eq.${activeCompany.company_id}`
           },
           (payload) => {
-
             // Só atualizar se não estamos na tela de admin (para evitar loops)
             if (window.location.pathname !== '/leads-desqualificados') {
               fetchUnviewedCount();

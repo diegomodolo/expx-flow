@@ -142,7 +142,7 @@ Deno.serve(async (req) => {
               // Extrair conversões (leads)
               let conversions = 0;
               if (insight.actions) {
-                const leadAction = insight.actions.find((a: any) => 
+                const leadAction = insight.actions.find((a: unknown) =>
                   a.action_type === 'lead' || a.action_type === 'offsite_conversion.fb_pixel_lead'
                 );
                 conversions = leadAction ? parseInt(leadAction.value) : 0;
@@ -220,7 +220,7 @@ Deno.serve(async (req) => {
               
               let conversions = 0;
               if (insight.actions) {
-                const leadAction = insight.actions.find((a: any) => 
+                const leadAction = insight.actions.find((a: unknown) =>
                   a.action_type === 'lead' || a.action_type === 'offsite_conversion.fb_pixel_lead'
                 );
                 conversions = leadAction ? parseInt(leadAction.value) : 0;
@@ -297,7 +297,7 @@ Deno.serve(async (req) => {
               
               let conversions = 0;
               if (insight.actions) {
-                const leadAction = insight.actions.find((a: any) => 
+                const leadAction = insight.actions.find((a: unknown) =>
                   a.action_type === 'lead' || a.action_type === 'offsite_conversion.fb_pixel_lead'
                 );
                 conversions = leadAction ? parseInt(leadAction.value) : 0;

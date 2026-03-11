@@ -162,7 +162,7 @@ serve(async (req) => {
             const errText = await streamResponse.text().catch(() => "");
             console.log(`/stream failed (${streamResponse.status}): ${errText.substring(0, 300)}`);
           }
-        } catch (streamErr: any) {
+        } catch (streamErr: unknown) {
           console.log(`/stream error: ${streamErr?.message || streamErr}`);
         }
 
@@ -197,7 +197,7 @@ serve(async (req) => {
               const errText = await infoResp.text().catch(() => "");
               console.log(`/info failed: ${errText.substring(0, 200)}`);
             }
-          } catch (infoErr: any) {
+          } catch (infoErr: unknown) {
             console.log(`/info error: ${infoErr?.message}`);
           }
         }
@@ -228,7 +228,7 @@ serve(async (req) => {
                 }
               }
             }
-          } catch (duErr: any) {
+          } catch (duErr: unknown) {
             console.log(`/direct-url error: ${duErr?.message}`);
           }
         }
@@ -279,7 +279,7 @@ serve(async (req) => {
             progress_message: "Vídeo pronto, enviando para transcrição...",
           })
           .eq("id", job.id);
-      } catch (ytError: any) {
+      } catch (ytError: unknown) {
         console.error("YouTube download/upload error:", ytError);
         await supabase
           .from("clip_jobs")

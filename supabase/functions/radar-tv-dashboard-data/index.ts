@@ -200,7 +200,7 @@ serve(async (req) => {
     const problematicUrlsRaw = problematicUrlsResult.data || [];
 
     // Process problematic URLs into the expected format
-    const problematicUrls = problematicUrlsRaw.map((url: any) => ({
+    const problematicUrls = problematicUrlsRaw.map((url: unknown) => ({
       id: url.url_id,
       url: url.url,
       clientName: url.client_name,

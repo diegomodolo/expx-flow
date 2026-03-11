@@ -90,7 +90,6 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
         entity_type: (template.entity_type || "campaign") as "campaign" | "adset" | "ad",
       };
       
-
       setFormData(newFormData);
       
       setConditions(template.conditions as ConditionsGroup);
@@ -115,7 +114,6 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
       // Delay to ensure state is updated before rendering
       setTimeout(() => {
         setIsLoadingTemplate(false);
-
       }, 0);
     } else {
       setIsLoadingTemplate(false);

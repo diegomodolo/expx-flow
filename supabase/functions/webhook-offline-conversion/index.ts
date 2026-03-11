@@ -159,7 +159,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const hashedUserData: any = {};
+    const hashedUserData: unknown = {};
     
     if (userData?.email) {
       hashedUserData.em = await sha256Hash(userData.email);
@@ -247,7 +247,7 @@ Deno.serve(async (req) => {
 
     console.log('[Webhook] Meta API response:', metaData);
 
-    const validToken = tokenData as any;
+    const validToken = tokenData as unknown;
     const { error: logError } = await supabase
       .from('offline_conversions')
       .insert({

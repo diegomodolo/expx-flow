@@ -126,7 +126,7 @@ Retorne em formato JSON:
 
     // Update script with new titles if provided
     if (scriptId && result.titles) {
-      const newTitles = result.titles.map((t: any) => t.title);
+      const newTitles = result.titles.map((t: unknown) => t.title);
 
       const { data: currentScript } = await supabase
         .from("youtube_scripts")
@@ -154,7 +154,7 @@ Retorne em formato JSON:
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       },
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error in generate-youtube-titles:", error);
     return new Response(
       JSON.stringify({

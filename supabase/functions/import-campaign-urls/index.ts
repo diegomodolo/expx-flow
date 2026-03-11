@@ -97,7 +97,7 @@ serve(async (req) => {
     );
 
     // Prepare new URLs to insert
-    const newUrls: any[] = [];
+    const newUrls: unknown[] = [];
 
     for (const [clientId, urls] of urlsByClient) {
       for (const url of urls) {

@@ -94,7 +94,7 @@ serve(async (req) => {
     console.log("[configure-uazapi-webhook] Payload enviado:", JSON.stringify(webhookPayload));
 
     let webhookConfigured = false;
-    let successResponse: any = null;
+    let successResponse: unknown = null;
     const attemptLogs: string[] = [];
 
     // Tentar criar/atualizar webhook usando diferentes métodos

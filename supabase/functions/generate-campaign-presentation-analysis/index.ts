@@ -109,7 +109,7 @@ serve(async (req) => {
         ads?.map((a) => ({
           id: a.id,
           name: a.name,
-          campaign_name: (a.campaigns as any)?.name || "",
+          campaign_name: (a.campaigns as unknown)?.name || "",
           image_url: a.image_url,
           video_url: a.video_url,
           creative_type: a.creative_type,
@@ -124,7 +124,7 @@ serve(async (req) => {
 
     let executiveSummary = "";
     let actionPlan = "";
-    let campaignAnalyses: any[] = [];
+    let campaignAnalyses: unknown[] = [];
 
     // Generate AI analysis if OpenAI key is available
     if (openaiApiKey) {

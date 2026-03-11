@@ -242,7 +242,7 @@ async function validateUrl(url: string, urlId: string): Promise<ValidationResult
         final_url: finalUrl,
         content_length: totalBytes,
       }
-    } catch (getError: any) {
+    } catch (getError: unknown) {
       clearTimeout(getTimeoutId)
       clearTimeout(timeoutId)
       
@@ -257,7 +257,7 @@ async function validateUrl(url: string, urlId: string): Promise<ValidationResult
         final_url: finalUrl,
       }
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     const loadTime = Date.now() - startTime
     
     if (error.name === 'AbortError') {
@@ -419,7 +419,7 @@ Deno.serve(async (req) => {
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Validation error:', error)
     return new Response(
       JSON.stringify({ error: error.message }),

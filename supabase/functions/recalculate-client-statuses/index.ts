@@ -41,7 +41,7 @@ interface ClientMetrics {
 
 // Function to calculate client status based on metrics and rules
 async function calculateClientStatus(
-  supabase: any,
+  supabase: unknown,
   clientId: string,
   companyId: string
 ): Promise<{ humanStatus: string; dbStatus: string; explanation: string }> {
@@ -87,7 +87,7 @@ async function calculateClientStatus(
 }
 
 async function getClientMetrics(
-  supabase: any,
+  supabase: unknown,
   clientId: string,
   companyId: string
 ): Promise<ClientMetrics> {
@@ -125,7 +125,7 @@ async function getClientMetrics(
     .eq('company_id', companyId);
 
   // Normalize and combine campaigns from both platforms
-  const normalizedMetaCampaigns = (metaCampaigns || []).map((c: any) => ({
+  const normalizedMetaCampaigns = (metaCampaigns || []).map((c: unknown) => ({
     ...c,
     platform: 'meta',
     spend: c.spend || 0,
@@ -134,7 +134,7 @@ async function getClientMetrics(
     ctr: c.ctr || 0,
   }));
 
-  const normalizedGoogleCampaigns = (googleCampaigns || []).map((c: any) => ({
+  const normalizedGoogleCampaigns = (googleCampaigns || []).map((c: unknown) => ({
     ...c,
     platform: 'google',
     spend: c.spend || c.cost || 0,
@@ -218,12 +218,12 @@ async function getClientMetrics(
   // ============================================================
 
   // Total conversions and spend from ALL campaigns (30-day period data)
-  const metaLeads30d = normalizedMetaCampaigns.reduce((sum: number, c: any) => sum + (c.conversions || 0), 0);
-  const googleLeads30d = normalizedGoogleCampaigns.reduce((sum: number, c: any) => sum + (c.conversions || 0), 0);
+  const metaLeads30d = normalizedMetaCampaigns.reduce((sum: number, c: unknown) => sum + (c.conversions || 0), 0);
+  const googleLeads30d = normalizedGoogleCampaigns.reduce((sum: number, c: unknown) => sum + (c.conversions || 0), 0);
   const leads30Days = metaLeads30d + googleLeads30d;
 
-  const metaSpend30d = normalizedMetaCampaigns.reduce((sum: number, c: any) => sum + (c.spend || 0), 0);
-  const googleSpend30d = normalizedGoogleCampaigns.reduce((sum: number, c: any) => sum + (c.spend || 0), 0);
+  const metaSpend30d = normalizedMetaCampaigns.reduce((sum: number, c: unknown) => sum + (c.spend || 0), 0);
+  const googleSpend30d = normalizedGoogleCampaigns.reduce((sum: number, c: unknown) => sum + (c.spend || 0), 0);
   const spend30Days = metaSpend30d + googleSpend30d;
 
   // Estimate weekly values from 30-day totals: (30d_value / 30) * 7
@@ -232,13 +232,13 @@ async function getClientMetrics(
   const estimatedWeeklyCPA = estimatedWeeklyLeads > 0 ? estimatedWeeklySpend / estimatedWeeklyLeads : 0;
 
   // Count active campaigns (is_active flag, regardless of updated_at)
-  const activeCampaigns = allCampaigns.filter((c: any) => c.is_active);
+  const activeCampaigns = allCampaigns.filter((c: unknown) => c.is_active);
   
   // Count recent campaigns (those with any data)
   const recentCampaigns = allCampaigns;
 
   // Calculate average CTR from active campaigns
-  const totalCTR = activeCampaigns.reduce((sum: number, c: any) => sum + (c.ctr || 0), 0);
+  const totalCTR = activeCampaigns.reduce((sum: number, c: unknown) => sum + (c.ctr || 0), 0);
   const averageCTR = activeCampaigns.length > 0 ? totalCTR / activeCampaigns.length : 0;
 
   // Days since last optimization
@@ -253,13 +253,13 @@ async function getClientMetrics(
     : 999;
 
   // Quality issues from ads
-  const hasQualityIssues = ads?.some((ad: any) => 
+  const hasQualityIssues = ads?.some((ad: unknown) =>
     ad.quality_ranking === 'BELOW_AVERAGE' || 
     ad.engagement_rate_ranking === 'BELOW_AVERAGE' ||
     ad.conversion_rate_ranking === 'BELOW_AVERAGE'
   ) || false;
 
-  const hasReprovedAds = ads?.some((ad: any) => ad.status === 'disapproved') || false;
+  const hasReprovedAds = ads?.some((ad: unknown) => ad.status === 'disapproved') || false;
 
   // Lead drop: we can't calculate real week-over-week without historical snapshots
   // For now, set to 0 to prevent false positives
@@ -303,14 +303,14 @@ async function getClientMetrics(
   };
 }
 
-function evaluateRule(rule: any, metrics: ClientMetrics): boolean {
+function evaluateRule(rule: unknown, metrics: ClientMetrics): boolean {
   const { conditions } = rule.conditions;
   const logic = rule.conditions.logic;
   
   if (!conditions || conditions.length === 0) return false;
 
-  const results = conditions.map((condition: any) => {
-    const value = (metrics as any)[condition.field];
+  const results = conditions.map((condition: unknown) => {
+    const value = (metrics as unknown)[condition.field];
     
     switch (condition.operator) {
       case '<': return Number(value) < Number(condition.value);

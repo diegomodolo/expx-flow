@@ -160,12 +160,12 @@ serve(async (req) => {
       );
     }
 
-    const generatedCreatives: any[] = [];
+    const generatedCreatives: unknown[] = [];
     const errors: string[] = [];
     const currentDistribution = { concepts: 0, iterations: 0 };
 
     // Helper to save creative and update history
-    const saveCreativeAndUpdateHistory = async (creative: any) => {
+    const saveCreativeAndUpdateHistory = async (creative: unknown) => {
       const creativeToInsert = {
         client_id,
         company_id,
@@ -243,7 +243,7 @@ serve(async (req) => {
             await saveCreativeAndUpdateHistory(creative);
             generatedCreatives.push(creative);
           }
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error(
             "[daily-creative-generator] Error generating concept:",
             error,
@@ -270,7 +270,7 @@ serve(async (req) => {
             await saveCreativeAndUpdateHistory(creative);
             generatedCreatives.push(creative);
           }
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error(
             "[daily-creative-generator] Error generating iteration:",
             error,
@@ -316,7 +316,7 @@ serve(async (req) => {
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[daily-creative-generator] Error:", error);
 
     if (historyId) {
@@ -364,10 +364,10 @@ function getScheduleReferenceImages(
 }
 
 async function generateConceptCreative(
-  supabase: any,
+  supabase: unknown,
   client: ClientData,
   schedule: CreativeGenerationSchedule | null,
-): Promise<any> {
+): Promise<unknown> {
   const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
 
   // Get a random research theme
@@ -464,10 +464,10 @@ Responda APENAS em JSON válido:
 }
 
 async function generateIterationCreative(
-  supabase: any,
+  supabase: unknown,
   client: ClientData,
   schedule: CreativeGenerationSchedule | null,
-): Promise<any> {
+): Promise<unknown> {
   const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
 
   // Get a previous approved/published creative
@@ -570,7 +570,7 @@ Responda APENAS em JSON válido:
 
 async function generateCreativeImage(
   client: ClientData,
-  content: any,
+  content: unknown,
   schedule: CreativeGenerationSchedule | null,
 ): Promise<string | null> {
   const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");

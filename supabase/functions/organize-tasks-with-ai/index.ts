@@ -411,7 +411,7 @@ RETORNE APENAS JSON:`,
 });
 
 // Função auxiliar para identificar tipo de slot baseado no nome e descrição
-function getSlotType(slot: any): string {
+function getSlotType(slot: unknown): string {
   const name = slot.name?.toLowerCase() || "";
   const description = slot.description?.toLowerCase() || "";
   const combined = `${name} ${description}`;

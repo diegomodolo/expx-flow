@@ -39,7 +39,6 @@ export function useAutomationExecutionProgress(executionId?: string | null) {
         throw error;
       }
       
-
       return data as ExecutionProgress[];
     },
     enabled: !!executionId,

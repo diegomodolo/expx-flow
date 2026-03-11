@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
         reach: previousWeekMetrics.totalReach,
         roas: previousWeekMetrics.roas,
       },
-      activeCampaigns: campaignsData.filter((c: any) => c.status === "active")
+      activeCampaigns: campaignsData.filter((c: unknown) => c.status === "active")
         .length,
       totalCampaigns: campaignsData.length,
     };
@@ -215,8 +215,8 @@ Responda APENAS em JSON válido no formato:
 });
 
 function generateFallbackInsights(
-  currentWeek: any,
-  previousWeek: any,
+  currentWeek: unknown,
+  previousWeek: unknown,
   cpaChange: number,
   conversionsChange: number,
 ) {

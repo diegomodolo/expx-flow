@@ -54,11 +54,11 @@ async function fetchTranscript(videoId: string): Promise<string | null> {
     }
 
     // Prefer Portuguese, then English, then any available
-    let selectedTrack = captionTracks.find((t: any) =>
+    let selectedTrack = captionTracks.find((t: unknown) =>
       t.languageCode?.startsWith("pt"),
     );
     if (!selectedTrack) {
-      selectedTrack = captionTracks.find((t: any) =>
+      selectedTrack = captionTracks.find((t: unknown) =>
         t.languageCode?.startsWith("en"),
       );
     }
@@ -235,7 +235,7 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       },
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error in transcribe-youtube-video:", error);
     return new Response(
       JSON.stringify({

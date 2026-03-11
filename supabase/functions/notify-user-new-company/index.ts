@@ -70,7 +70,7 @@ const handler = async (req: Request): Promise<Response> => {
       },
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao enviar notificação de nova empresa:", error);
     
     return new Response(

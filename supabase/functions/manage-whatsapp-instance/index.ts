@@ -53,7 +53,7 @@ serve(async (req) => {
     const cleanEndpoint = config.uazapi_endpoint?.replace(/\/$/, "");
 
     // Get instance if instance_id provided
-    let instance: any = null;
+    let instance: unknown = null;
     if (instance_id) {
       const { data: instanceData, error: instanceError } = await supabase
         .from("whatsapp_instances")

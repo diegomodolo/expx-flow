@@ -133,7 +133,7 @@ ${chunk.map((t: string, i: number) => `${i + 1}. "${t}"`).join("\n")}`;
     }
 
     throw new Error("No text provided for translation");
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error in translate-text:", error);
     return new Response(
       JSON.stringify({ success: false, error: error.message }),

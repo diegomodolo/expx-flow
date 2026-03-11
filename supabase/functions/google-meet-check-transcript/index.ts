@@ -6,7 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-async function getValidAccessToken(supabaseClient: any, companyId: string) {
+async function getValidAccessToken(supabaseClient: unknown, companyId: string) {
   const { data: integration, error } = await supabaseClient
     .from('google_meet_integrations')
     .select('*')
@@ -251,7 +251,7 @@ serve(async (req) => {
     const entries = entriesData.transcriptEntries || [];
 
     const rawTranscript = entries
-      .map((entry: any) => {
+      .map((entry: unknown) => {
         const speaker = entry.participant?.displayName || 'Unknown';
         const text = entry.text || '';
         const time = entry.startTime || '';

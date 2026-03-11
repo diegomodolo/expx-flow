@@ -227,7 +227,7 @@ serve(async (req) => {
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error in create-meta-ad:", error);
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
@@ -259,7 +259,7 @@ async function createAdCreative(
   creative: CreativeRequest['creative'],
   pageId: string,
   finalUrl: string
-): Promise<any> {
+): Promise<unknown> {
   const ctaType = creative.call_to_action || 'LEARN_MORE';
 
   if (creative.type === 'CAROUSEL') {

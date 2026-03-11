@@ -67,7 +67,7 @@ serve(async (req) => {
       .update({ status: "generating" })
       .eq("id", slideId);
 
-    const scriptInfo = slide.youtube_scripts as any;
+    const scriptInfo = slide.youtube_scripts as unknown;
 
     // Use the thumbnail URL from the request or from the script
     const referenceThumbnail = thumbnailUrl || scriptInfo.thumbnail_url;
@@ -96,8 +96,8 @@ DESIGN REQUIREMENTS:
 VIDEO CONTEXT: This is for the video "${scriptInfo.title}"`;
 
     // Build messages array
-    const messages: any[] = [];
-    const userContent: any[] = [];
+    const messages: unknown[] = [];
+    const userContent: unknown[] = [];
 
     // Add reference thumbnail if available
     if (referenceThumbnail) {
@@ -226,7 +226,7 @@ The slide should look like it belongs to the same visual family as the thumbnail
             }
           }
         }
-      } catch (fetchError: any) {
+      } catch (fetchError: unknown) {
         console.error(
           `[generate-slide-image] Fetch error (attempt ${attempt}):`,
           fetchError,
@@ -320,7 +320,7 @@ The slide should look like it belongs to the same visual family as the thumbnail
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[generate-slide-image] Error:", error);
     return new Response(
       JSON.stringify({ error: error.message || "Internal server error" }),

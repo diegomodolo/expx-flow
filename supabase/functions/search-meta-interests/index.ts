@@ -82,7 +82,7 @@ serve(async (req) => {
     }
 
     // Map response to our interest format
-    const interests = (data.data || []).map((item: any) => ({
+    const interests = (data.data || []).map((item: unknown) => ({
       id: item.id,
       name: item.name,
       audience_size_lower_bound: item.audience_size_lower_bound,
@@ -97,7 +97,7 @@ serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error searching interests:', error);
     return new Response(
       JSON.stringify({ error: error.message }),

@@ -130,7 +130,7 @@ Deno.serve(async (req) => {
     }
 
     // Preparar updates do lead
-    const leadUpdates: any = {
+    const leadUpdates: unknown = {
       stage_id: toStageId,
       updated_at: new Date().toISOString(),
     };

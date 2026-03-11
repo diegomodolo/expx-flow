@@ -247,7 +247,7 @@ serve(async (req) => {
     const problematicUrlsRaw = problematicUrlsResult.data || [];
 
     // Process problematic URLs into the expected format
-    const problematicUrls = problematicUrlsRaw.map((url: any) => ({
+    const problematicUrls = problematicUrlsRaw.map((url: unknown) => ({
       id: url.url_id,
       url: url.url,
       clientName: url.client_name,
@@ -383,7 +383,7 @@ serve(async (req) => {
 
     // Calculate spend per client from ALL campaigns (for budget alerts - matches Clientes.tsx)
     const clientSpendForAlerts: Record<string, { meta: number; google: number; total: number }> = {};
-    allMetaCampaigns.forEach((c: any) => {
+    allMetaCampaigns.forEach((c: unknown) => {
       if (c.client_id) {
         if (!clientSpendForAlerts[c.client_id]) {
           clientSpendForAlerts[c.client_id] = { meta: 0, google: 0, total: 0 };
@@ -392,7 +392,7 @@ serve(async (req) => {
         clientSpendForAlerts[c.client_id].total += (c.spend || 0);
       }
     });
-    allGoogleCampaigns.forEach((c: any) => {
+    allGoogleCampaigns.forEach((c: unknown) => {
       if (c.client_id) {
         if (!clientSpendForAlerts[c.client_id]) {
           clientSpendForAlerts[c.client_id] = { meta: 0, google: 0, total: 0 };
@@ -408,8 +408,8 @@ serve(async (req) => {
 
     // Calculate metrics using ALL campaigns (not just active) - matches Dashboard principal
     // This ensures TV Dashboard shows the same investment as other dashboards
-    const totalInvestment = [...allMetaCampaigns, ...allGoogleCampaigns].reduce((sum, c: any) => sum + (Number(c.spend) || 0), 0);
-    const totalLeads = [...allMetaCampaigns, ...allGoogleCampaigns].reduce((sum, c: any) => sum + (Number(c.conversions) || 0), 0);
+    const totalInvestment = [...allMetaCampaigns, ...allGoogleCampaigns].reduce((sum, c: unknown) => sum + (Number(c.spend) || 0), 0);
+    const totalLeads = [...allMetaCampaigns, ...allGoogleCampaigns].reduce((sum, c: unknown) => sum + (Number(c.conversions) || 0), 0);
     
     // For clicks/impressions, we still use active campaigns since ALL campaigns don't have these fields
     const totalClicks = campaigns.reduce((sum, c) => sum + c.clicks, 0);
@@ -430,8 +430,8 @@ serve(async (req) => {
       : 0;
 
     // Investment by platform (using ALL campaigns to match totalInvestment)
-    const metaInvestment = allMetaCampaigns.reduce((sum, c: any) => sum + (Number(c.spend) || 0), 0);
-    const googleInvestment = allGoogleCampaigns.reduce((sum, c: any) => sum + (Number(c.spend) || 0), 0);
+    const metaInvestment = allMetaCampaigns.reduce((sum, c: unknown) => sum + (Number(c.spend) || 0), 0);
+    const googleInvestment = allGoogleCampaigns.reduce((sum, c: unknown) => sum + (Number(c.spend) || 0), 0);
     const investmentByPlatform: Record<string, number> = {
       'Meta Ads': metaInvestment,
       'Google Ads': googleInvestment
@@ -486,7 +486,7 @@ serve(async (req) => {
     }> = [];
 
     campaigns.forEach(campaign => {
-      const clientName = (campaign.clients as any)?.name || clientNameMap[campaign.client_id] || 'Cliente';
+      const clientName = (campaign.clients as unknown)?.name || clientNameMap[campaign.client_id] || 'Cliente';
       const platformLabel = campaign.platform === 'meta' ? 'Meta' : 'Google';
       
       // Get benchmarks for this client and platform
@@ -551,7 +551,7 @@ serve(async (req) => {
       .map(c => ({
         id: c.id,
         name: c.name,
-        clientName: (c.clients as any)?.name || clientNameMap[c.client_id] || 'Cliente',
+        clientName: (c.clients as unknown)?.name || clientNameMap[c.client_id] || 'Cliente',
         clientAvatar: clientAvatarMap[c.client_id] || null,
         clientId: c.client_id,
         spend: c.spend,
@@ -563,7 +563,7 @@ serve(async (req) => {
       }));
 
     // Helper to check if account is restricted
-    const isAccountRestricted = (client: any): { restricted: boolean; reason: string } => {
+    const isAccountRestricted = (client: unknown): { restricted: boolean; reason: string } => {
       const fbAccount = Array.isArray(client.facebook_ad_accounts)
         ? client.facebook_ad_accounts[0]
         : client.facebook_ad_accounts;
@@ -636,7 +636,7 @@ serve(async (req) => {
       if (!acc[clientId]) {
         acc[clientId] = {
           id: clientId,
-          name: (c.clients as any)?.name || clientNameMap[clientId] || 'Cliente',
+          name: (c.clients as unknown)?.name || clientNameMap[clientId] || 'Cliente',
           spend: 0,
           conversions: 0,
           campaigns: 0,
@@ -648,12 +648,12 @@ serve(async (req) => {
       acc[clientId].campaigns += 1;
       acc[clientId].platforms.add(c.platform === 'meta' ? 'Meta' : 'Google');
       return acc;
-    }, {} as Record<string, any>);
+    }, {} as Record<string, unknown>);
 
     // Get top performing clients - sorted by LEADS (conversions), not CPA
     const topClients = Object.values(clientPerformance)
-      .filter((c: any) => c.conversions > 0)
-      .map((c: any) => ({
+      .filter((c: unknown) => c.conversions > 0)
+      .map((c: unknown) => ({
         id: c.id,
         name: c.name,
         spend: c.spend,
@@ -663,7 +663,7 @@ serve(async (req) => {
         avatar: clientAvatarMap[c.id] || null,
         platforms: Array.from(c.platforms)
       }))
-      .sort((a: any, b: any) => b.conversions - a.conversions)
+      .sort((a: unknown, b: unknown) => b.conversions - a.conversions)
       .slice(0, 6);
 
     // Calculate worst performing campaigns (from both platforms) - using benchmarks
@@ -678,7 +678,7 @@ serve(async (req) => {
       .map(c => ({
         id: c.id,
         name: c.name,
-        clientName: (c.clients as any)?.name || clientNameMap[c.client_id] || 'Cliente',
+        clientName: (c.clients as unknown)?.name || clientNameMap[c.client_id] || 'Cliente',
         clientAvatar: clientAvatarMap[c.client_id] || null,
         cpa: c.cpa,
         spend: c.spend,
@@ -789,7 +789,7 @@ serve(async (req) => {
       }
     };
 
-    clientsWithBudget.forEach((client: any) => {
+    clientsWithBudget.forEach((client: unknown) => {
       // Skip inactive clients
       if (client.status === 'inativo') return;
 

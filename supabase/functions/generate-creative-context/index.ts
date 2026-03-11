@@ -155,7 +155,7 @@ Garanta que o JSON seja válido e todos os campos estejam preenchidos.`;
     return new Response(JSON.stringify({ context }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error in generate-creative-context function:", error);
     return new Response(
       JSON.stringify({

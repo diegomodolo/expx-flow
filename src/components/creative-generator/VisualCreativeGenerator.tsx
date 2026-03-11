@@ -45,7 +45,6 @@ export function VisualCreativeGenerator({ data, onImageGenerated }: VisualCreati
       // Converter referências para base64 se existirem
       let references: string[] = [];
       if (data.references && data.references.length > 0) {
-
         references = await Promise.all(
           data.references.map(async (item) => {
             // Se for URL, usar diretamente
@@ -65,7 +64,6 @@ export function VisualCreativeGenerator({ data, onImageGenerated }: VisualCreati
           })
         );
         references = references.filter(r => r !== '');
-
       }
 
       const requestBody = {
@@ -78,8 +76,6 @@ export function VisualCreativeGenerator({ data, onImageGenerated }: VisualCreati
         approvedText: data.context.copy,
       };
       
-
-
 
       const { data: result, error } = await supabase.functions.invoke('generate-visual-creative', {
         body: requestBody,

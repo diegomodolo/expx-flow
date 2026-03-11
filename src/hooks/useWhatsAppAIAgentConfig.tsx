@@ -178,7 +178,6 @@ export function useWhatsAppAIAgentConfig(companyId: string | undefined, instance
       
       if (config?.id) {
         // Update existing
-
         const { data, error } = await supabase
           .from("whatsapp_ai_agent_config")
           .update(dataToSave)
@@ -193,7 +192,6 @@ export function useWhatsAppAIAgentConfig(companyId: string | undefined, instance
         result = data;
       } else {
         // Insert new
-
         const { data, error } = await supabase
           .from("whatsapp_ai_agent_config")
           .insert(dataToSave)
@@ -206,7 +204,6 @@ export function useWhatsAppAIAgentConfig(companyId: string | undefined, instance
         }
         result = data;
       }
-
 
       setConfig(result as WhatsAppAIAgentConfig);
 

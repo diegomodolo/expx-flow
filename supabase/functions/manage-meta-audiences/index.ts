@@ -104,7 +104,7 @@ Deno.serve(async (req) => {
       case 'list':
       case 'sync': {
         // Listar públicos do Meta com paginação
-        let allAudiences: any[] = [];
+        let allAudiences: unknown[] = [];
         let nextUrl: string | null = `${graphApiUrl}/${actAdAccountId}/customaudiences?fields=id,name,description,subtype,approximate_count_lower_bound,approximate_count_upper_bound,operation_status&limit=100&access_token=${accessToken}`;
         
         // Paginar através de todos os resultados
@@ -155,7 +155,7 @@ Deno.serve(async (req) => {
 
         return new Response(JSON.stringify({
           success: true,
-          audiences: allAudiences.map((a: any) => ({
+          audiences: allAudiences.map((a: unknown) => ({
             id: a.id,
             name: a.name,
             description: a.description,
@@ -192,8 +192,8 @@ Deno.serve(async (req) => {
         if (data.error) {
           console.error('[manage-meta-audiences] Create error:', data.error);
 
-          const subcode = Number((data.error as any).error_subcode);
-          const userMsg: string | undefined = (data.error as any).error_user_msg;
+          const subcode = Number((data.error as unknown).error_subcode);
+          const userMsg: string | undefined = (data.error as unknown).error_user_msg;
 
           // Check for TOS error (error_subcode 1870090)
           if (subcode === 1870090) {
@@ -354,7 +354,7 @@ Deno.serve(async (req) => {
 
         const url = `${graphApiUrl}/${actAdAccountId}/customaudiences`;
         
-        const lookalikeSpec: any = {
+        const lookalikeSpec: unknown = {
           starting_ratio: 0,
           ratio: targetRatio,
           country: targetCountry,
@@ -435,7 +435,7 @@ Deno.serve(async (req) => {
         console.log(`[manage-meta-audiences] Creating website audience with pixel ${pixelId}, retention: ${retention} days`);
 
         // Build rule based on ruleType
-        let filter: any = { operator: 'and', filters: [] };
+        let filter: unknown = { operator: 'and', filters: [] };
         
         if (ruleType === 'url_contains' && urlValue) {
           filter = {
@@ -549,7 +549,7 @@ Deno.serve(async (req) => {
 
         console.log(`[manage-meta-audiences] Creating engagement audience type: ${engagementType}, source: ${sourceId}`);
 
-        let rule: any;
+        let rule: unknown;
         let subtypeValue: string;
         let descriptionText: string;
 

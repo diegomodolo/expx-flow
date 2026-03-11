@@ -170,7 +170,6 @@ export default function EditorImagens() {
             clientId=""
             companyId={activeCompany.company_id}
             onSave={(newImages) => {
-
               handleModalOpenChange(false);
             }}
           />

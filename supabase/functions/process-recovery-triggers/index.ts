@@ -64,7 +64,7 @@ Deno.serve(async (req) => {
       
       try {
         // Determinar a entidade e ação de recovery
-        let entity: any, entityType: string, recoveryAction: string, facebookId: string, accessToken: string;
+        let entity: unknown, entityType: string, recoveryAction: string, facebookId: string, accessToken: string;
         
         if (log.entity_type === 'campaign' && log.campaigns) {
           entity = log.campaigns;
@@ -184,7 +184,7 @@ Deno.serve(async (req) => {
         console.log(`✅ Recovery successful for ${entity.name}`);
         results.success++;
 
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error(`❌ Error processing recovery for log ${log.id}:`, error);
         results.errors++;
         
@@ -212,7 +212,7 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Fatal error:', error);
     return new Response(JSON.stringify({ 
       success: false,

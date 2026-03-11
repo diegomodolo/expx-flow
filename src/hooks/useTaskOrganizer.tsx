@@ -83,7 +83,6 @@ export const useTaskOrganizer = () => {
       return data as OrganizationPlan;
     },
     onSuccess: (data) => {
-
       setOrganizationPlan(data);
       toast({
         title: "Organização criada",

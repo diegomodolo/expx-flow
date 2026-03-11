@@ -32,7 +32,6 @@ export function WhatsAppVideoViewer({
   // Check if we have cached media on mount
   useEffect(() => {
     if (hasCachedMedia(cachedMediaUrl)) {
-
       setVideoSrc(cachedMediaUrl!);
       setVideoLoaded(true);
       // Generate thumbnail from cached video
@@ -68,7 +67,6 @@ export function WhatsAppVideoViewer({
     };
     
     video.onerror = () => {
-
     };
   }, []);
 
@@ -128,7 +126,6 @@ export function WhatsAppVideoViewer({
       setVideoSrc(url);
       setVideoLoaded(true);
       generateThumbnail(url);
-
     } catch (err: unknown) {
       console.error("[WhatsAppVideoViewer] Error:", err);
       setError(err.message || "Erro ao carregar vídeo");

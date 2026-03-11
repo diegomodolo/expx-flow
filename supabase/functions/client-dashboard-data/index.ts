@@ -116,7 +116,7 @@ interface SocialMetrics {
  * ou soma para campanhas não-Lead.
  */
 function countConversionsFromActions(
-  actions: any[] | undefined, 
+  actions: unknown[] | undefined,
   campaignObjective?: string, 
   campaignName?: string
 ): number {
@@ -124,9 +124,9 @@ function countConversionsFromActions(
     return 0;
   }
 
-  const norm = (s: any) => (s ?? '').toString().trim().toLowerCase();
-  const getVal = (a: any) => {
-    const toNum = (v: any) => (typeof v === 'string' ? parseFloat(v) : Number(v));
+  const norm = (s: unknown) => (s ?? '').toString().trim().toLowerCase();
+  const getVal = (a: unknown) => {
+    const toNum = (v: unknown) => (typeof v === 'string' ? parseFloat(v) : Number(v));
     const click = toNum(a?.['7d_click']);
     const view = toNum(a?.['1d_view']);
     const val = toNum(a?.value);
@@ -251,7 +251,7 @@ function countConversionsFromActions(
   }
 }
 
-async function fetchSocialMetrics(supabase: any, clientId: string): Promise<SocialMetrics> {
+async function fetchSocialMetrics(supabase: unknown, clientId: string): Promise<SocialMetrics> {
   console.log('Fetching social metrics for client:', clientId);
   
   const { data: clientFull, error: clientError } = await supabase
@@ -315,7 +315,7 @@ async function fetchSocialMetrics(supabase: any, clientId: string): Promise<Soci
         const posts = mediaData.data || [];
         postsCount = posts.length;
 
-        const mappedPosts: InstagramFeedPost[] = posts.map((p: any) => ({
+        const mappedPosts: InstagramFeedPost[] = posts.map((p: unknown) => ({
           id: p.id,
           thumbnail_url: p.thumbnail_url || p.media_url || '',
           caption: p.caption || '',
@@ -327,8 +327,8 @@ async function fetchSocialMetrics(supabase: any, clientId: string): Promise<Soci
 
         recentPosts = mappedPosts.slice(0, 30);
 
-        totalLikes = mappedPosts.reduce((sum: number, p: any) => sum + (p.like_count || 0), 0);
-        totalComments = mappedPosts.reduce((sum: number, p: any) => sum + (p.comments_count || 0), 0);
+        totalLikes = mappedPosts.reduce((sum: number, p: unknown) => sum + (p.like_count || 0), 0);
+        totalComments = mappedPosts.reduce((sum: number, p: unknown) => sum + (p.comments_count || 0), 0);
         avgEngagement = postsCount > 0 ? (totalLikes + totalComments) / postsCount : 0;
 
         topPosts = mappedPosts
@@ -381,19 +381,19 @@ async function fetchSocialMetrics(supabase: any, clientId: string): Promise<Soci
           const dailyData = await dailyResponse.json();
           
           if (dailyData.data) {
-            dailyData.data.forEach((metric: any) => {
+            dailyData.data.forEach((metric: unknown) => {
               const values = metric.values || [];
               const metricName = metric.name;
               
-              const timelineArray = values.map((v: any) => ({
+              const timelineArray = values.map((v: unknown) => ({
                 date: v.end_time?.split('T')[0] || '',
                 value: v.value || 0,
-              })).filter((v: any) => v.date);
+              })).filter((v: unknown) => v.date);
               
               switch (metricName) {
                 case 'reach':
                   timeline.reach = timelineArray;
-                  reach = timelineArray.reduce((sum: number, v: any) => sum + v.value, 0);
+                  reach = timelineArray.reduce((sum: number, v: unknown) => sum + v.value, 0);
                   break;
                 case 'follower_count':
                   timeline.follower_count = timelineArray;
@@ -416,7 +416,7 @@ async function fetchSocialMetrics(supabase: any, clientId: string): Promise<Soci
           const totalData = await totalResponse.json();
           
           if (totalData.data) {
-            totalData.data.forEach((metric: any) => {
+            totalData.data.forEach((metric: unknown) => {
               const metricName = metric.name;
               const totalValue = metric.total_value?.value || 0;
               
@@ -527,9 +527,9 @@ async function fetchSocialMetrics(supabase: any, clientId: string): Promise<Soci
           const insightsData = await pageInsightsResponse.json();
           
           if (insightsData.data) {
-            insightsData.data.forEach((metric: any) => {
+            insightsData.data.forEach((metric: unknown) => {
               const values = metric.values || [];
-              const totalValue = values.reduce((sum: number, v: any) => sum + (v.value || 0), 0);
+              const totalValue = values.reduce((sum: number, v: unknown) => sum + (v.value || 0), 0);
               
               switch (metric.name) {
                 case 'page_impressions_unique':
@@ -559,7 +559,7 @@ async function fetchSocialMetrics(supabase: any, clientId: string): Promise<Soci
           const postsData = await postsResponse.json();
           const posts = postsData.data || [];
           
-          recentPosts = posts.map((p: any) => ({
+          recentPosts = posts.map((p: unknown) => ({
             id: p.id,
             message: p.message || '',
             created_time: p.created_time,
@@ -611,7 +611,7 @@ function mapPresetToMeta(preset: string): string | null {
 // ========================== Google Ads Integration ==========================
 
 interface GoogleAdsMetrics {
-  campaigns: any[];
+  campaigns: unknown[];
   totalSpend: number;
   totalConversions: number;
   totalImpressions: number;
@@ -620,7 +620,7 @@ interface GoogleAdsMetrics {
 }
 
 async function fetchGoogleAdsData(
-  supabase: any,
+  supabase: unknown,
   clientId: string,
   googleAccountId: string,
   period: { since: string; until: string }
@@ -711,13 +711,13 @@ async function fetchGoogleAdsData(
     console.log('Headers:', JSON.stringify({ ...headers, Authorization: 'Bearer ***', 'developer-token': '***' }));
 
     // Fetch campaigns with pagination support
-    const campaignsMap = new Map<string, any>();
+    const campaignsMap = new Map<string, unknown>();
     let nextPageToken: string | undefined = undefined;
     let pageCount = 0;
     const maxPages = 10; // Safety limit
 
     do {
-      const requestBody: any = { query: gaqlQuery };
+      const requestBody: unknown = { query: gaqlQuery };
       if (nextPageToken) {
         requestBody.pageToken = nextPageToken;
       }
@@ -730,7 +730,7 @@ async function fetchGoogleAdsData(
 
       if (!campaignsResponse.ok) {
         const errorText = await campaignsResponse.text();
-        let errorJson: any = {};
+        let errorJson: unknown = {};
         try {
           errorJson = JSON.parse(errorText);
         } catch {
@@ -757,7 +757,7 @@ async function fetchGoogleAdsData(
       const results = responseData.results || [];
       console.log(`Google Ads campaigns page ${pageCount}: ${results.length} results`);
       
-      results.forEach((result: any) => {
+      results.forEach((result: unknown) => {
         const campaignId = result.campaign?.id;
         if (!campaignId) return;
 
@@ -826,7 +826,7 @@ async function fetchGoogleAdsData(
     console.log('Fetching Google Ads timeline data...');
 
     do {
-      const timelineRequestBody: any = { query: timelineQuery };
+      const timelineRequestBody: unknown = { query: timelineQuery };
       if (timelineNextPageToken) {
         timelineRequestBody.pageToken = timelineNextPageToken;
       }
@@ -850,7 +850,7 @@ async function fetchGoogleAdsData(
       timelinePageCount++;
       
       const results = timelineData.results || [];
-      results.forEach((result: any) => {
+      results.forEach((result: unknown) => {
         const date = result.segments?.date;
         if (!date) return;
 
@@ -980,8 +980,8 @@ Deno.serve(async (req) => {
     // ===================== Fetch Data from Both Platforms in Parallel =====================
     
     let facebookResult: {
-      campaigns: any[];
-      processedCampaigns: any[];
+      campaigns: unknown[];
+      processedCampaigns: unknown[];
       timelineMap: Map<string, { leads: number; messages: number; spend: number }>;
       totalSpend: number;
       totalConversions: number;
@@ -989,7 +989,7 @@ Deno.serve(async (req) => {
       totalImpressions: number;
       totalClicks: number;
       totalReach: number;
-      debugCampaigns: any[];
+      debugCampaigns: unknown[];
     } | null = null;
 
     let googleResult: GoogleAdsMetrics | null = null;
@@ -1068,7 +1068,7 @@ Deno.serve(async (req) => {
             const timelineMap = new Map<string, { leads: number; messages: number; spend: number }>();
             
             if (timelineData.data && Array.isArray(timelineData.data)) {
-              timelineData.data.forEach((insight: any) => {
+              timelineData.data.forEach((insight: unknown) => {
                 const date = insight.date_start;
                 if (date) {
                   const combinedMetrics = [
@@ -1078,7 +1078,7 @@ Deno.serve(async (req) => {
                   
                   const conversions = countConversionsFromActions(combinedMetrics, undefined, `Timeline ${date}`);
                   const messages = insight.actions?.find(
-                    (a: any) => a.action_type === 'onsite_conversion.messaging_conversation_started_7d'
+                    (a: unknown) => a.action_type === 'onsite_conversion.messaging_conversation_started_7d'
                   )?.value || 0;
                   const spend = parseFloat(insight.spend || '0');
                   
@@ -1095,9 +1095,9 @@ Deno.serve(async (req) => {
             let totalImpressions = 0;
             let totalClicks = 0;
             let totalReach = 0;
-            const debugCampaigns: any[] = [];
+            const debugCampaigns: unknown[] = [];
 
-            const processedCampaigns = campaigns.map((campaign: any) => {
+            const processedCampaigns = campaigns.map((campaign: unknown) => {
               const insights = campaign.insights?.data || [];
               
               if (insights.length === 0) {
@@ -1123,7 +1123,7 @@ Deno.serve(async (req) => {
               let totalCampaignClicks = 0;
               let totalCampaignReach = 0;
               
-              insights.forEach((insight: any) => {
+              insights.forEach((insight: unknown) => {
                 const spend = parseFloat(insight.spend || '0');
                 const impressions = parseInt(insight.impressions || '0', 10);
                 const clicks = parseInt(insight.clicks || '0', 10);
@@ -1137,7 +1137,7 @@ Deno.serve(async (req) => {
                 const conversions = countConversionsFromActions(combinedMetrics, campaign.objective, campaign.name);
                 
                 const messages = insight.actions?.find(
-                  (a: any) => a.action_type === 'onsite_conversion.messaging_conversation_started_7d'
+                  (a: unknown) => a.action_type === 'onsite_conversion.messaging_conversation_started_7d'
                 )?.value || 0;
                 const messagesValue = parseFloat(messages);
                 
@@ -1181,8 +1181,8 @@ Deno.serve(async (req) => {
               };
             });
 
-            const totalConversions = processedCampaigns.reduce((sum: number, c: any) => sum + (Number(c.conversions) || 0), 0);
-            const totalMessages = processedCampaigns.reduce((sum: number, c: any) => sum + (Number(c.messages) || 0), 0);
+            const totalConversions = processedCampaigns.reduce((sum: number, c: unknown) => sum + (Number(c.conversions) || 0), 0);
+            const totalMessages = processedCampaigns.reduce((sum: number, c: unknown) => sum + (Number(c.messages) || 0), 0);
 
             facebookResult = {
               campaigns,
@@ -1229,7 +1229,7 @@ Deno.serve(async (req) => {
     }
 
     // Combine campaigns from both platforms
-    const allProcessedCampaigns: any[] = [];
+    const allProcessedCampaigns: unknown[] = [];
     
     if (facebookResult) {
       allProcessedCampaigns.push(...facebookResult.processedCampaigns);
@@ -1316,10 +1316,10 @@ Deno.serve(async (req) => {
     };
 
     const topCampaigns = allProcessedCampaigns
-      .filter((c: any) => c.conversions > 0)
-      .sort((a: any, b: any) => b.conversions - a.conversions)
+      .filter((c: unknown) => c.conversions > 0)
+      .sort((a: unknown, b: unknown) => b.conversions - a.conversions)
       .slice(0, 5)
-      .map((c: any) => ({
+      .map((c: unknown) => ({
         name: c.name,
         conversions: c.conversions,
         spend: c.spend,
@@ -1327,7 +1327,7 @@ Deno.serve(async (req) => {
         platform: c.platform,
       }));
 
-    const campaignsTable = allProcessedCampaigns.map((c: any) => ({
+    const campaignsTable = allProcessedCampaigns.map((c: unknown) => ({
       name: c.name,
       ad_sets_count: 0,
       ads_count: 0,
@@ -1384,7 +1384,7 @@ Deno.serve(async (req) => {
       reach: 0,
     } : null;
 
-    const response: any = {
+    const response: unknown = {
       client: {
         name: client.name,
         company: client.company,

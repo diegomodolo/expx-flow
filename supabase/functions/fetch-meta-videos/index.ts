@@ -108,11 +108,11 @@ serve(async (req) => {
         throw new Error(videosData.error.message);
       }
 
-      videos = (videosData.data || []).map((video: any) => {
+      videos = (videosData.data || []).map((video: unknown) => {
         // Get views from insights if available
         let views = 0;
         if (video.video_insights?.data) {
-          const viewsInsight = video.video_insights.data.find((i: any) => i.name === 'total_video_views');
+          const viewsInsight = video.video_insights.data.find((i: unknown) => i.name === 'total_video_views');
           if (viewsInsight?.values?.[0]?.value) {
             views = viewsInsight.values[0].value;
           }
@@ -146,11 +146,11 @@ serve(async (req) => {
       }
 
       // Filter only videos and reels
-      const videoMedia = (mediaData.data || []).filter((m: any) => 
+      const videoMedia = (mediaData.data || []).filter((m: unknown) =>
         m.media_type === 'VIDEO' || m.media_type === 'REELS'
       );
 
-      videos = videoMedia.map((media: any) => ({
+      videos = videoMedia.map((media: unknown) => ({
         id: media.id,
         title: media.caption?.substring(0, 100) || 'Vídeo/Reel',
         description: media.caption,

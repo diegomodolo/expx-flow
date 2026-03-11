@@ -157,7 +157,7 @@ serve(async (req) => {
           console.log(`Found ${creativesData.data.length} creatives`);
           
           // Sort by created_time descending (most recent first)
-          const sortedCreatives = creativesData.data.sort((a: any, b: any) => {
+          const sortedCreatives = creativesData.data.sort((a: unknown, b: unknown) => {
             const dateA = new Date(a.created_time || 0).getTime();
             const dateB = new Date(b.created_time || 0).getTime();
             return dateB - dateA;
@@ -246,7 +246,7 @@ serve(async (req) => {
             break;
           }
 
-          const items: any[] = Array.isArray(mediaData.data) ? mediaData.data : [];
+          const items: unknown[] = Array.isArray(mediaData.data) ? mediaData.data : [];
           console.log(`Found ${items.length} Instagram posts from API (page ${page})`);
 
           if (items.length === 0) {
@@ -256,7 +256,7 @@ serve(async (req) => {
           }
 
           // Sort by timestamp descending (most recent first)
-          const sortedItems = items.sort((a: any, b: any) => {
+          const sortedItems = items.sort((a: unknown, b: unknown) => {
             const dateA = new Date(a.timestamp || 0).getTime();
             const dateB = new Date(b.timestamp || 0).getTime();
             return dateB - dateA;
@@ -337,7 +337,7 @@ serve(async (req) => {
             break;
           }
 
-          const items: any[] = Array.isArray(mediaData.data) ? mediaData.data : [];
+          const items: unknown[] = Array.isArray(mediaData.data) ? mediaData.data : [];
           console.log(`Found ${items.length} Instagram posts from API for carousel check (page ${page})`);
 
           if (items.length === 0) {
@@ -347,7 +347,7 @@ serve(async (req) => {
           }
 
           // Sort by timestamp descending (most recent first)
-          const sortedItems = items.sort((a: any, b: any) => {
+          const sortedItems = items.sort((a: unknown, b: unknown) => {
             const dateA = new Date(a.timestamp || 0).getTime();
             const dateB = new Date(b.timestamp || 0).getTime();
             return dateB - dateA;

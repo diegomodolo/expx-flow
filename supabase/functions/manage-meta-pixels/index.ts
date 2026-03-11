@@ -60,7 +60,7 @@ serve(async (req) => {
     }
 
     // Remove act_ prefix if already present to avoid duplication
-    const rawAccountId = (client.facebook_ad_accounts as any).account_id;
+    const rawAccountId = (client.facebook_ad_accounts as unknown).account_id;
     const adAccountId = rawAccountId.replace(/^act_/, '');
     const accessToken = integration.access_token;
 

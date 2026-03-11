@@ -173,7 +173,7 @@ serve(async (req) => {
     const hashedUserData = await hashUserData(userData);
 
     // Build event payload
-    const eventPayload: Record<string, any> = {
+    const eventPayload: Record<string, unknown> = {
       event_name: eventName,
       event_time: eventTime,
       event_id: eventId,
@@ -186,7 +186,7 @@ serve(async (req) => {
     }
 
     if (customData) {
-      const customDataPayload: Record<string, any> = {};
+      const customDataPayload: Record<string, unknown> = {};
       if (customData.value !== undefined) customDataPayload.value = customData.value;
       if (customData.currency) customDataPayload.currency = customData.currency;
       if (customData.contentName) customDataPayload.content_name = customData.contentName;

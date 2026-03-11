@@ -50,7 +50,6 @@ export function useCSTVDailyRanking({ enabled = true, onTrigger }: UseCSTVDailyR
     const is5PM = hours === 17 && minutes === 0;
 
     if (is5PM && !hasShownToday()) {
-
       hasTriggeredRef.current = true;
       markAsShown();
       setIsTimeToShow(true);
@@ -94,7 +93,6 @@ export function useCSTVDailyRanking({ enabled = true, onTrigger }: UseCSTVDailyR
 
   // Manual trigger for testing (bypasses localStorage check)
   const triggerManually = useCallback(() => {
-
     setIsTimeToShow(true);
     onTrigger();
   }, [onTrigger]);

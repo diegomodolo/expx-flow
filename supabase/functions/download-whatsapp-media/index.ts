@@ -119,7 +119,7 @@ serve(async (req) => {
         });
       }
 
-      let uazapiData: any;
+      let uazapiData: unknown;
       try {
         uazapiData = JSON.parse(uazapiText);
       } catch (e) {

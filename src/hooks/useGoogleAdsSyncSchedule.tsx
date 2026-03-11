@@ -49,7 +49,6 @@ export const useGoogleAdsSyncSchedule = () => {
   const fetchSchedule = async () => {
     const companyId = activeCompany?.company_id;
     if (!companyId) {
-
       return;
     }
 

@@ -54,7 +54,6 @@ export function WhatsAppAudioPlayer({
   // Check if we have cached media on mount
   useEffect(() => {
     if (hasCachedMedia(cachedMediaUrl)) {
-
       setAudioSrc(cachedMediaUrl!);
     }
   }, [cachedMediaUrl]);
@@ -71,14 +70,12 @@ export function WhatsAppAudioPlayer({
       instanceId &&
       messageId
     ) {
-
       triggerTranscription();
     }
   }, [audioTranscription, transcriptionStatus, supabaseMessageId, instanceId, messageId]);
 
   const triggerTranscription = async () => {
     if (!supabaseMessageId || !instanceId || !messageId) {
-
       return;
     }
 
@@ -101,7 +98,6 @@ export function WhatsAppAudioPlayer({
         setIsTranscribing(false);
         return;
       } else if (data?.transcription) {
-
         setTranscription(data.transcription);
         setIsTranscribing(false);
         return;
@@ -217,7 +213,6 @@ export function WhatsAppAudioPlayer({
         const objectUrl = URL.createObjectURL(blob);
         setAudioSrc(objectUrl);
       }
-
 
     } catch (err: unknown) {
       console.error("[WhatsAppAudioPlayer] Error loading audio:", err);

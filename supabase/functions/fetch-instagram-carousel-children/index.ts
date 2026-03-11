@@ -79,7 +79,7 @@ serve(async (req) => {
       );
     }
 
-    const children = (data.data || []).map((child: any) => ({
+    const children = (data.data || []).map((child: unknown) => ({
       id: child.id,
       media_type: child.media_type,
       media_url: child.media_url,
@@ -93,7 +93,7 @@ serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error in fetch-instagram-carousel-children:", error);
     return new Response(
       JSON.stringify({ success: false, error: error.message }),

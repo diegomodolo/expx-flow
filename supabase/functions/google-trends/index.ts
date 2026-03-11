@@ -23,7 +23,7 @@ function setCache(key: string, data: unknown) {
 }
 
 // Fallback trending topics for Brazil when API fails
-function getFallbackDailyTrends(): any[] {
+function getFallbackDailyTrends(): unknown[] {
   const topics = [
     { title: "Black Friday", traffic: "500K+", relatedQueries: ["ofertas", "promoções", "descontos"], category: "Varejo" },
     { title: "Inteligência Artificial", traffic: "200K+", relatedQueries: ["ChatGPT", "IA", "automação"], category: "Tecnologia" },
@@ -49,7 +49,7 @@ function getFallbackDailyTrends(): any[] {
 }
 
 // Fallback interest data
-function getFallbackInterest(keyword: string): any {
+function getFallbackInterest(keyword: string): unknown {
   // Generate semi-random but consistent data based on keyword
   const hash = keyword.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
   const baseInterest = 40 + (hash % 50);
@@ -76,7 +76,7 @@ function getFallbackInterest(keyword: string): any {
 }
 
 // Fallback related queries
-function getFallbackRelatedQueries(keyword: string): any {
+function getFallbackRelatedQueries(keyword: string): unknown {
   const relatedMap: Record<string, { top: string[], rising: string[] }> = {
     "marketing": {
       top: ["marketing digital", "marketing de conteúdo", "marketing nas redes sociais", "estratégias de marketing", "curso de marketing"],
@@ -169,12 +169,12 @@ async function getDailyTrends(geo: string = 'BR') {
 
     if (data?.default?.trendingSearchesDays?.[0]?.trendingSearches) {
       const trends = data.default.trendingSearchesDays[0].trendingSearches;
-      const result = trends.slice(0, 10).map((trend: any) => ({
+      const result = trends.slice(0, 10).map((trend: unknown) => ({
         title: trend.title?.query || '',
         traffic: trend.formattedTraffic || '',
-        relatedQueries: trend.relatedQueries?.map((q: any) => q.query) || [],
+        relatedQueries: trend.relatedQueries?.map((q: unknown) => q.query) || [],
         image: trend.image?.imageUrl || null,
-        articles: trend.articles?.slice(0, 2).map((a: any) => ({
+        articles: trend.articles?.slice(0, 2).map((a: unknown) => ({
           title: a.title,
           url: a.url,
           source: a.source,
@@ -213,7 +213,7 @@ async function getInterestOverTime(keyword: string, geo: string = 'BR', timeRang
     });
 
     if (exploreData?.widgets) {
-      const timeseriesWidget = exploreData.widgets.find((w: any) => w.id === 'TIMESERIES');
+      const timeseriesWidget = exploreData.widgets.find((w: unknown) => w.id === 'TIMESERIES');
       if (timeseriesWidget?.token) {
         const multilineData = await tryFetchTrends('widgetdata/multiline', {
           hl: 'pt-BR',
@@ -232,12 +232,12 @@ async function getInterestOverTime(keyword: string, geo: string = 'BR', timeRang
           const timelineData = multilineData.default.timelineData;
           const result = {
             keyword,
-            data: timelineData.map((item: any) => ({
+            data: timelineData.map((item: unknown) => ({
               date: item.formattedTime,
               value: item.value?.[0] || 0,
             })),
             averageInterest: timelineData.length > 0 
-              ? Math.round(timelineData.reduce((sum: number, item: any) => sum + (item.value?.[0] || 0), 0) / timelineData.length)
+              ? Math.round(timelineData.reduce((sum: number, item: unknown) => sum + (item.value?.[0] || 0), 0) / timelineData.length)
               : 0,
           };
 
@@ -274,7 +274,7 @@ async function getRelatedQueries(keyword: string, geo: string = 'BR') {
     });
 
     if (exploreData?.widgets) {
-      const relatedWidget = exploreData.widgets.find((w: any) => w.id === 'RELATED_QUERIES');
+      const relatedWidget = exploreData.widgets.find((w: unknown) => w.id === 'RELATED_QUERIES');
       if (relatedWidget?.token) {
         const relatedData = await tryFetchTrends('widgetdata/relatedsearches', {
           hl: 'pt-BR',
@@ -293,11 +293,11 @@ async function getRelatedQueries(keyword: string, geo: string = 'BR') {
         if (relatedData?.default?.rankedList) {
           const result = {
             keyword,
-            top: relatedData.default.rankedList?.[0]?.rankedKeyword?.slice(0, 10).map((item: any) => ({
+            top: relatedData.default.rankedList?.[0]?.rankedKeyword?.slice(0, 10).map((item: unknown) => ({
               query: item.query,
               value: item.value,
             })) || [],
-            rising: relatedData.default.rankedList?.[1]?.rankedKeyword?.slice(0, 10).map((item: any) => ({
+            rising: relatedData.default.rankedList?.[1]?.rankedKeyword?.slice(0, 10).map((item: unknown) => ({
               query: item.query,
               value: item.formattedValue || 'Breakout',
             })) || [],

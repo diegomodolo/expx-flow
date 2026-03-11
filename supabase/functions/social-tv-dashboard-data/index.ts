@@ -79,11 +79,11 @@ interface FeaturedClient {
 
 // Função auxiliar para buscar cliente por métrica
 async function getTopClientByMetric(
-  supabase: any,
+  supabase: unknown,
   companyId: string,
   metric: 'conversions' | 'ctr' | 'cpa' | 'spend' | 'clicks',
   order: 'asc' | 'desc'
-): Promise<any | null> {
+): Promise<unknown | null> {
   // Buscar clientes ativos com campanhas
   const { data: clients } = await supabase
     .from('clients')
@@ -120,22 +120,22 @@ async function getTopClientByMetric(
       .eq('company_id', companyId)
       .eq('client_id', client.id);
 
-    const metaConversions = (metaCampaigns || []).reduce((sum: number, c: any) => sum + (c.conversions || 0), 0);
-    const googleConversions = (googleCampaigns || []).reduce((sum: number, c: any) => sum + (c.conversions || 0), 0);
+    const metaConversions = (metaCampaigns || []).reduce((sum: number, c: unknown) => sum + (c.conversions || 0), 0);
+    const googleConversions = (googleCampaigns || []).reduce((sum: number, c: unknown) => sum + (c.conversions || 0), 0);
     const totalConversions = metaConversions + googleConversions;
 
-    const metaSpend = (metaCampaigns || []).reduce((sum: number, c: any) => sum + (c.spend || 0), 0);
-    const googleSpend = (googleCampaigns || []).reduce((sum: number, c: any) => sum + (c.spend || 0), 0);
+    const metaSpend = (metaCampaigns || []).reduce((sum: number, c: unknown) => sum + (c.spend || 0), 0);
+    const googleSpend = (googleCampaigns || []).reduce((sum: number, c: unknown) => sum + (c.spend || 0), 0);
     const totalSpend = metaSpend + googleSpend;
 
-    const metaClicks = (metaCampaigns || []).reduce((sum: number, c: any) => sum + (c.clicks || 0), 0);
-    const googleClicks = (googleCampaigns || []).reduce((sum: number, c: any) => sum + (c.clicks || 0), 0);
+    const metaClicks = (metaCampaigns || []).reduce((sum: number, c: unknown) => sum + (c.clicks || 0), 0);
+    const googleClicks = (googleCampaigns || []).reduce((sum: number, c: unknown) => sum + (c.clicks || 0), 0);
     const totalClicks = metaClicks + googleClicks;
 
-    const metaCtrSum = (metaCampaigns || []).reduce((sum: number, c: any) => sum + (c.ctr || 0), 0);
-    const googleCtrSum = (googleCampaigns || []).reduce((sum: number, c: any) => sum + (c.ctr || 0), 0);
-    const ctrCount = (metaCampaigns || []).filter((c: any) => c.ctr > 0).length + 
-                     (googleCampaigns || []).filter((c: any) => c.ctr > 0).length;
+    const metaCtrSum = (metaCampaigns || []).reduce((sum: number, c: unknown) => sum + (c.ctr || 0), 0);
+    const googleCtrSum = (googleCampaigns || []).reduce((sum: number, c: unknown) => sum + (c.ctr || 0), 0);
+    const ctrCount = (metaCampaigns || []).filter((c: unknown) => c.ctr > 0).length +
+                     (googleCampaigns || []).filter((c: unknown) => c.ctr > 0).length;
     const avgCtr = ctrCount > 0 ? (metaCtrSum + googleCtrSum) / ctrCount : 0;
 
     const avgCpa = totalConversions > 0 ? totalSpend / totalConversions : 0;
@@ -282,7 +282,7 @@ serve(async (req) => {
       console.error('Error fetching performance aggregates:', perfAggError);
     }
 
-    const perfRow = (perfAgg && perfAgg[0]) as any;
+    const perfRow = (perfAgg && perfAgg[0]) as unknown;
 
     const totalSpend = Number(perfRow?.total_spend ?? 0);
     const totalLeads = Number(perfRow?.total_conversions ?? 0);
@@ -328,11 +328,11 @@ serve(async (req) => {
     const featuredClients: FeaturedClient[] = [];
     
     // Helper para converter cliente para FeaturedClient
-    const toFeaturedClient = async (client: any, highlightMetric: string, highlightLabel: string, highlightIcon: string): Promise<FeaturedClient | null> => {
+    const toFeaturedClient = async (client: unknown, highlightMetric: string, highlightLabel: string, highlightIcon: string): Promise<FeaturedClient | null> => {
       if (!client) return null;
       
-      const gestor = client.gestor as any;
-      const team = client.team as any;
+      const gestor = client.gestor as unknown;
+      const team = client.team as unknown;
 
       // Fetch gestor profile
       let gestorName = gestor?.name || null;
@@ -446,7 +446,7 @@ serve(async (req) => {
     
     if (clientsWithGestores) {
       for (const client of clientsWithGestores) {
-        const gestor = client.gestor as any;
+        const gestor = client.gestor as unknown;
         const gestorId = gestor?.id || client.user_id;
         const gestorUserId = gestor?.user_id || client.user_id;
         
@@ -458,7 +458,7 @@ serve(async (req) => {
         const stats = gestorStats.get(gestorId)!;
         stats.clientsCount++;
         
-        const campaigns = client.campaigns as any[] || [];
+        const campaigns = client.campaigns as unknown[] || [];
         let clientConversions = 0;
         let clientSpend = 0;
         for (const campaign of campaigns) {
@@ -531,11 +531,11 @@ serve(async (req) => {
       .eq('is_canceled', false)
       .not('team_id', 'is', null);
 
-    const squadStats = new Map<string, { conversions: number; clientsCount: number; totalSpend: number; teamData?: any }>();
+    const squadStats = new Map<string, { conversions: number; clientsCount: number; totalSpend: number; teamData?: unknown }>();
     
     if (clientsWithSquads) {
       for (const client of clientsWithSquads) {
-        const team = client.team as any;
+        const team = client.team as unknown;
         const teamId = team?.id || client.team_id;
         
         if (!teamId) continue;
@@ -546,7 +546,7 @@ serve(async (req) => {
         const stats = squadStats.get(teamId)!;
         stats.clientsCount++;
         
-        const campaigns = client.campaigns as any[] || [];
+        const campaigns = client.campaigns as unknown[] || [];
         for (const campaign of campaigns) {
           stats.conversions += campaign.conversions || 0;
           stats.totalSpend += campaign.spend || 0;
@@ -593,7 +593,7 @@ serve(async (req) => {
     const recentWins: RecentWin[] = [];
     if (recentCampaigns) {
       for (const campaign of recentCampaigns) {
-        const client = campaign.clients as any;
+        const client = campaign.clients as unknown;
         
         // Get gestor info from employees table using gestor_id
         let gestorName = 'Gestor';
@@ -650,8 +650,8 @@ serve(async (req) => {
       .select('clicks')
       .eq('company_id', company.id);
     
-    const totalMetaClicks = (metaClicksAgg || []).reduce((sum, c: any) => sum + (c.clicks || 0), 0);
-    const totalGoogleClicks = (googleClicksAgg || []).reduce((sum, c: any) => sum + (c.clicks || 0), 0);
+    const totalMetaClicks = (metaClicksAgg || []).reduce((sum, c: unknown) => sum + (c.clicks || 0), 0);
+    const totalGoogleClicks = (googleClicksAgg || []).reduce((sum, c: unknown) => sum + (c.clicks || 0), 0);
     const totalClicks = totalMetaClicks + totalGoogleClicks;
     
     const metrics = {

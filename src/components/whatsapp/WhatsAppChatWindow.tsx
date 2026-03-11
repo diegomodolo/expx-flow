@@ -146,6 +146,11 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
   // Should hide AI for groups if ignore_group_analysis is enabled
   const shouldHideAIForGroup = isGroupConversation && ignoreGroupAnalysis;
   
+  // Debug logging (can be removed later)
+  if (isGroupConversation) {
+    // intentionally empty
+  }
+
   // If forced, keep AI assistant always open - BUT not for groups when ignore is enabled
   const isAiAssistantVisible = shouldHideAIForGroup ? false : (forceRealtimeAnalysis || aiAssistantOpen);
 

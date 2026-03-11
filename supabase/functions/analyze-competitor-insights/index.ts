@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
       console.log("Single competitor analysis for:", competitor.name);
       console.log("Competitor ads:", ads.length);
 
-      const adsSummary = ads.map((ad: any) => ({
+      const adsSummary = ads.map((ad: unknown) => ({
         platform: ad.platform,
         type: ad.ad_type,
         title: ad.ad_title,
@@ -176,7 +176,7 @@ Seja específico e baseie-se apenas nos dados fornecidos. Se alguma informação
     console.log("Competitor ads:", competitorAds?.length || 0, "ads");
 
     // Preparar dados dos anúncios do cliente
-    const clientAdsSummary = clientAds.map((ad: any) => ({
+    const clientAdsSummary = clientAds.map((ad: unknown) => ({
       name: ad.name,
       type: ad.creative_type,
       performance: {
@@ -194,7 +194,7 @@ Seja específico e baseie-se apenas nos dados fornecidos. Se alguma informação
     }));
 
     // Preparar dados dos concorrentes
-    const competitorsSummary = competitorData.map((competitor: any) => ({
+    const competitorsSummary = competitorData.map((competitor: unknown) => ({
       name: competitor.name,
       company: competitor.company_name,
       industry: competitor.industry,
@@ -205,9 +205,9 @@ Seja específico e baseie-se apenas nos dados fornecidos. Se alguma informação
     }));
 
     // Preparar dados dos anúncios dos concorrentes
-    const competitorAdsSummary = competitorAds.map((ad: any) => ({
+    const competitorAdsSummary = competitorAds.map((ad: unknown) => ({
       competitor:
-        competitorData.find((c: any) => c.id === ad.competitor_id)?.name ||
+        competitorData.find((c: unknown) => c.id === ad.competitor_id)?.name ||
         "Unknown",
       platform: ad.platform,
       type: ad.ad_type,

@@ -12,7 +12,7 @@ const SCENE_DURATION = 6; // 5-8 seconds per scene, using 6 as middle ground
 const MAX_SCENES = 5;
 
 // Helper para criar JWT assinado com RS256
-async function createSignedJWT(serviceAccount: any): Promise<string> {
+async function createSignedJWT(serviceAccount: unknown): Promise<string> {
   const header = { alg: "RS256", typ: "JWT" };
   const now = Math.floor(Date.now() / 1000);
 
@@ -64,7 +64,7 @@ async function createSignedJWT(serviceAccount: any): Promise<string> {
   return `${signatureInput}.${signatureB64}`;
 }
 
-async function getGCPAccessToken(serviceAccount: any): Promise<string> {
+async function getGCPAccessToken(serviceAccount: unknown): Promise<string> {
   const signedJwt = await createSignedJWT(serviceAccount);
 
   const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
@@ -175,7 +175,7 @@ async function startSceneGeneration(
 
 // ========== VERTEX PROTOBUF JSON NORMALIZER ==========
 // Vertex AI often returns protobuf-wrapped JSON. This unwraps it.
-function normalizeVertexValue(val: any): any {
+function normalizeVertexValue(val: unknown): unknown {
   if (val === null || val === undefined) return val;
   if (typeof val !== "object") return val;
 
@@ -190,7 +190,7 @@ function normalizeVertexValue(val: any): any {
   }
 
   if ("structValue" in val && val.structValue?.fields) {
-    const result: Record<string, any> = {};
+    const result: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(val.structValue.fields)) {
       result[k] = normalizeVertexValue(v);
     }
@@ -203,7 +203,7 @@ function normalizeVertexValue(val: any): any {
   }
 
   // If it's a plain object, normalize each field
-  const result: Record<string, any> = {};
+  const result: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(val)) {
     result[k] = normalizeVertexValue(v);
   }
@@ -211,7 +211,7 @@ function normalizeVertexValue(val: any): any {
 }
 
 // Deep-walk an object looking for video URIs
-function findVideoUri(obj: any, depth = 0): { uri: string; mimeType?: string } | null {
+function findVideoUri(obj: unknown, depth = 0): { uri: string; mimeType?: string } | null {
   if (depth > 10 || obj === null || obj === undefined) return null;
 
   if (typeof obj === "string") {
@@ -332,7 +332,7 @@ async function checkOperationStatus(
 
 
   // 2) Veo commonly returns a URI (usually gs://...) in several possible locations.
-  const candidates: any[] = [
+  const candidates: unknown[] = [
     resp?.videos?.[0],
     resp?.result?.videos?.[0],
     resp?.generatedVideos?.[0],
@@ -454,7 +454,7 @@ async function downloadGcsVideoToBytes(accessToken: string, gcsUri: string): Pro
 
 // Upload video to storage
 async function uploadVideoToStorage(
-  supabase: any,
+  supabase: unknown,
   videoBytes: Uint8Array,
   clientId: string,
   fileName: string,
@@ -483,10 +483,10 @@ async function uploadVideoToStorage(
 
 // Update post progress in database
 async function updateProgress(
-  supabase: any,
+  supabase: unknown,
   postId: string,
   status: string,
-  progress: any,
+  progress: unknown,
 ) {
   await supabase
     .from("content_plan_posts")
@@ -560,7 +560,7 @@ serve(async (req) => {
           progress.scenes[index].operationName = operationName;
           progress.scenes[index].status = "generating";
           return { index, operationName, error: null };
-        } catch (error: any) {
+        } catch (error: unknown) {
           progress.scenes[index].status = "error";
           progress.scenes[index].error = error.message;
           return { index, operationName: null, error: error.message };
@@ -618,7 +618,7 @@ serve(async (req) => {
       }
 
       // Initialize hasError based on existing scene statuses (fix for stuck generating)
-      let hasError = scenes.some((s: any) => s.status === "error");
+      let hasError = scenes.some((s: unknown) => s.status === "error");
 
       // Check status of pending/generating scenes
       const accessToken = await getGCPAccessToken(serviceAccount);
@@ -671,7 +671,7 @@ serve(async (req) => {
                 console.log(`[status] Scene ${scene.sceneNumber} completed:`, videoUrl);
               }
             }
-          } catch (error: any) {
+          } catch (error: unknown) {
             console.error(`Error checking scene ${scene.sceneNumber}:`, error);
 
             const msg = String(error?.message || error);
@@ -684,9 +684,9 @@ serve(async (req) => {
       }
 
       // Compute terminal status correctly
-      const completedCount = scenes.filter((s: any) => s.status === "completed").length;
-      const errorCount = scenes.filter((s: any) => s.status === "error").length;
-      const pendingOrGenerating = scenes.filter((s: any) => s.status === "pending" || s.status === "generating").length;
+      const completedCount = scenes.filter((s: unknown) => s.status === "completed").length;
+      const errorCount = scenes.filter((s: unknown) => s.status === "error").length;
+      const pendingOrGenerating = scenes.filter((s: unknown) => s.status === "pending" || s.status === "generating").length;
       const allTerminal = pendingOrGenerating === 0;
 
       let newStatus: string;
@@ -762,7 +762,7 @@ serve(async (req) => {
 
       // Start regeneration for specified scenes
       const regeneratePromises = sceneNumbers.map(async (sceneNum: number) => {
-        const sceneIndex = scenes.findIndex((s: any) => s.sceneNumber === sceneNum);
+        const sceneIndex = scenes.findIndex((s: unknown) => s.sceneNumber === sceneNum);
         if (sceneIndex === -1) {
           return { sceneNumber: sceneNum, error: "Scene not found" };
         }
@@ -780,7 +780,7 @@ serve(async (req) => {
           
           console.log(`[regenerate_scenes] Scene ${sceneNum} regeneration started:`, operationName);
           return { sceneNumber: sceneNum, operationName, error: null };
-        } catch (error: any) {
+        } catch (error: unknown) {
           scenes[sceneIndex].status = "error";
           scenes[sceneIndex].error = error.message;
           console.error(`[regenerate_scenes] Scene ${sceneNum} failed to start:`, error.message);
@@ -818,7 +818,7 @@ serve(async (req) => {
 
     throw new Error(`Unknown action: ${action}`);
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error in generate-reels-video:", error);
     return new Response(
       JSON.stringify({ error: error.message }),

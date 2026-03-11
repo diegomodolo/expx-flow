@@ -178,7 +178,7 @@ serve(async (req) => {
       // Map our type to Meta's type
       const metaType = type === "ptt" ? "audio" : type;
       
-      const metaBody: any = {
+      const metaBody: unknown = {
         messaging_product: "whatsapp",
         recipient_type: "individual",
         to: formattedPhone,
@@ -282,7 +282,7 @@ serve(async (req) => {
       const uazapiUrl = `${cleanEndpoint}/send/media`;
       console.log("[send-whatsapp-media] Calling UazapiGO:", uazapiUrl);
 
-      const body: any = {
+      const body: unknown = {
         number: formattedPhone,
         type: type,
         file: file,
@@ -310,7 +310,7 @@ serve(async (req) => {
     } else {
       // Z-API uses different endpoints per media type
       let endpoint: string;
-      let requestBody: any;
+      let requestBody: unknown;
 
       switch (type) {
         case "image":

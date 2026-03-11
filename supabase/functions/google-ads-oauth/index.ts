@@ -360,7 +360,7 @@ serve(async (req) => {
           
           // Check if error is CUSTOMER_NOT_ENABLED
           const errors = errorData?.error?.details?.[0]?.errors || [];
-          const isNotEnabled = errors.some((err: any) => 
+          const isNotEnabled = errors.some((err: unknown) =>
             err?.errorCode?.authorizationError === 'CUSTOMER_NOT_ENABLED'
           );
           
@@ -576,7 +576,7 @@ serve(async (req) => {
           } else {
             const errorData = await customerDetailsResponse.json().catch(() => ({}));
             const errors = errorData?.error?.details?.[0]?.errors || [];
-            const isNotEnabled = errors.some((err: any) => 
+            const isNotEnabled = errors.some((err: unknown) =>
               err?.errorCode?.authorizationError === 'CUSTOMER_NOT_ENABLED'
             );
             

@@ -31,7 +31,6 @@ export function WhatsAppImageViewer({
   // Check if we have cached media on mount
   useEffect(() => {
     if (hasCachedMedia(cachedMediaUrl)) {
-
       setImageSrc(cachedMediaUrl!);
       setImageLoaded(true);
     }
@@ -90,7 +89,6 @@ export function WhatsAppImageViewer({
       }
 
       setImageLoaded(true);
-
     } catch (err: unknown) {
       console.error("[WhatsAppImageViewer] Error:", err);
       setError(err.message || "Erro ao carregar imagem");

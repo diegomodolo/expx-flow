@@ -8,12 +8,12 @@ const corsHeaders = {
 };
 
 async function logPublishAction(
-  supabase: any,
+  supabase: unknown,
   postId: string,
   platform: string,
   action: string,
   status: string,
-  responseData?: any,
+  responseData?: unknown,
   errorMessage?: string,
   durationMs?: number
 ) {
@@ -31,14 +31,14 @@ async function logPublishAction(
 async function publishToFacebook(
   pageAccessToken: string,
   pageId: string,
-  post: any,
-  supabase: any
+  post: unknown,
+  supabase: unknown
 ): Promise<{ success: boolean; postId?: string; error?: string }> {
   const startTime = Date.now();
   
   try {
     let endpoint = '';
-    let body: any = {};
+    let body: unknown = {};
 
     if (post.content_type === 'image' && post.media_urls?.length > 0) {
       // Single image post
@@ -120,14 +120,14 @@ async function publishToFacebook(
 async function publishToInstagram(
   pageAccessToken: string,
   instagramAccountId: string,
-  post: any,
-  supabase: any
+  post: unknown,
+  supabase: unknown
 ): Promise<{ success: boolean; mediaId?: string; error?: string }> {
   const startTime = Date.now();
   
   try {
     let containerEndpoint = `https://graph.facebook.com/v20.0/${instagramAccountId}/media`;
-    let containerBody: any = {
+    let containerBody: unknown = {
       access_token: pageAccessToken,
       caption: post.caption || '',
     };
@@ -154,7 +154,7 @@ async function publishToInstagram(
       const childrenIds = [];
       for (const mediaUrl of post.media_urls) {
         const isVideo = mediaUrl.includes('.mp4') || mediaUrl.includes('.mov');
-        const childBody: any = {
+        const childBody: unknown = {
           access_token: pageAccessToken,
           is_carousel_item: true,
         };
@@ -348,7 +348,7 @@ serve(async (req) => {
       );
     }
 
-    const results: any = {
+    const results: unknown = {
       facebook: null,
       instagram: null,
     };
@@ -387,7 +387,7 @@ serve(async (req) => {
             post,
             supabase
           );
-        } catch (credError: any) {
+        } catch (credError: unknown) {
           console.error('Error resolving Instagram credentials:', credError.message);
           results.instagram = { success: false, error: credError.message };
         }

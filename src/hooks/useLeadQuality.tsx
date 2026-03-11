@@ -44,7 +44,6 @@ export function useLeadQuality() {
       if (allReportsError) throw allReportsError;
 
 
-
       const totalLeadsAll = allCampaigns?.reduce((sum, campaign) => sum + (campaign.conversions || 0), 0) || 0;
 
       // Buscar dados de sincronização mais recente para determinar o período
@@ -105,10 +104,7 @@ export function useLeadQuality() {
 
         disqualifiedLeads = filteredReports.length;
 
-
-
       } else {
-
         // Fallback: usar últimos 30 dias se não houver sincronização
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -117,10 +113,8 @@ export function useLeadQuality() {
       }
 
 
-
       const qualifiedLeads = Math.max(0, totalLeads - disqualifiedLeads);
       const mqlPercentage = totalLeads > 0 ? (qualifiedLeads / totalLeads) * 100 : 0;
-
 
 
       setData({

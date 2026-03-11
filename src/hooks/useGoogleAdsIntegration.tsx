@@ -59,7 +59,6 @@ export function useGoogleAdsIntegration() {
     
     // Prevenir reprocessamento do mesmo código
     if (processingCodeRef.current === code) {
-
       throw new Error('Code already being processed');
     }
 
@@ -94,7 +93,6 @@ export function useGoogleAdsIntegration() {
         console.error('Data contains error:', data.error);
         throw new Error(data.error);
       }
-
 
       toast.success("Google Ads conectado com sucesso!");
       
@@ -187,7 +185,6 @@ export function useGoogleAdsIntegration() {
       if (error) throw error;
       if (data.error) throw new Error(data.error);
 
-
       toast.success(`${data.accounts?.length || 0} conta(s) recarregada(s) com sucesso!`);
       
       // Reload integration data
@@ -218,7 +215,6 @@ export function useGoogleAdsIntegration() {
 
       if (error) throw error;
       if (data.error) throw new Error(data.error);
-
 
       toast.success(data.message || 'Token renovado com sucesso!');
       

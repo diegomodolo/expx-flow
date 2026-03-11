@@ -52,7 +52,7 @@ serve(async (req) => {
 
   const supabase = createClient(supabaseUrl, supabaseKey);
 
-  let body: any;
+  let body: unknown;
   try {
     body = await req.json();
   } catch {
@@ -290,7 +290,7 @@ Responda APENAS em JSON válido:
         },
       );
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[analyze-carousel-slides] Error:", error);
     return new Response(
       JSON.stringify({

@@ -215,7 +215,6 @@ export function WhatsAppAIAssistant({
     if (analysis && isNewAnalysis && analysis.timestamp) {
       // Check if we already saved this exact analysis (by timestamp)
       if (lastSavedAnalysisTimestamp.current === analysis.timestamp) {
-
         return;
       }
 

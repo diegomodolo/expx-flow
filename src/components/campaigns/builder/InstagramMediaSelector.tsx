@@ -189,7 +189,6 @@ export function InstagramMediaSelector({
         if (error) throw error;
         
         if (data.success && data.url) {
-
           permanentUrls.push(data.url);
         } else {
           console.error('Failed to copy image:', data.error);

@@ -18,7 +18,6 @@ export const fixCreativesStatus = async () => {
     return;
   }
 
-
   return data;
 };
 

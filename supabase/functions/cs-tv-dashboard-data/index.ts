@@ -377,32 +377,32 @@ Deno.serve(async (req) => {
 
     // ========== FILTER BY CS INSTANCES ONLY ==========
     // Only include data from instances with instance_type = 'cs'
-    const csInstanceIds = new Set<string>(instances.map((i: any) => i.id));
+    const csInstanceIds = new Set<string>(instances.map((i: unknown) => i.id));
     console.log('CS Instance IDs:', [...csInstanceIds]);
 
     // Filter conversations to only those from CS instances
-    const conversations = conversationsRaw.filter((c: any) => 
+    const conversations = conversationsRaw.filter((c: unknown) =>
       c.instance_id && csInstanceIds.has(c.instance_id)
     );
-    const csConversationIds = new Set<string>(conversations.map((c: any) => c.id));
+    const csConversationIds = new Set<string>(conversations.map((c: unknown) => c.id));
 
     // Filter whatsapp analysis to only CS conversations
-    const whatsappAnalysis = whatsappAnalysisRaw.filter((w: any) => {
+    const whatsappAnalysis = whatsappAnalysisRaw.filter((w: unknown) => {
       const conv = w.whatsapp_conversations;
       return conv && conv.instance_id && csInstanceIds.has(conv.instance_id);
     });
 
     // Filter messages to only CS conversations
-    const allMessages = allMessagesRaw.filter((m: any) => csConversationIds.has(m.conversation_id));
-    const todayMessagesData = todayMessagesDataRaw.filter((m: any) => csConversationIds.has(m.conversation_id));
-    const messagesSent = messagesSentRaw.filter((m: any) => csConversationIds.has(m.conversation_id));
+    const allMessages = allMessagesRaw.filter((m: unknown) => csConversationIds.has(m.conversation_id));
+    const todayMessagesData = todayMessagesDataRaw.filter((m: unknown) => csConversationIds.has(m.conversation_id));
+    const messagesSent = messagesSentRaw.filter((m: unknown) => csConversationIds.has(m.conversation_id));
     
     // Filter sentiment history to only CS conversations
-    const todaySentimentHistory = todaySentimentHistoryRaw.filter((s: any) => csConversationIds.has(s.conversation_id));
+    const todaySentimentHistory = todaySentimentHistoryRaw.filter((s: unknown) => csConversationIds.has(s.conversation_id));
 
     // Recalculate counts based on filtered data
     const totalConversationsCount = conversations.length;
-    const activeConversationsCount = conversations.filter((c: any) => !c.is_archived).length;
+    const activeConversationsCount = conversations.filter((c: unknown) => !c.is_archived).length;
     
     // Message counts from filtered data
     const todayMessagesCount = todayMessagesData.length;
@@ -410,13 +410,13 @@ Deno.serve(async (req) => {
 
     // Scope instance users to CS instances only
     const instanceIds = csInstanceIds;
-    const instanceUsersForCompany = instanceUsers.filter((iu: any) => instanceIds.has(iu.instance_id));
+    const instanceUsersForCompany = instanceUsers.filter((iu: unknown) => instanceIds.has(iu.instance_id));
 
     // ========== ALLOWED ATTENDANTS GATE ==========
     // Create a set of user IDs that are official attendants of CS instances
     // This is the ONLY way a user can appear in rankings/lists
     const allowedAttendantUserIds = new Set<string>();
-    instanceUsersForCompany.forEach((iu: any) => {
+    instanceUsersForCompany.forEach((iu: unknown) => {
       if (csInstanceIds.has(iu.instance_id) && iu.is_attendant === true) {
         allowedAttendantUserIds.add(iu.user_id);
       }
@@ -425,7 +425,7 @@ Deno.serve(async (req) => {
 
     // Helper function to find OFFICIAL attendant for a given instance (is_attendant = true only)
     const findOfficialInstanceAttendant = (instanceId: string): string | null => {
-      const officialAttendant = instanceUsersForCompany.find((iu: any) => 
+      const officialAttendant = instanceUsersForCompany.find((iu: unknown) =>
         iu.instance_id === instanceId && iu.is_attendant === true
       );
       return officialAttendant?.user_id || null;
@@ -433,7 +433,7 @@ Deno.serve(async (req) => {
 
     // Create a map of assignments by conversation ID for quick lookup
     const assignmentByConversationId = new Map<string, string>();
-    assignments.filter((a: any) => csConversationIds.has(a.conversation_id)).forEach((a: any) => {
+    assignments.filter((a: unknown) => csConversationIds.has(a.conversation_id)).forEach((a: unknown) => {
       assignmentByConversationId.set(a.conversation_id, a.assigned_to_user_id);
     });
 
@@ -472,8 +472,8 @@ Deno.serve(async (req) => {
     });
 
     // ========== CALCULATE RESPONSE TIMES ==========
-    const messagesByConversation = new Map<string, any[]>();
-    allMessages.forEach((m: any) => {
+    const messagesByConversation = new Map<string, unknown[]>();
+    allMessages.forEach((m: unknown) => {
       if (!messagesByConversation.has(m.conversation_id)) {
         messagesByConversation.set(m.conversation_id, []);
       }
@@ -492,7 +492,7 @@ Deno.serve(async (req) => {
     const responseTimeBreakdown = { under5min: 0, under15min: 0, under30min: 0, under1hour: 0, over1hour: 0 };
 
     for (const [conversationId, messages] of messagesByConversation) {
-      messages.sort((a: any, b: any) => new Date(a.sent_at).getTime() - new Date(b.sent_at).getTime());
+      messages.sort((a: unknown, b: unknown) => new Date(a.sent_at).getTime() - new Date(b.sent_at).getTime());
       
       const firstResponseTracked = new Set<string>();
       
@@ -556,7 +556,7 @@ Deno.serve(async (req) => {
     for (let h = 0; h < 24; h++) {
       hourlyVolume.push({ hour: h, inbound: 0, outbound: 0 });
     }
-    todayMessagesData.forEach((m: any) => {
+    todayMessagesData.forEach((m: unknown) => {
       if (!m.sent_at) return;
       // Convert to São Paulo timezone hour
       const hour = getSaoPauloHour(m.sent_at);
@@ -580,7 +580,7 @@ Deno.serve(async (req) => {
     
     // Group analyses by hour
     const hourlyScores: Map<number, number[]> = new Map();
-    todaySentimentHistory.forEach((analysis: any) => {
+    todaySentimentHistory.forEach((analysis: unknown) => {
       if (!analysis.analyzed_at) return;
       const hour = getSaoPauloHour(analysis.analyzed_at);
       
@@ -609,24 +609,24 @@ Deno.serve(async (req) => {
     // Use exact counts from database
     
     const positiveConversations = whatsappAnalysis.filter(w => 
-      (w as any).temperature === 'positive'
+      (w as unknown).temperature === 'positive'
     ).length;
     const neutralConversations = whatsappAnalysis.filter(w => 
-      (w as any).temperature === 'neutral'
+      (w as unknown).temperature === 'neutral'
     ).length;
     const negativeConversations = whatsappAnalysis.filter(w => 
-      (w as any).temperature === 'negative'
+      (w as unknown).temperature === 'negative'
     ).length;
 
     const analysisScores = whatsappAnalysis
-      .map(w => (w as any).score)
+      .map(w => (w as unknown).score)
       .filter((s): s is number => typeof s === 'number');
     const averageWhatsAppScore = analysisScores.length > 0
       ? Math.round((analysisScores.reduce((a, b) => a + b, 0) / analysisScores.length) * 10) / 10
       : null;
 
     const activeAlerts = whatsappAnalysis.reduce((count, w) => {
-      const alerts = (w as any).alerts;
+      const alerts = (w as unknown).alerts;
       if (Array.isArray(alerts)) {
         return count + alerts.length;
       }
@@ -634,7 +634,7 @@ Deno.serve(async (req) => {
     }, 0);
 
     // Conversations without recent response (waiting for reply)
-    const conversationsWithoutResponse = conversations.filter((c: any) => {
+    const conversationsWithoutResponse = conversations.filter((c: unknown) => {
       if (c.is_archived) return false;
       const convMessages = messagesByConversation.get(c.id) || [];
       if (convMessages.length === 0) return false;
@@ -644,8 +644,8 @@ Deno.serve(async (req) => {
 
     // Conversations needing attention (negative or low score)
     const conversationsNeedingAttention = whatsappAnalysis.filter(w => {
-      const temp = (w as any).temperature;
-      const score = (w as any).score;
+      const temp = (w as unknown).temperature;
+      const score = (w as unknown).score;
       return temp === 'negative' || (typeof score === 'number' && score < 5);
     }).length;
 
@@ -656,7 +656,7 @@ Deno.serve(async (req) => {
     let ignoredAssignmentsCount = 0;
     
     // Iterate through CS conversations and resolve who is the responsible attendant
-    conversations.forEach((conv: any) => {
+    conversations.forEach((conv: unknown) => {
       const attendantId = resolveAttendantForConversation(conv.id, conv.instance_id);
       
       if (attendantId) {
@@ -680,7 +680,7 @@ Deno.serve(async (req) => {
     });
 
     const messageCounts = new Map<string, number>();
-    messagesSent.forEach((m: any) => {
+    messagesSent.forEach((m: unknown) => {
       const userId = m.sent_by_user_id;
       messageCounts.set(userId, (messageCounts.get(userId) || 0) + 1);
     });
@@ -699,22 +699,22 @@ Deno.serve(async (req) => {
     }> = [];
 
     for (const [userId, convIds] of attendantConversations) {
-      const attendantAnalyses = whatsappAnalysis.filter((a: any) => 
+      const attendantAnalyses = whatsappAnalysis.filter((a: unknown) =>
         convIds.includes(a.conversation_id)
       );
 
-      const positiveCount = attendantAnalyses.filter((a: any) => a.temperature === 'positive').length;
-      const neutralCount = attendantAnalyses.filter((a: any) => a.temperature === 'neutral').length;
-      const negativeCount = attendantAnalyses.filter((a: any) => a.temperature === 'negative').length;
+      const positiveCount = attendantAnalyses.filter((a: unknown) => a.temperature === 'positive').length;
+      const neutralCount = attendantAnalyses.filter((a: unknown) => a.temperature === 'neutral').length;
+      const negativeCount = attendantAnalyses.filter((a: unknown) => a.temperature === 'negative').length;
 
       const scores = attendantAnalyses
-        .map((a: any) => a.score)
-        .filter((s: any): s is number => typeof s === 'number');
+        .map((a: unknown) => a.score)
+        .filter((s: unknown): s is number => typeof s === 'number');
       const avgScore = scores.length > 0
         ? Math.round((scores.reduce((a: number, b: number) => a + b, 0) / scores.length) * 10) / 10
         : null;
 
-      const alertCount = attendantAnalyses.reduce((count: number, a: any) => {
+      const alertCount = attendantAnalyses.reduce((count: number, a: unknown) => {
         if (Array.isArray(a.alerts)) {
           return count + a.alerts.length;
         }
@@ -756,8 +756,8 @@ Deno.serve(async (req) => {
     // Fetch profiles and employees for ALL allowed attendants (not just those with conversations)
     // This ensures we have names available for pendingConversations as well
     const allAttendantUserIds = [...allowedAttendantUserIds];
-    let profiles: any[] = [];
-    let employees: any[] = [];
+    let profiles: unknown[] = [];
+    let employees: unknown[] = [];
     
     if (allAttendantUserIds.length > 0) {
       const [profilesResult, employeesResult] = await Promise.all([
@@ -799,13 +799,13 @@ Deno.serve(async (req) => {
     // ========== CRITICAL CONVERSATIONS ==========
     const criticalConversationsList = whatsappAnalysis
       .filter(w => {
-        const temp = (w as any).temperature;
-        const score = (w as any).score;
+        const temp = (w as unknown).temperature;
+        const score = (w as unknown).score;
         return temp === 'negative' || (typeof score === 'number' && score < 5);
       })
       .map(w => {
-        const conv = (w as any).whatsapp_conversations;
-        const alerts = (w as any).alerts;
+        const conv = (w as unknown).whatsapp_conversations;
+        const alerts = (w as unknown).alerts;
         
         // Use resolveAttendantForConversation to ensure only official attendants are shown
         let attendantId = resolveAttendantForConversation(conv.id, conv.instance_id);
@@ -818,11 +818,11 @@ Deno.serve(async (req) => {
           contactPhone: conv.phone || '',
           clientId: conv.client_id,
           clientName: null as string | null,
-          score: (w as any).score,
-          temperature: (w as any).temperature,
+          score: (w as unknown).score,
+          temperature: (w as unknown).temperature,
           alertsCount: Array.isArray(alerts) ? alerts.length : 0,
-          interpretation: (w as any).interpretation,
-          lastAnalysis: (w as any).updated_at,
+          interpretation: (w as unknown).interpretation,
+          lastAnalysis: (w as unknown).updated_at,
           lastMessageAt: conv.last_message_at,
           attendantId,
           attendantName,
@@ -852,18 +852,18 @@ Deno.serve(async (req) => {
       .select('analysis_id')
       .eq('company_id', company.id);
     
-    const displayedAlertIds = new Set((displayedAlertsData || []).map((a: any) => a.analysis_id));
+    const displayedAlertIds = new Set((displayedAlertsData || []).map((a: unknown) => a.analysis_id));
     console.log('Displayed alerts count:', displayedAlertIds.size);
 
     const recentCriticalAlerts: CriticalAlert[] = whatsappAnalysis
       .filter(w => {
-        const score = (w as any).score;
-        const id = (w as any).id;
+        const score = (w as unknown).score;
+        const id = (w as unknown).id;
         // Filter by score AND not already displayed
         return typeof score === 'number' && score < 3 && !displayedAlertIds.has(id);
       })
       .map(w => {
-        const conv = (w as any).whatsapp_conversations;
+        const conv = (w as unknown).whatsapp_conversations;
         
         // Use resolveAttendantForConversation to ensure only official attendants are shown
         let attendantId = resolveAttendantForConversation(conv.id, conv.instance_id);
@@ -883,18 +883,18 @@ Deno.serve(async (req) => {
         }
         
         return {
-          id: (w as any).id,
+          id: (w as unknown).id,
           conversationId: conv.id,
           contactName: conv.contact_name || 'Sem nome',
           contactPhone: conv.phone || '',
           clientName,
           attendantId,
           attendantName,
-          score: (w as any).score,
-          temperature: (w as any).temperature,
-          interpretation: (w as any).interpretation,
-          suggestion: (w as any).suggestion,
-          analyzedAt: (w as any).updated_at,
+          score: (w as unknown).score,
+          temperature: (w as unknown).temperature,
+          interpretation: (w as unknown).interpretation,
+          suggestion: (w as unknown).suggestion,
+          analyzedAt: (w as unknown).updated_at,
         };
       })
       .sort((a, b) => new Date(b.analyzedAt).getTime() - new Date(a.analyzedAt).getTime())
@@ -918,10 +918,10 @@ Deno.serve(async (req) => {
     // Get conversation IDs that might have score >= 9 (celebration)
     const celebrationConversationIds = whatsappAnalysis
       .filter(w => {
-        const score = (w as any).score;
+        const score = (w as unknown).score;
         return typeof score === 'number' && score >= 9;
       })
-      .map(w => (w as any).whatsapp_conversations.id);
+      .map(w => (w as unknown).whatsapp_conversations.id);
 
     // Fetch last inbound messages for celebration conversations
     let lastClientMessages: Map<string, string> = new Map();
@@ -935,7 +935,7 @@ Deno.serve(async (req) => {
       
       if (lastMessages) {
         // Group by conversation_id and take first (most recent)
-        lastMessages.forEach((msg: any) => {
+        lastMessages.forEach((msg: unknown) => {
           if (!lastClientMessages.has(msg.conversation_id)) {
             lastClientMessages.set(msg.conversation_id, msg.content || '');
           }
@@ -945,13 +945,13 @@ Deno.serve(async (req) => {
 
     const recentCelebrationAlerts: CelebrationAlert[] = whatsappAnalysis
       .filter(w => {
-        const score = (w as any).score;
-        const id = (w as any).id;
+        const score = (w as unknown).score;
+        const id = (w as unknown).id;
         // Filter by score AND not already displayed
         return typeof score === 'number' && score >= 9 && !displayedAlertIds.has(id);
       })
       .map(w => {
-        const conv = (w as any).whatsapp_conversations;
+        const conv = (w as unknown).whatsapp_conversations;
         
         // Use resolveAttendantForConversation to ensure only official attendants are shown
         let attendantId = resolveAttendantForConversation(conv.id, conv.instance_id);
@@ -981,7 +981,7 @@ Deno.serve(async (req) => {
         const lastClientMessage = lastClientMessages.get(conv.id) || null;
         
         return {
-          id: (w as any).id,
+          id: (w as unknown).id,
           conversationId: conv.id,
           contactName: conv.contact_name || 'Sem nome',
           contactPhone: conv.phone || '',
@@ -989,11 +989,11 @@ Deno.serve(async (req) => {
           attendantId,
           attendantName,
           squadName,
-          score: (w as any).score,
-          temperature: (w as any).temperature,
-          interpretation: (w as any).interpretation,
+          score: (w as unknown).score,
+          temperature: (w as unknown).temperature,
+          interpretation: (w as unknown).interpretation,
           lastClientMessage,
-          analyzedAt: (w as any).updated_at,
+          analyzedAt: (w as unknown).updated_at,
         };
       })
       .sort((a, b) => new Date(b.analyzedAt).getTime() - new Date(a.analyzedAt).getTime())
@@ -1003,8 +1003,8 @@ Deno.serve(async (req) => {
     // Use a more efficient approach: query last message per conversation
     // Also check AI analysis needs_response flag to filter out confirmations/thanks
     const nonArchivedConversationIds = conversations
-      .filter((c: any) => !c.is_archived)
-      .map((c: any) => c.id);
+      .filter((c: unknown) => !c.is_archived)
+      .map((c: unknown) => c.id);
     
     // Build a map of last message direction for each conversation
     // Use chunks to avoid query size limits
@@ -1020,7 +1020,7 @@ Deno.serve(async (req) => {
         .select('conversation_id, needs_response')
         .in('conversation_id', nonArchivedConversationIds);
       
-      (analysisData || []).forEach((a: any) => {
+      (analysisData || []).forEach((a: unknown) => {
         // Default to true if not set (backwards compatibility)
         needsResponseByConversation.set(a.conversation_id, a.needs_response ?? true);
       });
@@ -1039,7 +1039,7 @@ Deno.serve(async (req) => {
           .limit(chunk.length * 2); // Allow some margin but limit the total
         
         // Group by conversation_id and take the first (most recent) message
-        (lastMessagesChunk || []).forEach((msg: any) => {
+        (lastMessagesChunk || []).forEach((msg: unknown) => {
           if (!lastMessageByConversation.has(msg.conversation_id)) {
             lastMessageByConversation.set(msg.conversation_id, {
               direction: msg.direction,
@@ -1051,7 +1051,7 @@ Deno.serve(async (req) => {
     }
     
     const pendingConversations = conversations
-      .filter((c: any) => {
+      .filter((c: unknown) => {
         if (c.is_archived) return false;
         const lastMsg = lastMessageByConversation.get(c.id);
         if (!lastMsg) return false;
@@ -1066,7 +1066,7 @@ Deno.serve(async (req) => {
         
         return true;
       })
-      .map((c: any) => {
+      .map((c: unknown) => {
         const lastMsg = lastMessageByConversation.get(c.id)!;
         const waitingMs = now.getTime() - new Date(lastMsg.sent_at).getTime();
         const waitingMinutes = Math.round(waitingMs / (1000 * 60));
@@ -1091,15 +1091,15 @@ Deno.serve(async (req) => {
 
     // Enrich pending conversations with client names
     const pendingClientIds = conversations
-      .filter((c: any) => pendingConversations.find(p => p.id === c.id))
-      .map((c: any) => c.client_id)
+      .filter((c: unknown) => pendingConversations.find(p => p.id === c.id))
+      .map((c: unknown) => c.client_id)
       .filter((id): id is string => id !== null);
     
     if (pendingClientIds.length > 0) {
       const { data: pendingClientsData } = await supabase.from('clients').select('id, name').in('id', pendingClientIds);
       if (pendingClientsData) {
         pendingConversations.forEach(conv => {
-          const conversation = conversations.find((c: any) => c.id === conv.id);
+          const conversation = conversations.find((c: unknown) => c.id === conv.id);
           if (conversation?.client_id) {
             const client = pendingClientsData.find(c => c.id === conversation.client_id);
             if (client) conv.clientName = client.name;
@@ -1141,13 +1141,13 @@ Deno.serve(async (req) => {
 
     // Filter to only CS conversations and build recent evaluations
     const filteredEvaluations = (recentAnalysisHistory || [])
-      .filter((h: any) => csConversationIds.has(h.conversation_id))
+      .filter((h: unknown) => csConversationIds.has(h.conversation_id))
       .slice(0, 20);
     
     // Fetch client names for evaluations
     const evaluationClientIds = filteredEvaluations
-      .map((h: any) => h.whatsapp_conversations?.client_id)
-      .filter((id: any): id is string => id !== null && id !== undefined);
+      .map((h: unknown) => h.whatsapp_conversations?.client_id)
+      .filter((id: unknown): id is string => id !== null && id !== undefined);
     
     let evaluationClientsMap = new Map<string, string>();
     if (evaluationClientIds.length > 0) {
@@ -1161,7 +1161,7 @@ Deno.serve(async (req) => {
     }
     
     const recentEvaluations: RecentEvaluation[] = filteredEvaluations
-      .map((h: any) => {
+      .map((h: unknown) => {
         const conv = h.whatsapp_conversations;
         
         // Use resolveAttendantForConversation to get the responsible attendant

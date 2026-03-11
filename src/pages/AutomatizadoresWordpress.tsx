@@ -100,7 +100,7 @@ export default function AutomatizadoresWordpress() {
           },
         });
       } catch (e) {
-        // intentionally empty
+        console.warn('Failed to generate first post:', e);
       }
 
       return config;

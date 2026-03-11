@@ -173,7 +173,7 @@ serve(async (req) => {
 
     // Update instance in database
     if (instance_id) {
-      const updateData: any = {
+      const updateData: unknown = {
         is_connected: isConnected,
         connected_phone: connectedPhone,
         last_connection_test: new Date().toISOString(),

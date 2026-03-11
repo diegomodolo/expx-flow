@@ -80,7 +80,7 @@ serve(async (req) => {
     }
 
     // Build request body based on action
-    const body: Record<string, any> = {
+    const body: Record<string, unknown> = {
       shortCut: quickReply.shortCut,
       type: quickReply.type
     };

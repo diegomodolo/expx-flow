@@ -125,12 +125,12 @@ export function useCampaigns(clientId?: string) {
         });
 
         if (functionError) {
-
+          console.warn('Facebook API update failed, falling back to local update:', functionError);
           throw functionError;
         }
 
         if (result?.error) {
-
+          console.warn('Facebook API returned error, falling back to local update:', result.error);
           throw new Error(result.error);
         }
 
@@ -139,6 +139,7 @@ export function useCampaigns(clientId?: string) {
         return;
 
       } catch (facebookError) {
+        console.warn('Facebook API update failed, falling back to local update:', facebookError);
 
         // Fallback to local update only
         const { error } = await supabase

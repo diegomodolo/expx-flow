@@ -119,7 +119,7 @@ Deno.serve(async (req) => {
     console.log('Creating WordPress post...');
     const postUrl = `${normalizedUrl}/wp-json/wp/v2/posts`;
     
-    const postData: any = {
+    const postData: unknown = {
       title: post.title,
       content: post.content,
       status: config.post_status || 'draft',

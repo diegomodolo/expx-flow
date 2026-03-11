@@ -127,7 +127,6 @@ export async function sendDiscordTaskNotification(
 
     if (!channelId) {
       // No channel mapped for this squad, skip
-
       return;
     }
 
@@ -142,7 +141,6 @@ export async function sendDiscordTaskNotification(
         embed,
       },
     });
-
 
   } catch (err) {
     console.error("[Discord] Failed to send notification:", err);

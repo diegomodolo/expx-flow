@@ -20,13 +20,11 @@ export default function GoogleAdsCallback() {
   useEffect(() => {
     // Só processar se activeCompany estiver disponível
     if (!activeCompany) {
-
       return;
     }
 
     // Marcar IMEDIATAMENTE para prevenir race conditions
     if (hasProcessedRef.current) {
-
       return;
     }
     hasProcessedRef.current = true;
@@ -49,7 +47,6 @@ export default function GoogleAdsCallback() {
       }
 
       try {
-
         await handleCallback(code, activeCompany.company_id);
         await refreshAdAccounts();
         setStatus('success');

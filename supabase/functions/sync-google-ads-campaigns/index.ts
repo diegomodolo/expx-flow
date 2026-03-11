@@ -67,7 +67,7 @@ function getDateRange(days: number): { startDate: string; endDate: string } {
   };
 }
 
-async function refreshTokenIfNeeded(supabase: any, integration: any): Promise<string> {
+async function refreshTokenIfNeeded(supabase: unknown, integration: unknown): Promise<string> {
   const now = new Date();
   const expiresAt = new Date(integration.expires_at);
 
@@ -122,9 +122,9 @@ async function refreshTokenIfNeeded(supabase: any, integration: any): Promise<st
 class GoogleAdsApiError extends Error {
   status: number;
   raw: string;
-  parsed?: any;
+  parsed?: unknown;
 
-  constructor(status: number, raw: string, parsed?: any) {
+  constructor(status: number, raw: string, parsed?: unknown) {
     super(`Google Ads API error (${status}): ${raw}`);
     this.status = status;
     this.raw = raw;
@@ -201,7 +201,7 @@ async function makeGoogleAdsRequest(
   developerToken: string,
   query: string,
   loginCustomerId?: string
-): Promise<any> {
+): Promise<unknown> {
   const url = `https://googleads.googleapis.com/${GOOGLE_ADS_API_VERSION}/customers/${customerId}/googleAds:search`;
 
   const headers: Record<string, string> = {
@@ -230,7 +230,7 @@ async function makeGoogleAdsRequest(
     const errorText = await response.text();
     console.error(`❌ Google Ads API error (${response.status}):`, errorText);
 
-    let parsed: any | undefined;
+    let parsed: unknown | undefined;
     try {
       parsed = JSON.parse(errorText);
       if (parsed?.error?.details) {
@@ -277,7 +277,7 @@ async function makeGoogleAdsRequestWithFallback(args: {
   developerToken: string;
   query: string;
   loginCustomerIds: Array<string | undefined>;
-}): Promise<{ data: any; usedLoginCustomerId?: string }> {
+}): Promise<{ data: unknown; usedLoginCustomerId?: string }> {
   const uniq: Array<string | undefined> = [];
   const seen = new Set<string>();
   let lastErr: unknown;
@@ -581,7 +581,7 @@ serve(async (req) => {
           for (const result of campaignsData.results) {
             const campaign = result.campaign;
             const metrics = result.metrics || {};
-            const campaignBudget = (result.campaignBudget ?? result.campaign_budget ?? {}) as any;
+            const campaignBudget = (result.campaignBudget ?? result.campaign_budget ?? {}) as unknown;
 
             const spend = microsToCurrency(metrics.costMicros || 0);
             const cpc = microsToCurrency(metrics.averageCpc || 0);
@@ -635,7 +635,7 @@ serve(async (req) => {
         }
 
         console.log(`   ✅ Synced ${totalCampaigns} campaigns`);
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('   ❌ Error syncing campaigns:', error.message);
         throw error;
       }
@@ -732,7 +732,7 @@ serve(async (req) => {
         }
 
         console.log(`   ✅ Synced ${totalAdGroups} ad groups`);
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('   ❌ Error syncing ad groups:', error.message);
         // Don't throw, continue with other sync operations
       }
@@ -875,7 +875,7 @@ serve(async (req) => {
         }
 
         console.log(`   ✅ Synced ${totalAds} ads`);
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('   ❌ Error syncing ads:', error.message);
         // Don't throw, continue
       }
@@ -906,7 +906,7 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('💥 Error in sync-google-ads-campaigns:', error);
 
     // For expected Google Ads permission/state errors, return 200 with a structured payload

@@ -38,8 +38,8 @@ Deno.serve(async (req) => {
     for (const client of allClients || []) {
       if (!client.company_id) continue;
 
-      const presentedQbrs = client.qbr_reports?.filter((q: any) => q.status === 'presented') || [];
-      const lastPresented = presentedQbrs.sort((a: any, b: any) => 
+      const presentedQbrs = client.qbr_reports?.filter((q: unknown) => q.status === 'presented') || [];
+      const lastPresented = presentedQbrs.sort((a: unknown, b: unknown) =>
         new Date(b.presented_at).getTime() - new Date(a.presented_at).getTime()
       )[0];
 
@@ -96,8 +96,8 @@ Deno.serve(async (req) => {
           client_id: nps.client_id,
           alert_type: 'cs_nps_detractor',
           severity: 'critical',
-          title: `Detrator NPS: ${(nps.clients as any)?.name}`,
-          message: `Cliente ${(nps.clients as any)?.name} deu nota ${nps.score} no NPS. Requer ação de recuperação urgente.`,
+          title: `Detrator NPS: ${(nps.clients as unknown)?.name}`,
+          message: `Cliente ${(nps.clients as unknown)?.name} deu nota ${nps.score} no NPS. Requer ação de recuperação urgente.`,
           details: { npsScore: nps.score, respondedAt: nps.responded_at },
           related_entity_type: 'nps_response',
           related_entity_id: nps.id,
@@ -137,10 +137,10 @@ Deno.serve(async (req) => {
             client_id: config.client_id,
             alert_type: 'cs_no_contact',
             severity: 'warning',
-            title: `Sem contato: ${(config.clients as any)?.name}`,
+            title: `Sem contato: ${(config.clients as unknown)?.name}`,
             message: daysSinceContact === 999
-              ? `Nenhum contato registrado com ${(config.clients as any)?.name}. Entre em contato.`
-              : `Faz ${daysSinceContact} dias sem contato com ${(config.clients as any)?.name}.`,
+              ? `Nenhum contato registrado com ${(config.clients as unknown)?.name}. Entre em contato.`
+              : `Faz ${daysSinceContact} dias sem contato com ${(config.clients as unknown)?.name}.`,
             details: { daysSinceContact },
             related_entity_type: 'client',
             related_entity_id: config.client_id,

@@ -303,7 +303,7 @@ IMPORTANTE:
 
     const generatedCreatives =
       creativesArray.length > 0
-        ? creativesArray.map((creative: any) => ({
+        ? creativesArray.map((creative: unknown) => ({
             id: crypto.randomUUID(),
             type: "IMAGE" as const,
             mediaUrls: [],

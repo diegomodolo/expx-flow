@@ -193,7 +193,6 @@ export function useGoogleAdsCampaignSync() {
 
   const validateCompanyUrls = async (companyId: string) => {
     try {
-
       const { data, error } = await supabase.functions.invoke('validate-client-urls', {
         body: { company_id: companyId }
       });
@@ -227,7 +226,6 @@ export function useGoogleAdsCampaignSync() {
       setProgress({ current: 0, total: 0 });
 
 
-
       // Get all clients with Google Ads accounts
       let query = supabase
         .from('clients')
@@ -246,7 +244,7 @@ export function useGoogleAdsCampaignSync() {
       if (error) throw error;
 
       if (!clients || clients.length === 0) {
-
+        console.warn('[syncAllClients] No clients found with Google Ads configured for company:', companyId);
         toast.info("Nenhum cliente com Google Ads configurado");
         return;
       }

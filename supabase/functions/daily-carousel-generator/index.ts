@@ -247,7 +247,7 @@ serve(async (req) => {
               }
             }
           }
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error(
             `[daily-carousel-generator] Error generating ${type}:`,
             error,
@@ -271,7 +271,7 @@ serve(async (req) => {
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[daily-carousel-generator] Error:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
@@ -545,7 +545,7 @@ function buildImageStylePrompt(
 }
 
 async function generateCarousel(
-  supabase: any,
+  supabase: unknown,
   client: ClientData,
   schedule: CarouselSchedule | null,
   carouselType: (typeof CAROUSEL_TYPES)[number],
@@ -689,7 +689,7 @@ Responda APENAS em JSON válido com esta estrutura:
       carousel.theme,
     );
     return carousel;
-  } catch (parseError: any) {
+  } catch (parseError: unknown) {
     console.error(
       "[daily-carousel-generator] Parse error:",
       parseError,

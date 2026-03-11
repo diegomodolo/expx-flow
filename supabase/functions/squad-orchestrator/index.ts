@@ -101,7 +101,7 @@ function buildToolsFromSkills(skills: SkillRecord[], hasFixedClient: boolean) {
 }
 
 // Build delegation tools for a manager — one tool per child agent
-function buildDelegationTools(childMembers: SquadMember[]): any[] {
+function buildDelegationTools(childMembers: SquadMember[]): unknown[] {
   return childMembers.map((child) => ({
     type: "function" as const,
     function: {
@@ -287,9 +287,9 @@ async function loadAgentSkills(agentId: string): Promise<SkillRecord[]> {
     .eq("agent_id", agentId);
   if (!data) return [];
   return data
-    .map((row: any) => row.ia_agent_skills)
+    .map((row: unknown) => row.ia_agent_skills)
     .filter(Boolean)
-    .map((s: any) => ({
+    .map((s: unknown) => ({
       id: s.id,
       name: s.name,
       description: s.description || s.name,
@@ -319,7 +319,7 @@ async function callAgentWithTools(
     args: Record<string, unknown>,
     result: Record<string, unknown>,
   ) => void,
-  delegationTools?: any[],
+  delegationTools?: unknown[],
   onDelegation?: DelegationHandler,
 ): Promise<{ output: string; should_delegate: boolean }> {
   const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
@@ -354,7 +354,7 @@ ${nextAgentsList}
   // Build client context from squad
   let clientContextInstructions = "";
   if (squadClientInfo) {
-    const ci = squadClientInfo as any;
+    const ci = squadClientInfo as unknown;
     clientContextInstructions = `
 [CLIENTE DA SQUAD - CONTEXTO FIXO]
 O cliente desta squad já está definido. NÃO tente buscar ou consultar quem é o cliente.
@@ -441,7 +441,7 @@ ${isLeader ? "- LEMBRE-SE: Você DEVE terminar com [DELEGAR] ou [FINALIZAR]. Sem
 
   // Managers need more iterations since each delegation is one iteration
   const maxIterations = isManager ? 20 : 5;
-  let currentMessages: any[] = [
+  let currentMessages: unknown[] = [
     { role: "system", content: systemPrompt },
     { role: "user", content: message },
   ];
@@ -708,7 +708,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const typedMembers: SquadMember[] = members.map((m: any) => ({
+    const typedMembers: SquadMember[] = members.map((m: unknown) => ({
       ...m,
       agent: Array.isArray(m.agent) ? m.agent[0] : m.agent,
     }));
@@ -801,7 +801,7 @@ Deno.serve(async (req) => {
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       async start(controller) {
-        const sendEvent = (eventData: any) => {
+        const sendEvent = (eventData: unknown) => {
           controller.enqueue(
             encoder.encode(`data: ${JSON.stringify(eventData)}\n\n`),
           );
@@ -823,7 +823,7 @@ Deno.serve(async (req) => {
             .order("step_order", { ascending: true });
 
           const previousSteps: StepResult[] = (prevStepsData || []).map(
-            (s: any) => {
+            (s: unknown) => {
               const member = typedMembers.find(
                 (m) => m.agent_id === s.agent_id,
               );
@@ -905,7 +905,7 @@ Deno.serve(async (req) => {
                 step_order: stepOrder,
               });
 
-              let agentDelegationTools: any[] | undefined;
+              let agentDelegationTools: unknown[] | undefined;
               let agentDelegationHandler: DelegationHandler | undefined;
 
               if (isManagerNode && children.length > 0) {
@@ -1142,7 +1142,7 @@ IMPORTANTE: Você já executou os passos anteriores (veja o contexto). NÃO repi
           });
 
           // Build delegation tools and handler for managers
-          let agentDelegationTools: any[] | undefined;
+          let agentDelegationTools: unknown[] | undefined;
           let agentDelegationHandler: DelegationHandler | undefined;
 
           if (isManagerNode && childMembers.length > 0) {

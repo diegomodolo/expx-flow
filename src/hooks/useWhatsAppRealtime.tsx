@@ -20,7 +20,6 @@ export function useWhatsAppRealtime(companyId: string | undefined) {
           filter: `company_id=eq.${companyId}`,
         },
         (payload) => {
-
           queryClient.invalidateQueries({ queryKey: ["whatsapp-conversations", companyId] });
         }
       )
@@ -38,7 +37,6 @@ export function useWhatsAppRealtime(companyId: string | undefined) {
           filter: `company_id=eq.${companyId}`,
         },
         (payload) => {
-
           const newMessage = payload.new as unknown;
           
           // Invalidate messages for the specific conversation

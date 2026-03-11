@@ -74,7 +74,6 @@ export function useWhatsAppMessages(conversationId: string | null, companyId: st
         },
         (payload) => {
           const newMessage = payload.new as WhatsAppMessage;
-
           queryClient.setQueryData<WhatsAppMessage[]>(
             ["whatsapp-messages", conversationId],
             (old) => {
@@ -96,7 +95,6 @@ export function useWhatsAppMessages(conversationId: string | null, companyId: st
         },
         (payload) => {
           const updated = payload.new as WhatsAppMessage;
-
           queryClient.setQueryData<WhatsAppMessage[]>(
             ["whatsapp-messages", conversationId],
             (old) => {
@@ -138,7 +136,6 @@ export function useWhatsAppMessages(conversationId: string | null, companyId: st
           variant: "destructive",
         });
       } else if (data?.success) {
-
         // Invalidate to reload from DB with new messages
         queryClient.invalidateQueries({ queryKey: ["whatsapp-messages", conversationId] });
       } else if (data?.error) {

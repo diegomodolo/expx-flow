@@ -217,7 +217,7 @@ Regras importantes:
     return new Response(JSON.stringify({ success: true, data: result }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error in generate-creative-texts:", error);
     return new Response(
       JSON.stringify({ success: false, error: error.message }),

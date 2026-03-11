@@ -206,7 +206,6 @@ export default function DashboardCSTVPublic() {
   // Extract company ID from the data response
   useEffect(() => {
     if (data?.companyId && !companyId) {
-
       setCompanyId(data.companyId);
     }
   }, [data?.companyId, companyId]);
@@ -216,7 +215,6 @@ export default function DashboardCSTVPublic() {
     token: token || "",
     companyId,
     onNewCriticalAlert: useCallback((alert: CriticalAlert) => {
-
       setActiveAlerts(prev => {
         // Avoid duplicates
         if (prev.some(a => a.id === alert.id)) return prev;
@@ -224,7 +222,6 @@ export default function DashboardCSTVPublic() {
       });
     }, []),
     onNewCelebrationAlert: useCallback((alert: CelebrationAlert) => {
-
       setActiveCelebrations(prev => {
         // Avoid duplicates
         if (prev.some(a => a.id === alert.id)) return prev;

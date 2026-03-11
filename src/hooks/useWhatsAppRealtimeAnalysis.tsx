@@ -98,7 +98,6 @@ export function useWhatsAppRealtimeAnalysis({
       }
 
       if (data) {
-
         const storedData = data as StoredAnalysis;
         
         // Parse stored insight JSON if exists
@@ -215,7 +214,6 @@ export function useWhatsAppRealtimeAnalysis({
       }
       
       if (!currentResult.error && !historyResult.error) {
-
         // Alert events are now automatically dispatched by database trigger
       }
     } catch (err) {
@@ -245,7 +243,6 @@ export function useWhatsAppRealtimeAnalysis({
         // Set the lastAnalyzedMessageId from the stored value to prevent re-analysis
         if (result.lastMessageId) {
           lastAnalyzedMessageId.current = result.lastMessageId;
-
         }
       }
     });
@@ -256,7 +253,6 @@ export function useWhatsAppRealtimeAnalysis({
     
     // Skip analysis for group conversations if ignore_group_analysis is enabled
     if (isGroupConversation && (config?.ignore_group_analysis ?? true)) {
-
       return;
     }
 
@@ -267,7 +263,6 @@ export function useWhatsAppRealtimeAnalysis({
 
     // Avoid duplicate parallel analyses for the same message id
     if (inFlightMessageId.current === lastMessage.id) {
-
       return;
     }
 
@@ -278,7 +273,6 @@ export function useWhatsAppRealtimeAnalysis({
     const hasNoTranscription = isAudioMessage && !lastMessage.audio_transcription;
 
     if (isAudioMessage && (isTranscriptionPending || hasNoTranscription)) {
-
       return; // Wait for transcription to be ready
     }
 

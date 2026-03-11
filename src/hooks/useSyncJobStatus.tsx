@@ -62,17 +62,14 @@ export const useSyncJobStatus = (jobId: string | null) => {
           filter: `id=eq.${jobId}`
         },
         (payload) => {
-
           setJob(payload.new as unknown as SyncJob);
         }
       )
       .subscribe((status) => {
-
       });
 
     // Cleanup subscription on unmount or jobId change
     return () => {
-
       supabase.removeChannel(channel);
     };
   }, [jobId]);

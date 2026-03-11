@@ -65,7 +65,6 @@ export function useCSTVRealtimeAlerts({
       }
 
       if (existing) {
-
         return false;
       }
 
@@ -85,13 +84,11 @@ export function useCSTVRealtimeAlerts({
       if (insertError) {
         // Might be a race condition with another dashboard - that's OK
         if (insertError.code === "23505") {
-
           return false;
         }
         console.error("[useCSTVRealtimeAlerts] Error marking alert as displayed:", insertError);
         return false;
       }
-
 
       return true;
     } catch (err) {
@@ -105,7 +102,7 @@ export function useCSTVRealtimeAlerts({
 
     const analysisId = event.alert_data.analysisId;
     if (!analysisId) {
-
+      console.warn("[useCSTVRealtimeAlerts] Alert event missing analysisId");
       return;
     }
 
@@ -153,7 +150,6 @@ export function useCSTVRealtimeAlerts({
 
   useEffect(() => {
     if (!companyId) {
-
       return;
     }
 
@@ -170,20 +166,17 @@ export function useCSTVRealtimeAlerts({
           filter: `company_id=eq.${companyId}`,
         },
         (payload) => {
-
           const event = payload.new as RealtimeAlertEvent;
           handleNewAlert(event);
         }
       )
       .subscribe((status) => {
-
         setIsConnected(status === "SUBSCRIBED");
       });
 
     channelRef.current = channel;
 
     return () => {
-
       if (channelRef.current) {
         supabasePublic.removeChannel(channelRef.current);
         channelRef.current = null;

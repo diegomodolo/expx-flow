@@ -99,7 +99,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const hashedUserData: any = {};
+    const hashedUserData: unknown = {};
     
     if (userData?.email) {
       hashedUserData.em = await sha256Hash(userData.email);
@@ -256,7 +256,7 @@ Deno.serve(async (req) => {
       }
     );
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in send-offline-conversion:', error);
     return new Response(
       JSON.stringify({ success: false, error: error.message }),

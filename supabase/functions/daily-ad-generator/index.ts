@@ -81,7 +81,7 @@ serve(async (req) => {
   let historyId: string | null = null;
   let client_id: string;
   let company_id: string;
-  let schedule: any = null;
+  let schedule: unknown = null;
   let adsToGenerate = 0;
 
   try {
@@ -208,7 +208,7 @@ serve(async (req) => {
 
     // Helper function to save a single ad and update history progressively
     const saveAdAndUpdateHistory = async (
-      ad: any,
+      ad: unknown,
       currentDistribution: {
         clones: number;
         concepts: number;
@@ -317,7 +317,7 @@ serve(async (req) => {
       return true;
     };
 
-    const generatedAds: any[] = [];
+    const generatedAds: unknown[] = [];
     const errors: string[] = [];
     const currentDistribution = { clones: 0, concepts: 0, iterations: 0 };
 
@@ -467,7 +467,7 @@ function getClientReferenceImages(client: ClientData): string[] {
 // Generate creative image using Nano banana model
 async function generateCreativeImage(
   client: ClientData,
-  adContent: any,
+  adContent: unknown,
   schedule: AdGenerationSchedule | null = null,
   timeoutMs: number = 45000,
 ): Promise<string | null> {
@@ -643,7 +643,7 @@ IMPORTANTE:
       const errorText = await response.text();
       console.error("[daily-ad-generator] Image generation error:", errorText);
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     clearTimeout(timeoutId);
     if (error.name === "AbortError") {
       console.error(
@@ -728,11 +728,11 @@ function normalizeCTA(cta: string): string {
 
 // Generate clone ads from competitor winning ads - PARALLEL VERSION
 async function generateCloneAdsProgressive(
-  supabase: any,
+  supabase: unknown,
   client: ClientData,
   count: number,
   schedule: AdGenerationSchedule | null,
-  onAdGenerated: (ad: any) => Promise<void>,
+  onAdGenerated: (ad: unknown) => Promise<void>,
 ): Promise<number> {
   if (count <= 0) return 0;
 
@@ -778,7 +778,7 @@ async function generateCloneAdsProgressive(
   }
 
   const usedAds = new Set();
-  const adsToProcess: { sourceAd: any }[] = [];
+  const adsToProcess: { sourceAd: unknown }[] = [];
 
   // Collect ads to process
   for (let i = 0; i < Math.min(count, competitorAds.length); i++) {
@@ -803,7 +803,7 @@ async function generateCloneAdsProgressive(
   const adaptedAds = await Promise.all(textPromises);
 
   // Filter out failed adaptations
-  const validAds: { sourceAd: any; adaptedAd: any }[] = [];
+  const validAds: { sourceAd: unknown; adaptedAd: unknown }[] = [];
   for (let i = 0; i < adaptedAds.length; i++) {
     if (adaptedAds[i]) {
       validAds.push({
@@ -863,11 +863,11 @@ async function generateCloneAdsProgressive(
 
 // Generate concept ads from market research - PARALLEL VERSION
 async function generateConceptAdsProgressive(
-  supabase: any,
+  supabase: unknown,
   client: ClientData,
   count: number,
   schedule: AdGenerationSchedule | null,
-  onAdGenerated: (ad: any) => Promise<void>,
+  onAdGenerated: (ad: unknown) => Promise<void>,
 ): Promise<number> {
   if (count <= 0) return 0;
 
@@ -944,8 +944,8 @@ Responda APENAS em JSON válido.`,
 
   const textResults = await Promise.all(textPromises);
   const validResults = textResults.filter((r) => r !== null) as {
-    adContent: any;
-    insight: any;
+    adContent: unknown;
+    insight: unknown;
   }[];
 
   console.log(
@@ -1005,11 +1005,11 @@ Responda APENAS em JSON válido.`,
 
 // Generate iteration ads from winning client ads - PARALLEL VERSION
 async function generateIterationAdsProgressive(
-  supabase: any,
+  supabase: unknown,
   client: ClientData,
   count: number,
   schedule: AdGenerationSchedule | null,
-  onAdGenerated: (ad: any) => Promise<void>,
+  onAdGenerated: (ad: unknown) => Promise<void>,
 ): Promise<number> {
   if (count <= 0) return 0;
 
@@ -1094,8 +1094,8 @@ Responda APENAS em JSON válido.`,
 
   const textResults = await Promise.all(textPromises);
   const validResults = textResults.filter((r) => r !== null) as {
-    adContent: any;
-    sourceAd: any;
+    adContent: unknown;
+    sourceAd: unknown;
   }[];
 
   console.log(
@@ -1153,11 +1153,11 @@ Responda APENAS em JSON válido.`,
 
 // Helper: Generate AI clone ads when no competitor data exists - PARALLEL VERSION
 async function generateAICloneAdsProgressive(
-  supabase: any,
+  supabase: unknown,
   client: ClientData,
   count: number,
   schedule: AdGenerationSchedule | null,
-  onAdGenerated: (ad: any) => Promise<void>,
+  onAdGenerated: (ad: unknown) => Promise<void>,
 ): Promise<number> {
   const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
 
@@ -1298,11 +1298,11 @@ Responda em JSON:
 // Legacy functions for manual generation (kept for backwards compatibility)
 // Generate clone ads from competitor winning ads
 async function generateCloneAds(
-  supabase: any,
+  supabase: unknown,
   client: ClientData,
   count: number,
   schedule: AdGenerationSchedule | null = null,
-): Promise<any[]> {
+): Promise<unknown[]> {
   if (count <= 0) return [];
 
   console.log(
@@ -1340,7 +1340,7 @@ async function generateCloneAds(
     return await generateAICloneAds(supabase, client, count, schedule);
   }
 
-  const ads: any[] = [];
+  const ads: unknown[] = [];
   const usedAds = new Set();
 
   for (let i = 0; i < Math.min(count, competitorAds.length); i++) {
@@ -1376,11 +1376,11 @@ async function generateCloneAds(
 
 // Generate concept ads from market research
 async function generateConceptAds(
-  supabase: any,
+  supabase: unknown,
   client: ClientData,
   count: number,
   schedule: AdGenerationSchedule | null = null,
-): Promise<any[]> {
+): Promise<unknown[]> {
   if (count <= 0) return [];
 
   console.log("[daily-ad-generator] Generating", count, "concept ads");
@@ -1393,7 +1393,7 @@ async function generateConceptAds(
     .order("relevance_score", { ascending: false })
     .limit(count);
 
-  const ads: any[] = [];
+  const ads: unknown[] = [];
   const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
 
   for (let i = 0; i < count; i++) {
@@ -1490,11 +1490,11 @@ Responda APENAS em JSON válido.`,
 
 // Generate iteration ads from winning client ads
 async function generateIterationAds(
-  supabase: any,
+  supabase: unknown,
   client: ClientData,
   count: number,
   schedule: AdGenerationSchedule | null = null,
-): Promise<any[]> {
+): Promise<unknown[]> {
   if (count <= 0) return [];
 
   console.log("[daily-ad-generator] Generating", count, "iteration ads");
@@ -1508,7 +1508,7 @@ async function generateIterationAds(
     .order("ctr", { ascending: false })
     .limit(10);
 
-  const ads: any[] = [];
+  const ads: unknown[] = [];
   const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
 
   if (!winnerAds || winnerAds.length === 0) {
@@ -1598,10 +1598,10 @@ Responda APENAS em JSON válido.`,
 
 // Helper: Adapt competitor ad for client
 async function adaptCompetitorAd(
-  supabase: any,
+  supabase: unknown,
   client: ClientData,
-  sourceAd: any,
-): Promise<any> {
+  sourceAd: unknown,
+): Promise<unknown> {
   const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
 
   const prompt = `
@@ -1692,7 +1692,7 @@ Responda em JSON:
 }
 
 // Helper: Build prompt for concept generation
-function buildConceptPrompt(client: ClientData, insight: any): string {
+function buildConceptPrompt(client: ClientData, insight: unknown): string {
   return `
 Crie um anúncio ORIGINAL e CRIATIVO para:
 
@@ -1739,7 +1739,7 @@ Responda em JSON:
 }
 
 // Helper: Build prompt for iteration generation
-function buildIterationPrompt(client: ClientData, winnerAd: any): string {
+function buildIterationPrompt(client: ClientData, winnerAd: unknown): string {
   return `
 Crie uma VARIAÇÃO do seguinte anúncio vencedor:
 
@@ -1784,13 +1784,13 @@ Responda em JSON:
 
 // Helper: Generate AI clone ads when no competitor data exists
 async function generateAICloneAds(
-  supabase: any,
+  supabase: unknown,
   client: ClientData,
   count: number,
   schedule: AdGenerationSchedule | null = null,
-): Promise<any[]> {
+): Promise<unknown[]> {
   const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
-  const ads: any[] = [];
+  const ads: unknown[] = [];
 
   for (let i = 0; i < count; i++) {
     const prompt = `

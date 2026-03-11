@@ -130,7 +130,7 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in scheduled-automation-execution:', error);
     return new Response(
       JSON.stringify({ success: false, error: error.message }),

@@ -70,7 +70,7 @@ A thumbnail deve capturar a essência do vídeo e despertar curiosidade no espec
 Gere uma imagem realista, profissional e altamente clicável.`;
 
     // Build messages array with optional reference images
-    const messages: any[] = [
+    const messages: unknown[] = [
       {
         role: "user",
         content: [{ type: "text", text: prompt }],

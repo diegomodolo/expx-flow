@@ -15,7 +15,7 @@ const VEO_MODELS: Record<string, { id: string; durations: number[] }> = {
 };
 
 // Helper para criar JWT assinado com RS256
-async function createSignedJWT(serviceAccount: any): Promise<string> {
+async function createSignedJWT(serviceAccount: unknown): Promise<string> {
   const header = { alg: "RS256", typ: "JWT" };
   const now = Math.floor(Date.now() / 1000);
 
@@ -69,7 +69,7 @@ async function createSignedJWT(serviceAccount: any): Promise<string> {
 }
 
 // Obter access token do GCP
-async function getGCPAccessToken(serviceAccount: any): Promise<string> {
+async function getGCPAccessToken(serviceAccount: unknown): Promise<string> {
   const signedJwt = await createSignedJWT(serviceAccount);
 
   const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
@@ -130,7 +130,7 @@ async function startVideoGeneration(
   const endpoint =
     `https://${LOCATION}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${LOCATION}/publishers/google/models/${modelId}:predictLongRunning`;
 
-  const requestBody: any = {
+  const requestBody: unknown = {
     instances: [{
       prompt: prompt,
     }],
@@ -277,7 +277,7 @@ async function checkOperationStatus(
 
 // Upload do vídeo para Supabase Storage
 async function uploadVideoToStorage(
-  supabase: any,
+  supabase: unknown,
   base64Video: string,
   clientId: string,
 ): Promise<string> {
@@ -524,7 +524,7 @@ serve(async (req) => {
       status: 405,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error in generate-video-creative:", error);
     return new Response(
       JSON.stringify({

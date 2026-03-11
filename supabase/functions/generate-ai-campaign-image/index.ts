@@ -233,7 +233,7 @@ Generate a NEW image that follows the same visual identity while maintaining the
     );
 
     // Build the messages array with reference images
-    const messageContent: any[] = [
+    const messageContent: unknown[] = [
       {
         type: "text",
         text: imagePrompt,

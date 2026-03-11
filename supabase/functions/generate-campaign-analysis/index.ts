@@ -21,7 +21,7 @@ Deno.serve(async (req) => {
     console.log("Campaigns data:", campaigns?.length || 0, "campaigns");
 
     // Preparar dados das campanhas para análise
-    const campaignSummary = campaigns.map((campaign: any) => ({
+    const campaignSummary = campaigns.map((campaign: unknown) => ({
       name: campaign.name,
       status: campaign.status,
       objective: campaign.objective,

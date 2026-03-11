@@ -21,7 +21,7 @@ interface RequestBody {
   shareWithEmail?: string;
 }
 
-async function getGoogleAccessToken(credentials: any): Promise<string> {
+async function getGoogleAccessToken(credentials: unknown): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
   const exp = now + 3600;
 
@@ -184,7 +184,7 @@ serve(async (req) => {
     // Build batch update requests
     // First, delete the default slide
     const defaultSlideId = presentation.slides?.[0]?.objectId;
-    const requests: any[] = [];
+    const requests: unknown[] = [];
 
     // Create new slides with images
     for (let i = 0; i < slidesWithImages.length; i++) {
@@ -321,7 +321,7 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error exporting to Google Slides:", error);
     return new Response(
       JSON.stringify({ error: error.message || "Failed to export to Google Slides" }),

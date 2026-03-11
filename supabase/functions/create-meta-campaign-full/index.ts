@@ -244,7 +244,7 @@ serve(async (req) => {
       console.log(`Creating ad set: ${adSet.name}`);
 
       // Build targeting object
-      const targeting: any = {
+      const targeting: unknown = {
         geo_locations: { countries: ["BR"] }, // Default to Brazil
         // Disable Advantage+ audience expansion (required by Meta API)
         targeting_automation: {
@@ -421,7 +421,7 @@ serve(async (req) => {
             .single();
 
           createdAds.push({ ...creative, metaId: adResult.id, localId: savedAd?.id });
-        } catch (adError: any) {
+        } catch (adError: unknown) {
           console.error(`Error creating ad:`, adError);
           adCreationErrors.push(`${adSet.name}: ${adError?.message || 'Erro inesperado ao criar anúncio/criativo'}`);
         }
@@ -453,7 +453,7 @@ serve(async (req) => {
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error in create-meta-campaign-full:", error);
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
@@ -504,7 +504,7 @@ async function createAdCreative(
   accessToken: string,
   creative: Creative,
   pageId?: string
-): Promise<any> {
+): Promise<unknown> {
   if (!pageId) {
     return {
       error: {
@@ -515,7 +515,7 @@ async function createAdCreative(
     };
   }
 
-  const objectStorySpec: any = {
+  const objectStorySpec: unknown = {
     page_id: pageId,
   };
 

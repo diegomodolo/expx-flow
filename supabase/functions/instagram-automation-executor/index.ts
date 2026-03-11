@@ -91,7 +91,7 @@ Deno.serve(async (req) => {
           await sleep(delayMs);
           stepsExecuted++;
         }
-      } catch (stepError: any) {
+      } catch (stepError: unknown) {
         console.error(`[instagram-automation-executor] Step error:`, stepError);
         hasError = true;
         errorMessage = stepError.message;
@@ -118,7 +118,7 @@ Deno.serve(async (req) => {
       JSON.stringify({ success: !hasError, steps_executed: stepsExecuted }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[instagram-automation-executor] Fatal error:", error);
     return new Response(
       JSON.stringify({ error: error.message }),

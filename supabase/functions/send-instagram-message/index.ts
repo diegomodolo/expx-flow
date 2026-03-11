@@ -93,7 +93,7 @@ Deno.serve(async (req) => {
 });
 
 async function resolveInstagramAccessToken(
-  supabase: any,
+  supabase: unknown,
   instagramAccountId: string,
   companyId: string
 ): Promise<string> {

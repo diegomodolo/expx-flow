@@ -72,22 +72,22 @@ serve(async (req) => {
     }
 
     // Use the same chat listing approach as sync-whatsapp-chats (proven to work)
-    let allChats: any[] = [];
+    let allChats: unknown[] = [];
     const attemptLogs: string[] = [];
 
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
       "Accept": "application/json",
       "token": token,
-      "apikey": (config as any)?.token || token,
+      "apikey": (config as unknown)?.token || token,
       "Authorization": `Bearer ${token}`,
       "x-instance-name": String(instance.instance_name || ""),
       "x-instance-id": String(instanceIdentifier || ""),
     };
 
-    type Attempt = { url: string; method: "GET" | "POST"; body: any | null };
+    type Attempt = { url: string; method: "GET" | "POST"; body: unknown | null };
     const endpointsToTry: Attempt[] = [];
-    const add = (url: string, method: "GET" | "POST", body: any | null) => {
+    const add = (url: string, method: "GET" | "POST", body: unknown | null) => {
       endpointsToTry.push({ url, method, body });
     };
 
@@ -118,7 +118,7 @@ serve(async (req) => {
         }
 
         const responseText = await response.text();
-        let responseData: any;
+        let responseData: unknown;
         try {
           responseData = JSON.parse(responseText);
         } catch {
@@ -127,7 +127,7 @@ serve(async (req) => {
         }
 
         // Extract array from various response formats (same logic as sync-whatsapp-chats)
-        let foundChats: any[] = [];
+        let foundChats: unknown[] = [];
         if (Array.isArray(responseData)) {
           foundChats = responseData;
         } else if (responseData.data && Array.isArray(responseData.data)) {
@@ -167,12 +167,12 @@ serve(async (req) => {
 
     // Filter only groups (@g.us)
     const groups = allChats
-      .filter((chat: any) => {
+      .filter((chat: unknown) => {
         const id = chat.wa_chatid || chat.id?._serialized || chat.id || chat.jid || chat.remoteJid || chat.chatId || "";
         const idStr = typeof id === "string" ? id : JSON.stringify(id);
         return idStr.includes("@g.us");
       })
-      .map((chat: any) => {
+      .map((chat: unknown) => {
         const rawId = chat.wa_chatid || chat.id?._serialized || chat.id || chat.jid || chat.remoteJid || chat.chatId || "";
         const jid = typeof rawId === "string" ? rawId : JSON.stringify(rawId);
         return {

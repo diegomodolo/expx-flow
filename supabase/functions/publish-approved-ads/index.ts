@@ -134,8 +134,8 @@ serve(async (req) => {
       .eq('client_id', client_id)
       .single();
 
-    const publishedAds: any[] = [];
-    const failedAds: any[] = [];
+    const publishedAds: unknown[] = [];
+    const failedAds: unknown[] = [];
 
     for (const ad of approvedAds) {
       try {
@@ -168,7 +168,7 @@ serve(async (req) => {
             error: result.error,
           });
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('[publish-approved-ads] Error publishing ad:', ad.id, error);
         failedAds.push({
           id: ad.id,
@@ -192,7 +192,7 @@ serve(async (req) => {
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[publish-approved-ads] Error:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
@@ -203,9 +203,9 @@ serve(async (req) => {
 
 // New function: Publish single ad to multiple destinations
 async function publishAdToMultipleDestinations(
-  supabase: any,
+  supabase: unknown,
   accessToken: string,
-  client: any,
+  client: unknown,
   adId: string,
   destinations: PublishDestination[]
 ): Promise<Response> {
@@ -239,8 +239,8 @@ async function publishAdToMultipleDestinations(
   console.log('[publish-approved-ads] Using FB Ad Account:', adAccountId);
 
   const content = ad.generated_content;
-  const results: any[] = [];
-  const errors: any[] = [];
+  const results: unknown[] = [];
+  const errors: unknown[] = [];
 
   console.log('[publish-approved-ads] Publishing to', destinations.length, 'campaigns');
 
@@ -301,7 +301,7 @@ async function publishAdToMultipleDestinations(
             error: adResult.error,
           });
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('[publish-approved-ads] Error creating ad:', error);
         errors.push({
           campaignId: destination.campaignId,
@@ -343,7 +343,7 @@ async function publishAdToMultipleDestinations(
 
 // Upload base64 image to Supabase Storage and return public URL
 async function uploadBase64ToStorage(
-  supabase: any,
+  supabase: unknown,
   base64Data: string,
   clientId: string
 ): Promise<string | null> {
@@ -395,11 +395,11 @@ async function uploadBase64ToStorage(
 
 // Create ad creative (reusable across ad sets)
 async function createAdCreative(
-  supabase: any,
+  supabase: unknown,
   accessToken: string,
-  client: any,
+  client: unknown,
   adAccountId: string,
-  content: any
+  content: unknown
 ): Promise<{ success: boolean; creative_id?: string; error?: string }> {
   try {
     const linkUrl = client.website_url || 'https://example.com';
@@ -415,7 +415,7 @@ async function createAdCreative(
       };
     }
 
-    const creativePayload: any = {
+    const creativePayload: unknown = {
       name: `AI Generated - ${content.headline?.substring(0, 50) || 'Ad'} - ${Date.now()}`,
       object_story_spec: {
         page_id: pageId,
@@ -477,7 +477,7 @@ async function createAdCreative(
     }
 
     return { success: true, creative_id: data.id };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[publish-approved-ads] Creative creation error:', error);
     return { success: false, error: error.message };
   }
@@ -520,7 +520,7 @@ async function createAd(
 
     console.log('[publish-approved-ads] Ad created:', data.id);
     return { success: true, ad_id: data.id };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[publish-approved-ads] Ad creation error:', error);
     return { success: false, error: error.message };
   }
@@ -528,10 +528,10 @@ async function createAd(
 
 // Legacy function for batch publishing
 async function publishAdToMeta(
-  supabase: any,
+  supabase: unknown,
   accessToken: string,
-  client: any,
-  ad: any,
+  client: unknown,
+  ad: unknown,
   targetCampaignId?: string,
   targetAdSetId?: string
 ): Promise<{ success: boolean; meta_ad_id?: string; error?: string }> {

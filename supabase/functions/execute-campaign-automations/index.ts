@@ -23,10 +23,10 @@ interface AutomationRule {
   client_id?: string;
   entity_type: 'campaign' | 'adset' | 'ad';
   action_type: string;
-  conditions: any;
-  action_config: any;
+  conditions: unknown;
+  action_config: unknown;
   time_window_days: number;
-  scope_filters?: any;
+  scope_filters?: unknown;
   budget_safety_limits?: {
     max_daily_budget_increase_percent?: number;
     max_daily_budget_decrease_percent?: number;
@@ -343,7 +343,7 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Error in execute-campaign-automations:', error);
     
     if (executionId && companyId && clientId) {
@@ -438,7 +438,7 @@ function objectiveMatchesRule(
 }
 
 async function logProgress(
-  supabase: any, 
+  supabase: unknown,
   executionId: string, 
   companyId: string, 
   clientId: string,
@@ -450,7 +450,7 @@ async function logProgress(
     message: string;
     entity_id?: string;
     facebook_id?: string;
-    metadata?: any;
+    metadata?: unknown;
   }
 ) {
   await supabase.from('automation_execution_progress').insert({
@@ -465,7 +465,7 @@ async function logProgress(
 
 // Verificar se a entidade está em período de cooldown
 async function isEntityInCooldown(
-  supabase: any,
+  supabase: unknown,
   ruleId: string,
   facebookId: string,
   cooldownDays: number
@@ -504,7 +504,7 @@ async function isEntityInCooldown(
 
 // Salvar log de ação na tabela oficial
 async function saveActionLog(
-  supabase: any,
+  supabase: unknown,
   rule: AutomationRule,
   companyId: string,
   clientId: string,
@@ -541,7 +541,7 @@ async function saveActionLog(
 }
 
 // Fetch com retry para rate limit - configuração mais agressiva
-async function fetchWithRetry(url: string, maxRetries = 8, initialDelay = 5000): Promise<any> {
+async function fetchWithRetry(url: string, maxRetries = 8, initialDelay = 5000): Promise<unknown> {
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       const response = await fetch(url);
@@ -571,7 +571,7 @@ async function fetchWithRetry(url: string, maxRetries = 8, initialDelay = 5000):
       }
 
       return data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (attempt === maxRetries - 1) throw error;
       const delay = initialDelay * Math.pow(2, attempt);
       const cappedDelay = Math.min(delay, 60000); // Máximo 1 minuto
@@ -588,7 +588,7 @@ async function fetchWithRetry(url: string, maxRetries = 8, initialDelay = 5000):
 async function collectFullHierarchy(
   adAccountId: string,
   accessToken: string,
-  supabase: any,
+  supabase: unknown,
   executionId: string,
   companyId: string,
   clientId: string
@@ -662,8 +662,8 @@ async function collectFullHierarchy(
   return hierarchy;
 }
 
-async function fetchAllCampaigns(adAccountId: string, accessToken: string): Promise<any[]> {
-  const allCampaigns: any[] = [];
+async function fetchAllCampaigns(adAccountId: string, accessToken: string): Promise<unknown[]> {
+  const allCampaigns: unknown[] = [];
   let url = `https://graph.facebook.com/v20.0/${adAccountId}/campaigns?` +
     `fields=id,name,status,objective,effective_status,created_time&` +
     `filtering=[{"field":"effective_status","operator":"IN","value":["ACTIVE"]}]&` +
@@ -679,7 +679,7 @@ async function fetchAllCampaigns(adAccountId: string, accessToken: string): Prom
   return allCampaigns;
 }
 
-async function fetchAdSets(campaignId: string, accessToken: string): Promise<any[]> {
+async function fetchAdSets(campaignId: string, accessToken: string): Promise<unknown[]> {
   const url = `https://graph.facebook.com/v20.0/${campaignId}/adsets?` +
     `fields=id,name,status,effective_status,created_time&` +
     `filtering=[{"field":"effective_status","operator":"IN","value":["ACTIVE"]}]&` +
@@ -689,7 +689,7 @@ async function fetchAdSets(campaignId: string, accessToken: string): Promise<any
   return data.data || [];
 }
 
-async function fetchAds(adSetId: string, accessToken: string): Promise<any[]> {
+async function fetchAds(adSetId: string, accessToken: string): Promise<unknown[]> {
   const url = `https://graph.facebook.com/v20.0/${adSetId}/ads?` +
     `fields=id,name,status,effective_status,created_time&` +
     `filtering=[{"field":"effective_status","operator":"IN","value":["ACTIVE"]}]&` +
@@ -759,7 +759,7 @@ async function fetchMetrics(
     
     let conversions = 0;
     if (insights.actions) {
-      const leadAction = insights.actions.find((a: any) => 
+      const leadAction = insights.actions.find((a: unknown) =>
         a.action_type === 'offsite_conversion.fb_pixel_lead' ||
         a.action_type === 'lead' ||
         a.action_type === 'onsite_conversion.post_save'
@@ -796,7 +796,7 @@ async function applyRuleToHierarchy(
   hierarchy: CampaignData[],
   executionId: string,
   accessToken: string,
-  supabase: any,
+  supabase: unknown,
   companyId: string,
   clientId: string,
   namePrefix: string,
@@ -980,7 +980,7 @@ async function processEntity(
   rule: AutomationRule,
   executionId: string,
   accessToken: string,
-  supabase: any,
+  supabase: unknown,
   companyId: string,
   clientId: string,
   namePrefix: string,
@@ -1109,7 +1109,7 @@ async function processEntity(
       });
       return 'skipped';
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error(`❌ Error processing ${entity.name}:`, error);
     
     await logProgress(supabase, executionId, companyId, clientId, {
@@ -1128,14 +1128,14 @@ async function processEntity(
   }
 }
 
-function evaluateConditions(conditions: any, metrics: MetricsData): boolean {
+function evaluateConditions(conditions: unknown, metrics: MetricsData): boolean {
   if (!conditions || !conditions.conditions) return false;
 
   const logic = conditions.logic || 'AND';
   const conditionsList = conditions.conditions;
 
-  const results = conditionsList.map((cond: any) => {
-    const metricValue = (metrics as any)[cond.field];
+  const results = conditionsList.map((cond: unknown) => {
+    const metricValue = (metrics as unknown)[cond.field];
     const targetValue = parseFloat(cond.value);
 
     switch (cond.operator) {
@@ -1239,7 +1239,7 @@ async function executeAction(
   facebookId: string,
   currentName: string,
   actionType: string,
-  actionConfig: any,
+  actionConfig: unknown,
   entityType: string,
   ruleName: string,
   namePrefix: string,
@@ -1249,7 +1249,7 @@ async function executeAction(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     let url = '';
-    let body: any = {};
+    let body: unknown = {};
 
     switch (actionType) {
       case 'pause':
@@ -1361,7 +1361,7 @@ async function executeAction(
     }
 
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     return { success: false, error: error.message };
   }
 }

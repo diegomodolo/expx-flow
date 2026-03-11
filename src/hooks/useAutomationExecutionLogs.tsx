@@ -34,12 +34,6 @@ export const useAutomationExecutionLogs = (
     queryKey: ['automation-execution-logs', activeCompany?.company_id, clientId, limit, periodFilter],
     queryFn: async () => {
 
-
-
-
-
-
-
       if (!user) {
         console.error('❌ No user authenticated');
         toast.error('Usuário não autenticado');
@@ -54,7 +48,6 @@ export const useAutomationExecutionLogs = (
 
       try {
         // Test query to verify user has access to company
-
         const { data: accessTest, error: accessError } = await supabase
           .from('company_members')
           .select('company_id, role')
@@ -62,7 +55,6 @@ export const useAutomationExecutionLogs = (
           .eq('company_id', activeCompany.company_id)
           .single();
         
-
 
         if (accessError || !accessTest) {
           console.error('❌ User does not have access to this company');
@@ -106,15 +98,12 @@ export const useAutomationExecutionLogs = (
           .limit(limit);
 
         if (clientId) {
-
           query.eq('client_id', clientId);
         }
 
         if (dateFilter) {
-
           query.gte('started_at', dateFilter);
         }
-
 
         const { data, error } = await query;
 
@@ -123,8 +112,6 @@ export const useAutomationExecutionLogs = (
           toast.error(`Erro ao carregar logs: ${error.message}`);
           return [];
         }
-
-
 
 
         return (data || []) as unknown as AutomationExecutionLog[];

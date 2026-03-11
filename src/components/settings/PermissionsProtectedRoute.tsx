@@ -20,7 +20,6 @@ export function PermissionsProtectedRoute() {
       
       
       if (!activeCompany?.company_id) {
-
         setIsAdmin(false);
         return;
       }
@@ -29,7 +28,6 @@ export function PermissionsProtectedRoute() {
       const isOwnerOrAdmin = activeCompany.role === 'owner' || activeCompany.role === 'admin';
       
       if (isOwnerOrAdmin) {
-
         setIsAdmin(true);
         return;
       }
@@ -37,7 +35,6 @@ export function PermissionsProtectedRoute() {
       // Fallback: verify in database
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-
         setIsAdmin(false);
         return;
       }
@@ -57,7 +54,6 @@ export function PermissionsProtectedRoute() {
       }
 
       const isAdminFromDB = member?.role === 'owner' || member?.role === 'admin';
-
       setIsAdmin(isAdminFromDB);
     } catch (error) {
       console.error('Error checking admin permissions:', error);

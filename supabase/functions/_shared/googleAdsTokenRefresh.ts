@@ -79,7 +79,7 @@ export async function refreshGoogleAdsToken(
  * Use esta função no início de sincronizações agendadas para garantir token válido por 1 hora.
  */
 export async function forceRefreshGoogleAdsToken(
-  supabaseClient: any,
+  supabaseClient: unknown,
   integration: GoogleAdsIntegration
 ): Promise<RefreshResult> {
   console.log('🔄 Forçando renovação do token (scheduled sync)...');
@@ -138,7 +138,7 @@ export async function forceRefreshGoogleAdsToken(
  * Use esta função para chamadas manuais (UI) - só renova se estiver expirando.
  */
 export async function getValidGoogleAdsToken(
-  supabaseClient: any,
+  supabaseClient: unknown,
   integration: GoogleAdsIntegration
 ): Promise<RefreshResult> {
   // Verifica se o token está expirado ou expirando em breve

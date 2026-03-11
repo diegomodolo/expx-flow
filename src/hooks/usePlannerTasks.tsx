@@ -46,7 +46,7 @@ export function usePlannerTasks(plannedDate: Date) {
         .in("user_id", userIds);
 
       if (profilesError) {
-        // intentionally empty
+        console.warn("Erro ao buscar perfis:", profilesError);
       }
 
       // Combinar dados

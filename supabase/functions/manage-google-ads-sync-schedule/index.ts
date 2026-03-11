@@ -162,7 +162,7 @@ serve(async (req) => {
     }
 
     if (action === 'patch') {
-      const updates: any = {};
+      const updates: unknown = {};
 
       if (body.is_enabled !== undefined) {
         updates.is_enabled = body.is_enabled;

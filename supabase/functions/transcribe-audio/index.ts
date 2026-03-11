@@ -13,9 +13,9 @@ function json(body: unknown, status = 200) {
   });
 }
 
-function findSpeechServiceDisabled(speechResult: any): { activationUrl?: string; projectNumber?: string } {
+function findSpeechServiceDisabled(speechResult: unknown): { activationUrl?: string; projectNumber?: string } {
   const err = speechResult?.error;
-  const details: any[] = Array.isArray(err?.details) ? err.details : [];
+  const details: unknown[] = Array.isArray(err?.details) ? err.details : [];
   const info = details.find((d) => d?.["@type"]?.includes("google.rpc.ErrorInfo"));
   if (info?.reason === "SERVICE_DISABLED" && info?.metadata?.service === "speech.googleapis.com") {
     return {
@@ -270,7 +270,7 @@ serve(async (req) => {
     let transcription = "";
     if (speechResult.results && speechResult.results.length > 0) {
       transcription = speechResult.results
-        .map((result: any) => result.alternatives?.[0]?.transcript || "")
+        .map((result: unknown) => result.alternatives?.[0]?.transcript || "")
         .join(" ")
         .trim();
     }

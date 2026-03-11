@@ -74,7 +74,6 @@ export function CarouselGenerationProgressModal({
 
     // GUARD: Se já iniciou, não inicia novamente (previne re-execução por mudança de props)
     if (hasStartedRef.current) {
-
       return;
     }
 

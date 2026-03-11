@@ -117,7 +117,7 @@ Deno.serve(async (req) => {
       try {
         // Create execution log entry with running status
         const { error: logError } = await supabase
-          .from('automation_execution_logs' as any)
+          .from('automation_execution_logs' as unknown)
           .insert({
             company_id: schedule.company_id,
             client_id: schedule.client_id,
@@ -152,7 +152,7 @@ Deno.serve(async (req) => {
           
           // Update log with error status
           await supabase
-            .from('automation_execution_logs' as any)
+            .from('automation_execution_logs' as unknown)
             .update({
               status: 'failed',
               completed_at: new Date().toISOString(),
@@ -173,7 +173,7 @@ Deno.serve(async (req) => {
 
         // Update log with success status
         await supabase
-          .from('automation_execution_logs' as any)
+          .from('automation_execution_logs' as unknown)
           .update({
             status: execData?.totalErrors > 0 
               ? (execData?.totalActioned > 0 ? 'partial' : 'failed')
@@ -219,7 +219,7 @@ Deno.serve(async (req) => {
         
         // Update log with error status
         await supabase
-          .from('automation_execution_logs' as any)
+          .from('automation_execution_logs' as unknown)
           .update({
             status: 'failed',
             completed_at: new Date().toISOString(),

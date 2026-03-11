@@ -220,7 +220,6 @@ export function useTreeNodeActions({ onSuccess, addSyncingItem, removeSyncingIte
         await invalidateTreeQueries(clientId);
 
         // Wait 10 seconds for Meta to process the deep_copy
-
         await new Promise(resolve => setTimeout(resolve, 10000));
         
         // Try syncing with retries
@@ -240,7 +239,6 @@ export function useTreeNodeActions({ onSuccess, addSyncingItem, removeSyncingIte
             });
             
             if (!success && attempt < maxAttempts) {
-
               await new Promise(resolve => setTimeout(resolve, 5000));
             }
           } catch (error) {

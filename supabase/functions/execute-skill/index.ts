@@ -93,7 +93,7 @@ serve(async (req) => {
           })();
         `);
         
-        const callApi = async (url: string, options: any = {}) => {
+        const callApi = async (url: string, options: unknown = {}) => {
           const resp = await fetch(url, options);
           const text = await resp.text();
           try { return JSON.parse(text); } catch { return text; }
@@ -170,8 +170,8 @@ serve(async (req) => {
       const code = skill.edge_function_code;
       
       // Check for external API config
-      if (skill.external_api_config && (skill.external_api_config as any).url) {
-        const apiConfig = skill.external_api_config as any;
+      if (skill.external_api_config && (skill.external_api_config as unknown).url) {
+        const apiConfig = skill.external_api_config as unknown;
         const headers: Record<string, string> = {
           "Content-Type": "application/json",
           ...(apiConfig.headers || {}),

@@ -120,7 +120,7 @@ serve(async (req) => {
     }
 
     let apiSuccess = true;
-    let apiData: any = null;
+    let apiData: unknown = null;
 
     // Only call provider API if we need to delete from WhatsApp or provider DB
     if (delete_chat_whatsapp || delete_chat_db || delete_messages_db) {

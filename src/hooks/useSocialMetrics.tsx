@@ -18,7 +18,6 @@ export function useSocialMetrics(clientId: string) {
         .single();
 
       if (!client?.dashboard_token) {
-
         return { social_metrics: null };
       }
 

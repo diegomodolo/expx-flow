@@ -106,7 +106,7 @@ Deno.serve(async (req) => {
 
         let successCount = 0;
         let failedCount = 0;
-        const executionDetails: any = {};
+        const executionDetails: unknown = {};
 
         // Sincronizar cada cliente
         for (const client of clients || []) {

@@ -9,7 +9,7 @@ const corsHeaders = {
 
 const DISCORD_API = "https://discord.com/api/v10";
 
-async function getBotToken(supabase: any, companyId?: string): Promise<string | null> {
+async function getBotToken(supabase: unknown, companyId?: string): Promise<string | null> {
   if (companyId) {
     const { data } = await supabase
       .from("discord_config")
@@ -94,9 +94,9 @@ serve(async (req) => {
         }
         const channels = await res.json();
         const textChannels = channels
-          .filter((c: any) => c.type === 0)
-          .map((c: any) => ({ id: c.id, name: c.name, position: c.position }))
-          .sort((a: any, b: any) => a.position - b.position);
+          .filter((c: unknown) => c.type === 0)
+          .map((c: unknown) => ({ id: c.id, name: c.name, position: c.position }))
+          .sort((a: unknown, b: unknown) => a.position - b.position);
         return new Response(
           JSON.stringify({ channels: textChannels }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -105,7 +105,7 @@ serve(async (req) => {
 
       case "send-message": {
         const { channel_id, content, embed } = payload;
-        const body: any = {};
+        const body: unknown = {};
         if (content) body.content = content;
         if (embed) body.embeds = [embed];
 
@@ -152,7 +152,7 @@ serve(async (req) => {
           );
         }
         const dm = await dmRes.json();
-        const body: any = {};
+        const body: unknown = {};
         if (content) body.content = content;
         if (embed) body.embeds = [embed];
 
@@ -189,7 +189,7 @@ serve(async (req) => {
           );
         }
         const members = await res.json();
-        const memberList = members.map((m: any) => ({
+        const memberList = members.map((m: unknown) => ({
           id: m.user.id,
           username: m.user.username,
           display_name: m.nick || m.user.global_name || m.user.username,

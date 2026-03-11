@@ -382,7 +382,6 @@ function SlideCard({
                   className="gap-1 text-xs h-7 relative z-10 cursor-pointer"
                   onClick={(e) => {
                     e.stopPropagation();
-
                     setShowImageEditor(true);
                   }}
                 >

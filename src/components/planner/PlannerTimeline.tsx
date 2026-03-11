@@ -297,7 +297,6 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
       
-
     } catch (error) {
       console.error("Erro ao exportar resumo:", error);
     }
@@ -358,8 +357,6 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
 
   // Organizar com IA - Abrir modal de escopo
   const handleOrganizeWithAI = () => {
-
-
 
     if (unscheduledTasks.length === 0) {
       toast({

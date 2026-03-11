@@ -325,7 +325,7 @@ export function CampaignGeneratorSimplified({ onBack, existingCampaign }: Campai
             });
           }
         } catch (creativesErr) {
-          // intentionally empty
+          console.warn('Erro ao gerar criativos, continuando com valores padrão:', creativesErr);
         }
 
         setEditableStrategy(strategy);

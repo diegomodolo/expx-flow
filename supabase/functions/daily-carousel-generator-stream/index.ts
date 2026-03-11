@@ -159,7 +159,7 @@ serve(async (req) => {
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, supabaseKey);
 
-  let body: any;
+  let body: unknown;
   try {
     body = await req.json();
   } catch {
@@ -463,7 +463,7 @@ ${variationInstructions}
                     `[daily-carousel-generator-stream] Auto-retry succeeded on attempt ${attempts}`,
                   );
                 }
-              } catch (retryError: any) {
+              } catch (retryError: unknown) {
                 console.log(
                   `[daily-carousel-generator-stream] Attempt ${attempts} failed:`,
                   retryError?.message,
@@ -510,7 +510,7 @@ ${variationInstructions}
             if (i < carousel.slides.length - 1) {
               await new Promise((r) => setTimeout(r, 300));
             }
-          } catch (e: any) {
+          } catch (e: unknown) {
             console.error("[daily-carousel-generator-stream] Slide error", {
               i: i + 1,
               err: e?.message,
@@ -543,7 +543,7 @@ ${variationInstructions}
         send({ type: "completed", carousel_id: carouselId, saved: true });
         controller.enqueue(sseDone());
         controller.close();
-      } catch (e: any) {
+      } catch (e: unknown) {
         console.error("[daily-carousel-generator-stream] Failed:", e);
         send({ type: "failed", message: e?.message || "Erro desconhecido" });
         controller.enqueue(sseDone());
@@ -723,7 +723,7 @@ async function uploadDataUrlToStorage({
   dataUrl,
   path,
 }: {
-  supabase: any;
+  supabase: unknown;
   dataUrl: string;
   path: string;
 }): Promise<string> {
@@ -858,7 +858,7 @@ REFERÊNCIAS VISUAIS OBRIGATÓRIAS (veja as imagens anexadas):
     if (imageUrl) return imageUrl;
 
     return null;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error(
       "[daily-carousel-generator-stream] Error calling image generation API:",
       error,
@@ -952,7 +952,7 @@ function buildCarouselFromPreGenerated(
 }
 
 async function generateCarousel(
-  supabase: any,
+  supabase: unknown,
   client: ClientData,
   schedule: CarouselSchedule | null,
   carouselType: CarouselType,

@@ -98,7 +98,7 @@ serve(async (req) => {
     const formattedPhone = targetPhone.replace(/\D/g, "");
     const chatId = `${formattedPhone}@s.whatsapp.net`;
 
-    let messages: any[] = [];
+    let messages: unknown[] = [];
     const attemptLogs: string[] = [];
 
     console.log(`[fetch-whatsapp-messages] chatId: ${chatId}`);
@@ -281,7 +281,7 @@ serve(async (req) => {
           mediaUrl = msg.message?.imageMessage?.url || msg.content?.url || null;
         } else if (msg.message?.videoMessage) {
           // WhatsApp pode representar GIF animado como videoMessage com gifPlayback=true
-          const isGif = Boolean((msg.message as any)?.videoMessage?.gifPlayback);
+          const isGif = Boolean((msg.message as unknown)?.videoMessage?.gifPlayback);
           messageType = isGif ? "gif" : "video";
           if (!content) content = isGif ? "[GIF]" : "[Vídeo]";
           mediaUrl = msg.message?.videoMessage?.url || null;

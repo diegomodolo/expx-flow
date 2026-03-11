@@ -85,7 +85,6 @@ export default function AdminLeadReports() {
       }
 
       if (!unviewedReports || unviewedReports.length === 0) {
-
         return true; // Não há nada para marcar
       }
 
@@ -105,7 +104,6 @@ export default function AdminLeadReports() {
         return false;
       }
 
-
       return true;
     } catch (err) {
       console.error('markAsViewedLocal: Erro:', err);
@@ -123,13 +121,11 @@ export default function AdminLeadReports() {
         const localSuccess = await markAsViewedLocal();
         
         if (!localSuccess && markAllAsViewed) {
-
           await markAllAsViewed();
         }
         
         // Forçar update do contador no header
         setTimeout(() => {
-
           window.dispatchEvent(new CustomEvent('refreshNotificationCount'));
         }, 2000);
       } else {

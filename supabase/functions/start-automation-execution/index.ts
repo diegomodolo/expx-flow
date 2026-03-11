@@ -126,7 +126,7 @@ Deno.serve(async (req) => {
         } else {
           console.log('✅ Background execution completed (sem resposta - execução pode ter terminado normalmente)');
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('❌ Background execution error:', error);
         
         // Atualizar log de erro
@@ -174,7 +174,7 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Error in start-automation-execution:', error);
     
     return new Response(

@@ -450,12 +450,11 @@ export function useLeadScoring() {
   const scoreMultipleLeads = useCallback(
     async (leadIds: string[]): Promise<number> => {
       if (!activeCompany?.company_id) {
-
+        console.warn("scoreMultipleLeads: No active company");
         return 0;
       }
 
       if (leadIds.length === 0) {
-
         return 0;
       }
 
@@ -479,7 +478,7 @@ export function useLeadScoring() {
         }
 
         if (!leads || leads.length === 0) {
-
+          console.warn(`Batch ${i / BATCH_SIZE + 1}: No leads found`);
           continue;
         }
 
@@ -524,7 +523,7 @@ export function useLeadScoring() {
   const scoreAllCompanyLeads = useCallback(async (): Promise<number> => {
     const companyId = activeCompany?.company_id;
     if (!companyId) {
-
+      console.warn("scoreAllCompanyLeads: No active company");
       return 0;
     }
 

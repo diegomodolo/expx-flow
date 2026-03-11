@@ -180,7 +180,7 @@ Responda usando a função generate_message.`;
     return new Response(JSON.stringify({ success: true, result, type }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error("generate-groupops-template error:", e);
     return new Response(
       JSON.stringify({ error: e.message || "Erro ao gerar template" }),

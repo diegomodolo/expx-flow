@@ -54,7 +54,7 @@ serve(async (req) => {
     let credentials;
     try {
       credentials = await resolveInstagramCredentials(supabase, client.instagram_account_id, client.company_id);
-    } catch (resolverError: any) {
+    } catch (resolverError: unknown) {
       console.error("Token resolver error:", resolverError.message);
       
       // Check if it's a BM-no-page error for diagnostics
@@ -120,9 +120,9 @@ serve(async (req) => {
 
     // Filter by media type if specified
     if (mediaType === 'VIDEO') {
-      mediaItems = mediaItems.filter((item: any) => item.media_type === 'VIDEO');
+      mediaItems = mediaItems.filter((item: unknown) => item.media_type === 'VIDEO');
     } else if (mediaType === 'IMAGE') {
-      mediaItems = mediaItems.filter((item: any) => 
+      mediaItems = mediaItems.filter((item: unknown) =>
         item.media_type === 'IMAGE' || item.media_type === 'CAROUSEL_ALBUM'
       );
     }
@@ -131,7 +131,7 @@ serve(async (req) => {
 
     // For carousel albums, we need to fetch the first image
     const processedMedia = await Promise.all(
-      mediaItems.map(async (item: any) => {
+      mediaItems.map(async (item: unknown) => {
         if (item.media_type === 'CAROUSEL_ALBUM' && mediaType === 'IMAGE') {
           try {
             const childrenUrl = `https://graph.facebook.com/v21.0/${item.id}/children?fields=id,media_type,media_url&access_token=${accessToken}`;
@@ -139,7 +139,7 @@ serve(async (req) => {
             const childrenData = await childrenResponse.json();
             
             if (childrenData.data && childrenData.data.length > 0) {
-              const firstImage = childrenData.data.find((c: any) => c.media_type === 'IMAGE');
+              const firstImage = childrenData.data.find((c: unknown) => c.media_type === 'IMAGE');
               if (firstImage) {
                 return {
                   ...item,
@@ -167,7 +167,7 @@ serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error in fetch-instagram-media:", error);
     return new Response(
       JSON.stringify({ success: false, error: error.message }),

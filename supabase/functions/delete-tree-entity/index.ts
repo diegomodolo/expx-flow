@@ -217,7 +217,7 @@ Deno.serve(async (req) => {
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Edge function error:', error)
     return new Response(
       JSON.stringify({ success: false, error: error.message }),

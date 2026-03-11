@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
           console.log('Post published successfully:', post.id, 'Response:', publishResponse.data);
           results.push({ id: post.id, success: true });
         }
-      } catch (e: any) {
+      } catch (e: unknown) {
         console.error('Exception publishing post', post.id, ':', e.message, e.stack);
         results.push({ id: post.id, success: false, error: e.message });
       }
@@ -91,7 +91,7 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in instagram-auto-post-scheduler:', error);
     return new Response(JSON.stringify({
       success: false,

@@ -70,7 +70,7 @@ serve(async (req) => {
     const cleanEndpoint = config.uazapi_endpoint?.replace(/\/$/, "");
     const url = `${cleanEndpoint}/label/edit`;
 
-    const body: any = { labelid: label_id };
+    const body: unknown = { labelid: label_id };
     if (name !== undefined) body.name = name;
     if (color !== undefined) body.color = color;
     if (shouldDelete) body.delete = true;

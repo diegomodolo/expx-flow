@@ -112,7 +112,7 @@ serve(async (req) => {
     const accessToken = integration.access_token;
 
     // Build targeting object
-    const targeting: any = {
+    const targeting: unknown = {
       geo_locations: { countries: ["BR"] },
       targeting_automation: {
         advantage_audience: 0,
@@ -214,7 +214,7 @@ serve(async (req) => {
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error in create-meta-adset:", error);
     return new Response(
       JSON.stringify({ success: false, error: error.message }),

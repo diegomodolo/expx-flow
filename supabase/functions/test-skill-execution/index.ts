@@ -80,8 +80,8 @@ serve(async (req) => {
     const code = skill.edge_function_code;
     
     // Check if it's an external API skill
-    if (skill.external_api_config && (skill.external_api_config as any).url) {
-      const apiConfig = skill.external_api_config as any;
+    if (skill.external_api_config && (skill.external_api_config as unknown).url) {
+      const apiConfig = skill.external_api_config as unknown;
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
         ...(apiConfig.headers || {}),

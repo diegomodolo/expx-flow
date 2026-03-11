@@ -76,9 +76,9 @@ serve(async (req) => {
 });
 
 async function handleIngestCallback(
-  supabase: any,
+  supabase: unknown,
   jobId: string,
-  body: any,
+  body: unknown,
   shotstackApiKey: string,
   supabaseUrl: string,
 ) {
@@ -294,9 +294,9 @@ async function handleIngestCallback(
 }
 
 async function handleEditCallback(
-  supabase: any,
+  supabase: unknown,
   jobId: string,
-  body: any,
+  body: unknown,
   clipIndex: string | null,
   reqUrl: URL,
 ) {

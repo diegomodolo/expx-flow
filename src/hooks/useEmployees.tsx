@@ -88,7 +88,7 @@ export const useEmployees = () => {
         .in("user_id", userIds);
 
       if (profilesError) {
-        // intentionally empty
+        console.warn("Error fetching profiles:", profilesError);
       }
 
       // Verificar se todos os user_ids foram encontrados e fazer fallback se necessário
@@ -179,7 +179,7 @@ export const useEmployees = () => {
       });
 
       if (checkError) {
-
+        console.warn("Erro ao verificar usuário existente:", checkError);
         // Se falhar verificação, assume que é novo usuário
         isNewUser = true;
       }
@@ -210,7 +210,7 @@ export const useEmployees = () => {
             }]);
 
           if (memberError) {
-            // intentionally empty
+            console.warn("Erro ao adicionar como membro da empresa:", memberError);
           }
         }
 

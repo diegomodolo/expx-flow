@@ -276,7 +276,7 @@ _Resumo completo enviado por email_`;
       },
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao enviar resumo da reunião:", error);
     
     return new Response(

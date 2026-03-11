@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
 
     console.log(`Found ${pendingPosts?.length || 0} posts ready for publishing`);
 
-    const results: any[] = [];
+    const results: unknown[] = [];
 
     for (const post of pendingPosts || []) {
       const config = post.wordpress_auto_post_configs;

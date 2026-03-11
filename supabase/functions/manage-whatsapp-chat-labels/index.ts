@@ -76,7 +76,7 @@ serve(async (req) => {
       formattedPhone = "55" + formattedPhone;
     }
 
-    const body: any = { number: formattedPhone };
+    const body: unknown = { number: formattedPhone };
     
     // Only one operation at a time
     if (label_ids !== undefined) {

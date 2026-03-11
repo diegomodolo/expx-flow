@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
 
     // Executar rollback baseado no tipo de ação
     const url = `https://graph.facebook.com/v20.0/${campaign.facebook_id}`;
-    const updates: any = {};
+    const updates: unknown = {};
 
     // Restaurar nome
     if (log.old_name) {
@@ -132,7 +132,7 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Rollback error:', error);
     return new Response(
       JSON.stringify({ 

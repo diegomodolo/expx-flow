@@ -19,7 +19,7 @@ const describeError = (err: unknown) => {
     // Supabase/auth-js errors often have non-enumerable props -> JSON.stringify becomes "{}".
     // We always extract own properties to surface status/code/url when present.
     // deno-lint-ignore no-explicit-any
-    const e: any = err;
+    const e: unknown = err;
     const keys = Object.getOwnPropertyNames(e);
     const picked: Record<string, unknown> = {};
     for (const k of keys) picked[k] = e[k];
@@ -30,7 +30,7 @@ const describeError = (err: unknown) => {
         message: err.message,
         stack: err.stack,
         // deno-lint-ignore no-explicit-any
-        cause: (err as any).cause,
+        cause: (err as unknown).cause,
         keys,
         picked,
       };
@@ -263,7 +263,7 @@ const handler = async (req: Request): Promise<Response> => {
 
         // auth-js usa AuthRetryableFetchError para falhas transitórias (ex.: 5xx/timeout)
         // então damos backoff e tentamos novamente.
-        if (attempt < 3 && (details as any)?.name === "AuthRetryableFetchError") {
+        if (attempt < 3 && (details as unknown)?.name === "AuthRetryableFetchError") {
           await sleep(350 * Math.pow(2, attempt - 1));
           continue;
         }
@@ -292,7 +292,7 @@ const handler = async (req: Request): Promise<Response> => {
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro no super-admin:", error);
     return new Response(
       JSON.stringify({ error: error.message }),

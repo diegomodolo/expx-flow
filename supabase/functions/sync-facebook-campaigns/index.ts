@@ -21,11 +21,11 @@ function extractBalanceFromDisplayString(displayString: string): number | null {
 }
 
 // Helper functions
-async function updateJobProgress(supabase: any, jobId: string, progress: any) {
+async function updateJobProgress(supabase: unknown, jobId: string, progress: unknown) {
   await supabase.from('sync_jobs').update({ progress }).eq('id', jobId)
 }
 
-async function completeJob(supabase: any, jobId: string, success: boolean, errorMessage?: string) {
+async function completeJob(supabase: unknown, jobId: string, success: boolean, errorMessage?: string) {
   await supabase.from('sync_jobs').update({
     status: success ? 'completed' : 'error',
     error_message: errorMessage,
@@ -175,7 +175,7 @@ Deno.serve(async (req) => {
       .catch(error => console.error('Background sync error:', error))
 
     return response
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Edge function error:', error)
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
@@ -185,7 +185,7 @@ Deno.serve(async (req) => {
 })
 
 async function processSync(
-  supabase: any,
+  supabase: unknown,
   jobId: string,
   clientId: string,
   period: string,
@@ -589,15 +589,15 @@ async function processSync(
     }
 
     // Helper to sum conversions based on campaign objective and action types
-    const countConversionsFromActions = (actions: any[] | undefined, campaignObjective?: string, campaignName?: string) => {
+    const countConversionsFromActions = (actions: unknown[] | undefined, campaignObjective?: string, campaignName?: string) => {
       if (!actions || !Array.isArray(actions)) {
         console.log(`No actions array found for campaign: ${campaignName}`)
         return 0;
       }
 
-      const norm = (s: any) => (s ?? '').toString().trim().toLowerCase()
-      const getVal = (a: any) => {
-        const toNum = (v: any) => (typeof v === 'string' ? parseFloat(v) : Number(v))
+      const norm = (s: unknown) => (s ?? '').toString().trim().toLowerCase()
+      const getVal = (a: unknown) => {
+        const toNum = (v: unknown) => (typeof v === 'string' ? parseFloat(v) : Number(v))
         const click = toNum(a?.['7d_click'])
         const view = toNum(a?.['1d_view'])
         const val = toNum(a?.value)
@@ -744,7 +744,7 @@ async function processSync(
     // Fetch campaigns from Facebook API with enhanced insights - using 7d_click + 1d_view attribution windows
     console.log('Using attribution windows: 7d_click + 1d_view')
     
-    let campaigns: any[] = []
+    let campaigns: unknown[] = []
     
     // Check if we're fetching a specific campaign or all campaigns
     if (campaignFacebookId) {
@@ -774,7 +774,7 @@ async function processSync(
         
         campaigns = [campaignData]
         console.log('Single campaign fetched:', campaignData.name)
-      } catch (fetchError: any) {
+      } catch (fetchError: unknown) {
         console.error('Network error fetching campaign:', fetchError)
         await completeJob(supabase, jobId, false, `Network error: ${fetchError.message}`)
         return
@@ -796,7 +796,7 @@ async function processSync(
         let response;
         try {
           response = await fetch(pageUrl)
-        } catch (fetchError: any) {
+        } catch (fetchError: unknown) {
           console.error('Network error fetching campaigns:', fetchError)
           await completeJob(supabase, jobId, false, `Network error: ${fetchError.message}`)
           return
@@ -1087,7 +1087,7 @@ async function processSync(
               // Count conversions from ad set to use as fallback for campaign-level leads
               const adSetCombinedMetrics = [
                 ...(Array.isArray(adSetInsights.actions) ? adSetInsights.actions : []),
-                ...(Array.isArray((adSetInsights as any).conversions) ? (adSetInsights as any).conversions : [])
+                ...(Array.isArray((adSetInsights as unknown).conversions) ? (adSetInsights as unknown).conversions : [])
               ]
               const adSetCounted = countConversionsFromActions(adSetCombinedMetrics, campaign.objective, `${campaign.name} → ${adSet.name}`)
               campaignChildLeads += adSetCounted
@@ -1197,7 +1197,7 @@ async function processSync(
                   const linkData = objectStory.link_data || {}
                   
                   // Helper function for robust creative type detection
-                  const determineCreativeType = (creative: any, objectStory: any) => {
+                  const determineCreativeType = (creative: unknown, objectStory: unknown) => {
                     console.log('Determining creative type from:', JSON.stringify({ 
                       creative_video_id: creative.video_id,
                       creative_image_url: creative.image_url,
@@ -1371,7 +1371,7 @@ async function processSync(
 
                   // Helper function to extract media URLs (async for video source fetching)
                   // IMPROVED: Priority order changed to get high-res images first
-                  const extractMediaUrls = async (creative: any, objectStory: any) => {
+                  const extractMediaUrls = async (creative: unknown, objectStory: unknown) => {
                     let imageUrl = ''
                     
                     // 1. Search for image_hash from multiple possible sources
@@ -1498,7 +1498,7 @@ async function processSync(
                      // Count conversions at ad level for granular analysis
                      const adCombinedMetrics = [
                        ...(Array.isArray(adInsights.actions) ? adInsights.actions : []),
-                       ...(Array.isArray((adInsights as any).conversions) ? (adInsights as any).conversions : [])
+                       ...(Array.isArray((adInsights as unknown).conversions) ? (adInsights as unknown).conversions : [])
                      ]
                      adLeads = countConversionsFromActions(adCombinedMetrics, campaign.objective, `${campaign.name} → ${adSet.name} → ${ad.name}`)
                      console.log('Ad conversions saved:', ad.name, adLeads)
@@ -1507,7 +1507,7 @@ async function processSync(
                     // Extract call_to_action - can come from multiple places
                     const ctaFromLinkData = linkData.call_to_action
                     const ctaTypeFromCreative = creative.call_to_action_type
-                    let callToActionValue: any = {}
+                    let callToActionValue: unknown = {}
                     
                     if (ctaFromLinkData && typeof ctaFromLinkData === 'object' && Object.keys(ctaFromLinkData).length > 0) {
                       callToActionValue = ctaFromLinkData
@@ -1521,7 +1521,7 @@ async function processSync(
                     const descriptionValue = linkData.description || objectStory.video_data?.message || creative.body || ''
                     console.log('Description extraction - linkData.description:', linkData.description, 'final:', descriptionValue)
                     
-                    const pickFirstNonEmptyString = (...candidates: any[]): string => {
+                    const pickFirstNonEmptyString = (...candidates: unknown[]): string => {
                       for (const c of candidates) {
                         if (typeof c === 'string' && c.trim().length > 0) return c.trim()
                       }
@@ -1558,7 +1558,7 @@ async function processSync(
                       linkData.call_to_action?.value?.link,
                       objectStory.video_data?.call_to_action?.value?.link,
                       objectStory.video_data?.call_to_action?.value?.link_url,
-                      (creative as any).object_url,
+                      (creative as unknown).object_url,
                       callToActionValue?.value?.link
                     )
                     let finalLinkUrl = baseDestinationUrl
@@ -1574,7 +1574,7 @@ async function processSync(
                     let adPixelId = null
                     if (ad.tracking_specs && Array.isArray(ad.tracking_specs)) {
                       const pixelSpec = ad.tracking_specs.find(
-                        (spec: any) => spec['action.type'] === 'offsite_conversion' && spec.fb_pixel
+                        (spec: unknown) => spec['action.type'] === 'offsite_conversion' && spec.fb_pixel
                       )
                       if (pixelSpec?.fb_pixel) {
                         adPixelId = Array.isArray(pixelSpec.fb_pixel) 
@@ -1699,15 +1699,15 @@ async function processSync(
       }
 
       // If no campaign-level leads, but found in child levels, update campaign totals
-      if (savedCampaign && ((savedCampaign as any).conversions ?? 0) === 0 && campaignChildLeads > 0) {
+      if (savedCampaign && ((savedCampaign as unknown).conversions ?? 0) === 0 && campaignChildLeads > 0) {
         console.log('Updating campaign with leads from ad sets:', campaign.name, campaignChildLeads)
         const { data: updatedCampaign, error: updateConvError } = await supabase
           .from('campaigns')
           .update({
             conversions: campaignChildLeads,
-            cpa: (savedCampaign as any).spend > 0 ? (savedCampaign as any).spend / campaignChildLeads : 0
+            cpa: (savedCampaign as unknown).spend > 0 ? (savedCampaign as unknown).spend / campaignChildLeads : 0
           })
-          .eq('id', (savedCampaign as any).id)
+          .eq('id', (savedCampaign as unknown).id)
           .select()
           .single()
         if (updateConvError) {
@@ -1994,7 +1994,7 @@ async function processSync(
     await completeJob(supabase, jobId, true)
     console.log('🎉 SYNC JOB COMPLETED SUCCESSFULLY for client:', clientId)
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('=== ERROR in sync-facebook-campaigns ===')
     console.error('Error type:', error?.constructor?.name || 'Unknown')
     console.error('Error message:', error?.message || String(error))

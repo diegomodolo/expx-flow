@@ -128,25 +128,21 @@ export default function CSPortfolioPage() {
   const handleWhatsApp = (clientId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     // TODO: Implement WhatsApp action
-
   };
 
   const handleCall = (clientId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     // TODO: Implement Call action
-
   };
 
   const handleTouchpoint = (clientId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     // TODO: Implement Touchpoint action
-
   };
 
   const handleNPS = (clientId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     // TODO: Implement NPS action
-
   };
 
   const handleViewClient = (clientId: string, clientName: string) => {

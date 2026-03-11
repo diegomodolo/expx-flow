@@ -161,7 +161,7 @@ Deno.serve(async (req) => {
 });
 
 async function checkAndFireKeywordTriggers(
-  supabase: any,
+  supabase: unknown,
   params: {
     companyId: string;
     instagramAccountId: string;
@@ -216,7 +216,7 @@ async function checkAndFireKeywordTriggers(
           instagramAccountId,
           matchedKeyword,
         },
-      }).catch((err: any) => console.error("[instagram-messaging-webhook] Executor invoke error:", err));
+      }).catch((err: unknown) => console.error("[instagram-messaging-webhook] Executor invoke error:", err));
 
       // Only fire the first matching trigger per message
       break;

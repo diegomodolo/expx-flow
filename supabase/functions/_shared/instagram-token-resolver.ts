@@ -14,7 +14,7 @@ interface ResolvedInstagramCredentials {
 }
 
 export async function resolveInstagramCredentials(
-  supabase: any,
+  supabase: unknown,
   instagramAccountId: string,
   companyId: string
 ): Promise<ResolvedInstagramCredentials> {

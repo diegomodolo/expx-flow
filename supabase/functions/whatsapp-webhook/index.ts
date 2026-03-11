@@ -440,7 +440,7 @@ serve(async (req) => {
       conversationId = existingConversation.id;
       
       // Update conversation
-      const updateData: any = {
+      const updateData: unknown = {
         last_message_at: new Date().toISOString(),
         last_message_preview: content.substring(0, 100),
       };
@@ -529,7 +529,7 @@ serve(async (req) => {
 });
 
 // Handle reaction events from UazapiGO
-async function handleReactionEvent(supabase: any, payload: any): Promise<Response> {
+async function handleReactionEvent(supabase: unknown, payload: unknown): Promise<Response> {
   try {
     const reaction = payload.reaction || payload.message?.reaction || {};
     const instanceToken = payload.token || null;
@@ -598,7 +598,7 @@ async function handleReactionEvent(supabase: any, payload: any): Promise<Respons
 
 // Handle message edit events from UazapiGO
 // UazapiGO sends: message.edited = "ORIGINAL_MESSAGE_ID" and message.content = "new text"
-async function handleMessageEditEvent(supabase: any, payload: any): Promise<Response> {
+async function handleMessageEditEvent(supabase: unknown, payload: unknown): Promise<Response> {
   try {
     const message = payload.message || {};
     const instanceToken = payload.token || null;

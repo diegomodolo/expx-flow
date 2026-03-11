@@ -135,7 +135,7 @@ serve(async (req) => {
       body: JSON.stringify(editPayload),
     });
 
-    let apiData: any = null;
+    let apiData: unknown = null;
     try {
       apiData = await apiResponse.json();
     } catch {

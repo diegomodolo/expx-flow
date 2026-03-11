@@ -94,7 +94,7 @@ serve(async (req) => {
     const responseData = await msgResponse.json();
     console.log(`[groupops-sync-history] Response: type=${typeof responseData}, isArray=${Array.isArray(responseData)}, keys=${typeof responseData === 'object' && responseData ? Object.keys(responseData).join(',') : 'N/A'}, preview=${JSON.stringify(responseData).substring(0, 500)}`);
 
-    let messages: any[] = [];
+    let messages: unknown[] = [];
     if (Array.isArray(responseData)) {
       messages = responseData;
     } else if (responseData?.data && Array.isArray(responseData.data)) {
@@ -112,7 +112,7 @@ serve(async (req) => {
     // 5. Filter by date if sync_mode is "date"
     if (sync_mode === "date" && sync_value) {
       const sinceDate = new Date(sync_value).getTime();
-      messages = messages.filter((m: any) => {
+      messages = messages.filter((m: unknown) => {
         const ts = m.messageTimestamp || m.timestamp || m.message?.messageTimestamp;
         if (!ts) return false;
         const msgTime = typeof ts === "number" ? (ts > 1e12 ? ts : ts * 1000) : new Date(ts).getTime();
@@ -123,7 +123,7 @@ serve(async (req) => {
 
     // 6. Process messages: extract unique senders and build inserts
     const memberMap = new Map<string, { display_name: string; phone: string; last_message_at: string; message_count: number }>();
-    const messageInserts: any[] = [];
+    const messageInserts: unknown[] = [];
     const now = new Date().toISOString();
 
     for (const msg of messages) {
@@ -181,7 +181,7 @@ serve(async (req) => {
     console.log(`[groupops-sync-history] Unique senders: ${memberMap.size}, Messages to insert: ${messageInserts.length}`);
 
     // 7. Upsert members
-    const memberResults: any[] = [];
+    const memberResults: unknown[] = [];
     for (const [senderKey, info] of memberMap) {
       // Check if member already exists in this group by wa_user_id or phone
       let existingMember = null;
@@ -215,7 +215,7 @@ serve(async (req) => {
             last_message_at: info.last_message_at,
             display_name: info.display_name || undefined,
             updated_at: now,
-          } as any)
+          } as unknown)
           .eq("id", existingMember.id);
         memberResults.push({ id: existingMember.id, wa_user_id: senderKey, action: "updated" });
       } else {
@@ -231,7 +231,7 @@ serve(async (req) => {
             display_name: info.display_name || phoneE164 || senderKey,
             status: "active",
             last_message_at: info.last_message_at,
-          } as any)
+          } as unknown)
           .select("id")
           .single();
 
@@ -288,7 +288,7 @@ serve(async (req) => {
             silent_days: silentDays,
             risk_level: riskLevel,
             updated_at: now,
-          } as any)
+          } as unknown)
           .eq("id", memberResult.id);
         memberUpdates.push(memberResult.id);
       }
@@ -313,7 +313,7 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[groupops-sync-history] Error:", error);
     return new Response(JSON.stringify({ success: false, error: error.message }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },

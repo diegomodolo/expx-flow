@@ -39,7 +39,7 @@ serve(async (req) => {
 
     console.log('[daily-creative-generator-scheduler] Found', schedules?.length || 0, 'active schedules');
 
-    const results: any[] = [];
+    const results: unknown[] = [];
 
     for (const schedule of schedules || []) {
       // Check if current time matches generation_time (compare HH:MM)
@@ -105,7 +105,7 @@ serve(async (req) => {
           triggered: true,
         });
 
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error(`[daily-creative-generator-scheduler] Error for ${schedule.client_id}:`, error);
         results.push({
           client_id: schedule.client_id,
@@ -126,7 +126,7 @@ serve(async (req) => {
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[daily-creative-generator-scheduler] Error:', error);
     return new Response(
       JSON.stringify({ error: error.message }),

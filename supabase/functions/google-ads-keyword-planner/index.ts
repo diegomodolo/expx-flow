@@ -202,7 +202,7 @@ serve(async (req) => {
 
     throw new Error('Invalid action. Use "generateKeywordIdeas" or "getHistoricalMetrics"');
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in google-ads-keyword-planner:', error);
     
     // Verificar se é um erro estruturado do Google Ads
@@ -252,7 +252,7 @@ async function generateKeywordIdeas({
   includeAdultKeywords: boolean;
 }): Promise<KeywordIdea[]> {
   
-  const requestBody: any = {
+  const requestBody: unknown = {
     language: `languageConstants/${language}`,
     geoTargetConstants: [`geoTargetConstants/${geoTargetLocation}`],
     includeAdultKeywords,
@@ -329,7 +329,7 @@ async function generateKeywordIdeas({
     return [];
   }
 
-  return data.results.map((result: any) => {
+  return data.results.map((result: unknown) => {
     const metrics = result.keywordIdeaMetrics || {};
     
     return {
@@ -339,7 +339,7 @@ async function generateKeywordIdeas({
       competitionIndex: parseInt(metrics.competitionIndex || '0'),
       lowTopOfPageBidMicros: parseInt(metrics.lowTopOfPageBidMicros || '0'),
       highTopOfPageBidMicros: parseInt(metrics.highTopOfPageBidMicros || '0'),
-      monthlySearchVolumes: (metrics.monthlySearchVolumes || []).map((vol: any) => ({
+      monthlySearchVolumes: (metrics.monthlySearchVolumes || []).map((vol: unknown) => ({
         year: vol.year,
         month: vol.month,
         monthlySearches: parseInt(vol.monthlySearches || '0'),
@@ -435,7 +435,7 @@ async function getHistoricalMetrics({
     return [];
   }
 
-  return data.results.map((result: any) => {
+  return data.results.map((result: unknown) => {
     const metrics = result.keywordMetrics || {};
     
     return {
@@ -445,7 +445,7 @@ async function getHistoricalMetrics({
       competitionIndex: parseInt(metrics.competitionIndex || '0'),
       lowTopOfPageBidMicros: parseInt(metrics.lowTopOfPageBidMicros || '0'),
       highTopOfPageBidMicros: parseInt(metrics.highTopOfPageBidMicros || '0'),
-      monthlySearchVolumes: (metrics.monthlySearchVolumes || []).map((vol: any) => ({
+      monthlySearchVolumes: (metrics.monthlySearchVolumes || []).map((vol: unknown) => ({
         year: vol.year,
         month: vol.month,
         monthlySearches: parseInt(vol.monthlySearches || '0'),

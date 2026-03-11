@@ -50,14 +50,14 @@ export function useSystemAlerts() {
 
         if (error) {
           // Silently handle errors to not disrupt UX
-
+          console.warn('System alerts fetch failed:', error.message);
           return [];
         }
 
         return data as SystemAlert[];
       } catch (err) {
         // Handle network errors silently
-
+        console.warn('System alerts network error');
         return [];
       }
     },

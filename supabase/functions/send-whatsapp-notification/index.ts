@@ -208,7 +208,7 @@ serve(async (req) => {
       // Build Meta API request
       const metaUrl = `https://graph.facebook.com/v18.0/${metaPhoneNumberId}/messages`;
       
-      let metaBody: any;
+      let metaBody: unknown;
       
       if (isWithin24Hours) {
         // Within 24h window - can send regular text message
@@ -318,7 +318,7 @@ serve(async (req) => {
       const uazapiUrl = `${cleanEndpoint}/send/text`;
       console.log("[send-whatsapp-notification] Calling UazapiGO:", uazapiUrl);
 
-      const uazapiBody: any = {
+      const uazapiBody: unknown = {
         number: formattedPhone,
         text: message,
       };
@@ -345,7 +345,7 @@ serve(async (req) => {
       const zapiUrl = `https://api.z-api.io/instances/${config.instance_id}/token/${config.token}/send-text`;
       console.log("[send-whatsapp-notification] Calling Z-API:", zapiUrl);
 
-      const zapiBody: any = {
+      const zapiBody: unknown = {
         phone: formattedPhone,
         message: message,
       };
@@ -371,7 +371,7 @@ serve(async (req) => {
 
     // Update log entry
     if (logEntry) {
-      const updateData: any = {
+      const updateData: unknown = {
         status: apiResponse.ok ? "sent" : "failed",
         zapi_message_id: apiData.messageId || apiData.zapiMessageId || apiData.id || apiData.key?.id || null,
       };

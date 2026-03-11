@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
 
     // Executar ação recomendada
     const url = `https://graph.facebook.com/v20.0/${campaign.facebook_id}`;
-    const updates: any = { access_token: integration.access_token };
+    const updates: unknown = { access_token: integration.access_token };
 
     const oldName = campaign.name;
     let newName = oldName;
@@ -168,7 +168,7 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Execution error:', error);
     return new Response(
       JSON.stringify({ 

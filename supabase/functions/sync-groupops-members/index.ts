@@ -69,12 +69,12 @@ serve(async (req) => {
       "Content-Type": "application/json",
       "Accept": "application/json",
       "token": token,
-      "apikey": (config as any)?.token || token,
+      "apikey": (config as unknown)?.token || token,
       "Authorization": `Bearer ${token}`,
     };
 
     // ---- STEP 1: Fetch group participants ----
-    let participants: any[] = [];
+    let participants: unknown[] = [];
     const attemptLogs: string[] = [];
     const groupId = group_jid.replace("@g.us", "");
 
@@ -212,7 +212,7 @@ serve(async (req) => {
             .maybeSingle()
         ).data;
 
-        const memberData: Record<string, any> = {
+        const memberData: Record<string, unknown> = {
           phone_e164: phone,
           role,
           status: "active",
@@ -238,7 +238,7 @@ serve(async (req) => {
           });
         }
         synced++;
-      } catch (err: any) {
+      } catch (err: unknown) {
         errors.push(err.message || "unknown error");
       }
     }

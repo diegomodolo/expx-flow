@@ -163,7 +163,7 @@ Deno.serve(async (req) => {
           ? adAccountInfo.account_id 
           : `act_${adAccountInfo.account_id}`;
         
-        let allAdSets: any[] = [];
+        let allAdSets: unknown[] = [];
         let url: string | null = `https://graph.facebook.com/v20.0/${accountId}/adsets?` +
           `fields=id,name,promoted_object,campaign{id,name}&` +
           `filtering=[{"field":"effective_status","operator":"IN","value":["ACTIVE","PAUSED"]}]&` +

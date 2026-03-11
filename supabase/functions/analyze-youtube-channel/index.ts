@@ -173,14 +173,14 @@ Deno.serve(async (req) => {
     console.log('Found', videos.length, 'videos in the period');
 
     // Get video IDs and fetch stats
-    const videoIds = videos.map((v: any) => v.id.videoId);
+    const videoIds = videos.map((v: unknown) => v.id.videoId);
     const videoStats = await fetchVideoStats(videoIds);
 
     // Create stats map
-    const statsMap = new Map(videoStats.map((s: any) => [s.id, s]));
+    const statsMap = new Map(videoStats.map((s: unknown) => [s.id, s]));
 
     // Process videos with stats
-    const processedVideos = videos.map((video: any) => {
+    const processedVideos = videos.map((video: unknown) => {
       const stats = statsMap.get(video.id.videoId);
       const viewCount = parseInt(stats?.statistics?.viewCount || '0', 10);
       const likeCount = parseInt(stats?.statistics?.likeCount || '0', 10);
@@ -204,7 +204,7 @@ Deno.serve(async (req) => {
     });
 
     // Sort by engagement rate
-    processedVideos.sort((a: any, b: any) => b.engagement_rate - a.engagement_rate);
+    processedVideos.sort((a: unknown, b: unknown) => b.engagement_rate - a.engagement_rate);
 
     // Save/update channel in database
     const channelData = {
@@ -276,7 +276,7 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in analyze-youtube-channel:', error);
     return new Response(JSON.stringify({
       success: false,

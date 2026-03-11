@@ -155,7 +155,7 @@ serve(async (req) => {
 
     // Get company_id from query params or body
     let companyId: string | null = url.searchParams.get("company_id");
-    let body: any = {};
+    let body: unknown = {};
     
     if (req.method === "POST") {
       body = await req.json();
@@ -441,7 +441,7 @@ serve(async (req) => {
           });
 
           // Prepare batch data for new leads
-          const newLeadsData: any[] = [];
+          const newLeadsData: unknown[] = [];
           const existingLeadIds: string[] = [];
 
           for (const empresa of empresas) {

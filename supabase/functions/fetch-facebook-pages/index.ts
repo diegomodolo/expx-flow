@@ -46,7 +46,7 @@ serve(async (req) => {
     const accessToken = integration.access_token;
 
     // Fetch ALL Facebook pages the user manages (with pagination)
-    let allPagesData: any[] = [];
+    let allPagesData: unknown[] = [];
     let nextUrl: string | null = `https://graph.facebook.com/v20.0/me/accounts?fields=id,name,access_token,category,instagram_business_account&limit=100&access_token=${accessToken}`;
 
     while (nextUrl) {

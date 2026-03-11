@@ -40,7 +40,7 @@ serve(async (req) => {
 
     console.log('[daily-ad-generator-scheduler] Found', schedules?.length || 0, 'active schedules');
 
-    const results: any[] = [];
+    const results: unknown[] = [];
 
     for (const schedule of schedules || []) {
       // Check if current time matches generation_time (compare HH:MM)

@@ -163,7 +163,7 @@ Crie a estrutura de ${numberOfSlides} slides para este roteiro.`;
 
     // Insert new slides
     const slidesToInsert = slidesData.slides.map(
-      (slide: any, index: number) => ({
+      (slide: unknown, index: number) => ({
         script_id: scriptId,
         slide_order: index + 1,
         title: slide.title || `Slide ${index + 1}`,
@@ -198,7 +198,7 @@ Crie a estrutura de ${numberOfSlides} slides para este roteiro.`;
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[generate-presentation-slides] Error:", error);
     return new Response(
       JSON.stringify({ error: error.message || "Internal server error" }),

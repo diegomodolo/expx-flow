@@ -70,7 +70,7 @@ function getMetaDatePreset(periodDays: number): string {
 
 // Fetch metrics from Meta Ads API in real-time
 async function fetchMetaMetrics(
-  supabase: any,
+  supabase: unknown,
   clientId: string,
   periodDays: number
 ): Promise<MetricsResult['current'] | null> {
@@ -160,7 +160,7 @@ async function fetchMetaMetrics(
     // Extract conversions from actions
     let conversions = 0;
     if (insights.actions) {
-      const leadAction = insights.actions.find((a: any) => 
+      const leadAction = insights.actions.find((a: unknown) =>
         a.action_type === 'lead' || 
         a.action_type === 'onsite_conversion.lead_grouped' ||
         a.action_type === 'offsite_conversion.fb_pixel_lead'
@@ -209,7 +209,7 @@ async function fetchMetaMetrics(
 
 // Fetch metrics from Google Ads API in real-time
 async function fetchGoogleMetrics(
-  supabase: any,
+  supabase: unknown,
   clientId: string,
   periodDays: number
 ): Promise<MetricsResult['current'] | null> {

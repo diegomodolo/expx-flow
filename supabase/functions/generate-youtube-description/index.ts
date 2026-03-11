@@ -108,7 +108,7 @@ Retorne em formato JSON:
     if (result.description) {
       await supabase
         .from("youtube_scripts")
-        .update({ video_description: result.description } as any)
+        .update({ video_description: result.description } as unknown)
         .eq("id", scriptId);
     }
 
@@ -125,7 +125,7 @@ Retorne em formato JSON:
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       },
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error in generate-youtube-description:", error);
     return new Response(
       JSON.stringify({

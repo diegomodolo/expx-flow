@@ -75,7 +75,7 @@ serve(async (req) => {
           .update({ 
             status: 'failed', 
             error_message: postError.message,
-            retry_count: (post as any).retry_count + 1
+            retry_count: (post as unknown).retry_count + 1
           })
           .eq('id', post.id);
       }

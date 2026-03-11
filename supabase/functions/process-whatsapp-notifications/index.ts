@@ -25,7 +25,7 @@ interface NotificationTrigger {
   trigger_type: string;
   trigger_name: string;
   is_active: boolean;
-  conditions: Record<string, any>;
+  conditions: Record<string, unknown>;
   schedule?: TriggerSchedule;
 }
 
@@ -95,7 +95,7 @@ function calcVariation(current: number, previous: number): string {
 }
 
 // Helper to replace template variables
-function replaceVariables(template: string, data: Record<string, any>): string {
+function replaceVariables(template: string, data: Record<string, unknown>): string {
   let result = template;
   for (const [key, value] of Object.entries(data)) {
     result = result.replace(new RegExp(`\\{${key}\\}`, 'g'), String(value ?? ''));
@@ -249,7 +249,7 @@ function calculateNextExecution(schedule: TriggerSchedule): Date {
 }
 
 // Fetch client metrics for reports
-async function fetchClientMetrics(supabase: any, clientId: string, periodDays: number) {
+async function fetchClientMetrics(supabase: unknown, clientId: string, periodDays: number) {
   const now = new Date();
   const periodStart = new Date(now);
   periodStart.setDate(periodStart.getDate() - periodDays);
@@ -336,7 +336,7 @@ async function fetchClientMetrics(supabase: any, clientId: string, periodDays: n
 }
 
 // Fetch presentation data for presentation_summary trigger
-async function fetchPresentationData(supabase: any, meetingId: string | null, clientId: string) {
+async function fetchPresentationData(supabase: unknown, meetingId: string | null, clientId: string) {
   if (!meetingId) return null;
   
   try {
@@ -390,7 +390,7 @@ async function fetchPresentationData(supabase: any, meetingId: string | null, cl
       total_criativos: String(totalCreatives || 0),
       aprovados: String(meeting.approved_count || 0),
       reprovados: String(meeting.rejected_count || 0),
-      participantes: participants?.map((p: any) => `• ${p.name}${p.role ? ` (${p.role})` : ''}`).join('\n') || '-',
+      participantes: participants?.map((p: unknown) => `• ${p.name}${p.role ? ` (${p.role})` : ''}`).join('\n') || '-',
       data_reuniao: meeting.started_at 
         ? new Date(meeting.started_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) 
         : '-',
@@ -406,7 +406,7 @@ async function fetchPresentationData(supabase: any, meetingId: string | null, cl
 }
 
 // Fetch scheduled post data for post triggers
-async function fetchScheduledPostData(supabase: any, postId: string | null) {
+async function fetchScheduledPostData(supabase: unknown, postId: string | null) {
   if (!postId) return null;
   
   try {
@@ -517,7 +517,7 @@ serve(async (req) => {
       scheduleMap.set(schedule.trigger_id, schedule as TriggerSchedule);
     }
     
-    const results: any[] = [];
+    const results: unknown[] = [];
     
     for (const trigger of triggers) {
       const schedule = scheduleMap.get(trigger.id);
@@ -717,7 +717,7 @@ serve(async (req) => {
       // Create a map of settings_id -> destination
       const subscriptionMap = new Map();
       if (subscriptions) {
-        subscriptions.forEach((sub: any) => {
+        subscriptions.forEach((sub: unknown) => {
           subscriptionMap.set(sub.client_settings_id, sub.destination);
         });
       }
@@ -734,7 +734,7 @@ serve(async (req) => {
       
       // Build recipients by client, considering destination (gestor, cliente, ambos)
       const recipientsByClient: Record<string, { 
-        client: any; 
+        client: unknown;
         recipients: Array<{
           id: string;
           contact_name: string;
@@ -777,7 +777,7 @@ serve(async (req) => {
         
         // Add contacts if destination includes cliente
         if (destination === 'cliente' || destination === 'ambos') {
-          const clientContacts = contacts?.filter((c: any) => c.client_id === clientId) || [];
+          const clientContacts = contacts?.filter((c: unknown) => c.client_id === clientId) || [];
           console.log(`  Client ${clientId}: adding ${clientContacts.length} contacts`);
           for (const contact of clientContacts) {
             recipientsByClient[clientId].recipients.push({
@@ -989,9 +989,9 @@ serve(async (req) => {
         // Send to each recipient (gestor and/or contacts based on destination)
         for (const recipient of recipients) {
           // Find the right template for this recipient's profile
-          const template = templates.find((t: any) => 
+          const template = templates.find((t: unknown) =>
             t.recipient_profile === recipient.profile_type
-          ) || templates.find((t: any) => 
+          ) || templates.find((t: unknown) =>
             t.recipient_profile === 'cliente'
           );
           

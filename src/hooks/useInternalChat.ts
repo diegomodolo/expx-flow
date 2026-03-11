@@ -411,12 +411,10 @@ export function useInternalChat() {
     }
 
     if (existing) {
-
       return existing.id;
     }
 
     // Create new DM channel
-
     const { data: created, error } = await supabase
       .from('internal_channels')
       .insert({
@@ -437,7 +435,6 @@ export function useInternalChat() {
 
     // Invalidate channels cache so the new DM appears in the sidebar
     await queryClient.invalidateQueries({ queryKey: ['internal-channels', companyId] });
-
 
     return created.id;
   };

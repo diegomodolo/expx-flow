@@ -48,7 +48,6 @@ export async function cacheWhatsAppMedia({ messageId, blob, fileExtension }: Cac
       // Still return the URL even if update failed - file is cached
     }
 
-
     return cachedUrl;
   } catch (err) {
     console.error("[useWhatsAppMediaCache] Cache failed:", err);

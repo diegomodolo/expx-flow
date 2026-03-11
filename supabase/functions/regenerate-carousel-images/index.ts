@@ -240,7 +240,7 @@ ${
             if (i < missingIndices.length - 1) {
               await new Promise((r) => setTimeout(r, 300));
             }
-          } catch (e: any) {
+          } catch (e: unknown) {
             console.error("[regenerate-carousel-images] Slide error", {
               slideIdx: slideIdx + 1,
               err: e?.message,
@@ -267,7 +267,7 @@ ${
         send({ type: "completed", carousel_id, success: true });
         controller.enqueue(sseDone());
         controller.close();
-      } catch (e: any) {
+      } catch (e: unknown) {
         console.error("[regenerate-carousel-images] Failed:", e);
         send({ type: "failed", message: e?.message || "Erro desconhecido" });
         controller.enqueue(sseDone());
@@ -349,7 +349,7 @@ async function uploadDataUrlToStorage({
   dataUrl,
   path,
 }: {
-  supabase: any;
+  supabase: unknown;
   dataUrl: string;
   path: string;
 }): Promise<string> {
@@ -476,7 +476,7 @@ REFERÊNCIAS VISUAIS OBRIGATÓRIAS (veja as imagens anexadas):
     if (imageUrl) return imageUrl;
 
     return null;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error(
       "[regenerate-carousel-images] Error calling image generation API:",
       error,

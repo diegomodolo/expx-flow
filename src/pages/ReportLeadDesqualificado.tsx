@@ -202,7 +202,6 @@ export default function ReportLeadDesqualificado() {
             variant: "destructive",
           });
         } else {
-
           evidenceFileUrl = fileName;
         }
       }

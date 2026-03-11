@@ -81,7 +81,7 @@ Deno.serve(async (req) => {
 
     // Verify the reviewer is an authorizer for this task
     const { data: authMember } = await supabase
-      .from("task_members" as any)
+      .from("task_members" as unknown)
       .select("id")
       .eq("task_id", taskId)
       .eq("employee_id", reviewer.id)
@@ -183,7 +183,7 @@ Deno.serve(async (req) => {
 
     // Insert review history
     await supabase
-      .from("task_review_history" as any)
+      .from("task_review_history" as unknown)
       .insert({
         task_id: taskId,
         company_id: companyId,
@@ -199,7 +199,7 @@ Deno.serve(async (req) => {
     if (action === "rejected") {
       try {
         const { data: config } = await supabase
-          .from("discord_config" as any)
+          .from("discord_config" as unknown)
           .select("*")
           .eq("company_id", companyId)
           .maybeSingle();

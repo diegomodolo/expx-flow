@@ -172,7 +172,7 @@ serve(async (req) => {
     }
 
     // Build insert payload, only include FK fields if they have valid values
-    const insertPayload: Record<string, any> = {
+    const insertPayload: Record<string, unknown> = {
       company_id,
       created_by: createdBy,
       content_type: content_type || 'image',

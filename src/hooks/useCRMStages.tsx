@@ -78,7 +78,6 @@ export const useCRMStages = ({ workspaceId, boardId }: UseCRMStagesProps) => {
         }
       }
       
-
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['crm-stages', workspaceId, boardId] });

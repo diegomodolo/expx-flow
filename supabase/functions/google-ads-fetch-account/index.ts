@@ -159,7 +159,7 @@ serve(async (req) => {
       }
     );
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in google-ads-fetch-account:', error);
     return new Response(
       JSON.stringify({

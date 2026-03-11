@@ -206,7 +206,7 @@ Deno.serve(async (req) => {
 
     throw new Error('Method not allowed');
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in manage-automation-schedule:', error);
     return new Response(
       JSON.stringify({ success: false, error: error.message }),

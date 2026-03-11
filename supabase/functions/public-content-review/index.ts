@@ -73,7 +73,7 @@ serve(async (req) => {
 
       // Fetch slides for carousel posts
       const postIds = (posts || []).map(p => p.id);
-      let slides: any[] = [];
+      let slides: unknown[] = [];
       
       if (postIds.length > 0) {
         const { data: slidesData, error: slidesError } = await supabase

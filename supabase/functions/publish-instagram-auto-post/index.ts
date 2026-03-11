@@ -31,8 +31,8 @@ function classifyError(errorText: string): { alertType: string; severity: 'warni
 
 // Create system alert and send WhatsApp notification
 async function createAlertAndNotify(
-  post: any,
-  instagramAccount: any,
+  post: unknown,
+  instagramAccount: unknown,
   clientName: string,
   errorText: string
 ) {
@@ -235,7 +235,7 @@ Deno.serve(async (req) => {
       accessToken = credentials.accessToken;
       igUserId = credentials.instagramUserId;
       console.log(`Publishing to Instagram account: ${igUserId} (source: ${credentials.source})`);
-    } catch (credError: any) {
+    } catch (credError: unknown) {
       console.error('Error resolving Instagram credentials:', credError.message);
       await createAlertAndNotify(post, instagramAccount, clientName, credError.message);
       throw credError;
@@ -262,7 +262,7 @@ Deno.serve(async (req) => {
           );
           childContainerIds.push(containerId);
           console.log(`Carousel item ${i + 1} container created:`, containerId);
-        } catch (err: any) {
+        } catch (err: unknown) {
           console.error(`Error creating carousel item ${i + 1}:`, err.message);
           await supabase
             .from('instagram_auto_posts')
@@ -547,7 +547,7 @@ Deno.serve(async (req) => {
             }
           }
         }
-      } catch (fbError: any) {
+      } catch (fbError: unknown) {
         console.error('Error cross-posting to Facebook:', fbError.message);
         // Don't fail the entire operation if Facebook cross-post fails
       }
@@ -577,7 +577,7 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in publish-instagram-auto-post:', error);
     return new Response(JSON.stringify({
       success: false,
