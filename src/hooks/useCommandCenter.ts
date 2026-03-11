@@ -283,6 +283,50 @@ export function useCommandCenter() {
     fetchTasks();
   };
 
+  const returnToBacklogCenter = async (taskId: string) => {
+    const task = [...timelineTasks, ...backlogTasks].find(t => t.id === taskId);
+
+    // Optimistic update: remove from both lists
+    setTimelineTasks(prev => prev.filter(t => t.id !== taskId));
+    setBacklogTasks(prev => prev.filter(t => t.id !== taskId));
+
+    const resetFields = {
+      assigned_user_id: null,
+      responsible_name: '',
+      start_date: null,
+      status: "todo" as unknown,
+      task_state: "backlog" as unknown,
+      due_date: null,
+      quadro_column_id: null,
+    } as unknown;
+
+    // Update the task itself
+    const { error } = await supabase
+      .from("tasks")
+      .update(resetFields)
+      .eq("id", taskId);
+
+    if (error) {
+      // Rollback optimistic update
+      if (task) {
+        if (task.start_date) {
+          setTimelineTasks(prev => [...prev, task]);
+        } else {
+          setBacklogTasks(prev => [...prev, task]);
+        }
+      }
+      throw error;
+    }
+
+    // Also return all subtasks of this task to backlog
+    await supabase
+      .from("tasks")
+      .update(resetFields)
+      .eq("parent_task_id", taskId);
+
+    fetchTasks();
+  };
+
   const getAgingHours = (createdAt: string) => {
     return differenceInHours(new Date(), new Date(createdAt));
   };
@@ -317,6 +361,7 @@ export function useCommandCenter() {
     loading,
     assignTask,
     unassignTask,
+    returnToBacklogCenter,
     getAgingHours,
     getTodayMetrics,
     getNextBusinessDay,

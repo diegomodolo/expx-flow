@@ -80,6 +80,7 @@ interface Props {
   onResizeTask?: (taskId: string, newStartDate: Date, newEstimatedMinutes: number) => void;
   onClickTask?: (task: CommandCenterTask) => void;
   onSendToBacklog?: (taskId: string) => void;
+  onReturnToBacklogCenter?: (taskId: string) => void;
   onSendToNextDay?: (taskId: string) => void;
   onReassignTask?: (taskId: string, newUserId: string, newMemberName: string, newStartDate: Date) => void;
   draggingTask?: CommandCenterTask | null;
@@ -102,7 +103,7 @@ function formatDateLabel(date: Date): string {
   return format(date, "EEE, d 'de' MMM", { locale: ptBR });
 }
 
-export function WorkloadTimeline({ members, tasks, startHour: _startHourProp = 0, workSchedules = [], onRepositionTask, onResizeTask, onClickTask, onSendToBacklog, onSendToNextDay, onReassignTask, draggingTask, dropSlotRef, timelineContainerRef, selectedDate, onDateChange }: Props) {
+export function WorkloadTimeline({ members, tasks, startHour: _startHourProp = 0, workSchedules = [], onRepositionTask, onResizeTask, onClickTask, onSendToBacklog, onReturnToBacklogCenter, onSendToNextDay, onReassignTask, draggingTask, dropSlotRef, timelineContainerRef, selectedDate, onDateChange }: Props) {
   const { settings: savedSettings, save: persistSettings, loaded: settingsLoaded } = usePersistedTimelineSettings();
   const [slotWidth, setSlotWidth] = useState(56);
   const [rowHeight, setRowHeight] = useState(68);
@@ -360,6 +361,7 @@ export function WorkloadTimeline({ members, tasks, startHour: _startHourProp = 0
                 onResizeTask={onResizeTask}
                 onClickTask={onClickTask}
                 onSendToBacklog={onSendToBacklog}
+                onReturnToBacklogCenter={onReturnToBacklogCenter}
                 onSendToNextDay={onSendToNextDay}
                 onReassignTask={onReassignTask}
                 ghostPreview={ghostPreview}

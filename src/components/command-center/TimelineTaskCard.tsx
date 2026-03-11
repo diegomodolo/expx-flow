@@ -1,7 +1,7 @@
 import React, { useRef, useState, useCallback } from "react";
 import { CommandCenterTask } from "@/hooks/useCommandCenter";
 import { cn } from "@/lib/utils";
-import { Clock, CheckCircle2, AlertTriangle, GripVertical, Undo2, CalendarArrowDown, ArrowLeftToLine } from "lucide-react";
+import { Clock, CheckCircle2, AlertTriangle, GripVertical, Undo2, CalendarArrowDown, ArrowLeftToLine, ArchiveRestore } from "lucide-react";
 import { differenceInMinutes } from "date-fns";
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu";
 
@@ -15,11 +15,12 @@ interface Props {
   onResize?: (taskId: string, newStartDate: Date, newEstimatedMinutes: number) => void;
   onClickTask?: (task: CommandCenterTask) => void;
   onSendToBacklog?: (taskId: string) => void;
+  onReturnToBacklogCenter?: (taskId: string) => void;
   onReassign?: (taskId: string, newUserId: string, newMemberName: string, newStartDate: Date) => void;
   onSendToNextDay?: (taskId: string) => void;
 }
 
-export function TimelineTaskCard({ task, slotWidth, slotDuration = 20, startHour, selectedDate, onReposition, onResize, onClickTask, onSendToBacklog, onReassign, onSendToNextDay }: Props) {
+export function TimelineTaskCard({ task, slotWidth, slotDuration = 20, startHour, selectedDate, onReposition, onResize, onClickTask, onSendToBacklog, onReturnToBacklogCenter, onReassign, onSendToNextDay }: Props) {
   const cardRef = useRef<HTMLDivElement>(null);
   const dragMoved = useRef(false);
   const estimatedMin = task.ai_estimated_minutes || slotDuration;
@@ -319,6 +320,12 @@ export function TimelineTaskCard({ task, slotWidth, slotDuration = 20, startHour
           <ContextMenuItem onClick={() => onSendToBacklog(task.id)}>
             <ArrowLeftToLine className="w-4 h-4 mr-2" />
             Devolver ao backlog
+          </ContextMenuItem>
+        )}
+        {onReturnToBacklogCenter && (
+          <ContextMenuItem onClick={() => onReturnToBacklogCenter(task.id)}>
+            <ArchiveRestore className="w-4 h-4 mr-2" />
+            Devolver ao Backlog Center
           </ContextMenuItem>
         )}
       </ContextMenuContent>

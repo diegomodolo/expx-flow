@@ -48,6 +48,7 @@ export default function SquadCommandCenter() {
     loading,
     assignTask,
     unassignTask,
+    returnToBacklogCenter,
     getAgingHours,
     getTodayMetrics,
     fetchTasks,
@@ -271,6 +272,15 @@ export default function SquadCommandCenter() {
       toast({ title: "Erro ao devolver ao backlog", variant: "destructive" });
     }
   }, [unassignTask, toast, timelineTasks]);
+
+  const handleReturnToBacklogCenter = useCallback(async (taskId: string) => {
+    try {
+      await returnToBacklogCenter(taskId);
+      toast({ title: "Tarefa devolvida ao Backlog Center" });
+    } catch {
+      toast({ title: "Erro ao devolver ao Backlog Center", variant: "destructive" });
+    }
+  }, [returnToBacklogCenter, toast]);
 
   const handleSendToNextDay = useCallback(async (taskId: string) => {
     const task = timelineTasks.find(t => t.id === taskId);
@@ -502,6 +512,7 @@ export default function SquadCommandCenter() {
                     onResizeTask={handleResizeTask}
                     onClickTask={(task) => { setEditingTask(task); setTaskDialogOpen(true); }}
                     onSendToBacklog={handleSendToBacklog}
+                    onReturnToBacklogCenter={handleReturnToBacklogCenter}
                     onSendToNextDay={handleSendToNextDay}
                     onReassignTask={handleReassignTask}
                     draggingTask={draggingTask}
