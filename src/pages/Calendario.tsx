@@ -10,6 +10,7 @@ import {
 } from "@/hooks/useCalendarEvents";
 import { useCalendarShares } from "@/hooks/useCalendarShares";
 import { useGoogleMeetMeetings } from "@/hooks/useGoogleMeetMeetings";
+import { useTasks } from "@/hooks/useTasks";
 import { CalendarHeader } from "@/components/calendar/CalendarHeader";
 import { CalendarSidebar } from "@/components/calendar/CalendarSidebar";
 import { CalendarMonthView } from "@/components/calendar/CalendarMonthView";
@@ -18,6 +19,7 @@ import { CalendarDayView } from "@/components/calendar/CalendarDayView";
 import { CalendarFAB } from "@/components/calendar/CalendarFAB";
 import { CalendarShareModal } from "@/components/calendar/CalendarShareModal";
 import { CreateMeetingModal } from "@/components/meetings/CreateMeetingModal";
+import { TaskDialog } from "@/components/tasks/TaskDialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate } from "react-router-dom";
 
@@ -28,6 +30,7 @@ export default function Calendario() {
   const { sharedWithMe, myShares, createShare, removeShare, creatingShare } =
     useCalendarShares();
   const { createMeeting, creating: creatingMeeting } = useGoogleMeetMeetings();
+  const { tasks, updateTask } = useTasks();
   const navigate = useNavigate();
 
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -43,6 +46,8 @@ export default function Calendario() {
   ]);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showCreateMeeting, setShowCreateMeeting] = useState(false);
+  const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<unknown>(null);
 
   const { data: events = [], isLoading } = useCalendarEvents({
     currentDate,
@@ -51,10 +56,19 @@ export default function Calendario() {
     enabledTypes,
   });
 
-  const handleEventClick = useCallback((event: CalendarEvent) => {
-    // TODO: Open detail modals based on event.type
-    console.log("Event clicked:", event);
-  }, []);
+  const handleEventClick = useCallback(
+    (event: CalendarEvent) => {
+      if (event.type === "task" || event.type === "deadline") {
+        const taskId = event.id.replace(/^(task|deadline)-/, "");
+        const task = tasks.find((t: any) => t.id === taskId);
+        if (task) {
+          setSelectedTask(task);
+          setTaskDialogOpen(true);
+        }
+      }
+    },
+    [tasks],
+  );
 
   const handleDayClick = useCallback((date: Date) => {
     setCurrentDate(date);
@@ -133,6 +147,20 @@ export default function Calendario() {
         onShare={createShare}
         onRemoveShare={removeShare}
         sharing={creatingShare}
+      />
+
+      {/* Task Dialog */}
+      <TaskDialog
+        open={taskDialogOpen}
+        onOpenChange={setTaskDialogOpen}
+        task={selectedTask}
+        onSave={async (taskData: unknown) => {
+          if (selectedTask) {
+            await updateTask((selectedTask as any).id, taskData);
+            setSelectedTask(null);
+            setTaskDialogOpen(false);
+          }
+        }}
       />
 
       {/* Create Meeting Modal */}
