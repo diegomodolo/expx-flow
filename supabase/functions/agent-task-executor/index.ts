@@ -95,7 +95,7 @@ Deno.serve(async (req) => {
           console.log(`[agent-task-executor] Processing task "${task.title}" (${task.id})`);
 
           // 1. Move task to "in progress" + update board column
-          const progressUpdate: unknown = {
+          const progressUpdate: Record<string, unknown> = {
             status: 'progress',
             updated_at: new Date().toISOString(),
           };
@@ -117,7 +117,7 @@ Deno.serve(async (req) => {
           if (ttStartErr) console.error(`[agent-task-executor] ❌ Error starting time tracking:`, ttStartErr);
 
           // Log status change in task history
-          const historyEntries: unknown[] = [
+          const historyEntries: Record<string, unknown>[] = [
             {
               task_id: task.id,
               company_id: task.company_id || employee.company_id,
@@ -183,7 +183,7 @@ ${client.ai_briefing ? `\n**BRIEFING DETALHADO:**\n${client.ai_briefing}` : ''}
               ? JSON.parse(typeof task.checklist === 'string' ? task.checklist : JSON.stringify(task.checklist))
               : [];
             if (Array.isArray(parsed)) {
-              checklistText = parsed.map((item: unknown) => `- ${item.checked || item.completed || item.done ? '✅' : '⬜'} ${item.text}`).join('\n');
+              checklistText = parsed.map((item: Record<string, unknown>) => `- ${item.checked || item.completed || item.done ? '✅' : '⬜'} ${item.text}`).join('\n');
             }
           } catch { /* ignore checklist parse errors */ }
 
@@ -265,7 +265,7 @@ Gere o resultado/output da execução desta tarefa de forma completa e estrutura
           }
 
           // 4. Save the output and move to "review" + update board column
-          const reviewUpdate: unknown = {
+          const reviewUpdate: Record<string, unknown> = {
             status: 'review',
             ai_output: chatResult.response,
             progress: 100,
@@ -315,7 +315,7 @@ Gere o resultado/output da execução desta tarefa de forma completa e estrutura
           if (outputErr) console.error(`[agent-task-executor] ❌ Error inserting task_outputs:`, outputErr);
 
           // Log completion + stage change in task history
-          const completionHistory: unknown[] = [
+          const completionHistory: Record<string, unknown>[] = [
             {
               task_id: task.id,
               company_id: task.company_id || employee.company_id,

@@ -24,19 +24,19 @@ function extractChannelInfo(url: string): { type: 'id' | 'handle' | 'username'; 
     }
 
     // Handle format: youtube.com/@handle
-    const handleMatch = pathname.match(/\/@([^\/]+)/);
+    const handleMatch = pathname.match(/\/@([^/]+)/);
     if (handleMatch) {
       return { type: 'handle', value: handleMatch[1] };
     }
 
     // Username format: youtube.com/user/username or youtube.com/c/customname
-    const userMatch = pathname.match(/\/(user|c)\/([^\/]+)/);
+    const userMatch = pathname.match(/\/(user|c)\/([^/]+)/);
     if (userMatch) {
       return { type: 'username', value: userMatch[2] };
     }
 
     // Direct handle without @
-    const directMatch = pathname.match(/^\/([^\/]+)$/);
+    const directMatch = pathname.match(/^\/([^/]+)$/);
     if (directMatch && directMatch[1] !== 'watch' && directMatch[1] !== 'channel') {
       return { type: 'handle', value: directMatch[1] };
     }
@@ -173,14 +173,14 @@ Deno.serve(async (req) => {
     console.log('Found', videos.length, 'videos in the period');
 
     // Get video IDs and fetch stats
-    const videoIds = videos.map((v: any) => v.id.videoId);
+    const videoIds = videos.map((v: Record<string, unknown>) => (v.id as Record<string, unknown>).videoId as string);
     const videoStats = await fetchVideoStats(videoIds);
 
     // Create stats map
-    const statsMap = new Map(videoStats.map((s: any) => [s.id, s]));
+    const statsMap = new Map(videoStats.map((s: Record<string, unknown>) => [s.id, s]));
 
     // Process videos with stats
-    const processedVideos = videos.map((video: any) => {
+    const processedVideos = videos.map((video: Record<string, unknown>) => {
       const stats = statsMap.get(video.id.videoId);
       const viewCount = parseInt(stats?.statistics?.viewCount || '0', 10);
       const likeCount = parseInt(stats?.statistics?.likeCount || '0', 10);
@@ -276,11 +276,12 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in analyze-youtube-channel:', error);
+    const errMsg = error instanceof Error ? error.message : String(error);
     return new Response(JSON.stringify({
       success: false,
-      error: error.message,
+      error: errMsg,
     }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

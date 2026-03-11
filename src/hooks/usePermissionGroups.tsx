@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useCompany } from "@/contexts/CompanyContext";
 import { MenuItemType } from "@/hooks/useEmployeePermissions";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 export interface PermissionGroup {
   id: string;
@@ -16,27 +16,26 @@ export interface PermissionGroup {
 }
 
 export function usePermissionGroups() {
-  const [groups, setGroups] = useState<PermissionGroup[]>([]);
-  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const { activeCompany } = useCompany();
+  const queryClient = useQueryClient();
 
-  const fetchGroups = useCallback(async () => {
-    if (!activeCompany?.company_id) return;
-    try {
-      setLoading(true);
+  const queryKey = ["permission_groups", activeCompany?.company_id];
+
+  const fetchGroupsQuery = useQuery({
+    queryKey,
+    queryFn: async () => {
       const { data: groupsData, error: groupsError } = await supabase
         .from('permission_groups')
         .select('*')
-        .eq('company_id', activeCompany.company_id)
+        .eq('company_id', activeCompany!.company_id)
         .order('name');
 
       if (groupsError) throw groupsError;
 
       const groupIds = groupsData?.map(g => g.id) || [];
       if (groupIds.length === 0) {
-        setGroups([]);
-        return;
+        return [];
       }
 
       const [{ data: items }, { data: members }] = await Promise.all([
@@ -50,18 +49,16 @@ export function usePermissionGroups() {
         members: (members || []).filter(m => m.group_id === g.id).map(m => ({ id: m.id, employee_id: m.employee_id })),
       }));
 
-      setGroups(result);
-    } catch (err: unknown) {
-      console.error('Error fetching permission groups:', err);
-      toast({ title: "Erro", description: "Erro ao carregar grupos de permissão", variant: "destructive" });
-    } finally {
-      setLoading(false);
-    }
-  }, [activeCompany?.company_id]);
+      return result;
+    },
+    enabled: !!activeCompany?.company_id,
+  });
 
-  const createGroup = async (name: string, description: string) => {
-    if (!activeCompany?.company_id) return;
-    try {
+  const groups = fetchGroupsQuery.data || [];
+
+  const createGroupMutation = useMutation({
+    mutationFn: async ({ name, description }: { name: string; description: string }) => {
+      if (!activeCompany?.company_id) throw new Error("Missing company_id");
       const { data, error } = await supabase
         .from('permission_groups')
         .insert({ name, description: description || null, company_id: activeCompany.company_id })
@@ -69,49 +66,58 @@ export function usePermissionGroups() {
         .single();
 
       if (error) throw error;
-      toast({ title: "Grupo criado", description: `Grupo "${name}" criado com sucesso.` });
-      await fetchGroups();
-      return data;
-    } catch (err: unknown) {
+      return { data, name };
+    },
+    onSuccess: (result) => {
+      toast({ title: "Grupo criado", description: `Grupo "${result.name}" criado com sucesso.` });
+      queryClient.invalidateQueries({ queryKey });
+    },
+    onError: (err: Error) => {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
-    }
-  };
+    },
+  });
 
-  const updateGroup = async (groupId: string, name: string, description: string) => {
-    try {
+  const updateGroupMutation = useMutation({
+    mutationFn: async ({ groupId, name, description }: { groupId: string; name: string; description: string }) => {
       const { error } = await supabase
         .from('permission_groups')
         .update({ name, description: description || null })
         .eq('id', groupId);
 
       if (error) throw error;
+    },
+    onSuccess: () => {
       toast({ title: "Grupo atualizado" });
-      await fetchGroups();
-    } catch (err: unknown) {
+      queryClient.invalidateQueries({ queryKey });
+    },
+    onError: (err: Error) => {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
-    }
-  };
+    },
+  });
 
-  const deleteGroup = async (groupId: string) => {
-    try {
+  const deleteGroupMutation = useMutation({
+    mutationFn: async (groupId: string) => {
       const { error } = await supabase
         .from('permission_groups')
         .delete()
         .eq('id', groupId);
 
       if (error) throw error;
+    },
+    onSuccess: () => {
       toast({ title: "Grupo excluído" });
-      await fetchGroups();
-    } catch (err: unknown) {
+      queryClient.invalidateQueries({ queryKey });
+    },
+    onError: (err: Error) => {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
-    }
-  };
+    },
+  });
 
-  const toggleGroupItem = async (groupId: string, menuItem: MenuItemType) => {
-    const group = groups.find(g => g.id === groupId);
-    if (!group) return;
+  const toggleGroupItemMutation = useMutation({
+    mutationFn: async ({ groupId, menuItem }: { groupId: string; menuItem: MenuItemType }) => {
+      const group = groups.find(g => g.id === groupId);
+      if (!group) throw new Error("Grupo não encontrado");
 
-    try {
       if (group.items.includes(menuItem)) {
         const { error } = await supabase
           .from('permission_group_items')
@@ -125,23 +131,38 @@ export function usePermissionGroups() {
           .insert({ group_id: groupId, menu_item: menuItem as unknown });
         if (error) throw error;
       }
+    },
+    onMutate: async ({ groupId, menuItem }) => {
+      await queryClient.cancelQueries({ queryKey });
+      const previousGroups = queryClient.getQueryData<PermissionGroup[]>(queryKey);
 
-      // Update local state optimistically
-      setGroups(prev => prev.map(g => {
-        if (g.id !== groupId) return g;
-        const items = g.items.includes(menuItem)
-          ? g.items.filter(i => i !== menuItem)
-          : [...g.items, menuItem];
-        return { ...g, items };
-      }));
-    } catch (err: unknown) {
+      queryClient.setQueryData<PermissionGroup[]>(queryKey, old => {
+        if (!old) return old;
+        return old.map(g => {
+          if (g.id !== groupId) return g;
+          const items = g.items.includes(menuItem)
+            ? g.items.filter(i => i !== menuItem)
+            : [...g.items, menuItem];
+          return { ...g, items };
+        });
+      });
+
+      return { previousGroups };
+    },
+    onError: (err: Error, newGroup, context) => {
+      if (context?.previousGroups) {
+        queryClient.setQueryData(queryKey, context.previousGroups);
+      }
       toast({ title: "Erro", description: err.message, variant: "destructive" });
-    }
-  };
-  const setAllGroupItems = async (groupId: string, allMenuItems: MenuItemType[], enable: boolean) => {
-    try {
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey });
+    },
+  });
+
+  const setAllGroupItemsMutation = useMutation({
+    mutationFn: async ({ groupId, allMenuItems, enable }: { groupId: string; allMenuItems: MenuItemType[]; enable: boolean }) => {
       if (enable) {
-        // Insert all items that don't exist yet
         const group = groups.find(g => g.id === groupId);
         const existingItems = group?.items || [];
         const newItems = allMenuItems.filter(item => !existingItems.includes(item));
@@ -152,47 +173,70 @@ export function usePermissionGroups() {
           if (error) throw error;
         }
       } else {
-        // Delete all items
         const { error } = await supabase
           .from('permission_group_items')
           .delete()
           .eq('group_id', groupId);
         if (error) throw error;
       }
+      return enable;
+    },
+    onMutate: async ({ groupId, allMenuItems, enable }) => {
+      await queryClient.cancelQueries({ queryKey });
+      const previousGroups = queryClient.getQueryData<PermissionGroup[]>(queryKey);
 
-      setGroups(prev => prev.map(g => {
-        if (g.id !== groupId) return g;
-        return { ...g, items: enable ? [...allMenuItems] : [] };
-      }));
+      queryClient.setQueryData<PermissionGroup[]>(queryKey, old => {
+        if (!old) return old;
+        return old.map(g => {
+          if (g.id !== groupId) return g;
+          return { ...g, items: enable ? [...allMenuItems] : [] };
+        });
+      });
 
+      return { previousGroups };
+    },
+    onSuccess: (enable) => {
       toast({ title: enable ? "Todas permissões ativadas" : "Todas permissões desativadas" });
-    } catch (err: unknown) {
+    },
+    onError: (err: Error, newGroup, context) => {
+      if (context?.previousGroups) {
+        queryClient.setQueryData(queryKey, context.previousGroups);
+      }
       toast({ title: "Erro", description: err.message, variant: "destructive" });
-    }
-  };
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey });
+    },
+  });
 
-  const addMember = async (groupId: string, employeeId: string) => {
-    try {
+  const addMemberMutation = useMutation({
+    mutationFn: async ({ groupId, employeeId }: { groupId: string; employeeId: string }) => {
       const { error } = await supabase
         .from('permission_group_members')
         .insert({ group_id: groupId, employee_id: employeeId });
 
       if (error) {
         if (error.code === '23505') {
-          toast({ title: "Aviso", description: "Colaborador já está neste grupo." });
-          return;
+          throw new Error("Colaborador já está neste grupo.");
         }
         throw error;
       }
+    },
+    onSuccess: () => {
       toast({ title: "Membro adicionado" });
-      await fetchGroups();
-    } catch (err: unknown) {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
-    }
-  };
+      queryClient.invalidateQueries({ queryKey });
+    },
+    onError: (err: Error) => {
+      if (err.message === "Colaborador já está neste grupo.") {
+        toast({ title: "Aviso", description: err.message });
+      } else {
+        toast({ title: "Erro", description: err.message, variant: "destructive" });
+      }
+    },
+  });
 
-  const removeMember = async (groupId: string, employeeId: string) => {
-    try {
+  const removeMemberMutation = useMutation({
+    mutationFn: async ({ groupId, employeeId }: { groupId: string; employeeId: string }) => {
       const { error } = await supabase
         .from('permission_group_members')
         .delete()
@@ -200,29 +244,41 @@ export function usePermissionGroups() {
         .eq('employee_id', employeeId);
 
       if (error) throw error;
+    },
+    onSuccess: () => {
       toast({ title: "Membro removido" });
-      await fetchGroups();
-    } catch (err: unknown) {
+      queryClient.invalidateQueries({ queryKey });
+    },
+    onError: (err: Error) => {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
-    }
-  };
-
-  useEffect(() => {
-    if (activeCompany?.company_id) {
-      fetchGroups();
-    }
-  }, [activeCompany?.company_id, fetchGroups]);
+    },
+  });
 
   return {
     groups,
-    loading,
-    fetchGroups,
-    createGroup,
-    updateGroup,
-    deleteGroup,
-    toggleGroupItem,
-    setAllGroupItems,
-    addMember,
-    removeMember,
+    loading: fetchGroupsQuery.isLoading,
+    fetchGroups: fetchGroupsQuery.refetch,
+    createGroup: async (name: string, description: string) => {
+      const result = await createGroupMutation.mutateAsync({ name, description }).catch(() => null);
+      return result?.data;
+    },
+    updateGroup: async (groupId: string, name: string, description: string) => {
+      await updateGroupMutation.mutateAsync({ groupId, name, description }).catch(() => {});
+    },
+    deleteGroup: async (groupId: string) => {
+      await deleteGroupMutation.mutateAsync(groupId).catch(() => {});
+    },
+    toggleGroupItem: async (groupId: string, menuItem: MenuItemType) => {
+      await toggleGroupItemMutation.mutateAsync({ groupId, menuItem }).catch(() => {});
+    },
+    setAllGroupItems: async (groupId: string, allMenuItems: MenuItemType[], enable: boolean) => {
+      await setAllGroupItemsMutation.mutateAsync({ groupId, allMenuItems, enable }).catch(() => {});
+    },
+    addMember: async (groupId: string, employeeId: string) => {
+      await addMemberMutation.mutateAsync({ groupId, employeeId }).catch(() => {});
+    },
+    removeMember: async (groupId: string, employeeId: string) => {
+      await removeMemberMutation.mutateAsync({ groupId, employeeId }).catch(() => {});
+    },
   };
 }

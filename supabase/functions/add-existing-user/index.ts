@@ -78,8 +78,9 @@ const handler = async (req: Request): Promise<Response> => {
     });
   } catch (error: unknown) {
     console.error("Erro ao adicionar usuário existente:", error);
+    const errObj = error as Error;
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: errObj.message }),
       {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },

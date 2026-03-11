@@ -166,7 +166,8 @@ export async function sendWhatsAppAlerts(
           console.error(`[WhatsApp Alert] Failed to send to ${recipient.name}:`, zapiData);
         }
       } catch (err: unknown) {
-        errors.push(`Error sending to ${recipient.name}: ${err.message}`);
+        const errMsg = err instanceof Error ? err.message : String(err);
+        errors.push(`Error sending to ${recipient.name}: ${errMsg}`);
         console.error(`[WhatsApp Alert] Error sending to ${recipient.name}:`, err);
       }
     }
@@ -176,7 +177,8 @@ export async function sendWhatsAppAlerts(
 
   } catch (error: unknown) {
     console.error("[WhatsApp Alert] General error:", error);
-    return { success: false, sentCount: 0, errors: [error.message] };
+    const errMsg = error instanceof Error ? error.message : String(error);
+    return { success: false, sentCount: 0, errors: [errMsg] };
   }
 }
 
@@ -185,7 +187,7 @@ export async function sendWhatsAppAlerts(
  */
 export function buildAlertMessage(
   type: "high_cpa" | "low_balance" | "disabled_account" | "post_published" | "post_failed",
-  data: Record<string, any>
+  data: Record<string, unknown>
 ): string {
   switch (type) {
     case "high_cpa":

@@ -4,7 +4,7 @@ import { Switch } from "@/components/ui/switch";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { Clock, CalendarIcon, Infinity } from "lucide-react";
+import { Clock, CalendarIcon, Infinity as InfinityIcon } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -73,7 +73,7 @@ export function EditableScheduleSection({ strategy, onChange }: EditableSchedule
         <div className="flex items-center justify-between p-3 border rounded-lg">
           <div className="space-y-0.5">
             <Label className="flex items-center gap-2">
-              <Infinity className="w-4 h-4" />
+              <InfinityIcon className="w-4 h-4" />
               Definir data de término
             </Label>
             <p className="text-xs text-muted-foreground">
@@ -155,7 +155,7 @@ export function EditableScheduleSection({ strategy, onChange }: EditableSchedule
               </Popover>
             ) : (
               <div className="h-10 flex items-center px-3 border rounded-md bg-muted/50 text-muted-foreground">
-                <Infinity className="w-4 h-4 mr-2" />
+                <InfinityIcon className="w-4 h-4 mr-2" />
                 Sem data de término
               </div>
             )}
