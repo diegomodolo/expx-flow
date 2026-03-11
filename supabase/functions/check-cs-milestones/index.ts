@@ -7,7 +7,7 @@ const corsHeaders = {
 
 // Milestone trigger conditions
 const milestoneConditions = {
-  first_campaign: async (supabase: any, clientId: string) => {
+  first_campaign: async (supabase: ReturnType<typeof createClient>, clientId: string) => {
     const { data } = await supabase
       .from('campaigns')
       .select('id')
@@ -16,24 +16,24 @@ const milestoneConditions = {
       .limit(1);
     return data && data.length > 0;
   },
-  first_lead: async (supabase: any, clientId: string) => {
+  first_lead: async (supabase: ReturnType<typeof createClient>, clientId: string) => {
     const { data } = await supabase
       .from('campaigns')
       .select('conversions')
       .eq('client_id', clientId);
-    const totalConversions = data?.reduce((sum: number, c: any) => sum + (c.conversions || 0), 0) || 0;
+    const totalConversions = data?.reduce((sum: number, c: unknown) => sum + ((c as { conversions?: number }).conversions || 0), 0) || 0;
     return totalConversions >= 1;
   },
-  monthly_goal: async (supabase: any, clientId: string) => {
+  monthly_goal: async (supabase: ReturnType<typeof createClient>, clientId: string) => {
     // Check if client reached monthly goal (simplified: check if ROAS > 2)
     const { data } = await supabase
       .from('campaigns')
       .select('spend, conversions')
       .eq('client_id', clientId)
       .eq('is_active', true);
-    
-    const totalSpend = data?.reduce((sum: number, c: any) => sum + (c.spend || 0), 0) || 0;
-    const totalConversions = data?.reduce((sum: number, c: any) => sum + (c.conversions || 0), 0) || 0;
+
+    const totalSpend = data?.reduce((sum: number, c: unknown) => sum + ((c as { spend?: number }).spend || 0), 0) || 0;
+    const totalConversions = data?.reduce((sum: number, c: unknown) => sum + ((c as { conversions?: number }).conversions || 0), 0) || 0;
     
     // Assuming average ticket of R$100 for ROI calculation
     const estimatedReturn = totalConversions * 100;
@@ -107,7 +107,7 @@ Deno.serve(async (req) => {
               milestoneId: milestone.id,
               milestoneType: milestone.milestone_type,
               clientId: milestone.client_id,
-              clientName: (milestone.clients as any)?.name,
+              clientName: (milestone.clients as { name?: string })?.name,
               title: milestone.title,
             });
 
@@ -120,7 +120,7 @@ Deno.serve(async (req) => {
                 alert_type: 'cs_milestone_completed',
                 severity: 'info',
                 title: `🎉 Milestone alcançado: ${milestone.title}`,
-                message: `O cliente ${(milestone.clients as any)?.name} alcançou o milestone "${milestone.title}". Considere enviar uma celebração!`,
+                message: `O cliente ${(milestone.clients as { name?: string })?.name} alcançou o milestone "${milestone.title}". Considere enviar uma celebração!`,
                 details: { milestoneId: milestone.id, milestoneType: milestone.milestone_type },
                 related_entity_type: 'milestone',
                 related_entity_id: milestone.id,

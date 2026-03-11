@@ -116,20 +116,21 @@ interface SocialMetrics {
  * ou soma para campanhas não-Lead.
  */
 function countConversionsFromActions(
-  actions: any[] | undefined, 
-  campaignObjective?: string, 
+  actions: unknown[] | undefined,
+  campaignObjective?: string,
   campaignName?: string
 ): number {
   if (!actions || !Array.isArray(actions)) {
     return 0;
   }
 
-  const norm = (s: any) => (s ?? '').toString().trim().toLowerCase();
-  const getVal = (a: any) => {
-    const toNum = (v: any) => (typeof v === 'string' ? parseFloat(v) : Number(v));
-    const click = toNum(a?.['7d_click']);
-    const view = toNum(a?.['1d_view']);
-    const val = toNum(a?.value);
+  const norm = (s: unknown) => (s ?? '').toString().trim().toLowerCase();
+  const getVal = (a: unknown) => {
+    const toNum = (v: unknown) => (typeof v === 'string' ? parseFloat(v) : Number(v));
+    const action = a as Record<string, unknown>;
+    const click = toNum(action?.['7d_click']);
+    const view = toNum(action?.['1d_view']);
+    const val = toNum(action?.['value']);
     const sumCv = (Number.isFinite(click) ? click : 0) + (Number.isFinite(view) ? view : 0);
     const candidates = [sumCv, val, click, view].map(n => (Number.isFinite(n) ? n : 0));
     const best = Math.max(...candidates, 0);
@@ -156,9 +157,9 @@ function countConversionsFromActions(
       'onsite_conversion.messaging_conversation_started_7d'
     ];
 
-    const normalized = actions.map(a => ({ 
-      type: norm(a?.action_type), 
-      val: getVal(a) 
+    const normalized = actions.map(a => ({
+      type: norm((a as Record<string, unknown>)?.['action_type']),
+      val: getVal(a)
     }));
 
     // Find the highest priority lead action with value > 0
@@ -220,7 +221,7 @@ function countConversionsFromActions(
     let total = 0;
     
     for (const a of actions) {
-      const type = norm(a?.action_type);
+      const type = norm((a as Record<string, unknown>)?.['action_type']);
       const val = getVal(a);
       
       if (!type || !Number.isFinite(val)) {
@@ -251,7 +252,7 @@ function countConversionsFromActions(
   }
 }
 
-async function fetchSocialMetrics(supabase: any, clientId: string): Promise<SocialMetrics> {
+async function fetchSocialMetrics(supabase: ReturnType<typeof createClient>, clientId: string): Promise<SocialMetrics> {
   console.log('Fetching social metrics for client:', clientId);
   
   const { data: clientFull, error: clientError } = await supabase
@@ -315,20 +316,23 @@ async function fetchSocialMetrics(supabase: any, clientId: string): Promise<Soci
         const posts = mediaData.data || [];
         postsCount = posts.length;
 
-        const mappedPosts: InstagramFeedPost[] = posts.map((p: any) => ({
-          id: p.id,
-          thumbnail_url: p.thumbnail_url || p.media_url || '',
-          caption: p.caption || '',
-          like_count: p.like_count || 0,
-          comments_count: p.comments_count || 0,
-          permalink: p.permalink || '',
-          media_type: p.media_type,
-        }));
+        const mappedPosts: InstagramFeedPost[] = posts.map((p: unknown) => {
+          const post = p as Record<string, unknown>;
+          return {
+            id: post.id as string,
+            thumbnail_url: (post.thumbnail_url as string) || (post.media_url as string) || '',
+            caption: (post.caption as string) || '',
+            like_count: (post.like_count as number) || 0,
+            comments_count: (post.comments_count as number) || 0,
+            permalink: (post.permalink as string) || '',
+            media_type: post.media_type as string,
+          };
+        });
 
         recentPosts = mappedPosts.slice(0, 30);
 
-        totalLikes = mappedPosts.reduce((sum: number, p: any) => sum + (p.like_count || 0), 0);
-        totalComments = mappedPosts.reduce((sum: number, p: any) => sum + (p.comments_count || 0), 0);
+        totalLikes = mappedPosts.reduce((sum: number, p: InstagramFeedPost) => sum + (p.like_count || 0), 0);
+        totalComments = mappedPosts.reduce((sum: number, p: InstagramFeedPost) => sum + (p.comments_count || 0), 0);
         avgEngagement = postsCount > 0 ? (totalLikes + totalComments) / postsCount : 0;
 
         topPosts = mappedPosts

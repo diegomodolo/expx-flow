@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
 
     // Get facebook pages for these clients
     const pageIds = clients.map(c => c.facebook_page_id).filter(Boolean);
-    let pageMap = new Map<string, { page_id: string; instagram_business_account_id: string | null }>();
+    const pageMap = new Map<string, { page_id: string; instagram_business_account_id: string | null }>();
     
     if (pageIds.length > 0) {
       const { data: pages } = await supabase
@@ -90,7 +90,7 @@ Deno.serve(async (req) => {
 
     // Get instagram accounts for these clients
     const igIds = clients.map(c => c.instagram_account_id).filter(Boolean);
-    let igMap = new Map<string, { instagram_id: string; username: string }>();
+    const igMap = new Map<string, { instagram_id: string; username: string }>();
     
     if (igIds.length > 0) {
       const { data: igAccounts } = await supabase
@@ -163,7 +163,7 @@ Deno.serve(async (req) => {
           ? adAccountInfo.account_id 
           : `act_${adAccountInfo.account_id}`;
         
-        let allAdSets: any[] = [];
+        const allAdSets: unknown[] = [];
         let url: string | null = `https://graph.facebook.com/v20.0/${accountId}/adsets?` +
           `fields=id,name,promoted_object,campaign{id,name}&` +
           `filtering=[{"field":"effective_status","operator":"IN","value":["ACTIVE","PAUSED"]}]&` +
