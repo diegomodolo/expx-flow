@@ -8,7 +8,8 @@ const openAIApiKey = Deno.env.get("OPENAI_API_KEY")!;
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
@@ -660,7 +661,8 @@ Generate the image now.`;
           }
 
           lastUploadError = error;
-          const status = (error as unknown)?.status ?? (error as unknown)?.statusCode;
+          const status =
+            (error as unknown)?.status ?? (error as unknown)?.statusCode;
           console.warn(
             `Upload attempt ${attempt}/${MAX_UPLOAD_RETRIES} failed (bucket=${bucket}, status=${status}):`,
             error.message,

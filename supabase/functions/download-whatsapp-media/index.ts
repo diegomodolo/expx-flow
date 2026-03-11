@@ -2,8 +2,10 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 type Payload = {
@@ -60,18 +62,27 @@ serve(async (req) => {
         .single();
 
       if (instanceError || !instance) {
-        console.error("[download-whatsapp-media] Instance not found:", instanceError);
-        return new Response(JSON.stringify({ error: "Instância não encontrada" }), {
-          status: 404,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        console.error(
+          "[download-whatsapp-media] Instance not found:",
+          instanceError,
+        );
+        return new Response(
+          JSON.stringify({ error: "Instância não encontrada" }),
+          {
+            status: 404,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
       }
 
       if (!instance.uazapi_token) {
-        return new Response(JSON.stringify({ error: "Token da instância não encontrado" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return new Response(
+          JSON.stringify({ error: "Token da instância não encontrado" }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
       }
 
       const { data: config, error: configError } = await supabase
@@ -81,24 +92,35 @@ serve(async (req) => {
         .single();
 
       if (configError || !config?.uazapi_endpoint) {
-        console.error("[download-whatsapp-media] Config not found:", configError);
-        return new Response(JSON.stringify({ error: "Configuração base do WhatsApp não encontrada" }), {
-          status: 404,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        console.error(
+          "[download-whatsapp-media] Config not found:",
+          configError,
+        );
+        return new Response(
+          JSON.stringify({
+            error: "Configuração base do WhatsApp não encontrada",
+          }),
+          {
+            status: 404,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
       }
 
       const endpoint = config.uazapi_endpoint.replace(/\/$/, "");
       const downloadEndpoint = `${endpoint}/message/download`;
 
-      console.log("[download-whatsapp-media] Calling UazapiGO:", downloadEndpoint);
+      console.log(
+        "[download-whatsapp-media] Calling UazapiGO:",
+        downloadEndpoint,
+      );
 
       const uazapiResp = await fetch(downloadEndpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Accept": "application/json",
-          "token": instance.uazapi_token,
+          Accept: "application/json",
+          token: instance.uazapi_token,
         },
         body: JSON.stringify({
           id: payload.messageId,
@@ -109,44 +131,77 @@ serve(async (req) => {
       });
 
       const uazapiText = await uazapiResp.text();
-      console.log("[download-whatsapp-media] UazapiGO status:", uazapiResp.status);
-      console.log("[download-whatsapp-media] UazapiGO response preview:", uazapiText.substring(0, 500));
+      console.log(
+        "[download-whatsapp-media] UazapiGO status:",
+        uazapiResp.status,
+      );
+      console.log(
+        "[download-whatsapp-media] UazapiGO response preview:",
+        uazapiText.substring(0, 500),
+      );
 
       if (!uazapiResp.ok) {
-        return new Response(JSON.stringify({ error: "Falha ao baixar mídia na UazapiGO", details: uazapiText }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return new Response(
+          JSON.stringify({
+            error: "Falha ao baixar mídia na UazapiGO",
+            details: uazapiText,
+          }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
       }
 
       let uazapiData: unknown;
       try {
         uazapiData = JSON.parse(uazapiText);
       } catch (e) {
-        console.error("[download-whatsapp-media] Invalid JSON from UazapiGO", e);
-        return new Response(JSON.stringify({ error: "Resposta inválida da UazapiGO" }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        console.error(
+          "[download-whatsapp-media] Invalid JSON from UazapiGO",
+          e,
+        );
+        return new Response(
+          JSON.stringify({ error: "Resposta inválida da UazapiGO" }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
       }
 
-      const fileURL: string | null = uazapiData.fileURL || uazapiData.fileUrl || null;
-      const mimetype: string | null = uazapiData.mimetype || uazapiData.mimeType || null;
+      const fileURL: string | null =
+        uazapiData.fileURL || uazapiData.fileUrl || null;
+      const mimetype: string | null =
+        uazapiData.mimetype || uazapiData.mimeType || null;
       const base64Data: string | null = uazapiData.base64Data || null;
 
       let bytes: Uint8Array;
       const originalContentType = mimetype || "application/octet-stream";
 
       if (fileURL) {
-        console.log("[download-whatsapp-media] Fetching public fileURL:", fileURL);
+        console.log(
+          "[download-whatsapp-media] Fetching public fileURL:",
+          fileURL,
+        );
         const fileResp = await fetch(fileURL);
         if (!fileResp.ok) {
           const errText = await fileResp.text();
-          console.error("[download-whatsapp-media] fileURL fetch failed:", fileResp.status, errText.substring(0, 200));
-          return new Response(JSON.stringify({ error: "Falha ao baixar arquivo final", details: errText }), {
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
+          console.error(
+            "[download-whatsapp-media] fileURL fetch failed:",
+            fileResp.status,
+            errText.substring(0, 200),
+          );
+          return new Response(
+            JSON.stringify({
+              error: "Falha ao baixar arquivo final",
+              details: errText,
+            }),
+            {
+              status: 400,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            },
+          );
         }
         // Note: we always return application/octet-stream so supabase-js returns a Blob reliably.
         bytes = new Uint8Array(await fileResp.arrayBuffer());
@@ -154,13 +209,19 @@ serve(async (req) => {
         console.log("[download-whatsapp-media] Using base64Data payload");
         bytes = decodeBase64ToUint8Array(base64Data);
       } else {
-        return new Response(JSON.stringify({ error: "UazapiGO não retornou fileURL/base64Data" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return new Response(
+          JSON.stringify({ error: "UazapiGO não retornou fileURL/base64Data" }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
       }
 
-      console.log("[download-whatsapp-media] Returning bytes:", bytes.byteLength);
+      console.log(
+        "[download-whatsapp-media] Returning bytes:",
+        bytes.byteLength,
+      );
 
       return new Response(bytes, {
         headers: {
@@ -175,19 +236,26 @@ serve(async (req) => {
 
     // 2) Fallback: direct URL fetch
     if (payload.mediaUrl) {
-      console.log("[download-whatsapp-media] Direct URL flow", { mediaUrl: payload.mediaUrl, fileName });
+      console.log("[download-whatsapp-media] Direct URL flow", {
+        mediaUrl: payload.mediaUrl,
+        fileName,
+      });
       const response = await fetch(payload.mediaUrl);
 
       if (!response.ok) {
         const t = await response.text();
-        return new Response(JSON.stringify({ error: `Falha ao buscar mediaUrl`, details: t }), {
-          status: response.status,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return new Response(
+          JSON.stringify({ error: `Falha ao buscar mediaUrl`, details: t }),
+          {
+            status: response.status,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
       }
 
       const fileBuffer = await response.arrayBuffer();
-      const originalContentType = response.headers.get("content-type") || "application/octet-stream";
+      const originalContentType =
+        response.headers.get("content-type") || "application/octet-stream";
 
       return new Response(fileBuffer, {
         headers: {
@@ -200,15 +268,23 @@ serve(async (req) => {
       });
     }
 
-    return new Response(JSON.stringify({ error: "Informe instanceId+messageId (UazapiGO) ou mediaUrl" }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({
+        error: "Informe instanceId+messageId (UazapiGO) ou mediaUrl",
+      }),
+      {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   } catch (error) {
     console.error("[download-whatsapp-media] Unhandled error:", error);
-    return new Response(JSON.stringify({ error: error?.message || String(error) }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ error: error?.message || String(error) }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   }
 });

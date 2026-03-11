@@ -3,7 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.53.0";
 import { Resend } from "npm:resend@4.0.0";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
@@ -26,41 +27,43 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
-    
+
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { 
-      email, 
-      name, 
-      role, 
-      companyId, 
-      companyName, 
-      redirectTo 
+    const {
+      email,
+      name,
+      role,
+      companyId,
+      companyName,
+      redirectTo,
     }: InviteWithMagicLinkRequest = await req.json();
 
     // Gerar senha temporária
     const generateTempPassword = () => {
-      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%&*';
-      let password = '';
+      const chars =
+        "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%&*";
+      let password = "";
       for (let i = 0; i < 10; i++) {
         password += chars.charAt(Math.floor(Math.random() * chars.length));
       }
       return password;
     };
-    
+
     const tempPassword = generateTempPassword();
 
     // 1. Criar usuário usando admin (com senha temporária)
-    const { data: newUser, error: createUserError } = await supabase.auth.admin.createUser({
-      email,
-      password: tempPassword,
-      email_confirm: false, // Não confirmar automaticamente
-      user_metadata: {
-        full_name: name,
-        invited_by_company: companyName,
-        role: role,
-      }
-    });
+    const { data: newUser, error: createUserError } =
+      await supabase.auth.admin.createUser({
+        email,
+        password: tempPassword,
+        email_confirm: false, // Não confirmar automaticamente
+        user_metadata: {
+          full_name: name,
+          invited_by_company: companyName,
+          role: role,
+        },
+      });
 
     if (createUserError) {
       throw new Error(`Erro ao criar usuário: ${createUserError.message}`);
@@ -78,7 +81,7 @@ const handler = async (req: Request): Promise<Response> => {
       .insert({
         user_id: userId,
         company_id: companyId,
-        role: 'member',
+        role: "member",
         joined_at: new Date().toISOString(),
       });
 
@@ -87,20 +90,21 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // 3. Gerar magic link
-    const finalRedirectTo = redirectTo || 'https://controledetrafego.com.br/';
-    
-    const { data: magicLinkData, error: magicLinkError } = await supabase.auth.admin.generateLink({
-      type: 'magiclink',
-      email: email,
-      options: {
-        redirectTo: finalRedirectTo,
-        data: {
-          full_name: name,
-          company_name: companyName,
-          role: role,
-        }
-      }
-    });
+    const finalRedirectTo = redirectTo || "https://controledetrafego.com.br/";
+
+    const { data: magicLinkData, error: magicLinkError } =
+      await supabase.auth.admin.generateLink({
+        type: "magiclink",
+        email: email,
+        options: {
+          redirectTo: finalRedirectTo,
+          data: {
+            full_name: name,
+            company_name: companyName,
+            role: role,
+          },
+        },
+      });
 
     if (magicLinkError) {
       throw new Error(`Erro ao gerar magic link: ${magicLinkError.message}`);
@@ -110,7 +114,7 @@ const handler = async (req: Request): Promise<Response> => {
     if (resendApiKey) {
       try {
         const resend = new Resend(resendApiKey);
-        
+
         await resend.emails.send({
           from: `${companyName} <noreply@controledetrafego.com.br>`,
           to: [email],
@@ -199,28 +203,28 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    return new Response(JSON.stringify({ 
-      success: true, 
-      user_id: userId,
-      magic_link: magicLinkData.properties?.action_link,
-      temp_password: tempPassword,
-      email_sent: !!resendApiKey
-    }), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        ...corsHeaders,
+    return new Response(
+      JSON.stringify({
+        success: true,
+        user_id: userId,
+        magic_link: magicLinkData.properties?.action_link,
+        temp_password: tempPassword,
+        email_sent: !!resendApiKey,
+      }),
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          ...corsHeaders,
+        },
       },
-    });
+    );
   } catch (error: unknown) {
     console.error("Erro ao criar colaborador com magic link:", error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
-    );
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
   }
 };
 

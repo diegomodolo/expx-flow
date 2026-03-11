@@ -2,8 +2,10 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 interface ReactionPayload {
@@ -28,7 +30,10 @@ serve(async (req) => {
     const payload: ReactionPayload = await req.json();
     const { company_id, instance_id, message_id, emoji, remote_jid } = payload;
 
-    console.log("[send-whatsapp-reaction] Sending reaction for company:", company_id);
+    console.log(
+      "[send-whatsapp-reaction] Sending reaction for company:",
+      company_id,
+    );
     console.log("[send-whatsapp-reaction] Instance:", instance_id);
     console.log("[send-whatsapp-reaction] Message ID:", message_id);
     console.log("[send-whatsapp-reaction] Emoji:", emoji);
@@ -39,12 +44,13 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({
           success: false,
-          error: "company_id, instance_id, message_id e remote_jid são obrigatórios",
+          error:
+            "company_id, instance_id, message_id e remote_jid são obrigatórios",
         }),
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
@@ -66,7 +72,7 @@ serve(async (req) => {
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
@@ -79,24 +85,45 @@ serve(async (req) => {
       .single();
 
     if (instanceError || !instance) {
-      console.error("[send-whatsapp-reaction] Instance not found:", instanceError);
+      console.error(
+        "[send-whatsapp-reaction] Instance not found:",
+        instanceError,
+      );
       return new Response(
-        JSON.stringify({ success: false, error: "Instância não encontrada ou inativa" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          success: false,
+          error: "Instância não encontrada ou inativa",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
     if (!instance.is_connected) {
       return new Response(
-        JSON.stringify({ success: false, error: "Instância não está conectada" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          success: false,
+          error: "Instância não está conectada",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
     if (!instance.uazapi_token) {
       return new Response(
-        JSON.stringify({ success: false, error: "Token da instância não encontrado" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          success: false,
+          error: "Token da instância não encontrado",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -111,13 +138,16 @@ serve(async (req) => {
       emoji: emoji, // empty string removes the reaction
     };
 
-    console.log("[send-whatsapp-reaction] Request body:", JSON.stringify(requestBody));
+    console.log(
+      "[send-whatsapp-reaction] Request body:",
+      JSON.stringify(requestBody),
+    );
 
     const apiResponse = await fetch(reactUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "token": instance.uazapi_token,
+        token: instance.uazapi_token,
       },
       body: JSON.stringify(requestBody),
     });
@@ -135,7 +165,7 @@ serve(async (req) => {
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
@@ -149,7 +179,7 @@ serve(async (req) => {
       {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      },
     );
   } catch (error) {
     console.error("[send-whatsapp-reaction] Error:", error);
@@ -161,7 +191,7 @@ serve(async (req) => {
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      },
     );
   }
 });

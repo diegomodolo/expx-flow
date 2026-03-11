@@ -2,8 +2,10 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 serve(async (req) => {
@@ -26,7 +28,8 @@ serve(async (req) => {
 
       const { data: plan, error: planError } = await supabase
         .from("content_plans")
-        .select(`
+        .select(
+          `
           id,
           name,
           status,
@@ -39,15 +42,21 @@ serve(async (req) => {
             company,
             avatar
           )
-        `)
+        `,
+        )
         .eq("public_token", token)
         .single();
 
       if (planError || !plan) {
         console.error("Plan not found:", planError);
         return new Response(
-          JSON.stringify({ error: "Planejamento não encontrado ou link inválido" }),
-          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({
+            error: "Planejamento não encontrado ou link inválido",
+          }),
+          {
+            status: 404,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
         );
       }
 
@@ -55,7 +64,10 @@ serve(async (req) => {
       if (plan.status !== "em_revisao") {
         return new Response(
           JSON.stringify({ error: "Este planejamento não está em revisão" }),
-          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
         );
       }
 
@@ -72,9 +84,9 @@ serve(async (req) => {
       }
 
       // Fetch slides for carousel posts
-      const postIds = (posts || []).map(p => p.id);
+      const postIds = (posts || []).map((p) => p.id);
       let slides: unknown[] = [];
-      
+
       if (postIds.length > 0) {
         const { data: slidesData, error: slidesError } = await supabase
           .from("content_plan_slides")
@@ -91,15 +103,14 @@ serve(async (req) => {
       }
 
       // Attach slides to their posts
-      const postsWithSlides = (posts || []).map(post => ({
+      const postsWithSlides = (posts || []).map((post) => ({
         ...post,
-        slides: slides.filter(s => s.post_id === post.id)
+        slides: slides.filter((s) => s.post_id === post.id),
       }));
 
-      return new Response(
-        JSON.stringify({ plan, posts: postsWithSlides }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ plan, posts: postsWithSlides }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // POST - Update post review status
@@ -110,10 +121,10 @@ serve(async (req) => {
       console.log("Updating post review:", { postId, reviewStatus, planToken });
 
       if (!postId || !reviewStatus || !planToken) {
-        return new Response(
-          JSON.stringify({ error: "Dados incompletos" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return new Response(JSON.stringify({ error: "Dados incompletos" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
       // Validate token and get plan
@@ -124,16 +135,21 @@ serve(async (req) => {
         .single();
 
       if (planError || !plan) {
-        return new Response(
-          JSON.stringify({ error: "Link inválido" }),
-          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return new Response(JSON.stringify({ error: "Link inválido" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
       if (plan.status !== "em_revisao") {
         return new Response(
-          JSON.stringify({ error: "Este planejamento não está mais em revisão" }),
-          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({
+            error: "Este planejamento não está mais em revisão",
+          }),
+          {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
         );
       }
 
@@ -146,17 +162,20 @@ serve(async (req) => {
         .single();
 
       if (postError || !post) {
-        return new Response(
-          JSON.stringify({ error: "Post não encontrado" }),
-          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return new Response(JSON.stringify({ error: "Post não encontrado" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
       // Validate rejected requires feedback
       if (reviewStatus === "rejected" && !reviewFeedback?.trim()) {
         return new Response(
           JSON.stringify({ error: "Feedback é obrigatório quando rejeitado" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
         );
       }
 
@@ -175,21 +194,25 @@ serve(async (req) => {
         throw updateError;
       }
 
-      return new Response(
-        JSON.stringify({ success: true }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    return new Response(
-      JSON.stringify({ error: "Método não permitido" }),
-      { status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: "Método não permitido" }), {
+      status: 405,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (error) {
     console.error("public-content-review error:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Erro interno" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({
+        error: error instanceof Error ? error.message : "Erro interno",
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 });

@@ -1,12 +1,18 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-hub-signature-256",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-hub-signature-256",
 };
 
 // HMAC-SHA256 signature validation
-async function verifySignature(payload: string, signature: string, secret: string): Promise<boolean> {
+async function verifySignature(
+  payload: string,
+  signature: string,
+  secret: string,
+): Promise<boolean> {
   try {
     const encoder = new TextEncoder();
     const key = await crypto.subtle.importKey(
@@ -14,12 +20,18 @@ async function verifySignature(payload: string, signature: string, secret: strin
       encoder.encode(secret),
       { name: "HMAC", hash: "SHA-256" },
       false,
-      ["sign"]
+      ["sign"],
     );
-    const signatureBuffer = await crypto.subtle.sign("HMAC", key, encoder.encode(payload));
-    const expectedSignature = "sha256=" + Array.from(new Uint8Array(signatureBuffer))
-      .map(b => b.toString(16).padStart(2, "0"))
-      .join("");
+    const signatureBuffer = await crypto.subtle.sign(
+      "HMAC",
+      key,
+      encoder.encode(payload),
+    );
+    const expectedSignature =
+      "sha256=" +
+      Array.from(new Uint8Array(signatureBuffer))
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
     return signature === expectedSignature;
   } catch (error) {
     console.error("Error verifying signature:", error);
@@ -41,13 +53,17 @@ Deno.serve(async (req) => {
     const token = url.searchParams.get("hub.verify_token");
     const challenge = url.searchParams.get("hub.challenge");
 
-    console.log("Webhook verification request:", { mode, token: token?.substring(0, 10) + "...", challenge });
+    console.log("Webhook verification request:", {
+      mode,
+      token: token?.substring(0, 10) + "...",
+      challenge,
+    });
 
     if (mode === "subscribe" && token && challenge) {
       // Find company with matching verify token
       const supabaseAdmin = createClient(
         Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
       );
 
       const { data: config } = await supabaseAdmin
@@ -75,7 +91,10 @@ Deno.serve(async (req) => {
     const appSecret = Deno.env.get("META_WHATSAPP_APP_SECRET");
     if (!appSecret) {
       console.error("META_WHATSAPP_APP_SECRET not configured");
-      return new Response("Server error", { status: 500, headers: corsHeaders });
+      return new Response("Server error", {
+        status: 500,
+        headers: corsHeaders,
+      });
     }
 
     const signature = req.headers.get("x-hub-signature-256");
@@ -84,7 +103,10 @@ Deno.serve(async (req) => {
     // Validate signature
     if (!signature || !(await verifySignature(rawBody, signature, appSecret))) {
       console.error("Invalid signature");
-      return new Response("Unauthorized", { status: 401, headers: corsHeaders });
+      return new Response("Unauthorized", {
+        status: 401,
+        headers: corsHeaders,
+      });
     }
 
     let payload;
@@ -99,7 +121,7 @@ Deno.serve(async (req) => {
 
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
     // Process the payload
@@ -116,7 +138,10 @@ Deno.serve(async (req) => {
           .maybeSingle();
 
         if (!config) {
-          console.log("No config found for business account:", businessAccountId);
+          console.log(
+            "No config found for business account:",
+            businessAccountId,
+          );
           continue;
         }
 
@@ -142,7 +167,9 @@ Deno.serve(async (req) => {
             for (const message of value.messages || []) {
               const from = message.from;
               const messageId = message.id;
-              const timestamp = new Date(parseInt(message.timestamp) * 1000).toISOString();
+              const timestamp = new Date(
+                parseInt(message.timestamp) * 1000,
+              ).toISOString();
 
               console.log(`Message from ${from} to ${displayPhone}:`, message);
 
@@ -158,7 +185,8 @@ Deno.serve(async (req) => {
                 case "video":
                 case "audio":
                 case "document":
-                  content = message[message.type]?.caption || `[${message.type}]`;
+                  content =
+                    message[message.type]?.caption || `[${message.type}]`;
                   break;
                 case "location":
                   content = `📍 ${message.location?.name || "Localização"} (${message.location?.latitude}, ${message.location?.longitude})`;
@@ -190,7 +218,9 @@ Deno.serve(async (req) => {
 
               if (!conversation) {
                 // Get contact profile from payload
-                const contact = value.contacts?.find((c: unknown) => c.wa_id === from);
+                const contact = value.contacts?.find(
+                  (c: unknown) => c.wa_id === from,
+                );
                 const profileName = contact?.profile?.name || from;
 
                 const { data: newConv } = await supabaseAdmin
@@ -246,7 +276,9 @@ Deno.serve(async (req) => {
               const messageId = status.id;
               const statusValue = status.status; // sent, delivered, read, failed
 
-              console.log(`Status update for message ${messageId}: ${statusValue}`);
+              console.log(
+                `Status update for message ${messageId}: ${statusValue}`,
+              );
 
               // Update message status
               await supabaseAdmin
@@ -263,5 +295,8 @@ Deno.serve(async (req) => {
     return new Response("OK", { status: 200, headers: corsHeaders });
   }
 
-  return new Response("Method not allowed", { status: 405, headers: corsHeaders });
+  return new Response("Method not allowed", {
+    status: 405,
+    headers: corsHeaders,
+  });
 });

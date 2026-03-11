@@ -2,7 +2,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
@@ -55,8 +56,9 @@ Deno.serve(async (req) => {
         reach: previousWeekMetrics.totalReach,
         roas: previousWeekMetrics.roas,
       },
-      activeCampaigns: campaignsData.filter((c: unknown) => c.status === "active")
-        .length,
+      activeCampaigns: campaignsData.filter(
+        (c: unknown) => c.status === "active",
+      ).length,
       totalCampaigns: campaignsData.length,
     };
 

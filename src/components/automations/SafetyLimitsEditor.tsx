@@ -1,19 +1,52 @@
+ 
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Info } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { z } from "zod";
 
 export const safetyLimitsSchema = z.object({
   budget_safety_limits: z.object({
-    max_daily_budget_increase_percent: z.number().int().min(1, "Mínimo 1%").max(100, "Máximo 100%"),
-    max_daily_budget_decrease_percent: z.number().int().min(1, "Mínimo 1%").max(100, "Máximo 100%"),
+    max_daily_budget_increase_percent: z
+      .number()
+      .int()
+      .min(1, "Mínimo 1%")
+      .max(100, "Máximo 100%"),
+    max_daily_budget_decrease_percent: z
+      .number()
+      .int()
+      .min(1, "Mínimo 1%")
+      .max(100, "Máximo 100%"),
   }),
   execution_limits: z.object({
-    max_executions_per_day: z.number().int().min(1, "Mínimo 1 execução").max(50, "Máximo 50 execuções"),
-    cooldown_hours: z.number().int().min(1, "Mínimo 1 hora").max(72, "Máximo 72 horas"),
-    entity_cooldown_days: z.number().int().min(0, "Mínimo 0 dias").max(30, "Máximo 30 dias").optional(),
+    max_executions_per_day: z
+      .number()
+      .int()
+      .min(1, "Mínimo 1 execução")
+      .max(50, "Máximo 50 execuções"),
+    cooldown_hours: z
+      .number()
+      .int()
+      .min(1, "Mínimo 1 hora")
+      .max(72, "Máximo 72 horas"),
+    entity_cooldown_days: z
+      .number()
+      .int()
+      .min(0, "Mínimo 0 dias")
+      .max(30, "Máximo 30 dias")
+      .optional(),
   }),
 });
 
@@ -25,11 +58,24 @@ interface SafetyLimitsEditorProps {
   actionType: string;
 }
 
-export const SafetyLimitsEditor = ({ value, onChange, actionType }: SafetyLimitsEditorProps) => {
-  const showBudgetLimits = ["increase_budget", "decrease_budget"].includes(actionType);
-  const showEntityCooldown = ["duplicate_campaign", "duplicate_adset", "duplicate_ad"].includes(actionType);
+export const SafetyLimitsEditor = ({
+  value,
+  onChange,
+  actionType,
+}: SafetyLimitsEditorProps) => {
+  const showBudgetLimits = ["increase_budget", "decrease_budget"].includes(
+    actionType,
+  );
+  const showEntityCooldown = [
+    "duplicate_campaign",
+    "duplicate_adset",
+    "duplicate_ad",
+  ].includes(actionType);
 
-  const updateBudgetLimit = (field: keyof SafetyLimits["budget_safety_limits"], newValue: number) => {
+  const updateBudgetLimit = (
+    field: keyof SafetyLimits["budget_safety_limits"],
+    newValue: number,
+  ) => {
     onChange({
       ...value,
       budget_safety_limits: {
@@ -39,7 +85,10 @@ export const SafetyLimitsEditor = ({ value, onChange, actionType }: SafetyLimits
     });
   };
 
-  const updateExecutionLimit = (field: keyof SafetyLimits["execution_limits"], newValue: number) => {
+  const updateExecutionLimit = (
+    field: keyof SafetyLimits["execution_limits"],
+    newValue: number,
+  ) => {
     onChange({
       ...value,
       execution_limits: {
@@ -60,7 +109,10 @@ export const SafetyLimitsEditor = ({ value, onChange, actionType }: SafetyLimits
                 <Info className="h-4 w-4 text-muted-foreground" />
               </TooltipTrigger>
               <TooltipContent className="max-w-sm">
-                <p>Limites de proteção para evitar mudanças abruptas e execuções excessivas</p>
+                <p>
+                  Limites de proteção para evitar mudanças abruptas e execuções
+                  excessivas
+                </p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -99,8 +151,15 @@ export const SafetyLimitsEditor = ({ value, onChange, actionType }: SafetyLimits
                   type="number"
                   min="1"
                   max="100"
-                  value={value.budget_safety_limits.max_daily_budget_increase_percent}
-                  onChange={(e) => updateBudgetLimit("max_daily_budget_increase_percent", parseInt(e.target.value) || 1)}
+                  value={
+                    value.budget_safety_limits.max_daily_budget_increase_percent
+                  }
+                  onChange={(e) =>
+                    updateBudgetLimit(
+                      "max_daily_budget_increase_percent",
+                      parseInt(e.target.value) || 1,
+                    )
+                  }
                 />
                 <span className="text-sm text-muted-foreground">%</span>
               </div>
@@ -129,8 +188,15 @@ export const SafetyLimitsEditor = ({ value, onChange, actionType }: SafetyLimits
                   type="number"
                   min="1"
                   max="100"
-                  value={value.budget_safety_limits.max_daily_budget_decrease_percent}
-                  onChange={(e) => updateBudgetLimit("max_daily_budget_decrease_percent", parseInt(e.target.value) || 1)}
+                  value={
+                    value.budget_safety_limits.max_daily_budget_decrease_percent
+                  }
+                  onChange={(e) =>
+                    updateBudgetLimit(
+                      "max_daily_budget_decrease_percent",
+                      parseInt(e.target.value) || 1,
+                    )
+                  }
                 />
                 <span className="text-sm text-muted-foreground">%</span>
               </div>
@@ -160,7 +226,10 @@ export const SafetyLimitsEditor = ({ value, onChange, actionType }: SafetyLimits
                       <Info className="h-3 w-3 inline ml-1 text-muted-foreground" />
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Quantidade máxima de vezes que a regra pode executar por campanha em 24h</p>
+                      <p>
+                        Quantidade máxima de vezes que a regra pode executar por
+                        campanha em 24h
+                      </p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -171,7 +240,12 @@ export const SafetyLimitsEditor = ({ value, onChange, actionType }: SafetyLimits
                 min="1"
                 max="50"
                 value={value.execution_limits.max_executions_per_day}
-                onChange={(e) => updateExecutionLimit("max_executions_per_day", parseInt(e.target.value) || 1)}
+                onChange={(e) =>
+                  updateExecutionLimit(
+                    "max_executions_per_day",
+                    parseInt(e.target.value) || 1,
+                  )
+                }
               />
               <p className="text-xs text-muted-foreground">
                 Previne execuções excessivas na mesma campanha
@@ -187,7 +261,10 @@ export const SafetyLimitsEditor = ({ value, onChange, actionType }: SafetyLimits
                       <Info className="h-3 w-3 inline ml-1 text-muted-foreground" />
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Tempo mínimo entre execuções consecutivas na mesma campanha</p>
+                      <p>
+                        Tempo mínimo entre execuções consecutivas na mesma
+                        campanha
+                      </p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -199,7 +276,12 @@ export const SafetyLimitsEditor = ({ value, onChange, actionType }: SafetyLimits
                   min="1"
                   max="72"
                   value={value.execution_limits.cooldown_hours}
-                  onChange={(e) => updateExecutionLimit("cooldown_hours", parseInt(e.target.value) || 1)}
+                  onChange={(e) =>
+                    updateExecutionLimit(
+                      "cooldown_hours",
+                      parseInt(e.target.value) || 1,
+                    )
+                  }
                 />
                 <span className="text-sm text-muted-foreground">h</span>
               </div>
@@ -219,9 +301,13 @@ export const SafetyLimitsEditor = ({ value, onChange, actionType }: SafetyLimits
                       <Info className="h-3 w-3 inline ml-1 text-muted-foreground" />
                     </TooltipTrigger>
                     <TooltipContent className="max-w-sm">
-                      <p>Tempo mínimo entre duplicações da mesma entidade. Use 0 para desabilitar.</p>
+                      <p>
+                        Tempo mínimo entre duplicações da mesma entidade. Use 0
+                        para desabilitar.
+                      </p>
                       <p className="text-xs mt-1 text-muted-foreground">
-                        Exemplo: Se configurar 7 dias, uma campanha só pode ser duplicada novamente após 7 dias da última duplicação.
+                        Exemplo: Se configurar 7 dias, uma campanha só pode ser
+                        duplicada novamente após 7 dias da última duplicação.
                       </p>
                     </TooltipContent>
                   </Tooltip>
@@ -233,11 +319,17 @@ export const SafetyLimitsEditor = ({ value, onChange, actionType }: SafetyLimits
                 min="0"
                 max="30"
                 value={value.execution_limits.entity_cooldown_days || 0}
-                onChange={(e) => updateExecutionLimit("entity_cooldown_days", parseInt(e.target.value) || 0)}
+                onChange={(e) =>
+                  updateExecutionLimit(
+                    "entity_cooldown_days",
+                    parseInt(e.target.value) || 0,
+                  )
+                }
                 placeholder="0 = sem cooldown"
               />
               <p className="text-xs text-muted-foreground">
-                Previne duplicações repetidas da mesma entidade. Cópias também nunca são duplicadas.
+                Previne duplicações repetidas da mesma entidade. Cópias também
+                nunca são duplicadas.
               </p>
             </div>
           )}

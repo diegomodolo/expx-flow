@@ -2,8 +2,10 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 interface UrlParameters {
@@ -17,10 +19,10 @@ interface UrlParameters {
 
 interface CreativeRequest {
   clientId: string;
-  adSetId: string;           // ID local do ad set
-  metaAdSetId: string;       // ID no Meta (facebook_id)
+  adSetId: string; // ID local do ad set
+  metaAdSetId: string; // ID no Meta (facebook_id)
   creative: {
-    type: 'IMAGE' | 'VIDEO' | 'CAROUSEL';
+    type: "IMAGE" | "VIDEO" | "CAROUSEL";
     media_urls: string[];
     body: string;
     title: string;
@@ -39,15 +41,17 @@ serve(async (req) => {
   try {
     const anonClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
     );
 
     const authHeader = req.headers.get("Authorization");
     let userId: string | null = null;
-    
+
     if (authHeader) {
       const token = authHeader.replace("Bearer ", "");
-      const { data: { user } } = await anonClient.auth.getUser(token);
+      const {
+        data: { user },
+      } = await anonClient.auth.getUser(token);
       userId = user?.id || null;
     }
 
@@ -56,19 +60,24 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
       {
         global: {
-          headers: authHeader ? { Authorization: authHeader } : {}
-        }
-      }
+          headers: authHeader ? { Authorization: authHeader } : {},
+        },
+      },
     );
 
-    const { clientId, adSetId, metaAdSetId, creative } = await req.json() as CreativeRequest;
+    const { clientId, adSetId, metaAdSetId, creative } =
+      (await req.json()) as CreativeRequest;
 
-    console.log(`Creating ad for client ${clientId} in ad set ${metaAdSetId}:`, creative);
+    console.log(
+      `Creating ad for client ${clientId} in ad set ${metaAdSetId}:`,
+      creative,
+    );
 
     // Get client with ad account and Facebook Page
     const { data: client, error: clientError } = await supabaseClient
       .from("clients")
-      .select(`
+      .select(
+        `
         *,
         facebook_ad_accounts!clients_ad_account_id_fkey (
           account_id
@@ -78,7 +87,8 @@ serve(async (req) => {
           page_id,
           page_name
         )
-      `)
+      `,
+      )
       .eq("id", clientId)
       .single();
 
@@ -104,7 +114,9 @@ serve(async (req) => {
 
       if (pages && pages.length > 0) {
         const clientName = client.name?.toLowerCase().trim() || "";
-        const matchingPage = pages.find(p => p.page_name?.toLowerCase().trim() === clientName);
+        const matchingPage = pages.find(
+          (p) => p.page_name?.toLowerCase().trim() === clientName,
+        );
 
         if (matchingPage) {
           metaPageId = matchingPage.page_id;
@@ -115,7 +127,9 @@ serve(async (req) => {
     }
 
     if (!metaPageId) {
-      throw new Error("Cliente precisa ter uma Página do Facebook vinculada para criar anúncios.");
+      throw new Error(
+        "Cliente precisa ter uma Página do Facebook vinculada para criar anúncios.",
+      );
     }
 
     // Get ad set to find campaign
@@ -152,11 +166,13 @@ serve(async (req) => {
       accessToken,
       creative,
       metaPageId,
-      finalUrl
+      finalUrl,
     );
 
     if (creativeData.error) {
-      throw new Error(`Failed to create creative: ${creativeData.error.message}`);
+      throw new Error(
+        `Failed to create creative: ${creativeData.error.message}`,
+      );
     }
 
     const metaCreativeId = creativeData.id;
@@ -165,8 +181,8 @@ serve(async (req) => {
     // Create Ad
     const adParams = new URLSearchParams({
       adset_id: metaAdSetId,
-      name: creative.title || `Ad - ${new Date().toISOString().split('T')[0]}`,
-      status: adSet.status === 'active' ? 'ACTIVE' : 'PAUSED',
+      name: creative.title || `Ad - ${new Date().toISOString().split("T")[0]}`,
+      status: adSet.status === "active" ? "ACTIVE" : "PAUSED",
       creative: JSON.stringify({ creative_id: metaCreativeId }),
       access_token: accessToken,
     });
@@ -174,7 +190,7 @@ serve(async (req) => {
     console.log("Creating ad in Meta...");
     const adResponse = await fetch(
       `https://graph.facebook.com/v21.0/${adAccountId}/ads`,
-      { method: "POST", body: adParams }
+      { method: "POST", body: adParams },
     );
 
     const adResult = await adResponse.json();
@@ -196,18 +212,19 @@ serve(async (req) => {
         client_id: clientId,
         company_id: client.company_id,
         user_id: effectiveUserId,
-        name: creative.title || `Ad - ${new Date().toISOString().split('T')[0]}`,
+        name:
+          creative.title || `Ad - ${new Date().toISOString().split("T")[0]}`,
         facebook_id: metaAdId,
-        status: adSet.status === 'active' ? 'active' : 'paused',
-        is_active: adSet.status === 'active',
+        status: adSet.status === "active" ? "active" : "paused",
+        is_active: adSet.status === "active",
         creative_type: creative.type,
         creative_body: creative.body,
         creative_title: creative.title,
         creative_description: creative.description,
         link_url: finalUrl,
         call_to_action: creative.call_to_action,
-        image_url: creative.type !== 'VIDEO' ? creative.media_urls[0] : null,
-        video_url: creative.type === 'VIDEO' ? creative.media_urls[0] : null,
+        image_url: creative.type !== "VIDEO" ? creative.media_urls[0] : null,
+        video_url: creative.type === "VIDEO" ? creative.media_urls[0] : null,
       })
       .select()
       .single();
@@ -225,50 +242,58 @@ serve(async (req) => {
           creativeId: metaCreativeId,
         },
       }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (error: unknown) {
     console.error("Error in create-meta-ad:", error);
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
-      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 });
 
 function buildFinalUrl(baseUrl: string, params?: UrlParameters): string {
   if (!params) return baseUrl;
-  
+
   const parts: string[] = [];
-  if (params.utm_source) parts.push(`utm_source=${encodeURIComponent(params.utm_source)}`);
-  if (params.utm_medium) parts.push(`utm_medium=${encodeURIComponent(params.utm_medium)}`);
-  if (params.utm_campaign) parts.push(`utm_campaign=${encodeURIComponent(params.utm_campaign)}`);
-  if (params.utm_content) parts.push(`utm_content=${encodeURIComponent(params.utm_content)}`);
-  if (params.utm_term) parts.push(`utm_term=${encodeURIComponent(params.utm_term)}`);
+  if (params.utm_source)
+    parts.push(`utm_source=${encodeURIComponent(params.utm_source)}`);
+  if (params.utm_medium)
+    parts.push(`utm_medium=${encodeURIComponent(params.utm_medium)}`);
+  if (params.utm_campaign)
+    parts.push(`utm_campaign=${encodeURIComponent(params.utm_campaign)}`);
+  if (params.utm_content)
+    parts.push(`utm_content=${encodeURIComponent(params.utm_content)}`);
+  if (params.utm_term)
+    parts.push(`utm_term=${encodeURIComponent(params.utm_term)}`);
   if (params.customParams) parts.push(params.customParams);
 
   if (parts.length === 0) return baseUrl;
-  
-  const separator = baseUrl.includes('?') ? '&' : '?';
-  return `${baseUrl}${separator}${parts.join('&')}`;
+
+  const separator = baseUrl.includes("?") ? "&" : "?";
+  return `${baseUrl}${separator}${parts.join("&")}`;
 }
 
 async function createAdCreative(
   adAccountId: string,
   accessToken: string,
-  creative: CreativeRequest['creative'],
+  creative: CreativeRequest["creative"],
   pageId: string,
-  finalUrl: string
+  finalUrl: string,
 ): Promise<unknown> {
-  const ctaType = creative.call_to_action || 'LEARN_MORE';
+  const ctaType = creative.call_to_action || "LEARN_MORE";
 
-  if (creative.type === 'CAROUSEL') {
+  if (creative.type === "CAROUSEL") {
     // Carousel creative
     const childAttachments = creative.media_urls.map((url, index) => ({
       link: finalUrl,
       picture: url,
       name: creative.title || `Slide ${index + 1}`,
-      description: creative.description || '',
+      description: creative.description || "",
       call_to_action: { type: ctaType, value: { link: finalUrl } },
     }));
 
@@ -288,10 +313,10 @@ async function createAdCreative(
 
     const response = await fetch(
       `https://graph.facebook.com/v21.0/${adAccountId}/adcreatives`,
-      { method: "POST", body: creativeParams }
+      { method: "POST", body: creativeParams },
     );
     return response.json();
-  } else if (creative.type === 'VIDEO') {
+  } else if (creative.type === "VIDEO") {
     // Video creative
     const creativeParams = new URLSearchParams({
       name: `Creative - ${creative.title || Date.now()}`,
@@ -300,8 +325,8 @@ async function createAdCreative(
         video_data: {
           video_id: creative.media_urls[0], // Assuming video ID
           message: creative.body,
-          title: creative.title || '',
-          link_description: creative.description || '',
+          title: creative.title || "",
+          link_description: creative.description || "",
           call_to_action: { type: ctaType, value: { link: finalUrl } },
         },
       }),
@@ -310,7 +335,7 @@ async function createAdCreative(
 
     const response = await fetch(
       `https://graph.facebook.com/v21.0/${adAccountId}/adcreatives`,
-      { method: "POST", body: creativeParams }
+      { method: "POST", body: creativeParams },
     );
     return response.json();
   } else {
@@ -323,8 +348,8 @@ async function createAdCreative(
           link: finalUrl,
           message: creative.body,
           picture: creative.media_urls[0],
-          name: creative.title || '',
-          description: creative.description || '',
+          name: creative.title || "",
+          description: creative.description || "",
           call_to_action: { type: ctaType, value: { link: finalUrl } },
         },
       }),
@@ -333,7 +358,7 @@ async function createAdCreative(
 
     const response = await fetch(
       `https://graph.facebook.com/v21.0/${adAccountId}/adcreatives`,
-      { method: "POST", body: creativeParams }
+      { method: "POST", body: creativeParams },
     );
     return response.json();
   }

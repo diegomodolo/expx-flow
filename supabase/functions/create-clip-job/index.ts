@@ -2,7 +2,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
@@ -56,7 +57,7 @@ serve(async (req) => {
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
@@ -64,7 +65,8 @@ serve(async (req) => {
     let isYouTubeUrl = false;
     if (inputUrl) {
       const urlLower = inputUrl.toLowerCase();
-      isYouTubeUrl = urlLower.includes("youtube.com") || urlLower.includes("youtu.be");
+      isYouTubeUrl =
+        urlLower.includes("youtube.com") || urlLower.includes("youtu.be");
     }
 
     // Create job with all config
@@ -120,7 +122,7 @@ serve(async (req) => {
           {
             status: 500,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
+          },
         );
       }
 
@@ -138,9 +140,13 @@ serve(async (req) => {
         .eq("id", job.id);
 
       try {
-        const apiBase = "https://refreshing-beauty-production-f560.up.railway.app";
+        const apiBase =
+          "https://refreshing-beauty-production-f560.up.railway.app";
         const normalizedUrl = normalizeYouTubeUrl(videoUrl);
-        console.log("Downloading YouTube video via /stream proxy:", normalizedUrl);
+        console.log(
+          "Downloading YouTube video via /stream proxy:",
+          normalizedUrl,
+        );
 
         let videoBlob: Blob | null = null;
 
@@ -152,7 +158,9 @@ serve(async (req) => {
           const controller = new AbortController();
           const timeout = setTimeout(() => controller.abort(), 180000); // 3min timeout
 
-          const streamResponse = await fetch(streamUrl, { signal: controller.signal });
+          const streamResponse = await fetch(streamUrl, {
+            signal: controller.signal,
+          });
           clearTimeout(timeout);
 
           if (streamResponse.ok) {
@@ -160,7 +168,9 @@ serve(async (req) => {
             console.log(`/stream success: ${videoBlob.size} bytes`);
           } else {
             const errText = await streamResponse.text().catch(() => "");
-            console.log(`/stream failed (${streamResponse.status}): ${errText.substring(0, 300)}`);
+            console.log(
+              `/stream failed (${streamResponse.status}): ${errText.substring(0, 300)}`,
+            );
           }
         } catch (streamErr: unknown) {
           console.log(`/stream error: ${streamErr?.message || streamErr}`);
@@ -181,7 +191,10 @@ serve(async (req) => {
               if (directUrl && typeof directUrl === "string") {
                 console.log(`/info got URL: ${directUrl.substring(0, 100)}`);
                 const dlResp = await fetch(directUrl, {
-                  headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" },
+                  headers: {
+                    "User-Agent":
+                      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                  },
                 });
                 if (dlResp.ok) {
                   const blob = await dlResp.blob();
@@ -217,13 +230,18 @@ serve(async (req) => {
               if (duUrl && typeof duUrl === "string") {
                 console.log(`/direct-url got URL: ${duUrl.substring(0, 100)}`);
                 const dlResp = await fetch(duUrl, {
-                  headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" },
+                  headers: {
+                    "User-Agent":
+                      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                  },
                 });
                 if (dlResp.ok) {
                   const blob = await dlResp.blob();
                   if (blob.size >= 500_000) {
                     videoBlob = blob;
-                    console.log(`/direct-url download success: ${blob.size} bytes`);
+                    console.log(
+                      `/direct-url download success: ${blob.size} bytes`,
+                    );
                   }
                 }
               }
@@ -235,7 +253,7 @@ serve(async (req) => {
 
         if (!videoBlob || videoBlob.size < 500_000) {
           throw new Error(
-            `Não foi possível baixar o vídeo do YouTube. O servidor de download não conseguiu processar este vídeo. Tente outro vídeo ou faça upload manual do .mp4.`
+            `Não foi possível baixar o vídeo do YouTube. O servidor de download não conseguiu processar este vídeo. Tente outro vídeo ou faça upload manual do .mp4.`,
           );
         }
 
@@ -266,11 +284,15 @@ serve(async (req) => {
           .createSignedUrl(storagePath, 3600);
 
         if (signedError || !signedData?.signedUrl) {
-          throw new Error(`Falha ao gerar URL assinada: ${signedError?.message || "sem URL"}`);
+          throw new Error(
+            `Falha ao gerar URL assinada: ${signedError?.message || "sem URL"}`,
+          );
         }
 
         videoUrl = signedData.signedUrl;
-        console.log("Video uploaded to our storage, signed URL ready for Shotstack");
+        console.log(
+          "Video uploaded to our storage, signed URL ready for Shotstack",
+        );
 
         await supabase
           .from("clip_jobs")
@@ -291,7 +313,10 @@ serve(async (req) => {
           .eq("id", job.id);
         return new Response(
           JSON.stringify({ error: "Erro ao processar vídeo do YouTube" }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
         );
       }
     }
@@ -311,7 +336,7 @@ serve(async (req) => {
         {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
@@ -327,7 +352,10 @@ serve(async (req) => {
       callback: callbackUrl,
     };
 
-    console.log("Sending to Shotstack Ingest API:", JSON.stringify({ url: videoUrl?.substring(0, 100), callback: "..." }));
+    console.log(
+      "Sending to Shotstack Ingest API:",
+      JSON.stringify({ url: videoUrl?.substring(0, 100), callback: "..." }),
+    );
 
     const ingestResponse = await fetch(
       "https://api.shotstack.io/ingest/v1/sources",
@@ -338,14 +366,20 @@ serve(async (req) => {
           "x-api-key": shotstackApiKey,
         },
         body: JSON.stringify(ingestPayload),
-      }
+      },
     );
 
     const ingestData = await ingestResponse.json();
-    console.log("Shotstack Ingest response:", JSON.stringify(ingestData).substring(0, 500));
+    console.log(
+      "Shotstack Ingest response:",
+      JSON.stringify(ingestData).substring(0, 500),
+    );
 
     if (!ingestResponse.ok) {
-      const errorMsg = ingestData.message || ingestData.error || "Erro ao enviar para Shotstack";
+      const errorMsg =
+        ingestData.message ||
+        ingestData.error ||
+        "Erro ao enviar para Shotstack";
       await supabase
         .from("clip_jobs")
         .update({
@@ -380,7 +414,7 @@ serve(async (req) => {
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      },
     );
   }
 });
@@ -395,5 +429,3 @@ function normalizeYouTubeUrl(raw: string): string {
     return raw;
   }
 }
-
-

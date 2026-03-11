@@ -1,8 +1,10 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 Deno.serve(async (req) => {
@@ -21,7 +23,10 @@ Deno.serve(async (req) => {
     const token = url.searchParams.get("hub.verify_token");
     const challenge = url.searchParams.get("hub.challenge");
 
-    console.log("[instagram-messaging-webhook] GET verification:", { mode, token });
+    console.log("[instagram-messaging-webhook] GET verification:", {
+      mode,
+      token,
+    });
 
     if (mode === "subscribe") {
       // Look up the verify token in facebook_pages or a company config
@@ -33,11 +38,13 @@ Deno.serve(async (req) => {
         .single();
 
       // Fallback: check whatsapp_configs (same Meta app)
-      const { data: waConfig } = !igAccount ? await supabase
-        .from("whatsapp_configs")
-        .select("id")
-        .eq("meta_webhook_verify_token", token)
-        .single() : { data: null };
+      const { data: waConfig } = !igAccount
+        ? await supabase
+            .from("whatsapp_configs")
+            .select("id")
+            .eq("meta_webhook_verify_token", token)
+            .single()
+        : { data: null };
 
       if (igAccount || waConfig) {
         console.log("[instagram-messaging-webhook] Webhook verified!");
@@ -55,7 +62,10 @@ Deno.serve(async (req) => {
   if (req.method === "POST") {
     try {
       const body = await req.json();
-      console.log("[instagram-messaging-webhook] Received:", JSON.stringify(body).substring(0, 500));
+      console.log(
+        "[instagram-messaging-webhook] Received:",
+        JSON.stringify(body).substring(0, 500),
+      );
 
       if (body.object !== "instagram") {
         return new Response("Not an Instagram event", { status: 200 });
@@ -72,7 +82,9 @@ Deno.serve(async (req) => {
           .single();
 
         if (!igAccount) {
-          console.log(`[instagram-messaging-webhook] No account found for IG ID: ${igBusinessAccountId}`);
+          console.log(
+            `[instagram-messaging-webhook] No account found for IG ID: ${igBusinessAccountId}`,
+          );
           continue;
         }
 
@@ -92,43 +104,49 @@ Deno.serve(async (req) => {
             const messageText = message.text ?? null;
             const messageId = message.mid;
 
-            console.log(`[instagram-messaging-webhook] New DM from ${senderId}: ${messageText}`);
+            console.log(
+              `[instagram-messaging-webhook] New DM from ${senderId}: ${messageText}`,
+            );
 
             // Upsert conversation
             const { data: conversation, error: convError } = await supabase
               .from("instagram_conversations")
-              .upsert({
-                company_id: igAccount.company_id,
-                instagram_account_id: igAccount.id,
-                ig_user_id: senderId,
-                last_message_at: new Date(timestamp).toISOString(),
-                last_message_preview: messageText?.substring(0, 100),
-                unread_count: 1,
-                updated_at: new Date().toISOString(),
-              }, {
-                onConflict: "company_id,instagram_account_id,ig_user_id",
-                ignoreDuplicates: false,
-              })
+              .upsert(
+                {
+                  company_id: igAccount.company_id,
+                  instagram_account_id: igAccount.id,
+                  ig_user_id: senderId,
+                  last_message_at: new Date(timestamp).toISOString(),
+                  last_message_preview: messageText?.substring(0, 100),
+                  unread_count: 1,
+                  updated_at: new Date().toISOString(),
+                },
+                {
+                  onConflict: "company_id,instagram_account_id,ig_user_id",
+                  ignoreDuplicates: false,
+                },
+              )
               .select()
               .single();
 
             if (convError) {
-              console.error("[instagram-messaging-webhook] Conversation upsert error:", convError);
+              console.error(
+                "[instagram-messaging-webhook] Conversation upsert error:",
+                convError,
+              );
               continue;
             }
 
             // Insert message
-            await supabase
-              .from("instagram_messages")
-              .insert({
-                conversation_id: conversation.id,
-                company_id: igAccount.company_id,
-                direction: "incoming",
-                content: messageText,
-                message_type: "text",
-                external_id: messageId,
-                sent_at: new Date(timestamp).toISOString(),
-              });
+            await supabase.from("instagram_messages").insert({
+              conversation_id: conversation.id,
+              company_id: igAccount.company_id,
+              direction: "incoming",
+              content: messageText,
+              message_type: "text",
+              external_id: messageId,
+              sent_at: new Date(timestamp).toISOString(),
+            });
 
             // Check keyword triggers (only for text messages)
             if (messageText) {
@@ -168,9 +186,15 @@ async function checkAndFireKeywordTriggers(
     conversationId: string;
     igUserId: string;
     messageText: string;
-  }
+  },
 ) {
-  const { companyId, instagramAccountId, conversationId, igUserId, messageText } = params;
+  const {
+    companyId,
+    instagramAccountId,
+    conversationId,
+    igUserId,
+    messageText,
+  } = params;
 
   const { data: triggers } = await supabase
     .from("instagram_keyword_triggers")
@@ -191,32 +215,53 @@ async function checkAndFireKeywordTriggers(
     let matchedKeyword = "";
 
     if (matchMode === "exact") {
-      const exactMatch = keywords.find((kw) => normalizedText === kw.toLowerCase().trim());
-      if (exactMatch) { matched = true; matchedKeyword = exactMatch; }
+      const exactMatch = keywords.find(
+        (kw) => normalizedText === kw.toLowerCase().trim(),
+      );
+      if (exactMatch) {
+        matched = true;
+        matchedKeyword = exactMatch;
+      }
     } else if (matchMode === "all") {
-      matched = keywords.every((kw) => normalizedText.includes(kw.toLowerCase().trim()));
+      matched = keywords.every((kw) =>
+        normalizedText.includes(kw.toLowerCase().trim()),
+      );
       if (matched) matchedKeyword = keywords.join(", ");
     } else {
       // 'any' (default)
-      const anyMatch = keywords.find((kw) => normalizedText.includes(kw.toLowerCase().trim()));
-      if (anyMatch) { matched = true; matchedKeyword = anyMatch; }
+      const anyMatch = keywords.find((kw) =>
+        normalizedText.includes(kw.toLowerCase().trim()),
+      );
+      if (anyMatch) {
+        matched = true;
+        matchedKeyword = anyMatch;
+      }
     }
 
     if (matched) {
-      console.log(`[instagram-messaging-webhook] Trigger matched: "${trigger.trigger_name}" via keyword "${matchedKeyword}"`);
+      console.log(
+        `[instagram-messaging-webhook] Trigger matched: "${trigger.trigger_name}" via keyword "${matchedKeyword}"`,
+      );
 
       // Fire automation executor (fire-and-forget)
-      supabase.functions.invoke("instagram-automation-executor", {
-        body: {
-          conversationId,
-          triggerId: trigger.id,
-          flowId: trigger.flow_id,
-          companyId,
-          igUserId,
-          instagramAccountId,
-          matchedKeyword,
-        },
-      }).catch((err: unknown) => console.error("[instagram-messaging-webhook] Executor invoke error:", err));
+      supabase.functions
+        .invoke("instagram-automation-executor", {
+          body: {
+            conversationId,
+            triggerId: trigger.id,
+            flowId: trigger.flow_id,
+            companyId,
+            igUserId,
+            instagramAccountId,
+            matchedKeyword,
+          },
+        })
+        .catch((err: unknown) =>
+          console.error(
+            "[instagram-messaging-webhook] Executor invoke error:",
+            err,
+          ),
+        );
 
       // Only fire the first matching trigger per message
       break;

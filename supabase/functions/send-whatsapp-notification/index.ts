@@ -2,8 +2,10 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 interface NotificationPayload {
@@ -29,10 +31,10 @@ serve(async (req) => {
 
   try {
     const payload: NotificationPayload = await req.json();
-    const { 
-      company_id, 
-      recipient_phone, 
-      message, 
+    const {
+      company_id,
+      recipient_phone,
+      message,
       notification_type,
       related_entity_type,
       related_entity_id,
@@ -40,22 +42,28 @@ serve(async (req) => {
       reply_to_message_id,
     } = payload;
 
-    console.log("[send-whatsapp-notification] Sending notification for company:", company_id);
+    console.log(
+      "[send-whatsapp-notification] Sending notification for company:",
+      company_id,
+    );
     console.log("[send-whatsapp-notification] Type:", notification_type);
     console.log("[send-whatsapp-notification] Recipient:", recipient_phone);
-    console.log("[send-whatsapp-notification] Instance ID:", instance_id || "default");
+    console.log(
+      "[send-whatsapp-notification] Instance ID:",
+      instance_id || "default",
+    );
 
     if (!company_id || !recipient_phone || !message) {
       console.error("[send-whatsapp-notification] Missing required fields");
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: "company_id, recipient_phone e message são obrigatórios" 
+        JSON.stringify({
+          success: false,
+          error: "company_id, recipient_phone e message são obrigatórios",
         }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, "Content-Type": "application/json" } 
-        }
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -68,16 +76,19 @@ serve(async (req) => {
       .single();
 
     if (configError || !config) {
-      console.error("[send-whatsapp-notification] Config not found:", configError);
+      console.error(
+        "[send-whatsapp-notification] Config not found:",
+        configError,
+      );
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: "Configuração do WhatsApp não encontrada ou inativa" 
+        JSON.stringify({
+          success: false,
+          error: "Configuração do WhatsApp não encontrada ou inativa",
         }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, "Content-Type": "application/json" } 
-        }
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -91,19 +102,24 @@ serve(async (req) => {
     // Check quiet hours if preferences exist
     if (prefs?.quiet_hours_start && prefs?.quiet_hours_end) {
       const now = new Date();
-      const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-      
-      if (currentTime >= prefs.quiet_hours_start && currentTime <= prefs.quiet_hours_end) {
-        console.log("[send-whatsapp-notification] Quiet hours active, skipping");
+      const currentTime = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
+
+      if (
+        currentTime >= prefs.quiet_hours_start &&
+        currentTime <= prefs.quiet_hours_end
+      ) {
+        console.log(
+          "[send-whatsapp-notification] Quiet hours active, skipping",
+        );
         return new Response(
-          JSON.stringify({ 
-            success: false, 
-            error: "Horário de silêncio ativo" 
+          JSON.stringify({
+            success: false,
+            error: "Horário de silêncio ativo",
           }),
-          { 
-            status: 200, 
-            headers: { ...corsHeaders, "Content-Type": "application/json" } 
-          }
+          {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
         );
       }
     }
@@ -130,7 +146,10 @@ serve(async (req) => {
       .single();
 
     if (logError) {
-      console.error("[send-whatsapp-notification] Log creation error:", logError);
+      console.error(
+        "[send-whatsapp-notification] Log creation error:",
+        logError,
+      );
     }
 
     let apiResponse;
@@ -146,7 +165,7 @@ serve(async (req) => {
       // First, get the Meta instance for this company
       let metaPhoneNumberId = config.meta_phone_number_id;
       let metaAccessToken = config.meta_access_token;
-      
+
       if (instance_id) {
         // Get instance-specific Meta credentials
         const { data: instance, error: instanceError } = await supabase
@@ -155,19 +174,34 @@ serve(async (req) => {
           .eq("id", instance_id)
           .eq("is_active", true)
           .single();
-        
+
         if (instanceError || !instance) {
-          console.error("[send-whatsapp-notification] Meta instance not found:", instanceError);
+          console.error(
+            "[send-whatsapp-notification] Meta instance not found:",
+            instanceError,
+          );
           return new Response(
-            JSON.stringify({ success: false, error: "Instância Meta não encontrada ou inativa" }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            JSON.stringify({
+              success: false,
+              error: "Instância Meta não encontrada ou inativa",
+            }),
+            {
+              status: 400,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            },
           );
         }
 
         if (!instance.is_connected) {
           return new Response(
-            JSON.stringify({ success: false, error: "Instância Meta não está conectada" }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            JSON.stringify({
+              success: false,
+              error: "Instância Meta não está conectada",
+            }),
+            {
+              status: 400,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            },
           );
         }
 
@@ -180,8 +214,14 @@ serve(async (req) => {
 
       if (!metaPhoneNumberId || !metaAccessToken) {
         return new Response(
-          JSON.stringify({ success: false, error: "Credenciais Meta não configuradas" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({
+            success: false,
+            error: "Credenciais Meta não configuradas",
+          }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
         );
       }
 
@@ -196,20 +236,21 @@ serve(async (req) => {
         .limit(1)
         .maybeSingle();
 
-      const isWithin24Hours = lastIncoming 
-        ? (Date.now() - new Date(lastIncoming.timestamp).getTime()) < 24 * 60 * 60 * 1000
+      const isWithin24Hours = lastIncoming
+        ? Date.now() - new Date(lastIncoming.timestamp).getTime() <
+          24 * 60 * 60 * 1000
         : false;
 
-      console.log("[send-whatsapp-notification] Meta 24h window check:", { 
-        lastIncoming: lastIncoming?.timestamp, 
-        isWithin24Hours 
+      console.log("[send-whatsapp-notification] Meta 24h window check:", {
+        lastIncoming: lastIncoming?.timestamp,
+        isWithin24Hours,
       });
 
       // Build Meta API request
       const metaUrl = `https://graph.facebook.com/v18.0/${metaPhoneNumberId}/messages`;
-      
+
       let metaBody: unknown;
-      
+
       if (isWithin24Hours) {
         // Within 24h window - can send regular text message
         metaBody = {
@@ -217,29 +258,38 @@ serve(async (req) => {
           recipient_type: "individual",
           to: formattedPhone,
           type: "text",
-          text: { body: message }
+          text: { body: message },
         };
       } else {
         // Outside 24h window - need to use a template
         // For now, return an error indicating template is required
-        console.log("[send-whatsapp-notification] Outside 24h window, template required");
+        console.log(
+          "[send-whatsapp-notification] Outside 24h window, template required",
+        );
         return new Response(
-          JSON.stringify({ 
-            success: false, 
-            error: "Fora da janela de 24h. É necessário usar um template aprovado pela Meta.",
-            requires_template: true
+          JSON.stringify({
+            success: false,
+            error:
+              "Fora da janela de 24h. É necessário usar um template aprovado pela Meta.",
+            requires_template: true,
           }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
         );
       }
 
-      console.log("[send-whatsapp-notification] Calling Meta Graph API:", metaUrl);
+      console.log(
+        "[send-whatsapp-notification] Calling Meta Graph API:",
+        metaUrl,
+      );
 
       apiResponse = await fetch(metaUrl, {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${metaAccessToken}`,
-          "Content-Type": "application/json"
+          Authorization: `Bearer ${metaAccessToken}`,
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(metaBody),
       });
@@ -254,7 +304,7 @@ serve(async (req) => {
     } else if (provider === "uazapi") {
       // For UazapiGO v2, find the instance to use and get its token
       let instanceToken: string | null = null;
-      
+
       if (instance_id) {
         // Use specific instance
         const { data: instance, error: instanceError } = await supabase
@@ -263,19 +313,34 @@ serve(async (req) => {
           .eq("id", instance_id)
           .eq("is_active", true)
           .single();
-        
+
         if (instanceError || !instance) {
-          console.error("[send-whatsapp-notification] Instance not found:", instanceError);
+          console.error(
+            "[send-whatsapp-notification] Instance not found:",
+            instanceError,
+          );
           return new Response(
-            JSON.stringify({ success: false, error: "Instância não encontrada ou inativa" }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            JSON.stringify({
+              success: false,
+              error: "Instância não encontrada ou inativa",
+            }),
+            {
+              status: 400,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            },
           );
         }
 
         if (!instance.is_connected) {
           return new Response(
-            JSON.stringify({ success: false, error: "Instância não está conectada" }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            JSON.stringify({
+              success: false,
+              error: "Instância não está conectada",
+            }),
+            {
+              status: 400,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            },
           );
         }
 
@@ -292,23 +357,38 @@ serve(async (req) => {
           .order("created_at", { ascending: true })
           .limit(1)
           .single();
-        
+
         if (instanceError || !instance) {
-          console.error("[send-whatsapp-notification] No active connected instance found:", instanceError);
+          console.error(
+            "[send-whatsapp-notification] No active connected instance found:",
+            instanceError,
+          );
           return new Response(
-            JSON.stringify({ success: false, error: "Nenhuma instância ativa e conectada encontrada" }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            JSON.stringify({
+              success: false,
+              error: "Nenhuma instância ativa e conectada encontrada",
+            }),
+            {
+              status: 400,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            },
           );
         }
-        
+
         instanceToken = instance.uazapi_token;
         usedInstanceId = instance.id;
       }
 
       if (!instanceToken) {
         return new Response(
-          JSON.stringify({ success: false, error: "Token da instância não encontrado" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({
+            success: false,
+            error: "Token da instância não encontrado",
+          }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
         );
       }
 
@@ -322,18 +402,21 @@ serve(async (req) => {
         number: formattedPhone,
         text: message,
       };
-      
+
       // Add reply context if provided (UazapiGO uses replyid field)
       if (reply_to_message_id) {
         uazapiBody.replyid = reply_to_message_id;
-        console.log("[send-whatsapp-notification] Replying to message:", reply_to_message_id);
+        console.log(
+          "[send-whatsapp-notification] Replying to message:",
+          reply_to_message_id,
+        );
       }
 
       apiResponse = await fetch(uazapiUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "token": instanceToken,
+          token: instanceToken,
         },
         body: JSON.stringify(uazapiBody),
       });
@@ -349,18 +432,23 @@ serve(async (req) => {
         phone: formattedPhone,
         message: message,
       };
-      
+
       // Add reply context if provided (Z-API uses messageId field)
       if (reply_to_message_id) {
         zapiBody.messageId = reply_to_message_id;
-        console.log("[send-whatsapp-notification] Replying to message:", reply_to_message_id);
+        console.log(
+          "[send-whatsapp-notification] Replying to message:",
+          reply_to_message_id,
+        );
       }
 
       apiResponse = await fetch(zapiUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(config.client_token ? { "Client-Token": config.client_token } : {}),
+          ...(config.client_token
+            ? { "Client-Token": config.client_token }
+            : {}),
         },
         body: JSON.stringify(zapiBody),
       });
@@ -373,11 +461,17 @@ serve(async (req) => {
     if (logEntry) {
       const updateData: unknown = {
         status: apiResponse.ok ? "sent" : "failed",
-        zapi_message_id: apiData.messageId || apiData.zapiMessageId || apiData.id || apiData.key?.id || null,
+        zapi_message_id:
+          apiData.messageId ||
+          apiData.zapiMessageId ||
+          apiData.id ||
+          apiData.key?.id ||
+          null,
       };
 
       if (!apiResponse.ok) {
-        updateData.error_message = apiData.message || apiData.error || "Erro desconhecido";
+        updateData.error_message =
+          apiData.message || apiData.error || "Erro desconhecido";
       }
 
       await supabase
@@ -389,14 +483,14 @@ serve(async (req) => {
     if (!apiResponse.ok) {
       console.error("[send-whatsapp-notification] API error:", apiData);
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: apiData.message || apiData.error || "Erro ao enviar mensagem" 
+        JSON.stringify({
+          success: false,
+          error: apiData.message || apiData.error || "Erro ao enviar mensagem",
         }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, "Content-Type": "application/json" } 
-        }
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -405,26 +499,29 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message_id: apiData.messageId || apiData.zapiMessageId || apiData.id || apiData.key?.id,
+        message_id:
+          apiData.messageId ||
+          apiData.zapiMessageId ||
+          apiData.id ||
+          apiData.key?.id,
         log_id: logEntry?.id,
       }),
-      { 
-        status: 200, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
-      }
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
-
   } catch (error) {
     console.error("[send-whatsapp-notification] Error:", error);
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error.message || "Erro interno ao enviar notificação" 
+      JSON.stringify({
+        success: false,
+        error: error.message || "Erro interno ao enviar notificação",
       }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
-      }
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 });

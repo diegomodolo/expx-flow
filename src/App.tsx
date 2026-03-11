@@ -243,7 +243,14 @@ const App = () => {
                     path="/content-review"
                     element={<PublicContentReview />}
                   />
-                  <Route path="/super-admin" element={<SuperAdmin />} />
+                  <Route
+                    path="/super-admin"
+                    element={
+                      <ProtectedRoute>
+                        <SuperAdmin />
+                      </ProtectedRoute>
+                    }
+                  />
 
                   {/* Protected routes */}
                   <Route
