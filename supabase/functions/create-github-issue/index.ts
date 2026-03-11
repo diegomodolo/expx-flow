@@ -113,8 +113,8 @@ const handler = async (req: Request): Promise<Response> => {
       .single();
 
     if (dbError) {
-      console.error("Supabase insert error:", dbError);
-      throw new Error("Issue criada no GitHub mas erro ao salvar localmente");
+      console.error("Supabase insert error:", JSON.stringify(dbError));
+      throw new Error(`Issue criada no GitHub mas erro ao salvar: ${dbError.message} (code: ${dbError.code}, details: ${dbError.details})`);
     }
 
     return new Response(

@@ -101,7 +101,7 @@ export function NewReportDialog({ open, onOpenChange }: NewReportDialogProps) {
             ...(values.suspected_file && { suspected_file: values.suspected_file }),
           },
           user_name: user.user_metadata?.full_name || user.email || "Usuário",
-          company_id: activeCompany.id,
+          company_id: activeCompany.company_id,
           user_id: user.id,
         },
         {
@@ -129,7 +129,7 @@ export function NewReportDialog({ open, onOpenChange }: NewReportDialogProps) {
             ...(values.area && { area: values.area }),
           },
           user_name: user.user_metadata?.full_name || user.email || "Usuário",
-          company_id: activeCompany.id,
+          company_id: activeCompany.company_id,
           user_id: user.id,
         },
         {

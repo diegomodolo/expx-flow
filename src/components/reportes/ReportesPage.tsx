@@ -13,7 +13,7 @@ type TabFilter = "todos" | "bug" | "feature";
 
 export function ReportesPage() {
   const { activeCompany } = useCompany();
-  const { data: reports = [], isLoading } = useUserReports(activeCompany?.id);
+  const { data: reports = [], isLoading } = useUserReports(activeCompany?.company_id);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabFilter>("todos");
 
@@ -58,7 +58,7 @@ export function ReportesPage() {
       ) : (
         <ReportList
           reports={filteredReports}
-          companyId={activeCompany?.id || ""}
+          companyId={activeCompany?.company_id || ""}
         />
       )}
 
