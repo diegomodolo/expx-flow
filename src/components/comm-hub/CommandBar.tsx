@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useCompany } from '@/contexts/CompanyContext';
+import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useCompany } from "@/contexts/CompanyContext";
 import {
   CommandDialog,
   CommandInput,
@@ -11,7 +11,7 @@ import {
   CommandGroup,
   CommandItem,
   CommandSeparator,
-} from '@/components/ui/command';
+} from "@/components/ui/command";
 import {
   Search,
   Hash,
@@ -23,8 +23,8 @@ import {
   Zap,
   MessageCircle,
   Terminal,
-} from 'lucide-react';
-import { toast } from 'sonner';
+} from "lucide-react";
+import { toast } from "sonner";
 
 interface CommandBarProps {
   channels: Array<{ id: string; name: string; channel_type: string }>;
@@ -32,7 +32,11 @@ interface CommandBarProps {
   onStatusRequest?: () => void;
 }
 
-export function CommandBar({ channels, onSelectChannel, onStatusRequest }: CommandBarProps) {
+export function CommandBar({
+  channels,
+  onSelectChannel,
+  onStatusRequest,
+}: CommandBarProps) {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
   const { activeCompany } = useCompany();
@@ -41,28 +45,34 @@ export function CommandBar({ channels, onSelectChannel, onStatusRequest }: Comma
   // Global keyboard shortcut
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
-      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
-        setOpen(prev => !prev);
+        setOpen((prev) => !prev);
       }
     };
-    document.addEventListener('keydown', down);
-    return () => document.removeEventListener('keydown', down);
+    document.addEventListener("keydown", down);
+    return () => document.removeEventListener("keydown", down);
   }, []);
 
   // Fetch tasks for search
   const { data: tasks = [] } = useQuery({
-    queryKey: ['command-tasks', companyId],
+    queryKey: ["command-tasks", companyId],
     queryFn: async () => {
       if (!companyId) return [];
-      const { data } = await (supabase
-        .from('tasks')
-        .select('id, title, status')
-        .eq('company_id', companyId) as unknown)
-        .in('status', ['todo', 'progress', 'review'])
-        .order('updated_at', { ascending: false })
+      const { data } = await (
+        supabase
+          .from("tasks")
+          .select("id, title, status")
+          .eq("company_id", companyId) as unknown
+      )
+        .in("status", ["todo", "progress", "review"])
+        .order("updated_at", { ascending: false })
         .limit(15);
-      return (data || []) as Array<{ id: string; title: string; status: string }>;
+      return (data || []) as Array<{
+        id: string;
+        title: string;
+        status: string;
+      }>;
     },
     enabled: !!companyId && open,
     staleTime: 30_000,
@@ -70,14 +80,16 @@ export function CommandBar({ channels, onSelectChannel, onStatusRequest }: Comma
 
   // Fetch team members
   const { data: team = [] } = useQuery({
-    queryKey: ['command-team', companyId],
+    queryKey: ["command-team", companyId],
     queryFn: async () => {
       if (!companyId) return [];
-      const { data } = await (supabase
-        .from('employees')
-        .select('id, name, role')
-        .eq('company_id', companyId) as unknown)
-        .eq('is_active', true)
+      const { data } = await (
+        supabase
+          .from("employees")
+          .select("id, name, role")
+          .eq("company_id", companyId) as unknown
+      )
+        .eq("is_active", true)
         .limit(10);
       return (data || []) as Array<{ id: string; name: string; role: string }>;
     },
@@ -85,31 +97,37 @@ export function CommandBar({ channels, onSelectChannel, onStatusRequest }: Comma
     staleTime: 60_000,
   });
 
-  const handleSelect = useCallback((value: string) => {
-    setOpen(false);
+  const handleSelect = useCallback(
+    (value: string) => {
+      setOpen(false);
 
-    if (value.startsWith('channel:')) {
-      onSelectChannel(value.replace('channel:', ''));
-    } else if (value.startsWith('nav:')) {
-      navigate(value.replace('nav:', ''));
-    } else if (value === 'cmd:status') {
-      onStatusRequest?.();
-    } else if (value === 'cmd:tarefas') {
-      navigate('/tarefas');
-    } else if (value === 'cmd:clientes') {
-      navigate('/clientes');
-    } else if (value === 'cmd:relatorios') {
-      navigate('/relatorios');
-    } else if (value === 'cmd:config') {
-      navigate('/configuracoes');
-    }
-  }, [onSelectChannel, navigate, onStatusRequest]);
+      if (value.startsWith("channel:")) {
+        onSelectChannel(value.replace("channel:", ""));
+      } else if (value.startsWith("nav:")) {
+        navigate(value.replace("nav:", ""));
+      } else if (value === "cmd:status") {
+        onStatusRequest?.();
+      } else if (value === "cmd:tarefas") {
+        navigate("/tarefas");
+      } else if (value === "cmd:clientes") {
+        navigate("/clientes");
+      } else if (value === "cmd:relatorios") {
+        navigate("/relatorios");
+      } else if (value === "cmd:config") {
+        navigate("/configuracoes");
+      }
+    },
+    [onSelectChannel, navigate, onStatusRequest],
+  );
 
   const channelIcon = (type: string) => {
     switch (type) {
-      case 'squad': return Users;
-      case 'client': return Building2;
-      default: return MessageCircle;
+      case "squad":
+        return Users;
+      case "client":
+        return Building2;
+      default:
+        return MessageCircle;
     }
   };
 
@@ -127,37 +145,66 @@ export function CommandBar({ channels, onSelectChannel, onStatusRequest }: Comma
         </kbd>
       </button>
 
-      <CommandDialog open={open} onOpenChange={setOpen}>
+      <CommandDialog
+        open={open}
+        onOpenChange={setOpen}
+        title="Central de Comunicacao"
+      >
         <CommandInput placeholder="Buscar canais, tarefas, pessoas ou digitar /comando..." />
         <CommandList>
           <CommandEmpty>Nenhum resultado encontrado.</CommandEmpty>
 
           {/* Slash Commands */}
           <CommandGroup heading="Comandos Rápidos">
-            <CommandItem value="cmd:status" onSelect={() => handleSelect('cmd:status')}>
+            <CommandItem
+              value="cmd:status"
+              onSelect={() => handleSelect("cmd:status")}
+            >
               <Zap className="mr-2 h-4 w-4 text-primary" />
               <span>/status</span>
-              <span className="ml-auto text-xs text-muted-foreground">Resumo do dia</span>
+              <span className="ml-auto text-xs text-muted-foreground">
+                Resumo do dia
+              </span>
             </CommandItem>
-            <CommandItem value="cmd:tarefas" onSelect={() => handleSelect('cmd:tarefas')}>
+            <CommandItem
+              value="cmd:tarefas"
+              onSelect={() => handleSelect("cmd:tarefas")}
+            >
               <CheckSquare className="mr-2 h-4 w-4 text-primary" />
               <span>/tarefas</span>
-              <span className="ml-auto text-xs text-muted-foreground">Ir para tarefas</span>
+              <span className="ml-auto text-xs text-muted-foreground">
+                Ir para tarefas
+              </span>
             </CommandItem>
-            <CommandItem value="cmd:clientes" onSelect={() => handleSelect('cmd:clientes')}>
+            <CommandItem
+              value="cmd:clientes"
+              onSelect={() => handleSelect("cmd:clientes")}
+            >
               <Building2 className="mr-2 h-4 w-4 text-primary" />
               <span>/clientes</span>
-              <span className="ml-auto text-xs text-muted-foreground">Ir para clientes</span>
+              <span className="ml-auto text-xs text-muted-foreground">
+                Ir para clientes
+              </span>
             </CommandItem>
-            <CommandItem value="cmd:relatorios" onSelect={() => handleSelect('cmd:relatorios')}>
+            <CommandItem
+              value="cmd:relatorios"
+              onSelect={() => handleSelect("cmd:relatorios")}
+            >
               <BarChart3 className="mr-2 h-4 w-4 text-primary" />
               <span>/relatórios</span>
-              <span className="ml-auto text-xs text-muted-foreground">Ir para relatórios</span>
+              <span className="ml-auto text-xs text-muted-foreground">
+                Ir para relatórios
+              </span>
             </CommandItem>
-            <CommandItem value="cmd:config" onSelect={() => handleSelect('cmd:config')}>
+            <CommandItem
+              value="cmd:config"
+              onSelect={() => handleSelect("cmd:config")}
+            >
               <Settings className="mr-2 h-4 w-4 text-primary" />
               <span>/config</span>
-              <span className="ml-auto text-xs text-muted-foreground">Configurações</span>
+              <span className="ml-auto text-xs text-muted-foreground">
+                Configurações
+              </span>
             </CommandItem>
           </CommandGroup>
 
@@ -166,7 +213,7 @@ export function CommandBar({ channels, onSelectChannel, onStatusRequest }: Comma
           {/* Channels */}
           {channels.length > 0 && (
             <CommandGroup heading="Canais">
-              {channels.map(ch => {
+              {channels.map((ch) => {
                 const Icon = channelIcon(ch.channel_type);
                 return (
                   <CommandItem
@@ -176,7 +223,9 @@ export function CommandBar({ channels, onSelectChannel, onStatusRequest }: Comma
                   >
                     <Icon className="mr-2 h-4 w-4" />
                     <span>{ch.name}</span>
-                    <span className="ml-auto text-xs text-muted-foreground capitalize">{ch.channel_type}</span>
+                    <span className="ml-auto text-xs text-muted-foreground capitalize">
+                      {ch.channel_type}
+                    </span>
                   </CommandItem>
                 );
               })}
@@ -188,18 +237,20 @@ export function CommandBar({ channels, onSelectChannel, onStatusRequest }: Comma
           {/* Tasks */}
           {tasks.length > 0 && (
             <CommandGroup heading="Tarefas Ativas">
-              {tasks.map(task => (
+              {tasks.map((task) => (
                 <CommandItem
                   key={task.id}
                   value={`task:${task.id} ${task.title}`}
                   onSelect={() => {
                     setOpen(false);
-                    navigate('/tarefas');
+                    navigate("/tarefas");
                   }}
                 >
                   <CheckSquare className="mr-2 h-4 w-4" />
                   <span className="truncate">{task.title}</span>
-                  <span className="ml-auto text-xs text-muted-foreground">{task.status}</span>
+                  <span className="ml-auto text-xs text-muted-foreground">
+                    {task.status}
+                  </span>
                 </CommandItem>
               ))}
             </CommandGroup>
@@ -210,18 +261,20 @@ export function CommandBar({ channels, onSelectChannel, onStatusRequest }: Comma
           {/* Team */}
           {team.length > 0 && (
             <CommandGroup heading="Equipe">
-              {team.map(member => (
+              {team.map((member) => (
                 <CommandItem
                   key={member.id}
                   value={`team:${member.id} ${member.name}`}
                   onSelect={() => {
                     setOpen(false);
-                    navigate('/equipe');
+                    navigate("/equipe");
                   }}
                 >
                   <Users className="mr-2 h-4 w-4" />
                   <span>{member.name}</span>
-                  <span className="ml-auto text-xs text-muted-foreground">{member.role}</span>
+                  <span className="ml-auto text-xs text-muted-foreground">
+                    {member.role}
+                  </span>
                 </CommandItem>
               ))}
             </CommandGroup>
