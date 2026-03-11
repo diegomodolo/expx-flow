@@ -162,6 +162,7 @@ import MapaMentalEditor from "./pages/MapaMentalEditor";
 import Reunioes from "./pages/Reunioes";
 import YouTubeContentLabListPage from "./pages/YouTubeContentLabListPage";
 import YouTubeContentLabPage from "./pages/YouTubeContentLabPage";
+import Reportes from "./pages/Reportes";
 import { AuthProvider } from "@/hooks/useAuth";
 import { CompanyProvider } from "@/contexts/CompanyContext";
 import { CRMAuthProvider } from "@/contexts/CRMAuthContext";
@@ -704,6 +705,11 @@ const App = () => {
                    <ProtectedRoute>
                      <AlertasDoSistema />
                    </ProtectedRoute>
+                 } />
+                 <Route path="/reportes" element={
+                   <PermissionProtectedRoute requiredPermission="reportes">
+                     <Reportes />
+                   </PermissionProtectedRoute>
                  } />
                  <Route path="/workspace" element={
                     <ProtectedRoute>
