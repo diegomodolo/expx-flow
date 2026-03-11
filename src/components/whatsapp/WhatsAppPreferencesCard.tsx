@@ -19,7 +19,7 @@ interface WhatsAppPreferencesCardProps {
     quiet_hours_start: string | null;
     quiet_hours_end: string | null;
   } | null;
-  onSave: (data: any) => void;
+  onSave: (data: unknown) => void;
   isSaving: boolean;
   isConnected: boolean;
 }

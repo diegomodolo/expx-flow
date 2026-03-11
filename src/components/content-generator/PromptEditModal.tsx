@@ -39,7 +39,7 @@ const defaultPrompts: Record<string, string> = {
 interface PromptEditModalProps {
   isOpen: boolean;
   onClose: () => void;
-  contentType: any;
+  contentType: unknown;
 }
 
 export function PromptEditModal({ isOpen, onClose, contentType }: PromptEditModalProps) {

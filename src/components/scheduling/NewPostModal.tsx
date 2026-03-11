@@ -107,7 +107,7 @@ export const NewPostModal: React.FC<NewPostModalProps> = ({
         setScheduledDate(new Date(post.scheduled_at));
         setScheduledTime(format(new Date(post.scheduled_at), 'HH:mm'));
         setThumbnailUrl(post.thumbnail_url || null);
-        setCollaborators((post as any).collaborators || []);
+        setCollaborators((post as unknown).collaborators || []);
       } else {
         // New post mode - use initial values if provided (from creative generator)
         setContentType('image');

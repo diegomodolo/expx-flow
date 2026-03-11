@@ -61,7 +61,7 @@ export function useAutomationSettings() {
       } else {
         setSettings(data);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error fetching automation settings:", error);
       toast({
         variant: "destructive",
@@ -119,7 +119,7 @@ export function useAutomationSettings() {
         title: "Configurações atualizadas",
         description: "As configurações foram salvas com sucesso",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error updating automation settings:", error);
       toast({
         variant: "destructive",

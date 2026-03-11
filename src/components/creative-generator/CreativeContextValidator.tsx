@@ -103,7 +103,7 @@ export function CreativeContextValidator({
           description: "Os campos foram preenchidos automaticamente com base no tema escolhido.",
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error generating context:', error);
       toast({
         title: "Erro ao gerar contexto",

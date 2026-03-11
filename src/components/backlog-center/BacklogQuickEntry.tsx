@@ -10,7 +10,7 @@ import { useTaskCategorias } from "@/hooks/useTaskCategorias";
 import { cn } from "@/lib/utils";
 
 interface Props {
-  clients: any[];
+  clients: unknown[];
   companyId: string | undefined;
 }
 
@@ -33,10 +33,10 @@ const PRIORITY_SUGGESTIONS = [
 function getActiveToken(text: string, cursorPos: number): { type: TokenType; search: string; start: number } {
   const before = text.slice(0, cursorPos);
 
-  let lastAt = before.lastIndexOf("@");
-  let lastHash = before.lastIndexOf("#");
-  let lastSlash = before.lastIndexOf("/");
-  let lastBang = before.lastIndexOf("!");
+  const lastAt = before.lastIndexOf("@");
+  const lastHash = before.lastIndexOf("#");
+  const lastSlash = before.lastIndexOf("/");
+  const lastBang = before.lastIndexOf("!");
 
   const candidates = [
     { type: "@" as TokenType, pos: lastAt },
@@ -58,7 +58,7 @@ function getActiveToken(text: string, cursorPos: number): { type: TokenType; sea
   return { type: winner.type, search: searchText, start: winner.pos };
 }
 
-function parseQuickEntry(input: string, clients: any[]) {
+function parseQuickEntry(input: string, clients: unknown[]) {
   const clientMatch = input.match(/@([\w\sÀ-ú]+?)(?=\s[#/!]|$)/i);
   const categoryMatch = input.match(/#([\w\sÀ-ú]+?)(?=\s[@/!]|$)/i);
   const minutesMatch = input.match(/\/(\d+)\s*min/i);
@@ -67,7 +67,7 @@ function parseQuickEntry(input: string, clients: any[]) {
   let clientId: string | null = null;
   if (clientMatch) {
     const search = clientMatch[1].toLowerCase().trim();
-    const found = clients.find((c: any) => c.name.toLowerCase().includes(search));
+    const found = clients.find((c: unknown) => c.name.toLowerCase().includes(search));
     if (found) clientId = found.id;
   }
 
@@ -78,7 +78,7 @@ function parseQuickEntry(input: string, clients: any[]) {
     else if (p === "baixa" || p === "low") priority = "low";
   }
 
-  let title = input
+  const title = input
     .replace(/@[\w\sÀ-ú]+/i, "")
     .replace(/#[\w\sÀ-ú]+/i, "")
     .replace(/\/\d+\s*min/i, "")
@@ -124,8 +124,8 @@ export function BacklogQuickEntry({ clients, companyId }: Props) {
 
     if (activeToken.type === "@") {
       return clients
-        .filter((c: any) => c.name.toLowerCase().includes(q))
-        .map((c: any) => ({ id: c.id, label: c.name, icon: "user" as const }));
+        .filter((c: unknown) => c.name.toLowerCase().includes(q))
+        .map((c: unknown) => ({ id: c.id, label: c.name, icon: "user" as const }));
     }
 
     if (activeToken.type === "#") {
@@ -197,10 +197,10 @@ export function BacklogQuickEntry({ clients, companyId }: Props) {
       const insertPayload = {
         title: parsed.title,
         description: "",
-        status: "todo" as any,
-        priority: parsed.priority as any,
+        status: "todo" as unknown,
+        priority: parsed.priority as unknown,
         task_type: "Tarefa",
-        task_state: "backlog" as any,
+        task_state: "backlog" as unknown,
         ai_estimated_minutes: parsed.minutes,
         responsible_name: user.user_metadata?.full_name || "Admin",
         user_id: user.id,
@@ -221,7 +221,7 @@ export function BacklogQuickEntry({ clients, companyId }: Props) {
       if (error) throw error;
 
       if (parsed.clientId && task) {
-        await supabase.from("task_clients" as any).insert({
+        await supabase.from("task_clients" as unknown).insert({
           task_id: task.id,
           client_id: parsed.clientId,
           company_id: companyId,
@@ -233,7 +233,7 @@ export function BacklogQuickEntry({ clients, companyId }: Props) {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       setValue("");
       toast({ title: "Tarefa criada", description: `"${parsed.title}" adicionada ao backlog.` });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Quick entry error:", err?.message || err?.code || err);
       toast({ title: "Erro", description: `Falha ao criar tarefa: ${err?.message || 'erro desconhecido'}`, variant: "destructive" });
     } finally {
@@ -336,14 +336,14 @@ export function BacklogQuickEntry({ clients, companyId }: Props) {
       <div className="relative flex items-start bg-muted/50 border rounded-2xl px-4 py-2 focus-within:ring-2 focus-within:ring-ring focus-within:border-transparent transition-all">
         <Zap className="w-4 h-4 text-muted-foreground mr-3 flex-shrink-0 mt-1.5" />
         <textarea
-          ref={inputRef as any}
+          ref={inputRef as unknown}
           value={value}
           onChange={(e) => {
             const newVal = e.target.value;
             const pos = e.target.selectionStart ?? newVal.length;
             setValue(newVal);
             requestAnimationFrame(() => {
-              const el = inputRef.current as any;
+              const el = inputRef.current as unknown;
               if (el) setCursorPos(el.selectionStart ?? pos);
             });
           }}

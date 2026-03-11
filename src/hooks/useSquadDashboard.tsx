@@ -88,8 +88,8 @@ export function useSquadDashboard() {
       );
 
       const completionDays = completed
-        .filter((t) => t.created_at && (t as any).completed_at)
-        .map((t) => differenceInDays(parseISO((t as any).completed_at), parseISO(t.created_at!)))
+        .filter((t) => t.created_at && (t as unknown).completed_at)
+        .map((t) => differenceInDays(parseISO((t as unknown).completed_at), parseISO(t.created_at!)))
         .filter((d) => d >= 0);
 
       const avgDays = completionDays.length > 0
@@ -97,11 +97,11 @@ export function useSquadDashboard() {
         : 0;
 
       const last7 = teamTasks.filter(
-        (t) => t.status === "done" && (t as any).completed_at && isAfter(parseISO((t as any).completed_at), sevenDaysAgo)
+        (t) => t.status === "done" && (t as unknown).completed_at && isAfter(parseISO((t as unknown).completed_at), sevenDaysAgo)
       ).length;
 
       const last30 = teamTasks.filter(
-        (t) => t.status === "done" && (t as any).completed_at && isAfter(parseISO((t as any).completed_at), thirtyDaysAgo)
+        (t) => t.status === "done" && (t as unknown).completed_at && isAfter(parseISO((t as unknown).completed_at), thirtyDaysAgo)
       ).length;
 
       const completionRate = teamTasks.length > 0
@@ -130,16 +130,16 @@ export function useSquadDashboard() {
         );
 
         const mCompletionDays = mCompleted
-          .filter((t) => t.created_at && (t as any).completed_at)
-          .map((t) => differenceInDays(parseISO((t as any).completed_at), parseISO(t.created_at!)))
+          .filter((t) => t.created_at && (t as unknown).completed_at)
+          .map((t) => differenceInDays(parseISO((t as unknown).completed_at), parseISO(t.created_at!)))
           .filter((d) => d >= 0);
 
         const mLast7 = mCompleted.filter(
-          (t) => (t as any).completed_at && isAfter(parseISO((t as any).completed_at), sevenDaysAgo)
+          (t) => (t as unknown).completed_at && isAfter(parseISO((t as unknown).completed_at), sevenDaysAgo)
         ).length;
 
         const mLast30 = mCompleted.filter(
-          (t) => (t as any).completed_at && isAfter(parseISO((t as any).completed_at), thirtyDaysAgo)
+          (t) => (t as unknown).completed_at && isAfter(parseISO((t as unknown).completed_at), thirtyDaysAgo)
         ).length;
 
         return {
@@ -198,16 +198,16 @@ export function useSquadDashboard() {
     ).length;
 
     const completionDays = tasks
-      .filter((t) => t.status === "done" && t.created_at && (t as any).completed_at)
-      .map((t) => differenceInDays(parseISO((t as any).completed_at), parseISO(t.created_at!)))
+      .filter((t) => t.status === "done" && t.created_at && (t as unknown).completed_at)
+      .map((t) => differenceInDays(parseISO((t as unknown).completed_at), parseISO(t.created_at!)))
       .filter((d) => d >= 0);
 
     const last7 = tasks.filter(
-      (t) => t.status === "done" && (t as any).completed_at && isAfter(parseISO((t as any).completed_at), sevenDaysAgo)
+      (t) => t.status === "done" && (t as unknown).completed_at && isAfter(parseISO((t as unknown).completed_at), sevenDaysAgo)
     ).length;
 
     const last30 = tasks.filter(
-      (t) => t.status === "done" && (t as any).completed_at && isAfter(parseISO((t as any).completed_at), thirtyDaysAgo)
+      (t) => t.status === "done" && (t as unknown).completed_at && isAfter(parseISO((t as unknown).completed_at), thirtyDaysAgo)
     ).length;
 
     const sorted = [...squadsPerformance].sort((a, b) => b.productivityScore - a.productivityScore);

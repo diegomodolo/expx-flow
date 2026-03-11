@@ -46,7 +46,7 @@ export default function AdminLeadReports() {
   const [endDate, setEndDate] = useState<Date>();
   const [evidenceModalUrl, setEvidenceModalUrl] = useState<string | null>(null);
   const [evidenceFileName, setEvidenceFileName] = useState<string>('evidencia.jpg');
-  const [selectedReportData, setSelectedReportData] = useState<any>(null);
+  const [selectedReportData, setSelectedReportData] = useState<unknown>(null);
 
   const { reports, loading, getReasonLabel, exportReports } = useLeadDisqualificationReports(filters);
   const { clients } = useClients();
@@ -221,7 +221,7 @@ export default function AdminLeadReports() {
     return true;
   });
 
-  const handleViewEvidence = async (evidenceUrl: string, report: any) => {
+  const handleViewEvidence = async (evidenceUrl: string, report: unknown) => {
     try {
       // Verificar se o usuário está autenticado
       const { data: { session } } = await supabase.auth.getSession();

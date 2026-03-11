@@ -209,7 +209,7 @@ export default function RelatorioOrcamentoMalDistribuido() {
     setBudgetAnalysis(analysis.sort((a, b) => b.severity_score - a.severity_score));
   };
 
-  const simulateCurrentDistribution = (campaigns: any[]) => {
+  const simulateCurrentDistribution = (campaigns: unknown[]) => {
     // Simular distribuição baseada em características das campanhas
     const totalSpend = campaigns.reduce((sum, c) => sum + (c.spend || 0), 0);
     
@@ -222,7 +222,7 @@ export default function RelatorioOrcamentoMalDistribuido() {
     };
   };
 
-  const generateRebalanceSuggestions = (imbalances: any[], totalBudget: number): string[] => {
+  const generateRebalanceSuggestions = (imbalances: unknown[], totalBudget: number): string[] => {
     const suggestions: string[] = [];
     
     const excesses = imbalances.filter(i => i.status === 'excess');
@@ -529,7 +529,7 @@ export default function RelatorioOrcamentoMalDistribuido() {
                           <CartesianGrid strokeDasharray="3 3" />
                           <XAxis dataKey="stage" />
                           <YAxis />
-                          <Tooltip formatter={(value: any) => [`${value.toFixed(1)}%`, '']} />
+                          <Tooltip formatter={(value: unknown) => [`${value.toFixed(1)}%`, '']} />
                           <Bar dataKey="atual" fill="#ff7c7c" name="Atual" />
                           <Bar dataKey="recomendado" fill="#82ca9d" name="Recomendado" />
                         </BarChart>

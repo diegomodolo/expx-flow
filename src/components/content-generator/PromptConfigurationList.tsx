@@ -10,7 +10,7 @@ import { PromptEditModal } from "./PromptEditModal";
 export function PromptConfigurationList() {
   const { getAllPromptsWithStatus, loading } = useContentPrompts();
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedContent, setSelectedContent] = useState<any>(null);
+  const [selectedContent, setSelectedContent] = useState<unknown>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const allPrompts = getAllPromptsWithStatus();
@@ -28,7 +28,7 @@ export function PromptConfigurationList() {
     return acc;
   }, {} as Record<string, typeof allPrompts>);
 
-  const handleEditPrompt = (content: any) => {
+  const handleEditPrompt = (content: unknown) => {
     setSelectedContent(content);
     setIsModalOpen(true);
   };

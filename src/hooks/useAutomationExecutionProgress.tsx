@@ -12,12 +12,12 @@ interface ExecutionProgress {
   rule_id: string | null;
   rule_name: string;
   action_taken: string | null;
-  action_details: any;
+  action_details: unknown;
   error_message: string | null;
   created_at: string;
   facebook_id: string;
   message: string;
-  metadata: any;
+  metadata: unknown;
   status: string;
 }
 

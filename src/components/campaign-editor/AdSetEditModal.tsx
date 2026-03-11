@@ -98,7 +98,7 @@ export function AdSetEditModal({
   });
 
   // Parse targeting from node
-  const parseTargeting = useCallback((targeting: any) => {
+  const parseTargeting = useCallback((targeting: unknown) => {
     if (!targeting) return null;
     
     try {
@@ -132,9 +132,9 @@ export function AdSetEditModal({
         // Parse interests
         if (targeting.flexible_spec) {
           const parsedInterests: Interest[] = [];
-          targeting.flexible_spec.forEach((spec: any) => {
+          targeting.flexible_spec.forEach((spec: unknown) => {
             if (spec.interests) {
-              spec.interests.forEach((interest: any) => {
+              spec.interests.forEach((interest: unknown) => {
                 parsedInterests.push({
                   id: interest.id,
                   name: interest.name,
@@ -149,13 +149,13 @@ export function AdSetEditModal({
         
         // Parse custom audiences (these are stored as IDs)
         if (targeting.custom_audiences) {
-          setIncludedAudiences(targeting.custom_audiences.map((a: any) => a.id || a));
+          setIncludedAudiences(targeting.custom_audiences.map((a: unknown) => a.id || a));
         } else {
           setIncludedAudiences([]);
         }
         
         if (targeting.excluded_custom_audiences) {
-          setExcludedAudiences(targeting.excluded_custom_audiences.map((a: any) => a.id || a));
+          setExcludedAudiences(targeting.excluded_custom_audiences.map((a: unknown) => a.id || a));
         } else {
           setExcludedAudiences([]);
         }
@@ -169,7 +169,7 @@ export function AdSetEditModal({
       }
       
       // Initialize pixel and conversion event from synced data
-      const nodeAny = node as any;
+      const nodeAny = node as unknown;
       setPixelId(nodeAny.pixelId || '');
       setConversionEvent(nodeAny.conversionEvent || '');
       setHasChanges(false);
@@ -196,7 +196,7 @@ export function AdSetEditModal({
 
     setIsSaving(true);
     const platform = node.platform as 'meta' | 'google';
-    const facebookId = (node as any).facebookId;
+    const facebookId = (node as unknown).facebookId;
 
     try {
       // For Meta, update targeting via edge function
@@ -261,7 +261,7 @@ export function AdSetEditModal({
       setHasChanges(false);
       onSuccess?.();
       onClose();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error saving changes:', error);
       toast.error(error.message || 'Erro ao salvar alterações');
     } finally {

@@ -57,8 +57,8 @@ export default function Reunioes() {
       if (searchTerm) {
         const term = searchTerm.toLowerCase();
         const matchTitle = m.title.toLowerCase().includes(term);
-        const matchClient = (m.clients as any)?.name?.toLowerCase().includes(term);
-        const matchTeam = (m.teams as any)?.name?.toLowerCase().includes(term);
+        const matchClient = (m.clients as unknown)?.name?.toLowerCase().includes(term);
+        const matchTeam = (m.teams as unknown)?.name?.toLowerCase().includes(term);
         if (!matchTitle && !matchClient && !matchTeam) return false;
       }
       if (statusFilter !== "all" && m.status !== statusFilter) return false;
@@ -197,10 +197,10 @@ export default function Reunioes() {
                       {meeting.title}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {(meeting.clients as any)?.name || "—"}
+                      {(meeting.clients as unknown)?.name || "—"}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {(meeting.teams as any)?.name || "—"}
+                      {(meeting.teams as unknown)?.name || "—"}
                     </TableCell>
                     <TableCell className="text-muted-foreground whitespace-nowrap">
                       {meeting.scheduled_at

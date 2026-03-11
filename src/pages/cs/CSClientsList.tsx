@@ -134,10 +134,11 @@ export default function CSClientsList() {
         case 'healthScore':
           comparison = a.healthScore - b.healthScore;
           break;
-        case 'churnRiskLevel':
+        case 'churnRiskLevel': {
           const riskOrder = { critical: 0, high: 1, medium: 2, low: 3 };
           comparison = riskOrder[a.churnRiskLevel] - riskOrder[b.churnRiskLevel];
           break;
+        }
         case 'npsScore':
           comparison = (a.npsScore || 0) - (b.npsScore || 0);
           break;
@@ -147,10 +148,11 @@ export default function CSClientsList() {
         case 'activeCampaigns':
           comparison = a.activeCampaigns - b.activeCampaigns;
           break;
-        case 'onboardingStatus':
+        case 'onboardingStatus': {
           const onboardingOrder = { pending: 0, in_progress: 1, completed: 2 };
           comparison = onboardingOrder[a.onboardingStatus] - onboardingOrder[b.onboardingStatus];
           break;
+        }
         case 'squadName':
           comparison = (a.squadName || '').localeCompare(b.squadName || '');
           break;

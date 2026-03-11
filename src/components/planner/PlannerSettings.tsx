@@ -153,7 +153,7 @@ export const PlannerSettings: React.FC = () => {
     }
   };
 
-  const handleDragEnd = (result: any) => {
+  const handleDragEnd = (result: unknown) => {
     if (!result.destination) return;
 
     const items = Array.from(timeSlots);

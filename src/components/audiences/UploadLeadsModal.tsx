@@ -311,7 +311,7 @@ export function UploadLeadsModal({
       } else {
         updateStep('send', { status: 'error', detail: 'Erro ao enviar para o Meta' });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error in upload process:', error);
       // Mark current active step as error
       setUploadSteps(prev => prev.map(s => s.status === 'active' ? { ...s, status: 'error', detail: error.message } : s));
@@ -432,10 +432,10 @@ export function UploadLeadsModal({
                   <span className="font-medium">{result.num_invalid_entries}</span>
                 </div>
               )}
-              {(result as any).batches_processed > 1 && (
+              {(result as unknown).batches_processed > 1 && (
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Lotes processados:</span>
-                  <span className="font-medium">{(result as any).batches_processed}</span>
+                  <span className="font-medium">{(result as unknown).batches_processed}</span>
                 </div>
               )}
               <div className="flex justify-between">

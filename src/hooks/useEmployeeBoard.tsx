@@ -103,7 +103,7 @@ export function useEmployeeBoard(selectedUserId?: string | null | "all") {
 
       // Buscar clientes relacionados
       const clientIds = [...new Set(visibleTasks.map(task => task.related_client_id).filter(Boolean))];
-      let clientsData: any[] = [];
+      let clientsData: unknown[] = [];
       if (clientIds.length > 0) {
         const { data } = await supabase
           .from("clients")

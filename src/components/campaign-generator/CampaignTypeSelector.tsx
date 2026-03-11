@@ -9,7 +9,7 @@ import type { CampaignData, CampaignType } from "@/pages/GeradorCampanhas";
 
 interface CampaignTypeSelectorProps {
   campaignData: CampaignData;
-  updateCampaignData: (field: keyof CampaignData, value: any) => void;
+  updateCampaignData: (field: keyof CampaignData, value: unknown) => void;
 }
 
 const campaignTypes = {
@@ -74,18 +74,6 @@ export function CampaignTypeSelector({ campaignData, updateCampaignData }: Campa
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const { toast } = useToast();
 
-  if (!campaignData.client || !campaignData.funnelStage) {
-    return (
-      <div className="text-center py-8 text-muted-foreground">
-        Selecione um cliente e etapa do funil primeiro para continuar.
-      </div>
-    );
-  }
-
-  const suitableTypes = Object.values(campaignTypes).filter(type =>
-    type.suitableFor.includes(campaignData.funnelStage!)
-  );
-
   const generateSuggestions = async () => {
     if (!campaignData.client || !campaignData.funnelStage) return;
 
@@ -122,6 +110,18 @@ export function CampaignTypeSelector({ campaignData, updateCampaignData }: Campa
   useEffect(() => {
     generateSuggestions();
   }, [campaignData.client, campaignData.funnelStage]);
+
+  if (!campaignData.client || !campaignData.funnelStage) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        Selecione um cliente e etapa do funil primeiro para continuar.
+      </div>
+    );
+  }
+
+  const suitableTypes = Object.values(campaignTypes).filter(type =>
+    type.suitableFor.includes(campaignData.funnelStage!)
+  );
 
   return (
     <div className="space-y-6">

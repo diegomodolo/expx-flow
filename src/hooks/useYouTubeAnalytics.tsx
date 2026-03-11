@@ -66,7 +66,7 @@ export function useYouTubeAnalytics(clientId: string, companyId: string) {
       if (error) throw error;
 
       // Map with channel name
-      const videosWithChannel = (data || []).map((v: any) => ({
+      const videosWithChannel = (data || []).map((v: unknown) => ({
         ...v,
         channel_name: v.youtube_monitored_channels?.channel_name,
       }));

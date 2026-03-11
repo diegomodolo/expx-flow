@@ -35,7 +35,7 @@ export const useAutomationSchedule = (clientId?: string) => {
 
       if (error) throw error;
       setSchedule(data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching schedule:', error);
       toast({
         title: "Erro ao carregar agendamento",
@@ -84,7 +84,7 @@ export const useAutomationSchedule = (clientId?: string) => {
       });
 
       return data.schedule;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creating/updating schedule:', error);
       toast({
         title: "Erro ao configurar agendamento",
@@ -133,7 +133,7 @@ export const useAutomationSchedule = (clientId?: string) => {
         title: "Agendamento removido",
         description: "Automações não serão mais executadas automaticamente",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error deleting schedule:', error);
       toast({
         title: "Erro ao remover agendamento",

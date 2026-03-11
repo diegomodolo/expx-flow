@@ -42,11 +42,11 @@ export function useTaskBoardColumns(targetUserId?: string | null) {
       const userId = targetUserId || user.id;
 
       const { data, error } = await (supabase
-        .from('task_board_columns' as any)
+        .from('task_board_columns' as unknown)
         .select('*')
         .eq('user_id', userId)
         .eq('company_id', companyId)
-        .order('order_index', { ascending: true }) as any);
+        .order('order_index', { ascending: true }) as unknown);
 
       if (error) {
         console.error('Error fetching task board columns:', error);
@@ -69,7 +69,7 @@ export function useTaskBoardColumns(targetUserId?: string | null) {
         : -1;
 
       const { data, error } = await (supabase
-        .from('task_board_columns' as any)
+        .from('task_board_columns' as unknown)
         .insert({
           user_id: user.id,
           company_id: companyId,
@@ -79,7 +79,7 @@ export function useTaskBoardColumns(targetUserId?: string | null) {
           order_index: maxOrderIndex + 1,
         })
         .select()
-        .single() as any);
+        .single() as unknown);
 
       if (error) throw error;
       return data;
@@ -97,11 +97,11 @@ export function useTaskBoardColumns(targetUserId?: string | null) {
   const updateColumnMutation = useMutation({
     mutationFn: async ({ columnId, updates }: { columnId: string; updates: UpdateColumnData }) => {
       const { data, error } = await (supabase
-        .from('task_board_columns' as any)
+        .from('task_board_columns' as unknown)
         .update(updates)
         .eq('id', columnId)
         .select()
-        .single() as any);
+        .single() as unknown);
 
       if (error) throw error;
       return data;
@@ -119,9 +119,9 @@ export function useTaskBoardColumns(targetUserId?: string | null) {
   const deleteColumnMutation = useMutation({
     mutationFn: async (columnId: string) => {
       const { error } = await (supabase
-        .from('task_board_columns' as any)
+        .from('task_board_columns' as unknown)
         .delete()
-        .eq('id', columnId) as any);
+        .eq('id', columnId) as unknown);
 
       if (error) throw error;
     },
@@ -143,9 +143,9 @@ export function useTaskBoardColumns(targetUserId?: string | null) {
       // Update each column with its new order_index
       const updates = orderedColumnIds.map((columnId, index) => 
         (supabase
-          .from('task_board_columns' as any)
+          .from('task_board_columns' as unknown)
           .update({ order_index: index })
-          .eq('id', columnId) as any)
+          .eq('id', columnId) as unknown)
       );
 
       await Promise.all(updates);
@@ -166,10 +166,10 @@ export function useTaskBoardColumns(targetUserId?: string | null) {
 
       // 1. Delete all existing columns for this user/company
       const { error: deleteError } = await (supabase
-        .from('task_board_columns' as any)
+        .from('task_board_columns' as unknown)
         .delete()
         .eq('user_id', user.id)
-        .eq('company_id', companyId) as any);
+        .eq('company_id', companyId) as unknown);
 
       if (deleteError) throw deleteError;
 
@@ -184,8 +184,8 @@ export function useTaskBoardColumns(targetUserId?: string | null) {
       }));
 
       const { error: insertError } = await (supabase
-        .from('task_board_columns' as any)
-        .insert(columnsToInsert) as any);
+        .from('task_board_columns' as unknown)
+        .insert(columnsToInsert) as unknown);
 
       if (insertError) throw insertError;
     },

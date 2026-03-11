@@ -200,7 +200,7 @@ export default function GeradorCarrosseis() {
       if (!data?.success) throw new Error(data?.error || "Falha ao analisar slides");
 
       setThemeSuggestions(data.themeSuggestions || []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error analyzing slides:", err);
       toast.error(err?.message || "Erro ao analisar imagens");
       setIsThemeModalOpen(false);
@@ -229,7 +229,7 @@ export default function GeradorCarrosseis() {
       setGeneratedSlideContents(data.slideContents || []);
       setIsThemeModalOpen(false);
       toast.success("Conteúdo gerado com sucesso!");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error generating content:", err);
       toast.error(err?.message || "Erro ao gerar conteúdo");
     } finally {

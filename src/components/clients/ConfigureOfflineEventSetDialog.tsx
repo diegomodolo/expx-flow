@@ -36,7 +36,7 @@ export const ConfigureOfflineEventSetDialog = ({ clientId }: ConfigureOfflineEve
       if (error) throw error;
 
       setEventSetId(data?.offline_event_set_id || '');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error loading offline event set ID:', err);
     } finally {
       setLoading(false);
@@ -67,7 +67,7 @@ export const ConfigureOfflineEventSetDialog = ({ clientId }: ConfigureOfflineEve
         description: "O Offline Event Set ID foi configurado com sucesso.",
       });
       setOpen(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error saving offline event set ID:', err);
       toast({
         title: "Erro ao salvar",

@@ -143,7 +143,7 @@ export function NotificationsDashboard({ stats, triggers, executionLogs }: Notif
                       )}
                       <div>
                         <span className="text-sm font-medium">
-                          {(log.trigger as any)?.trigger_name || 'Gatilho removido'}
+                          {(log.trigger as unknown)?.trigger_name || 'Gatilho removido'}
                         </span>
                         <p className="text-xs text-muted-foreground">
                           {log.messages_sent} enviadas, {log.messages_failed} falhas

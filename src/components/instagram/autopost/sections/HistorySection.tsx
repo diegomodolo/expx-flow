@@ -21,18 +21,18 @@ import {
 } from '@/components/ui/alert-dialog';
 
 interface HistorySectionProps {
-  publishedPosts: any[];
+  publishedPosts: unknown[];
   onPostDeleted?: () => void;
 }
 
 export function HistorySection({ publishedPosts, onPostDeleted }: HistorySectionProps) {
-  const [previewPost, setPreviewPost] = useState<any>(null);
+  const [previewPost, setPreviewPost] = useState<unknown>(null);
   const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
-  const [postToDelete, setPostToDelete] = useState<any>(null);
+  const [postToDelete, setPostToDelete] = useState<unknown>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const handleDeleteFromInstagram = async (post: any) => {
+  const handleDeleteFromInstagram = async (post: unknown) => {
     if (!post.instagram_media_id) {
       toast({
         title: 'Erro',
@@ -59,7 +59,7 @@ export function HistorySection({ publishedPosts, onPostDeleted }: HistorySection
       // Invalidate the posts query to refresh the list
       queryClient.invalidateQueries({ queryKey: ['instagram-auto-posts-by-config'] });
       onPostDeleted?.();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao excluir',
         description: error.message,
@@ -90,7 +90,7 @@ export function HistorySection({ publishedPosts, onPostDeleted }: HistorySection
             </p>
           ) : (
             <div className="space-y-3">
-              {publishedPosts.slice(0, 10).map((post: any) => {
+              {publishedPosts.slice(0, 10).map((post: unknown) => {
                 const isCarousel = post.post_type === 'carousel' && post.image_urls && post.image_urls.length > 1;
                 const isDeleting = deletingPostId === post.id;
                 

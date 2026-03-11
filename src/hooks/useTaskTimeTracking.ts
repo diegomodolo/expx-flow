@@ -45,7 +45,7 @@ export function useTaskTimeTracking(taskId: string | null) {
         .in('user_id', userIds);
 
       const profileMap = new Map(
-        (profiles || []).map((p: any) => [p.user_id, { name: p.full_name, avatar: p.avatar_url }])
+        (profiles || []).map((p: unknown) => [p.user_id, { name: p.full_name, avatar: p.avatar_url }])
       );
 
       // Fallback: check employees table for agent users not found in profiles
@@ -173,7 +173,7 @@ export function useTaskTimeTracking(taskId: string | null) {
 
   const updateSession = useMutation({
     mutationFn: async (data: { sessionId: string; started_at: string; ended_at: string; user_id?: string }) => {
-      const updates: any = { started_at: data.started_at, ended_at: data.ended_at };
+      const updates: unknown = { started_at: data.started_at, ended_at: data.ended_at };
       if (data.user_id) updates.user_id = data.user_id;
       const { error } = await supabase
         .from('task_time_tracking')

@@ -50,7 +50,7 @@ export const useDashboardAlerts = () => {
   const { user } = useAuth();
 
   // Função para gerar recomendação usando IA
-  const generateRecommendation = async (campaignData: any, issueType: string): Promise<string> => {
+  const generateRecommendation = async (campaignData: unknown, issueType: string): Promise<string> => {
     try {
       const { data, error } = await supabase.functions.invoke('generate-campaign-recommendation', {
         body: {
@@ -81,7 +81,7 @@ export const useDashboardAlerts = () => {
   };
 
   // Função para gerar alertas básicos (sem IA)
-  const generateBasicAlerts = (campaigns: CampaignRanking[], activeTasks: any[] = []): Alert[] => {
+  const generateBasicAlerts = (campaigns: CampaignRanking[], activeTasks: unknown[] = []): Alert[] => {
     const problemAlerts: Alert[] = [];
     const opportunityAlerts: Alert[] = [];
     const maxProblems = 5;

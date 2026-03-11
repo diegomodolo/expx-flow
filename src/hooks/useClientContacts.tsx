@@ -96,7 +96,7 @@ export function useClientContacts(companyId: string | undefined, clientId?: stri
       email?: string; 
       isActive?: boolean 
     }) => {
-      const updateData: Record<string, any> = {};
+      const updateData: Record<string, unknown> = {};
       if (contact.contactName !== undefined) updateData.contact_name = contact.contactName;
       if (contact.phone !== undefined) updateData.phone = contact.phone;
       if (contact.email !== undefined) updateData.email = contact.email;

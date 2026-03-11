@@ -70,7 +70,7 @@ export function CRMDealTags({ dealId, workspaceId }: CRMDealTagsProps) {
         .eq("deal_id", dealId);
 
       if (error) throw error;
-      return data.map((dt: any) => dt.crm_tags) as CRMTag[];
+      return data.map((dt: unknown) => dt.crm_tags) as CRMTag[];
     },
     enabled: !!dealId,
   });

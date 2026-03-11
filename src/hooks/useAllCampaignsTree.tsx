@@ -134,7 +134,7 @@ export function useAllCampaignsTree(options: UseAllCampaignsTreeOptions): AllCam
   });
 
   // Helper to get status
-  const getStatus = (item: any): "active" | "paused" | "finished" | "deleted" => {
+  const getStatus = (item: unknown): "active" | "paused" | "finished" | "deleted" => {
     if (item.status === "deleted" || item.status === "DELETED") {
       return "deleted";
     }
@@ -187,8 +187,8 @@ export function useAllCampaignsTree(options: UseAllCampaignsTreeOptions): AllCam
           },
           budget: campaign.daily_budget
             ? { type: "daily", amount: Number(campaign.daily_budget), spent: campaignSpend }
-            : (campaign as any).lifetime_budget
-            ? { type: "lifetime", amount: Number((campaign as any).lifetime_budget), spent: campaignSpend }
+            : (campaign as unknown).lifetime_budget
+            ? { type: "lifetime", amount: Number((campaign as unknown).lifetime_budget), spent: campaignSpend }
             : undefined,
           children: campaignAdSets.map((adset) => {
             const adSetAds = allMetaAds.filter((ad) => ad.ad_set_id === adset.id);
@@ -207,8 +207,8 @@ export function useAllCampaignsTree(options: UseAllCampaignsTreeOptions): AllCam
               needsSync: !adset.last_synced_at,
               isSyncing: syncingItems?.has(adset.id),
               targeting: adset.targeting ? JSON.parse(adset.targeting) : undefined,
-              pixelId: (adset as any).pixel_id || undefined,
-              conversionEvent: (adset as any).conversion_event || undefined,
+              pixelId: (adset as unknown).pixel_id || undefined,
+              conversionEvent: (adset as unknown).conversion_event || undefined,
               metrics: {
                 spend: Number(adset.spend) || 0,
                 impressions: Number(adset.impressions) || 0,
@@ -217,7 +217,7 @@ export function useAllCampaignsTree(options: UseAllCampaignsTreeOptions): AllCam
                 ctr: Number(adset.ctr) || 0,
                 cpc: Number(adset.cpc) || 0,
                 cpa: Number(adset.cpa) || 0,
-                cpm: Number((adset as any).cpm) || 0,
+                cpm: Number((adset as unknown).cpm) || 0,
                 reach: adset.reach ? Number(adset.reach) : undefined,
                 frequency: adset.frequency ? Number(adset.frequency) : undefined,
               },
@@ -257,7 +257,7 @@ export function useAllCampaignsTree(options: UseAllCampaignsTreeOptions): AllCam
                   }
                 })(),
                 linkUrl: ad.link_url,
-                pixelId: (ad as any).pixel_id || undefined,
+                pixelId: (ad as unknown).pixel_id || undefined,
                 metrics: {
                   spend: Number(ad.spend) || 0,
                   impressions: Number(ad.impressions) || 0,
@@ -266,7 +266,7 @@ export function useAllCampaignsTree(options: UseAllCampaignsTreeOptions): AllCam
                   ctr: Number(ad.ctr) || 0,
                   cpc: Number(ad.cpc) || 0,
                   cpa: Number(ad.cpa) || 0,
-                  cpm: Number((ad as any).cpm) || 0,
+                  cpm: Number((ad as unknown).cpm) || 0,
                   reach: ad.reach ? Number(ad.reach) : undefined,
                   frequency: ad.frequency ? Number(ad.frequency) : undefined,
                 },
@@ -298,7 +298,7 @@ export function useAllCampaignsTree(options: UseAllCampaignsTreeOptions): AllCam
           status,
           isExpanded: false,
           platform: "google",
-          facebookId: (campaign as any).google_id,
+          facebookId: (campaign as unknown).google_id,
           metrics: {
             spend: campaignSpend,
             impressions: campaignImpressions,
@@ -326,7 +326,7 @@ export function useAllCampaignsTree(options: UseAllCampaignsTreeOptions): AllCam
               status: adGroupStatus,
               isExpanded: false,
               platform: "google",
-              facebookId: (adGroup as any).google_id,
+              facebookId: (adGroup as unknown).google_id,
               parentId: campaign.id,
               metrics: {
                 spend: Number(adGroup.spend) || 0,
@@ -336,7 +336,7 @@ export function useAllCampaignsTree(options: UseAllCampaignsTreeOptions): AllCam
                 ctr: Number(adGroup.ctr) || 0,
                 cpc: Number(adGroup.cpc) || 0,
                 cpa: Number(adGroup.cpa) || 0,
-                cpm: Number((adGroup as any).cpm) || 0,
+                cpm: Number((adGroup as unknown).cpm) || 0,
               },
               children: groupAds.map((ad) => {
                 const headlines = ad.headlines as string[] | null;
@@ -349,9 +349,9 @@ export function useAllCampaignsTree(options: UseAllCampaignsTreeOptions): AllCam
                   status: getStatus(ad),
                   isExpanded: false,
                   platform: "google" as const,
-                  facebookId: (ad as any).google_id,
+                  facebookId: (ad as unknown).google_id,
                   parentId: adGroup.id,
-                  creativeUrl: (ad as any).image_url,
+                  creativeUrl: (ad as unknown).image_url,
                   creativeTitle: headlines?.[0],
                   creativeBody: descriptions?.[0],
                   metrics: {
@@ -362,7 +362,7 @@ export function useAllCampaignsTree(options: UseAllCampaignsTreeOptions): AllCam
                     ctr: Number(ad.ctr) || 0,
                     cpc: Number(ad.cpc) || 0,
                     cpa: Number(ad.cpa) || 0,
-                    cpm: Number((ad as any).cpm) || 0,
+                    cpm: Number((ad as unknown).cpm) || 0,
                   },
                 };
               }),

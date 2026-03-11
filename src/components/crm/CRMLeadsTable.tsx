@@ -43,7 +43,7 @@ export function CRMLeadsTable({ leads, stages, onLeadClick, searchTerm }: CRMLea
     };
     
     const config = statusConfig[status] || statusConfig.open;
-    return <Badge variant={config.variant as any}>{config.label}</Badge>;
+    return <Badge variant={config.variant as unknown}>{config.label}</Badge>;
   };
 
   return (

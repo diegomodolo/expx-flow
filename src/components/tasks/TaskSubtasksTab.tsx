@@ -72,7 +72,7 @@ export function TaskSubtasksTab({ taskId, onParentTypeChange }: TaskSubtasksTabP
   const [newTitle, setNewTitle] = useState("");
   const [showRoteiroDialog, setShowRoteiroDialog] = useState(false);
   const [editingSubtaskId, setEditingSubtaskId] = useState<string | null>(null);
-  const [editingSubtaskData, setEditingSubtaskData] = useState<any>(null);
+  const [editingSubtaskData, setEditingSubtaskData] = useState<unknown>(null);
   const queryClient = useQueryClient();
 
   const handleAddSubtask = async () => {
@@ -100,7 +100,7 @@ export function TaskSubtasksTab({ taskId, onParentTypeChange }: TaskSubtasksTabP
     }
   };
 
-  const handleSaveSubtask = async (taskData: any) => {
+  const handleSaveSubtask = async (taskData: unknown) => {
     if (!editingSubtaskId) return;
     const { id, ...updates } = taskData;
     await supabase.from('tasks').update(updates).eq('id', editingSubtaskId);

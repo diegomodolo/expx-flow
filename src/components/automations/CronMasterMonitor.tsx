@@ -101,7 +101,7 @@ export const CronMasterMonitor = ({
     });
   };
 
-  const getStatusMessage = (log: any) => {
+  const getStatusMessage = (log: unknown) => {
     const actionsTaken = log.actions_taken || 0;
     const details = log.execution_details || {};
     

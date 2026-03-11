@@ -78,12 +78,13 @@ export function CRMDashboard({
           startDate: startOfMonth(now),
           endDate: endOfMonth(now)
         };
-      case 'lastMonth':
+      case 'lastMonth': {
         const lastMonth = subDays(startOfMonth(now), 1);
         return {
           startDate: startOfMonth(lastMonth),
           endDate: endOfMonth(lastMonth)
         };
+      }
       case 'custom':
         return {
           startDate: customStartDate ? startOfDay(customStartDate) : startOfDay(subDays(now, 30)),

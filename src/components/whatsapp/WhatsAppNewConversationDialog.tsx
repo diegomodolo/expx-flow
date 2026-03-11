@@ -148,7 +148,7 @@ export function WhatsAppNewConversationDialog({
         }
       });
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("[WhatsAppNewConversationDialog] Error:", err);
       toast.error(err.message || "Erro ao criar conversa");
       setIsSending(false);

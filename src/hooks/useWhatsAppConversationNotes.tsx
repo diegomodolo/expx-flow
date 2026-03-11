@@ -73,7 +73,7 @@ export function useWhatsAppConversationNotes(conversationId: string | undefined)
       if (error) throw error;
 
       const profilesMap: Record<string, string> = {};
-      (data || []).forEach((p: any) => {
+      (data || []).forEach((p: unknown) => {
         profilesMap[p.user_id] = p.full_name || "Usuário";
       });
 

@@ -105,7 +105,7 @@ export function useInstagramAutoPostConfig(clientId: string) {
         description: 'Postagens automáticas ativadas. Gerando primeiro post...',
       });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: 'Erro ao criar configuração',
         description: error.message,
@@ -132,7 +132,7 @@ export function useInstagramAutoPostConfig(clientId: string) {
         title: 'Configuração atualizada!',
       });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: 'Erro ao atualizar',
         description: error.message,
@@ -158,7 +158,7 @@ export function useInstagramAutoPostConfig(clientId: string) {
         description: 'Postagens automáticas desativadas.',
       });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: 'Erro ao remover',
         description: error.message,
@@ -243,7 +243,7 @@ export function useInstagramAutoPosts(clientId: string) {
         description: 'Novo post gerado com sucesso.',
       });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: 'Erro ao regenerar',
         description: error.message,
@@ -272,7 +272,7 @@ export function useInstagramAutoPosts(clientId: string) {
         description: 'Nova postagem gerada para o próximo horário.',
       });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: 'Erro ao gerar post',
         description: error.message,
@@ -297,7 +297,7 @@ export function useInstagramAutoPosts(clientId: string) {
         title: 'Post removido',
       });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: 'Erro ao remover',
         description: error.message,
@@ -321,7 +321,7 @@ export function useInstagramAutoPosts(clientId: string) {
         title: 'Legenda atualizada!',
       });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: 'Erro ao atualizar legenda',
         description: error.message,
@@ -348,7 +348,7 @@ export function useInstagramAutoPosts(clientId: string) {
         description: 'O post foi publicado no Instagram com sucesso.',
       });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       queryClient.invalidateQueries({ queryKey: ['instagram-auto-posts', clientId] });
       toast({
         title: 'Erro ao publicar',

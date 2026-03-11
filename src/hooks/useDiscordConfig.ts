@@ -11,7 +11,7 @@ export const useDiscordConfig = () => {
   const { data: config, isLoading } = useQuery({
     queryKey: ["discord-config", companyId],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await (supabase as unknown)
         .from("discord_config")
         .select("*")
         .eq("company_id", companyId!)
@@ -24,17 +24,17 @@ export const useDiscordConfig = () => {
 
   const saveConfig = useMutation({
     mutationFn: async ({ guild_id, guild_name, is_connected, enabled, bot_token }: { guild_id: string; guild_name?: string; is_connected?: boolean; enabled?: boolean; bot_token?: string }) => {
-      const payload: any = { guild_id, guild_name, is_connected, enabled };
+      const payload: unknown = { guild_id, guild_name, is_connected, enabled };
       if (bot_token !== undefined) payload.bot_token = bot_token;
 
       if (config?.id) {
-        const { error } = await (supabase as any)
+        const { error } = await (supabase as unknown)
           .from("discord_config")
           .update(payload)
           .eq("id", config.id);
         if (error) throw error;
       } else {
-        const { error } = await (supabase as any)
+        const { error } = await (supabase as unknown)
           .from("discord_config")
           .insert({ company_id: companyId, ...payload });
         if (error) throw error;
@@ -44,7 +44,7 @@ export const useDiscordConfig = () => {
       queryClient.invalidateQueries({ queryKey: ["discord-config"] });
       toast.success("Configuração do Discord salva!");
     },
-    onError: (err: any) => toast.error(err.message),
+    onError: (err: unknown) => toast.error(err.message),
   });
 
   const testConnection = async (guild_id: string) => {

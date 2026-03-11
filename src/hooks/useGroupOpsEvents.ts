@@ -9,7 +9,7 @@ export interface GroupOpsEvent {
   group_id: string;
   member_id: string | null;
   type: string;
-  payload_json: any;
+  payload_json: unknown;
   timestamp: string;
   created_at: string;
 }

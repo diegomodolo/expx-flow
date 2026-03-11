@@ -32,7 +32,7 @@ export function ClienteConjuntos() {
   const { activeCompany } = useCompany();
   
   const [platformFilter, setPlatformFilter] = useState<Platform>('all');
-  const [selectedAdSet, setSelectedAdSet] = useState<any>(null);
+  const [selectedAdSet, setSelectedAdSet] = useState<unknown>(null);
   const [showModal, setShowModal] = useState(false);
   const [showAdSetModal, setShowAdSetModal] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -69,8 +69,8 @@ export function ClienteConjuntos() {
     
     // Sort
     filtered = [...filtered].sort((a, b) => {
-      const aVal = (a as any)[sortBy] || 0;
-      const bVal = (b as any)[sortBy] || 0;
+      const aVal = (a as unknown)[sortBy] || 0;
+      const bVal = (b as unknown)[sortBy] || 0;
       return sortOrder === "asc" ? aVal - bVal : bVal - aVal;
     });
     
@@ -81,7 +81,7 @@ export function ClienteConjuntos() {
   const metaCount = adGroups.filter(ag => ag.platform === 'meta').length;
   const googleCount = adGroups.filter(ag => ag.platform === 'google').length;
 
-  const handleViewDetails = (adSet: any) => {
+  const handleViewDetails = (adSet: unknown) => {
     setSelectedAdSet(adSet);
     setShowModal(true);
   };

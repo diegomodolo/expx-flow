@@ -57,7 +57,7 @@ export function ImportAutomationTemplateDialog({
         setSelectedTemplate(template as unknown as AutomationRule);
         setConfigureDialogOpen(true);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erro ao carregar template",
         description: error.message,
@@ -78,7 +78,7 @@ export function ImportAutomationTemplateDialog({
       });
       onImported?.();
       onOpenChange(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erro ao importar template",
         description: error.message,
@@ -89,7 +89,7 @@ export function ImportAutomationTemplateDialog({
     }
   };
 
-  const handleConfirmConfiguration = async (configuredConditions: any) => {
+  const handleConfirmConfiguration = async (configuredConditions: unknown) => {
     if (!selectedTemplate) return;
 
     try {
@@ -101,7 +101,7 @@ export function ImportAutomationTemplateDialog({
       onImported?.();
       onOpenChange(false);
       setConfigureDialogOpen(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erro ao importar",
         description: error.message,
@@ -132,7 +132,7 @@ export function ImportAutomationTemplateDialog({
     return variants[actionType] || "outline";
   };
 
-  const getConditionsSummary = (conditions: any) => {
+  const getConditionsSummary = (conditions: unknown) => {
     if (!conditions?.conditions) return "Sem condições";
     const count = conditions.conditions.length;
     const logic = conditions.logic === "AND" ? "todas" : "qualquer";
@@ -328,7 +328,7 @@ export function ImportAutomationTemplateDialog({
                                 Regras incluídas:
                               </div>
                               <div className="space-y-1">
-                                {template.rules.slice(0, 3).map((templateRule: any) => (
+                                {template.rules.slice(0, 3).map((templateRule: unknown) => (
                                   <div 
                                     key={templateRule.id}
                                     className="flex items-center gap-2 text-xs"

@@ -172,8 +172,8 @@ export function useWhatsAppAIAgentConfig(companyId: string | undefined, instance
       };
 
       // Remove id from dataToSave if it exists (will be set by upsert)
-      delete (dataToSave as any).id;
-      delete (dataToSave as any).created_at;
+      delete (dataToSave as unknown).id;
+      delete (dataToSave as unknown).created_at;
 
       let result;
       
@@ -224,7 +224,7 @@ export function useWhatsAppAIAgentConfig(companyId: string | undefined, instance
       });
 
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("[useWhatsAppAIAgentConfig] Failed to save config:", error);
       toast({
         title: "Erro ao salvar",

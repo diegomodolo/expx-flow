@@ -13,7 +13,7 @@ import { Search, Filter, RefreshCw } from "lucide-react";
 export function SavedContentsList() {
   const { generations, loading, fetchGenerations } = useContentGenerations();
   const { clients } = useClients();
-  const [selectedContent, setSelectedContent] = useState<any>(null);
+  const [selectedContent, setSelectedContent] = useState<unknown>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [filters, setFilters] = useState({
     client: 'all',
@@ -22,7 +22,7 @@ export function SavedContentsList() {
     search: ''
   });
 
-  const handlePreview = (content: any) => {
+  const handlePreview = (content: unknown) => {
     setSelectedContent(content);
     setIsPreviewOpen(true);
   };

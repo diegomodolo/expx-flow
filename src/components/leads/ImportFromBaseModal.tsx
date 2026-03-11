@@ -135,7 +135,7 @@ export const ImportFromBaseModal = ({ open, onOpenChange, companyId, segment }: 
     setActiveFilterCount(count);
   }, [filters]);
 
-  const applyFilters = useCallback((query: any) => {
+  const applyFilters = useCallback((query: unknown) => {
     if (filters.uf) query = query.eq("uf", filters.uf);
     if (filters.municipio) query = query.ilike("municipio", `%${filters.municipio}%`);
     if (filters.bairro) query = query.ilike("bairro", `%${filters.bairro}%`);
@@ -202,7 +202,7 @@ export const ImportFromBaseModal = ({ open, onOpenChange, companyId, segment }: 
 
       // Check already in pool
       if (count && count > 0) {
-        let poolQuery = supabase
+        const poolQuery = supabase
           .from("lead_master_pool")
           .select("id", { count: "exact", head: true })
           .eq("company_id", companyId)
@@ -348,7 +348,7 @@ export const ImportFromBaseModal = ({ open, onOpenChange, companyId, segment }: 
 
         const { data: inserted, error } = await supabase
           .from("lead_master_pool")
-          .insert(batch as any)
+          .insert(batch as unknown)
           .select("id");
 
         if (error) {
@@ -356,7 +356,7 @@ export const ImportFromBaseModal = ({ open, onOpenChange, companyId, segment }: 
           for (const lead of batch) {
             const { data: single, error: singleErr } = await supabase
               .from("lead_master_pool")
-              .insert(lead as any)
+              .insert(lead as unknown)
               .select("id")
               .maybeSingle();
             if (!singleErr && single) insertedIds.push(single.id);

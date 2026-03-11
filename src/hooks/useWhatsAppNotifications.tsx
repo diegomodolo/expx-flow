@@ -9,7 +9,7 @@ export interface NotificationTrigger {
   trigger_name: string;
   description: string | null;
   is_active: boolean;
-  conditions: Record<string, any>;
+  conditions: Record<string, unknown>;
   created_at: string;
   updated_at: string;
   schedule?: TriggerSchedule;
@@ -63,7 +63,7 @@ export interface ExecutionLog {
   status: 'pending' | 'processing' | 'completed' | 'failed';
   messages_sent: number;
   messages_failed: number;
-  execution_details: Record<string, any>;
+  execution_details: Record<string, unknown>;
   started_at: string | null;
   completed_at: string | null;
   created_at: string;
@@ -492,7 +492,7 @@ export function useWhatsAppNotifications(companyId: string | undefined) {
       };
       
       // Calculate next execution time
-      const nextExecution = calculateNextExecutionTime(scheduleData as any);
+      const nextExecution = calculateNextExecutionTime(scheduleData as unknown);
       
       const { error: scheduleError } = await supabase
         .from('whatsapp_trigger_schedules')
@@ -561,7 +561,7 @@ export function useWhatsAppNotifications(companyId: string | undefined) {
       };
       
       // Recalculate next execution time when schedule is updated
-      const nextExecution = calculateNextExecutionTime(scheduleData as any);
+      const nextExecution = calculateNextExecutionTime(scheduleData as unknown);
       
       const { error: scheduleError } = await supabase
         .from('whatsapp_trigger_schedules')

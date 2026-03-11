@@ -43,7 +43,7 @@ interface Slide {
   body?: string;
   body_text?: string;
   image_url?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface Carousel {
@@ -151,7 +151,7 @@ export function FabricaCarrosseisGerados({ clientId }: Props) {
 
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const updateData: Record<string, any> = {
+      const updateData: Record<string, unknown> = {
         status,
         updated_at: new Date().toISOString(),
       };
@@ -184,7 +184,7 @@ export function FabricaCarrosseisGerados({ clientId }: Props) {
       };
       toast.success(messages[status] || "Status atualizado");
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error("Erro ao atualizar: " + error.message);
     },
   });

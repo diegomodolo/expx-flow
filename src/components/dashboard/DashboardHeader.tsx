@@ -23,25 +23,13 @@ import { useState, useEffect } from "react";
 
 export function DashboardHeader() {
   const navigate = useNavigate();
-  
-  let user = null;
-  let signOut = null;
-  let toast = null;
-  let profile = null;
-  
-  try {
-    const auth = useAuth();
-    const toastHook = useToast();
-    const userProfile = useUserProfile();
-    user = auth.user;
-    signOut = auth.signOut;
-    toast = toastHook.toast;
-    profile = userProfile.profile;
-  } catch (error) {
-    toast = () => {};
-    signOut = async () => ({ error: null });
-    profile = null;
-  }
+  const auth = useAuth();
+  const { toast } = useToast();
+  const userProfile = useUserProfile();
+
+  const user = auth.user;
+  const signOut = auth.signOut;
+  const profile = userProfile.profile;
 
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -53,16 +41,14 @@ export function DashboardHeader() {
   }, []);
 
   const handleLogout = async () => {
-    if (!signOut) return;
-    
     const { error } = await signOut();
-    if (error && toast) {
+    if (error) {
       toast({
         variant: "destructive",
         title: "Erro ao sair",
         description: error.message
       });
-    } else if (toast) {
+    } else {
       toast({
         title: "Logout realizado",
         description: "Você foi desconectado com sucesso"
@@ -85,12 +71,10 @@ export function DashboardHeader() {
   const toggleTheme = () => {
     const newTheme = theme === "dark" ? "light" : "dark";
     setTheme(newTheme);
-    if (toast) {
-      toast({
-        title: `Tema ${newTheme === "dark" ? "escuro" : "claro"} ativado`,
-        description: "O tema foi alterado com sucesso"
-      });
-    }
+    toast({
+      title: `Tema ${newTheme === "dark" ? "escuro" : "claro"} ativado`,
+      description: "O tema foi alterado com sucesso"
+    });
   };
 
   return (

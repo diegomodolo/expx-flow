@@ -53,7 +53,7 @@ export const useFacebookPages = () => {
 
       if (error) throw error;
       setPages((data || []) as FacebookPage[]);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching Facebook pages:', error);
     } finally {
       setLoading(false);
@@ -76,7 +76,7 @@ export const useFacebookPages = () => {
 
       if (error) throw error;
       setInstagramAccounts((data || []) as InstagramAccount[]);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching Instagram accounts:', error);
     } finally {
       setLoading(false);
@@ -109,7 +109,7 @@ export const useFacebookPages = () => {
       await fetchPages();
       await fetchInstagramAccounts();
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error refreshing pages:', error);
       toast({
         title: 'Erro ao atualizar páginas',

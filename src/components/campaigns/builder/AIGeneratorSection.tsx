@@ -314,7 +314,7 @@ export function AIGeneratorSection({
         onNavigateToSection('campaign');
       }, 1500);
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('AI generation error:', err);
       setStep('error');
       setErrorMessage(err.message || 'Erro desconhecido');

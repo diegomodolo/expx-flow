@@ -41,7 +41,7 @@ export function AddWordpressSiteDialog({ open, onOpenChange, companyId, onSucces
     try {
       await testConnection({ siteUrl, username, appPassword });
       setConnectionStatus('success');
-    } catch (error: any) {
+    } catch (error: unknown) {
       setConnectionStatus('error');
       setConnectionError(error.message || 'Falha na conexão');
     }

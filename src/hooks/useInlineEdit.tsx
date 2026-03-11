@@ -85,7 +85,7 @@ export function useInlineEdit(options: UseInlineEditOptions = {}) {
         });
 
         onSuccess?.();
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error("Error updating status:", error);
         toast({
           title: "Erro ao atualizar status",
@@ -140,7 +140,7 @@ export function useInlineEdit(options: UseInlineEditOptions = {}) {
             ? "google_ad_groups"
             : "ad_sets";
 
-        const updateData: Record<string, any> = {
+        const updateData: Record<string, unknown> = {
           updated_at: new Date().toISOString(),
         };
 
@@ -158,7 +158,7 @@ export function useInlineEdit(options: UseInlineEditOptions = {}) {
         });
 
         onSuccess?.();
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error("Error updating budget:", error);
         toast({
           title: "Erro ao atualizar orçamento",
@@ -228,7 +228,7 @@ export function useInlineEdit(options: UseInlineEditOptions = {}) {
         });
 
         onSuccess?.();
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error("Error updating name:", error);
         toast({
           title: "Erro ao atualizar nome",
@@ -325,7 +325,7 @@ export function useInlineEdit(options: UseInlineEditOptions = {}) {
         });
 
         onSuccess?.();
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error("Error in bulk update:", error);
         toast({
           title: "Erro ao atualizar em massa",

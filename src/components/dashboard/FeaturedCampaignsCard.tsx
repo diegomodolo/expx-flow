@@ -43,7 +43,7 @@ export const FeaturedCampaignsCard = () => {
       return (data || []).map(campaign => ({
         id: campaign.id,
         name: campaign.name,
-        client_name: (campaign.clients as any)?.name || 'Cliente',
+        client_name: (campaign.clients as unknown)?.name || 'Cliente',
         cpa: campaign.cpa,
         conversions: campaign.conversions,
         // Simulate trend based on CPA (could be enhanced with historical data)

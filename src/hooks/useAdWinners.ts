@@ -91,7 +91,7 @@ export function useAdWinners(clientId: string | null) {
       queryClient.invalidateQueries({ queryKey: ['ad-winners', clientId] });
       
       return data as WinnerAnalysisResult;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error analyzing winners:', error);
       toast.error('Erro ao analisar vencedores: ' + error.message);
       return null;
@@ -140,7 +140,7 @@ export function useAdWinners(clientId: string | null) {
       queryClient.invalidateQueries({ queryKey: ['ad-generation-queue', clientId] });
       
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creating iteration:', error);
       toast.error('Erro ao criar iteração: ' + error.message);
       return false;

@@ -190,7 +190,7 @@ export function CampaignEditContent({
   const formatNumber = (value: number) => value.toLocaleString();
   const formatPercent = (value: number) => `${value.toFixed(2)}%`;
 
-  const objectiveLabel = OBJECTIVE_LABELS[(node as any).objective || ''] || (node as any).objective || 'Não definido';
+  const objectiveLabel = OBJECTIVE_LABELS[(node as unknown).objective || ''] || (node as unknown).objective || 'Não definido';
 
   return (
     <div className="flex flex-col h-full">

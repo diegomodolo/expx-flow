@@ -74,7 +74,7 @@ export function ResetPasswordDialog({ open, onOpenChange, employee }: ResetPassw
       toast.success(`Senha de ${employee.name} redefinida com sucesso!`);
       onOpenChange(false);
       setNewPassword("");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Erro ao redefinir senha:", error);
       toast.error(error.message || "Erro ao redefinir senha do colaborador");
     } finally {

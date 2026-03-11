@@ -162,7 +162,7 @@ export const UnifiedSyncDialog: React.FC<UnifiedSyncDialogProps> = ({
 
       toast.success('Sincronização concluída com sucesso!');
       onOpenChange(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Sync error:', error);
       toast.error(`Erro durante sincronização: ${error.message}`);
     } finally {

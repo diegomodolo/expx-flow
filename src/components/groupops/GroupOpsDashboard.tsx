@@ -205,7 +205,7 @@ export default function GroupOpsDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {stats!.silentMembers.slice(0, 10).map((m: any) => (
+              {stats!.silentMembers.slice(0, 10).map((m: unknown) => (
                 <div key={m.id} className="flex items-center justify-between py-2 border-b last:border-0">
                   <span className="text-sm">{m.display_name ?? 'Sem nome'}</span>
                   <div className="flex items-center gap-2">

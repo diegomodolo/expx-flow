@@ -10,7 +10,7 @@ import type { CampaignData } from "@/pages/GeradorCampanhas";
 
 interface CampaignReportProps {
   campaignData: CampaignData;
-  updateCampaignData: (field: keyof CampaignData, value: any) => void;
+  updateCampaignData: (field: keyof CampaignData, value: unknown) => void;
   isViewMode?: boolean;
 }
 
@@ -164,7 +164,7 @@ export function CampaignReport({ campaignData, isViewMode = false }: CampaignRep
                 <div>
                   <h6 className="text-sm font-medium text-primary mb-2">Segmentações por Conjunto</h6>
                   <div className="space-y-2">
-                    {configuration.adSets.map((adSet: any, index: number) => (
+                    {configuration.adSets.map((adSet: unknown, index: number) => (
                       <div key={index} className="border-l-2 border-primary/30 pl-3">
                         <div className="text-sm font-medium">{adSet.name}</div>
                         <div className="text-xs text-muted-foreground">

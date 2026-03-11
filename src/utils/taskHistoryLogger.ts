@@ -22,7 +22,7 @@ export async function logTaskHistoryEntry(params: {
       .eq("user_id", user.id)
       .single();
 
-    await (supabase.from("task_history" as any) as any).insert({
+    await (supabase.from("task_history" as unknown) as unknown).insert({
       task_id: params.taskId,
       company_id: params.companyId,
       user_id: user.id,

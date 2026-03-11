@@ -66,13 +66,13 @@ function LabeledEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition, t
   return (
     <>
       <BaseEdge path={edgePath} markerEnd={markerEnd} id={id} />
-      {(data as any)?.label && (
+      {(data as unknown)?.label && (
         <EdgeLabelRenderer>
           <div
             style={{ position: "absolute", transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`, pointerEvents: "all" }}
             className="bg-card border rounded px-2 py-0.5 text-xs text-muted-foreground shadow-sm"
           >
-            {(data as any).label}
+            {(data as unknown).label}
           </div>
         </EdgeLabelRenderer>
       )}
@@ -154,7 +154,7 @@ function SquadEditorContent() {
           type: "labeled",
           data: { label: f.label || "" },
           animated: true,
-          markerEnd: { type: "arrowclosed" as any },
+          markerEnd: { type: "arrowclosed" as unknown },
         }));
 
         setNodes(loadedNodes);
@@ -175,7 +175,7 @@ function SquadEditorContent() {
         type: "labeled",
         data: { label: "" },
         animated: true,
-        markerEnd: { type: "arrowclosed" as any },
+        markerEnd: { type: "arrowclosed" as unknown },
       };
       setEdges((eds) => addEdge(newEdge, eds));
     },
@@ -215,7 +215,7 @@ function SquadEditorContent() {
     [handleOpenEditPanel, setNodes, screenToFlowPosition]
   );
 
-  const onDragStart = (event: React.DragEvent, agent: any) => {
+  const onDragStart = (event: React.DragEvent, agent: unknown) => {
     event.dataTransfer.setData("application/squad-agent", JSON.stringify(agent));
     event.dataTransfer.effectAllowed = "move";
   };
@@ -252,7 +252,7 @@ function SquadEditorContent() {
       const flows = edges.map((e) => ({
         source_member_id: e.source,
         target_member_id: e.target,
-        label: (e.data as any)?.label || "",
+        label: (e.data as unknown)?.label || "",
       }));
 
       await saveSquadLayout(squadId, members, flows);
@@ -346,7 +346,7 @@ function SquadEditorContent() {
             }}
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
-            defaultEdgeOptions={{ type: "labeled", animated: true, markerEnd: { type: "arrowclosed" as any } }}
+            defaultEdgeOptions={{ type: "labeled", animated: true, markerEnd: { type: "arrowclosed" as unknown } }}
             fitView
             minZoom={0.2}
             maxZoom={2}

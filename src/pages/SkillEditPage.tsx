@@ -183,7 +183,7 @@ export default function SkillEditPage() {
 
       setForm(updatedForm);
       if (isNew) navigate(`/ia/skills/${updatedForm.id}/edit`, { replace: true });
-    } catch (err: any) {
+    } catch (err: unknown) {
       const currentRunning = steps.find(s => s.status === "running");
       if (currentRunning) {
         setDeploySteps(prev => prev.map(s => 
@@ -201,7 +201,7 @@ export default function SkillEditPage() {
     try {
       await deleteSkill(form.id);
       navigate("/ia/skills");
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error("Erro ao remover: " + err.message);
     }
   };
@@ -400,7 +400,7 @@ export default function SkillEditPage() {
         <TabsContent value="api">
           <SkillExternalApiConfig
             config={(form.external_api_config as unknown as ExternalApiConfig) || null}
-            onChange={(config) => update("external_api_config", config as any)}
+            onChange={(config) => update("external_api_config", config as unknown)}
           />
         </TabsContent>
 

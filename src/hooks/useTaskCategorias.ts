@@ -31,7 +31,7 @@ export function useTaskCategorias() {
     queryFn: async () => {
       if (!companyId) return [];
       const { data, error } = await supabase
-        .from('task_categorias' as any)
+        .from('task_categorias' as unknown)
         .select('*')
         .eq('company_id', companyId)
         .order('nome');
@@ -45,7 +45,7 @@ export function useTaskCategorias() {
     mutationFn: async (nome: string) => {
       if (!companyId || !user) throw new Error('Sem empresa/usuário');
       const { data, error } = await supabase
-        .from('task_categorias' as any)
+        .from('task_categorias' as unknown)
         .insert({ company_id: companyId, nome, created_by: user.id })
         .select()
         .single();
@@ -64,7 +64,7 @@ export function useTaskCategorias() {
     queryFn: async () => {
       if (!companyId) return [];
       const { data, error } = await supabase
-        .from('task_classificacoes' as any)
+        .from('task_classificacoes' as unknown)
         .select('*')
         .eq('company_id', companyId)
         .order('nome');
@@ -78,7 +78,7 @@ export function useTaskCategorias() {
     mutationFn: async (nome: string) => {
       if (!companyId || !user) throw new Error('Sem empresa/usuário');
       const { data, error } = await supabase
-        .from('task_classificacoes' as any)
+        .from('task_classificacoes' as unknown)
         .insert({ company_id: companyId, nome, created_by: user.id })
         .select()
         .single();

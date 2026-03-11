@@ -85,7 +85,7 @@ export function useYouTubeChannels(clientId: string, companyId: string) {
 
       await fetchChannels();
       return data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error adding channel:', error);
       toast({
         title: 'Erro ao adicionar canal',
@@ -123,7 +123,7 @@ export function useYouTubeChannels(clientId: string, companyId: string) {
 
       await fetchChannels();
       return data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error refreshing channel:', error);
       toast({
         title: 'Erro ao atualizar canal',

@@ -8,21 +8,13 @@ import type { CampaignData } from "@/pages/GeradorCampanhas";
 
 interface CampaignConfigurationProps {
   campaignData: CampaignData;
-  updateCampaignData: (field: keyof CampaignData, value: any) => void;
+  updateCampaignData: (field: keyof CampaignData, value: unknown) => void;
 }
 
 export function CampaignConfiguration({ campaignData, updateCampaignData }: CampaignConfigurationProps) {
   const [loading, setLoading] = useState(false);
-  const [configuration, setConfiguration] = useState<any>(null);
+  const [configuration, setConfiguration] = useState<unknown>(null);
   const { toast } = useToast();
-
-  if (!campaignData.client || !campaignData.funnelStage || !campaignData.campaignType) {
-    return (
-      <div className="text-center py-8 text-muted-foreground">
-        Complete as etapas anteriores para continuar.
-      </div>
-    );
-  }
 
   const generateConfiguration = async () => {
     setLoading(true);
@@ -59,6 +51,14 @@ export function CampaignConfiguration({ campaignData, updateCampaignData }: Camp
       generateConfiguration();
     }
   }, [campaignData.client, campaignData.funnelStage, campaignData.campaignType]);
+
+  if (!campaignData.client || !campaignData.funnelStage || !campaignData.campaignType) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        Complete as etapas anteriores para continuar.
+      </div>
+    );
+  }
 
   if (loading) {
     return (

@@ -32,7 +32,7 @@ export function WhatsAppAIAgentConfigModal({ isOpen, onClose, companyId, instanc
     }
   }, [config, isLoading]);
 
-  const handleChange = (field: string, value: any) => {
+  const handleChange = (field: string, value: unknown) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,

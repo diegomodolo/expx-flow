@@ -43,7 +43,7 @@ export function CSNewTouchpointModal({ open, onOpenChange, clientId, clientName,
 
     createTouchpoint.mutate({
       clientId,
-      touchpointType: type as any,
+      touchpointType: type as unknown,
       summary,
       nextAction: nextAction || undefined,
       nextActionDate: nextActionDate || undefined,

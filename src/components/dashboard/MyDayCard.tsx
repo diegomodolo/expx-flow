@@ -83,7 +83,7 @@ export function MyDayCard() {
       const { error } = await supabase
         .from("tasks")
         .update({
-          status: "done" as any,
+          status: "done" as unknown,
           completed_at: new Date().toISOString(),
         })
         .eq("id", taskId);

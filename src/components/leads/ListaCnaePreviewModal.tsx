@@ -151,7 +151,7 @@ export const ListaCnaePreviewModal = ({
       
       toast.success(`Segmento criado com ${result.imported || 0} leads importados!`);
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Import error:", error);
       toast.error(error.message || "Erro ao criar segmento e importar leads");
       setIsImporting(false);

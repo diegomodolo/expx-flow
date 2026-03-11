@@ -81,7 +81,7 @@ export function AdSetEditContent({
   });
 
   // Parse targeting from node
-  const parseTargeting = useCallback((targeting: any) => {
+  const parseTargeting = useCallback((targeting: unknown) => {
     if (!targeting) return null;
     
     try {
@@ -113,9 +113,9 @@ export function AdSetEditContent({
         
         if (targeting.flexible_spec) {
           const parsedInterests: Interest[] = [];
-          targeting.flexible_spec.forEach((spec: any) => {
+          targeting.flexible_spec.forEach((spec: unknown) => {
             if (spec.interests) {
-              spec.interests.forEach((interest: any) => {
+              spec.interests.forEach((interest: unknown) => {
                 parsedInterests.push({
                   id: interest.id,
                   name: interest.name,
@@ -129,13 +129,13 @@ export function AdSetEditContent({
         }
         
         if (targeting.custom_audiences) {
-          setIncludedAudiences(targeting.custom_audiences.map((a: any) => a.id || a));
+          setIncludedAudiences(targeting.custom_audiences.map((a: unknown) => a.id || a));
         } else {
           setIncludedAudiences([]);
         }
         
         if (targeting.excluded_custom_audiences) {
-          setExcludedAudiences(targeting.excluded_custom_audiences.map((a: any) => a.id || a));
+          setExcludedAudiences(targeting.excluded_custom_audiences.map((a: unknown) => a.id || a));
         } else {
           setExcludedAudiences([]);
         }
@@ -148,7 +148,7 @@ export function AdSetEditContent({
         setExcludedAudiences([]);
       }
       
-      const nodeAny = node as any;
+      const nodeAny = node as unknown;
       setPixelId(nodeAny.pixelId || '');
       setConversionEvent(nodeAny.conversionEvent || '');
       setHasChanges(false);
@@ -171,7 +171,7 @@ export function AdSetEditContent({
     if (!clientId || !node) return;
 
     const platform = node.platform as 'meta' | 'google';
-    const facebookId = (node as any).facebookId;
+    const facebookId = (node as unknown).facebookId;
 
     const metaAction = async () => {
       if (platform === 'meta' && facebookId) {

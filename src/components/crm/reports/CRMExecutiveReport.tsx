@@ -222,7 +222,7 @@ export function CRMExecutiveReport({ workspaceId }: CRMExecutiveReportProps) {
                 <XAxis dataKey="name" />
                 <YAxis />
                 <Tooltip 
-                  formatter={(value: any) => formatCurrency(Number(value))}
+                  formatter={(value: unknown) => formatCurrency(Number(value))}
                 />
                 <Bar dataKey="revenue" fill="#22c55e" name="Receita" />
               </BarChart>

@@ -45,9 +45,9 @@ export default function RoteiroDetalhe() {
     );
   }
 
-  const Icon = (LucideIcons as any)[roteiro.icone || 'BookOpen'] || LucideIcons.BookOpen;
+  const Icon = (LucideIcons as unknown)[roteiro.icone || 'BookOpen'] || LucideIcons.BookOpen;
 
-  const handleUpdateRoteiro = (data: any) => {
+  const handleUpdateRoteiro = (data: unknown) => {
     updateRoteiro.mutate({ id: roteiro.id, ...data }, {
       onSuccess: () => setEditDialogOpen(false),
     });

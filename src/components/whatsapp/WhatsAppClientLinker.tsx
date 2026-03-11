@@ -99,7 +99,7 @@ export function WhatsAppClientLinker({
       } else {
         toast.success("Contato desvinculado do cliente");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("[WhatsAppClientLinker] Error updating client:", err);
       toast.error("Erro ao atualizar vinculação");
     } finally {

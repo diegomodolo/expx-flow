@@ -11,7 +11,7 @@ interface UseSaveWithProgressReturn {
   steps: SaveStep[];
   error: string | null;
   execute: (
-    metaAction: () => Promise<any>,
+    metaAction: () => Promise<unknown>,
     onSuccess?: () => Promise<void> | void
   ) => Promise<boolean>;
   close: () => void;
@@ -53,7 +53,7 @@ export function useSaveWithProgress(): UseSaveWithProgressReturn {
   }, []);
 
   const execute = useCallback(async (
-    metaAction: () => Promise<any>,
+    metaAction: () => Promise<unknown>,
     onSuccess?: () => Promise<void> | void
   ): Promise<boolean> => {
     setIsOpen(true);

@@ -189,7 +189,7 @@ export const PlannerSettingsModal: React.FC<PlannerSettingsModalProps> = ({
     }
   };
 
-  const handleDragEnd = async (result: any) => {
+  const handleDragEnd = async (result: unknown) => {
     if (!result.destination) return;
 
     const items = Array.from(timeSlots);

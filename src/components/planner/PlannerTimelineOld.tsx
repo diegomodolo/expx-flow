@@ -20,7 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 interface PlannerTimelineProps {
   selectedDate: Date;
   onDateChange: (date: Date) => void;
-  filteredTasks?: any[]; // Tarefas já filtradas pela página
+  filteredTasks?: unknown[]; // Tarefas já filtradas pela página
 }
 
 export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({ 
@@ -40,7 +40,7 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [selectedSlotId, setSelectedSlotId] = useState<string>("");
-  const [editingTask, setEditingTask] = useState<any>(null);
+  const [editingTask, setEditingTask] = useState<unknown>(null);
 
   // Hook para organização com IA
   const {
@@ -53,7 +53,7 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
   } = useTaskOrganizer();
 
   // Função personalizada para obter tarefas por slot usando tarefas filtradas
-  const getFilteredTasksBySlot = (timeSlot: any) => {
+  const getFilteredTasksBySlot = (timeSlot: unknown) => {
     const plannedDateStr = selectedDate.toISOString().split('T')[0];
     
     const filteredTasks = tasks.filter(task => {
@@ -156,7 +156,7 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
     }
   };
 
-  const handleCreateTask = async (taskData: any) => {
+  const handleCreateTask = async (taskData: unknown) => {
     try {
       if (editingTask) {
         await updateTask(editingTask.id, taskData);
@@ -218,7 +218,7 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
     setTaskDialogOpen(true);
   };
 
-  const handleEditTask = (task: any) => {
+  const handleEditTask = (task: unknown) => {
     setEditingTask(task);
     setTaskDialogOpen(true);
   };

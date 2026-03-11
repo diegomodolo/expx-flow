@@ -50,10 +50,10 @@ export function useRSSKnowledge(configId: string) {
     queryKey: ['rss-feeds', configId],
     queryFn: async () => {
       const { data, error } = await (supabase
-        .from('instagram_autopost_rss_feeds' as any)
+        .from('instagram_autopost_rss_feeds' as unknown)
         .select('*')
         .eq('config_id', configId)
-        .order('created_at', { ascending: false }) as any);
+        .order('created_at', { ascending: false }) as unknown);
 
       if (error) throw error;
       return data as RSSFeed[];
@@ -66,10 +66,10 @@ export function useRSSKnowledge(configId: string) {
     queryKey: ['rss-items', configId],
     queryFn: async () => {
       const { data, error } = await (supabase
-        .from('instagram_autopost_rss_items' as any)
+        .from('instagram_autopost_rss_items' as unknown)
         .select('*')
         .eq('config_id', configId)
-        .order('published_at', { ascending: false }) as any);
+        .order('published_at', { ascending: false }) as unknown);
 
       if (error) throw error;
       return data as RSSItem[];
@@ -94,7 +94,7 @@ export function useRSSKnowledge(configId: string) {
       
       // Insert feed
       const { data: insertedFeed, error: insertError } = await (supabase
-        .from('instagram_autopost_rss_feeds' as any)
+        .from('instagram_autopost_rss_feeds' as unknown)
         .insert({
           config_id: configId,
           feed_url: feedUrl,
@@ -103,7 +103,7 @@ export function useRSSKnowledge(configId: string) {
           created_by: user?.id
         })
         .select()
-        .single() as any);
+        .single() as unknown);
 
       if (insertError) throw insertError;
 
@@ -124,7 +124,7 @@ export function useRSSKnowledge(configId: string) {
       queryClient.invalidateQueries({ queryKey: ['rss-items', configId] });
       toast.success('Feed RSS adicionado com sucesso');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error('Erro ao adicionar feed', { description: error.message });
     }
   });
@@ -134,15 +134,15 @@ export function useRSSKnowledge(configId: string) {
     mutationFn: async (feedId: string) => {
       // First delete all items from this feed
       await (supabase
-        .from('instagram_autopost_rss_items' as any)
+        .from('instagram_autopost_rss_items' as unknown)
         .delete()
-        .eq('feed_id', feedId) as any);
+        .eq('feed_id', feedId) as unknown);
 
       // Then delete the feed
       const { error } = await (supabase
-        .from('instagram_autopost_rss_feeds' as any)
+        .from('instagram_autopost_rss_feeds' as unknown)
         .delete()
-        .eq('id', feedId) as any);
+        .eq('id', feedId) as unknown);
 
       if (error) throw error;
     },
@@ -151,7 +151,7 @@ export function useRSSKnowledge(configId: string) {
       queryClient.invalidateQueries({ queryKey: ['rss-items', configId] });
       toast.success('Feed RSS removido');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error('Erro ao remover feed', { description: error.message });
     }
   });
@@ -160,9 +160,9 @@ export function useRSSKnowledge(configId: string) {
   const toggleFeedMutation = useMutation({
     mutationFn: async ({ feedId, isEnabled }: { feedId: string; isEnabled: boolean }) => {
       const { error } = await (supabase
-        .from('instagram_autopost_rss_feeds' as any)
+        .from('instagram_autopost_rss_feeds' as unknown)
         .update({ is_enabled: isEnabled })
-        .eq('id', feedId) as any);
+        .eq('id', feedId) as unknown);
 
       if (error) throw error;
     },
@@ -175,9 +175,9 @@ export function useRSSKnowledge(configId: string) {
   const toggleItemMutation = useMutation({
     mutationFn: async ({ itemId, isSelected }: { itemId: string; isSelected: boolean }) => {
       const { error } = await (supabase
-        .from('instagram_autopost_rss_items' as any)
+        .from('instagram_autopost_rss_items' as unknown)
         .update({ is_selected: isSelected })
-        .eq('id', itemId) as any);
+        .eq('id', itemId) as unknown);
 
       if (error) throw error;
     },
@@ -199,15 +199,15 @@ export function useRSSKnowledge(configId: string) {
       carouselImages?: number;
       autoGenerate?: boolean;
     }) => {
-      const updateData: Record<string, any> = {};
+      const updateData: Record<string, unknown> = {};
       if (postType !== undefined) updateData.post_type = postType;
       if (carouselImages !== undefined) updateData.carousel_images = carouselImages;
       if (autoGenerate !== undefined) updateData.auto_generate = autoGenerate;
 
       const { error } = await (supabase
-        .from('instagram_autopost_rss_feeds' as any)
+        .from('instagram_autopost_rss_feeds' as unknown)
         .update(updateData)
-        .eq('id', feedId) as any);
+        .eq('id', feedId) as unknown);
 
       if (error) throw error;
     },
@@ -215,7 +215,7 @@ export function useRSSKnowledge(configId: string) {
       queryClient.invalidateQueries({ queryKey: ['rss-feeds', configId] });
       toast.success('Configuração atualizada');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error('Erro ao atualizar configuração', { description: error.message });
     }
   });
@@ -236,7 +236,7 @@ export function useRSSKnowledge(configId: string) {
       queryClient.invalidateQueries({ queryKey: ['rss-items', configId] });
       toast.success('Post gerado com sucesso!');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error('Erro ao gerar post', { description: error.message });
     }
   });
@@ -262,7 +262,7 @@ export function useRSSKnowledge(configId: string) {
         toast.info('Nenhum novo item encontrado');
       }
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error('Erro ao atualizar feeds', { description: error.message });
     }
   });

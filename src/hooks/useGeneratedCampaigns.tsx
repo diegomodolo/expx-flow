@@ -12,8 +12,8 @@ export interface GeneratedCampaign {
   title: string;
   funnel_stage: string;
   campaign_type: string;
-  configuration: any;
-  creatives: any;
+  configuration: unknown;
+  creatives: unknown;
   status: string;
   created_at: string;
   updated_at: string;
@@ -27,11 +27,11 @@ export interface GeneratedCampaign {
 }
 
 export interface CampaignData {
-  client: any;
+  client: unknown;
   funnelStage: string;
   campaignType: string;
-  configuration: any;
-  creatives: any;
+  configuration: unknown;
+  creatives: unknown;
 }
 
 export const useGeneratedCampaigns = () => {

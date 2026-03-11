@@ -106,14 +106,14 @@ export function AutopilotPublishHistory() {
 
         // Criar mapa de schedules por client_id
         const scheduleMap = new Map();
-        (schedulesData || []).forEach((s: any) => {
+        (schedulesData || []).forEach((s: unknown) => {
           scheduleMap.set(s.client_id, {
             campaign: s.campaigns,
             adset: s.ad_sets
           });
         });
 
-        const formattedData: PublishedAd[] = (adsData || []).map((item: any) => {
+        const formattedData: PublishedAd[] = (adsData || []).map((item: unknown) => {
           const scheduleInfo = scheduleMap.get(item.client_id) || {};
           
           return {
@@ -122,7 +122,7 @@ export function AutopilotPublishHistory() {
             generated_content: item.generated_content as PublishedAd["generated_content"],
             quality_score: item.quality_score,
             meta_ad_id: item.meta_ad_id,
-            client: item.clients as any,
+            client: item.clients as unknown,
             campaign: scheduleInfo.campaign || null,
             adset: scheduleInfo.adset || null,
           };

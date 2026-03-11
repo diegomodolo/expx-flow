@@ -227,13 +227,13 @@ export function ApprovalDestinationDialogV2({
 
       if (scheduleData) {
         setAdConfig(prev => ({
-          destination_url: (scheduleData as any).default_destination_url || prev.destination_url,
-          primary_text: prev.primary_text || (scheduleData as any).default_primary_text || "",
-          headline: prev.headline || (scheduleData as any).default_headline || "",
-          description: prev.description || (scheduleData as any).default_description || "",
-          cta: (scheduleData as any).default_cta || prev.cta,
-          pixel_id: (scheduleData as any).default_pixel_id || prev.pixel_id,
-          url_params: (scheduleData as any).default_url_params || prev.url_params,
+          destination_url: (scheduleData as unknown).default_destination_url || prev.destination_url,
+          primary_text: prev.primary_text || (scheduleData as unknown).default_primary_text || "",
+          headline: prev.headline || (scheduleData as unknown).default_headline || "",
+          description: prev.description || (scheduleData as unknown).default_description || "",
+          cta: (scheduleData as unknown).default_cta || prev.cta,
+          pixel_id: (scheduleData as unknown).default_pixel_id || prev.pixel_id,
+          url_params: (scheduleData as unknown).default_url_params || prev.url_params,
         }));
 
         // Load saved destinations from the schedule
@@ -253,7 +253,7 @@ export function ApprovalDestinationDialogV2({
           // Group by campaign
           const destinationMap: Record<string, SelectedDestination> = {};
           
-          destinationsData.forEach((dest: any) => {
+          destinationsData.forEach((dest: unknown) => {
             const campaignId = dest.campaign_id;
             const campaignName = dest.campaigns?.name || '';
             const adSetId = dest.adset_id;
@@ -391,7 +391,7 @@ export function ApprovalDestinationDialogV2({
     try {
       await onApprove(destinationsWithAdSets, adConfig);
       onOpenChange(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error publishing:', error);
       toast.error('Erro ao publicar: ' + error.message);
     } finally {

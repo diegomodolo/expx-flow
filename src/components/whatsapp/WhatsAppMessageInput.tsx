@@ -121,7 +121,7 @@ export function WhatsAppMessageInput({
         setRecordingDuration(prev => prev + 1);
       }, 1000);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("[WhatsAppMessageInput] Recording error:", error);
       if (error.name === 'NotAllowedError') {
         toast.error("Permissão para microfone negada. Por favor, permita o acesso ao microfone.");

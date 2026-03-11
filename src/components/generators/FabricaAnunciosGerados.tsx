@@ -173,7 +173,7 @@ export function FabricaAnunciosGerados({ clientId }: Props) {
 
       setDialogOpen(false);
       refetch();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error generating ad:', error);
       toast.error('Erro ao gerar anúncio: ' + (error.message || 'Erro desconhecido'));
     } finally {
@@ -241,7 +241,7 @@ export function FabricaAnunciosGerados({ clientId }: Props) {
 
       toast.success(`Status atualizado!`);
       refetch();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error updating status:', error);
       toast.error('Erro ao atualizar status');
     }

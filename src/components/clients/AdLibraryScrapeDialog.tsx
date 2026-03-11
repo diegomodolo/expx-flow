@@ -83,7 +83,7 @@ export const AdLibraryScrapeDialog = ({ competitor, onAdsAdded }: AdLibraryScrap
       setScrapedAds(data.ads || []);
       
       // Selecionar todos os anúncios por padrão
-      setSelectedAds(new Set(data.ads?.map((_: any, index: number) => index) || []));
+      setSelectedAds(new Set(data.ads?.map((_: unknown, index: number) => index) || []));
       
       // Save the URL automatically after successful scrape
       if (adLibraryUrl) {

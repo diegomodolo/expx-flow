@@ -221,7 +221,7 @@ export function WhatsAppAudioPlayer({
       }
 
       console.log("[WhatsAppAudioPlayer] Audio ready, cached:", !!cachedUrl);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("[WhatsAppAudioPlayer] Error loading audio:", err);
       setError("Erro ao carregar áudio");
     } finally {

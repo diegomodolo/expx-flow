@@ -55,7 +55,7 @@ export function useWhatsAppLabels(companyId: string | undefined, instanceId: str
 
       // Normalize the labels data
       const labelsArray = Array.isArray(data.labels) ? data.labels : [];
-      return labelsArray.map((label: any) => ({
+      return labelsArray.map((label: unknown) => ({
         id: label.id || label.labelid || String(label),
         name: label.name || "Sem nome",
         color: typeof label.color === "number" ? label.color : 0,
@@ -84,7 +84,7 @@ export function useWhatsAppLabels(companyId: string | undefined, instanceId: str
 
       toast.success("Etiqueta adicionada");
       return true;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("[useWhatsAppLabels] Add label error:", err);
       toast.error(err.message || "Erro ao adicionar etiqueta");
       return false;
@@ -109,7 +109,7 @@ export function useWhatsAppLabels(companyId: string | undefined, instanceId: str
 
       toast.success("Etiqueta removida");
       return true;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("[useWhatsAppLabels] Remove label error:", err);
       toast.error(err.message || "Erro ao remover etiqueta");
       return false;
@@ -134,7 +134,7 @@ export function useWhatsAppLabels(companyId: string | undefined, instanceId: str
 
       toast.success("Etiquetas atualizadas");
       return true;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("[useWhatsAppLabels] Set labels error:", err);
       toast.error(err.message || "Erro ao atualizar etiquetas");
       return false;
@@ -161,7 +161,7 @@ export function useWhatsAppLabels(companyId: string | undefined, instanceId: str
       toast.success("Etiqueta atualizada");
       queryClient.invalidateQueries({ queryKey: ["whatsapp-labels", companyId, instanceId] });
       return true;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("[useWhatsAppLabels] Edit label error:", err);
       toast.error(err.message || "Erro ao editar etiqueta");
       return false;
@@ -187,7 +187,7 @@ export function useWhatsAppLabels(companyId: string | undefined, instanceId: str
       toast.success("Etiqueta deletada");
       queryClient.invalidateQueries({ queryKey: ["whatsapp-labels", companyId, instanceId] });
       return true;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("[useWhatsAppLabels] Delete label error:", err);
       toast.error(err.message || "Erro ao deletar etiqueta");
       return false;

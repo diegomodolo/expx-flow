@@ -32,7 +32,7 @@ export const useClientNotes = (clientId: string) => {
     try {
       setLoading(true);
       setError(null);
-      const { data, error } = await (supabase as any)
+      const { data, error } = await (supabase as unknown)
         .from("client_notes")
         .select("*")
         .eq("client_id", clientId)
@@ -42,7 +42,7 @@ export const useClientNotes = (clientId: string) => {
       if (error) throw error;
       setNotes((data || []) as ClientNote[]);
 
-      const userIds: string[] = Array.from(new Set(((data || []) as any[]).map((n: any) => n.user_id as string)));
+      const userIds: string[] = Array.from(new Set(((data || []) as unknown[]).map((n: unknown) => n.user_id as string)));
       if (userIds.length) {
         const { data: profiles, error: profilesError } = await supabase
           .from("profiles")
@@ -50,14 +50,14 @@ export const useClientNotes = (clientId: string) => {
           .in("user_id", userIds as string[]);
         if (profilesError) throw profilesError;
         const map: ProfilesMap = {};
-        (profiles || []).forEach((p: any) => {
+        (profiles || []).forEach((p: unknown) => {
           map[p.user_id] = { full_name: p.full_name, avatar_url: p.avatar_url };
         });
         setProfilesByUserId(map);
       } else {
         setProfilesByUserId({});
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("Erro ao buscar anotações:", e);
       setError(e.message || "Erro ao buscar anotações");
     } finally {
@@ -68,7 +68,7 @@ export const useClientNotes = (clientId: string) => {
   const addNote = useCallback(
     async (content: string) => {
       if (!user?.id || !activeCompany?.company_id || !clientId) return;
-      const { error } = await (supabase as any).from("client_notes").insert({
+      const { error } = await (supabase as unknown).from("client_notes").insert({
         client_id: clientId,
         company_id: activeCompany.company_id,
         user_id: user.id,
@@ -82,7 +82,7 @@ export const useClientNotes = (clientId: string) => {
 
   const deleteNote = useCallback(
     async (noteId: string) => {
-      const { error } = await (supabase as any).from("client_notes").delete().eq("id", noteId);
+      const { error } = await (supabase as unknown).from("client_notes").delete().eq("id", noteId);
       if (error) throw error;
       await fetchNotes();
     },

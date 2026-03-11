@@ -62,7 +62,7 @@ export const FacebookCallback = () => {
           setStatus('error');
           setMessage('Falha ao processar a conexão');
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Callback processing error:', error);
         setStatus('error');
         setMessage(error.message || 'Erro inesperado');

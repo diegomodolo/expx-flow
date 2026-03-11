@@ -57,7 +57,7 @@ export default function GroupOpsMembersList() {
       if (error) throw error;
       const map: Record<string, { name: string; avatar: string | null }> = {};
       for (const row of (data || [])) {
-        const client = row.clients as any;
+        const client = row.clients as unknown;
         if (row.phone && client) {
           map[row.phone] = { name: client.name, avatar: client.avatar };
         }
@@ -88,7 +88,7 @@ export default function GroupOpsMembersList() {
   const groupMap = useMemo(() => {
     const map: Record<string, { name: string; avatar?: string | null; profile_pic?: string | null }> = {};
     for (const g of groups) {
-      map[g.id] = { name: g.name, avatar: (g as any).avatar_url, profile_pic: g.config_json?.profile_pic };
+      map[g.id] = { name: g.name, avatar: (g as unknown).avatar_url, profile_pic: g.config_json?.profile_pic };
     }
     return map;
   }, [groups]);
@@ -134,7 +134,7 @@ export default function GroupOpsMembersList() {
       });
       if (error) throw error;
       toast.success(`${data?.synced || 0} membro(s) sincronizado(s)`);
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(err.message || 'Erro ao sincronizar membros');
     } finally {
       setSyncing(false);
@@ -160,11 +160,11 @@ export default function GroupOpsMembersList() {
       await supabase.from('whatsapp_client_contacts').delete().eq('company_id', companyId).eq('phone', phone);
       const { error } = await supabase
         .from('whatsapp_client_contacts')
-        .insert({ company_id: companyId, client_id: clientId, phone, contact_name: memberName || phone, is_active: true } as any);
+        .insert({ company_id: companyId, client_id: clientId, phone, contact_name: memberName || phone, is_active: true } as unknown);
       if (error) throw error;
       toast.success(`Número associado a ${clientName}`);
       queryClient.invalidateQueries({ queryKey: ['groupops-client-matches'] });
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(err.message || 'Erro ao associar cliente');
     } finally {
       setLinkingMemberId(null);
@@ -337,7 +337,7 @@ export default function GroupOpsMembersList() {
                 <TableBody>
                   {paginatedMembers.map((mm) => {
                     const m = mm.primary;
-                    const profilePic = (m.privacy_flags as any)?.profile_pic || null;
+                    const profilePic = (m.privacy_flags as unknown)?.profile_pic || null;
                     const match = m.phone_e164 ? clientMap[m.phone_e164] : null;
 
                     return (
@@ -683,7 +683,7 @@ function AddMembersDialog({
         tags: [],
       }));
 
-      const { error: memberErr } = await supabase.from('groupops_members').insert(memberInserts as any);
+      const { error: memberErr } = await supabase.from('groupops_members').insert(memberInserts as unknown);
       if (memberErr) throw memberErr;
 
       // Associate phones with client
@@ -699,7 +699,7 @@ function AddMembersDialog({
       for (const phone of validPhones) {
         await supabase.from('whatsapp_client_contacts').delete().eq('company_id', companyId).eq('phone', phone);
       }
-      const { error: contactErr } = await supabase.from('whatsapp_client_contacts').insert(contactInserts as any);
+      const { error: contactErr } = await supabase.from('whatsapp_client_contacts').insert(contactInserts as unknown);
       if (contactErr) throw contactErr;
 
       toast.success(`${validPhones.length} membro(s) adicionado(s) ao grupo`);
@@ -709,7 +709,7 @@ function AddMembersDialog({
       setSelectedClientId('');
       setPhones(['']);
       setClientSearch('');
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(err.message || 'Erro ao adicionar membros');
     } finally {
       setSaving(false);
@@ -888,7 +888,7 @@ function RemoveCompanyDialog({
       // Update status to 'banned' (removed from group)
       const { error } = await supabase
         .from('groupops_members')
-        .update({ status: 'banned' } as any)
+        .update({ status: 'banned' } as unknown)
         .in('id', idsToRemove)
         .eq('group_id', groupId);
 
@@ -898,7 +898,7 @@ function RemoveCompanyDialog({
       onSuccess();
       onOpenChange(false);
       setSelectedClientName('');
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(err.message || 'Erro ao remover membros');
     } finally {
       setRemoving(false);

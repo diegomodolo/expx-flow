@@ -96,7 +96,7 @@ export const LeadDetailModal = ({ lead, open, onOpenChange, companyId }: LeadDet
 
   const renderSectionContent = () => {
     switch (activeSection) {
-      case 'score':
+      case 'score': {
         const scoreResult = calculateScore(formData);
         return (
           <div className="space-y-6">
@@ -128,6 +128,7 @@ export const LeadDetailModal = ({ lead, open, onOpenChange, companyId }: LeadDet
             </div>
           </div>
         );
+      }
       case 'contato':
         return (
           <div className="space-y-6">

@@ -105,7 +105,7 @@ export function FabricaConfiguracoesAvancadas({ clientId, scheduleId, config, on
 
       if (error) throw error;
 
-      const destinations: ScheduleDestination[] = (data || []).map((d: any) => ({
+      const destinations: ScheduleDestination[] = (data || []).map((d: unknown) => ({
         id: d.id,
         campaign_id: d.campaign_id,
         campaign_name: d.campaigns?.name,
@@ -250,7 +250,7 @@ export function FabricaConfiguracoesAvancadas({ clientId, scheduleId, config, on
       }
 
       toast.success('Destinos salvos com sucesso!');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error saving destinations:', error);
       toast.error('Erro ao salvar destinos: ' + error.message);
     } finally {
@@ -312,7 +312,7 @@ export function FabricaConfiguracoesAvancadas({ clientId, scheduleId, config, on
 
       setReferenceImage(index, publicUrl);
       toast.success('Imagem enviada com sucesso!');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error uploading image:', error);
       toast.error('Erro ao enviar imagem: ' + error.message);
     } finally {

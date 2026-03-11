@@ -15,8 +15,8 @@ export interface CampaignData {
   client: Client | null;
   funnelStage: FunnelStage | null;
   campaignType: CampaignType | null;
-  configuration: any;
-  creatives: any[];
+  configuration: unknown;
+  creatives: unknown[];
 }
 
 const GeradorCampanhas = () => {
@@ -25,7 +25,7 @@ const GeradorCampanhas = () => {
   const { getCampaign } = useGeneratedCampaigns();
   
   const [mode, setMode] = useState<'list' | 'generator' | 'edit'>('list');
-  const [existingCampaign, setExistingCampaign] = useState<any>(null);
+  const [existingCampaign, setExistingCampaign] = useState<unknown>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {

@@ -233,7 +233,7 @@ export function RecurringTaskDialog({
               <Label>Prioridade</Label>
               <Select
                 value={formData.priority}
-                onValueChange={(value) => setFormData({ ...formData, priority: value as any })}
+                onValueChange={(value) => setFormData({ ...formData, priority: value as unknown })}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -327,7 +327,7 @@ export function RecurringTaskDialog({
                 <Label>Frequência</Label>
                 <Select
                   value={formData.recurrence_type}
-                  onValueChange={(value) => setFormData({ ...formData, recurrence_type: value as any })}
+                  onValueChange={(value) => setFormData({ ...formData, recurrence_type: value as unknown })}
                 >
                   <SelectTrigger>
                     <SelectValue />

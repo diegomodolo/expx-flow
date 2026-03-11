@@ -72,7 +72,7 @@ export function WhatsAppReactionPicker({
       } else {
         throw new Error(data?.error || "Erro ao enviar reação");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("[WhatsAppReactionPicker] Error:", err);
       toast.error(err.message || "Erro ao enviar reação");
     } finally {

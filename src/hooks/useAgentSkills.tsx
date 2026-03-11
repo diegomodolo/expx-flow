@@ -75,7 +75,7 @@ export function useAgentSkills(agentId: string) {
           return next;
         });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error("Erro ao atualizar skill: " + err.message);
     }
   };

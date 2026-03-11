@@ -35,7 +35,7 @@ export default function SkillsPage() {
         .select("skill_id");
       if (data) {
         const counts: Record<string, number> = {};
-        data.forEach((row: any) => {
+        data.forEach((row: unknown) => {
           counts[row.skill_id] = (counts[row.skill_id] || 0) + 1;
         });
         setAgentCounts(counts);

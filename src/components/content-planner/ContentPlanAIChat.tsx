@@ -75,7 +75,7 @@ export function ContentPlanAIChat({
           }))
         );
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error loading chat history:", error);
     } finally {
       setIsLoadingHistory(false);
@@ -105,7 +105,7 @@ export function ContentPlanAIChat({
 
       if (error) throw error;
       return data?.id || null;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error saving message:", error);
       return null;
     }
@@ -125,7 +125,7 @@ export function ContentPlanAIChat({
 
       setMessages([]);
       toast.success("Histórico limpo");
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error("Erro ao limpar histórico: " + error.message);
     }
   };
@@ -181,7 +181,7 @@ export function ContentPlanAIChat({
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error("Erro ao comunicar com a IA: " + error.message);
     } finally {
       setIsLoading(false);

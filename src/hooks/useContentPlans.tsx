@@ -23,7 +23,7 @@ export interface ContentPlanPost {
   headline: string | null;
   subheadline: string | null;
   caption: string | null;
-  script: any | null;
+  script: unknown | null;
   scheduled_date: string | null;
   status: "rascunho" | "finalizado" | "enviado_criativo";
   image_url: string | null;
@@ -32,7 +32,7 @@ export interface ContentPlanPost {
   reviewed_at: string | null;
   reels_uploaded_video_url?: string | null;
   reels_generation_status?: string | null;
-  reels_generation_progress?: any | null;
+  reels_generation_progress?: unknown | null;
   reels_cover_url?: string | null;
   created_at: string;
   updated_at: string;
@@ -150,8 +150,8 @@ export function useContentPlans(clientId?: string) {
 
     // Fetch slides for carousel posts
     const carouselPostIds = posts
-      ?.filter((p: any) => p.post_type === "carrossel")
-      .map((p: any) => p.id) || [];
+      ?.filter((p: unknown) => p.post_type === "carrossel")
+      .map((p: unknown) => p.id) || [];
 
     let slides: ContentPlanSlide[] = [];
     if (carouselPostIds.length > 0) {
@@ -163,14 +163,14 @@ export function useContentPlans(clientId?: string) {
         .order("created_at", { ascending: true });
 
       if (slidesError) throw slidesError;
-      slides = (slidesData || []).map((s: any) => ({
+      slides = (slidesData || []).map((s: unknown) => ({
         ...s,
         image_url: s.image_url || null,
       })) as ContentPlanSlide[];
     }
 
     // Attach slides to their respective posts
-    const postsWithSlides = posts?.map((post: any) => ({
+    const postsWithSlides = posts?.map((post: unknown) => ({
       ...post,
       slides: slides.filter((s) => s.post_id === post.id),
     }));
@@ -206,7 +206,7 @@ export function useContentPlans(clientId?: string) {
       queryClient.invalidateQueries({ queryKey: ["content-plans"] });
       toast.success("Planejamento criado com sucesso!");
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error("Erro ao criar planejamento: " + error.message);
     },
   });
@@ -231,7 +231,7 @@ export function useContentPlans(clientId?: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["content-plans"] });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error("Erro ao atualizar planejamento: " + error.message);
     },
   });
@@ -250,7 +250,7 @@ export function useContentPlans(clientId?: string) {
       queryClient.invalidateQueries({ queryKey: ["content-plans"] });
       toast.success("Planejamento excluído com sucesso!");
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error("Erro ao excluir planejamento: " + error.message);
     },
   });
@@ -278,7 +278,7 @@ export function useContentPlans(clientId?: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["content-plan-detail"] });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error("Erro ao adicionar post: " + error.message);
     },
   });
@@ -313,7 +313,7 @@ export function useContentPlans(clientId?: string) {
       queryClient.invalidateQueries({ queryKey: ["content-plan-detail"] });
       toast.success("Post excluído!");
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error("Erro ao excluir post: " + error.message);
     },
   });

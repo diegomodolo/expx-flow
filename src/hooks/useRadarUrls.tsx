@@ -127,7 +127,7 @@ export function useRadarUrls(filters: UrlFilters = {}) {
 
       if (error) throw error;
 
-      return (data || []).map((url: any) => ({
+      return (data || []).map((url: unknown) => ({
         ...url,
         client_name: url.clients?.name || 'Unknown',
         client_is_canceled: url.clients?.is_canceled || false,

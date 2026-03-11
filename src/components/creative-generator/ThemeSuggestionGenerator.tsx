@@ -68,7 +68,7 @@ export function ThemeSuggestionGenerator({
       if (data?.suggestions) {
         setSuggestions(data.suggestions);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error generating suggestions:', error);
       toast({
         title: "Erro ao gerar sugestões",

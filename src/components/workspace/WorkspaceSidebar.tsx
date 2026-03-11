@@ -161,7 +161,7 @@ export function WorkspaceSidebar({
     }
   };
 
-  const handleDragUpdate = (update: any) => {
+  const handleDragUpdate = (update: unknown) => {
     if (update.destination?.droppableId) {
       if (update.destination.droppableId === 'root') {
         setDragOverFolderId('root');

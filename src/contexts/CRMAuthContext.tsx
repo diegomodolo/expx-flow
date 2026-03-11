@@ -70,7 +70,7 @@ export function CRMAuthProvider({ children }: { children: ReactNode }) {
       }
 
       return { error: 'Falha na autenticação' };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro no login CRM:', error);
       return { error: error.message || 'Erro ao fazer login' };
     }

@@ -129,7 +129,7 @@ export function useEmployeePermissions() {
         permissions: emp.employee_permissions || []
       })) || [];
       setEmployeesWithPermissions(employeesWithPerms);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Erro ao buscar permissões:', err);
       setError(err.message);
     } finally {
@@ -228,7 +228,7 @@ export function useEmployeePermissions() {
       // Merge individual + group permissions (union)
       const enabledMenus = [...new Set([...individualMenus, ...groupMenus])];
       setCurrentUserPermissions(enabledMenus);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Erro ao buscar permissões do usuário atual:', err);
     } finally {
       setPermissionsLoading(false);
@@ -245,7 +245,7 @@ export function useEmployeePermissions() {
         .from('employee_permissions')
         .select('is_enabled')
         .eq('employee_id', employeeId)
-        .eq('menu_item', menuItem as any)
+        .eq('menu_item', menuItem as unknown)
         .single();
 
       console.log('Current permission:', currentPerm);
@@ -257,9 +257,9 @@ export function useEmployeePermissions() {
           .insert({
             employee_id: employeeId,
             company_id: activeCompany?.company_id,
-            menu_item: menuItem as any,
+            menu_item: menuItem as unknown,
             is_enabled: true
-          } as any);
+          } as unknown);
 
         if (insertError) {
           console.error('Error inserting permission:', insertError);
@@ -297,7 +297,7 @@ export function useEmployeePermissions() {
             updated_at: new Date().toISOString()
           })
           .eq('employee_id', employeeId)
-          .eq('menu_item', menuItem as any);
+          .eq('menu_item', menuItem as unknown);
 
         if (error) {
           console.error('Error updating permission:', error);
@@ -328,7 +328,7 @@ export function useEmployeePermissions() {
         title: "Permissão atualizada",
         description: "A permissão foi alterada com sucesso.",
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Erro ao alterar permissão:', err);
       toast({
         title: "Erro",
@@ -360,7 +360,7 @@ export function useEmployeePermissions() {
         title: "Permissões resetadas",
         description: "As permissões foram resetadas para o padrão.",
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Erro ao resetar permissões:', err);
       toast({
         title: "Erro",

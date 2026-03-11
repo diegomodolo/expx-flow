@@ -66,7 +66,7 @@ export function UazapiQRCodeModal({
       } else {
         throw new Error(data.error || "Erro ao obter QR Code");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error fetching QR code:", err);
       setError(err.message || "Erro ao obter QR Code");
       toast({

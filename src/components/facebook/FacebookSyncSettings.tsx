@@ -65,7 +65,7 @@ export const FacebookSyncSettings = () => {
     await toggleSchedule(checked);
   };
 
-  const updateSyncOption = (key: keyof SyncOptions, value: any) => {
+  const updateSyncOption = (key: keyof SyncOptions, value: unknown) => {
     setSyncOptions(prev => ({ ...prev, [key]: value }));
     setHasChanges(true);
   };
@@ -86,14 +86,14 @@ export const FacebookSyncSettings = () => {
   };
 
   const getStatusBadge = (status: string) => {
-    const variants: any = {
+    const variants: unknown = {
       completed: 'default',
       failed: 'destructive',
       partial: 'secondary',
       running: 'outline',
     };
 
-    const labels: any = {
+    const labels: unknown = {
       completed: 'Concluído',
       failed: 'Falhou',
       partial: 'Parcial',

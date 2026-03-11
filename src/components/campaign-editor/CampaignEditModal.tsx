@@ -176,7 +176,7 @@ export function CampaignEditModal({
       setHasChanges(false);
       onSuccess?.();
       onClose();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error saving campaign:', error);
       toast.error(error.message || 'Erro ao salvar alterações');
     } finally {
@@ -202,7 +202,7 @@ export function CampaignEditModal({
   const formatNumber = (value: number) => value.toLocaleString();
   const formatPercent = (value: number) => `${value.toFixed(2)}%`;
 
-  const objectiveLabel = OBJECTIVE_LABELS[(node as any).objective || ''] || (node as any).objective || 'Não definido';
+  const objectiveLabel = OBJECTIVE_LABELS[(node as unknown).objective || ''] || (node as unknown).objective || 'Não definido';
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>

@@ -26,28 +26,28 @@ export function useTaskMembers(taskId: string | undefined, companyId: string | u
       
       // First get task_members
       const { data, error } = await supabase
-        .from('task_members' as any)
+        .from('task_members' as unknown)
         .select('*, employees:employee_id(name, avatar, user_id)')
         .eq('task_id', taskId)
         .eq('company_id', companyId);
       if (error) throw error;
       
       // Get profile avatars for all members
-      const userIds = (data || []).map((m: any) => m.employees?.user_id).filter(Boolean);
-      let profileAvatars: Record<string, string> = {};
+      const userIds = (data || []).map((m: unknown) => m.employees?.user_id).filter(Boolean);
+      const profileAvatars: Record<string, string> = {};
       if (userIds.length > 0) {
         const { data: profiles } = await supabase
           .from('profiles')
           .select('user_id, avatar_url')
           .in('user_id', userIds);
         if (profiles) {
-          profiles.forEach((p: any) => {
+          profiles.forEach((p: unknown) => {
             if (p.avatar_url) profileAvatars[p.user_id] = p.avatar_url;
           });
         }
       }
       
-      return (data || []).map((m: any) => ({
+      return (data || []).map((m: unknown) => ({
         id: m.id,
         task_id: m.task_id,
         employee_id: m.employee_id,
@@ -65,7 +65,7 @@ export function useTaskMembers(taskId: string | undefined, companyId: string | u
     mutationFn: async ({ employeeId, role }: { employeeId: string; role: TaskMemberRole }) => {
       if (!taskId || !companyId) throw new Error('Missing task/company');
       const { data, error } = await supabase
-        .from('task_members' as any)
+        .from('task_members' as unknown)
         .insert({ task_id: taskId, employee_id: employeeId, role, company_id: companyId })
         .select('*, employees:employee_id(name, avatar)')
         .single();
@@ -111,7 +111,7 @@ export function useTaskMembers(taskId: string | undefined, companyId: string | u
   const updateRoleMutation = useMutation({
     mutationFn: async ({ id, role }: { id: string; role: TaskMemberRole }) => {
       const { error } = await supabase
-        .from('task_members' as any)
+        .from('task_members' as unknown)
         .update({ role })
         .eq('id', id);
       if (error) throw error;
@@ -128,7 +128,7 @@ export function useTaskMembers(taskId: string | undefined, companyId: string | u
   const removeMemberMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from('task_members' as any)
+        .from('task_members' as unknown)
         .delete()
         .eq('id', id);
       if (error) throw error;

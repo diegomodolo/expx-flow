@@ -105,7 +105,7 @@ export function MediaUploader({
       } else {
         throw new Error(data?.error || 'Erro ao gerar imagem');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('AI generation error:', err);
       toast({
         title: 'Erro na geração',
@@ -160,7 +160,7 @@ export function MediaUploader({
         title: 'Upload concluído',
         description: `${newUrls.length} arquivo(s) enviado(s)`,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Upload error:', err);
       toast({
         title: 'Erro no upload',

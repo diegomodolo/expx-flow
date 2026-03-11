@@ -185,8 +185,8 @@ export function useTrafegoDashboard(refreshInterval: number = 5 * 60 * 1000) {
         .map(c => ({
           id: c.id,
           name: c.name,
-          clientName: (c.clients as any)?.name || "N/A",
-          clientId: (c.clients as any)?.id || "",
+          clientName: (c.clients as unknown)?.name || "N/A",
+          clientId: (c.clients as unknown)?.id || "",
           spend: c.spend || 0,
           conversions: c.conversions || 0,
           cpa: c.cpa || 0,
@@ -212,7 +212,7 @@ export function useTrafegoDashboard(refreshInterval: number = 5 * 60 * 1000) {
             type: "danger",
             title: "CPA Alto",
             description: `CPA acima de R$ 50`,
-            clientName: (c.clients as any)?.name || "N/A",
+            clientName: (c.clients as unknown)?.name || "N/A",
             campaignName: c.name,
             metric: "CPA",
             value: `R$ ${(c.cpa || 0).toFixed(2)}`,
@@ -229,7 +229,7 @@ export function useTrafegoDashboard(refreshInterval: number = 5 * 60 * 1000) {
             type: "warning",
             title: "CTR Baixo",
             description: `CTR abaixo de 1%`,
-            clientName: (c.clients as any)?.name || "N/A",
+            clientName: (c.clients as unknown)?.name || "N/A",
             campaignName: c.name,
             metric: "CTR",
             value: `${(c.ctr || 0).toFixed(2)}%`,
@@ -251,7 +251,7 @@ export function useTrafegoDashboard(refreshInterval: number = 5 * 60 * 1000) {
             type: "opportunity",
             title: "Oportunidade de Escala",
             description: `CPA excelente, considerar aumentar budget`,
-            clientName: (c.clients as any)?.name || "N/A",
+            clientName: (c.clients as unknown)?.name || "N/A",
             campaignName: c.name,
             metric: "CPA",
             value: `R$ ${(c.cpa || 0).toFixed(2)}`,
@@ -259,7 +259,7 @@ export function useTrafegoDashboard(refreshInterval: number = 5 * 60 * 1000) {
         });
 
       // Helper to check if account is restricted
-      const isAccountRestricted = (client: any): { restricted: boolean; reason: string } => {
+      const isAccountRestricted = (client: unknown): { restricted: boolean; reason: string } => {
         const fbAccount = Array.isArray(client.facebook_ad_accounts)
           ? client.facebook_ad_accounts[0]
           : client.facebook_ad_accounts;
@@ -319,7 +319,7 @@ export function useTrafegoDashboard(refreshInterval: number = 5 * 60 * 1000) {
         title: t.title,
         priority: t.priority || "medium",
         dueDate: t.due_date,
-        clientName: (t.clients as any)?.name || null,
+        clientName: (t.clients as unknown)?.name || null,
         status: t.status,
       }));
 

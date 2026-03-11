@@ -99,7 +99,7 @@ export default function Notificacoes() {
 
   // Task dialog state
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
-  const [selectedTaskData, setSelectedTaskData] = useState<any>(null);
+  const [selectedTaskData, setSelectedTaskData] = useState<unknown>(null);
 
   // Filters
   const [search, setSearch] = useState("");
@@ -110,7 +110,7 @@ export default function Notificacoes() {
   // ── Chat mark read mutation ────────────────────────────────────────────────
   const markChatRead = useMutation({
     mutationFn: async (id: string) => {
-      await supabase.from("internal_notifications" as any).update({ is_read: true }).eq("id", id);
+      await supabase.from("internal_notifications" as unknown).update({ is_read: true }).eq("id", id);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["internal-notifications-unified", user?.id] }),
   });
@@ -118,7 +118,7 @@ export default function Notificacoes() {
   const markAllChatRead = useMutation({
     mutationFn: async () => {
       if (!user?.id) return;
-      await supabase.from("internal_notifications" as any).update({ is_read: true }).eq("user_id", user.id).eq("is_read", false);
+      await supabase.from("internal_notifications" as unknown).update({ is_read: true }).eq("user_id", user.id).eq("is_read", false);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["internal-notifications-unified", user?.id] }),
   });
@@ -136,7 +136,7 @@ export default function Notificacoes() {
       source_id: n.source_id,
       _source: "user" as const,
     }));
-    const c = chatNotifications.map((n: any) => ({
+    const c = chatNotifications.map((n: unknown) => ({
       id: n.id,
       type: "chat",
       title: n.title,

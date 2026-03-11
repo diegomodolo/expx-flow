@@ -156,7 +156,7 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
     setIsGeneratingLink(true);
     try {
       // Generate a token if it doesn't exist
-      let token = (plan as any).public_token;
+      let token = (plan as unknown).public_token;
       
       if (!token) {
         token = crypto.randomUUID().replace(/-/g, '').slice(0, 24);
@@ -188,7 +188,7 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
   };
 
   const openPublicLink = () => {
-    const token = (plan as any)?.public_token;
+    const token = (plan as unknown)?.public_token;
     if (token) {
       window.open(`${window.location.origin}/content-review?token=${token}`, '_blank');
     }
@@ -234,9 +234,9 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
       
       // Transform results into error map
       const errorsMap: PortugueseValidationErrors = {};
-      data.results?.forEach((result: any) => {
+      data.results?.forEach((result: unknown) => {
         const postErrors: { [field: string]: string | undefined } = {};
-        result.errors?.forEach((err: any) => {
+        result.errors?.forEach((err: unknown) => {
           if (err.hasError) {
             postErrors[err.field] = err.errorDetails;
           }
@@ -382,7 +382,7 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
     );
   }
 
-  const clientBriefing = (plan.clients as any)?.ai_briefing;
+  const clientBriefing = (plan.clients as unknown)?.ai_briefing;
 
   return (
     <div className="h-full">
@@ -549,7 +549,7 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
                       )}
                       {linkCopied ? "Copiado!" : "Copiar Link"}
                     </Button>
-                    {(plan as any).public_token && (
+                    {(plan as unknown).public_token && (
                       <Button
                         onClick={openPublicLink}
                         size="sm"

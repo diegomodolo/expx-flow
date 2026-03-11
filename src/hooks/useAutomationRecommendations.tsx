@@ -11,10 +11,10 @@ export interface AutomationRecommendation {
   client_id: string | null;
   campaign_id: string | null;
   recommended_action: string;
-  action_config: any;
+  action_config: unknown;
   reason: string;
-  conditions_met: any;
-  campaign_data: any;
+  conditions_met: unknown;
+  campaign_data: unknown;
   status: 'pending' | 'approved' | 'rejected' | 'executed';
   reviewed_at: string | null;
   reviewed_by: string | null;
@@ -57,7 +57,7 @@ export const useAutomationRecommendations = () => {
         variant: "destructive",
       });
     } else {
-      setRecommendations((data as any) || []);
+      setRecommendations((data as unknown) || []);
     }
     
     setLoading(false);
@@ -88,7 +88,7 @@ export const useAutomationRecommendations = () => {
 
       await fetchRecommendations();
       return data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erro",
         description: error.message,
@@ -120,7 +120,7 @@ export const useAutomationRecommendations = () => {
 
       await fetchRecommendations();
       return data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erro",
         description: error.message,

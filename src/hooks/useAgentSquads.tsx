@@ -55,7 +55,7 @@ export function useAgentSquads() {
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from("ia_agent_squads" as any)
+        .from("ia_agent_squads" as unknown)
         .select("*, clients(id, name, company)")
         .eq("company_id", activeCompany.company_id)
         .order("created_at", { ascending: false });
@@ -63,11 +63,11 @@ export function useAgentSquads() {
       if (error) throw error;
 
       // Fetch member counts
-      const squadsData = (data || []) as any[];
+      const squadsData = (data || []) as unknown[];
       const squadsWithCounts = await Promise.all(
-        squadsData.map(async (squad: any) => {
+        squadsData.map(async (squad: unknown) => {
           const { count } = await supabase
-            .from("ia_agent_squad_members" as any)
+            .from("ia_agent_squad_members" as unknown)
             .select("*", { count: "exact", head: true })
             .eq("squad_id", squad.id);
           return {
@@ -79,7 +79,7 @@ export function useAgentSquads() {
       );
 
       setSquads(squadsWithCounts);
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({ title: "Erro ao carregar squads", description: err.message, variant: "destructive" });
     } finally {
       setLoading(false);
@@ -90,14 +90,14 @@ export function useAgentSquads() {
     if (!activeCompany?.company_id || !user?.id) return null;
     try {
       const { data: squad, error } = await supabase
-        .from("ia_agent_squads" as any)
+        .from("ia_agent_squads" as unknown)
         .insert({
           name: data.name,
           description: data.description || null,
           client_id: data.client_id,
           company_id: activeCompany.company_id,
           user_id: user.id,
-        } as any)
+        } as unknown)
         .select()
         .single();
 
@@ -105,7 +105,7 @@ export function useAgentSquads() {
       toast({ title: "Squad criada com sucesso!" });
       fetchSquads();
       return squad;
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({ title: "Erro ao criar squad", description: err.message, variant: "destructive" });
       return null;
     }
@@ -114,54 +114,54 @@ export function useAgentSquads() {
   const updateSquad = async (id: string, data: { name?: string; description?: string; client_id?: string }) => {
     try {
       const { error } = await supabase
-        .from("ia_agent_squads" as any)
-        .update(data as any)
+        .from("ia_agent_squads" as unknown)
+        .update(data as unknown)
         .eq("id", id);
       if (error) throw error;
       toast({ title: "Squad atualizada!" });
       fetchSquads();
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({ title: "Erro ao atualizar squad", description: err.message, variant: "destructive" });
     }
   };
 
   const deleteSquad = async (id: string) => {
     try {
-      const { error } = await supabase.from("ia_agent_squads" as any).delete().eq("id", id);
+      const { error } = await supabase.from("ia_agent_squads" as unknown).delete().eq("id", id);
       if (error) throw error;
       toast({ title: "Squad excluída!" });
       fetchSquads();
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({ title: "Erro ao excluir squad", description: err.message, variant: "destructive" });
     }
   };
 
   const fetchSquadById = async (id: string) => {
     const { data, error } = await supabase
-      .from("ia_agent_squads" as any)
+      .from("ia_agent_squads" as unknown)
       .select("*, clients(id, name, company)")
       .eq("id", id)
       .single();
     if (error) throw error;
-    return { ...(data as any), client: (data as any).clients };
+    return { ...(data as unknown), client: (data as unknown).clients };
   };
 
   const fetchSquadMembers = async (squadId: string): Promise<SquadMember[]> => {
     const { data, error } = await supabase
-      .from("ia_agent_squad_members" as any)
+      .from("ia_agent_squad_members" as unknown)
       .select("*, ia_agents(id, agent_name, description)")
       .eq("squad_id", squadId);
     if (error) throw error;
-    return ((data || []) as any[]).map((m: any) => ({ ...m, agent: m.ia_agents }));
+    return ((data || []) as unknown[]).map((m: unknown) => ({ ...m, agent: m.ia_agents }));
   };
 
   const fetchSquadFlows = async (squadId: string): Promise<SquadFlow[]> => {
     const { data, error } = await supabase
-      .from("ia_agent_squad_flows" as any)
+      .from("ia_agent_squad_flows" as unknown)
       .select("*")
       .eq("squad_id", squadId);
     if (error) throw error;
-    return (data || []) as any[];
+    return (data || []) as unknown[];
   };
 
   const saveSquadLayout = async (
@@ -171,13 +171,13 @@ export function useAgentSquads() {
   ) => {
     try {
       // Delete existing flows first (they reference members), then members
-      const { error: delFlowsErr } = await supabase.from("ia_agent_squad_flows" as any).delete().eq("squad_id", squadId);
+      const { error: delFlowsErr } = await supabase.from("ia_agent_squad_flows" as unknown).delete().eq("squad_id", squadId);
       if (delFlowsErr) {
         console.error("Error deleting flows:", delFlowsErr);
         throw delFlowsErr;
       }
       
-      const { error: delMembersErr } = await supabase.from("ia_agent_squad_members" as any).delete().eq("squad_id", squadId);
+      const { error: delMembersErr } = await supabase.from("ia_agent_squad_members" as unknown).delete().eq("squad_id", squadId);
       if (delMembersErr) {
         console.error("Error deleting members:", delMembersErr);
         throw delMembersErr;
@@ -186,7 +186,7 @@ export function useAgentSquads() {
       // Insert members
       if (members.length > 0) {
         const { data: insertedMembers, error: membersError } = await supabase
-          .from("ia_agent_squad_members" as any)
+          .from("ia_agent_squad_members" as unknown)
           .insert(
             members.map((m) => ({
               squad_id: squadId,
@@ -195,14 +195,14 @@ export function useAgentSquads() {
               squad_instructions: m.squad_instructions || null,
               position_x: m.position_x,
               position_y: m.position_y,
-            })) as any
+            })) as unknown
           )
           .select();
 
         if (membersError) throw membersError;
 
         // Build id mapping (old temp ids to new DB ids)
-        const membersList = insertedMembers as any[];
+        const membersList = insertedMembers as unknown[];
         
         // Insert flows using the new member IDs
         if (flows.length > 0 && membersList.length > 0) {
@@ -227,15 +227,15 @@ export function useAgentSquads() {
 
           if (flowInserts.length > 0) {
             const { error: flowsError } = await supabase
-              .from("ia_agent_squad_flows" as any)
-              .insert(flowInserts as any);
+              .from("ia_agent_squad_flows" as unknown)
+              .insert(flowInserts as unknown);
             if (flowsError) throw flowsError;
           }
         }
       }
 
       toast({ title: "Squad salva com sucesso!" });
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({ title: "Erro ao salvar squad", description: err.message, variant: "destructive" });
       throw err;
     }

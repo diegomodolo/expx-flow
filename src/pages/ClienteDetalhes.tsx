@@ -216,7 +216,7 @@ const ClienteDetalhes = () => {
                       clientId={id || ""}
                       companyId={activeCompany?.id || ""}
                       hasMetaAccount={!!client.ad_account_id}
-                      hasGoogleAccount={!!(client as any).google_account_id}
+                      hasGoogleAccount={!!(client as unknown).google_account_id}
                       onSyncComplete={handleSyncComplete}
                       isPaused={client.is_paused}
                       isCanceled={client.is_canceled}

@@ -19,9 +19,9 @@ import {
 
 interface TriggersListProps {
   triggers: NotificationTrigger[];
-  onCreateTrigger: (data: any) => void;
+  onCreateTrigger: (data: unknown) => void;
   isCreating: boolean;
-  onUpdateTrigger: (data: any) => void;
+  onUpdateTrigger: (data: unknown) => void;
   isUpdating: boolean;
   onDeleteTrigger: (triggerId: string) => void;
   onToggleTrigger: (data: { triggerId: string; isActive: boolean }) => void;
@@ -41,7 +41,7 @@ function getFrequencyLabel(trigger: NotificationTrigger): { label: string; isRea
       return { label: '⚡ Tempo Real', isRealtime: true };
     case 'hourly':
       return { label: 'A cada hora', isRealtime: false };
-    case 'daily':
+    case 'daily': {
       const hours = schedule.execution_hours || [];
       if (hours.length === 0) {
         return { label: 'Diário (sem horário)', isRealtime: false };
@@ -53,10 +53,12 @@ function getFrequencyLabel(trigger: NotificationTrigger): { label: string; isRea
         return { label: `Diário às ${hours.map(h => `${h}h`).join(', ')}`, isRealtime: false };
       }
       return { label: `Diário (${hours.length}x): ${hours.slice(0, 3).map(h => `${h}h`).join(', ')}...`, isRealtime: false };
-    case 'weekly':
+    }
+    case 'weekly': {
       const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
       const selectedDays = (schedule.days_of_week || []).map(d => days[d]).join(', ');
       return { label: `Semanal (${selectedDays})`, isRealtime: false };
+    }
     case 'monthly':
       return { label: `Mensal (dia ${schedule.day_of_month || 1})`, isRealtime: false };
     default:
@@ -87,7 +89,7 @@ export function TriggersList({
     setIsModalOpen(true);
   };
 
-  const handleSave = (data: any) => {
+  const handleSave = (data: unknown) => {
     if (editingTrigger) {
       onUpdateTrigger({ triggerId: editingTrigger.id, ...data });
     } else {

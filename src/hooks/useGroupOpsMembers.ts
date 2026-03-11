@@ -22,7 +22,7 @@ export interface GroupOpsMember {
   streak_days: number;
   silent_days: number;
   risk_level: string;
-  privacy_flags: any;
+  privacy_flags: unknown;
   created_at: string;
   updated_at: string;
 }

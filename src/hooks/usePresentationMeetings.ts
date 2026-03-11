@@ -119,7 +119,7 @@ export function usePresentationMeetings(presentationId: string) {
       status: ExtendedPresentationCreative['current_status'];
       managerApproved?: boolean;
     }) => {
-      const updates: Record<string, any> = { current_status: status };
+      const updates: Record<string, unknown> = { current_status: status };
       
       if (managerApproved) {
         const { data: user } = await supabase.auth.getUser();

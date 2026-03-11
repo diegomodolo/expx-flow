@@ -26,13 +26,13 @@ import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
 interface ScheduledPostsSectionProps {
-  pendingPosts: any[];
+  pendingPosts: unknown[];
   onGenerateNext: () => void;
   onPublishNow: (postId: string) => void;
   onRegenerate: (postId: string) => void;
   onUpdateCaption: (postId: string, caption: string) => void;
   onDelete: (postId: string) => void;
-  onPreview: (post: any) => void;
+  onPreview: (post: unknown) => void;
   onValidateGrammar?: (postId: string) => void;
   isGeneratingNext: boolean;
   isPublishing: boolean;
@@ -158,7 +158,7 @@ export function ScheduledPostsSection({
           </p>
         ) : (
           <div className="space-y-4">
-            {pendingPosts.map((post: any, index: number) => {
+            {pendingPosts.map((post: unknown, index: number) => {
               const isCarousel = post.post_type === 'carousel' && post.image_urls && post.image_urls.length > 1;
               
               return (

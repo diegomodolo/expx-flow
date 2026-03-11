@@ -32,7 +32,7 @@ export function useWorkspaceShares(resourceType?: 'folder' | 'document', resourc
       
       // Get emails from auth.users via a separate query for user info
       const sharesWithUsers = await Promise.all(
-        (data || []).map(async (share: any) => {
+        (data || []).map(async (share: unknown) => {
           const profile = share.profiles;
           return {
             ...share,
@@ -65,8 +65,8 @@ export function useWorkspaceShares(resourceType?: 'folder' | 'document', resourc
       if (!employees || employees.length === 0) return [];
       
       return employees
-        .filter((emp: any) => emp.user_id) // Only employees with linked user accounts
-        .map((emp: any) => ({
+        .filter((emp: unknown) => emp.user_id) // Only employees with linked user accounts
+        .map((emp: unknown) => ({
           user_id: emp.user_id,
           full_name: emp.name || 'Usuário',
           avatar_url: emp.avatar,
@@ -108,7 +108,7 @@ export function useWorkspaceShares(resourceType?: 'folder' | 'document', resourc
       queryClient.invalidateQueries({ queryKey: ['workspace-shares'] });
       toast({ title: 'Compartilhamento criado!' });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       if (error.code === '23505') {
         toast({ title: 'Este usuário já tem acesso', variant: 'destructive' });
       } else {
@@ -133,7 +133,7 @@ export function useWorkspaceShares(resourceType?: 'folder' | 'document', resourc
       queryClient.invalidateQueries({ queryKey: ['workspace-shares'] });
       toast({ title: 'Permissão atualizada!' });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({ title: 'Erro ao atualizar permissão', description: error.message, variant: 'destructive' });
     },
   });
@@ -151,7 +151,7 @@ export function useWorkspaceShares(resourceType?: 'folder' | 'document', resourc
       queryClient.invalidateQueries({ queryKey: ['workspace-shares'] });
       toast({ title: 'Acesso removido!' });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({ title: 'Erro ao remover acesso', description: error.message, variant: 'destructive' });
     },
   });

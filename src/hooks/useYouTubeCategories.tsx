@@ -34,8 +34,8 @@ export function useYouTubeCategories(clientId: string, companyId: string) {
       if (catError) throw catError;
 
       // Fetch links
-      const categoryIds = (catData || []).map((c: any) => c.id);
-      let links: any[] = [];
+      const categoryIds = (catData || []).map((c: unknown) => c.id);
+      let links: unknown[] = [];
       if (categoryIds.length > 0) {
         const { data: linkData, error: linkError } = await supabase
           .from('youtube_channel_category_links')
@@ -47,12 +47,12 @@ export function useYouTubeCategories(clientId: string, companyId: string) {
       }
 
       // Map categories with their channel_ids
-      const mapped: YouTubeCategory[] = (catData || []).map((c: any) => ({
+      const mapped: YouTubeCategory[] = (catData || []).map((c: unknown) => ({
         ...c,
         color: c.color || '#6366f1',
         channel_ids: links
-          .filter((l: any) => l.category_id === c.id)
-          .map((l: any) => l.channel_id),
+          .filter((l: unknown) => l.category_id === c.id)
+          .map((l: unknown) => l.channel_id),
       }));
 
       setCategories(mapped);
@@ -86,7 +86,7 @@ export function useYouTubeCategories(clientId: string, companyId: string) {
       toast({ title: 'Categoria criada!' });
       await fetchCategories();
       return data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creating category:', error);
       toast({ title: 'Erro ao criar categoria', variant: 'destructive' });
       return null;
@@ -135,7 +135,7 @@ export function useYouTubeCategories(clientId: string, companyId: string) {
 
       if (error) throw error;
       await fetchCategories();
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Ignore duplicate
       if (error?.code === '23505') return;
       console.error('Error linking channel:', error);

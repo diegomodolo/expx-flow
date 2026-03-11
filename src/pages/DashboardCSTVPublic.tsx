@@ -183,7 +183,7 @@ export default function DashboardCSTVPublic() {
       if (error) {
         let message = error.message || 'Erro ao carregar dados';
 
-        const ctx = (error as any)?.context;
+        const ctx = (error as unknown)?.context;
         if (ctx) {
           try {
             const errorData = await ctx.json();

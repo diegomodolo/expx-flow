@@ -32,12 +32,12 @@ export function useTaskClients(taskId: string | undefined, companyId: string | u
     queryFn: async () => {
       if (!taskId || !companyId) return [];
       const { data, error } = await supabase
-        .from('task_clients' as any)
+        .from('task_clients' as unknown)
         .select('*, clients:client_id(name, avatar)')
         .eq('task_id', taskId)
         .eq('company_id', companyId);
       if (error) throw error;
-      return (data || []).map((tc: any) => ({
+      return (data || []).map((tc: unknown) => ({
         id: tc.id,
         task_id: tc.task_id,
         client_id: tc.client_id,
@@ -54,7 +54,7 @@ export function useTaskClients(taskId: string | undefined, companyId: string | u
     mutationFn: async (clientId: string) => {
       if (!taskId || !companyId) throw new Error('Missing task/company');
       const { data, error } = await supabase
-        .from('task_clients' as any)
+        .from('task_clients' as unknown)
         .insert({ task_id: taskId, client_id: clientId, company_id: companyId })
         .select()
         .single();
@@ -73,7 +73,7 @@ export function useTaskClients(taskId: string | undefined, companyId: string | u
   const removeClientMutation = useMutation({
     mutationFn: async (taskClientId: string) => {
       const { error } = await supabase
-        .from('task_clients' as any)
+        .from('task_clients' as unknown)
         .delete()
         .eq('id', taskClientId);
       if (error) throw error;
@@ -107,12 +107,12 @@ export function useTaskClientContacts(taskClientId: string | undefined, companyI
     queryFn: async () => {
       if (!taskClientId || !companyId) return [];
       const { data, error } = await supabase
-        .from('task_client_contact_persons' as any)
+        .from('task_client_contact_persons' as unknown)
         .select('*, whatsapp_client_contacts:contact_id(contact_name, phone, email)')
         .eq('task_client_id', taskClientId)
         .eq('company_id', companyId);
       if (error) throw error;
-      return (data || []).map((cp: any) => ({
+      return (data || []).map((cp: unknown) => ({
         id: cp.id,
         task_client_id: cp.task_client_id,
         contact_id: cp.contact_id,
@@ -130,7 +130,7 @@ export function useTaskClientContacts(taskClientId: string | undefined, companyI
     mutationFn: async (contactId: string) => {
       if (!taskClientId || !companyId) throw new Error('Missing data');
       const { data, error } = await supabase
-        .from('task_client_contact_persons' as any)
+        .from('task_client_contact_persons' as unknown)
         .insert({ task_client_id: taskClientId, contact_id: contactId, company_id: companyId })
         .select()
         .single();
@@ -149,7 +149,7 @@ export function useTaskClientContacts(taskClientId: string | undefined, companyI
   const removeContactMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from('task_client_contact_persons' as any)
+        .from('task_client_contact_persons' as unknown)
         .delete()
         .eq('id', id);
       if (error) throw error;

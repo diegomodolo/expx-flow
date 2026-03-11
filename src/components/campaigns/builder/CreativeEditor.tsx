@@ -93,7 +93,7 @@ export function CreativeEditor({ creative, onChange, clientId, companyId, client
       });
 
       toast({ title: "Textos gerados!", description: "Os campos foram preenchidos com base na imagem e no briefing do cliente." });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error generating texts:", err);
       toast({ title: "Erro ao gerar textos", description: err.message || "Não foi possível gerar os textos.", variant: "destructive" });
     } finally {

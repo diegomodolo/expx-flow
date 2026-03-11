@@ -118,7 +118,7 @@ export function SendCarouselToScheduleModal({
       toast.success('Carrossel agendado com sucesso!');
       onSuccess?.();
       onOpenChange(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error scheduling carousel:', error);
       toast.error('Erro ao agendar: ' + error.message);
     } finally {

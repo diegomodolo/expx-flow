@@ -16,7 +16,7 @@ interface HistoryEntry {
   creatives_generated: number;
   execution_type: string;
   status: string;
-  execution_details: any;
+  execution_details: unknown;
   error_message: string | null;
   executed_at: string;
 }

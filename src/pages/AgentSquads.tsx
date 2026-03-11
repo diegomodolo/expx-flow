@@ -77,7 +77,7 @@ export default function AgentSquads() {
     if (squad) {
       setCreateOpen(false);
       setFormData({ name: "", description: "", client_id: "" });
-      navigate(`/ia/squads/${(squad as any).id}/edit`);
+      navigate(`/ia/squads/${(squad as unknown).id}/edit`);
     }
   };
 

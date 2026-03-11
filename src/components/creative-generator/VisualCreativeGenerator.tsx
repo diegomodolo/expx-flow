@@ -105,7 +105,7 @@ export function VisualCreativeGenerator({ data, onImageGenerated }: VisualCreati
       } else {
         throw new Error("Nenhuma imagem foi gerada");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error generating creative:', error);
       setGenerationError(error.message || "Erro desconhecido ao gerar criativo");
       toast({
@@ -151,7 +151,7 @@ export function VisualCreativeGenerator({ data, onImageGenerated }: VisualCreati
       await createCreative(creativeData);
       
       // Remover o toast aqui pois já é exibido no hook
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error saving creative:', error);
       // O erro já é tratado no hook, mas mantemos um log aqui
     } finally {

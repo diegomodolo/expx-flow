@@ -132,7 +132,7 @@ export const LeadSegmentsManager = () => {
     setIsDialogOpen(false); 
   };
 
-  const handleEdit = (seg: any) => { 
+  const handleEdit = (seg: unknown) => { 
     setEditingId(seg.id); 
     setFormData({ 
       name: seg.name, 

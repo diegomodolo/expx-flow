@@ -98,7 +98,7 @@ export function ManageWordpressSitesDialog({ open, onOpenChange, companyId }: Ma
     try {
       await testConnection({ siteUrl: urlToTest, username: userToTest, appPassword: passToTest });
       if (!site) setConnectionStatus('success');
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (!site) {
         setConnectionStatus('error');
         setConnectionError(error.message || 'Falha na conexão');

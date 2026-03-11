@@ -49,7 +49,7 @@ export function useGroupOpsDashboard(groupId?: string) {
 
       // Aggregate top scores by member
       const scoreMap = new Map<string, number>();
-      (topScores.data ?? []).forEach((s: any) => {
+      (topScores.data ?? []).forEach((s: unknown) => {
         scoreMap.set(s.member_id, (scoreMap.get(s.member_id) ?? 0) + s.points);
       });
 
@@ -67,7 +67,7 @@ export function useGroupOpsDashboard(groupId?: string) {
       } else {
         // Fallback: rank by message count in last 7 days
         const msgCountMap = new Map<string, number>();
-        (msgRank.data ?? []).forEach((m: any) => {
+        (msgRank.data ?? []).forEach((m: unknown) => {
           if (m.author_member_id) {
             msgCountMap.set(m.author_member_id, (msgCountMap.get(m.author_member_id) || 0) + 1);
           }

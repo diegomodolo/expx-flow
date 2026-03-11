@@ -21,18 +21,18 @@ export function HandRaiseButton({ channelId }: HandRaiseButtonProps) {
     queryFn: async () => {
       if (!channelId) return [];
       const { data, error } = await supabase
-        .from('channel_hand_raises' as any)
+        .from('channel_hand_raises' as unknown)
         .select('*')
         .eq('channel_id', channelId)
         .is('dismissed_at', null);
       if (error) throw error;
-      return data as any[];
+      return data as unknown[];
     },
     enabled: !!channelId,
     refetchInterval: 5000,
   });
 
-  const myHandRaised = raises.some((r: any) => r.user_id === user?.id);
+  const myHandRaised = raises.some((r: unknown) => r.user_id === user?.id);
 
   const toggleHand = useMutation({
     mutationFn: async () => {
@@ -40,7 +40,7 @@ export function HandRaiseButton({ channelId }: HandRaiseButtonProps) {
 
       if (myHandRaised) {
         await supabase
-          .from('channel_hand_raises' as any)
+          .from('channel_hand_raises' as unknown)
           .delete()
           .eq('channel_id', channelId)
           .eq('user_id', user.id);
@@ -52,7 +52,7 @@ export function HandRaiseButton({ channelId }: HandRaiseButtonProps) {
           .single();
 
         await supabase
-          .from('channel_hand_raises' as any)
+          .from('channel_hand_raises' as unknown)
           .upsert({
             channel_id: channelId,
             user_id: user.id,
@@ -69,7 +69,7 @@ export function HandRaiseButton({ channelId }: HandRaiseButtonProps) {
     onError: () => toast.error('Erro ao levantar mão'),
   });
 
-  const otherRaises = raises.filter((r: any) => r.user_id !== user?.id);
+  const otherRaises = raises.filter((r: unknown) => r.user_id !== user?.id);
 
   return (
     <TooltipProvider>
@@ -95,7 +95,7 @@ export function HandRaiseButton({ channelId }: HandRaiseButtonProps) {
             {myHandRaised ? 'Abaixar mão' : 'Levantar mão'}
             {otherRaises.length > 0 && (
               <div className="mt-1 text-xs">
-                {otherRaises.map((r: any) => r.user_name).join(', ')} levantou a mão
+                {otherRaises.map((r: unknown) => r.user_name).join(', ')} levantou a mão
               </div>
             )}
           </TooltipContent>

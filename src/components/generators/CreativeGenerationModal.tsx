@@ -40,7 +40,7 @@ export function CreativeGenerationModal({
       try {
         await onGenerate();
         setResults((prev) => [...prev, { index: i + 1, success: true }]);
-      } catch (error: any) {
+      } catch (error: unknown) {
         setResults((prev) => [...prev, { index: i + 1, success: false, error: error.message }]);
       }
     }

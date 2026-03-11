@@ -9,7 +9,7 @@ export interface QBRReport {
   companyId: string;
   periodStart: string;
   periodEnd: string;
-  metricsSnapshot: Record<string, any> | null;
+  metricsSnapshot: Record<string, unknown> | null;
   bestCreatives: string[];
   executiveSummary: string | null;
   actionPlan: string | null;
@@ -31,7 +31,7 @@ interface RawQBRReport {
   company_id: string;
   period_start: string;
   period_end: string;
-  metrics_snapshot: any;
+  metrics_snapshot: unknown;
   best_creatives: string[];
   executive_summary: string | null;
   action_plan: string | null;
@@ -106,7 +106,7 @@ export function useQBRReports(clientId?: string) {
       clientId: string;
       periodStart: string;
       periodEnd: string;
-      metricsSnapshot?: Record<string, any>;
+      metricsSnapshot?: Record<string, unknown>;
       executiveSummary?: string;
       actionPlan?: string;
     }) => {

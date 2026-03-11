@@ -22,12 +22,12 @@ export interface AutomationLog {
   rolled_back: boolean;
   rolled_back_at: string | null;
   rolled_back_by: string | null;
-  metadata: any;
+  metadata: unknown;
   executed_at: string;
 }
 
 export const useAutomationLogs = (clientId?: string | null, limit?: number) => {
-  const [logs, setLogs] = useState<any[]>([]);
+  const [logs, setLogs] = useState<unknown[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const { activeCompany } = useCompany();
@@ -95,7 +95,7 @@ export const useAutomationLogs = (clientId?: string | null, limit?: number) => {
 
       await fetchLogs();
       return data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erro ao reverter",
         description: error.message,
@@ -144,7 +144,7 @@ export const useAutomationLogs = (clientId?: string | null, limit?: number) => {
 
       await fetchLogs();
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error clearing logs:", error);
       toast({
         title: "Erro ao limpar logs",

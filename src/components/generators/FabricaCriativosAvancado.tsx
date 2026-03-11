@@ -45,7 +45,7 @@ export function FabricaCriativosAvancado({ config, onConfigChange, clientId }: P
       const fieldName = `reference_image_${index}` as keyof ScheduleConfig;
       onConfigChange({ ...config, [fieldName]: publicUrl });
       toast.success('Imagem enviada!');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error uploading image:', error);
       toast.error('Erro ao enviar imagem');
     } finally {

@@ -137,7 +137,7 @@ export function CampaignGeneratorSimplified({ onBack, existingCampaign }: Campai
         endDate: config.endDate ? new Date(config.endDate) : null,
         hasEndDate: config.hasEndDate !== false,
         // Ensure arrays exist to prevent "length" errors
-        adSets: (config.adSets || []).map((as: any) => ({
+        adSets: (config.adSets || []).map((as: unknown) => ({
           ...as,
           creatives: as.creatives || [],
           interests: as.interests || [],
@@ -253,7 +253,7 @@ export function CampaignGeneratorSimplified({ onBack, existingCampaign }: Campai
           (Array.isArray(config.targeting.behaviors) ? config.targeting.behaviors : [config.targeting.behaviors]) : [];
 
         // Create ad sets with targeting from AI
-        const aiAdSets: EditableAdSet[] = (config.adSets || []).map((as: any, i: number) => ({
+        const aiAdSets: EditableAdSet[] = (config.adSets || []).map((as: unknown, i: number) => ({
           id: crypto.randomUUID(),
           name: as.name || `Conjunto ${i + 1}`,
           ageMin: as.ageMin || 18,
@@ -334,7 +334,7 @@ export function CampaignGeneratorSimplified({ onBack, existingCampaign }: Campai
           description: "Agora você pode editar todos os campos antes de publicar.",
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro ao gerar estratégia:', error);
       toast({
         title: "Erro ao gerar estratégia",
@@ -461,13 +461,13 @@ export function CampaignGeneratorSimplified({ onBack, existingCampaign }: Campai
         title: campaignName,
         funnel_stage: funnelStage,
         campaign_type: campaignType,
-        configuration: editableStrategy as any,
-        creatives: editableStrategy.adSets.flatMap(as => as.creatives) as any,
+        configuration: editableStrategy as unknown,
+        creatives: editableStrategy.adSets.flatMap(as => as.creatives) as unknown,
         status: 'published',
       });
 
       onBack();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro ao publicar:', error);
       toast({
         title: "Erro ao publicar",
@@ -493,8 +493,8 @@ export function CampaignGeneratorSimplified({ onBack, existingCampaign }: Campai
             title: campaignName,
             funnel_stage: funnelStage,
             campaign_type: campaignType,
-            configuration: editableStrategy as any,
-            creatives: editableStrategy.adSets.flatMap(as => as.creatives) as any,
+            configuration: editableStrategy as unknown,
+            creatives: editableStrategy.adSets.flatMap(as => as.creatives) as unknown,
           })
           .eq('id', existingCampaignId);
 
@@ -513,8 +513,8 @@ export function CampaignGeneratorSimplified({ onBack, existingCampaign }: Campai
           title: campaignName,
           funnel_stage: funnelStage,
           campaign_type: campaignType,
-          configuration: editableStrategy as any,
-          creatives: editableStrategy.adSets.flatMap(as => as.creatives) as any,
+          configuration: editableStrategy as unknown,
+          creatives: editableStrategy.adSets.flatMap(as => as.creatives) as unknown,
           status: 'draft',
         });
 
@@ -527,7 +527,7 @@ export function CampaignGeneratorSimplified({ onBack, existingCampaign }: Campai
       }
       
       onBack();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erro ao salvar",
         description: error.message,

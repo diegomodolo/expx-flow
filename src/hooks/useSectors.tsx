@@ -78,7 +78,7 @@ export const useSectors = () => {
         return data as Sector;
       }
       return null;
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (err.code === '23505') {
         setError(`O setor "${name.trim()}" já existe nesta empresa`);
       } else {

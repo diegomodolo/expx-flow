@@ -106,7 +106,7 @@ export function useLeadQualificationRules() {
 
       if (fetchError) throw fetchError;
       setRules((data || []) as QualificationRule[]);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err.message);
     } finally {
       setLoading(false);
@@ -125,7 +125,7 @@ export function useLeadQualificationRules() {
 
       if (fetchError && fetchError.code !== 'PGRST116') throw fetchError;
       setWeights(data || null);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err.message);
     }
   }, [activeCompany?.company_id]);
@@ -174,7 +174,7 @@ export function useLeadQualificationRules() {
 
       await fetchRules();
       await fetchWeights();
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err.message);
     }
   }, [activeCompany?.company_id, fetchRules, fetchWeights]);
@@ -190,7 +190,7 @@ export function useLeadQualificationRules() {
 
       if (updateError) throw updateError;
       await fetchWeights();
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err.message);
     }
   }, [activeCompany?.company_id, weights?.id, fetchWeights]);
@@ -208,7 +208,7 @@ export function useLeadQualificationRules() {
 
       if (insertError) throw insertError;
       await fetchRules();
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err.message);
     }
   }, [activeCompany?.company_id, fetchRules]);
@@ -222,7 +222,7 @@ export function useLeadQualificationRules() {
 
       if (updateError) throw updateError;
       await fetchRules();
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err.message);
     }
   }, [fetchRules]);
@@ -236,7 +236,7 @@ export function useLeadQualificationRules() {
 
       if (deleteError) throw deleteError;
       await fetchRules();
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err.message);
     }
   }, [fetchRules]);

@@ -13,7 +13,7 @@ export interface MetaPixel {
   is_unavailable: boolean;
   last_fired_time: string | null;
   data_use_setting: string | null;
-  stats: any;
+  stats: unknown;
   created_at: string;
   updated_at: string;
 }
@@ -27,10 +27,10 @@ export interface PixelEvent {
   event_time: string;
   event_id: string | null;
   action_source: string;
-  user_data: any;
-  custom_data: any;
+  user_data: unknown;
+  custom_data: unknown;
   status: string;
-  meta_response: any;
+  meta_response: unknown;
   error_message: string | null;
   created_at: string;
 }

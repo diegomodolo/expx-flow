@@ -82,7 +82,7 @@ export interface Client {
     has_funding_issues: boolean;
     last_balance_check?: string;
     is_prepaid: boolean;
-    funding_source_details?: any;
+    funding_source_details?: unknown;
     recharge_day?: number;
     is_restricted?: boolean;
     can_advertise?: boolean;
@@ -326,13 +326,13 @@ const getClientMetrics = async (
 
 // Helper function to evaluate a single rule against metrics
 const evaluateRule = (
-  rule: any,
-  metrics: Record<string, any>
+  rule: unknown,
+  metrics: Record<string, unknown>
 ): boolean => {
   const { conditions } = rule.conditions;
   const logic = rule.conditions.logic;
   
-  const results = conditions.map((condition: any) => {
+  const results = conditions.map((condition: unknown) => {
     const value = metrics[condition.field];
     
     switch (condition.operator) {
@@ -358,7 +358,7 @@ const evaluateRule = (
 // Helper function to generate status explanation
 const generateExplanation = (
   status: ClientStatus,
-  metrics: Record<string, any>,
+  metrics: Record<string, unknown>,
   ruleName?: string
 ): string => {
   const statusEmojis = {
@@ -713,8 +713,8 @@ export function useClients(options?: { includeCanceled?: boolean }) {
         // Convert empty strings to null for UUID fields
         ad_account_id: clientData.ad_account_id === "" ? null : clientData.ad_account_id,
         google_account_id: clientData.google_account_id === "" ? null : clientData.google_account_id,
-        facebook_page_id: (clientData as any).facebook_page_id === "" ? null : (clientData as any).facebook_page_id,
-        instagram_account_id: (clientData as any).instagram_account_id === "" ? null : (clientData as any).instagram_account_id,
+        facebook_page_id: (clientData as unknown).facebook_page_id === "" ? null : (clientData as unknown).facebook_page_id,
+        instagram_account_id: (clientData as unknown).instagram_account_id === "" ? null : (clientData as unknown).instagram_account_id,
         team_id: clientData.team_id === "" || clientData.team_id === "none" ? null : clientData.team_id,
       };
 
@@ -773,7 +773,7 @@ export function useClients(options?: { includeCanceled?: boolean }) {
           
           obj[key] = value;
           return obj;
-        }, {} as any);
+        }, {} as unknown);
       
       // Map status to database format if present
       if (updates.status) {

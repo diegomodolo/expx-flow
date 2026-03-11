@@ -10,10 +10,10 @@ export interface GroupOpsTemplate {
   title: string;
   category: string;
   body: string;
-  variants: any;
+  variants: unknown;
   placeholders: string[] | null;
   tone: string | null;
-  constraints_json: any;
+  constraints_json: unknown;
   created_at: string;
   updated_at: string;
 }
@@ -130,7 +130,7 @@ export function useGroupOpsTemplates() {
       const { id, created_at, updated_at, company_id, ...rest } = template;
       const { data, error } = await supabase
         .from('groupops_templates')
-        .insert({ ...rest, company_id: companyId!, title: rest.title ?? 'Novo Template', body: rest.body ?? '' } as any)
+        .insert({ ...rest, company_id: companyId!, title: rest.title ?? 'Novo Template', body: rest.body ?? '' } as unknown)
         .select()
         .single();
       if (error) throw error;
@@ -147,7 +147,7 @@ export function useGroupOpsTemplates() {
     mutationFn: async ({ id, ...updates }: Partial<GroupOpsTemplate> & { id: string }) => {
       const { data, error } = await supabase
         .from('groupops_templates')
-        .update(updates as any)
+        .update(updates as unknown)
         .eq('id', id)
         .select()
         .single();
@@ -193,7 +193,7 @@ export function useGroupOpsTemplates() {
         const batch = rows.slice(i, i + 50);
         const { error } = await supabase
           .from('groupops_templates')
-          .insert(batch as any);
+          .insert(batch as unknown);
         if (error) throw error;
       }
     },

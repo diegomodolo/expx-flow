@@ -156,7 +156,7 @@ export function useSquadChat(squadId: string) {
           }
         }
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (err.name === 'AbortError') {
         setMessages((prev) => {
           const filtered = prev.filter((m) => !m.isThinking);

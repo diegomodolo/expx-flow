@@ -59,7 +59,7 @@ export function ClienteApresentacoes() {
   // Calculate date range from period
   const getDateRange = (period: string) => {
     const end = new Date();
-    let start = new Date();
+    const start = new Date();
 
     switch (period) {
       case 'last_7d':

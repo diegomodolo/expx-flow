@@ -283,7 +283,7 @@ export function useCampaignBuilder(clientId: string) {
       });
 
       return true;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error creating campaign:', err);
       toast({
         title: 'Erro ao criar campanha',

@@ -59,8 +59,8 @@ export function useWhatsAppReminders() {
       if (error) throw error;
 
       // Fetch creator profiles
-      const creatorIds = [...new Set((touchpoints || []).map((t: any) => t.created_by).filter(Boolean))];
-      let profilesMap: Record<string, string> = {};
+      const creatorIds = [...new Set((touchpoints || []).map((t: unknown) => t.created_by).filter(Boolean))];
+      const profilesMap: Record<string, string> = {};
       
       if (creatorIds.length > 0) {
         const { data: profiles } = await supabase
@@ -68,14 +68,14 @@ export function useWhatsAppReminders() {
           .select("user_id, full_name")
           .in("user_id", creatorIds);
         
-        (profiles || []).forEach((p: any) => {
+        (profiles || []).forEach((p: unknown) => {
           profilesMap[p.user_id] = p.full_name || "Usuário";
         });
       }
 
       // Fetch WhatsApp conversations for these clients to get chat_jid
-      const clientIds = [...new Set((touchpoints || []).map((t: any) => t.client_id).filter(Boolean))];
-      let conversationsMap: Record<string, { chatJid: string; chatName: string; conversationId: string; instanceId: string }> = {};
+      const clientIds = [...new Set((touchpoints || []).map((t: unknown) => t.client_id).filter(Boolean))];
+      const conversationsMap: Record<string, { chatJid: string; chatName: string; conversationId: string; instanceId: string }> = {};
       
       if (clientIds.length > 0) {
         const { data: conversations } = await supabase
@@ -84,7 +84,7 @@ export function useWhatsAppReminders() {
           .eq("company_id", activeCompany.company_id)
           .in("client_id", clientIds);
         
-        (conversations || []).forEach((c: any) => {
+        (conversations || []).forEach((c: unknown) => {
           if (c.client_id) {
             conversationsMap[c.client_id] = {
               chatJid: c.chat_jid,
@@ -97,7 +97,7 @@ export function useWhatsAppReminders() {
       }
 
       // Transform and categorize
-      const reminders: WhatsAppReminder[] = (touchpoints || []).map((t: any) => {
+      const reminders: WhatsAppReminder[] = (touchpoints || []).map((t: unknown) => {
         const conv = conversationsMap[t.client_id];
         return {
           id: t.id,

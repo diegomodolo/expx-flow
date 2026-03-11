@@ -122,8 +122,8 @@ export function useClipGenerator() {
     const doPoll = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        const supabaseUrl = (supabase as any).supabaseUrl || import.meta.env.VITE_SUPABASE_URL;
-        const supabaseKey = (supabase as any).supabaseKey || import.meta.env.VITE_SUPABASE_ANON_KEY;
+        const supabaseUrl = (supabase as unknown).supabaseUrl || import.meta.env.VITE_SUPABASE_URL;
+        const supabaseKey = (supabase as unknown).supabaseKey || import.meta.env.VITE_SUPABASE_ANON_KEY;
         
         const res = await fetch(
           `${supabaseUrl}/functions/v1/get-clip-job-status?jobId=${jobId}`,
@@ -262,7 +262,7 @@ export function useClipGenerator() {
           title: "Processamento iniciado",
           description: "Seus clipes estão sendo gerados...",
         });
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("processUrl error:", err);
         toast({
           title: "Erro",
@@ -328,7 +328,7 @@ export function useClipGenerator() {
           title: "Upload e processamento iniciados",
           description: "Seus clipes estão sendo gerados...",
         });
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("uploadAndProcess error:", err);
         toast({
           title: "Erro",

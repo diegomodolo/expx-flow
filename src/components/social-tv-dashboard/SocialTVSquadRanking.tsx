@@ -84,7 +84,7 @@ export function SocialTVSquadRanking({ squads }: SocialTVSquadRankingProps) {
   const isEmoji = (str: string | null) => {
     if (!str) return false;
     // Emojis are typically non-ASCII and short
-    return str.length <= 4 && /[^\x00-\x7F]/.test(str);
+    return str.length <= 4 && /[^\u0020-\u007E]/.test(str);
   };
 
   // Show top 3 in podium style, rest in list

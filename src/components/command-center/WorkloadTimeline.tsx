@@ -35,14 +35,14 @@ function usePersistedTimelineSettings() {
         if (!user) { setLoaded(true); return; }
 
         const { data } = await supabase
-          .from("user_ui_settings" as any)
+          .from("user_ui_settings" as unknown)
           .select("setting_value")
           .eq("user_id", user.id)
           .eq("setting_key", SETTING_KEY)
-          .maybeSingle() as any;
+          .maybeSingle() as unknown;
 
-        if ((data as any)?.setting_value) {
-          setSettings((data as any).setting_value as TimelineSettings);
+        if ((data as unknown)?.setting_value) {
+          setSettings((data as unknown).setting_value as TimelineSettings);
         }
       } catch {
         // fallback — no saved settings
@@ -58,9 +58,9 @@ function usePersistedTimelineSettings() {
       if (!user) return;
 
       await supabase
-        .from("user_ui_settings" as any)
+        .from("user_ui_settings" as unknown)
         .upsert(
-          { user_id: user.id, setting_key: SETTING_KEY, setting_value: s as any, updated_at: new Date().toISOString() },
+          { user_id: user.id, setting_key: SETTING_KEY, setting_value: s as unknown, updated_at: new Date().toISOString() },
           { onConflict: "user_id,setting_key" }
         );
     } catch (err) {

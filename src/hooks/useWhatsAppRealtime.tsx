@@ -39,7 +39,7 @@ export function useWhatsAppRealtime(companyId: string | undefined) {
         },
         (payload) => {
           console.log("[WhatsApp Realtime] New message:", payload);
-          const newMessage = payload.new as any;
+          const newMessage = payload.new as unknown;
           
           // Invalidate messages for the specific conversation
           queryClient.invalidateQueries({ 

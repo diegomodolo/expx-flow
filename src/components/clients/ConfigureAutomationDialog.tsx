@@ -15,7 +15,7 @@ interface ConfigureAutomationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   template: AutomationRule;
-  onConfirm: (configuredConditions: any) => Promise<void>;
+  onConfirm: (configuredConditions: unknown) => Promise<void>;
 }
 
 const FIELD_LABELS: Record<string, string> = {
@@ -47,12 +47,12 @@ export function ConfigureAutomationDialog({
   onConfirm,
 }: ConfigureAutomationDialogProps) {
   const [loading, setLoading] = useState(false);
-  const [configuredConditions, setConfiguredConditions] = useState<any[]>([]);
+  const [configuredConditions, setConfiguredConditions] = useState<unknown[]>([]);
 
   // Inicializar condições com valores default da template
   useEffect(() => {
     if (template && open) {
-      const initialConditions = template.conditions.conditions.map((cond: any) => ({
+      const initialConditions = template.conditions.conditions.map((cond: unknown) => ({
         field: cond.field,
         operator: cond.operator,
         value: cond.value,
@@ -62,7 +62,7 @@ export function ConfigureAutomationDialog({
     }
   }, [template, open]);
 
-  const handleConditionChange = (index: number, field: string, value: any) => {
+  const handleConditionChange = (index: number, field: string, value: unknown) => {
     const newConditions = [...configuredConditions];
     newConditions[index] = {
       ...newConditions[index],

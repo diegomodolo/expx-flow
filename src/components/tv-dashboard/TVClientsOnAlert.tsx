@@ -74,7 +74,7 @@ function extractReason(explanation: string | null): string {
   
   // Fallback to first line
   const firstLine = explanation.split('\n')[0];
-  return firstLine.replace(/[🚨⚫⚠️✅🟡🔴🟢]/g, '').trim().substring(0, 40);
+  return firstLine.replace(/🚨|⚫|⚠️|✅|🟡|🔴|🟢/gu, '').trim().substring(0, 40);
 }
 
 export function TVClientsOnAlert({ clients }: TVClientsOnAlertProps) {
@@ -105,7 +105,7 @@ export function TVClientsOnAlert({ clients }: TVClientsOnAlertProps) {
       
       <div className="flex-1 overflow-y-auto min-h-0">
         <div className="space-y-1 pr-1">
-          {clients.slice(0, 8).map((client: any) => {
+          {clients.slice(0, 8).map((client: unknown) => {
             // Use restricted config if account is restricted, otherwise use status config
             const isRestricted = client.isAccountRestricted === true;
             const config = isRestricted 

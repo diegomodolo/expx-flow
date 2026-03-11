@@ -89,7 +89,7 @@ export function useCSCockpitData(squadId?: string | null) {
       const { data: clients, error: clientsError } = await clientsQuery;
       if (clientsError) throw clientsError;
 
-      const clientIds = (clients || []).map((c: any) => c.id);
+      const clientIds = (clients || []).map((c: unknown) => c.id);
 
       // Fetch campaigns for performance data
       const { data: campaigns } = await supabase
@@ -120,7 +120,7 @@ export function useCSCockpitData(squadId?: string | null) {
         .eq('is_active', true);
 
       // Map phones by client_id (use first active contact)
-      const phonesByClient = (contacts || []).reduce((acc: Record<string, string>, c: any) => {
+      const phonesByClient = (contacts || []).reduce((acc: Record<string, string>, c: unknown) => {
         if (!acc[c.client_id] && c.phone) {
           // Clean phone number: remove non-digits
           const cleanPhone = c.phone.replace(/\D/g, '');
@@ -139,11 +139,11 @@ export function useCSCockpitData(squadId?: string | null) {
 
       const today = new Date();
 
-      (clients || []).forEach((client: any) => {
+      (clients || []).forEach((client: unknown) => {
         const healthConfig = client.client_health_config?.[0];
-        const clientCampaigns = (campaigns || []).filter((c: any) => c.client_id === client.id);
-        const clientMilestones = (milestones || []).filter((m: any) => m.client_id === client.id);
-        const clientQBRs = (qbrReports || []).filter((q: any) => q.client_id === client.id);
+        const clientCampaigns = (campaigns || []).filter((c: unknown) => c.client_id === client.id);
+        const clientMilestones = (milestones || []).filter((m: unknown) => m.client_id === client.id);
+        const clientQBRs = (qbrReports || []).filter((q: unknown) => q.client_id === client.id);
 
         // === FIRES (Alertas Críticos) ===
 
@@ -193,7 +193,7 @@ export function useCSCockpitData(squadId?: string | null) {
         }
 
         // 3. Campanhas pausadas inesperadamente
-        const pausedCampaigns = clientCampaigns.filter((c: any) => c.status === 'paused');
+        const pausedCampaigns = clientCampaigns.filter((c: unknown) => c.status === 'paused');
         if (pausedCampaigns.length > 0) {
           fires.push({
             id: `paused-${client.id}`,
@@ -213,9 +213,9 @@ export function useCSCockpitData(squadId?: string | null) {
 
         // 4. CPA explodindo (> 200% da meta)
         if (healthConfig?.target_cpl) {
-          const activeCampaigns = clientCampaigns.filter((c: any) => c.status === 'active' && c.cpa);
+          const activeCampaigns = clientCampaigns.filter((c: unknown) => c.status === 'active' && c.cpa);
           const avgCPA = activeCampaigns.length > 0
-            ? activeCampaigns.reduce((sum: number, c: any) => sum + (c.cpa || 0), 0) / activeCampaigns.length
+            ? activeCampaigns.reduce((sum: number, c: unknown) => sum + (c.cpa || 0), 0) / activeCampaigns.length
             : null;
           
           if (avgCPA && avgCPA > healthConfig.target_cpl * 2) {
@@ -239,7 +239,7 @@ export function useCSCockpitData(squadId?: string | null) {
         // === TAREFAS DO DIA ===
 
         // 1. Onboarding pendente
-        const onboardingMilestones = clientMilestones.filter((m: any) => m.milestone_type === 'onboarding');
+        const onboardingMilestones = clientMilestones.filter((m: unknown) => m.milestone_type === 'onboarding');
         if (onboardingMilestones.length > 0 || healthConfig?.onboarding_status === 'in_progress') {
           const totalOnboarding = 5; // Assumindo 5 etapas de onboarding
           const completedOnboarding = totalOnboarding - onboardingMilestones.length;
@@ -331,8 +331,8 @@ export function useCSCockpitData(squadId?: string | null) {
         // === OPORTUNIDADES ===
 
         // 1. Upsell por ROAS alto (> 150% da meta)
-        const totalSpend = clientCampaigns.reduce((sum: number, c: any) => sum + (c.spend || 0), 0);
-        const totalConversions = clientCampaigns.reduce((sum: number, c: any) => sum + (c.conversions || 0), 0);
+        const totalSpend = clientCampaigns.reduce((sum: number, c: unknown) => sum + (c.spend || 0), 0);
+        const totalConversions = clientCampaigns.reduce((sum: number, c: unknown) => sum + (c.conversions || 0), 0);
         const currentROAS = totalSpend > 0 && totalConversions > 0 
           ? (totalConversions * 100) / totalSpend 
           : null;

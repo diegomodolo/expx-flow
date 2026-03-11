@@ -75,7 +75,7 @@ export function SendToPresentationDialog({
       await sendCreativeToPresentation(result.id);
       setNewPresentationName("");
       setShowNewForm(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erro ao criar apresentação",
         description: error.message,
@@ -159,7 +159,7 @@ export function SendToPresentationDialog({
 
       onOpenChange(false);
       setSelectedPresentationId("");
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erro ao enviar criativo",
         description: error.message,

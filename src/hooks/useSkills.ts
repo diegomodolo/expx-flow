@@ -39,7 +39,7 @@ export function useSkills() {
         .order("category, name");
       if (error) throw error;
       setSkills((data as unknown as Skill[]) || []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error loading skills:", err);
       toast.error("Erro ao carregar skills");
     } finally {
@@ -76,14 +76,14 @@ export function useSkills() {
     if (existing) {
       const { error } = await supabase
         .from("ia_agent_skills")
-        .update(rest as any)
+        .update(rest as unknown)
         .eq("id", id);
       if (error) throw error;
       toast.success("Skill atualizada");
     } else {
       const { error } = await supabase
         .from("ia_agent_skills")
-        .insert({ id, ...rest } as any);
+        .insert({ id, ...rest } as unknown);
       if (error) throw error;
       toast.success("Skill criada");
     }

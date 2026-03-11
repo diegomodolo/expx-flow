@@ -126,7 +126,7 @@ export function CSTVCelebrationOverlay({ alerts, onDismiss, onDismissAll, rotati
 
   const playCelebrationSound = async () => {
     try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const audioContext = new (window.AudioContext || (window as unknown).webkitAudioContext)();
       
       // Create applause using white noise with filtering
       const createApplause = (startTime: number, duration: number, intensity: number = 0.3) => {

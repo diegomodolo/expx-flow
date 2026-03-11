@@ -72,7 +72,7 @@ export function useInstagramScheduleSlots(configId: string) {
       queryClient.invalidateQueries({ queryKey: ['instagram-schedule-slots', configId] });
       toast.success('Slot de agendamento criado');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       if (error.code === '23505') {
         toast.error('Já existe um slot para este dia e horário');
       } else {
@@ -84,7 +84,7 @@ export function useInstagramScheduleSlots(configId: string) {
   // Update a slot
   const updateSlotMutation = useMutation({
     mutationFn: async (params: UpdateSlotParams) => {
-      const updates: any = {};
+      const updates: unknown = {};
       if (params.post_type !== undefined) updates.post_type = params.post_type;
       if (params.carousel_images !== undefined) updates.carousel_images = params.carousel_images;
       if (params.is_enabled !== undefined) updates.is_enabled = params.is_enabled;

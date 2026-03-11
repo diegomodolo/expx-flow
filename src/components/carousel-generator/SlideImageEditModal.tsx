@@ -75,7 +75,7 @@ export function SlideImageEditModal({
         setAdditionalImageUrl(data.publicUrl);
         toast.success("Imagem carregada com sucesso");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error uploading image:", err);
       toast.error("Erro ao carregar imagem");
     } finally {
@@ -160,7 +160,7 @@ export function SlideImageEditModal({
       setAdditionalImageUrl(null);
       setUseAsReference(true);
       onOpenChange(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error generating image:", err);
       toast.error(err?.message || "Erro ao gerar imagem");
     } finally {

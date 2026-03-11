@@ -44,9 +44,9 @@ export default function ChecklistTemplates() {
   const { templates, isLoading, createTemplate, updateTemplate, deleteTemplate, fetchTemplateItems } = useChecklistTemplates();
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingTemplate, setEditingTemplate] = useState<any>(null);
+  const [editingTemplate, setEditingTemplate] = useState<unknown>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [deletingTemplate, setDeletingTemplate] = useState<any>(null);
+  const [deletingTemplate, setDeletingTemplate] = useState<unknown>(null);
 
   const filtered = useMemo(() => {
     return templates.filter(t =>
@@ -60,13 +60,13 @@ export default function ChecklistTemplates() {
     });
   };
 
-  const handleEdit = async (template: any) => {
+  const handleEdit = async (template: unknown) => {
     const items = await fetchTemplateItems(template.id);
     setEditingTemplate({
       id: template.id,
       name: template.name,
       description: template.description || '',
-      items: items.map((i: any) => i.text),
+      items: items.map((i: unknown) => i.text),
     });
     setDialogOpen(true);
   };

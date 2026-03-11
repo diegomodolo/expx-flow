@@ -40,7 +40,7 @@ export const useUserProfile = () => {
       }
 
       setProfile(data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching user profile:', error);
       setError(error.message);
     } finally {
@@ -68,7 +68,7 @@ export const useUserProfile = () => {
 
       setProfile(data);
       return data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error updating profile:', error);
       throw error;
     }

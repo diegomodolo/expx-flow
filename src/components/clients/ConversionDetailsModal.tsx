@@ -15,15 +15,15 @@ interface ConversionDetailsModalProps {
     id: string;
     event_name: string;
     created_at: string;
-    webhook_payload?: any;
-    meta_response: any;
+    webhook_payload?: unknown;
+    meta_response: unknown;
   };
 }
 
 export function ConversionDetailsModal({ isOpen, onClose, conversion }: ConversionDetailsModalProps) {
   const { toast } = useToast();
 
-  const copyToClipboard = (data: any) => {
+  const copyToClipboard = (data: unknown) => {
     const jsonString = JSON.stringify(data, null, 2);
     navigator.clipboard.writeText(jsonString);
     toast({

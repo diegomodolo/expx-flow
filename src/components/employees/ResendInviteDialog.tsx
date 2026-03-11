@@ -54,7 +54,7 @@ export function ResendInviteDialog({ open, onOpenChange, employee }: ResendInvit
           : "O colaborador receberá um novo magic link.",
       });
       onOpenChange(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Erro ao reenviar convite:", error);
       toast.error(error.message || "Erro ao reenviar convite");
     } finally {

@@ -44,7 +44,7 @@ export interface ClientDetailsData extends Client {
     has_funding_issues: boolean;
     last_balance_check?: string;
     is_prepaid: boolean;
-    funding_source_details?: any;
+    funding_source_details?: unknown;
     is_restricted?: boolean;
     restriction_reason?: string;
     can_advertise?: boolean;

@@ -9,7 +9,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 interface TaskReviewPanelProps {
-  task: any;
+  task: unknown;
   onTaskUpdated?: () => void;
 }
 

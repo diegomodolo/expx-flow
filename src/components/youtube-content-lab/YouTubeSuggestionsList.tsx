@@ -17,7 +17,7 @@ interface YouTubeSuggestionsListProps {
   suggestions: YouTubeSuggestion[];
   loading: boolean;
   generating: boolean;
-  onGenerateSuggestions: (context?: string, count?: number) => Promise<any>;
+  onGenerateSuggestions: (context?: string, count?: number) => Promise<unknown>;
   onCreateScript: (suggestionId: string, title: string) => Promise<void>;
   onDismiss: (suggestionId: string) => void;
   hasChannels: boolean;

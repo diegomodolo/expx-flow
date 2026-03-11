@@ -39,7 +39,7 @@ export function CreateAudienceModal({
       await onSubmit(name.trim(), description.trim() || undefined);
       setName("");
       setDescription("");
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (error?.type === 'TOS_NOT_ACCEPTED') {
         setTosError({ show: true, url: error.tosUrl });
       }

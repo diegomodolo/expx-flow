@@ -25,7 +25,7 @@ interface SendEventModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   pixel: MetaPixel | null;
-  onSend: (params: SendEventParams) => Promise<any>;
+  onSend: (params: SendEventParams) => Promise<unknown>;
 }
 
 const STANDARD_EVENTS = [
@@ -79,7 +79,7 @@ export function SendEventModal({
       const params: SendEventParams = {
         pixelId: pixel.pixel_id,
         eventName,
-        actionSource: actionSource as any,
+        actionSource: actionSource as unknown,
         userData: {
           ...(email && { email }),
           ...(phone && { phone }),

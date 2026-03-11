@@ -61,15 +61,15 @@ interface Task {
   task_quality_score?: number | null;
   last_rejected_at?: string | null;
   rejection_count?: number | null;
-  checklist?: any;
+  checklist?: unknown;
   parent_task_id?: string | null;
   team?: { name: string; color: string };
   user_profile?: {
     avatar_url: string | null;
     full_name: string | null;
   } | null;
-  campaign?: any;
-  client?: any;
+  campaign?: unknown;
+  client?: unknown;
 }
 
 interface TaskKanbanProps {
@@ -113,7 +113,7 @@ function formatDuration(minutes: number): string {
   return `${h}h${m > 0 ? ` ${m}min` : ''}`;
 }
 
-function parseChecklist(raw: any): ChecklistItem[] {
+function parseChecklist(raw: unknown): ChecklistItem[] {
   if (!raw) return [];
   try {
     const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
@@ -234,23 +234,23 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
     queryFn: async () => {
       if (taskIds.length === 0) return {};
       const { data } = await supabase
-        .from('task_members' as any)
+        .from('task_members' as unknown)
         .select('task_id, role, employees:employee_id(name, avatar, user_id)')
         .in('task_id', taskIds);
 
       // Also fetch profiles for avatars
-      const employeeUserIds = [...new Set((data || []).map((m: any) => m.employees?.user_id).filter(Boolean))];
+      const employeeUserIds = [...new Set((data || []).map((m: unknown) => m.employees?.user_id).filter(Boolean))];
       let profileMap = new Map<string, string>();
       if (employeeUserIds.length > 0) {
         const { data: profiles } = await supabase
           .from('profiles')
           .select('user_id, avatar_url')
           .in('user_id', employeeUserIds);
-        profileMap = new Map((profiles || []).map((p: any) => [p.user_id, p.avatar_url]));
+        profileMap = new Map((profiles || []).map((p: unknown) => [p.user_id, p.avatar_url]));
       }
 
       const map: Record<string, Array<{ name: string; avatar: string | null; role: string }>> = {};
-      for (const m of (data || []) as any[]) {
+      for (const m of (data || []) as unknown[]) {
         if (!m.employees) continue;
         if (!map[m.task_id]) map[m.task_id] = [];
         map[m.task_id].push({

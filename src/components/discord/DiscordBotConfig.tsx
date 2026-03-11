@@ -90,7 +90,7 @@ export const DiscordBotConfig = () => {
         setConnectionStatus("error");
         toast.error(result.error || "Falha na conexão");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setConnectionStatus("error");
       toast.error(err.message);
     } finally {

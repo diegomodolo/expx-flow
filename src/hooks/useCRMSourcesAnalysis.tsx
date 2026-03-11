@@ -55,7 +55,7 @@ export function useCRMSourcesAnalysis(
         source: string;
         campaign: string;
         medium: string;
-        leads: any[];
+        leads: unknown[];
       }> = {};
 
       leads?.forEach((lead) => {

@@ -90,7 +90,7 @@ export function useVideoGeneration() {
 
           if (error) throw error;
 
-          const statusData = data as any;
+          const statusData = data as unknown;
 
           if (statusData?.done) {
             if (pollingRef.current) clearInterval(pollingRef.current);
@@ -190,7 +190,7 @@ export function useVideoGeneration() {
         startPolling(data.operationName, data.creativeId, estimatedTime);
 
         return data;
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error("Video generation error:", error);
 
         setState((prev) => ({

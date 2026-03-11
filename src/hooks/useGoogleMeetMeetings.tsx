@@ -21,7 +21,7 @@ export interface GoogleMeetMeeting {
   transcript_status: string;
   raw_transcript: string | null;
   ai_summary: string | null;
-  ai_action_items: any[] | null;
+  ai_action_items: unknown[] | null;
   transcript_doc_url: string | null;
   recording_url: string | null;
   recording_drive_file_id: string | null;
@@ -50,8 +50,8 @@ export function useGoogleMeetMeetings() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setMeetings((data as any[]) || []);
-    } catch (err: any) {
+      setMeetings((data as unknown[]) || []);
+    } catch (err: unknown) {
       console.error('Error fetching meetings:', err);
     } finally {
       setLoading(false);
@@ -91,7 +91,7 @@ export function useGoogleMeetMeetings() {
       toast.success('Reunião criada com sucesso!');
       await fetchMeetings();
       return result.meeting;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error creating meeting:', err);
       toast.error(err.message || 'Erro ao criar reunião');
       return null;
@@ -108,7 +108,7 @@ export function useGoogleMeetMeetings() {
   }) => {
     if (!companyId) return false;
     try {
-      const updateData: any = {};
+      const updateData: unknown = {};
       if (data.title !== undefined) updateData.title = data.title;
       if (data.clientId !== undefined) updateData.client_id = data.clientId;
       if (data.squadId !== undefined) updateData.squad_id = data.squadId;
@@ -125,7 +125,7 @@ export function useGoogleMeetMeetings() {
       toast.success('Reunião atualizada com sucesso!');
       await fetchMeetings();
       return true;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error updating meeting:', err);
       toast.error(err.message || 'Erro ao atualizar reunião');
       return false;
@@ -146,7 +146,7 @@ export function useGoogleMeetMeetings() {
       toast.success('Reunião excluída com sucesso!');
       await fetchMeetings();
       return true;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error deleting meeting:', err);
       toast.error(err.message || 'Erro ao excluir reunião');
       return false;
@@ -170,7 +170,7 @@ export function useGoogleMeetMeetings() {
 
       await fetchMeetings();
       return result;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error checking transcript:', err);
       toast.error(err.message || 'Erro ao buscar transcrição');
       return null;
@@ -189,7 +189,7 @@ export function useGoogleMeetMeetings() {
       toast.success('Resumo gerado com sucesso!');
       await fetchMeetings();
       return result;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error processing summary:', err);
       toast.error(err.message || 'Erro ao gerar resumo');
       return null;

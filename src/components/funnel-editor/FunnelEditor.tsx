@@ -405,7 +405,7 @@ function FunnelEditorContent() {
             <Background />
             <Controls />
             <MiniMap
-              nodeColor={(node) => (node.data as any).color || "#3B82F6"}
+              nodeColor={(node) => (node.data as unknown).color || "#3B82F6"}
               pannable
               zoomable
             />

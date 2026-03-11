@@ -55,7 +55,7 @@ export const useCRMLeadLinks = (leadId: string) => {
       
       if (leadsError) throw leadsError;
       
-      return (linkedLeads || []).map((lead: any) => ({
+      return (linkedLeads || []).map((lead: unknown) => ({
         id: lead.id,
         full_name: lead.full_name,
         status: lead.status,

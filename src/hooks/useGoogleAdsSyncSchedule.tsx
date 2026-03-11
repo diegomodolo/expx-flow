@@ -35,7 +35,7 @@ export interface GoogleExecutionLog {
   started_at: string;
   completed_at: string | null;
   error_message: string | null;
-  execution_details: any;
+  execution_details: unknown;
 }
 
 export const useGoogleAdsSyncSchedule = () => {
@@ -69,7 +69,7 @@ export const useGoogleAdsSyncSchedule = () => {
       // Handle case where data might be a string (double-parsed)
       const parsedData = typeof data === 'string' ? JSON.parse(data) : data;
       setSchedule(parsedData?.schedule || null);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching schedule:', error);
       toast({
         title: 'Erro ao carregar configuração',
@@ -103,7 +103,7 @@ export const useGoogleAdsSyncSchedule = () => {
       }));
       
       setExecutionLogs(logs);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching execution logs:', error);
     } finally {
       setLogsLoading(false);
@@ -140,7 +140,7 @@ export const useGoogleAdsSyncSchedule = () => {
       });
 
       return parsedData?.schedule;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error saving schedule:', error);
       toast({
         title: 'Erro ao salvar configuração',
@@ -179,7 +179,7 @@ export const useGoogleAdsSyncSchedule = () => {
       });
 
       return parsedData?.schedule;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error toggling schedule:', error);
       toast({
         title: 'Erro ao alterar status',
@@ -212,7 +212,7 @@ export const useGoogleAdsSyncSchedule = () => {
         title: 'Configuração removida',
         description: 'A configuração de sincronização foi removida.',
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error deleting schedule:', error);
       toast({
         title: 'Erro ao remover configuração',

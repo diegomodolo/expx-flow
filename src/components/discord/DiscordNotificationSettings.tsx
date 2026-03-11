@@ -138,14 +138,14 @@ export const DiscordNotificationSettings = () => {
     }
     setSaving(true);
     try {
-      const { error } = await (supabase as any)
+      const { error } = await (supabase as unknown)
         .from("discord_config")
         .update(settings)
         .eq("id", config.id);
       if (error) throw error;
       toast.success("Configurações de notificação salvas!");
       setHasChanges(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(err.message || "Erro ao salvar");
     } finally {
       setSaving(false);

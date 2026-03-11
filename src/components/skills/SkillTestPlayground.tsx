@@ -33,7 +33,7 @@ function useEntityOptions(table: string, labelColumn: string, valueColumn: strin
     queryFn: async () => {
       if (!companyId) return [];
       const { data, error } = await supabase
-        .from(table as any)
+        .from(table as unknown)
         .select(`${valueColumn}, ${labelColumn}`)
         .eq("company_id", companyId)
         .order(labelColumn)
@@ -42,7 +42,7 @@ function useEntityOptions(table: string, labelColumn: string, valueColumn: strin
         console.error(`Error loading ${table}:`, error);
         return [];
       }
-      return (data || []).map((row: any) => ({
+      return (data || []).map((row: unknown) => ({
         value: row[valueColumn],
         label: row[labelColumn] || row[valueColumn],
       }));
@@ -83,9 +83,9 @@ function EntitySelector({ paramName, value, onChange, companyId }: {
 
 function SmartParamField({ name, schema, value, onChange, companyId }: {
   name: string;
-  schema: any;
-  value: any;
-  onChange: (v: any) => void;
+  schema: unknown;
+  value: unknown;
+  onChange: (v: unknown) => void;
   companyId: string | undefined;
 }) {
   // Check if this is a known entity param
@@ -151,13 +151,13 @@ function SmartParamField({ name, schema, value, onChange, companyId }: {
 
 export function SkillTestPlayground({ skill }: Props) {
   const [rawParams, setRawParams] = useState("{}");
-  const [formValues, setFormValues] = useState<Record<string, any>>({});
+  const [formValues, setFormValues] = useState<Record<string, unknown>>({});
   const [result, setResult] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
   const [mode, setMode] = useState<"form" | "json">("form");
   const { activeCompany } = useCompany();
 
-  const tp = skill.tool_parameters as any;
+  const tp = skill.tool_parameters as unknown;
   const properties = tp?.properties || {};
   const paramKeys = Object.keys(properties);
 
@@ -177,21 +177,21 @@ export function SkillTestPlayground({ skill }: Props) {
       });
       if (error) throw error;
       setResult(JSON.stringify(data, null, 2));
-    } catch (err: any) {
+    } catch (err: unknown) {
       setResult(`Erro: ${err.message}`);
     } finally {
       setRunning(false);
     }
   };
 
-  const updateFormValue = (key: string, value: any) => {
+  const updateFormValue = (key: string, value: unknown) => {
     setFormValues(prev => ({ ...prev, [key]: value }));
   };
 
   const generateTemplate = () => {
     if (!tp?.properties) return;
     const template: Record<string, unknown> = {};
-    Object.entries(tp.properties).forEach(([key, schema]: [string, any]) => {
+    Object.entries(tp.properties).forEach(([key, schema]: [string, unknown]) => {
       switch (schema.type) {
         case "string": template[key] = ""; break;
         case "number": template[key] = 0; break;

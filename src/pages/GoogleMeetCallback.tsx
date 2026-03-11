@@ -40,7 +40,7 @@ export default function GoogleMeetCallback() {
         await handleCallback(code, activeCompany.company_id);
         setStatus('success');
         setTimeout(() => navigate('/configuracoes/integracao-google-meet'), 2000);
-      } catch (error: any) {
+      } catch (error: unknown) {
         setStatus('error');
         setError(error.message || 'Erro ao processar callback');
         hasProcessedRef.current = false;

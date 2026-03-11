@@ -95,7 +95,7 @@ export function AutoPostReferenceImages({
         title: 'Imagem carregada!',
         description: 'A imagem de referência foi adicionada.',
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Upload error:', error);
       toast({
         title: 'Erro ao carregar imagem',

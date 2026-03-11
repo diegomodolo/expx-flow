@@ -74,13 +74,13 @@ export function useCSClientsList(squadId?: string | null) {
 
       if (clientsError) throw clientsError;
 
-      const clientIds = (clients || []).map((c: any) => c.id);
+      const clientIds = (clients || []).map((c: unknown) => c.id);
       
       if (clientIds.length === 0) return [];
 
       // Buscar squads para mapear nomes
-      const teamIds = [...new Set((clients || []).map((c: any) => c.team_id).filter(Boolean))];
-      let teamsMap: Record<string, { name: string; color: string | null }> = {};
+      const teamIds = [...new Set((clients || []).map((c: unknown) => c.team_id).filter(Boolean))];
+      const teamsMap: Record<string, { name: string; color: string | null }> = {};
       
       if (teamIds.length > 0) {
         const { data: teams } = await supabase
@@ -88,7 +88,7 @@ export function useCSClientsList(squadId?: string | null) {
           .select('id, name, color')
           .in('id', teamIds);
         
-        (teams || []).forEach((t: any) => {
+        (teams || []).forEach((t: unknown) => {
           teamsMap[t.id] = { name: t.name, color: t.color };
         });
       }
@@ -118,7 +118,7 @@ export function useCSClientsList(squadId?: string | null) {
         .map(h => h.cs_manager_id)
         .filter(Boolean);
       
-      let csManagers: Record<string, string> = {};
+      const csManagers: Record<string, string> = {};
       if (csManagerIds.length > 0) {
         const { data: employees } = await supabase
           .from('employees')
@@ -131,7 +131,7 @@ export function useCSClientsList(squadId?: string | null) {
       }
 
       // Mapear health configs por client_id
-      const healthConfigMap: Record<string, any> = {};
+      const healthConfigMap: Record<string, unknown> = {};
       (healthConfigs || []).forEach(h => {
         healthConfigMap[h.client_id] = h;
       });
@@ -151,7 +151,7 @@ export function useCSClientsList(squadId?: string | null) {
       });
 
       // Montar lista final
-      const csClients: CSClientListItem[] = (clients || []).map((client: any) => {
+      const csClients: CSClientListItem[] = (clients || []).map((client: unknown) => {
         const healthConfig = healthConfigMap[client.id];
         const lastTouchpoint = lastTouchpointMap[client.id] || healthConfig?.last_cs_contact_at;
         const activeCampaigns = campaignCountMap[client.id] || 0;

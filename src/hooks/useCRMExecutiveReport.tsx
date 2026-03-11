@@ -163,7 +163,7 @@ export function useCRMExecutiveReport(
   });
 }
 
-function generateInsights(data: any): Array<{
+function generateInsights(data: unknown): Array<{
   type: "success" | "warning" | "info";
   title: string;
   description: string;
@@ -210,9 +210,9 @@ function generateInsights(data: any): Array<{
   }
 
   // Insight 4: Leads quentes
-  const hotLeads = data.currentLeads.filter((l: any) => l.temperature === "quente" && !l.won && !l.lost);
+  const hotLeads = data.currentLeads.filter((l: unknown) => l.temperature === "quente" && !l.won && !l.lost);
   if (hotLeads.length > 0) {
-    const hotValue = hotLeads.reduce((sum: number, l: any) => sum + (l.value || 0), 0);
+    const hotValue = hotLeads.reduce((sum: number, l: unknown) => sum + (l.value || 0), 0);
     insights.push({
       type: "info" as const,
       title: "Oportunidades quentes no pipeline",

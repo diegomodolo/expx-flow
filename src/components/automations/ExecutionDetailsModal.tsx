@@ -123,7 +123,7 @@ export function ExecutionDetailsModal({
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-foreground">Ações Executadas</h3>
                   <div className="space-y-3">
-                    {actionLogs.map((log: any) => (
+                    {actionLogs.map((log: unknown) => (
                       <div key={log.id} className="border rounded-lg p-4 space-y-3 bg-green-50/50 dark:bg-green-950/20">
                         {/* Hierarquia */}
                         {log.metadata && (
@@ -185,7 +185,7 @@ export function ExecutionDetailsModal({
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-foreground">Regras Avaliadas (Sem Ação)</h3>
                   <div className="space-y-2">
-                    {skippedLogs.map((log: any) => (
+                    {skippedLogs.map((log: unknown) => (
                       <div key={log.id} className="border rounded-lg p-3 flex items-center gap-3 bg-muted/30">
                         <span className="text-lg">{getEntityIcon(log.entity_type)}</span>
                         <div className="flex-1">
@@ -204,7 +204,7 @@ export function ExecutionDetailsModal({
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-foreground">Erros</h3>
                   <div className="space-y-2">
-                    {errorLogs.map((log: any) => (
+                    {errorLogs.map((log: unknown) => (
                       <div key={log.id} className="border border-destructive/50 rounded-lg p-3 bg-destructive/5">
                         <div className="flex items-start gap-3">
                           <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />

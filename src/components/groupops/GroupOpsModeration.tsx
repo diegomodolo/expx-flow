@@ -99,7 +99,7 @@ function RulesTab({ groupId }: { groupId?: string }) {
                   <p className="text-xs text-muted-foreground">{ruleType?.description}</p>
                   {rule.config_json && typeof rule.config_json === 'object' && (
                     <div className="text-xs bg-muted/50 rounded p-2 space-y-0.5">
-                      {Object.entries(rule.config_json as Record<string, any>).map(([k, v]) => (
+                      {Object.entries(rule.config_json as Record<string, unknown>).map(([k, v]) => (
                         <div key={k} className="flex justify-between"><span className="text-muted-foreground">{k}:</span><span className="font-medium">{String(v)}</span></div>
                       ))}
                     </div>
@@ -154,8 +154,8 @@ function RuleFormModal({ open, onClose, rule, groups, onSave }: { open: boolean;
     else { setName(''); setGroupId(''); setType('flood'); setActionType('warn'); setIsActive(true); setConfigStr('{\n  "max_messages_per_minute": 10\n}'); }
   }, [rule, open]);
 
-  let parsedConfig: any = {};
-  try { parsedConfig = JSON.parse(configStr); } catch {}
+  let parsedConfig: unknown = {};
+  try { parsedConfig = JSON.parse(configStr); } catch { /* intentionally empty */ }
 
   return (
     <Dialog open={open} onOpenChange={onClose}>

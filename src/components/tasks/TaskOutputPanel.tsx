@@ -63,10 +63,10 @@ export function TaskOutputPanel({ taskId, companyId, clientId, expanded, onToggl
     queryFn: async () => {
       if (!taskId) return [];
       const { data, error } = await (supabase
-        .from('task_outputs' as any)
+        .from('task_outputs' as unknown)
         .select('*')
         .eq('task_id', taskId)
-        .order('created_at', { ascending: true }) as any);
+        .order('created_at', { ascending: true }) as unknown);
       if (error) throw error;
       return (data || []) as OutputMessage[];
     },
@@ -105,7 +105,7 @@ export function TaskOutputPanel({ taskId, companyId, clientId, expanded, onToggl
     mutationFn: async () => {
       if (!taskId || !companyId || (!content.trim() && attachments.length === 0)) return;
       const { error } = await (supabase
-        .from('task_outputs' as any)
+        .from('task_outputs' as unknown)
         .insert({
           task_id: taskId,
           company_id: companyId,
@@ -114,7 +114,7 @@ export function TaskOutputPanel({ taskId, companyId, clientId, expanded, onToggl
           author_avatar: currentEmployee?.avatar || null,
           content: content.trim(),
           attachments: attachments,
-        }) as any);
+        }) as unknown);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -130,9 +130,9 @@ export function TaskOutputPanel({ taskId, companyId, clientId, expanded, onToggl
   const deleteMutation = useMutation({
     mutationFn: async (outputId: string) => {
       const { error } = await (supabase
-        .from('task_outputs' as any)
+        .from('task_outputs' as unknown)
         .delete()
-        .eq('id', outputId) as any);
+        .eq('id', outputId) as unknown);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -295,9 +295,9 @@ export function TaskOutputPanel({ taskId, companyId, clientId, expanded, onToggl
                       )}
 
                       {/* Attachments */}
-                      {output.attachments && (output.attachments as any[]).length > 0 && (
+                      {output.attachments && (output.attachments as unknown[]).length > 0 && (
                         <div className="mt-2 space-y-1.5">
-                          {(output.attachments as any[]).map((att, i) => {
+                          {(output.attachments as unknown[]).map((att, i) => {
                             const isImage = att.type?.startsWith('image/') || /\.(png|jpg|jpeg|gif|webp|svg)$/i.test(att.url || '');
 
                             if (isImage) {

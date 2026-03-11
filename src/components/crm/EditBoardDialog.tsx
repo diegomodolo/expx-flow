@@ -134,7 +134,7 @@ export function EditBoardDialog({
       queryClient.invalidateQueries({ queryKey: ['crm-board-queue', board?.id] });
       toast.success("Usuário adicionado à fila");
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       if (error.code === '23505') {
         toast.error("Usuário já está na fila");
       } else {

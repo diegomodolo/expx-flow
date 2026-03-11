@@ -34,7 +34,7 @@ interface YouTubeCategorySidebarProps {
   channels: YouTubeChannel[];
   selectedCategoryId: string | null;
   onSelectCategory: (id: string | null) => void;
-  onCreateCategory: (name: string, description?: string, color?: string) => Promise<any>;
+  onCreateCategory: (name: string, description?: string, color?: string) => Promise<unknown>;
   onUpdateCategory: (id: string, updates: { name?: string; description?: string; color?: string }) => Promise<void>;
   onDeleteCategory: (id: string) => Promise<void>;
   onLinkChannel: (categoryId: string, channelId: string) => Promise<void>;

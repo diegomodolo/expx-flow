@@ -61,7 +61,7 @@ export function CRMUsersManager({ workspaceId }: CRMUsersManagerProps) {
     setDialogOpen(true);
   };
 
-  const handleSubmit = async (data: any) => {
+  const handleSubmit = async (data: unknown) => {
     try {
       if (dialogMode === 'create') {
         await createUser.mutateAsync({

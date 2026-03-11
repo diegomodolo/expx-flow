@@ -35,7 +35,7 @@ export interface ExecutionLog {
   started_at: string;
   completed_at: string | null;
   error_message: string | null;
-  execution_details: any;
+  execution_details: unknown;
 }
 
 export const useFacebookSyncSchedule = () => {
@@ -60,7 +60,7 @@ export const useFacebookSyncSchedule = () => {
 
       if (error) throw error;
       setSchedule(data.schedule);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching schedule:', error);
       toast({
         title: 'Erro ao carregar configuração',
@@ -94,7 +94,7 @@ export const useFacebookSyncSchedule = () => {
       }));
       
       setExecutionLogs(logs);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching execution logs:', error);
     } finally {
       setLogsLoading(false);
@@ -129,7 +129,7 @@ export const useFacebookSyncSchedule = () => {
       });
 
       return data.schedule;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error saving schedule:', error);
       toast({
         title: 'Erro ao salvar configuração',
@@ -166,7 +166,7 @@ export const useFacebookSyncSchedule = () => {
       });
 
       return data.schedule;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error toggling schedule:', error);
       toast({
         title: 'Erro ao alterar status',
@@ -198,7 +198,7 @@ export const useFacebookSyncSchedule = () => {
         title: 'Configuração removida',
         description: 'A configuração de sincronização foi removida.',
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error deleting schedule:', error);
       toast({
         title: 'Erro ao remover configuração',

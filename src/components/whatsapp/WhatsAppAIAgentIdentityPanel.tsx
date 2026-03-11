@@ -15,7 +15,7 @@ interface IdentityPanelProps {
     enthusiasm_level: number;
     emoji_usage: "none" | "moderate" | "intense";
   };
-  onChange: (field: string, value: any) => void;
+  onChange: (field: string, value: unknown) => void;
 }
 
 const departments = [

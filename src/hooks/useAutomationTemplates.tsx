@@ -21,7 +21,7 @@ export interface AutomationTemplateRule {
   template_id: string;
   rule_id: string;
   order_index: number;
-  rule?: any; // Full rule data when joined
+  rule?: unknown; // Full rule data when joined
 }
 
 export const useAutomationTemplates = () => {
@@ -39,7 +39,7 @@ export const useAutomationTemplates = () => {
       
       // Fetch templates with their associated rules
       const { data: templatesData, error: templatesError } = await supabase
-        .from("automation_rule_templates" as any)
+        .from("automation_rule_templates" as unknown)
         .select(`
           *,
           automation_template_rules (
@@ -55,13 +55,13 @@ export const useAutomationTemplates = () => {
       if (templatesError) throw templatesError;
 
       // Transform the data to match our interface
-      const transformedTemplates = templatesData?.map((template: any) => ({
+      const transformedTemplates = templatesData?.map((template: unknown) => ({
         ...template,
         rules: template.automation_template_rules || []
       })) || [];
 
       setTemplates(transformedTemplates);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error fetching automation templates:", error);
       toast({
         title: "Erro ao carregar templates",
@@ -92,7 +92,7 @@ export const useAutomationTemplates = () => {
     try {
       // Create the template
       const { data: templateData, error: templateError } = await supabase
-        .from("automation_rule_templates" as any)
+        .from("automation_rule_templates" as unknown)
         .insert({
           company_id: activeCompany.company_id,
           name,
@@ -107,13 +107,13 @@ export const useAutomationTemplates = () => {
 
       // Create the rule associations
       const ruleAssociations = ruleIds.map((ruleId, index) => ({
-        template_id: (templateData as any).id,
+        template_id: (templateData as unknown).id,
         rule_id: ruleId,
         order_index: index,
       }));
 
       const { error: rulesError } = await supabase
-        .from("automation_template_rules" as any)
+        .from("automation_template_rules" as unknown)
         .insert(ruleAssociations);
 
       if (rulesError) throw rulesError;
@@ -125,7 +125,7 @@ export const useAutomationTemplates = () => {
 
       await fetchTemplates();
       return templateData;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error creating template:", error);
       toast({
         title: "Erro ao criar template",
@@ -149,7 +149,7 @@ export const useAutomationTemplates = () => {
     try {
       // Update template metadata
       const { name, description, category, is_active, ruleIds } = updates;
-      const templateUpdates: any = {};
+      const templateUpdates: unknown = {};
       
       if (name !== undefined) templateUpdates.name = name;
       if (description !== undefined) templateUpdates.description = description;
@@ -158,7 +158,7 @@ export const useAutomationTemplates = () => {
 
       if (Object.keys(templateUpdates).length > 0) {
         const { error: updateError } = await supabase
-          .from("automation_rule_templates" as any)
+          .from("automation_rule_templates" as unknown)
           .update(templateUpdates)
           .eq("id", templateId);
 
@@ -169,7 +169,7 @@ export const useAutomationTemplates = () => {
       if (ruleIds !== undefined) {
         // Delete existing associations
         const { error: deleteError } = await supabase
-          .from("automation_template_rules" as any)
+          .from("automation_template_rules" as unknown)
           .delete()
           .eq("template_id", templateId);
 
@@ -183,7 +183,7 @@ export const useAutomationTemplates = () => {
         }));
 
         const { error: insertError } = await supabase
-          .from("automation_template_rules" as any)
+          .from("automation_template_rules" as unknown)
           .insert(ruleAssociations);
 
         if (insertError) throw insertError;
@@ -195,7 +195,7 @@ export const useAutomationTemplates = () => {
       });
 
       await fetchTemplates();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error updating template:", error);
       toast({
         title: "Erro ao atualizar template",
@@ -209,7 +209,7 @@ export const useAutomationTemplates = () => {
   const deleteTemplate = async (templateId: string) => {
     try {
       const { error } = await supabase
-        .from("automation_rule_templates" as any)
+        .from("automation_rule_templates" as unknown)
         .delete()
         .eq("id", templateId);
 
@@ -221,7 +221,7 @@ export const useAutomationTemplates = () => {
       });
 
       await fetchTemplates();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error deleting template:", error);
       toast({
         title: "Erro ao deletar template",
@@ -236,7 +236,7 @@ export const useAutomationTemplates = () => {
     try {
       // Fetch template with all rules
       const { data: templateData, error: templateError } = await supabase
-        .from("automation_rule_templates" as any)
+        .from("automation_rule_templates" as unknown)
         .select(`
           *,
           automation_template_rules (
@@ -249,8 +249,8 @@ export const useAutomationTemplates = () => {
       if (templateError) throw templateError;
 
       // Import each rule to the client
-      const ruleImportPromises = (templateData as any).automation_template_rules.map(
-        async (templateRule: any) => {
+      const ruleImportPromises = (templateData as unknown).automation_template_rules.map(
+        async (templateRule: unknown) => {
           const rule = templateRule.rule;
           
           const { error: importError } = await supabase
@@ -282,11 +282,11 @@ export const useAutomationTemplates = () => {
 
       toast({
         title: "Template importado",
-        description: `${(templateData as any).automation_template_rules.length} regras foram importadas com sucesso.`,
+        description: `${(templateData as unknown).automation_template_rules.length} regras foram importadas com sucesso.`,
       });
 
       return templateData;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error importing template:", error);
       toast({
         title: "Erro ao importar template",

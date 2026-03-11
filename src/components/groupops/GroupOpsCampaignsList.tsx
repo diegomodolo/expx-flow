@@ -89,7 +89,7 @@ export default function GroupOpsCampaignsList() {
         toast.error('Nenhuma mensagem enviada. Verifique se há templates configurados.');
       }
     },
-    onError: (err: any) => {
+    onError: (err: unknown) => {
       toast.error(`Erro ao enviar teste: ${err?.message || 'Erro desconhecido'}`, { duration: 10000 });
     },
   });
@@ -319,7 +319,7 @@ interface FormModalProps {
   open: boolean;
   onClose: () => void;
   campaign: GroupOpsCampaign | null;
-  groups: Array<{ id: string; name: string; config_json?: any }>;
+  groups: Array<{ id: string; name: string; config_json?: unknown }>;
   templates: Array<{ id: string; title: string; category: string }>;
   instances: Array<{ id: string; instance_name: string; is_connected: boolean; connected_phone: string | null }>;
   onSave: (data: Partial<GroupOpsCampaign>) => void;
@@ -793,7 +793,7 @@ function InstanceValidationSelect({
   instanceId: string;
   onInstanceChange: (id: string) => void;
   instances: Array<{ id: string; instance_name: string; is_connected: boolean; connected_phone: string | null }>;
-  groups: Array<{ id: string; name: string; config_json?: any }>;
+  groups: Array<{ id: string; name: string; config_json?: unknown }>;
 }) {
   // Fetch group members' phones to validate instance membership
   const { data: memberPhones } = useQuery({
@@ -801,12 +801,12 @@ function InstanceValidationSelect({
     queryFn: async () => {
       if (!groupId) return [];
       const { data, error } = await supabase
-        .from('groupops_members' as any)
+        .from('groupops_members' as unknown)
         .select('phone_e164')
         .eq('group_id', groupId)
         .not('phone_e164', 'is', null);
       if (error) return [];
-      return (data ?? []).map((m: any) => m.phone_e164 as string);
+      return (data ?? []).map((m: unknown) => m.phone_e164 as string);
     },
     enabled: !!groupId,
   });

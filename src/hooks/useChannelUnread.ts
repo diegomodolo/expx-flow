@@ -35,13 +35,13 @@ export function useChannelUnread() {
 
       // Get user's read status for each channel
       const { data: readStatuses } = await supabase
-        .from('channel_read_status' as any)
+        .from('channel_read_status' as unknown)
         .select('channel_id, last_read_at')
         .eq('user_id', user.id)
         .in('channel_id', channelIds);
 
       const readMap = new Map(
-        (readStatuses || []).map((rs: any) => [rs.channel_id, rs.last_read_at])
+        (readStatuses || []).map((rs: unknown) => [rs.channel_id, rs.last_read_at])
       );
 
       // Count unread messages per channel
@@ -79,7 +79,7 @@ export function useChannelUnread() {
       if (!companyId || !user?.id) return {};
 
       const { data } = await supabase
-        .from('internal_message_mentions' as any)
+        .from('internal_message_mentions' as unknown)
         .select('channel_id')
         .eq('mentioned_user_id', user.id)
         .eq('is_read', false);
@@ -87,7 +87,7 @@ export function useChannelUnread() {
       if (!data) return {};
 
       const counts: MentionCounts = {};
-      for (const row of data as any[]) {
+      for (const row of data as unknown[]) {
         counts[row.channel_id] = (counts[row.channel_id] || 0) + 1;
       }
       return counts;
@@ -111,7 +111,7 @@ export function useChannelUnread() {
           table: 'internal_messages',
         },
         (payload) => {
-          const newMsg = payload.new as any;
+          const newMsg = payload.new as unknown;
           // Skip own messages
           if (newMsg.user_id === user.id) return;
 
@@ -136,7 +136,7 @@ export function useChannelUnread() {
 
       // Mark channel messages as read
       const { error } = await supabase
-        .from('channel_read_status' as any)
+        .from('channel_read_status' as unknown)
         .upsert(
           { channel_id: channelId, user_id: user.id, last_read_at: new Date().toISOString() },
           { onConflict: 'channel_id,user_id' }
@@ -146,7 +146,7 @@ export function useChannelUnread() {
 
       // Mark all unread mentions in this channel as read
       await supabase
-        .from('internal_message_mentions' as any)
+        .from('internal_message_mentions' as unknown)
         .update({ is_read: true })
         .eq('mentioned_user_id', user.id)
         .eq('channel_id', channelId)

@@ -50,14 +50,14 @@ function MindMapEditorInner() {
     currentEdges.forEach(e => {
       if (!childrenMap[e.source]) childrenMap[e.source] = [];
       childrenMap[e.source].push(e.target);
-      edgeDirectionMap[e.id] = (e.data as any)?.direction || 'right';
+      edgeDirectionMap[e.id] = (e.data as unknown)?.direction || 'right';
     });
 
     // For each edge, determine direction from edge data
     const nodeChildDirections: Record<string, Set<string>> = {};
     currentEdges.forEach(e => {
       if (!nodeChildDirections[e.source]) nodeChildDirections[e.source] = new Set();
-      const dir = (e.data as any)?.direction || 'right';
+      const dir = (e.data as unknown)?.direction || 'right';
       nodeChildDirections[e.source].add(dir);
     });
 
@@ -133,7 +133,7 @@ function MindMapEditorInner() {
   const handleToggleCollapse = useCallback((nodeId: string) => {
     setNodes(nds => nds.map(n =>
       n.id === nodeId
-        ? { ...n, data: { ...n.data, collapsed: !(n.data as any).collapsed } }
+        ? { ...n, data: { ...n.data, collapsed: !(n.data as unknown).collapsed } }
         : n
     ));
     setSaveStatus('unsaved');
@@ -148,7 +148,7 @@ function MindMapEditorInner() {
       setNodes(nds => {
         const parent = nds.find(n => n.id === parentId);
         if (!parent) return nds;
-        const parentLevel = (parent.data as any).level || 0;
+        const parentLevel = (parent.data as unknown).level || 0;
 
         const xOffset = direction === 'left' ? -250 : 250;
 
@@ -200,7 +200,7 @@ function MindMapEditorInner() {
     if (!selectedNodeId) return;
     const parentEdge = edges.find(e => e.target === selectedNodeId);
     if (parentEdge) {
-      const dir = (parentEdge.data as any)?.direction || 'right';
+      const dir = (parentEdge.data as unknown)?.direction || 'right';
       handleAddChild(parentEdge.source, dir);
     }
   }, [selectedNodeId, edges, handleAddChild]);
@@ -235,7 +235,7 @@ function MindMapEditorInner() {
       const rightChildrenMap: Record<string, string[]> = {};
       const leftChildrenMap: Record<string, string[]> = {};
       currentEdges.forEach(e => {
-        const dir = (e.data as any)?.direction || 'right';
+        const dir = (e.data as unknown)?.direction || 'right';
         if (dir === 'left') {
           if (!leftChildrenMap[e.source]) leftChildrenMap[e.source] = [];
           leftChildrenMap[e.source].push(e.target);
@@ -252,7 +252,7 @@ function MindMapEditorInner() {
 
       // Check collapsed state
       const collapsedSet = new Set(
-        currentNodes.filter(n => (n.data as any).collapsed).map(n => n.id)
+        currentNodes.filter(n => (n.data as unknown).collapsed).map(n => n.id)
       );
 
       const H_GAP = 50; // horizontal gap between a node's right edge and its child's left edge

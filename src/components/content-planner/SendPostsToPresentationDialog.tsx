@@ -92,7 +92,7 @@ export function SendPostsToPresentationDialog({
       await sendPostsToPresentation(result.id);
       setNewPresentationName("");
       setShowNewForm(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erro ao criar apresentação",
         description: error.message,
@@ -272,7 +272,7 @@ export function SendPostsToPresentationDialog({
 
       onOpenChange(false);
       setSelectedPresentationId("");
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erro ao enviar posts",
         description: error.message,

@@ -190,7 +190,7 @@ export function CreateAdvancedAudienceModal({
       if (selectAllVideos) {
         setSelectedVideos((data.videos || []).map((v: VideoItem) => v.id));
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching videos:', error);
     } finally {
       setLoadingVideos(false);
@@ -388,7 +388,7 @@ export function CreateAdvancedAudienceModal({
 
               <div className="space-y-2">
                 <Label>Tipo de Regra</Label>
-                <Select value={ruleType} onValueChange={(v) => setRuleType(v as any)} disabled={loading}>
+                <Select value={ruleType} onValueChange={(v) => setRuleType(v as unknown)} disabled={loading}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>

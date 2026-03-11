@@ -118,7 +118,7 @@ const RadarUrlsDashboard = () => {
         step: 'complete',
         processedCount: totalUrls,
         totalCount: totalUrls,
-        suspiciousCount: (analysisResult as any)?.suspicious || 0,
+        suspiciousCount: (analysisResult as unknown)?.suspicious || 0,
         errorCount: stats.error + stats.timeout,
       });
 

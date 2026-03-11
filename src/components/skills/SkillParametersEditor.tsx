@@ -22,9 +22,9 @@ interface Props {
 
 function parseFields(params: Record<string, unknown> | null): ParamField[] {
   if (!params || typeof params !== "object") return [];
-  const properties = (params as any)?.properties;
+  const properties = (params as unknown)?.properties;
   if (!properties) return [];
-  return Object.entries(properties).map(([name, schema]: [string, any]) => ({
+  return Object.entries(properties).map(([name, schema]: [string, unknown]) => ({
     name,
     type: schema?.type || "string",
     description: schema?.description || "",

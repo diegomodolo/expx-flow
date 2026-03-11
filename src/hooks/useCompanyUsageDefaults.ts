@@ -20,12 +20,12 @@ export function useCompanyUsageDefaults() {
     queryFn: async () => {
       if (!companyId) return {};
       const { data, error } = await supabase
-        .from('company_usage_defaults' as any)
+        .from('company_usage_defaults' as unknown)
         .select('setting_key, setting_value')
         .eq('company_id', companyId);
       if (error) throw error;
-      const map: Record<string, any> = {};
-      (data as any[])?.forEach((row: any) => {
+      const map: Record<string, unknown> = {};
+      (data as unknown[])?.forEach((row: unknown) => {
         map[row.setting_key] = row.setting_value;
       });
       return map;
@@ -40,7 +40,7 @@ export function useCompanyUsageDefaults() {
   const updateSetting = useMutation({
     mutationFn: async ({ key, value }: { key: UsageKey; value: boolean }) => {
       if (!companyId) throw new Error('No company');
-      const { error } = await (supabase as any)
+      const { error } = await (supabase as unknown)
         .from('company_usage_defaults')
         .upsert(
           { company_id: companyId, setting_key: key, setting_value: value },

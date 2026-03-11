@@ -176,7 +176,7 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
         const needsBudgetClear = data.autopilot_max_daily_budget != null;
 
         if ((needsLegacyFix || needsBudgetClear) && data.id) {
-          const updatePayload: Record<string, any> = {};
+          const updatePayload: Record<string, unknown> = {};
           if (needsLegacyFix) updatePayload.autopilot_min_quality_score = minQualityScore;
           if (needsBudgetClear) updatePayload.autopilot_max_daily_budget = null;
 
@@ -213,13 +213,13 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
           reference_image_5: data.reference_image_5 ?? null,
           reference_image_6: data.reference_image_6 ?? null,
           // Publishing defaults
-          default_destination_url: (data as any).default_destination_url ?? null,
-          default_primary_text: (data as any).default_primary_text ?? null,
-          default_headline: (data as any).default_headline ?? null,
-          default_description: (data as any).default_description ?? null,
-          default_cta: (data as any).default_cta ?? "LEARN_MORE",
-          default_pixel_id: (data as any).default_pixel_id ?? null,
-          default_url_params: (data as any).default_url_params ?? null,
+          default_destination_url: (data as unknown).default_destination_url ?? null,
+          default_primary_text: (data as unknown).default_primary_text ?? null,
+          default_headline: (data as unknown).default_headline ?? null,
+          default_description: (data as unknown).default_description ?? null,
+          default_cta: (data as unknown).default_cta ?? "LEARN_MORE",
+          default_pixel_id: (data as unknown).default_pixel_id ?? null,
+          default_url_params: (data as unknown).default_url_params ?? null,
         });
         setConfigLoaded(true);
       } else {
@@ -289,7 +289,7 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
 
       toast.success('Configurações salvas com sucesso!');
       onSave?.();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error saving config:', error);
       toast.error('Erro ao salvar configurações: ' + error.message);
     } finally {
@@ -310,7 +310,7 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
 
       toast.success('Fábrica removida com sucesso!');
       onDelete?.();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error deleting config:', error);
       toast.error('Erro ao remover fábrica: ' + error.message);
     }
@@ -332,7 +332,7 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
       if (error) throw error;
 
       toast.success('Reset realizado! A geração vai rodar no próximo horário configurado.');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error resetting generation:', error);
       toast.error('Erro ao resetar: ' + error.message);
     } finally {
@@ -362,13 +362,13 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
     if (currentOtherTotal > 0) {
       otherFields.forEach(f => {
         const ratio = (config[f] as number) / currentOtherTotal;
-        (newConfig as any)[f] = Math.round(remaining * ratio);
+        (newConfig as unknown)[f] = Math.round(remaining * ratio);
       });
     } else if (otherFields.length > 0) {
       // Distribute equally if current total is 0
       const perField = Math.floor(remaining / otherFields.length);
       otherFields.forEach((f, idx) => {
-        (newConfig as any)[f] = idx === otherFields.length - 1 
+        (newConfig as unknown)[f] = idx === otherFields.length - 1 
           ? remaining - perField * (otherFields.length - 1) 
           : perField;
       });

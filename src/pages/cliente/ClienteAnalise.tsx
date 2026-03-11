@@ -31,7 +31,7 @@ export function ClienteAnalise() {
     .sort((a, b) => (b.cpa || 0) - (a.cpa || 0))
     .slice(0, 3);
 
-  const handleBriefingUpdate = (updatedClient: any) => {
+  const handleBriefingUpdate = (updatedClient: unknown) => {
     refetchClient();
   };
 

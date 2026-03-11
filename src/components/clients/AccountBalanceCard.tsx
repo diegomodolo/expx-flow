@@ -68,7 +68,7 @@ export const AccountBalanceCard = ({
       
       // Trigger refetch do client details
       window.dispatchEvent(new CustomEvent('refreshClientDetails'));
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Erro ao atualizar saldo:', err);
       toast.error(err.message || 'Erro ao atualizar saldo');
     } finally {

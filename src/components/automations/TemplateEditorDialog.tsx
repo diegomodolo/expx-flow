@@ -29,7 +29,7 @@ interface TemplateEditorDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   template?: AutomationRule | null;
-  onSave: (data: any) => Promise<any>;
+  onSave: (data: unknown) => Promise<unknown>;
 }
 
 export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: TemplateEditorDialogProps) => {
@@ -43,7 +43,7 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
     time_window_days: 7,
     action_type: "notify_only",
     is_active: true,
-    action_config: {} as any,
+    action_config: {} as unknown,
     entity_type: "campaign" as "campaign" | "adset" | "ad",
   });
 

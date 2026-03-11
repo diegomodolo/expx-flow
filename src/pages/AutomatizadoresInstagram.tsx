@@ -63,7 +63,7 @@ export default function AutomatizadoresInstagram() {
             profile_picture_url
           )
         `)
-        .eq('company_id', activeCompany?.company_id!)
+        .eq('company_id', activeCompany?.company_id ?? '')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -79,7 +79,7 @@ export default function AutomatizadoresInstagram() {
       const { data, error } = await supabase
         .from('instagram_accounts')
         .select('*')
-        .eq('company_id', activeCompany?.company_id!);
+        .eq('company_id', activeCompany?.company_id ?? '');
 
       if (error) throw error;
       return data;
@@ -97,8 +97,8 @@ export default function AutomatizadoresInstagram() {
           post_briefing: briefing,
           scheduled_days: selectedDays,
           scheduled_hours: selectedHours,
-          company_id: activeCompany?.company_id!,
-          created_by: user?.id!,
+          company_id: activeCompany?.company_id ?? '',
+          created_by: user?.id ?? '',
           is_enabled: true
         })
         .select()
@@ -126,7 +126,7 @@ export default function AutomatizadoresInstagram() {
       resetForm();
       navigate(`/automatizadores/instagram/${data.id}`);
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: 'Erro ao criar automação',
         description: error.message,
@@ -201,7 +201,7 @@ export default function AutomatizadoresInstagram() {
               </div>
             ) : automations && automations.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {automations.map((automation: any) => (
+                {automations.map((automation: unknown) => (
                   <Card
                     key={automation.id}
                     className="cursor-pointer hover:shadow-md transition-shadow"
@@ -314,7 +314,7 @@ export default function AutomatizadoresInstagram() {
                       <SelectValue placeholder="Selecione a conta" />
                     </SelectTrigger>
                     <SelectContent>
-                      {instagramAccounts.map((account: any) => (
+                      {instagramAccounts.map((account: unknown) => (
                         <SelectItem key={account.id} value={account.id}>
                           @{account.username}
                         </SelectItem>

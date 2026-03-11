@@ -17,7 +17,7 @@ export interface UnifiedCreative {
   source: 'fabrica_criativos' | 'gerador_criativos' | 'fabrica_anuncios' | 'fabrica_carrosseis';
   creative_type: string | null;
   theme: string | null;
-  slides?: any[]; // Para carrosséis
+  slides?: unknown[]; // Para carrosséis
 }
 
 interface Client {
@@ -245,7 +245,7 @@ export function useAllCreatives(clientIdFilter?: string) {
 
     // Normalize fábrica de carrosséis
     const fabricaCarrosseisCreatives: UnifiedCreative[] = (fabricaCarrosseisResult.data || []).map(item => {
-      const slides = item.slides as any[] | null;
+      const slides = item.slides as unknown[] | null;
       // Usa a cover_image_url ou a primeira imagem dos slides
       const firstSlideImage = slides && slides.length > 0 ? slides[0]?.image_url : null;
       return {
@@ -309,7 +309,7 @@ export function useAllCreatives(clientIdFilter?: string) {
       const result = await fetchCreativesPage(0, map);
       setCreatives(result.creatives);
       setHasMore(result.hasMoreData);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching creatives:', error);
       toast.error('Erro ao carregar criativos');
     } finally {
@@ -328,7 +328,7 @@ export function useAllCreatives(clientIdFilter?: string) {
       setCreatives(prev => [...prev, ...result.creatives]);
       pageRef.current = nextPage;
       setHasMore(result.hasMoreData);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error loading more creatives:', error);
       toast.error('Erro ao carregar mais criativos');
     } finally {

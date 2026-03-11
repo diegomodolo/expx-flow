@@ -205,8 +205,8 @@ export function useWeeklyReport(clientId: string) {
   };
 
   const calculateWeekMetrics = (
-    campaigns: any[],
-    ads: any[],
+    campaigns: unknown[],
+    ads: unknown[],
     startDate: Date,
     endDate: Date
   ): WeeklyMetrics => {
@@ -256,7 +256,7 @@ export function useWeeklyReport(clientId: string) {
   };
 
   const getCampaignHighlights = (
-    campaigns: any[],
+    campaigns: unknown[],
     startDate: Date,
     endDate: Date
   ): CampaignHighlight[] => {
@@ -288,7 +288,7 @@ export function useWeeklyReport(clientId: string) {
     return activeCampaigns;
   };
 
-  const getCampaignAnalytics = (campaigns: any[]): CampaignAnalytics => {
+  const getCampaignAnalytics = (campaigns: unknown[]): CampaignAnalytics => {
     const totalCampaigns = campaigns.length;
     const activeCampaigns = campaigns.filter(c => c.status === 'active' || c.is_active).length;
     const pausedCampaigns = campaigns.filter(c => c.status === 'paused').length;

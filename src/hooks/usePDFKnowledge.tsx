@@ -88,7 +88,7 @@ export function usePDFKnowledge(configId: string, companyId: string) {
       queryClient.invalidateQueries({ queryKey: ['pdf-knowledge-files', configId] });
       toast.success('PDF enviado com sucesso');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error('Erro ao enviar PDF', { description: error.message });
     }
   });
@@ -110,7 +110,7 @@ export function usePDFKnowledge(configId: string, companyId: string) {
       queryClient.invalidateQueries({ queryKey: ['pdf-knowledge-files', configId] });
       toast.success('Conteúdo do PDF processado');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error('Erro ao processar PDF', { description: error.message });
     }
   });
@@ -147,7 +147,7 @@ export function usePDFKnowledge(configId: string, companyId: string) {
       queryClient.invalidateQueries({ queryKey: ['pdf-knowledge-files', configId] });
       toast.success('PDF removido da base de conhecimento');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error('Erro ao remover PDF', { description: error.message });
     }
   });

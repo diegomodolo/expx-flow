@@ -179,7 +179,7 @@ export function WhatsAppMessageBubble({ message, allMessages, contactName, insta
         setIsDeleted(true);
         toast.success("Mensagem apagada localmente");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("[WhatsAppMessageBubble] Delete error:", err);
       toast.error(err.message || "Erro ao apagar mensagem");
     } finally {
@@ -221,7 +221,7 @@ export function WhatsAppMessageBubble({ message, allMessages, contactName, insta
       } else {
         throw new Error(data?.error || "Erro ao editar mensagem");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("[WhatsAppMessageBubble] Edit error:", err);
       toast.error(err.message || "Erro ao editar mensagem");
     } finally {
@@ -527,8 +527,8 @@ export function WhatsAppMessageBubble({ message, allMessages, contactName, insta
                   instanceId={instanceId ?? null}
                   isOutgoing={isOutgoing && !isFailed}
                   cachedMediaUrl={message.cached_media_url}
-                  audioTranscription={(message as any).audio_transcription}
-                  transcriptionStatus={(message as any).transcription_status}
+                  audioTranscription={(message as unknown).audio_transcription}
+                  transcriptionStatus={(message as unknown).transcription_status}
                 />
               ) : isStickerOrGif ? (
                 <WhatsAppImageViewer

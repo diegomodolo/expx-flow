@@ -11,7 +11,7 @@ export interface SystemAlert {
   severity: 'info' | 'warning' | 'critical';
   title: string;
   message: string;
-  details: Record<string, any>;
+  details: Record<string, unknown>;
   related_entity_type: string | null;
   related_entity_id: string | null;
   is_read: boolean;
@@ -82,7 +82,7 @@ export function useSystemAlerts() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['system-alerts'] });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: "Erro ao marcar como lido",
         description: error.message,
@@ -113,7 +113,7 @@ export function useSystemAlerts() {
         description: "O alerta foi marcado como resolvido.",
       });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: "Erro ao resolver alerta",
         description: error.message,
@@ -140,7 +140,7 @@ export function useSystemAlerts() {
         title: "Alertas marcados como lidos",
       });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: "Erro ao marcar alertas como lidos",
         description: error.message,

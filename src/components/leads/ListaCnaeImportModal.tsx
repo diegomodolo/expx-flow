@@ -132,7 +132,7 @@ export const ListaCnaeImportModal = ({
       if (total === 0) {
         toast.info("Nenhuma empresa encontrada com os CNAEs do segmento");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Preview error:", error);
       toast.error(error.message || "Erro ao buscar prévia");
     } finally {
@@ -188,7 +188,7 @@ export const ListaCnaeImportModal = ({
       
       toast.success(`${result.imported || 0} leads importados para "${segment.name}"!`);
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Import error:", error);
       toast.error(error.message || "Erro ao importar leads");
       setIsImporting(false);

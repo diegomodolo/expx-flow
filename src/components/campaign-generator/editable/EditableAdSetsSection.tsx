@@ -211,7 +211,7 @@ export function EditableAdSetsSection({
           description: `O público "${result.name}" foi criado e adicionado ao conjunto.`,
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erro ao criar público",
         description: error.message,

@@ -70,7 +70,7 @@ export function InstagramConnectionTestModal({
       setMedia(data.media || []);
       setTokenSource(data.tokenSource || null);
       setTested(true);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err.message || "Erro desconhecido");
       setTested(true);
     } finally {
