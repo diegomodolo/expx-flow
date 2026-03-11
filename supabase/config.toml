@@ -474,6 +474,9 @@ verify_jwt = true
 [functions.generate-video-script]
 verify_jwt = true
 
+[functions.generate-visual-creative]
+verify_jwt = true
+
 [functions.refine-script-chat]
 verify_jwt = true
 
