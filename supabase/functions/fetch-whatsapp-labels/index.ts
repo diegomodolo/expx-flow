@@ -2,8 +2,10 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 serve(async (req) => {
@@ -18,12 +20,21 @@ serve(async (req) => {
   try {
     const { company_id, instance_id } = await req.json();
 
-    console.log("[fetch-whatsapp-labels] Fetching labels for company:", company_id);
+    console.log(
+      "[fetch-whatsapp-labels] Fetching labels for company:",
+      company_id,
+    );
 
     if (!company_id || !instance_id) {
       return new Response(
-        JSON.stringify({ success: false, error: "company_id e instance_id são obrigatórios" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          success: false,
+          error: "company_id e instance_id são obrigatórios",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -37,8 +48,14 @@ serve(async (req) => {
 
     if (configError || !config) {
       return new Response(
-        JSON.stringify({ success: false, error: "Configuração do WhatsApp não encontrada" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          success: false,
+          error: "Configuração do WhatsApp não encontrada",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -52,8 +69,14 @@ serve(async (req) => {
 
     if (instanceError || !instance?.uazapi_token) {
       return new Response(
-        JSON.stringify({ success: false, error: "Instância não encontrada ou sem token" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          success: false,
+          error: "Instância não encontrada ou sem token",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -66,7 +89,7 @@ serve(async (req) => {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
-        "token": instance.uazapi_token,
+        token: instance.uazapi_token,
       },
     });
 
@@ -75,21 +98,29 @@ serve(async (req) => {
 
     if (!apiResponse.ok) {
       return new Response(
-        JSON.stringify({ success: false, error: apiData.message || "Erro ao buscar etiquetas" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          success: false,
+          error: apiData.message || "Erro ao buscar etiquetas",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
-    return new Response(
-      JSON.stringify({ success: true, labels: apiData }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-
+    return new Response(JSON.stringify({ success: true, labels: apiData }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (error) {
     console.error("[fetch-whatsapp-labels] Error:", error);
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 });

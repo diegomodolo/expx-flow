@@ -1,8 +1,10 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 const QUALITY_REDUCTION: Record<string, number> = {
@@ -19,7 +21,7 @@ Deno.serve(async (req) => {
   try {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
     // Verify auth
@@ -32,7 +34,10 @@ Deno.serve(async (req) => {
     }
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(token);
     if (authError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
@@ -44,10 +49,13 @@ Deno.serve(async (req) => {
     const { taskId, action, rejectionReason, comment, companyId } = body;
 
     if (!taskId || !action || !companyId) {
-      return new Response(JSON.stringify({ error: "Missing required fields" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "Missing required fields" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
     if (!["approved", "rejected"].includes(action)) {
@@ -58,10 +66,13 @@ Deno.serve(async (req) => {
     }
 
     if (action === "rejected" && !rejectionReason) {
-      return new Response(JSON.stringify({ error: "Rejection reason required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "Rejection reason required" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
     // Get reviewer employee record
@@ -81,7 +92,7 @@ Deno.serve(async (req) => {
 
     // Verify the reviewer is an authorizer for this task
     const { data: authMember } = await supabase
-      .from("task_members" as any)
+      .from("task_members" as unknown)
       .select("id")
       .eq("task_id", taskId)
       .eq("employee_id", reviewer.id)
@@ -89,16 +100,21 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (!authMember) {
-      return new Response(JSON.stringify({ error: "Not authorized to review this task" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "Not authorized to review this task" }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
     // Get task current state
     const { data: task, error: taskError } = await supabase
       .from("tasks")
-      .select("id, title, status, task_quality_score, team_id, responsible_name, related_client_id, assigned_user_id, user_id, rejection_count")
+      .select(
+        "id, title, status, task_quality_score, team_id, responsible_name, related_client_id, assigned_user_id, user_id, rejection_count",
+      )
       .eq("id", taskId)
       .single();
 
@@ -110,10 +126,13 @@ Deno.serve(async (req) => {
     }
 
     if (task.status !== "review") {
-      return new Response(JSON.stringify({ error: "Task is not in review status" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "Task is not in review status" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
     const qualityBefore = Number(task.task_quality_score ?? 100);
@@ -161,7 +180,7 @@ Deno.serve(async (req) => {
       updatePayload.last_rejected_at = null;
     } else {
       updatePayload.last_rejected_at = new Date().toISOString();
-      updatePayload.rejection_count = (Number(task.rejection_count ?? 0)) + 1;
+      updatePayload.rejection_count = Number(task.rejection_count ?? 0) + 1;
       if (todoColumnId) {
         updatePayload.quadro_column_id = todoColumnId;
       }
@@ -182,29 +201,31 @@ Deno.serve(async (req) => {
     }
 
     // Insert review history
-    await supabase
-      .from("task_review_history" as any)
-      .insert({
-        task_id: taskId,
-        company_id: companyId,
-        reviewer_employee_id: reviewer.id,
-        action,
-        rejection_reason: action === "rejected" ? rejectionReason : null,
-        quality_before: qualityBefore,
-        quality_after: qualityAfter,
-        comment: comment || null,
-      });
+    await supabase.from("task_review_history" as unknown).insert({
+      task_id: taskId,
+      company_id: companyId,
+      reviewer_employee_id: reviewer.id,
+      action,
+      rejection_reason: action === "rejected" ? rejectionReason : null,
+      quality_before: qualityBefore,
+      quality_after: qualityAfter,
+      comment: comment || null,
+    });
 
     // Send Discord notification for rejection
     if (action === "rejected") {
       try {
         const { data: config } = await supabase
-          .from("discord_config" as any)
+          .from("discord_config" as unknown)
           .select("*")
           .eq("company_id", companyId)
           .maybeSingle();
 
-        if (config?.is_connected && config?.enabled && config?.notify_task_rejected) {
+        if (
+          config?.is_connected &&
+          config?.enabled &&
+          config?.notify_task_rejected
+        ) {
           const { data: team } = await supabase
             .from("teams")
             .select("discord_channel_id, name")
@@ -228,11 +249,25 @@ Deno.serve(async (req) => {
                   color: 0xef4444,
                   fields: [
                     { name: "Tarefa", value: task.title, inline: false },
-                    { name: "Responsável", value: task.responsible_name || "—", inline: true },
+                    {
+                      name: "Responsável",
+                      value: task.responsible_name || "—",
+                      inline: true,
+                    },
                     { name: "Autorizador", value: reviewer.name, inline: true },
-                    { name: "Motivo", value: reasonLabels[rejectionReason] || rejectionReason, inline: true },
-                    { name: "Qualidade", value: `${qualityBefore}% → ${qualityAfter}%`, inline: true },
-                    ...(comment ? [{ name: "Comentário", value: comment, inline: false }] : []),
+                    {
+                      name: "Motivo",
+                      value: reasonLabels[rejectionReason] || rejectionReason,
+                      inline: true,
+                    },
+                    {
+                      name: "Qualidade",
+                      value: `${qualityBefore}% → ${qualityAfter}%`,
+                      inline: true,
+                    },
+                    ...(comment
+                      ? [{ name: "Comentário", value: comment, inline: false }]
+                      : []),
                   ],
                   timestamp: new Date().toISOString(),
                 },
@@ -259,12 +294,14 @@ Deno.serve(async (req) => {
           company_id: companyId,
           user_id: targetUserId,
           type: action === "approved" ? "task_review" : "task_review",
-          title: action === "approved"
-            ? `✅ Tarefa aprovada — ${task.title}`
-            : `❌ Tarefa rejeitada — ${task.title}`,
-          body: action === "approved"
-            ? `Aprovada por ${reviewer.name}. Qualidade: ${qualityAfter}%`
-            : `Rejeitada por ${reviewer.name}. Motivo: ${reasonLabels[rejectionReason] || rejectionReason}. Qualidade: ${qualityBefore}% → ${qualityAfter}%${comment ? `. Comentário: ${comment}` : ""}`,
+          title:
+            action === "approved"
+              ? `✅ Tarefa aprovada — ${task.title}`
+              : `❌ Tarefa rejeitada — ${task.title}`,
+          body:
+            action === "approved"
+              ? `Aprovada por ${reviewer.name}. Qualidade: ${qualityAfter}%`
+              : `Rejeitada por ${reviewer.name}. Motivo: ${reasonLabels[rejectionReason] || rejectionReason}. Qualidade: ${qualityBefore}% → ${qualityAfter}%${comment ? `. Comentário: ${comment}` : ""}`,
           priority: action === "rejected" ? "high" : "normal",
           action_url: "/tarefas",
           action_metadata: {
@@ -291,7 +328,7 @@ Deno.serve(async (req) => {
       {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      },
     );
   } catch (err) {
     console.error("Unexpected error:", err);

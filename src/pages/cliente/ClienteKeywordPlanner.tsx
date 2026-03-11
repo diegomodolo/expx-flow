@@ -37,13 +37,20 @@ import { useCompany } from "@/contexts/CompanyContext";
 import { useClientContext } from "./ClienteContext";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
-type SortField = "keyword" | "avgMonthlySearches" | "competition" | "cpcLow" | "cpcHigh";
+type SortField =
+  | "keyword"
+  | "avgMonthlySearches"
+  | "competition"
+  | "cpcLow"
+  | "cpcHigh";
 type SortDirection = "asc" | "desc";
 
 export function ClienteKeywordPlanner() {
   const { activeCompany } = useCompany();
   const { client } = useClientContext();
-  const [inputMode, setInputMode] = useState<"keywords" | "url" | "briefing">("briefing");
+  const [inputMode, setInputMode] = useState<"keywords" | "url" | "briefing">(
+    "briefing",
+  );
   const [keywordInput, setKeywordInput] = useState("");
   const [urlInput, setUrlInput] = useState("");
   const [seedKeywords, setSeedKeywords] = useState<string[]>([]);
@@ -71,29 +78,29 @@ export function ClienteKeywordPlanner() {
   // Extract keywords from client briefing
   const extractKeywordsFromBriefing = (): string[] => {
     if (!client) return [];
-    
+
     const keywords: string[] = [];
-    
+
     // Add product/service name
     if (client.product_name) {
       keywords.push(client.product_name);
     }
-    
+
     // Add company name
     if (client.company) {
       keywords.push(client.company);
     }
-    
+
     // Add sector
     if (client.sector) {
       keywords.push(client.sector);
     }
-    
+
     // Extract keywords from briefing
     if (client.ai_briefing) {
       // Extract key phrases from briefing (simplified extraction)
       const briefingText = client.ai_briefing.toLowerCase();
-      
+
       // Common patterns to extract
       const patterns = [
         /produto[s]?:\s*([^.;]+)/gi,
@@ -102,33 +109,37 @@ export function ClienteKeywordPlanner() {
         /especializado[s]?\s+em\s+([^.;]+)/gi,
         /foco\s+em\s+([^.;]+)/gi,
       ];
-      
-      patterns.forEach(pattern => {
+
+      patterns.forEach((pattern) => {
         const matches = briefingText.matchAll(pattern);
         for (const match of matches) {
           if (match[1]) {
-            const extracted = match[1].trim().split(/[,;]/).map(s => s.trim()).filter(s => s.length > 2 && s.length < 50);
+            const extracted = match[1]
+              .trim()
+              .split(/[,;]/)
+              .map((s) => s.trim())
+              .filter((s) => s.length > 2 && s.length < 50);
             keywords.push(...extracted);
           }
         }
       });
     }
-    
+
     // Add target audience keywords
     if (client.target_audience) {
       keywords.push(client.target_audience);
     }
-    
+
     // Add objectives
     if (client.objectives) {
       keywords.push(client.objectives);
     }
-    
+
     // Filter and deduplicate
     const uniqueKeywords = [...new Set(keywords)]
-      .filter(k => k && k.length > 2 && k.length < 50)
+      .filter((k) => k && k.length > 2 && k.length < 50)
       .slice(0, 10);
-    
+
     return uniqueKeywords;
   };
 
@@ -203,7 +214,8 @@ export function ClienteKeywordPlanner() {
           break;
         case "competition": {
           const order = { LOW: 1, MEDIUM: 2, HIGH: 3, UNSPECIFIED: 0 };
-          comparison = (order[a.competition] || 0) - (order[b.competition] || 0);
+          comparison =
+            (order[a.competition] || 0) - (order[b.competition] || 0);
           break;
         }
         case "cpcLow":
@@ -219,7 +231,13 @@ export function ClienteKeywordPlanner() {
   const handleExportCSV = () => {
     if (filteredAndSortedKeywords.length === 0) return;
 
-    const headers = ["Palavra-chave", "Vol. Mensal", "Competição", "CPC Baixo", "CPC Alto"];
+    const headers = [
+      "Palavra-chave",
+      "Vol. Mensal",
+      "Competição",
+      "CPC Baixo",
+      "CPC Alto",
+    ];
     const rows = filteredAndSortedKeywords.map((kw) => [
       kw.keyword,
       kw.avgMonthlySearches,
@@ -228,15 +246,23 @@ export function ClienteKeywordPlanner() {
       formatCurrency(kw.highTopOfPageBidMicros),
     ]);
 
-    const csvContent = [headers, ...rows].map((row) => row.join(",")).join("\n");
+    const csvContent = [headers, ...rows]
+      .map((row) => row.join(","))
+      .join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = `keyword-planner-${client?.name || 'cliente'}-${new Date().toISOString().split("T")[0]}.csv`;
+    link.download = `keyword-planner-${client?.name || "cliente"}-${new Date().toISOString().split("T")[0]}.csv`;
     link.click();
   };
 
-  const SortableHeader = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
+  const SortableHeader = ({
+    field,
+    children,
+  }: {
+    field: SortField;
+    children: React.ReactNode;
+  }) => (
     <TableHead
       className="cursor-pointer hover:bg-muted/50 transition-colors"
       onClick={() => handleSort(field)}
@@ -254,13 +280,17 @@ export function ClienteKeywordPlanner() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Planejador de Palavras-chave</h1>
+        <h1 className="text-2xl font-bold text-foreground">
+          Planejador de Palavras-chave
+        </h1>
         <p className="text-muted-foreground">
-          Descubra palavras-chave relevantes para {client?.name || "este cliente"}
+          Descubra palavras-chave relevantes para{" "}
+          {client?.name || "este cliente"}
         </p>
         {client?.google_ads_account && (
           <p className="text-xs text-muted-foreground mt-1">
-            Conta Google Ads: {client.google_ads_account.account_name} ({client.google_ads_account.google_customer_id})
+            Conta Google Ads: {client.google_ads_account.account_name} (
+            {client.google_ads_account.google_customer_id})
           </p>
         )}
       </div>
@@ -271,7 +301,9 @@ export function ClienteKeywordPlanner() {
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Conta Google Ads não vinculada</AlertTitle>
           <AlertDescription>
-            Este cliente não possui uma conta Google Ads vinculada. Vincule uma conta nas configurações do cliente para usar o Planejador de Palavras-chave.
+            Este cliente não possui uma conta Google Ads vinculada. Vincule uma
+            conta nas configurações do cliente para usar o Planejador de
+            Palavras-chave.
           </AlertDescription>
         </Alert>
       )}
@@ -286,9 +318,12 @@ export function ClienteKeywordPlanner() {
               </div>
               <div className="flex-1 space-y-3">
                 <div>
-                  <h3 className="font-semibold text-foreground">Sugestões Automáticas</h3>
+                  <h3 className="font-semibold text-foreground">
+                    Sugestões Automáticas
+                  </h3>
                   <p className="text-sm text-muted-foreground">
-                    Baseado no briefing e dados do cliente, identificamos estas palavras-chave iniciais:
+                    Baseado no briefing e dados do cliente, identificamos estas
+                    palavras-chave iniciais:
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -298,7 +333,11 @@ export function ClienteKeywordPlanner() {
                     </Badge>
                   ))}
                 </div>
-                <Button onClick={handleSearchFromBriefing} disabled={loading || !googleCustomerId} className="gap-2">
+                <Button
+                  onClick={handleSearchFromBriefing}
+                  disabled={loading || !googleCustomerId}
+                  className="gap-2"
+                >
                   {loading ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -322,7 +361,8 @@ export function ClienteKeywordPlanner() {
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Briefing não encontrado</AlertTitle>
           <AlertDescription>
-            Este cliente não possui briefing configurado. Adicione palavras-chave manualmente ou uma URL para gerar ideias.
+            Este cliente não possui briefing configurado. Adicione
+            palavras-chave manualmente ou uma URL para gerar ideias.
           </AlertDescription>
         </Alert>
       )}
@@ -335,7 +375,12 @@ export function ClienteKeywordPlanner() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Tabs value={inputMode} onValueChange={(v) => setInputMode(v as "keywords" | "url" | "briefing")}>
+          <Tabs
+            value={inputMode}
+            onValueChange={(v) =>
+              setInputMode(v as "keywords" | "url" | "briefing")
+            }
+          >
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="briefing" className="gap-2">
                 <Wand2 className="h-4 w-4" />
@@ -367,7 +412,8 @@ export function ClienteKeywordPlanner() {
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  Nenhum briefing disponível. Configure o briefing do cliente para usar esta opção.
+                  Nenhum briefing disponível. Configure o briefing do cliente
+                  para usar esta opção.
                 </p>
               )}
             </TabsContent>
@@ -381,7 +427,12 @@ export function ClienteKeywordPlanner() {
                   onKeyPress={handleKeyPress}
                   disabled={loading}
                 />
-                <Button aria-label="Adicionar" onClick={handleAddKeyword} disabled={!keywordInput.trim() || loading} size="icon">
+                <Button
+                  aria-label="Adicionar"
+                  onClick={handleAddKeyword}
+                  disabled={!keywordInput.trim() || loading}
+                  size="icon"
+                >
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
@@ -389,7 +440,11 @@ export function ClienteKeywordPlanner() {
               {seedKeywords.length > 0 && (
                 <div className="flex flex-wrap gap-2">
                   {seedKeywords.map((keyword) => (
-                    <Badge key={keyword} variant="secondary" className="gap-1 pr-1">
+                    <Badge
+                      key={keyword}
+                      variant="secondary"
+                      className="gap-1 pr-1"
+                    >
                       {keyword}
                       <button
                         onClick={() => handleRemoveKeyword(keyword)}
@@ -445,9 +500,13 @@ export function ClienteKeywordPlanner() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <p className="text-sm text-muted-foreground">
-                    {filteredAndSortedKeywords.length} de {keywords.length} palavras-chave
+                    {filteredAndSortedKeywords.length} de {keywords.length}{" "}
+                    palavras-chave
                   </p>
-                  <Select value={competitionFilter} onValueChange={setCompetitionFilter}>
+                  <Select
+                    value={competitionFilter}
+                    onValueChange={setCompetitionFilter}
+                  >
                     <SelectTrigger className="w-[140px] h-8">
                       <SelectValue placeholder="Competição" />
                     </SelectTrigger>
@@ -460,7 +519,12 @@ export function ClienteKeywordPlanner() {
                   </Select>
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={handleExportCSV} className="gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleExportCSV}
+                    className="gap-2"
+                  >
                     <Download className="h-4 w-4" />
                     Exportar CSV
                   </Button>
@@ -474,9 +538,15 @@ export function ClienteKeywordPlanner() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <SortableHeader field="keyword">Palavra-chave</SortableHeader>
-                      <SortableHeader field="avgMonthlySearches">Vol. Mensal</SortableHeader>
-                      <SortableHeader field="competition">Competição</SortableHeader>
+                      <SortableHeader field="keyword">
+                        Palavra-chave
+                      </SortableHeader>
+                      <SortableHeader field="avgMonthlySearches">
+                        Vol. Mensal
+                      </SortableHeader>
+                      <SortableHeader field="competition">
+                        Competição
+                      </SortableHeader>
                       <SortableHeader field="cpcLow">CPC Mín.</SortableHeader>
                       <SortableHeader field="cpcHigh">CPC Máx.</SortableHeader>
                     </TableRow>
@@ -484,8 +554,12 @@ export function ClienteKeywordPlanner() {
                   <TableBody>
                     {filteredAndSortedKeywords.slice(0, 50).map((kw, index) => (
                       <TableRow key={`${kw.keyword}-${index}`}>
-                        <TableCell className="font-medium">{kw.keyword}</TableCell>
-                        <TableCell>{formatNumber(kw.avgMonthlySearches)}</TableCell>
+                        <TableCell className="font-medium">
+                          {kw.keyword}
+                        </TableCell>
+                        <TableCell>
+                          {formatNumber(kw.avgMonthlySearches)}
+                        </TableCell>
                         <TableCell>
                           <Badge
                             variant="outline"
@@ -494,8 +568,12 @@ export function ClienteKeywordPlanner() {
                             {getCompetitionLabel(kw.competition)}
                           </Badge>
                         </TableCell>
-                        <TableCell>{formatCurrency(kw.lowTopOfPageBidMicros)}</TableCell>
-                        <TableCell>{formatCurrency(kw.highTopOfPageBidMicros)}</TableCell>
+                        <TableCell>
+                          {formatCurrency(kw.lowTopOfPageBidMicros)}
+                        </TableCell>
+                        <TableCell>
+                          {formatCurrency(kw.highTopOfPageBidMicros)}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -504,7 +582,8 @@ export function ClienteKeywordPlanner() {
 
               {filteredAndSortedKeywords.length > 50 && (
                 <p className="text-xs text-muted-foreground text-center">
-                  Exibindo 50 de {filteredAndSortedKeywords.length} resultados. Exporte para ver todos.
+                  Exibindo 50 de {filteredAndSortedKeywords.length} resultados.
+                  Exporte para ver todos.
                 </p>
               )}
             </div>
@@ -515,7 +594,8 @@ export function ClienteKeywordPlanner() {
               <TrendingUp className="h-12 w-12 mx-auto mb-3 opacity-50" />
               <p>Digite palavras-chave ou uma URL para descobrir ideias</p>
               <p className="text-sm mt-1">
-                Use o Planejador para encontrar termos relevantes para suas campanhas
+                Use o Planejador para encontrar termos relevantes para suas
+                campanhas
               </p>
             </div>
           )}

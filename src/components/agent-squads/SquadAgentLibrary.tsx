@@ -19,7 +19,10 @@ interface SquadAgentLibraryProps {
   onDragStart: (event: React.DragEvent, agent: Agent) => void;
 }
 
-export function SquadAgentLibrary({ clientId, onDragStart }: SquadAgentLibraryProps) {
+export function SquadAgentLibrary({
+  clientId,
+  onDragStart,
+}: SquadAgentLibraryProps) {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -46,7 +49,7 @@ export function SquadAgentLibrary({ clientId, onDragStart }: SquadAgentLibraryPr
   }, [activeCompany?.company_id, clientId, refreshKey]);
 
   const filtered = agents.filter((a) =>
-    a.agent_name.toLowerCase().includes(searchTerm.toLowerCase())
+    a.agent_name.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   return (
@@ -55,9 +58,12 @@ export function SquadAgentLibrary({ clientId, onDragStart }: SquadAgentLibraryPr
         <div className="flex items-center justify-between">
           <div>
             <h3 className="font-semibold text-sm">Agentes Disponíveis</h3>
-            <p className="text-xs text-muted-foreground mt-1">Arraste para o canvas</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Arraste para o canvas
+            </p>
           </div>
-          <Button aria-label="Adicionar"
+          <Button
+            aria-label="Adicionar"
             variant="outline"
             size="icon"
             className="h-8 w-8 shrink-0"
@@ -90,9 +96,13 @@ export function SquadAgentLibrary({ clientId, onDragStart }: SquadAgentLibraryPr
               <div className="flex items-center gap-2">
                 <Bot className="h-4 w-4 shrink-0 text-primary" />
                 <div className="min-w-0">
-                  <div className="text-sm font-medium truncate">{agent.agent_name}</div>
+                  <div className="text-sm font-medium truncate">
+                    {agent.agent_name}
+                  </div>
                   {agent.description && (
-                    <div className="text-xs text-muted-foreground truncate">{agent.description}</div>
+                    <div className="text-xs text-muted-foreground truncate">
+                      {agent.description}
+                    </div>
                   )}
                 </div>
               </div>

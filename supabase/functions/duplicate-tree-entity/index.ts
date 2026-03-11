@@ -1,9 +1,14 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  createClient,
+  SupabaseClient,
+} from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 interface DuplicateRequest {
@@ -31,7 +36,10 @@ serve(async (req) => {
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(
         JSON.stringify({ success: false, error: "Não autorizado" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -40,17 +48,21 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
       {
         global: { headers: { Authorization: authHeader } },
-      }
+      },
     );
 
     // Validate JWT using getClaims
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
+    const { data: claimsData, error: claimsError } =
+      await supabaseClient.auth.getClaims(token);
     if (claimsError || !claimsData?.claims) {
       console.error("Auth error:", claimsError);
       return new Response(
         JSON.stringify({ success: false, error: "Não autorizado" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -60,7 +72,9 @@ serve(async (req) => {
     const body: DuplicateRequest = await req.json();
     const { entityType, entityId, clientId, facebookId, newName } = body;
 
-    console.log(`Duplicating ${entityType} with facebookId: ${facebookId}, newName: ${newName}`);
+    console.log(
+      `Duplicating ${entityType} with facebookId: ${facebookId}, newName: ${newName}`,
+    );
 
     // Fetch client's company_id and ad_account_id
     const { data: client, error: clientError } = await supabaseClient
@@ -73,7 +87,10 @@ serve(async (req) => {
       console.error("Client error:", clientError);
       return new Response(
         JSON.stringify({ success: false, error: "Cliente não encontrado" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -87,8 +104,15 @@ serve(async (req) => {
     if (integrationError || !integration?.access_token) {
       console.error("Integration error:", integrationError);
       return new Response(
-        JSON.stringify({ success: false, error: "Token do Meta não encontrado. Configure a integração com o Facebook." }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          success: false,
+          error:
+            "Token do Meta não encontrado. Configure a integração com o Facebook.",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -115,60 +139,88 @@ serve(async (req) => {
     switch (entityType) {
       case "campaign":
         result = await duplicateCampaign(
-          facebookId, newName, accessToken, supabaseClient, 
-          clientId, userId, companyId
+          facebookId,
+          newName,
+          accessToken,
+          supabaseClient,
+          clientId,
+          userId,
+          companyId,
         );
         break;
       case "adset":
         result = await duplicateAdSet(
-          facebookId, newName, accessToken, supabaseClient, 
-          clientId, userId, companyId, entityId
+          facebookId,
+          newName,
+          accessToken,
+          supabaseClient,
+          clientId,
+          userId,
+          companyId,
+          entityId,
         );
         break;
       case "ad":
         result = await duplicateAd(
-          facebookId, newName, adAccountId, accessToken, supabaseClient,
-          clientId, userId, companyId, entityId
+          facebookId,
+          newName,
+          adAccountId,
+          accessToken,
+          supabaseClient,
+          clientId,
+          userId,
+          companyId,
+          entityId,
         );
         break;
       default:
         return new Response(
-          JSON.stringify({ success: false, error: "Tipo de entidade inválido" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({
+            success: false,
+            error: "Tipo de entidade inválido",
+          }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
         );
     }
 
     if (!result.success) {
       return new Response(
         JSON.stringify({ success: false, error: result.error }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
     console.log(`Successfully duplicated ${entityType}:`, result);
 
-    return new Response(
-      JSON.stringify({ success: true, data: result.data }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-
+    return new Response(JSON.stringify({ success: true, data: result.data }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (error) {
     console.error("Error in duplicate-tree-entity:", error);
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 });
 
 async function duplicateCampaign(
-  facebookId: string, 
-  newName: string, 
+  facebookId: string,
+  newName: string,
   accessToken: string,
   supabaseClient: SupabaseClient,
   clientId: string,
   userId: string,
-  companyId: string
+  companyId: string,
 ) {
   try {
     // Use the Meta API copies endpoint for campaigns
@@ -182,7 +234,7 @@ async function duplicateCampaign(
           rename_options: JSON.stringify({ rename_suffix: "" }),
           access_token: accessToken,
         }),
-      }
+      },
     );
 
     const data = await response.json();
@@ -194,25 +246,25 @@ async function duplicateCampaign(
 
     const copiedCampaignId = data.copied_campaign_id;
     if (!copiedCampaignId) {
-      return { success: false, error: "Meta não retornou o ID da campanha copiada" };
+      return {
+        success: false,
+        error: "Meta não retornou o ID da campanha copiada",
+      };
     }
 
     // Update the name of the copied campaign
-    await fetch(
-      `https://graph.facebook.com/v20.0/${copiedCampaignId}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: newName,
-          access_token: accessToken,
-        }),
-      }
-    );
+    await fetch(`https://graph.facebook.com/v20.0/${copiedCampaignId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: newName,
+        access_token: accessToken,
+      }),
+    });
 
     // Fetch campaign data from Meta
     const campaignDataResponse = await fetch(
-      `https://graph.facebook.com/v20.0/${copiedCampaignId}?fields=id,name,status,daily_budget,lifetime_budget,objective,created_time&access_token=${accessToken}`
+      `https://graph.facebook.com/v20.0/${copiedCampaignId}?fields=id,name,status,daily_budget,lifetime_budget,objective,created_time&access_token=${accessToken}`,
     );
     const campaignData = await campaignDataResponse.json();
     console.log("Fetched campaign data:", campaignData);
@@ -229,8 +281,12 @@ async function duplicateCampaign(
         status: "paused",
         platforms: "Facebook Ads",
         period: "monthly",
-        daily_budget: campaignData.daily_budget ? parseInt(campaignData.daily_budget) / 100 : null,
-        lifetime_budget: campaignData.lifetime_budget ? parseInt(campaignData.lifetime_budget) / 100 : null,
+        daily_budget: campaignData.daily_budget
+          ? parseInt(campaignData.daily_budget) / 100
+          : null,
+        lifetime_budget: campaignData.lifetime_budget
+          ? parseInt(campaignData.lifetime_budget) / 100
+          : null,
         objective: campaignData.objective || null,
         is_active: true,
         ctr: 0,
@@ -255,7 +311,7 @@ async function duplicateCampaign(
 
     // Fetch ad sets from the copied campaign
     const adSetsResponse = await fetch(
-      `https://graph.facebook.com/v20.0/${copiedCampaignId}/adsets?fields=id,name,status,daily_budget,lifetime_budget,targeting,optimization_goal,bid_strategy&access_token=${accessToken}`
+      `https://graph.facebook.com/v20.0/${copiedCampaignId}/adsets?fields=id,name,status,daily_budget,lifetime_budget,targeting,optimization_goal,bid_strategy&access_token=${accessToken}`,
     );
     const adSetsData = await adSetsResponse.json();
     console.log("Fetched ad sets:", adSetsData);
@@ -273,8 +329,12 @@ async function duplicateCampaign(
             company_id: companyId,
             name: adSet.name,
             status: adSet.status?.toLowerCase() || "paused",
-            daily_budget: adSet.daily_budget ? parseInt(adSet.daily_budget) / 100 : null,
-            lifetime_budget: adSet.lifetime_budget ? parseInt(adSet.lifetime_budget) / 100 : null,
+            daily_budget: adSet.daily_budget
+              ? parseInt(adSet.daily_budget) / 100
+              : null,
+            lifetime_budget: adSet.lifetime_budget
+              ? parseInt(adSet.lifetime_budget) / 100
+              : null,
             targeting: adSet.targeting ? JSON.stringify(adSet.targeting) : null,
             optimization_goal: adSet.optimization_goal || null,
             bid_strategy: adSet.bid_strategy || null,
@@ -302,39 +362,37 @@ async function duplicateCampaign(
 
         // Fetch ads from this ad set
         const adsResponse = await fetch(
-          `https://graph.facebook.com/v20.0/${adSet.id}/ads?fields=id,name,status,creative{id,name,body,title,image_url,video_id}&access_token=${accessToken}`
+          `https://graph.facebook.com/v20.0/${adSet.id}/ads?fields=id,name,status,creative{id,name,body,title,image_url,video_id}&access_token=${accessToken}`,
         );
         const adsData = await adsResponse.json();
         console.log("Fetched ads for ad set:", adsData);
 
         if (adsData.data && insertedAdSet) {
           for (const ad of adsData.data) {
-            const { error: adError } = await supabaseClient
-              .from("ads")
-              .insert({
-                facebook_id: ad.id,
-                ad_set_id: insertedAdSet.id,
-                campaign_id: insertedCampaign.id,
-                client_id: clientId,
-                user_id: userId,
-                company_id: companyId,
-                name: ad.name,
-                status: ad.status?.toLowerCase() || "paused",
-                creative_body: ad.creative?.body || null,
-                creative_title: ad.creative?.title || null,
-                image_url: ad.creative?.image_url || null,
-                is_active: true,
-                ctr: 0,
-                cpc: 0,
-                cpm: 0,
-                cpa: 0,
-                conversions: 0,
-                spend: 0,
-                impressions: 0,
-                clicks: 0,
-                reach: 0,
-                frequency: 0,
-              });
+            const { error: adError } = await supabaseClient.from("ads").insert({
+              facebook_id: ad.id,
+              ad_set_id: insertedAdSet.id,
+              campaign_id: insertedCampaign.id,
+              client_id: clientId,
+              user_id: userId,
+              company_id: companyId,
+              name: ad.name,
+              status: ad.status?.toLowerCase() || "paused",
+              creative_body: ad.creative?.body || null,
+              creative_title: ad.creative?.title || null,
+              image_url: ad.creative?.image_url || null,
+              is_active: true,
+              ctr: 0,
+              cpc: 0,
+              cpm: 0,
+              cpa: 0,
+              conversions: 0,
+              spend: 0,
+              impressions: 0,
+              clicks: 0,
+              reach: 0,
+              frequency: 0,
+            });
 
             if (adError) {
               console.error("Error inserting ad:", adError);
@@ -344,12 +402,12 @@ async function duplicateCampaign(
       }
     }
 
-    return { 
-      success: true, 
-      data: { 
+    return {
+      success: true,
+      data: {
         copiedId: copiedCampaignId,
-        insertedCampaign: insertedCampaign 
-      } 
+        insertedCampaign: insertedCampaign,
+      },
     };
   } catch (error) {
     console.error("Error duplicating campaign:", error);
@@ -358,14 +416,14 @@ async function duplicateCampaign(
 }
 
 async function duplicateAdSet(
-  facebookId: string, 
-  newName: string, 
+  facebookId: string,
+  newName: string,
   accessToken: string,
   supabaseClient: SupabaseClient,
   clientId: string,
   userId: string,
   companyId: string,
-  originalEntityId: string
+  originalEntityId: string,
 ) {
   try {
     // First, get the original ad set to find its campaign_id
@@ -377,7 +435,10 @@ async function duplicateAdSet(
 
     if (originalError || !originalAdSet) {
       console.error("Error fetching original ad set:", originalError);
-      return { success: false, error: "Ad set original não encontrado no banco local" };
+      return {
+        success: false,
+        error: "Ad set original não encontrado no banco local",
+      };
     }
 
     // Use the Meta API copies endpoint for ad sets
@@ -391,7 +452,7 @@ async function duplicateAdSet(
           rename_options: JSON.stringify({ rename_suffix: "" }),
           access_token: accessToken,
         }),
-      }
+      },
     );
 
     const data = await response.json();
@@ -403,25 +464,25 @@ async function duplicateAdSet(
 
     const copiedAdSetId = data.copied_adset_id;
     if (!copiedAdSetId) {
-      return { success: false, error: "Meta não retornou o ID do conjunto copiado" };
+      return {
+        success: false,
+        error: "Meta não retornou o ID do conjunto copiado",
+      };
     }
 
     // Update the name of the copied ad set
-    await fetch(
-      `https://graph.facebook.com/v20.0/${copiedAdSetId}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: newName,
-          access_token: accessToken,
-        }),
-      }
-    );
+    await fetch(`https://graph.facebook.com/v20.0/${copiedAdSetId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: newName,
+        access_token: accessToken,
+      }),
+    });
 
     // Fetch ad set data from Meta
     const adSetDataResponse = await fetch(
-      `https://graph.facebook.com/v20.0/${copiedAdSetId}?fields=id,name,status,daily_budget,lifetime_budget,targeting,optimization_goal,bid_strategy&access_token=${accessToken}`
+      `https://graph.facebook.com/v20.0/${copiedAdSetId}?fields=id,name,status,daily_budget,lifetime_budget,targeting,optimization_goal,bid_strategy&access_token=${accessToken}`,
     );
     const adSetData = await adSetDataResponse.json();
     console.log("Fetched ad set data:", adSetData);
@@ -437,9 +498,15 @@ async function duplicateAdSet(
         company_id: companyId,
         name: newName,
         status: "paused",
-        daily_budget: adSetData.daily_budget ? parseInt(adSetData.daily_budget) / 100 : null,
-        lifetime_budget: adSetData.lifetime_budget ? parseInt(adSetData.lifetime_budget) / 100 : null,
-        targeting: adSetData.targeting ? JSON.stringify(adSetData.targeting) : null,
+        daily_budget: adSetData.daily_budget
+          ? parseInt(adSetData.daily_budget) / 100
+          : null,
+        lifetime_budget: adSetData.lifetime_budget
+          ? parseInt(adSetData.lifetime_budget) / 100
+          : null,
+        targeting: adSetData.targeting
+          ? JSON.stringify(adSetData.targeting)
+          : null,
         optimization_goal: adSetData.optimization_goal || null,
         bid_strategy: adSetData.bid_strategy || null,
         is_active: true,
@@ -465,39 +532,37 @@ async function duplicateAdSet(
 
     // Fetch ads from the copied ad set
     const adsResponse = await fetch(
-      `https://graph.facebook.com/v20.0/${copiedAdSetId}/ads?fields=id,name,status,creative{id,name,body,title,image_url,video_id}&access_token=${accessToken}`
+      `https://graph.facebook.com/v20.0/${copiedAdSetId}/ads?fields=id,name,status,creative{id,name,body,title,image_url,video_id}&access_token=${accessToken}`,
     );
     const adsData = await adsResponse.json();
     console.log("Fetched ads:", adsData);
 
     if (adsData.data && insertedAdSet) {
       for (const ad of adsData.data) {
-        const { error: adError } = await supabaseClient
-          .from("ads")
-          .insert({
-            facebook_id: ad.id,
-            ad_set_id: insertedAdSet.id,
-            campaign_id: originalAdSet.campaign_id,
-            client_id: clientId,
-            user_id: userId,
-            company_id: companyId,
-            name: ad.name,
-            status: ad.status?.toLowerCase() || "paused",
-            creative_body: ad.creative?.body || null,
-            creative_title: ad.creative?.title || null,
-            image_url: ad.creative?.image_url || null,
-            is_active: true,
-            ctr: 0,
-            cpc: 0,
-            cpm: 0,
-            cpa: 0,
-            conversions: 0,
-            spend: 0,
-            impressions: 0,
-            clicks: 0,
-            reach: 0,
-            frequency: 0,
-          });
+        const { error: adError } = await supabaseClient.from("ads").insert({
+          facebook_id: ad.id,
+          ad_set_id: insertedAdSet.id,
+          campaign_id: originalAdSet.campaign_id,
+          client_id: clientId,
+          user_id: userId,
+          company_id: companyId,
+          name: ad.name,
+          status: ad.status?.toLowerCase() || "paused",
+          creative_body: ad.creative?.body || null,
+          creative_title: ad.creative?.title || null,
+          image_url: ad.creative?.image_url || null,
+          is_active: true,
+          ctr: 0,
+          cpc: 0,
+          cpm: 0,
+          cpa: 0,
+          conversions: 0,
+          spend: 0,
+          impressions: 0,
+          clicks: 0,
+          reach: 0,
+          frequency: 0,
+        });
 
         if (adError) {
           console.error("Error inserting ad:", adError);
@@ -505,12 +570,12 @@ async function duplicateAdSet(
       }
     }
 
-    return { 
-      success: true, 
-      data: { 
+    return {
+      success: true,
+      data: {
         copiedId: copiedAdSetId,
-        insertedAdSet: insertedAdSet 
-      } 
+        insertedAdSet: insertedAdSet,
+      },
     };
   } catch (error) {
     console.error("Error duplicating ad set:", error);
@@ -519,15 +584,15 @@ async function duplicateAdSet(
 }
 
 async function duplicateAd(
-  facebookId: string, 
-  newName: string, 
-  adAccountId: string, 
+  facebookId: string,
+  newName: string,
+  adAccountId: string,
   accessToken: string,
   supabaseClient: SupabaseClient,
   clientId: string,
   userId: string,
   companyId: string,
-  originalEntityId: string
+  originalEntityId: string,
 ) {
   try {
     // First, get the original ad to find its campaign_id and ad_set_id
@@ -539,12 +604,15 @@ async function duplicateAd(
 
     if (originalError || !originalAd) {
       console.error("Error fetching original ad:", originalError);
-      return { success: false, error: "Anúncio original não encontrado no banco local" };
+      return {
+        success: false,
+        error: "Anúncio original não encontrado no banco local",
+      };
     }
 
     // Fetch the original ad's data from Meta
     const getResponse = await fetch(
-      `https://graph.facebook.com/v20.0/${facebookId}?fields=name,adset_id,creative{id,name,body,title,image_url,video_id},status&access_token=${accessToken}`
+      `https://graph.facebook.com/v20.0/${facebookId}?fields=name,adset_id,creative{id,name,body,title,image_url,video_id},status&access_token=${accessToken}`,
     );
 
     const originalMetaAd = await getResponse.json();
@@ -569,7 +637,7 @@ async function duplicateAd(
           status: "PAUSED",
           access_token: accessToken,
         }),
-      }
+      },
     );
 
     const newAd = await createResponse.json();
@@ -618,12 +686,12 @@ async function duplicateAd(
       console.log("Inserted ad:", insertedAd);
     }
 
-    return { 
-      success: true, 
-      data: { 
+    return {
+      success: true,
+      data: {
         copiedId: copiedAdId,
-        insertedAd: insertedAd 
-      } 
+        insertedAd: insertedAd,
+      },
     };
   } catch (error) {
     console.error("Error duplicating ad:", error);

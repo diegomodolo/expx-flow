@@ -3,10 +3,17 @@ import { useReleaseNotes, ReleaseNote } from "@/hooks/useReleaseNotes";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { RefreshCw, Megaphone, Loader2, Sparkles, Bug, Wrench, Package } from "lucide-react";
+import {
+  RefreshCw,
+  Megaphone,
+  Loader2,
+  Sparkles,
+  Bug,
+  Wrench,
+  Package,
+} from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useMemo } from "react";
 
 const CATEGORY_CONFIG: Record<
   string,
@@ -14,7 +21,8 @@ const CATEGORY_CONFIG: Record<
 > = {
   feature: {
     label: "Nova Feature",
-    className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+    className:
+      "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
     icon: Sparkles,
     color: "text-emerald-600 dark:text-emerald-400",
   },
@@ -26,13 +34,15 @@ const CATEGORY_CONFIG: Record<
   },
   improvement: {
     label: "Melhoria",
-    className: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+    className:
+      "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
     icon: Wrench,
     color: "text-blue-600 dark:text-blue-400",
   },
   other: {
     label: "Outros",
-    className: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400",
+    className:
+      "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400",
     icon: Package,
     color: "text-slate-600 dark:text-slate-400",
   },
@@ -41,7 +51,9 @@ const CATEGORY_CONFIG: Record<
 function groupByMonth(notes: ReleaseNote[]): Record<string, ReleaseNote[]> {
   const groups: Record<string, ReleaseNote[]> = {};
   for (const note of notes) {
-    const key = format(new Date(note.published_at), "MMMM yyyy", { locale: ptBR });
+    const key = format(new Date(note.published_at), "MMMM yyyy", {
+      locale: ptBR,
+    });
     if (!groups[key]) groups[key] = [];
     groups[key].push(note);
   }
@@ -102,16 +114,8 @@ function NoteCard({ note }: { note: ReleaseNote }) {
 }
 
 export default function ReleaseNotes() {
-  const { notes, loading, hasMore, loadMore, sync, syncing } =
+  const { notes, stats, loading, hasMore, loadMore, sync, syncing } =
     useReleaseNotes();
-
-  const stats = useMemo(() => {
-    const features = notes.filter((n) => n.category === "feature").length;
-    const fixes = notes.filter((n) => n.category === "fix").length;
-    const improvements = notes.filter((n) => n.category === "improvement").length;
-    const others = notes.filter((n) => n.category === "other").length;
-    return { total: notes.length, features, fixes, improvements, others };
-  }, [notes]);
 
   const grouped = groupByMonth(notes);
 
@@ -154,28 +158,28 @@ export default function ReleaseNotes() {
             <KpiCard
               icon={Sparkles}
               label="Novas Features"
-              value={stats.features}
+              value={stats.feature}
               color="text-emerald-600 dark:text-emerald-400"
               bgColor="bg-emerald-100 dark:bg-emerald-900/30"
             />
             <KpiCard
               icon={Bug}
               label="Correções"
-              value={stats.fixes}
+              value={stats.fix}
               color="text-red-600 dark:text-red-400"
               bgColor="bg-red-100 dark:bg-red-900/30"
             />
             <KpiCard
               icon={Wrench}
               label="Melhorias"
-              value={stats.improvements}
+              value={stats.improvement}
               color="text-blue-600 dark:text-blue-400"
               bgColor="bg-blue-100 dark:bg-blue-900/30"
             />
             <KpiCard
               icon={Package}
               label="Outros"
-              value={stats.others}
+              value={stats.other}
               color="text-slate-600 dark:text-slate-400"
               bgColor="bg-slate-100 dark:bg-slate-800"
             />

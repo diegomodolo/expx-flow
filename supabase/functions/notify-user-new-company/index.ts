@@ -4,7 +4,8 @@ import { Resend } from "npm:resend@2.0.0";
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
@@ -22,7 +23,8 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { email, userName, companyName }: NotificationRequest = await req.json();
+    const { email, userName, companyName }: NotificationRequest =
+      await req.json();
 
     console.log(`Enviando notificação de nova empresa para: ${email}`);
 
@@ -58,33 +60,35 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Email de nova empresa enviado com sucesso:", emailResponse);
 
-    return new Response(JSON.stringify({ 
-      success: true, 
-      message: "Notificação enviada com sucesso",
-      email_id: emailResponse.data?.id 
-    }), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        ...corsHeaders,
-      },
-    });
-
-  } catch (error: any) {
-    console.error("Erro ao enviar notificação de nova empresa:", error);
-    
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error.message 
+      JSON.stringify({
+        success: true,
+        message: "Notificação enviada com sucesso",
+        email_id: emailResponse.data?.id,
+      }),
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          ...corsHeaders,
+        },
+      },
+    );
+  } catch (error: unknown) {
+    console.error("Erro ao enviar notificação de nova empresa:", error);
+
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: error.message,
       }),
       {
         status: 500,
-        headers: { 
-          "Content-Type": "application/json", 
-          ...corsHeaders 
+        headers: {
+          "Content-Type": "application/json",
+          ...corsHeaders,
         },
-      }
+      },
     );
   }
 };

@@ -17,8 +17,12 @@ vi.mock("@/integrations/supabase/client", () => ({
       }),
       startAutoRefresh: vi.fn().mockResolvedValue(undefined),
       stopAutoRefresh: vi.fn().mockResolvedValue(undefined),
-      signUp: vi.fn().mockResolvedValue({ data: { user: { id: "user-1" } }, error: null }),
-      signInWithPassword: vi.fn().mockResolvedValue({ data: { user: { id: "user-1" } }, error: null }),
+      signUp: vi
+        .fn()
+        .mockResolvedValue({ data: { user: { id: "user-1" } }, error: null }),
+      signInWithPassword: vi
+        .fn()
+        .mockResolvedValue({ data: { user: { id: "user-1" } }, error: null }),
       signOut: vi.fn().mockResolvedValue({ error: null }),
     },
   },
@@ -36,13 +40,17 @@ vi.mock("react-router-dom", async () => {
 describe("useAuth", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(useLocation).mockReturnValue({ pathname: "/dashboard" } as unknown as ReturnType<typeof useLocation>);
+    vi.mocked(useLocation).mockReturnValue({
+      pathname: "/dashboard",
+    } as unknown as ReturnType<typeof useLocation>);
   });
 
   it("deve lancar erro quando usado fora do AuthProvider", () => {
     // Escondendo console.error temporariamente para suprimir a msg de erro do React
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    expect(() => renderHook(() => useAuth())).toThrow("useAuth must be used within an AuthProvider");
+    expect(() => renderHook(() => useAuth())).toThrow(
+      "useAuth must be used within an AuthProvider",
+    );
     consoleSpy.mockRestore();
   });
 
@@ -67,13 +75,20 @@ describe("useAuth", () => {
     expect(supabase.auth.onAuthStateChange).toHaveBeenCalled();
     expect(supabase.auth.getSession).toHaveBeenCalled();
 
-    expect(result.current.user).toEqual({ id: "user-1", email: "test@test.com" });
-    expect(result.current.session).toEqual({ user: { id: "user-1", email: "test@test.com" } });
+    expect(result.current.user).toEqual({
+      id: "user-1",
+      email: "test@test.com",
+    });
+    expect(result.current.session).toEqual({
+      user: { id: "user-1", email: "test@test.com" },
+    });
   });
 
   it("deve lidar com rotas publicas corretamente", async () => {
     const { supabase } = await import("@/integrations/supabase/client");
-    vi.mocked(useLocation).mockReturnValue({ pathname: "/dashboard-publico/test" } as unknown as ReturnType<typeof useLocation>);
+    vi.mocked(useLocation).mockReturnValue({
+      pathname: "/dashboard-publico/test",
+    } as unknown as ReturnType<typeof useLocation>);
 
     const wrapper = ({ children }: { children: React.ReactNode }) => (
       <MemoryRouter>
@@ -109,12 +124,16 @@ describe("useAuth", () => {
       expect(result.current.loading).toBe(false);
     });
 
-    const signUpResult = await result.current.signUp("test@test.com", "password123", "Test User");
+    const signUpResult = await result.current.signUp(
+      "test@test.com",
+      "password123",
+      "Test User",
+    );
 
     expect(supabase.auth.signUp).toHaveBeenCalledWith({
       email: "test@test.com",
       password: "password123",
-      options: { data: { full_name: "Test User" } }
+      options: { data: { full_name: "Test User" } },
     });
 
     expect(signUpResult.error).toBeNull();
@@ -135,11 +154,14 @@ describe("useAuth", () => {
       expect(result.current.loading).toBe(false);
     });
 
-    const signInResult = await result.current.signIn("test@test.com", "password123");
+    const signInResult = await result.current.signIn(
+      "test@test.com",
+      "password123",
+    );
 
     expect(supabase.auth.signInWithPassword).toHaveBeenCalledWith({
       email: "test@test.com",
-      password: "password123"
+      password: "password123",
     });
 
     expect(signInResult.error).toBeNull();

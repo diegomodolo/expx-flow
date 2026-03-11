@@ -2,8 +2,10 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 const LISTACNAE_API_URL = "https://api.listacnae.com.br/v1";
@@ -51,16 +53,22 @@ interface ListaCnaeEmpresa {
 
 // Helper to build ListaCNAE query string for GET request
 // API docs say GET /buscar with parameters passed as query string
-function buildListaCnaeQueryString(filters: ListaCnaeSearchParams, inicio: number, quantidade: number): string {
+function buildListaCnaeQueryString(
+  filters: ListaCnaeSearchParams,
+  inicio: number,
+  quantidade: number,
+): string {
   const params = new URLSearchParams();
-  
+
   // Required params
   params.set("inicio", inicio.toString());
   params.set("quantidade", quantidade.toString());
 
   // CNAEs as JSON array of numbers
   if (filters.cnaes?.length) {
-    const cnaesNumeric = filters.cnaes.map(c => parseInt(c.replace(/\D/g, ''), 10)).filter(n => !isNaN(n));
+    const cnaesNumeric = filters.cnaes
+      .map((c) => parseInt(c.replace(/\D/g, ""), 10))
+      .filter((n) => !isNaN(n));
     params.set("cnaes", JSON.stringify(cnaesNumeric));
   }
 
@@ -71,7 +79,9 @@ function buildListaCnaeQueryString(filters: ListaCnaeSearchParams, inicio: numbe
 
   // Municipios as JSON array of numbers
   if (filters.municipios?.length) {
-    const munNumeric = filters.municipios.map(m => parseInt(m, 10)).filter(n => !isNaN(n));
+    const munNumeric = filters.municipios
+      .map((m) => parseInt(m, 10))
+      .filter((n) => !isNaN(n));
     params.set("municipios", JSON.stringify(munNumeric));
   }
 
@@ -139,15 +149,19 @@ serve(async (req) => {
       });
     }
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace("Bearer ", "")
-    );
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
 
     if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Usuário não autenticado" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "Usuário não autenticado" }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
     const url = new URL(req.url);
@@ -155,18 +169,21 @@ serve(async (req) => {
 
     // Get company_id from query params or body
     let companyId: string | null = url.searchParams.get("company_id");
-    let body: any = {};
-    
+    let body: unknown = {};
+
     if (req.method === "POST") {
       body = await req.json();
       companyId = companyId || body.company_id;
     }
 
     if (!companyId) {
-      return new Response(JSON.stringify({ error: "company_id é obrigatório" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "company_id é obrigatório" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
     // Get ListaCNAE token from company settings
@@ -183,20 +200,23 @@ serve(async (req) => {
       case "credits": {
         // Check credits - requires token
         if (!listacnaeToken) {
-          return new Response(JSON.stringify({ 
-            error: "Token da ListaCNAE não configurado",
-            credits: null,
-            configured: false,
-            hasToken: false
-          }), {
-            status: 200,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
+          return new Response(
+            JSON.stringify({
+              error: "Token da ListaCNAE não configurado",
+              credits: null,
+              configured: false,
+              hasToken: false,
+            }),
+            {
+              status: 200,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            },
+          );
         }
 
         const response = await fetch(`${LISTACNAE_API_URL}/creditosAtivos`, {
           headers: {
-            "Authorization": `Bearer ${listacnaeToken}`,
+            Authorization: `Bearer ${listacnaeToken}`,
             "Content-Type": "application/json",
           },
         });
@@ -204,48 +224,62 @@ serve(async (req) => {
         if (!response.ok) {
           const errorText = await response.text();
           console.error("ListaCNAE credits error:", errorText);
-          return new Response(JSON.stringify({ 
-            error: "Erro ao consultar créditos. Verifique se o token é válido.",
-            credits: null,
-            configured: true,
-            hasToken: true
-          }), {
-            status: 200,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
+          return new Response(
+            JSON.stringify({
+              error:
+                "Erro ao consultar créditos. Verifique se o token é válido.",
+              credits: null,
+              configured: true,
+              hasToken: true,
+            }),
+            {
+              status: 200,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            },
+          );
         }
 
         const creditsResponse = await response.json();
-        console.log("ListaCNAE credits response:", JSON.stringify(creditsResponse));
-        
+        console.log(
+          "ListaCNAE credits response:",
+          JSON.stringify(creditsResponse),
+        );
+
         // Extract the numeric credits value from the response
         // API returns: { mensagem: "...", creditos: { disponivel: 7018, detalhamento: [...] } }
         let creditsValue: number | null = null;
-        
-        if (typeof creditsResponse === 'number') {
+
+        if (typeof creditsResponse === "number") {
           creditsValue = creditsResponse;
-        } else if (typeof creditsResponse === 'object' && creditsResponse !== null) {
+        } else if (
+          typeof creditsResponse === "object" &&
+          creditsResponse !== null
+        ) {
           if (creditsResponse.creditos?.disponivel !== undefined) {
             creditsValue = creditsResponse.creditos.disponivel;
           } else {
-            creditsValue = creditsResponse.creditos ?? 
-                          creditsResponse.credits ?? 
-                          creditsResponse.saldo ?? 
-                          creditsResponse.balance ??
-                          creditsResponse.disponivel ??
-                          creditsResponse.quantidade ??
-                          null;
+            creditsValue =
+              creditsResponse.creditos ??
+              creditsResponse.credits ??
+              creditsResponse.saldo ??
+              creditsResponse.balance ??
+              creditsResponse.disponivel ??
+              creditsResponse.quantidade ??
+              null;
           }
         }
-        
-        return new Response(JSON.stringify({ 
-          credits: creditsValue,
-          creditsRaw: creditsResponse,
-          configured: true,
-          hasToken: true
-        }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+
+        return new Response(
+          JSON.stringify({
+            credits: creditsValue,
+            creditsRaw: creditsResponse,
+            configured: true,
+            hasToken: true,
+          }),
+          {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
       }
 
       case "cnaes": {
@@ -287,12 +321,15 @@ serve(async (req) => {
       case "search": {
         // Search companies - requires token
         if (!listacnaeToken) {
-          return new Response(JSON.stringify({ 
-            error: "Token da ListaCNAE não configurado" 
-          }), {
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
+          return new Response(
+            JSON.stringify({
+              error: "Token da ListaCNAE não configurado",
+            }),
+            {
+              status: 400,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            },
+          );
         }
 
         const searchParams: ListaCnaeSearchParams = body.filters || {};
@@ -301,18 +338,27 @@ serve(async (req) => {
         // Build query string - use per_page from filters (respect user's preview count)
         const quantidade = searchParams.per_page || (preview ? 10 : 100);
         const inicio = ((searchParams.page || 1) - 1) * quantidade;
-        
-        const queryString = buildListaCnaeQueryString(searchParams, inicio, quantidade);
+
+        const queryString = buildListaCnaeQueryString(
+          searchParams,
+          inicio,
+          quantidade,
+        );
         const searchUrl = `${LISTACNAE_API_URL}/buscar?${queryString}`;
-        
-        console.log("ListaCNAE search - preview:", preview, "quantidade:", quantidade);
+
+        console.log(
+          "ListaCNAE search - preview:",
+          preview,
+          "quantidade:",
+          quantidade,
+        );
 
         console.log("ListaCNAE search URL:", searchUrl);
 
         const response = await fetch(searchUrl, {
           method: "GET",
           headers: {
-            "Authorization": `Bearer ${listacnaeToken}`,
+            Authorization: `Bearer ${listacnaeToken}`,
             "Content-Type": "application/json",
           },
         });
@@ -320,73 +366,98 @@ serve(async (req) => {
         if (!response.ok) {
           const errorText = await response.text();
           console.error("ListaCNAE search error:", errorText);
-          return new Response(JSON.stringify({ 
-            error: "Erro na busca. Verifique os filtros e tente novamente.",
-            details: errorText
-          }), {
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
+          return new Response(
+            JSON.stringify({
+              error: "Erro na busca. Verifique os filtros e tente novamente.",
+              details: errorText,
+            }),
+            {
+              status: 400,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            },
+          );
         }
 
         const result = await response.json();
-        console.log("ListaCNAE search result:", JSON.stringify(result).substring(0, 500));
-        
+        console.log(
+          "ListaCNAE search result:",
+          JSON.stringify(result).substring(0, 500),
+        );
+
         // API returns: dados (array), quantidade_encontrada (total)
-        return new Response(JSON.stringify({
-          empresas: result.dados || result.empresas || result.data || [],
-          total: result.quantidade_encontrada || result.total || result.totalRegistros || 0,
-        }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return new Response(
+          JSON.stringify({
+            empresas: result.dados || result.empresas || result.data || [],
+            total:
+              result.quantidade_encontrada ||
+              result.total ||
+              result.totalRegistros ||
+              0,
+          }),
+          {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
       }
 
       case "import": {
         // Import companies to segment - requires token
         if (!listacnaeToken) {
-          return new Response(JSON.stringify({ 
-            error: "Token da ListaCNAE não configurado" 
-          }), {
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
+          return new Response(
+            JSON.stringify({
+              error: "Token da ListaCNAE não configurado",
+            }),
+            {
+              status: 400,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            },
+          );
         }
 
         const { segment_id, client_id, filters } = body;
 
         if (!segment_id || !client_id) {
-          return new Response(JSON.stringify({ 
-            error: "segment_id e client_id são obrigatórios" 
-          }), {
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
+          return new Response(
+            JSON.stringify({
+              error: "segment_id e client_id são obrigatórios",
+            }),
+            {
+              status: 400,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            },
+          );
         }
 
         const maxLeads = filters.per_page || 100;
         let totalImported = 0;
         let totalDuplicates = 0;
-        
+
         // ListaCNAE API has a limit of 1000 leads per request
         // We need to paginate if requesting more than 1000
         const API_LIMIT = 1000;
         let allEmpresas: ListaCnaeEmpresa[] = [];
         let offset = 0;
         let remaining = maxLeads;
-        
-        console.log(`Starting import of up to ${maxLeads} leads from ListaCNAE...`);
-        
+
+        console.log(
+          `Starting import of up to ${maxLeads} leads from ListaCNAE...`,
+        );
+
         while (remaining > 0) {
           const batchSize = Math.min(remaining, API_LIMIT);
-          const queryString = buildListaCnaeQueryString(filters, offset, batchSize);
+          const queryString = buildListaCnaeQueryString(
+            filters,
+            offset,
+            batchSize,
+          );
           const searchUrl = `${LISTACNAE_API_URL}/buscar?${queryString}`;
-          
+
           console.log(`Fetching batch: offset=${offset}, size=${batchSize}`);
-          
+
           const response = await fetch(searchUrl, {
             method: "GET",
             headers: {
-              "Authorization": `Bearer ${listacnaeToken}`,
+              Authorization: `Bearer ${listacnaeToken}`,
               "Content-Type": "application/json",
             },
           });
@@ -394,41 +465,47 @@ serve(async (req) => {
           if (!response.ok) {
             const errorText = await response.text();
             console.error("ListaCNAE import error:", errorText);
-            return new Response(JSON.stringify({ 
-              error: "Erro ao buscar empresas na ListaCNAE",
-              details: errorText
-            }), {
-              status: 400,
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-            });
+            return new Response(
+              JSON.stringify({
+                error: "Erro ao buscar empresas na ListaCNAE",
+                details: errorText,
+              }),
+              {
+                status: 400,
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+              },
+            );
           }
 
           const result = await response.json();
-          const batchEmpresas: ListaCnaeEmpresa[] = result.dados || result.empresas || result.data || [];
-          
-          console.log(`Received ${batchEmpresas.length} companies in this batch`);
-          
+          const batchEmpresas: ListaCnaeEmpresa[] =
+            result.dados || result.empresas || result.data || [];
+
+          console.log(
+            `Received ${batchEmpresas.length} companies in this batch`,
+          );
+
           if (batchEmpresas.length === 0) {
             // No more data available
             break;
           }
-          
+
           allEmpresas = allEmpresas.concat(batchEmpresas);
           offset += batchEmpresas.length;
           remaining -= batchEmpresas.length;
-          
+
           // If we got less than requested, there's no more data
           if (batchEmpresas.length < batchSize) {
             break;
           }
         }
-        
+
         const empresas = allEmpresas;
         console.log(`Total received: ${empresas.length} companies from API`);
 
         if (empresas.length > 0) {
           // Get all CNPJs to check for duplicates in one query
-          const cnpjs = empresas.map(e => e.cnpj);
+          const cnpjs = empresas.map((e) => e.cnpj);
           const { data: existingLeads } = await supabase
             .from("lead_master_pool")
             .select("id, cnpj")
@@ -436,12 +513,12 @@ serve(async (req) => {
             .in("cnpj", cnpjs);
 
           const existingCnpjMap = new Map<string, string>();
-          (existingLeads || []).forEach(lead => {
+          (existingLeads || []).forEach((lead) => {
             existingCnpjMap.set(lead.cnpj, lead.id);
           });
 
           // Prepare batch data for new leads
-          const newLeadsData: any[] = [];
+          const newLeadsData: unknown[] = [];
           const existingLeadIds: string[] = [];
 
           for (const empresa of empresas) {
@@ -494,7 +571,7 @@ serve(async (req) => {
             if (insertError) {
               console.error("Error batch inserting leads:", insertError);
             } else {
-              newLeadIds = (insertedLeads || []).map(l => l.id);
+              newLeadIds = (insertedLeads || []).map((l) => l.id);
               totalImported = newLeadIds.length;
               console.log(`Inserted ${totalImported} new leads`);
             }
@@ -504,7 +581,7 @@ serve(async (req) => {
           const allLeadIds = [...newLeadIds, ...existingLeadIds];
           if (allLeadIds.length > 0) {
             console.log(`Creating ${allLeadIds.length} segment assignments...`);
-            const assignmentsData = allLeadIds.map(leadId => ({
+            const assignmentsData = allLeadIds.map((leadId) => ({
               lead_id: leadId,
               segment_id,
               assigned_at: new Date().toISOString(),
@@ -512,9 +589,9 @@ serve(async (req) => {
 
             const { error: assignError } = await supabase
               .from("lead_segment_assignments")
-              .upsert(assignmentsData, { 
+              .upsert(assignmentsData, {
                 onConflict: "lead_id,segment_id",
-                ignoreDuplicates: true 
+                ignoreDuplicates: true,
               });
 
             if (assignError) {
@@ -523,7 +600,9 @@ serve(async (req) => {
           }
         }
 
-        console.log(`Import complete: ${totalImported} imported, ${totalDuplicates} duplicates`);
+        console.log(
+          `Import complete: ${totalImported} imported, ${totalDuplicates} duplicates`,
+        );
 
         // Update segment count
         const { count } = await supabase
@@ -533,20 +612,23 @@ serve(async (req) => {
 
         await supabase
           .from("lead_segments")
-          .update({ 
+          .update({
             lead_count: count || 0,
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
           })
           .eq("id", segment_id);
 
-        return new Response(JSON.stringify({
-          success: true,
-          imported: totalImported,
-          duplicates: totalDuplicates,
-          total_in_segment: count
-        }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return new Response(
+          JSON.stringify({
+            success: true,
+            imported: totalImported,
+            duplicates: totalDuplicates,
+            total_in_segment: count,
+          }),
+          {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
       }
 
       case "save-token": {
@@ -554,10 +636,13 @@ serve(async (req) => {
         const { token } = body;
 
         if (!token) {
-          return new Response(JSON.stringify({ error: "Token é obrigatório" }), {
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
+          return new Response(
+            JSON.stringify({ error: "Token é obrigatório" }),
+            {
+              status: 400,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            },
+          );
         }
 
         // Check if settings exist
@@ -570,71 +655,85 @@ serve(async (req) => {
         if (existingSettings) {
           await supabase
             .from("company_settings")
-            .update({ 
+            .update({
               listacnae_token: token,
-              updated_at: new Date().toISOString()
+              updated_at: new Date().toISOString(),
             })
             .eq("company_id", companyId);
         } else {
-          await supabase
-            .from("company_settings")
-            .insert({ 
-              company_id: companyId,
-              listacnae_token: token
-            });
+          await supabase.from("company_settings").insert({
+            company_id: companyId,
+            listacnae_token: token,
+          });
         }
 
         // Validate token by checking credits
         try {
           const response = await fetch(`${LISTACNAE_API_URL}/creditosAtivos`, {
             headers: {
-              "Authorization": `Bearer ${token}`,
+              Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
             },
           });
 
           if (response.ok) {
             const credits = await response.json();
-            return new Response(JSON.stringify({ 
-              success: true, 
-              valid: true,
-              credits 
-            }), {
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-            });
+            return new Response(
+              JSON.stringify({
+                success: true,
+                valid: true,
+                credits,
+              }),
+              {
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+              },
+            );
           } else {
-            return new Response(JSON.stringify({ 
-              success: true, 
-              valid: false,
-              message: "Token salvo, mas não foi possível validar. Verifique se está correto."
-            }), {
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-            });
+            return new Response(
+              JSON.stringify({
+                success: true,
+                valid: false,
+                message:
+                  "Token salvo, mas não foi possível validar. Verifique se está correto.",
+              }),
+              {
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+              },
+            );
           }
         } catch (e) {
-          return new Response(JSON.stringify({ 
-            success: true, 
-            valid: false,
-            message: "Token salvo. Não foi possível validar no momento."
-          }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
+          return new Response(
+            JSON.stringify({
+              success: true,
+              valid: false,
+              message: "Token salvo. Não foi possível validar no momento.",
+            }),
+            {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            },
+          );
         }
       }
 
       default:
-        return new Response(JSON.stringify({ error: "Endpoint não encontrado" }), {
-          status: 404,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return new Response(
+          JSON.stringify({ error: "Endpoint não encontrado" }),
+          {
+            status: 404,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
     }
   } catch (error) {
     console.error("ListaCNAE integration error:", error);
-    return new Response(JSON.stringify({ 
-      error: error.message || "Erro interno do servidor" 
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({
+        error: error.message || "Erro interno do servidor",
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   }
 });

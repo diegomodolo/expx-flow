@@ -455,11 +455,8 @@ export function useLeadScoring() {
       }
 
       if (leadIds.length === 0) {
-        console.log("scoreMultipleLeads: No leads to score");
         return 0;
       }
-
-      console.log(`scoreMultipleLeads: Processing ${leadIds.length} leads`);
 
       // Process in batches of 100 to avoid Supabase limits
       const BATCH_SIZE = 100;
@@ -483,10 +480,6 @@ export function useLeadScoring() {
           console.warn(`Batch ${i / BATCH_SIZE + 1}: No leads found`);
           continue;
         }
-
-        console.log(
-          `Batch ${i / BATCH_SIZE + 1}: Scoring ${leads.length} leads`,
-        );
 
         // Score and update each lead in the batch
         for (const lead of leads) {
@@ -520,9 +513,6 @@ export function useLeadScoring() {
         }
       }
 
-      console.log(
-        `scoreMultipleLeads: Completed. Processed ${totalProcessed} leads`,
-      );
       return totalProcessed;
     },
     [activeCompany?.company_id, calculateScore],
@@ -534,10 +524,6 @@ export function useLeadScoring() {
       console.warn("scoreAllCompanyLeads: No active company");
       return 0;
     }
-
-    console.log(
-      `scoreAllCompanyLeads: Fetching leads for company ${companyId}`,
-    );
 
     // Fetch all lead IDs for company (handle pagination for large datasets)
     let allLeadIds: string[] = [];
@@ -563,10 +549,6 @@ export function useLeadScoring() {
       if (leads.length < PAGE_SIZE) break;
       page++;
     }
-
-    console.log(
-      `scoreAllCompanyLeads: Found ${allLeadIds.length} leads to score`,
-    );
 
     if (allLeadIds.length === 0) return 0;
 

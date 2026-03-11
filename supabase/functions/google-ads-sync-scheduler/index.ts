@@ -3,8 +3,10 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { forceRefreshGoogleAdsToken } from "../_shared/googleAdsTokenRefresh.ts";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': Deno.env.get('FRONTEND_URL') ?? 'https://controledetrafego.com.br',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 interface SyncOptions {
@@ -30,70 +32,81 @@ interface SyncSchedule {
 function classifyGoogleAdsError(errorMessage: string): {
   code: string;
   userFriendlyMessage: string;
-  actionRequired: 'internal' | 'client' | 'none';
+  actionRequired: "internal" | "client" | "none";
 } {
-  if (errorMessage.includes('USER_PERMISSION_DENIED')) {
+  if (errorMessage.includes("USER_PERMISSION_DENIED")) {
     return {
-      code: 'USER_PERMISSION_DENIED',
-      userFriendlyMessage: 'Conta MCC não tem permissão para acessar este cliente. O cliente precisa conceder acesso à conta MCC no Google Ads.',
-      actionRequired: 'client',
+      code: "USER_PERMISSION_DENIED",
+      userFriendlyMessage:
+        "Conta MCC não tem permissão para acessar este cliente. O cliente precisa conceder acesso à conta MCC no Google Ads.",
+      actionRequired: "client",
     };
   }
-  if (errorMessage.includes('CUSTOMER_NOT_ENABLED')) {
+  if (errorMessage.includes("CUSTOMER_NOT_ENABLED")) {
     return {
-      code: 'CUSTOMER_NOT_ENABLED',
-      userFriendlyMessage: 'Conta do Google Ads está desativada ou pausada. O cliente precisa reativar a conta.',
-      actionRequired: 'client',
+      code: "CUSTOMER_NOT_ENABLED",
+      userFriendlyMessage:
+        "Conta do Google Ads está desativada ou pausada. O cliente precisa reativar a conta.",
+      actionRequired: "client",
     };
   }
-  if (errorMessage.includes('OAUTH_TOKEN_REVOKED') || errorMessage.includes('invalid_grant')) {
+  if (
+    errorMessage.includes("OAUTH_TOKEN_REVOKED") ||
+    errorMessage.includes("invalid_grant")
+  ) {
     return {
-      code: 'OAUTH_TOKEN_REVOKED',
-      userFriendlyMessage: 'Token de acesso revogado. Reconecte o Google Ads nas configurações.',
-      actionRequired: 'internal',
+      code: "OAUTH_TOKEN_REVOKED",
+      userFriendlyMessage:
+        "Token de acesso revogado. Reconecte o Google Ads nas configurações.",
+      actionRequired: "internal",
     };
   }
-  if (errorMessage.includes('Token refresh failed')) {
+  if (errorMessage.includes("Token refresh failed")) {
     return {
-      code: 'TOKEN_REFRESH_FAILED',
-      userFriendlyMessage: 'Falha ao renovar credenciais. Reconecte o Google Ads.',
-      actionRequired: 'internal',
+      code: "TOKEN_REFRESH_FAILED",
+      userFriendlyMessage:
+        "Falha ao renovar credenciais. Reconecte o Google Ads.",
+      actionRequired: "internal",
     };
   }
-  if (errorMessage.includes('Client does not have a Google Ads account configured')) {
+  if (
+    errorMessage.includes(
+      "Client does not have a Google Ads account configured",
+    )
+  ) {
     return {
-      code: 'NO_GOOGLE_ACCOUNT',
-      userFriendlyMessage: 'Cliente não tem conta Google Ads configurada.',
-      actionRequired: 'internal',
+      code: "NO_GOOGLE_ACCOUNT",
+      userFriendlyMessage: "Cliente não tem conta Google Ads configurada.",
+      actionRequired: "internal",
     };
   }
-  if (errorMessage.includes('Google Ads integration is not active')) {
+  if (errorMessage.includes("Google Ads integration is not active")) {
     return {
-      code: 'INTEGRATION_INACTIVE',
-      userFriendlyMessage: 'Integração do Google Ads não está ativa.',
-      actionRequired: 'internal',
+      code: "INTEGRATION_INACTIVE",
+      userFriendlyMessage: "Integração do Google Ads não está ativa.",
+      actionRequired: "internal",
     };
   }
-  if (errorMessage.includes('Google Ads account not found')) {
+  if (errorMessage.includes("Google Ads account not found")) {
     return {
-      code: 'ACCOUNT_NOT_FOUND',
-      userFriendlyMessage: 'Conta do Google Ads não encontrada.',
-      actionRequired: 'internal',
+      code: "ACCOUNT_NOT_FOUND",
+      userFriendlyMessage: "Conta do Google Ads não encontrada.",
+      actionRequired: "internal",
     };
   }
   return {
-    code: 'UNKNOWN',
+    code: "UNKNOWN",
     userFriendlyMessage: errorMessage,
-    actionRequired: 'internal',
+    actionRequired: "internal",
   };
 }
 
 function shouldExecuteNow(schedule: SyncSchedule): boolean {
   if (!schedule.next_execution_at) return true;
-  
+
   const now = new Date();
   const nextExecution = new Date(schedule.next_execution_at);
-  
+
   return now >= nextExecution;
 }
 
@@ -106,8 +119,8 @@ function calculateNextExecution(scheduledTimes: string[]): Date {
   const currentTime = now.getHours() * 60 + now.getMinutes();
 
   const timesInMinutes = scheduledTimes
-    .map(time => {
-      const [hours, minutes] = time.split(':').map(Number);
+    .map((time) => {
+      const [hours, minutes] = time.split(":").map(Number);
       return hours * 60 + minutes;
     })
     .sort((a, b) => a - b);
@@ -133,36 +146,33 @@ function calculateNextExecution(scheduledTimes: string[]): Date {
 }
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    console.log('Google Ads Sync Scheduler: Starting execution');
+    console.log("Google Ads Sync Scheduler: Starting execution");
 
     // Get all enabled schedules with sync_options
     const { data: schedules, error: schedulesError } = await supabase
-      .from('google_ads_sync_schedules')
-      .select('*')
-      .eq('is_enabled', true);
+      .from("google_ads_sync_schedules")
+      .select("*")
+      .eq("is_enabled", true);
 
     if (schedulesError) {
-      console.error('Error fetching schedules:', schedulesError);
+      console.error("Error fetching schedules:", schedulesError);
       throw schedulesError;
     }
 
     if (!schedules || schedules.length === 0) {
-      console.log('No enabled schedules found');
-      return new Response(
-        JSON.stringify({ message: 'No enabled schedules' }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
+      console.log("No enabled schedules found");
+      return new Response(JSON.stringify({ message: "No enabled schedules" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     console.log(`Found ${schedules.length} enabled schedules`);
@@ -174,91 +184,110 @@ serve(async (req) => {
       console.log(`Processing schedule for company ${schedule.company_id}`);
 
       if (!shouldExecuteNow(schedule)) {
-        console.log(`Skipping - next execution at ${schedule.next_execution_at}`);
+        console.log(
+          `Skipping - next execution at ${schedule.next_execution_at}`,
+        );
         continue;
       }
 
       // Get sync options from schedule (with defaults)
       const syncOptions: SyncOptions = schedule.sync_options || {
-        period: 'last_30_days',
+        period: "last_30_days",
         campaigns: true,
         adGroups: false,
         ads: false,
         includeInactive: false,
       };
 
-      console.log(`Sync options for company ${schedule.company_id}:`, syncOptions);
+      console.log(
+        `Sync options for company ${schedule.company_id}:`,
+        syncOptions,
+      );
 
       // ========== FORÇA RENOVAÇÃO DO TOKEN ANTES DE QUALQUER SYNC ==========
-      console.log(`🔄 Renovando token para company ${schedule.company_id} antes do sync...`);
-      
+      console.log(
+        `🔄 Renovando token para company ${schedule.company_id} antes do sync...`,
+      );
+
       const { data: integration, error: integrationError } = await supabase
-        .from('google_ads_integrations')
-        .select('*')
-        .eq('company_id', schedule.company_id)
-        .eq('is_active', true)
+        .from("google_ads_integrations")
+        .select("*")
+        .eq("company_id", schedule.company_id)
+        .eq("is_active", true)
         .single();
 
       if (integrationError || !integration) {
-        console.error(`❌ No active Google Ads integration for company ${schedule.company_id}:`, integrationError);
+        console.error(
+          `❌ No active Google Ads integration for company ${schedule.company_id}:`,
+          integrationError,
+        );
         // Criar log de falha
-        await supabase
-          .from('google_ads_sync_execution_logs')
-          .insert({
-            company_id: schedule.company_id,
-            schedule_id: schedule.id,
-            status: 'failed',
-            clients_processed: 0,
-            clients_total: 0,
-            error_message: 'No active Google Ads integration found',
-            completed_at: new Date().toISOString(),
-          });
+        await supabase.from("google_ads_sync_execution_logs").insert({
+          company_id: schedule.company_id,
+          schedule_id: schedule.id,
+          status: "failed",
+          clients_processed: 0,
+          clients_total: 0,
+          error_message: "No active Google Ads integration found",
+          completed_at: new Date().toISOString(),
+        });
         continue;
       }
 
       try {
-        const { accessToken, newExpiresAt } = await forceRefreshGoogleAdsToken(supabase, integration);
-        console.log(`✅ Token renovado para company ${schedule.company_id}, expira em: ${newExpiresAt}`);
+        const { accessToken, newExpiresAt } = await forceRefreshGoogleAdsToken(
+          supabase,
+          integration,
+        );
+        console.log(
+          `✅ Token renovado para company ${schedule.company_id}, expira em: ${newExpiresAt}`,
+        );
       } catch (tokenError) {
-        console.error(`❌ Falha ao renovar token para company ${schedule.company_id}:`, tokenError);
+        console.error(
+          `❌ Falha ao renovar token para company ${schedule.company_id}:`,
+          tokenError,
+        );
         // Criar log de falha
-        await supabase
-          .from('google_ads_sync_execution_logs')
-          .insert({
-            company_id: schedule.company_id,
-            schedule_id: schedule.id,
-            status: 'failed',
-            clients_processed: 0,
-            clients_total: 0,
-            error_message: `Token refresh failed: ${tokenError.message}`,
-            completed_at: new Date().toISOString(),
-          });
+        await supabase.from("google_ads_sync_execution_logs").insert({
+          company_id: schedule.company_id,
+          schedule_id: schedule.id,
+          status: "failed",
+          clients_processed: 0,
+          clients_total: 0,
+          error_message: `Token refresh failed: ${tokenError.message}`,
+          completed_at: new Date().toISOString(),
+        });
         continue;
       }
       // ========== FIM DA RENOVAÇÃO DO TOKEN ==========
 
       // Build client query based on includeInactive option
       let clientQuery = supabase
-        .from('clients')
-        .select('id, name, status, inactive_reason')
-        .eq('company_id', schedule.company_id)
-        .not('google_account_id', 'is', null);
+        .from("clients")
+        .select("id, name, status, inactive_reason")
+        .eq("company_id", schedule.company_id)
+        .not("google_account_id", "is", null);
 
       // If not including inactive clients, filter them out
       if (!syncOptions.includeInactive) {
         // Exclude clients with status='red' and inactive_reason set
-        clientQuery = clientQuery.or('status.neq.red,inactive_reason.is.null');
+        clientQuery = clientQuery.or("status.neq.red,inactive_reason.is.null");
       }
 
       const { data: clients, error: clientsError } = await clientQuery;
 
       if (clientsError) {
-        console.error(`Error fetching clients for company ${schedule.company_id}:`, clientsError);
+        console.error(
+          `Error fetching clients for company ${schedule.company_id}:`,
+          clientsError,
+        );
         continue;
       }
 
       if (!clients || clients.length === 0) {
-        console.log(`No clients with Google Ads for company ${schedule.company_id}`);
+        console.log(
+          `No clients with Google Ads for company ${schedule.company_id}`,
+        );
         continue;
       }
 
@@ -266,11 +295,11 @@ serve(async (req) => {
 
       // Create execution log
       const { data: executionLog, error: logError } = await supabase
-        .from('google_ads_sync_execution_logs')
+        .from("google_ads_sync_execution_logs")
         .insert({
           company_id: schedule.company_id,
           schedule_id: schedule.id,
-          status: 'running',
+          status: "running",
           clients_processed: 0,
           clients_total: clients.length,
           sync_options: syncOptions,
@@ -279,7 +308,7 @@ serve(async (req) => {
         .single();
 
       if (logError) {
-        console.error('Error creating execution log:', logError);
+        console.error("Error creating execution log:", logError);
       }
 
       let clientsProcessed = 0;
@@ -291,32 +320,39 @@ serve(async (req) => {
         try {
           console.log(`Syncing client ${client.name} (${client.id})`);
 
-          const response = await supabase.functions.invoke('sync-google-ads-campaigns', {
-            headers: {
-              'Authorization': `Bearer ${supabaseServiceKey}`,
+          const response = await supabase.functions.invoke(
+            "sync-google-ads-campaigns",
+            {
+              headers: {
+                Authorization: `Bearer ${supabaseServiceKey}`,
+              },
+              body: {
+                clientId: client.id,
+                companyId: schedule.company_id,
+                period: syncOptions.period,
+                syncCampaigns: syncOptions.campaigns,
+                syncAdGroups: syncOptions.adGroups,
+                syncAds: syncOptions.ads,
+                includeInactive: syncOptions.includeInactive,
+                silent: true,
+              },
             },
-            body: {
-              clientId: client.id,
-              companyId: schedule.company_id,
-              period: syncOptions.period,
-              syncCampaigns: syncOptions.campaigns,
-              syncAdGroups: syncOptions.adGroups,
-              syncAds: syncOptions.ads,
-              includeInactive: syncOptions.includeInactive,
-              silent: true,
-            },
-          });
+          );
 
           const syncData = response.data;
           const syncError = response.error;
 
           // Extract the actual error message from various sources
-          let errorMessage = '';
+          let errorMessage = "";
           if (syncError) {
             // Try to get the detailed error from the context
-            errorMessage = syncError.context?.body || syncError.message || 'Unknown error';
+            errorMessage =
+              syncError.context?.body || syncError.message || "Unknown error";
             // If context.body is a string that looks like JSON, try to parse it
-            if (typeof errorMessage === 'string' && errorMessage.startsWith('{')) {
+            if (
+              typeof errorMessage === "string" &&
+              errorMessage.startsWith("{")
+            ) {
               try {
                 const parsed = JSON.parse(errorMessage);
                 errorMessage = parsed.error || errorMessage;
@@ -333,20 +369,23 @@ serve(async (req) => {
             clientResults.push({
               client_id: client.id,
               client_name: client.name,
-              status: 'error',
+              status: "error",
               error_code: classification.code,
               error_message: classification.userFriendlyMessage,
               action_required: classification.actionRequired,
             });
           } else if (syncData?.error) {
             // Edge function returned an error in the body
-            console.error(`Error syncing client ${client.name}:`, syncData.error);
-            const classification = classifyGoogleAdsError(syncData.error || '');
+            console.error(
+              `Error syncing client ${client.name}:`,
+              syncData.error,
+            );
+            const classification = classifyGoogleAdsError(syncData.error || "");
             failedClients++;
             clientResults.push({
               client_id: client.id,
               client_name: client.name,
-              status: 'error',
+              status: "error",
               error_code: classification.code,
               error_message: classification.userFriendlyMessage,
               action_required: classification.actionRequired,
@@ -357,7 +396,7 @@ serve(async (req) => {
             clientResults.push({
               client_id: client.id,
               client_name: client.name,
-              status: 'success',
+              status: "success",
               campaigns_synced: syncData?.synced?.campaigns || 0,
               ad_groups_synced: syncData?.synced?.adGroups || 0,
               ads_synced: syncData?.synced?.ads || 0,
@@ -367,18 +406,18 @@ serve(async (req) => {
           // Update execution log progress
           if (executionLog) {
             await supabase
-              .from('google_ads_sync_execution_logs')
+              .from("google_ads_sync_execution_logs")
               .update({ clients_processed: clientsProcessed })
-              .eq('id', executionLog.id);
+              .eq("id", executionLog.id);
           }
         } catch (error) {
           console.error(`Exception syncing client ${client.name}:`, error);
-          const classification = classifyGoogleAdsError(error.message || '');
+          const classification = classifyGoogleAdsError(error.message || "");
           failedClients++;
           clientResults.push({
             client_id: client.id,
             client_name: client.name,
-            status: 'error',
+            status: "error",
             error_code: classification.code,
             error_message: classification.userFriendlyMessage,
             action_required: classification.actionRequired,
@@ -387,39 +426,40 @@ serve(async (req) => {
       }
 
       // Determine final status
-      let finalStatus = 'completed';
+      let finalStatus = "completed";
       if (failedClients === clients.length) {
-        finalStatus = 'failed';
+        finalStatus = "failed";
       } else if (failedClients > 0) {
-        finalStatus = 'partial';
+        finalStatus = "partial";
       }
 
       // Update execution log with final status
       if (executionLog) {
         await supabase
-          .from('google_ads_sync_execution_logs')
+          .from("google_ads_sync_execution_logs")
           .update({
             status: finalStatus,
             clients_processed: clientsProcessed,
             completed_at: new Date().toISOString(),
-            execution_details: { 
-              trigger: 'scheduled',
-              clients: clientResults 
+            execution_details: {
+              trigger: "scheduled",
+              clients: clientResults,
             },
-            error_message: failedClients > 0 ? `${failedClients} cliente(s) com erro` : null,
+            error_message:
+              failedClients > 0 ? `${failedClients} cliente(s) com erro` : null,
           })
-          .eq('id', executionLog.id);
+          .eq("id", executionLog.id);
       }
 
       // Update schedule
       const nextExecution = calculateNextExecution(schedule.scheduled_times);
       await supabase
-        .from('google_ads_sync_schedules')
+        .from("google_ads_sync_schedules")
         .update({
           last_execution_at: new Date().toISOString(),
           next_execution_at: nextExecution.toISOString(),
         })
-        .eq('id', schedule.id);
+        .eq("id", schedule.id);
 
       executionCount++;
       results.push({
@@ -429,26 +469,37 @@ serve(async (req) => {
         status: finalStatus,
       });
 
-      console.log(`Updated schedule - next execution at ${nextExecution.toISOString()}`);
+      console.log(
+        `Updated schedule - next execution at ${nextExecution.toISOString()}`,
+      );
 
       // ========== VALIDAR URLs APÓS SINCRONIZAÇÃO ==========
-      console.log(`🔗 Starting URL validation for company ${schedule.company_id}`);
+      console.log(
+        `🔗 Starting URL validation for company ${schedule.company_id}`,
+      );
       try {
-        const { data: urlValidationResult, error: urlValidationError } = await supabase.functions.invoke(
-          'validate-client-urls',
-          {
-            headers: { 'Authorization': `Bearer ${supabaseServiceKey}` },
-            body: { company_id: schedule.company_id }
-          }
-        );
-        
+        const { data: urlValidationResult, error: urlValidationError } =
+          await supabase.functions.invoke("validate-client-urls", {
+            headers: { Authorization: `Bearer ${supabaseServiceKey}` },
+            body: { company_id: schedule.company_id },
+          });
+
         if (urlValidationError) {
-          console.error(`❌ URL validation failed for company ${schedule.company_id}:`, urlValidationError.message);
+          console.error(
+            `❌ URL validation failed for company ${schedule.company_id}:`,
+            urlValidationError.message,
+          );
         } else {
-          console.log(`✅ URL validation completed for company ${schedule.company_id}:`, urlValidationResult?.summary || urlValidationResult?.message);
+          console.log(
+            `✅ URL validation completed for company ${schedule.company_id}:`,
+            urlValidationResult?.summary || urlValidationResult?.message,
+          );
         }
       } catch (urlError) {
-        console.error(`❌ URL validation error for company ${schedule.company_id}:`, urlError.message);
+        console.error(
+          `❌ URL validation error for company ${schedule.company_id}:`,
+          urlError.message,
+        );
       }
       // ========== FIM DA VALIDAÇÃO DE URLs ==========
     }
@@ -462,19 +513,19 @@ serve(async (req) => {
         results,
       }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   } catch (error) {
-    console.error('Error in google-ads-sync-scheduler:', error);
+    console.error("Error in google-ads-sync-scheduler:", error);
     return new Response(
       JSON.stringify({
         error: error.message,
       }),
       {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 });

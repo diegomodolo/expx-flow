@@ -36,8 +36,10 @@ export function YouTubeSuggestionsList({
   const [contextInput, setContextInput] = useState("");
   const [creatingScriptId, setCreatingScriptId] = useState<string | null>(null);
 
-  const pendingSuggestions = suggestions.filter(s => s.status === 'pending');
-  const scriptedSuggestions = suggestions.filter(s => s.status === 'scripted');
+  const pendingSuggestions = suggestions.filter((s) => s.status === "pending");
+  const scriptedSuggestions = suggestions.filter(
+    (s) => s.status === "scripted",
+  );
 
   const handleGenerateClick = () => {
     if (!hasChannels) {
@@ -62,12 +64,18 @@ export function YouTubeSuggestionsList({
   };
 
   const categoryColors: Record<string, string> = {
-    tutorial: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
-    listicle: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-    storytelling: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
-    comparação: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400",
-    análise: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
-    entretenimento: "bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-400",
+    tutorial:
+      "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+    listicle:
+      "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+    storytelling:
+      "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
+    comparação:
+      "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400",
+    análise:
+      "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
+    entretenimento:
+      "bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-400",
   };
 
   if (loading) {
@@ -87,7 +95,10 @@ export function YouTubeSuggestionsList({
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg">Sugestões de Vídeos</CardTitle>
-            <Button onClick={handleGenerateClick} disabled={generating || !hasChannels}>
+            <Button
+              onClick={handleGenerateClick}
+              disabled={generating || !hasChannels}
+            >
               {generating ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -105,11 +116,13 @@ export function YouTubeSuggestionsList({
         <CardContent>
           {!hasChannels ? (
             <p className="text-sm text-muted-foreground text-center py-4">
-              Adicione canais na aba "Canais" para gerar sugestões baseadas em vídeos de sucesso.
+              Adicione canais na aba "Canais" para gerar sugestões baseadas em
+              vídeos de sucesso.
             </p>
           ) : (
             <p className="text-sm text-muted-foreground">
-              A IA analisa os vídeos de maior engajamento dos canais monitorados e sugere ideias de conteúdo.
+              A IA analisa os vídeos de maior engajamento dos canais monitorados
+              e sugere ideias de conteúdo.
             </p>
           )}
         </CardContent>
@@ -127,7 +140,9 @@ export function YouTubeSuggestionsList({
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
                         <Lightbulb className="h-4 w-4 text-yellow-500" />
-                        <h4 className="font-medium line-clamp-2">{suggestion.title}</h4>
+                        <h4 className="font-medium line-clamp-2">
+                          {suggestion.title}
+                        </h4>
                       </div>
                       {suggestion.description && (
                         <p className="text-sm text-muted-foreground line-clamp-3 mb-3">
@@ -137,7 +152,9 @@ export function YouTubeSuggestionsList({
                       <div className="flex items-center gap-2 flex-wrap">
                         {suggestion.theme_category && (
                           <Badge
-                            className={categoryColors[suggestion.theme_category] || ""}
+                            className={
+                              categoryColors[suggestion.theme_category] || ""
+                            }
                             variant="secondary"
                           >
                             {suggestion.theme_category}
@@ -150,7 +167,8 @@ export function YouTubeSuggestionsList({
                         )}
                       </div>
                     </div>
-                    <Button aria-label="Fechar"
+                    <Button
+                      aria-label="Fechar"
                       size="icon"
                       variant="ghost"
                       className="h-6 w-6 opacity-0 group-hover:opacity-100"
@@ -189,14 +207,18 @@ export function YouTubeSuggestionsList({
       {/* Scripted Suggestions */}
       {scriptedSuggestions.length > 0 && (
         <div className="space-y-4">
-          <h3 className="font-semibold text-lg text-muted-foreground">Com Roteiro</h3>
+          <h3 className="font-semibold text-lg text-muted-foreground">
+            Com Roteiro
+          </h3>
           <div className="grid gap-4 md:grid-cols-2">
             {scriptedSuggestions.map((suggestion) => (
               <Card key={suggestion.id} className="opacity-60">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2">
                     <FileText className="h-4 w-4 text-green-500" />
-                    <h4 className="font-medium line-clamp-1">{suggestion.title}</h4>
+                    <h4 className="font-medium line-clamp-1">
+                      {suggestion.title}
+                    </h4>
                     <Badge variant="secondary" className="ml-auto">
                       Roteiro criado
                     </Badge>
@@ -244,7 +266,10 @@ export function YouTubeSuggestionsList({
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowContextDialog(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setShowContextDialog(false)}
+            >
               Cancelar
             </Button>
             <Button onClick={handleGenerate}>

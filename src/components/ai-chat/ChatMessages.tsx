@@ -7,7 +7,7 @@ import DOMPurify from "dompurify";
 
 interface Message {
   id: string;
-  role: 'user' | 'assistant' | 'system';
+  role: "user" | "assistant" | "system";
   content: string;
   created_at: string;
 }
@@ -29,37 +29,39 @@ export function ChatMessages({ messages, loading }: ChatMessagesProps) {
   }, [messages, loading]);
 
   // Regex to detect image URLs
-  const imageUrlRegex = /(https?:\/\/[^\s"'<>]+\.(?:png|jpg|jpeg|gif|webp|svg)(?:\?[^\s"'<>]*)?)/gi;
-  const supabaseImageRegex = /(https?:\/\/[^\s"'<>]*supabase[^\s"'<>]*\/storage\/v1\/object\/public\/[^\s"'<>]+)/gi;
+  const imageUrlRegex =
+    /(https?:\/\/[^\s"'<>]+\.(?:png|jpg|jpeg|gif|webp|svg)(?:\?[^\s"'<>]*)?)/gi;
+  const supabaseImageRegex =
+    /(https?:\/\/[^\s"'<>]*supabase[^\s"'<>]*\/storage\/v1\/object\/public\/[^\s"'<>]+)/gi;
 
   // Extract image URLs from content
   const extractImageUrls = (content: string): string[] => {
     const urls = new Set<string>();
     let match;
-    
-    const regex1 = new RegExp(imageUrlRegex.source, 'gi');
+
+    const regex1 = new RegExp(imageUrlRegex.source, "gi");
     while ((match = regex1.exec(content)) !== null) urls.add(match[1]);
-    
-    const regex2 = new RegExp(supabaseImageRegex.source, 'gi');
+
+    const regex2 = new RegExp(supabaseImageRegex.source, "gi");
     while ((match = regex2.exec(content)) !== null) urls.add(match[1]);
-    
+
     return Array.from(urls);
   };
 
   // Function to format message content with basic markdown
   const formatMessage = (content: string) => {
     // Convert **bold** to <strong>
-    let formatted = content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    
+    let formatted = content.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+
     // Convert bullet points starting with - or *
-    formatted = formatted.replace(/^[•\-*]\s+(.+)$/gm, '• $1');
-    
+    formatted = formatted.replace(/^[•\-*]\s+(.+)$/gm, "• $1");
+
     // Convert numbered lists
-    formatted = formatted.replace(/^\d+\.\s+(.+)$/gm, '• $1');
-    
+    formatted = formatted.replace(/^\d+\.\s+(.+)$/gm, "• $1");
+
     // Convert line breaks
-    formatted = formatted.replace(/\n/g, '<br>');
-    
+    formatted = formatted.replace(/\n/g, "<br>");
+
     return formatted;
   };
 
@@ -72,7 +74,8 @@ export function ChatMessages({ messages, loading }: ChatMessagesProps) {
               <Bot className="w-12 h-12 mx-auto mb-4 opacity-50" />
               <h3 className="text-lg font-medium mb-2">Converse com a IA</h3>
               <p className="text-sm">
-                Faça perguntas sobre campanhas, peça sugestões de otimização ou solicite análises de performance.
+                Faça perguntas sobre campanhas, peça sugestões de otimização ou
+                solicite análises de performance.
               </p>
             </div>
           </div>
@@ -82,49 +85,58 @@ export function ChatMessages({ messages, loading }: ChatMessagesProps) {
               <div
                 key={message.id}
                 className={`flex gap-3 ${
-                  message.role === 'user' ? 'justify-end' : 'justify-start'
+                  message.role === "user" ? "justify-end" : "justify-start"
                 }`}
               >
-                {message.role === 'assistant' && (
+                {message.role === "assistant" && (
                   <div className="flex-shrink-0">
                     <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
                       <Bot className="w-4 h-4 text-primary-foreground" />
                     </div>
                   </div>
                 )}
-                
+
                 <div
                   className={`max-w-3xl rounded-lg p-4 ${
-                    message.role === 'user'
-                      ? 'bg-primary text-primary-foreground ml-12'
-                      : 'bg-muted mr-12'
+                    message.role === "user"
+                      ? "bg-primary text-primary-foreground ml-12"
+                      : "bg-muted mr-12"
                   }`}
                 >
                   {/* Render detected images */}
-                  {message.role === 'assistant' && extractImageUrls(message.content).map((imgUrl, idx) => (
-                    <div key={idx} className="mb-3">
-                      <a href={imgUrl} target="_blank" rel="noopener noreferrer">
-                        <img 
-                          src={imgUrl} 
-                          alt="Imagem gerada" 
-                          className="rounded-lg max-w-full max-h-80 object-contain border border-border"
-                          loading="lazy"
-                        />
-                      </a>
-                    </div>
-                  ))}
+                  {message.role === "assistant" &&
+                    extractImageUrls(message.content).map((imgUrl, idx) => (
+                      <div key={idx} className="mb-3">
+                        <a
+                          href={imgUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <img
+                            src={imgUrl}
+                            alt="Imagem gerada"
+                            className="rounded-lg max-w-full max-h-80 object-contain border border-border"
+                            loading="lazy"
+                          />
+                        </a>
+                      </div>
+                    ))}
                   <div
                     className="prose prose-sm max-w-none text-current"
                     dangerouslySetInnerHTML={{
-                      __html: DOMPurify.sanitize(formatMessage(message.content))
+                      __html: DOMPurify.sanitize(
+                        formatMessage(message.content),
+                      ),
                     }}
                   />
                   <div className="text-xs opacity-70 mt-2">
-                    {format(new Date(message.created_at), "HH:mm", { locale: ptBR })}
+                    {format(new Date(message.created_at), "HH:mm", {
+                      locale: ptBR,
+                    })}
                   </div>
                 </div>
 
-                {message.role === 'user' && (
+                {message.role === "user" && (
                   <div className="flex-shrink-0">
                     <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
                       <User className="w-4 h-4 text-muted-foreground" />
@@ -133,7 +145,7 @@ export function ChatMessages({ messages, loading }: ChatMessagesProps) {
                 )}
               </div>
             ))}
-            
+
             {loading && (
               <div className="flex gap-3 justify-start">
                 <div className="flex-shrink-0">

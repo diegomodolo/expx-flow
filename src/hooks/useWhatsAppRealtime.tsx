@@ -20,9 +20,10 @@ export function useWhatsAppRealtime(companyId: string | undefined) {
           filter: `company_id=eq.${companyId}`,
         },
         (payload) => {
-          console.log("[WhatsApp Realtime] Conversation change:", payload);
-          queryClient.invalidateQueries({ queryKey: ["whatsapp-conversations", companyId] });
-        }
+          queryClient.invalidateQueries({
+            queryKey: ["whatsapp-conversations", companyId],
+          });
+        },
       )
       .subscribe();
 
@@ -38,17 +39,18 @@ export function useWhatsAppRealtime(companyId: string | undefined) {
           filter: `company_id=eq.${companyId}`,
         },
         (payload) => {
-          console.log("[WhatsApp Realtime] New message:", payload);
           const newMessage = payload.new as unknown;
-          
+
           // Invalidate messages for the specific conversation
-          queryClient.invalidateQueries({ 
-            queryKey: ["whatsapp-messages", newMessage.conversation_id] 
+          queryClient.invalidateQueries({
+            queryKey: ["whatsapp-messages", newMessage.conversation_id],
           });
-          
+
           // Also invalidate conversations list to update last message
-          queryClient.invalidateQueries({ queryKey: ["whatsapp-conversations", companyId] });
-        }
+          queryClient.invalidateQueries({
+            queryKey: ["whatsapp-conversations", companyId],
+          });
+        },
       )
       .subscribe();
 

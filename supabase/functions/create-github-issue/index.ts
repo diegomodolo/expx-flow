@@ -1,7 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.53.0";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
@@ -21,9 +22,11 @@ function buildBugIssueBody(req: CreateReportRequest): string {
   let body = `> Reportado por **${req.user_name}** via sistema\n\n`;
   if (ef.url) body += `### URL onde o erro ocorre\n${ef.url}\n\n`;
   body += `### Descrição do bug\n${req.description}\n\n`;
-  if (ef.stack_trace) body += `### Stack trace / erro no console\n\`\`\`\n${ef.stack_trace}\n\`\`\`\n\n`;
+  if (ef.stack_trace)
+    body += `### Stack trace / erro no console\n\`\`\`\n${ef.stack_trace}\n\`\`\`\n\n`;
   if (ef.steps) body += `### Passos para reproduzir\n${ef.steps}\n\n`;
-  if (ef.suspected_file) body += `### Arquivo suspeito\n${ef.suspected_file}\n\n`;
+  if (ef.suspected_file)
+    body += `### Arquivo suspeito\n${ef.suspected_file}\n\n`;
   return body;
 }
 
@@ -56,19 +59,27 @@ const handler = async (req: Request): Promise<Response> => {
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
     const body: CreateReportRequest = await req.json();
-    const { type, title, description, extra_fields, user_name, company_id, user_id } = body;
+    const {
+      type,
+      title,
+      description,
+      extra_fields,
+      user_name,
+      company_id,
+      user_id,
+    } = body;
 
-    const issueBody = type === "bug"
-      ? buildBugIssueBody(body)
-      : buildFeatureIssueBody(body);
+    const issueBody =
+      type === "bug" ? buildBugIssueBody(body) : buildFeatureIssueBody(body);
 
-    const labels = type === "bug"
-      ? ["bug", "claude-analyze"]
-      : ["feature-suggestion", "claude-analyze"];
+    const labels =
+      type === "bug"
+        ? ["bug", "claude-analyze"]
+        : ["feature-suggestion", "claude-analyze"];
 
     const ghResponse = await fetch(
       `https://api.github.com/repos/${repoOwner}/${repoName}/issues`,
@@ -84,7 +95,7 @@ const handler = async (req: Request): Promise<Response> => {
           body: issueBody,
           labels,
         }),
-      }
+      },
     );
 
     if (!ghResponse.ok) {
@@ -114,26 +125,23 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (dbError) {
       console.error("Supabase insert error:", JSON.stringify(dbError));
-      throw new Error(`Issue criada no GitHub mas erro ao salvar: ${dbError.message} (code: ${dbError.code}, details: ${dbError.details})`);
+      throw new Error(
+        `Issue criada no GitHub mas erro ao salvar: ${dbError.message} (code: ${dbError.code}, details: ${dbError.details})`,
+      );
     }
 
-    return new Response(
-      JSON.stringify({ success: true, data: report }),
-      {
-        status: 200,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
-    );
+    return new Response(JSON.stringify({ success: true, data: report }), {
+      status: 200,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
   } catch (error: unknown) {
     console.error("Erro ao criar reporte:", error);
-    const message = error instanceof Error ? error.message : "Erro desconhecido";
-    return new Response(
-      JSON.stringify({ success: false, error: message }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
-    );
+    const message =
+      error instanceof Error ? error.message : "Erro desconhecido";
+    return new Response(JSON.stringify({ success: false, error: message }), {
+      status: 500,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
   }
 };
 

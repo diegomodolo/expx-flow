@@ -1,18 +1,27 @@
 import { useState, useRef } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { useYouTubeThumbnails, ThumbnailConfig } from "@/hooks/useYouTubeThumbnails";
-import { 
-  Loader2, 
-  Upload, 
-  X, 
-  Image as ImageIcon, 
-  User, 
+import {
+  useYouTubeThumbnails,
+  ThumbnailConfig,
+} from "@/hooks/useYouTubeThumbnails";
+import {
+  Loader2,
+  Upload,
+  X,
+  Image as ImageIcon,
+  User,
   Palette,
   Save,
-  Info
+  Info,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -21,14 +30,24 @@ interface YouTubeThumbnailConfigProps {
   companyId: string;
 }
 
-export function YouTubeThumbnailConfig({ clientId, companyId }: YouTubeThumbnailConfigProps) {
-  const { config, loading, saving, uploadImage, saveConfig } = useYouTubeThumbnails(clientId, companyId);
-  
-  const [modelPhotos, setModelPhotos] = useState<string[]>(config?.model_photos || []);
-  const [referenceThumbnails, setReferenceThumbnails] = useState<string[]>(config?.reference_thumbnails || []);
+export function YouTubeThumbnailConfig({
+  clientId,
+  companyId,
+}: YouTubeThumbnailConfigProps) {
+  const { config, loading, saving, uploadImage, saveConfig } =
+    useYouTubeThumbnails(clientId, companyId);
+
+  const [modelPhotos, setModelPhotos] = useState<string[]>(
+    config?.model_photos || [],
+  );
+  const [referenceThumbnails, setReferenceThumbnails] = useState<string[]>(
+    config?.reference_thumbnails || [],
+  );
   const [styleNotes, setStyleNotes] = useState(config?.style_notes || "");
-  const [uploading, setUploading] = useState<'model' | 'reference' | null>(null);
-  
+  const [uploading, setUploading] = useState<"model" | "reference" | null>(
+    null,
+  );
+
   const modelInputRef = useRef<HTMLInputElement>(null);
   const referenceInputRef = useRef<HTMLInputElement>(null);
 
@@ -41,32 +60,35 @@ export function YouTubeThumbnailConfig({ clientId, companyId }: YouTubeThumbnail
     }
   });
 
-  const handleUpload = async (file: File, type: 'model' | 'reference') => {
+  const handleUpload = async (file: File, type: "model" | "reference") => {
     setUploading(type);
     const url = await uploadImage(file, type);
     if (url) {
-      if (type === 'model') {
-        setModelPhotos(prev => [...prev, url]);
+      if (type === "model") {
+        setModelPhotos((prev) => [...prev, url]);
       } else {
-        setReferenceThumbnails(prev => [...prev, url]);
+        setReferenceThumbnails((prev) => [...prev, url]);
       }
     }
     setUploading(null);
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'model' | 'reference') => {
+  const handleFileChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    type: "model" | "reference",
+  ) => {
     const file = e.target.files?.[0];
     if (file) {
       handleUpload(file, type);
     }
-    e.target.value = '';
+    e.target.value = "";
   };
 
-  const removePhoto = (index: number, type: 'model' | 'reference') => {
-    if (type === 'model') {
-      setModelPhotos(prev => prev.filter((_, i) => i !== index));
+  const removePhoto = (index: number, type: "model" | "reference") => {
+    if (type === "model") {
+      setModelPhotos((prev) => prev.filter((_, i) => i !== index));
     } else {
-      setReferenceThumbnails(prev => prev.filter((_, i) => i !== index));
+      setReferenceThumbnails((prev) => prev.filter((_, i) => i !== index));
     }
   };
 
@@ -94,10 +116,14 @@ export function YouTubeThumbnailConfig({ clientId, companyId }: YouTubeThumbnail
           <div className="flex gap-3">
             <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
             <div className="text-sm text-blue-800 dark:text-blue-200">
-              <p className="font-medium mb-1">Como funciona a geração de thumbnails</p>
+              <p className="font-medium mb-1">
+                Como funciona a geração de thumbnails
+              </p>
               <p className="text-blue-700 dark:text-blue-300">
-                Configure fotos do modelo (pessoa que aparecerá) e thumbnails de referência (estilo visual).
-                Ao gerar uma thumbnail em um roteiro, a IA usará essas referências para criar uma imagem personalizada.
+                Configure fotos do modelo (pessoa que aparecerá) e thumbnails de
+                referência (estilo visual). Ao gerar uma thumbnail em um
+                roteiro, a IA usará essas referências para criar uma imagem
+                personalizada.
               </p>
             </div>
           </div>
@@ -113,7 +139,8 @@ export function YouTubeThumbnailConfig({ clientId, companyId }: YouTubeThumbnail
               <CardTitle className="text-lg">Fotos do Modelo</CardTitle>
             </div>
             <CardDescription>
-              Adicione fotos da pessoa que aparecerá nas thumbnails (até 5 fotos)
+              Adicione fotos da pessoa que aparecerá nas thumbnails (até 5
+              fotos)
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -125,29 +152,30 @@ export function YouTubeThumbnailConfig({ clientId, companyId }: YouTubeThumbnail
                     alt={`Modelo ${index + 1}`}
                     className="w-full h-full object-cover rounded-lg border"
                   />
-                  <Button aria-label="Avançar"
+                  <Button
+                    aria-label="Avançar"
                     variant="destructive"
                     size="icon"
                     className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={() => removePhoto(index, 'model')}
+                    onClick={() => removePhoto(index, "model")}
                   >
                     <X className="h-3 w-3" />
                   </Button>
                 </div>
               ))}
-              
+
               {modelPhotos.length < 5 && (
                 <button
                   onClick={() => modelInputRef.current?.click()}
-                  disabled={uploading === 'model'}
+                  disabled={uploading === "model"}
                   className={cn(
                     "aspect-square border-2 border-dashed rounded-lg flex flex-col items-center justify-center gap-2",
                     "hover:border-primary hover:bg-primary/5 transition-colors",
                     "text-muted-foreground hover:text-primary",
-                    uploading === 'model' && "opacity-50 cursor-not-allowed"
+                    uploading === "model" && "opacity-50 cursor-not-allowed",
                   )}
                 >
-                  {uploading === 'model' ? (
+                  {uploading === "model" ? (
                     <Loader2 className="h-6 w-6 animate-spin" />
                   ) : (
                     <>
@@ -163,7 +191,7 @@ export function YouTubeThumbnailConfig({ clientId, companyId }: YouTubeThumbnail
               type="file"
               accept="image/*"
               className="hidden"
-              onChange={(e) => handleFileChange(e, 'model')}
+              onChange={(e) => handleFileChange(e, "model")}
             />
           </CardContent>
         </Card>
@@ -173,10 +201,13 @@ export function YouTubeThumbnailConfig({ clientId, companyId }: YouTubeThumbnail
           <CardHeader>
             <div className="flex items-center gap-2">
               <Palette className="h-5 w-5 text-primary" />
-              <CardTitle className="text-lg">Thumbnails de Referência</CardTitle>
+              <CardTitle className="text-lg">
+                Thumbnails de Referência
+              </CardTitle>
             </div>
             <CardDescription>
-              Adicione thumbnails de outros vídeos como inspiração visual (até 10)
+              Adicione thumbnails de outros vídeos como inspiração visual (até
+              10)
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -188,29 +219,31 @@ export function YouTubeThumbnailConfig({ clientId, companyId }: YouTubeThumbnail
                     alt={`Referência ${index + 1}`}
                     className="w-full h-full object-cover rounded-lg border"
                   />
-                  <Button aria-label="Avançar"
+                  <Button
+                    aria-label="Avançar"
                     variant="destructive"
                     size="icon"
                     className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={() => removePhoto(index, 'reference')}
+                    onClick={() => removePhoto(index, "reference")}
                   >
                     <X className="h-3 w-3" />
                   </Button>
                 </div>
               ))}
-              
+
               {referenceThumbnails.length < 10 && (
                 <button
                   onClick={() => referenceInputRef.current?.click()}
-                  disabled={uploading === 'reference'}
+                  disabled={uploading === "reference"}
                   className={cn(
                     "aspect-video border-2 border-dashed rounded-lg flex flex-col items-center justify-center gap-2",
                     "hover:border-primary hover:bg-primary/5 transition-colors",
                     "text-muted-foreground hover:text-primary",
-                    uploading === 'reference' && "opacity-50 cursor-not-allowed"
+                    uploading === "reference" &&
+                      "opacity-50 cursor-not-allowed",
                   )}
                 >
-                  {uploading === 'reference' ? (
+                  {uploading === "reference" ? (
                     <Loader2 className="h-5 w-5 animate-spin" />
                   ) : (
                     <>
@@ -226,7 +259,7 @@ export function YouTubeThumbnailConfig({ clientId, companyId }: YouTubeThumbnail
               type="file"
               accept="image/*"
               className="hidden"
-              onChange={(e) => handleFileChange(e, 'reference')}
+              onChange={(e) => handleFileChange(e, "reference")}
             />
           </CardContent>
         </Card>

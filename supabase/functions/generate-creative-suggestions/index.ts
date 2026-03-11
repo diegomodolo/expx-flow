@@ -8,7 +8,8 @@ const openAIApiKey = Deno.env.get("OPENAI_API_KEY");
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
@@ -37,7 +38,7 @@ Deno.serve(async (req) => {
       // FORMATO ANTIGO - Múltiplas sugestões de tema
       return await handleMultipleSuggestions(body);
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error in generate-creative-suggestions:", error);
     return new Response(
       JSON.stringify({
@@ -54,7 +55,7 @@ Deno.serve(async (req) => {
 });
 
 // Novo formato - gerar um único tema, copy ou conteúdo de slide
-async function handleSimpleSuggestion(body: any) {
+async function handleSimpleSuggestion(body: unknown) {
   const {
     clientId,
     companyId,
@@ -159,7 +160,7 @@ Responda APENAS com o texto da imagem. Nada mais.`;
     const existingSlidesInfo =
       existingSlides
         ?.map(
-          (s: any) =>
+          (s: unknown) =>
             `Slide ${s.slideNumber}: Headline: "${s.headline || "(vazio)"}" | Descrição: "${s.description || "(vazio)"}"`,
         )
         .join("\n") || "";
@@ -190,7 +191,7 @@ Responda APENAS com a headline. Nada mais.`;
     const existingSlidesInfo =
       existingSlides
         ?.map(
-          (s: any) =>
+          (s: unknown) =>
             `Slide ${s.slideNumber}: Headline: "${s.headline || "(vazio)"}" | Descrição: "${s.description || "(vazio)"}"`,
         )
         .join("\n") || "";
@@ -265,7 +266,7 @@ Responda APENAS com a descrição. Nada mais.`;
 }
 
 // Formato antigo - múltiplas sugestões de tema
-async function handleMultipleSuggestions(body: any) {
+async function handleMultipleSuggestions(body: unknown) {
   const {
     clientId,
     creativeType,

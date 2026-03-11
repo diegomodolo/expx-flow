@@ -1,5 +1,10 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -35,12 +40,15 @@ export function WhatsAppBlockedContactsModal({
 
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("fetch-whatsapp-blocklist", {
-        body: {
-          company_id: companyId,
-          instance_id: instanceId,
+      const { data, error } = await supabase.functions.invoke(
+        "fetch-whatsapp-blocklist",
+        {
+          body: {
+            company_id: companyId,
+            instance_id: instanceId,
+          },
         },
-      });
+      );
 
       if (error) throw error;
 
@@ -62,21 +70,26 @@ export function WhatsAppBlockedContactsModal({
 
     setUnblockingPhone(contact.phone);
     try {
-      const { data, error } = await supabase.functions.invoke("block-whatsapp-contact", {
-        body: {
-          company_id: companyId,
-          instance_id: instanceId,
-          phone: contact.phone,
-          block: false,
+      const { data, error } = await supabase.functions.invoke(
+        "block-whatsapp-contact",
+        {
+          body: {
+            company_id: companyId,
+            instance_id: instanceId,
+            phone: contact.phone,
+            block: false,
+          },
         },
-      });
+      );
 
       if (error) throw error;
 
       if (data?.success) {
         toast.success("Contato desbloqueado com sucesso");
         // Remove from local list
-        setBlockedContacts((prev) => prev.filter((c) => c.phone !== contact.phone));
+        setBlockedContacts((prev) =>
+          prev.filter((c) => c.phone !== contact.phone),
+        );
       } else {
         throw new Error(data?.error || "Erro ao desbloquear contato");
       }
@@ -107,25 +120,32 @@ export function WhatsAppBlockedContactsModal({
             <ShieldOff className="h-5 w-5 text-destructive" />
             <DialogTitle>Contatos Bloqueados</DialogTitle>
           </div>
-          <Button aria-label="Atualizar"
-            variant="ghost" 
-            size="icon" 
+          <Button
+            aria-label="Atualizar"
+            variant="ghost"
+            size="icon"
             onClick={fetchBlockedContacts}
             disabled={isLoading}
           >
-            <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+            <RefreshCw
+              className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
+            />
           </Button>
         </DialogHeader>
 
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-12 gap-3">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">Carregando contatos bloqueados...</p>
+            <p className="text-sm text-muted-foreground">
+              Carregando contatos bloqueados...
+            </p>
           </div>
         ) : blockedContacts.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 gap-3">
             <UserX className="h-12 w-12 text-muted-foreground/30" />
-            <p className="text-sm text-muted-foreground">Nenhum contato bloqueado</p>
+            <p className="text-sm text-muted-foreground">
+              Nenhum contato bloqueado
+            </p>
           </div>
         ) : (
           <ScrollArea className="max-h-[400px]">
@@ -141,8 +161,12 @@ export function WhatsAppBlockedContactsModal({
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium">{contact.formatted_phone}</p>
-                    <p className="text-xs text-muted-foreground truncate">+{contact.phone}</p>
+                    <p className="text-sm font-medium">
+                      {contact.formatted_phone}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      +{contact.phone}
+                    </p>
                   </div>
                   <Button
                     variant="ghost"
@@ -168,7 +192,9 @@ export function WhatsAppBlockedContactsModal({
 
         <div className="pt-2 border-t">
           <p className="text-xs text-muted-foreground text-center">
-            {blockedContacts.length} contato{blockedContacts.length !== 1 ? "s" : ""} bloqueado{blockedContacts.length !== 1 ? "s" : ""}
+            {blockedContacts.length} contato
+            {blockedContacts.length !== 1 ? "s" : ""} bloqueado
+            {blockedContacts.length !== 1 ? "s" : ""}
           </p>
         </div>
       </DialogContent>

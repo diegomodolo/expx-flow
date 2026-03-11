@@ -2,7 +2,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
@@ -52,7 +53,7 @@ serve(async (req) => {
       throw new Error("Ad not found");
     }
 
-    const content = ad.generated_content as any;
+    const content = ad.generated_content as unknown;
 
     console.log("[score-generated-ad] Ad content:", {
       headline: content?.headline?.substring(0, 50),

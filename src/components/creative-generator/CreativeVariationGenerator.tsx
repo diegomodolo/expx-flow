@@ -5,7 +5,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Upload, Image, Loader2, Sparkles, X, ScanText, Layers, User, Zap } from "lucide-react";
+import {
+  Upload,
+  Image,
+  Loader2,
+  Sparkles,
+  X,
+  ScanText,
+  Layers,
+  User,
+  Zap,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { VariationOptionsCard, VariationOptions } from "./VariationOptionsCard";
@@ -28,7 +38,9 @@ export function CreativeVariationGenerator() {
     alterColorPalette: false,
     varyBackground: true,
   });
-  const [selectedFormats, setSelectedFormats] = useState<string[]>(["instagram_feed"]);
+  const [selectedFormats, setSelectedFormats] = useState<string[]>([
+    "instagram_feed",
+  ]);
   const [quantity, setQuantity] = useState(4);
   const [accumulateMode, setAccumulateMode] = useState(true);
   const [modelType, setModelType] = useState<ModelType>("flash");
@@ -43,9 +55,12 @@ export function CreativeVariationGenerator() {
   const extractTextFromImage = useCallback(async (imageBase64: string) => {
     setIsExtractingText(true);
     try {
-      const { data, error } = await supabase.functions.invoke("extract-image-text", {
-        body: { imageBase64 },
-      });
+      const { data, error } = await supabase.functions.invoke(
+        "extract-image-text",
+        {
+          body: { imageBase64 },
+        },
+      );
 
       if (error) {
         console.error("Error extracting text:", error);
@@ -63,31 +78,34 @@ export function CreativeVariationGenerator() {
     }
   }, []);
 
-  const handleImageUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleImageUpload = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
 
-    if (!file.type.startsWith("image/")) {
-      toast.error("Por favor, selecione uma imagem válida");
-      return;
-    }
+      if (!file.type.startsWith("image/")) {
+        toast.error("Por favor, selecione uma imagem válida");
+        return;
+      }
 
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error("A imagem deve ter no máximo 10MB");
-      return;
-    }
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error("A imagem deve ter no máximo 10MB");
+        return;
+      }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const imageData = event.target?.result as string;
-      setBaseImage(imageData);
-      setBaseImageFile(file);
-      
-      // Auto-extract text from image
-      extractTextFromImage(imageData);
-    };
-    reader.readAsDataURL(file);
-  }, [extractTextFromImage]);
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const imageData = event.target?.result as string;
+        setBaseImage(imageData);
+        setBaseImageFile(file);
+
+        // Auto-extract text from image
+        extractTextFromImage(imageData);
+      };
+      reader.readAsDataURL(file);
+    },
+    [extractTextFromImage],
+  );
 
   const removeImage = useCallback(() => {
     setBaseImage(null);
@@ -95,28 +113,31 @@ export function CreativeVariationGenerator() {
     setTextOverlay("");
   }, []);
 
-  const handlePersonImageUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handlePersonImageUpload = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
 
-    if (!file.type.startsWith("image/")) {
-      toast.error("Por favor, selecione uma imagem válida");
-      return;
-    }
+      if (!file.type.startsWith("image/")) {
+        toast.error("Por favor, selecione uma imagem válida");
+        return;
+      }
 
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error("A imagem deve ter no máximo 10MB");
-      return;
-    }
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error("A imagem deve ter no máximo 10MB");
+        return;
+      }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const imageData = event.target?.result as string;
-      setPersonImage(imageData);
-      setPersonImageFile(file);
-    };
-    reader.readAsDataURL(file);
-  }, []);
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const imageData = event.target?.result as string;
+        setPersonImage(imageData);
+        setPersonImageFile(file);
+      };
+      reader.readAsDataURL(file);
+    },
+    [],
+  );
 
   const removePersonImage = useCallback(() => {
     setPersonImage(null);
@@ -158,7 +179,9 @@ export function CreativeVariationGenerator() {
     // Either replace or accumulate variations
     if (accumulateMode) {
       // Limit to max 24 variations when accumulating
-      const currentSuccessful = variations.filter(v => v.status === 'success');
+      const currentSuccessful = variations.filter(
+        (v) => v.status === "success",
+      );
       const maxToKeep = Math.max(0, 24 - placeholders.length);
       const keptVariations = currentSuccessful.slice(-maxToKeep);
       setVariations([...keptVariations, ...placeholders]);
@@ -173,8 +196,10 @@ export function CreativeVariationGenerator() {
           // Update status to generating
           setVariations((prev) =>
             prev.map((v) =>
-              v.id === placeholder.id ? { ...v, status: "generating" as const } : v
-            )
+              v.id === placeholder.id
+                ? { ...v, status: "generating" as const }
+                : v,
+            ),
           );
 
           try {
@@ -191,7 +216,7 @@ export function CreativeVariationGenerator() {
                   variationIndex: placeholder.variationIndex,
                   modelType,
                 },
-              }
+              },
             );
 
             if (error) throw error;
@@ -200,9 +225,13 @@ export function CreativeVariationGenerator() {
               setVariations((prev) =>
                 prev.map((v) =>
                   v.id === placeholder.id
-                    ? { ...v, imageUrl: data.imageUrl, status: "success" as const }
-                    : v
-                )
+                    ? {
+                        ...v,
+                        imageUrl: data.imageUrl,
+                        status: "success" as const,
+                      }
+                    : v,
+                ),
               );
             } else {
               throw new Error(data?.error || "Nenhuma imagem gerada");
@@ -213,11 +242,11 @@ export function CreativeVariationGenerator() {
               prev.map((v) =>
                 v.id === placeholder.id
                   ? { ...v, status: "error" as const, error: err.message }
-                  : v
-              )
+                  : v,
+              ),
             );
           }
-        })
+        }),
       );
 
       toast.success("Variações geradas com sucesso!");
@@ -232,7 +261,7 @@ export function CreativeVariationGenerator() {
 
   const handleToggleSelect = (id: string) => {
     setVariations((prev) =>
-      prev.map((v) => (v.id === id ? { ...v, selected: !v.selected } : v))
+      prev.map((v) => (v.id === id ? { ...v, selected: !v.selected } : v)),
     );
   };
 
@@ -242,7 +271,9 @@ export function CreativeVariationGenerator() {
 
     setIsRegenerating(id);
     setVariations((prev) =>
-      prev.map((v) => (v.id === id ? { ...v, status: "generating" as const } : v))
+      prev.map((v) =>
+        v.id === id ? { ...v, status: "generating" as const } : v,
+      ),
     );
 
     try {
@@ -259,7 +290,7 @@ export function CreativeVariationGenerator() {
             variationIndex: variation.variationIndex,
             modelType,
           },
-        }
+        },
       );
 
       if (error) throw error;
@@ -268,9 +299,14 @@ export function CreativeVariationGenerator() {
         setVariations((prev) =>
           prev.map((v) =>
             v.id === id
-              ? { ...v, imageUrl: data.imageUrl, status: "success" as const, error: undefined }
-              : v
-          )
+              ? {
+                  ...v,
+                  imageUrl: data.imageUrl,
+                  status: "success" as const,
+                  error: undefined,
+                }
+              : v,
+          ),
         );
         toast.success("Variação regenerada!");
       }
@@ -278,8 +314,10 @@ export function CreativeVariationGenerator() {
       console.error(`Error regenerating variation ${id}:`, err);
       setVariations((prev) =>
         prev.map((v) =>
-          v.id === id ? { ...v, status: "error" as const, error: err.message } : v
-        )
+          v.id === id
+            ? { ...v, status: "error" as const, error: err.message }
+            : v,
+        ),
       );
       toast.error("Erro ao regenerar: " + err.message);
     } finally {
@@ -288,8 +326,10 @@ export function CreativeVariationGenerator() {
   };
 
   const handleDownloadSelected = async () => {
-    const selected = variations.filter((v) => v.selected && v.status === "success");
-    
+    const selected = variations.filter(
+      (v) => v.selected && v.status === "success",
+    );
+
     for (const variation of selected) {
       try {
         const response = await fetch(variation.imageUrl);
@@ -306,12 +346,14 @@ export function CreativeVariationGenerator() {
         console.error("Error downloading:", error);
       }
     }
-    
+
     toast.success(`${selected.length} imagens baixadas!`);
   };
 
   const handleSaveSelected = async () => {
-    const selected = variations.filter((v) => v.selected && v.status === "success");
+    const selected = variations.filter(
+      (v) => v.selected && v.status === "success",
+    );
     toast.success(`${selected.length} variações salvas no histórico!`);
     // TODO: Implement saving to database
   };
@@ -322,7 +364,9 @@ export function CreativeVariationGenerator() {
   };
 
   const canGenerate = baseImage && selectedFormats.length > 0 && !isGenerating;
-  const successfulCount = variations.filter(v => v.status === 'success').length;
+  const successfulCount = variations.filter(
+    (v) => v.status === "success",
+  ).length;
 
   return (
     <div className="space-y-6">
@@ -347,7 +391,8 @@ export function CreativeVariationGenerator() {
                       alt="Base"
                       className="w-full h-36 object-cover rounded-lg"
                     />
-                    <Button aria-label="Excluir"
+                    <Button
+                      aria-label="Excluir"
                       variant="destructive"
                       size="icon"
                       className="absolute top-1 right-1 h-6 w-6"
@@ -379,7 +424,9 @@ export function CreativeVariationGenerator() {
                 <CardTitle className="text-sm flex items-center gap-2">
                   <User className="w-4 h-4 text-primary" />
                   Foto da Pessoa
-                  <span className="text-xs font-normal text-muted-foreground">(opcional)</span>
+                  <span className="text-xs font-normal text-muted-foreground">
+                    (opcional)
+                  </span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0">
@@ -390,7 +437,8 @@ export function CreativeVariationGenerator() {
                       alt="Person"
                       className="w-full h-36 object-cover rounded-lg"
                     />
-                    <Button aria-label="Excluir"
+                    <Button
+                      aria-label="Excluir"
                       variant="destructive"
                       size="icon"
                       className="absolute top-1 right-1 h-6 w-6"
@@ -483,13 +531,22 @@ export function CreativeVariationGenerator() {
                 onValueChange={setSelectedFormats}
                 className="justify-start flex-wrap"
               >
-                <ToggleGroupItem value="instagram_feed" className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
+                <ToggleGroupItem
+                  value="instagram_feed"
+                  className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                >
                   Feed (4:5)
                 </ToggleGroupItem>
-                <ToggleGroupItem value="instagram_story" className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
+                <ToggleGroupItem
+                  value="instagram_story"
+                  className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                >
                   Story (9:16)
                 </ToggleGroupItem>
-                <ToggleGroupItem value="instagram_reels" className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
+                <ToggleGroupItem
+                  value="instagram_reels"
+                  className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                >
                   Reels (9:16)
                 </ToggleGroupItem>
               </ToggleGroup>
@@ -508,7 +565,9 @@ export function CreativeVariationGenerator() {
               <ToggleGroup
                 type="single"
                 value={modelType}
-                onValueChange={(value) => value && setModelType(value as ModelType)}
+                onValueChange={(value) =>
+                  value && setModelType(value as ModelType)
+                }
                 className="grid grid-cols-2 gap-2"
               >
                 <ToggleGroupItem
@@ -525,12 +584,14 @@ export function CreativeVariationGenerator() {
                 >
                   <Sparkles className="h-4 w-4" />
                   <span className="font-medium text-sm">Pro</span>
-                  <span className="text-[10px] opacity-80">Qualidade (~15s)</span>
+                  <span className="text-[10px] opacity-80">
+                    Qualidade (~15s)
+                  </span>
                 </ToggleGroupItem>
               </ToggleGroup>
               <p className="text-xs text-muted-foreground">
-                {modelType === "flash" 
-                  ? "⚡ 3x mais rápido, ideal para testes e iterações" 
+                {modelType === "flash"
+                  ? "⚡ 3x mais rápido, ideal para testes e iterações"
                   : "✨ Máxima qualidade, ideal para versão final"}
               </p>
             </CardContent>
@@ -575,10 +636,9 @@ export function CreativeVariationGenerator() {
                 />
               </div>
               <p className="text-xs text-muted-foreground mt-2">
-                {accumulateMode 
+                {accumulateMode
                   ? "Novas variações serão adicionadas às existentes (máx. 24)"
-                  : "Novas variações substituirão as anteriores"
-                }
+                  : "Novas variações substituirão as anteriores"}
               </p>
               {successfulCount > 0 && (
                 <Button

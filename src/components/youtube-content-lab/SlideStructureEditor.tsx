@@ -25,7 +25,10 @@ import { cn } from "@/lib/utils";
 
 interface SlideStructureEditorProps {
   slides: YouTubeSlide[];
-  onUpdateSlide: (slideId: string, updates: Partial<YouTubeSlide>) => Promise<boolean>;
+  onUpdateSlide: (
+    slideId: string,
+    updates: Partial<YouTubeSlide>,
+  ) => Promise<boolean>;
   onDeleteSlide: (slideId: string) => Promise<boolean>;
   onReorderSlide: (slideId: string, newOrder: number) => Promise<boolean>;
 }
@@ -59,24 +62,24 @@ export function SlideStructureEditor({
 
   const saveEdit = async () => {
     if (!editingId) return;
-    
+
     const success = await onUpdateSlide(editingId, {
       title: editForm.title,
       content: editForm.content,
       visual_suggestion: editForm.visual_suggestion,
     });
-    
+
     if (success) {
       setEditingId(null);
     }
   };
 
   const moveSlide = async (slide: YouTubeSlide, direction: "up" | "down") => {
-    const currentIndex = slides.findIndex(s => s.id === slide.id);
+    const currentIndex = slides.findIndex((s) => s.id === slide.id);
     const newIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
-    
+
     if (newIndex < 0 || newIndex >= slides.length) return;
-    
+
     // Swap orders
     const otherSlide = slides[newIndex];
     await onReorderSlide(slide.id, otherSlide.slide_order);
@@ -86,7 +89,9 @@ export function SlideStructureEditor({
   const getStatusBadge = (status: YouTubeSlide["status"]) => {
     switch (status) {
       case "completed":
-        return <Badge className="bg-primary text-primary-foreground">Pronto</Badge>;
+        return (
+          <Badge className="bg-primary text-primary-foreground">Pronto</Badge>
+        );
       case "generating":
         return <Badge variant="secondary">Gerando...</Badge>;
       case "error":
@@ -112,7 +117,7 @@ export function SlideStructureEditor({
             key={slide.id}
             className={cn(
               "transition-colors",
-              editingId === slide.id && "ring-2 ring-primary"
+              editingId === slide.id && "ring-2 ring-primary",
             )}
           >
             <CardContent className="p-3">
@@ -121,20 +126,35 @@ export function SlideStructureEditor({
                 <div className="space-y-3">
                   <Input
                     value={editForm.title}
-                    onChange={(e) => setEditForm(prev => ({ ...prev, title: e.target.value }))}
+                    onChange={(e) =>
+                      setEditForm((prev) => ({
+                        ...prev,
+                        title: e.target.value,
+                      }))
+                    }
                     placeholder="Título do slide"
                     className="font-medium"
                   />
                   <Textarea
                     value={editForm.content}
-                    onChange={(e) => setEditForm(prev => ({ ...prev, content: e.target.value }))}
+                    onChange={(e) =>
+                      setEditForm((prev) => ({
+                        ...prev,
+                        content: e.target.value,
+                      }))
+                    }
                     placeholder="Conteúdo (bullets)"
                     rows={3}
                     className="text-sm"
                   />
                   <Textarea
                     value={editForm.visual_suggestion}
-                    onChange={(e) => setEditForm(prev => ({ ...prev, visual_suggestion: e.target.value }))}
+                    onChange={(e) =>
+                      setEditForm((prev) => ({
+                        ...prev,
+                        visual_suggestion: e.target.value,
+                      }))
+                    }
                     placeholder="Sugestão visual para a imagem"
                     rows={2}
                     className="text-sm"
@@ -155,7 +175,8 @@ export function SlideStructureEditor({
                 <div className="flex items-start gap-3">
                   {/* Order controls */}
                   <div className="flex flex-col items-center gap-1">
-                    <Button aria-label="Fechar"
+                    <Button
+                      aria-label="Fechar"
                       variant="ghost"
                       size="icon"
                       className="h-6 w-6"
@@ -167,7 +188,8 @@ export function SlideStructureEditor({
                     <span className="text-xs font-medium text-muted-foreground">
                       {slide.slide_order}
                     </span>
-                    <Button aria-label="Fechar"
+                    <Button
+                      aria-label="Fechar"
                       variant="ghost"
                       size="icon"
                       className="h-6 w-6"
@@ -196,7 +218,8 @@ export function SlideStructureEditor({
 
                   {/* Actions */}
                   <div className="flex gap-1">
-                    <Button aria-label="Editar"
+                    <Button
+                      aria-label="Editar"
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8"
@@ -204,7 +227,8 @@ export function SlideStructureEditor({
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button aria-label="Excluir"
+                    <Button
+                      aria-label="Excluir"
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 text-destructive hover:text-destructive"

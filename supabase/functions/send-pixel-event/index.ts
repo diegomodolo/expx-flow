@@ -2,8 +2,10 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 interface UserData {
@@ -43,7 +45,15 @@ interface RequestBody {
   eventName: string;
   eventTime?: number;
   eventId?: string;
-  actionSource: "website" | "app" | "phone_call" | "chat" | "email" | "physical_store" | "system_generated" | "other";
+  actionSource:
+    | "website"
+    | "app"
+    | "phone_call"
+    | "chat"
+    | "email"
+    | "physical_store"
+    | "system_generated"
+    | "other";
   userData: UserData;
   customData?: CustomData;
   eventSourceUrl?: string;
@@ -58,7 +68,9 @@ async function sha256(message: string): Promise<string> {
 }
 
 // Hash user data fields as required by Meta
-async function hashUserData(userData: UserData): Promise<Record<string, string | undefined>> {
+async function hashUserData(
+  userData: UserData,
+): Promise<Record<string, string | undefined>> {
   const hashed: Record<string, string | undefined> = {};
 
   if (userData.email) {
@@ -117,7 +129,7 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const body = await req.json() as RequestBody;
+    const body = (await req.json()) as RequestBody;
     const {
       clientId,
       companyId,
@@ -144,7 +156,10 @@ serve(async (req) => {
     if (integrationError || !integration) {
       return new Response(
         JSON.stringify({ error: "Facebook integration not found" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -165,7 +180,10 @@ serve(async (req) => {
     if (pixelError || !pixel) {
       return new Response(
         JSON.stringify({ error: "Pixel not found. Please sync pixels first." }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -173,7 +191,7 @@ serve(async (req) => {
     const hashedUserData = await hashUserData(userData);
 
     // Build event payload
-    const eventPayload: Record<string, any> = {
+    const eventPayload: Record<string, unknown> = {
       event_name: eventName,
       event_time: eventTime,
       event_id: eventId,
@@ -186,19 +204,27 @@ serve(async (req) => {
     }
 
     if (customData) {
-      const customDataPayload: Record<string, any> = {};
-      if (customData.value !== undefined) customDataPayload.value = customData.value;
+      const customDataPayload: Record<string, unknown> = {};
+      if (customData.value !== undefined)
+        customDataPayload.value = customData.value;
       if (customData.currency) customDataPayload.currency = customData.currency;
-      if (customData.contentName) customDataPayload.content_name = customData.contentName;
-      if (customData.contentCategory) customDataPayload.content_category = customData.contentCategory;
-      if (customData.contentIds) customDataPayload.content_ids = customData.contentIds;
-      if (customData.contentType) customDataPayload.content_type = customData.contentType;
+      if (customData.contentName)
+        customDataPayload.content_name = customData.contentName;
+      if (customData.contentCategory)
+        customDataPayload.content_category = customData.contentCategory;
+      if (customData.contentIds)
+        customDataPayload.content_ids = customData.contentIds;
+      if (customData.contentType)
+        customDataPayload.content_type = customData.contentType;
       if (customData.orderId) customDataPayload.order_id = customData.orderId;
-      if (customData.predictedLtv !== undefined) customDataPayload.predicted_ltv = customData.predictedLtv;
-      if (customData.numItems !== undefined) customDataPayload.num_items = customData.numItems;
-      if (customData.searchString) customDataPayload.search_string = customData.searchString;
+      if (customData.predictedLtv !== undefined)
+        customDataPayload.predicted_ltv = customData.predictedLtv;
+      if (customData.numItems !== undefined)
+        customDataPayload.num_items = customData.numItems;
+      if (customData.searchString)
+        customDataPayload.search_string = customData.searchString;
       if (customData.status) customDataPayload.status = customData.status;
-      
+
       if (Object.keys(customDataPayload).length > 0) {
         eventPayload.custom_data = customDataPayload;
       }
@@ -228,7 +254,7 @@ serve(async (req) => {
 
     // Send event to Meta Conversions API
     const apiUrl = `https://graph.facebook.com/v21.0/${pixel.pixel_id}/events`;
-    
+
     const response = await fetch(apiUrl, {
       method: "POST",
       headers: {
@@ -259,29 +285,32 @@ serve(async (req) => {
 
     if (responseData.error) {
       return new Response(
-        JSON.stringify({ 
-          success: false, 
+        JSON.stringify({
+          success: false,
           error: responseData.error.message,
-          details: responseData.error 
+          details: responseData.error,
         }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         eventsReceived: responseData.events_received,
         fbTraceId: responseData.fbtrace_id,
         eventId,
       }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (error) {
     console.error("Error in send-pixel-event:", error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
