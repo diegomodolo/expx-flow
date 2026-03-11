@@ -1000,7 +1000,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                   </TooltipTrigger>
                   <TooltipContent>Aumentar</TooltipContent>
                 </Tooltip>
-                <Button aria-label="Ação" variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => onOpenChange(false)}>
+                <Button aria-label="Fechar" variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => onOpenChange(false)}>
                   <X className="w-3.5 h-3.5" />
                 </Button>
               </div>
@@ -1602,7 +1602,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                           <span className={`text-sm flex-1 ${item.completed ? 'line-through text-muted-foreground' : ''}`}>
                             {item.text}
                           </span>
-                          <Button aria-label="Ação"
+                          <Button aria-label="Excluir"
                             variant="ghost"
                             size="icon"
                             className="h-7 w-7 text-destructive hover:text-destructive"
@@ -1620,7 +1620,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
                         onChange={(e) => setNewChecklistItem(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addChecklistItem())}
                       />
-                      <Button aria-label="Adicionar item" variant="outline" size="icon" onClick={addChecklistItem}>
+                      <Button aria-label="Adicionar" variant="outline" size="icon" onClick={addChecklistItem}>
                         <Plus className="w-4 h-4" />
                       </Button>
                     </div>

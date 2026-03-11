@@ -328,7 +328,7 @@ export function WhatsAppMessageBubble({ message, allMessages, contactName, insta
           {/* Delete button */}
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button aria-label="Ação"
+              <Button aria-label="Excluir"
                 variant="ghost"
                 size="icon"
                 className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
@@ -365,7 +365,7 @@ export function WhatsAppMessageBubble({ message, allMessages, contactName, insta
 
           {/* Edit button - only for text messages with external_id */}
           {canEditMessage && (
-            <Button aria-label="Ação"
+            <Button aria-label="Editar"
               variant="ghost"
               size="icon"
               className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted"
@@ -623,7 +623,7 @@ export function WhatsAppMessageBubble({ message, allMessages, contactName, insta
         <div className="flex items-center gap-0.5 ml-1 opacity-0 group-hover:opacity-100 transition-opacity">
           {/* AI Assistant button */}
           {isTextMessage && onOpenAIAssistant && (
-            <Button aria-label="Ação"
+            <Button aria-label="Gerar com IA"
               variant="ghost"
               size="icon"
               className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-primary/10"

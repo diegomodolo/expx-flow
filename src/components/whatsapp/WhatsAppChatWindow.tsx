@@ -638,7 +638,7 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
         {/* AI Assistant button */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button aria-label="Ação"
+            <Button aria-label="Fechar"
               variant={aiAssistantOpen ? "secondary" : "ghost"}
               size="icon"
               className="h-8 w-8 md:h-9 md:w-9"
@@ -652,7 +652,7 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
         </Tooltip>
         
         {/* Refresh messages button */}
-        <Button aria-label="Ação"
+        <Button aria-label="Atualizar"
           variant="ghost"
           size="icon"
           className="h-8 w-8 md:h-9 md:w-9"

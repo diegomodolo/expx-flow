@@ -178,7 +178,7 @@ export function MessageBubble({ message, isOwnMessage, isThreadReply, onReplyInT
 
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button aria-label="Ação" size="icon" variant="ghost" className="h-7 w-7" onClick={() => onTogglePin?.(message)}>
+              <Button aria-label="Fechar" size="icon" variant="ghost" className="h-7 w-7" onClick={() => onTogglePin?.(message)}>
                 <Pin className={`w-3.5 h-3.5 ${message.is_pinned ? 'text-warning' : ''}`} />
               </Button>
             </TooltipTrigger>
@@ -187,7 +187,7 @@ export function MessageBubble({ message, isOwnMessage, isThreadReply, onReplyInT
 
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button aria-label="Ação" size="icon" variant="ghost" className="h-7 w-7" onClick={() => setReplyToTaskOpen(true)}>
+              <Button aria-label="Link" size="icon" variant="ghost" className="h-7 w-7" onClick={() => setReplyToTaskOpen(true)}>
                 <LinkIcon className="w-3.5 h-3.5" />
               </Button>
             </TooltipTrigger>
@@ -196,7 +196,7 @@ export function MessageBubble({ message, isOwnMessage, isThreadReply, onReplyInT
 
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button aria-label="Ação" size="icon" variant="ghost" className="h-7 w-7" onClick={() => onConvertToTask?.(message)}>
+              <Button aria-label="Confirmar" size="icon" variant="ghost" className="h-7 w-7" onClick={() => onConvertToTask?.(message)}>
                 <CheckSquare className="w-3.5 h-3.5" />
               </Button>
             </TooltipTrigger>
@@ -206,7 +206,7 @@ export function MessageBubble({ message, isOwnMessage, isThreadReply, onReplyInT
           {isOwnMessage && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button aria-label="Ação" size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => onDeleteMessage?.(message)}>
+                <Button aria-label="Excluir" size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => onDeleteMessage?.(message)}>
                   <Trash2 className="w-3.5 h-3.5" />
                 </Button>
               </TooltipTrigger>

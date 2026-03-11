@@ -376,7 +376,7 @@ export function WhatsAppMessageInput({
       <div className="flex flex-col border-t bg-background">
         <div className="flex items-center gap-3 p-3">
           {/* Cancel button */}
-          <Button aria-label="Ação"
+          <Button aria-label="Fechar"
             variant="ghost"
             size="icon"
             onClick={cancelRecording}
@@ -430,7 +430,7 @@ export function WhatsAppMessageInput({
       <div className="flex flex-col border-t bg-background">
         <div className="flex items-center gap-3 p-3">
           {/* Cancel/Delete button */}
-          <Button aria-label="Ação"
+          <Button aria-label="Fechar"
             variant="ghost"
             size="icon"
             onClick={cancelRecording}
@@ -521,7 +521,7 @@ export function WhatsAppMessageInput({
                 {formatFileSize(attachment.file.size)}
               </p>
             </div>
-            <Button aria-label="Ação"
+            <Button aria-label="Excluir"
               variant="ghost"
               size="icon"
               onClick={removeAttachment}
@@ -545,7 +545,7 @@ export function WhatsAppMessageInput({
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button aria-label="Ação"
+            <Button aria-label="Enviar"
               variant="ghost"
               size="icon"
               disabled={isSending}

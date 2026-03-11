@@ -155,7 +155,7 @@ export function CRMUserDialog({
                   readOnly
                   className="font-mono"
                 />
-                <Button aria-label="Ação"
+                <Button aria-label="Visualizar"
                   type="button"
                   variant="outline"
                   size="icon"
@@ -200,7 +200,7 @@ export function CRMUserDialog({
                       readOnly
                       className="font-mono"
                     />
-                    <Button aria-label="Ação"
+                    <Button aria-label="Visualizar"
                       type="button"
                       variant="outline"
                       size="icon"
