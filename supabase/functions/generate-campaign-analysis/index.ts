@@ -1,6 +1,5 @@
 // Deno.serve is available natively in modern Deno
-
-const openAIApiKey = Deno.env.get("OPENAI_API_KEY");
+import { callAI } from "../_shared/ai-gateway.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin":
@@ -116,29 +115,16 @@ Seja específico, actionable e use termos técnicos apropriados. Baseie-se em fr
 Formate em markdown para melhor legibilidade.
 `;
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${openAIApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "openai/gpt-4.1-2025-04-14",
-        messages: [
-          {
-            role: "system",
-            content:
-              "Você é um especialista em tráfego pago e marketing digital com vasta experiência em Meta Ads, Google Ads e growth marketing. Seja detalhado, técnico e estratégico em suas análises.",
-          },
-          { role: "user", content: prompt },
-        ],
-        max_tokens: 4000,
-        temperature: 0.7,
-      }),
+    const aiResult = await callAI({
+      functionName: "generate-campaign-analysis",
+      systemPrompt:
+        "Você é um especialista em tráfego pago e marketing digital com vasta experiência em Meta Ads, Google Ads e growth marketing. Seja detalhado, técnico e estratégico em suas análises.",
+      userPrompt: prompt,
+      maxTokens: 4000,
+      temperature: 0.7,
     });
 
-    const data = await response.json();
-    const analysis = data.choices[0].message.content;
+    const analysis = aiResult.content;
 
     console.log("Generated analysis successfully");
 

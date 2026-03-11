@@ -1,9 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI } from "../_shared/ai-gateway.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const openRouterApiKey = Deno.env.get("OPENROUTER_API_KEY")!;
-const openAIApiKey = Deno.env.get("OPENAI_API_KEY")!;
 
 const BRASILIA_OFFSET_MS = -3 * 60 * 60 * 1000;
 
@@ -142,69 +141,37 @@ Deno.serve(async (req) => {
     );
     console.log("Next post scheduled at:", scheduledAt.toISOString());
 
-    // Generate article title with GPT
+    // Generate article title with AI Gateway
     console.log("Generating article title...");
-    const titleResponse = await fetch(
-      "https://api.openai.com/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${openAIApiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "openai/gpt-4.1-mini-2025-04-14",
-          messages: [
-            {
-              role: "system",
-              content: `Você é um especialista em SEO e criação de títulos para blogs.
+    const titleResult = await callAI({
+      functionName: "generate-wordpress-auto-post",
+      companyId: companyId || config.company_id,
+      systemPrompt: `Você é um especialista em SEO e criação de títulos para blogs.
 Crie títulos que:
 - São atraentes e geram cliques
 - Contêm palavras-chave relevantes
 - Têm entre 50-60 caracteres idealmente
 - Usam números quando apropriado (ex: "7 Dicas para...")
 - Prometem valor ao leitor`,
-            },
-            {
-              role: "user",
-              content: `Crie UM título de artigo de blog sobre:
+      userPrompt: `Crie UM título de artigo de blog sobre:
 
 BRIEFING: ${config.post_briefing}
 SETOR: ${clientSector}
 PÚBLICO-ALVO: ${clientTargetAudience}
 
 Responda APENAS com o título, sem aspas ou explicações.`,
-            },
-          ],
-          max_completion_tokens: 100,
-        }),
-      },
-    );
+      maxTokens: 100,
+    });
 
-    if (!titleResponse.ok) {
-      throw new Error("Failed to generate title");
-    }
-
-    const titleData = await titleResponse.json();
-    const title = titleData.choices[0].message.content.trim();
+    const title = titleResult.content.trim();
     console.log("Title generated:", title);
 
-    // Generate article content with GPT
+    // Generate article content with AI Gateway
     console.log("Generating article content...");
-    const contentResponse = await fetch(
-      "https://api.openai.com/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${openAIApiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "openai/gpt-4.1-mini-2025-04-14",
-          messages: [
-            {
-              role: "system",
-              content: `Você é um redator de blog profissional especializado em SEO.
+    const contentResult = await callAI({
+      functionName: "generate-wordpress-auto-post",
+      companyId: companyId || config.company_id,
+      systemPrompt: `Você é um redator de blog profissional especializado em SEO.
 Crie artigos que:
 - Usam HTML semântico (h2, h3, p, ul, li, strong, em)
 - Têm entre 800-1500 palavras
@@ -214,10 +181,7 @@ Crie artigos que:
 - Incluem call-to-action no final
 - São otimizados para SEO
 - Mantêm tom profissional mas acessível`,
-            },
-            {
-              role: "user",
-              content: `Escreva um artigo completo para blog:
+      userPrompt: `Escreva um artigo completo para blog:
 
 TÍTULO: ${title}
 BRIEFING: ${config.post_briefing}
@@ -226,42 +190,24 @@ PÚBLICO-ALVO: ${clientTargetAudience}
 
 Responda APENAS com o HTML do artigo (sem tags html, head, body - apenas o conteúdo).
 NÃO inclua o título no conteúdo (h1), ele será inserido separadamente.`,
-            },
-          ],
-          max_completion_tokens: 4000,
-        }),
-      },
-    );
+      maxTokens: 4000,
+    });
 
-    if (!contentResponse.ok) {
-      throw new Error("Failed to generate content");
-    }
-
-    const contentData = await contentResponse.json();
-    const content = contentData.choices[0].message.content.trim();
+    const content = contentResult.content.trim();
     console.log("Content generated, length:", content.length);
 
     // Generate excerpt and meta description
     console.log("Generating excerpt and meta description...");
-    const metaResponse = await fetch(
-      "https://api.openai.com/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${openAIApiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "openai/gpt-4.1-mini-2025-04-14",
-          messages: [
-            {
-              role: "system",
-              content:
-                "Você é um especialista em SEO. Crie resumos e meta descriptions otimizados.",
-            },
-            {
-              role: "user",
-              content: `Com base neste artigo, crie:
+    let excerpt = "";
+    let metaDescription = "";
+
+    try {
+      const metaResult = await callAI({
+        functionName: "generate-wordpress-auto-post",
+        companyId: companyId || config.company_id,
+        systemPrompt:
+          "Você é um especialista em SEO. Crie resumos e meta descriptions otimizados.",
+        userPrompt: `Com base neste artigo, crie:
 
 TÍTULO: ${title}
 RESUMO DO CONTEÚDO: ${content.substring(0, 500)}...
@@ -273,134 +219,95 @@ Responda em JSON com:
 }
 
 Responda APENAS com o JSON válido.`,
-            },
-          ],
-          max_completion_tokens: 300,
-        }),
-      },
-    );
+        maxTokens: 300,
+      });
 
-    let excerpt = "";
-    let metaDescription = "";
-
-    if (metaResponse.ok) {
-      const metaData = await metaResponse.json();
-      try {
-        const metaContent = metaData.choices[0].message.content.trim();
-        const metaJson = JSON.parse(metaContent);
-        excerpt = metaJson.excerpt || "";
-        metaDescription = metaJson.meta_description || "";
-      } catch (e) {
-        console.warn("Failed to parse meta JSON, using defaults");
-      }
+      const metaContent = metaResult.content.trim();
+      const metaJson = JSON.parse(metaContent);
+      excerpt = metaJson.excerpt || "";
+      metaDescription = metaJson.meta_description || "";
+    } catch (e) {
+      console.warn("Failed to generate/parse meta, using defaults");
     }
 
-    // Generate featured image with Gemini
+    // Generate featured image with AI Gateway
     console.log("Generating featured image...");
 
-    const imagePromptResponse = await fetch(
-      "https://api.openai.com/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${openAIApiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "openai/gpt-4.1-mini-2025-04-14",
-          messages: [
-            {
-              role: "system",
-              content: `Você é um especialista em direção de arte para blogs.
+    let imageUrl = "";
+
+    try {
+      const imagePromptResult = await callAI({
+        functionName: "generate-wordpress-auto-post",
+        companyId: companyId || config.company_id,
+        systemPrompt: `Você é um especialista em direção de arte para blogs.
 Crie prompts para imagens de destaque de artigos:
 - Formato horizontal 16:9 para blogs
 - Imagens profissionais e modernas
 - Sem texto na imagem
 - Cores vibrantes mas profissionais
 - Relacionadas ao tema do artigo`,
-            },
-            {
-              role: "user",
-              content: `Crie um prompt em INGLÊS para gerar uma imagem de destaque para este artigo:
+        userPrompt: `Crie um prompt em INGLÊS para gerar uma imagem de destaque para este artigo:
 
 TÍTULO: ${title}
 SETOR: ${clientSector}
 
 Responda APENAS com o prompt em inglês.`,
-            },
-          ],
-          max_completion_tokens: 200,
-        }),
-      },
-    );
+        maxTokens: 200,
+      });
 
-    let imageUrl = "";
-
-    if (imagePromptResponse.ok) {
-      const promptData = await imagePromptResponse.json();
-      const imagePrompt = promptData.choices[0].message.content.trim();
+      const imagePrompt = imagePromptResult.content.trim();
       console.log("Image prompt:", imagePrompt.substring(0, 100) + "...");
 
-      const geminiResponse = await fetch(
-        "https://openrouter.ai/api/v1/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${openRouterApiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "google/gemini-3-pro-image-preview",
-            messages: [
-              {
-                role: "user",
-                content: `Generate a horizontal 16:9 blog featured image.
+      const geminiResult = await callAI({
+        functionName: "generate-wordpress-auto-post",
+        companyId: companyId || config.company_id,
+        systemPrompt: "",
+        userPrompt: `Generate a horizontal 16:9 blog featured image.
 
 ${imagePrompt}
 
 Professional, modern, no text in the image. Return image only.`,
-              },
-            ],
-            modalities: ["image", "text"],
-          }),
-        },
-      );
+        messages: [
+          {
+            role: "user",
+            content: `Generate a horizontal 16:9 blog featured image.\n\n${imagePrompt}\n\nProfessional, modern, no text in the image. Return image only.`,
+          },
+        ],
+      });
 
-      if (geminiResponse.ok) {
-        const geminiData = await geminiResponse.json();
-        const base64Url =
-          geminiData?.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+      const base64Url = geminiResult.content;
 
-        if (base64Url && base64Url.startsWith("data:image/")) {
-          const matches = base64Url.match(/^data:image\/(\w+);base64,(.+)$/);
-          if (matches) {
-            const extension = matches[1] || "png";
-            const base64Data = matches[2];
-            const fileName = `wordpress-auto-posts/${configId}/${Date.now()}.${extension}`;
+      if (base64Url && base64Url.startsWith("data:image/")) {
+        const matches = base64Url.match(/^data:image\/(\w+);base64,(.+)$/);
+        if (matches) {
+          const extension = matches[1] || "png";
+          const base64Data = matches[2];
+          const fileName = `wordpress-auto-posts/${configId}/${Date.now()}.${extension}`;
 
-            const binaryString = atob(base64Data);
-            const bytes = new Uint8Array(binaryString.length);
-            for (let i = 0; i < binaryString.length; i++) {
-              bytes[i] = binaryString.charCodeAt(i);
-            }
+          const binaryString = atob(base64Data);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
 
-            const { error: uploadError } = await supabase.storage
+          const { error: uploadError } = await supabase.storage
+            .from("ai-generated-images")
+            .upload(fileName, bytes, {
+              contentType: `image/${extension}`,
+              upsert: true,
+            });
+
+          if (!uploadError) {
+            const { data: urlData } = supabase.storage
               .from("ai-generated-images")
-              .upload(fileName, bytes, {
-                contentType: `image/${extension}`,
-                upsert: true,
-              });
-
-            if (!uploadError) {
-              const { data: urlData } = supabase.storage
-                .from("ai-generated-images")
-                .getPublicUrl(fileName);
-              imageUrl = urlData.publicUrl;
-              console.log("Image uploaded:", imageUrl);
-            }
+              .getPublicUrl(fileName);
+            imageUrl = urlData.publicUrl;
+            console.log("Image uploaded:", imageUrl);
           }
         }
       }
+    } catch (imageError) {
+      console.warn("Failed to generate featured image:", imageError);
     }
 
     // Save to wordpress_auto_posts

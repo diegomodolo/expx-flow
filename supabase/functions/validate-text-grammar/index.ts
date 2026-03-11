@@ -1,4 +1,5 @@
 // Deno.serve is available natively in modern Deno
+import { callAI } from "../_shared/ai-gateway.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin":
@@ -16,28 +17,14 @@ Deno.serve(async (req) => {
     const { text } = await req.json();
     console.log("Validating text grammar:", text);
 
-    const openaiApiKey = Deno.env.get("OPENAI_API_KEY");
-    if (!openaiApiKey) {
-      throw new Error("OpenAI API key not configured");
-    }
-
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${openaiApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "openai/gpt-4.1-2025-04-14",
-        messages: [
-          {
-            role: "system",
-            content: `Você é um especialista em português brasileiro. Sua função é corrigir e validar textos para uso em criativos visuais.
+    const result = await callAI({
+      functionName: "validate-text-grammar",
+      systemPrompt: `Você é um especialista em português brasileiro. Sua função é corrigir e validar textos para uso em criativos visuais.
 
 REGRAS CRÍTICAS:
 - Corrija APENAS erros ortográficos, gramaticais e de pontuação
 - NÃO altere o sentido, tom ou estilo do texto
-- NÃO adicione ou remova palavras desnecessariamente  
+- NÃO adicione ou remova palavras desnecessariamente
 - NÃO mude a estrutura das frases se não houver erro
 - Mantenha quebras de linha exatamente como estão
 - REJEITE textos com palavras em inglês (exceto marcas/nomes próprios)
@@ -48,30 +35,16 @@ REGRAS CRÍTICAS:
 
 EXEMPLOS DE REJEIÇÃO:
 - "açouue" → TEXTO_REJEITADO: Palavra com erro óbvio de digitação
-- "buy now" → TEXTO_REJEITADO: Contém palavras em inglês  
+- "buy now" → TEXTO_REJEITADO: Contém palavras em inglês
 - "xkjfkdsj" → TEXTO_REJEITADO: Contém palavras sem sentido
 
 Responda APENAS com o texto corrigido, sem explicações.`,
-          },
-          {
-            role: "user",
-            content: `Corrija apenas os erros de português neste texto:\n\n${text}`,
-          },
-        ],
-        max_completion_tokens: 500,
-      }),
+      userPrompt: `Corrija apenas os erros de português neste texto:\n\n${text}`,
+      maxTokens: 500,
+      temperature: 0.3,
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error("OpenAI API error:", errorData);
-      throw new Error(
-        `OpenAI API error: ${errorData.error?.message || "Unknown error"}`,
-      );
-    }
-
-    const data = await response.json();
-    const correctedText = data.choices[0].message.content.trim();
+    const correctedText = result.content.trim();
 
     console.log("Text validated successfully");
 

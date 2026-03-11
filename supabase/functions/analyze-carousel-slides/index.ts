@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI } from "../_shared/ai-gateway.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin":
@@ -39,17 +40,6 @@ serve(async (req) => {
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
-
-  if (!OPENROUTER_API_KEY) {
-    return new Response(
-      JSON.stringify({ error: "OPENROUTER_API_KEY not configured" }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
-    );
-  }
 
   const supabase = createClient(supabaseUrl, supabaseKey);
 
@@ -95,20 +85,12 @@ serve(async (req) => {
       throw new Error("Client not found");
     }
 
-    // Build the message content with all images
-    const messageContent: Array<{
-      type: string;
-      text?: string;
-      image_url?: { url: string };
-    }> = [];
-
-    // Add all slide images
+    // Build the image content parts for messages
+    const imageContent: Array<{ type: string; image_url: { url: string } }> =
+      [];
     for (const imgUrl of images) {
       if (imgUrl) {
-        messageContent.push({
-          type: "image_url",
-          image_url: { url: imgUrl },
-        });
+        imageContent.push({ type: "image_url", image_url: { url: imgUrl } });
       }
     }
 
@@ -134,46 +116,24 @@ Responda APENAS em JSON válido:
   ],
   "themeSuggestions": [
     "Tema 1 sugerido aqui",
-    "Tema 2 sugerido aqui", 
+    "Tema 2 sugerido aqui",
     "Tema 3 sugerido aqui"
   ]
 }`;
 
-      messageContent.push({ type: "text", text: analysisPrompt });
-
-      const response = await fetch(
-        "https://openrouter.ai/api/v1/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-            "Content-Type": "application/json",
+      const aiResult = await callAI({
+        functionName: "analyze-carousel-slides",
+        systemPrompt: "",
+        userPrompt: analysisPrompt,
+        messages: [
+          {
+            role: "user",
+            content: [...imageContent, { type: "text", text: analysisPrompt }],
           },
-          body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
-            messages: [{ role: "user", content: messageContent }],
-          }),
-        },
-      );
+        ],
+      });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(
-          "[analyze-carousel-slides] AI API error:",
-          response.status,
-          errorText,
-        );
-        if (response.status === 429)
-          throw new Error(
-            "Rate limit (429). Tente novamente em alguns minutos.",
-          );
-        if (response.status === 402)
-          throw new Error("Créditos de IA esgotados (402). Adicione créditos.");
-        throw new Error(`AI API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const responseText = data.choices?.[0]?.message?.content || "";
+      const responseText = aiResult.content;
 
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
       if (!jsonMatch) throw new Error("No JSON found in response");
@@ -239,41 +199,19 @@ Responda APENAS em JSON válido:
   ]
 }`;
 
-      messageContent.push({ type: "text", text: contentPrompt });
-
-      const response = await fetch(
-        "https://openrouter.ai/api/v1/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-            "Content-Type": "application/json",
+      const aiResult = await callAI({
+        functionName: "analyze-carousel-slides",
+        systemPrompt: "",
+        userPrompt: contentPrompt,
+        messages: [
+          {
+            role: "user",
+            content: [...imageContent, { type: "text", text: contentPrompt }],
           },
-          body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
-            messages: [{ role: "user", content: messageContent }],
-          }),
-        },
-      );
+        ],
+      });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(
-          "[analyze-carousel-slides] AI API error:",
-          response.status,
-          errorText,
-        );
-        if (response.status === 429)
-          throw new Error(
-            "Rate limit (429). Tente novamente em alguns minutos.",
-          );
-        if (response.status === 402)
-          throw new Error("Créditos de IA esgotados (402). Adicione créditos.");
-        throw new Error(`AI API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const responseText = data.choices?.[0]?.message?.content || "";
+      const responseText = aiResult.content;
 
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
       if (!jsonMatch) throw new Error("No JSON found in response");

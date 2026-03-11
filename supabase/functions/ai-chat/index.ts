@@ -1,7 +1,7 @@
 // Deno.serve is available natively in modern Deno
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI } from "../_shared/ai-gateway.ts";
 
-const openAIApiKey = Deno.env.get("OPENAI_API_KEY");
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
@@ -180,31 +180,18 @@ ${JSON.stringify(clientContext, null, 2)}
 
 PERGUNTA DO USUÁRIO: ${message}`;
 
-    console.log("Sending request to OpenAI...");
+    console.log("Sending request to AI Gateway...");
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${openAIApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "openai/gpt-4.1-2025-04-14",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        max_tokens: 1500,
-        temperature: 0.7,
-      }),
+    const result = await callAI({
+      functionName: "ai-chat",
+      companyId,
+      systemPrompt,
+      userPrompt,
+      maxTokens: 1500,
+      temperature: 0.7,
     });
 
-    if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    const aiResponse = data.choices[0].message.content;
+    const aiResponse = result.content;
 
     console.log("AI response received");
 

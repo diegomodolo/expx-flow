@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI } from "../_shared/ai-gateway.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin":
@@ -959,9 +960,6 @@ async function generateCarousel(
   carouselType: CarouselType,
   slidesCount: number,
 ): Promise<GeneratedCarousel | null> {
-  const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
-  if (!OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY not configured");
-
   const { data: themes } = await supabase
     .from("market_research_insights")
     .select("*")
@@ -988,41 +986,15 @@ async function generateCarousel(
     "[daily-carousel-generator-stream] Calling AI for carousel generation...",
   );
 
-  const response = await fetch(
-    "https://openrouter.ai/api/v1/chat/completions",
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-      }),
-    },
-  );
-
-  if (!response.ok) {
-    const t = await response.text();
-    console.error(
-      "[daily-carousel-generator-stream] AI API error:",
-      response.status,
-      t,
-    );
-
-    if (response.status === 429)
-      throw new Error("Rate limit (429). Tente novamente em alguns minutos.");
-    if (response.status === 402)
-      throw new Error("Créditos de IA esgotados (402). Adicione créditos.");
-    throw new Error(`AI API error: ${response.status}`);
-  }
-
-  const data = await response.json();
-  const responseText = data.choices?.[0]?.message?.content || "";
+  const result = await callAI({
+    functionName: "daily-carousel-generator-stream",
+    companyId: schedule?.company_id,
+    systemPrompt,
+    userPrompt,
+    maxTokens: 2000,
+    temperature: 0.7,
+  });
+  const responseText = result.content;
 
   const jsonMatch = responseText.match(/\{[\s\S]*\}/);
   if (!jsonMatch) throw new Error("No JSON found in response");

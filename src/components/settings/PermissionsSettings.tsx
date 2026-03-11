@@ -1,84 +1,391 @@
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useEmployeePermissions, MenuItemType } from "@/hooks/useEmployeePermissions";
-import { Search, RotateCcw, Shield, ChevronDown, ChevronRight, Users } from "lucide-react";
+import {
+  useEmployeePermissions,
+  MenuItemType,
+} from "@/hooks/useEmployeePermissions";
+import {
+  Search,
+  RotateCcw,
+  Shield,
+  ChevronDown,
+  ChevronRight,
+  Users,
+} from "lucide-react";
 import { PermissionGroupsSettings } from "./PermissionGroupsSettings";
 import { useToast } from "@/hooks/use-toast";
 
-const MENU_ITEMS: { key: MenuItemType; label: string; description: string; category: string }[] = [
+const MENU_ITEMS: {
+  key: MenuItemType;
+  label: string;
+  description: string;
+  category: string;
+}[] = [
   // Visão Geral
-  { key: 'dashboard', label: 'Dashboard', description: 'Página inicial e visão geral', category: 'Visão Geral' },
-  { key: 'radar-saude', label: 'Radar de Saúde', description: 'Monitoramento de saúde dos clientes', category: 'Visão Geral' },
-  { key: 'rotinas', label: 'Rotinas Diárias', description: 'Checklists e rotinas operacionais', category: 'Visão Geral' },
+  {
+    key: "dashboard",
+    label: "Dashboard",
+    description: "Página inicial e visão geral",
+    category: "Visão Geral",
+  },
+  {
+    key: "radar-saude",
+    label: "Radar de Saúde",
+    description: "Monitoramento de saúde dos clientes",
+    category: "Visão Geral",
+  },
+  {
+    key: "rotinas",
+    label: "Rotinas Diárias",
+    description: "Checklists e rotinas operacionais",
+    category: "Visão Geral",
+  },
   // Clientes
-  { key: 'clientes', label: 'Clientes', description: 'Gestão de clientes', category: 'Clientes' },
+  {
+    key: "clientes",
+    label: "Clientes",
+    description: "Gestão de clientes",
+    category: "Clientes",
+  },
   // Customer Success
-  { key: 'cs-cockpit', label: 'CS Cockpit', description: 'Painel geral de Customer Success', category: 'Customer Success' },
-  { key: 'cs-carteira', label: 'CS Carteira', description: 'Carteira de clientes do CS', category: 'Customer Success' },
-  { key: 'cs-jornada', label: 'CS Jornada', description: 'Jornada do cliente', category: 'Customer Success' },
-  { key: 'cs-acoes', label: 'CS Ações', description: 'Ações de Customer Success', category: 'Customer Success' },
-  { key: 'cs-clientes', label: 'CS Clientes', description: 'Lista de clientes CS', category: 'Customer Success' },
-  { key: 'cs-tv', label: 'CS TV', description: 'Dashboard TV de Customer Success', category: 'Customer Success' },
-  { key: 'groupops', label: 'GroupOps', description: 'Operações em grupo de CS', category: 'Customer Success' },
+  {
+    key: "cs-cockpit",
+    label: "CS Cockpit",
+    description: "Painel geral de Customer Success",
+    category: "Customer Success",
+  },
+  {
+    key: "cs-carteira",
+    label: "CS Carteira",
+    description: "Carteira de clientes do CS",
+    category: "Customer Success",
+  },
+  {
+    key: "cs-jornada",
+    label: "CS Jornada",
+    description: "Jornada do cliente",
+    category: "Customer Success",
+  },
+  {
+    key: "cs-acoes",
+    label: "CS Ações",
+    description: "Ações de Customer Success",
+    category: "Customer Success",
+  },
+  {
+    key: "cs-clientes",
+    label: "CS Clientes",
+    description: "Lista de clientes CS",
+    category: "Customer Success",
+  },
+  {
+    key: "cs-tv",
+    label: "CS TV",
+    description: "Dashboard TV de Customer Success",
+    category: "Customer Success",
+  },
+  {
+    key: "groupops",
+    label: "GroupOps",
+    description: "Operações em grupo de CS",
+    category: "Customer Success",
+  },
   // Conteúdo & Social
-  { key: 'agendamento', label: 'Agendamento', description: 'Agendamento de publicações', category: 'Conteúdo & Social' },
-  { key: 'automatizadores', label: 'Automatizadores', description: 'Automações de conteúdo', category: 'Conteúdo & Social' },
-  { key: 'social-tv', label: 'Dashboard TV Social', description: 'Dashboard TV de redes sociais', category: 'Conteúdo & Social' },
-  { key: 'editor-imagens', label: 'Editor de Imagens', description: 'Edição e criação de imagens', category: 'Conteúdo & Social' },
-  { key: 'geradores', label: 'Geradores', description: 'Menu de ferramentas de geração', category: 'Conteúdo & Social' },
-  { key: 'planejador-conteudo', label: 'Planejador de Conteúdo', description: 'Planejamento de conteúdo', category: 'Conteúdo & Social' },
-  { key: 'repositorio-criativos', label: 'Repositório de Criativos', description: 'Biblioteca de criativos', category: 'Conteúdo & Social' },
-  { key: 'youtube-content-lab', label: 'YouTube Content Lab', description: 'Laboratório de conteúdo YouTube', category: 'Conteúdo & Social' },
+  {
+    key: "agendamento",
+    label: "Agendamento",
+    description: "Agendamento de publicações",
+    category: "Conteúdo & Social",
+  },
+  {
+    key: "automatizadores",
+    label: "Automatizadores",
+    description: "Automações de conteúdo",
+    category: "Conteúdo & Social",
+  },
+  {
+    key: "social-tv",
+    label: "Dashboard TV Social",
+    description: "Dashboard TV de redes sociais",
+    category: "Conteúdo & Social",
+  },
+  {
+    key: "editor-imagens",
+    label: "Editor de Imagens",
+    description: "Edição e criação de imagens",
+    category: "Conteúdo & Social",
+  },
+  {
+    key: "geradores",
+    label: "Geradores",
+    description: "Menu de ferramentas de geração",
+    category: "Conteúdo & Social",
+  },
+  {
+    key: "planejador-conteudo",
+    label: "Planejador de Conteúdo",
+    description: "Planejamento de conteúdo",
+    category: "Conteúdo & Social",
+  },
+  {
+    key: "repositorio-criativos",
+    label: "Repositório de Criativos",
+    description: "Biblioteca de criativos",
+    category: "Conteúdo & Social",
+  },
+  {
+    key: "youtube-content-lab",
+    label: "YouTube Content Lab",
+    description: "Laboratório de conteúdo YouTube",
+    category: "Conteúdo & Social",
+  },
   // Equipe
-  { key: 'colaboradores', label: 'Colaboradores', description: 'Gestão de funcionários', category: 'Equipe' },
-  { key: 'command-center', label: 'Command Center', description: 'Backlog Center, Command Center e Histórias', category: 'Equipe' },
-  { key: 'dashboard-equipe', label: 'Dashboard Equipe', description: 'Dashboard e TV da equipe', category: 'Equipe' },
-  { key: 'relatorios', label: 'Relatórios', description: 'Relatórios e análises gerais', category: 'Equipe' },
-  { key: 'reunioes', label: 'Reuniões', description: 'Gestão de reuniões da equipe', category: 'Equipe' },
-  { key: 'squad', label: 'Squad', description: 'Gestão de equipes', category: 'Equipe' },
+  {
+    key: "colaboradores",
+    label: "Colaboradores",
+    description: "Gestão de funcionários",
+    category: "Equipe",
+  },
+  {
+    key: "command-center",
+    label: "Command Center",
+    description: "Backlog Center, Command Center e Histórias",
+    category: "Equipe",
+  },
+  {
+    key: "dashboard-equipe",
+    label: "Dashboard Equipe",
+    description: "Dashboard e TV da equipe",
+    category: "Equipe",
+  },
+  {
+    key: "relatorios",
+    label: "Relatórios",
+    description: "Relatórios e análises gerais",
+    category: "Equipe",
+  },
+  {
+    key: "reunioes",
+    label: "Reuniões",
+    description: "Gestão de reuniões da equipe",
+    category: "Equipe",
+  },
+  {
+    key: "squad",
+    label: "Squad",
+    description: "Gestão de equipes",
+    category: "Equipe",
+  },
   // Rotina
-  { key: 'tarefas', label: 'Tarefas Diárias', description: 'Gerenciamento de tarefas diárias', category: 'Rotina' },
-  { key: 'checklists', label: 'Checklists', description: 'Templates de checklists', category: 'Rotina' },
-  { key: 'fluxos', label: 'Fluxos', description: 'Fluxos de trabalho visuais', category: 'Rotina' },
-  { key: 'mapas-mentais', label: 'Mapas Mentais', description: 'Mapas mentais e organização de ideias', category: 'Rotina' },
-  { key: 'planner', label: 'Planner', description: 'Planejamento e calendário de tarefas', category: 'Rotina' },
-  { key: 'roteiros', label: 'Roteiros', description: 'Criação e gestão de roteiros de atividades', category: 'Rotina' },
-  { key: 'tarefas-recorrentes', label: 'Tarefas Recorrentes', description: 'Tarefas repetitivas automáticas', category: 'Rotina' },
-  { key: 'workspace', label: 'Workspace', description: 'Área de trabalho e anotações', category: 'Rotina' },
+  {
+    key: "tarefas",
+    label: "Tarefas Diárias",
+    description: "Gerenciamento de tarefas diárias",
+    category: "Rotina",
+  },
+  {
+    key: "checklists",
+    label: "Checklists",
+    description: "Templates de checklists",
+    category: "Rotina",
+  },
+  {
+    key: "fluxos",
+    label: "Fluxos",
+    description: "Fluxos de trabalho visuais",
+    category: "Rotina",
+  },
+  {
+    key: "mapas-mentais",
+    label: "Mapas Mentais",
+    description: "Mapas mentais e organização de ideias",
+    category: "Rotina",
+  },
+  {
+    key: "planner",
+    label: "Planner",
+    description: "Planejamento e calendário de tarefas",
+    category: "Rotina",
+  },
+  {
+    key: "roteiros",
+    label: "Roteiros",
+    description: "Criação e gestão de roteiros de atividades",
+    category: "Rotina",
+  },
+  {
+    key: "tarefas-recorrentes",
+    label: "Tarefas Recorrentes",
+    description: "Tarefas repetitivas automáticas",
+    category: "Rotina",
+  },
+  {
+    key: "workspace",
+    label: "Workspace",
+    description: "Área de trabalho e anotações",
+    category: "Rotina",
+  },
   // Inteligência Artificial
-  { key: 'ia', label: 'IA Chat', description: 'Chat com inteligência artificial', category: 'Inteligência Artificial' },
-  { key: 'agentes-ia', label: 'Agentes IA', description: 'Acesso ao menu de Agentes de IA', category: 'Inteligência Artificial' },
-  { key: 'editar-agentes', label: 'Editar Agentes', description: 'Criar, editar, duplicar e excluir agentes', category: 'Inteligência Artificial' },
-  { key: 'skills-ia', label: 'Skills', description: 'Visualizar e acessar a Fábrica de Skills', category: 'Inteligência Artificial' },
-  { key: 'editar-skills', label: 'Editar Skills', description: 'Criar, editar e excluir skills dos agentes', category: 'Inteligência Artificial' },
-  { key: 'squads-ia', label: 'Squads de IA', description: 'Gestão de squads de agentes de IA', category: 'Inteligência Artificial' },
+  {
+    key: "ia",
+    label: "IA Chat",
+    description: "Chat com inteligência artificial",
+    category: "Inteligência Artificial",
+  },
+  {
+    key: "agentes-ia",
+    label: "Agentes IA",
+    description: "Acesso ao menu de Agentes de IA",
+    category: "Inteligência Artificial",
+  },
+  {
+    key: "editar-agentes",
+    label: "Editar Agentes",
+    description: "Criar, editar, duplicar e excluir agentes",
+    category: "Inteligência Artificial",
+  },
+  {
+    key: "skills-ia",
+    label: "Skills",
+    description: "Visualizar e acessar a Fábrica de Skills",
+    category: "Inteligência Artificial",
+  },
+  {
+    key: "editar-skills",
+    label: "Editar Skills",
+    description: "Criar, editar e excluir skills dos agentes",
+    category: "Inteligência Artificial",
+  },
+  {
+    key: "squads-ia",
+    label: "Squads de IA",
+    description: "Gestão de squads de agentes de IA",
+    category: "Inteligência Artificial",
+  },
+  {
+    key: "configurar-ia",
+    label: "Configurar IA",
+    description: "Configurar modelos de IA por função do sistema",
+    category: "Inteligência Artificial",
+  },
   // Marketing & Tráfego
-  { key: 'automacoes', label: 'Automações', description: 'Automações de campanhas', category: 'Marketing & Tráfego' },
-  { key: 'campanhas', label: 'Campanhas', description: 'Gestão de campanhas publicitárias', category: 'Marketing & Tráfego' },
-  { key: 'campanhas-unificadas', label: 'Campanhas Unificadas', description: 'Visão unificada de campanhas', category: 'Marketing & Tráfego' },
-  { key: 'editor-funil', label: 'Funis', description: 'Editor e visualização de funis de conversão', category: 'Marketing & Tráfego' },
-  { key: 'keyword-planner', label: 'Keyword Planner', description: 'Planejador de palavras-chave', category: 'Marketing & Tráfego' },
-  { key: 'lead-intelligence', label: 'Lead Intelligence', description: 'Inteligência e enriquecimento de leads', category: 'Marketing & Tráfego' },
-  { key: 'marketing-tv', label: 'Dashboard TV Marketing', description: 'Dashboard TV de marketing', category: 'Marketing & Tráfego' },
-  { key: 'parametros-performance', label: 'Parâmetros de Performance', description: 'Configuração de parâmetros de performance', category: 'Marketing & Tráfego' },
-  { key: 'radar-tv', label: 'Radar TV', description: 'Dashboard TV de radar', category: 'Marketing & Tráfego' },
-  { key: 'relatorios-marketing', label: 'Relatórios Marketing', description: 'Relatórios de marketing', category: 'Marketing & Tráfego' },
-  { key: 'whatsapp', label: 'Notificações WhatsApp', description: 'Módulo de notificações WhatsApp', category: 'Marketing & Tráfego' },
+  {
+    key: "automacoes",
+    label: "Automações",
+    description: "Automações de campanhas",
+    category: "Marketing & Tráfego",
+  },
+  {
+    key: "campanhas",
+    label: "Campanhas",
+    description: "Gestão de campanhas publicitárias",
+    category: "Marketing & Tráfego",
+  },
+  {
+    key: "campanhas-unificadas",
+    label: "Campanhas Unificadas",
+    description: "Visão unificada de campanhas",
+    category: "Marketing & Tráfego",
+  },
+  {
+    key: "editor-funil",
+    label: "Funis",
+    description: "Editor e visualização de funis de conversão",
+    category: "Marketing & Tráfego",
+  },
+  {
+    key: "keyword-planner",
+    label: "Keyword Planner",
+    description: "Planejador de palavras-chave",
+    category: "Marketing & Tráfego",
+  },
+  {
+    key: "lead-intelligence",
+    label: "Lead Intelligence",
+    description: "Inteligência e enriquecimento de leads",
+    category: "Marketing & Tráfego",
+  },
+  {
+    key: "marketing-tv",
+    label: "Dashboard TV Marketing",
+    description: "Dashboard TV de marketing",
+    category: "Marketing & Tráfego",
+  },
+  {
+    key: "parametros-performance",
+    label: "Parâmetros de Performance",
+    description: "Configuração de parâmetros de performance",
+    category: "Marketing & Tráfego",
+  },
+  {
+    key: "radar-tv",
+    label: "Radar TV",
+    description: "Dashboard TV de radar",
+    category: "Marketing & Tráfego",
+  },
+  {
+    key: "relatorios-marketing",
+    label: "Relatórios Marketing",
+    description: "Relatórios de marketing",
+    category: "Marketing & Tráfego",
+  },
+  {
+    key: "whatsapp",
+    label: "Notificações WhatsApp",
+    description: "Módulo de notificações WhatsApp",
+    category: "Marketing & Tráfego",
+  },
   // Sistema
-  { key: 'alertas', label: 'Alertas', description: 'Alertas e notificações do sistema', category: 'Sistema' },
-  { key: 'reportes', label: 'Reportes', description: 'Reportar bugs e sugerir novas funcionalidades', category: 'Sistema' },
-  { key: 'configuracoes', label: 'Configurações', description: 'Configurações do sistema', category: 'Sistema' },
+  {
+    key: "alertas",
+    label: "Alertas",
+    description: "Alertas e notificações do sistema",
+    category: "Sistema",
+  },
+  {
+    key: "reportes",
+    label: "Reportes",
+    description: "Reportar bugs e sugerir novas funcionalidades",
+    category: "Sistema",
+  },
+  {
+    key: "configuracoes",
+    label: "Configurações",
+    description: "Configurações do sistema",
+    category: "Sistema",
+  },
   // Especial
-  { key: 'ver-quadros-outros', label: 'Ver Quadros de Outros', description: 'Visualizar quadro de tarefas de outros colaboradores', category: 'Especial' },
+  {
+    key: "ver-quadros-outros",
+    label: "Ver Quadros de Outros",
+    description: "Visualizar quadro de tarefas de outros colaboradores",
+    category: "Especial",
+  },
 ];
 
 export function PermissionsSettings() {
@@ -86,7 +393,7 @@ export function PermissionsSettings() {
   const [roleFilter, setRoleFilter] = useState("all");
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const { toast } = useToast();
-  
+
   const {
     employeesWithPermissions,
     loading,
@@ -101,7 +408,7 @@ export function PermissionsSettings() {
   }, []);
 
   const toggleCardExpanded = (employeeId: string) => {
-    setExpandedCards(prev => {
+    setExpandedCards((prev) => {
       const next = new Set(prev);
       if (next.has(employeeId)) {
         next.delete(employeeId);
@@ -112,39 +419,56 @@ export function PermissionsSettings() {
     });
   };
 
-  const filteredEmployees = employeesWithPermissions.filter(employee => {
-    const matchesSearch = 
+  const filteredEmployees = employeesWithPermissions.filter((employee) => {
+    const matchesSearch =
       employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       employee.email.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     const matchesRole = roleFilter === "all" || employee.role === roleFilter;
-    
+
     return matchesSearch && matchesRole;
   });
 
   const getUniqueRoles = () => {
-    const roles = employeesWithPermissions.map(emp => emp.role);
+    const roles = employeesWithPermissions.map((emp) => emp.role);
     return Array.from(new Set(roles));
   };
 
   const getPermissionValue = (employeeId: string, menuItem: MenuItemType) => {
-    const employee = employeesWithPermissions.find(emp => emp.id === employeeId);
-    const permission = employee?.permissions.find(p => p.menu_item === menuItem);
+    const employee = employeesWithPermissions.find(
+      (emp) => emp.id === employeeId,
+    );
+    const permission = employee?.permissions.find(
+      (p) => p.menu_item === menuItem,
+    );
     return permission?.is_enabled || false;
   };
 
   const getPermissionCount = (employeeId: string) => {
-    const employee = employeesWithPermissions.find(emp => emp.id === employeeId);
-    const enabledCount = employee?.permissions.filter(p => p.is_enabled).length || 0;
+    const employee = employeesWithPermissions.find(
+      (emp) => emp.id === employeeId,
+    );
+    const enabledCount =
+      employee?.permissions.filter((p) => p.is_enabled).length || 0;
     return enabledCount;
   };
 
-  const handleTogglePermission = async (employeeId: string, menuItem: MenuItemType) => {
+  const handleTogglePermission = async (
+    employeeId: string,
+    menuItem: MenuItemType,
+  ) => {
     await togglePermission(employeeId, menuItem);
   };
 
-  const handleResetPermissions = async (employeeId: string, employeeName: string) => {
-    if (confirm(`Tem certeza que deseja resetar as permissões de ${employeeName} para o padrão básico?`)) {
+  const handleResetPermissions = async (
+    employeeId: string,
+    employeeName: string,
+  ) => {
+    if (
+      confirm(
+        `Tem certeza que deseja resetar as permissões de ${employeeName} para o padrão básico?`,
+      )
+    ) {
       await resetToDefaultPermissions(employeeId);
     }
   };
@@ -181,7 +505,9 @@ export function PermissionsSettings() {
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
-            <p className="text-muted-foreground">Erro ao carregar permissões: {error}</p>
+            <p className="text-muted-foreground">
+              Erro ao carregar permissões: {error}
+            </p>
             <Button onClick={fetchAllEmployeePermissions} className="mt-4">
               Tentar novamente
             </Button>
@@ -208,7 +534,10 @@ export function PermissionsSettings() {
                 <Users className="h-4 w-4" />
                 Grupos de Permissão
               </TabsTrigger>
-              <TabsTrigger value="individual" className="flex items-center gap-2">
+              <TabsTrigger
+                value="individual"
+                className="flex items-center gap-2"
+              >
                 <Shield className="h-4 w-4" />
                 Permissões Individuais
               </TabsTrigger>
@@ -240,8 +569,10 @@ export function PermissionsSettings() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todos os cargos</SelectItem>
-                    {getUniqueRoles().map(role => (
-                      <SelectItem key={role} value={role}>{role}</SelectItem>
+                    {getUniqueRoles().map((role) => (
+                      <SelectItem key={role} value={role}>
+                        {role}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -252,17 +583,16 @@ export function PermissionsSettings() {
                 {filteredEmployees.length === 0 ? (
                   <div className="text-center py-8">
                     <p className="text-muted-foreground">
-                      {searchTerm || roleFilter !== "all" 
+                      {searchTerm || roleFilter !== "all"
                         ? "Nenhum colaborador encontrado com os filtros aplicados"
-                        : "Nenhum colaborador cadastrado"
-                      }
+                        : "Nenhum colaborador cadastrado"}
                     </p>
                   </div>
                 ) : (
                   filteredEmployees.map((employee) => {
                     const isExpanded = expandedCards.has(employee.id);
                     const permissionCount = getPermissionCount(employee.id);
-                    
+
                     return (
                       <Collapsible
                         key={employee.id}
@@ -282,14 +612,24 @@ export function PermissionsSettings() {
                                   <Avatar className="h-10 w-10">
                                     <AvatarImage src="" alt={employee.name} />
                                     <AvatarFallback>
-                                      {employee.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                                      {employee.name
+                                        .split(" ")
+                                        .map((n) => n[0])
+                                        .join("")
+                                        .toUpperCase()}
                                     </AvatarFallback>
                                   </Avatar>
                                   <div>
-                                    <h3 className="font-medium">{employee.name}</h3>
-                                    <p className="text-sm text-muted-foreground">{employee.email}</p>
+                                    <h3 className="font-medium">
+                                      {employee.name}
+                                    </h3>
+                                    <p className="text-sm text-muted-foreground">
+                                      {employee.email}
+                                    </p>
                                   </div>
-                                  <Badge variant="secondary">{employee.role}</Badge>
+                                  <Badge variant="secondary">
+                                    {employee.role}
+                                  </Badge>
                                   <Badge variant="outline" className="ml-2">
                                     {permissionCount} permissões ativas
                                   </Badge>
@@ -299,7 +639,10 @@ export function PermissionsSettings() {
                                   size="sm"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    handleResetPermissions(employee.id, employee.name);
+                                    handleResetPermissions(
+                                      employee.id,
+                                      employee.name,
+                                    );
                                   }}
                                   className="flex items-center gap-2"
                                 >
@@ -312,55 +655,82 @@ export function PermissionsSettings() {
                           <CollapsibleContent>
                             <CardContent className="pt-0">
                               <div className="space-y-4">
-                              {(() => {
-                                const categories = [...new Set(MENU_ITEMS.map(item => item.category))];
-                                return categories.map(category => {
-                                  const categoryItems = MENU_ITEMS.filter(item => item.category === category);
-                                  return (
-                                    <div key={category} className="col-span-full space-y-3">
-                                      <h4 className="text-sm font-semibold text-muted-foreground border-b border-border pb-1 pt-2">{category}</h4>
-                                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                        {categoryItems.map((menuItem) => {
-                                          const isEnabled = getPermissionValue(employee.id, menuItem.key);
-                                          const isDefaultPermission = menuItem.key === 'dashboard' || menuItem.key === 'tarefas';
-                                          
-                                          return (
-                                            <div
-                                              key={menuItem.key}
-                                              className={`flex items-center justify-between p-3 rounded-lg border ${
-                                                isDefaultPermission ? 'bg-muted/30' : ''
-                                              }`}
-                                            >
-                                              <div className="flex-1">
-                                                <Label
-                                                  htmlFor={`${employee.id}-${menuItem.key}`}
-                                                  className="text-sm font-medium cursor-pointer"
-                                                >
-                                                  {menuItem.label}
-                                                </Label>
-                                                <p className="text-xs text-muted-foreground mt-1">
-                                                  {menuItem.description}
-                                                </p>
-                                                {isDefaultPermission && (
-                                                  <Badge variant="outline" className="mt-1 text-xs">
-                                                    Padrão
-                                                  </Badge>
-                                                )}
+                                {(() => {
+                                  const categories = [
+                                    ...new Set(
+                                      MENU_ITEMS.map((item) => item.category),
+                                    ),
+                                  ];
+                                  return categories.map((category) => {
+                                    const categoryItems = MENU_ITEMS.filter(
+                                      (item) => item.category === category,
+                                    );
+                                    return (
+                                      <div
+                                        key={category}
+                                        className="col-span-full space-y-3"
+                                      >
+                                        <h4 className="text-sm font-semibold text-muted-foreground border-b border-border pb-1 pt-2">
+                                          {category}
+                                        </h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                          {categoryItems.map((menuItem) => {
+                                            const isEnabled =
+                                              getPermissionValue(
+                                                employee.id,
+                                                menuItem.key,
+                                              );
+                                            const isDefaultPermission =
+                                              menuItem.key === "dashboard" ||
+                                              menuItem.key === "tarefas";
+
+                                            return (
+                                              <div
+                                                key={menuItem.key}
+                                                className={`flex items-center justify-between p-3 rounded-lg border ${
+                                                  isDefaultPermission
+                                                    ? "bg-muted/30"
+                                                    : ""
+                                                }`}
+                                              >
+                                                <div className="flex-1">
+                                                  <Label
+                                                    htmlFor={`${employee.id}-${menuItem.key}`}
+                                                    className="text-sm font-medium cursor-pointer"
+                                                  >
+                                                    {menuItem.label}
+                                                  </Label>
+                                                  <p className="text-xs text-muted-foreground mt-1">
+                                                    {menuItem.description}
+                                                  </p>
+                                                  {isDefaultPermission && (
+                                                    <Badge
+                                                      variant="outline"
+                                                      className="mt-1 text-xs"
+                                                    >
+                                                      Padrão
+                                                    </Badge>
+                                                  )}
+                                                </div>
+                                                <Switch
+                                                  id={`${employee.id}-${menuItem.key}`}
+                                                  checked={isEnabled}
+                                                  onCheckedChange={() =>
+                                                    handleTogglePermission(
+                                                      employee.id,
+                                                      menuItem.key,
+                                                    )
+                                                  }
+                                                  disabled={isDefaultPermission}
+                                                />
                                               </div>
-                                              <Switch
-                                                id={`${employee.id}-${menuItem.key}`}
-                                                checked={isEnabled}
-                                                onCheckedChange={() => handleTogglePermission(employee.id, menuItem.key)}
-                                                disabled={isDefaultPermission}
-                                              />
-                                            </div>
-                                          );
-                                        })}
+                                            );
+                                          })}
+                                        </div>
                                       </div>
-                                    </div>
-                                  );
-                                });
-                              })()}
+                                    );
+                                  });
+                                })()}
                               </div>
                             </CardContent>
                           </CollapsibleContent>

@@ -1,9 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI } from "../_shared/ai-gateway.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const openRouterApiKey = Deno.env.get("OPENROUTER_API_KEY")!;
-const openAIApiKey = Deno.env.get("OPENAI_API_KEY")!;
 
 // Brasília timezone offset (UTC-3)
 const BRASILIA_OFFSET_MS = -3 * 60 * 60 * 1000;
@@ -189,6 +188,7 @@ async function generateSingleImage(
   totalSlides?: number,
   includeDateInImage: boolean = false,
   maxRetries: number = 3,
+  companyId?: string,
 ): Promise<string> {
   let lastError: Error | null = null;
 
@@ -365,63 +365,18 @@ Generate the image now. Return image only.`;
         `Image generation attempt ${attempt}/${maxRetries} for slide ${slideNumber || 1}...`,
       );
 
-      const geminiResponse = await fetch(
-        "https://openrouter.ai/api/v1/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${openRouterApiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "google/gemini-3-pro-image-preview",
-            messages: [{ role: "user", content: messageContent }],
-            modalities: ["image", "text"],
-          }),
-        },
-      );
+      const geminiResult = await callAI({
+        functionName: "generate-instagram-auto-post",
+        companyId,
+        systemPrompt: "",
+        userPrompt: geminiPrompt,
+        messages: [{ role: "user", content: messageContent }],
+      });
 
-      if (!geminiResponse.ok) {
-        const errorText = await geminiResponse.text();
-        console.error(`Gemini error on attempt ${attempt}:`, errorText);
-
-        // If rate limited (429), wait longer before retry
-        if (geminiResponse.status === 429) {
-          console.log("Rate limited, waiting 5 seconds before retry...");
-          await delay(5000);
-        }
-
-        throw new Error(`Gemini API error: ${geminiResponse.status}`);
-      }
-
-      const geminiData = await geminiResponse.json();
-
-      // Log full response for debugging
-      console.log(
-        `Gemini response for slide ${slideNumber || 1}:`,
-        JSON.stringify({
-          hasChoices: !!geminiData?.choices,
-          choicesLength: geminiData?.choices?.length,
-          hasMessage: !!geminiData?.choices?.[0]?.message,
-          hasImages: !!geminiData?.choices?.[0]?.message?.images,
-          imagesLength: geminiData?.choices?.[0]?.message?.images?.length,
-          textContent: geminiData?.choices?.[0]?.message?.content?.substring?.(
-            0,
-            100,
-          ),
-        }),
-      );
-
-      const base64Url = geminiData?.choices?.[0]?.message?.images?.[0]
-        ?.image_url?.url as string | undefined;
+      const base64Url = geminiResult.content;
 
       if (!base64Url) {
-        // Log what we got instead
-        console.error(
-          `No image in response. Full structure:`,
-          JSON.stringify(geminiData).substring(0, 500),
-        );
-        throw new Error("No image generated from Gemini");
+        throw new Error("No image generated from AI Gateway");
       }
 
       console.log(
@@ -842,20 +797,10 @@ ${knowledgeContext ? `\nBASE DE CONHECIMENTO (use como inspiração):${knowledge
       }
 
       // Generate prompts for carousel slides
-      const carouselPromptResponse = await fetch(
-        "https://api.openai.com/v1/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${openAIApiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "openai/gpt-4.1-mini-2025-04-14",
-            messages: [
-              {
-                role: "system",
-                content: `Você é um especialista em direção de arte para carrosséis do Instagram.
+      const carouselPromptResult = await callAI({
+        functionName: "generate-instagram-auto-post",
+        companyId: config.company_id,
+        systemPrompt: `Você é um especialista em direção de arte para carrosséis do Instagram.
 
 Crie prompts para ${numberOfImages} slides de um carrossel que conta uma história coesa.
 ${antiHallucinationInstruction}
@@ -870,10 +815,7 @@ REGRAS:
 - Se o briefing menciona texto/frases específicas, inclua texto legível em cada slide
 - Se menciona fotos/produtos, crie visuais sem texto
 - CRÍTICO: O texto que aparece em cada slide deve refletir INFORMAÇÕES REAIS do artigo/briefing`,
-              },
-              {
-                role: "user",
-                content: `Crie ${numberOfImages} prompts de imagem para um carrossel do Instagram:
+        userPrompt: `Crie ${numberOfImages} prompts de imagem para um carrossel do Instagram:
 
 ${contentInstruction}
 
@@ -886,20 +828,10 @@ Responda em formato JSON:
 {
   "prompts": ["prompt slide 1 em inglês", "prompt slide 2 em inglês", ...]
 }`,
-              },
-            ],
-            max_completion_tokens: 1500,
-          }),
-        },
-      );
+        maxTokens: 1500,
+      });
 
-      if (!carouselPromptResponse.ok) {
-        throw new Error("Failed to generate carousel prompts");
-      }
-
-      const carouselPromptData = await carouselPromptResponse.json();
-      const responseContent =
-        carouselPromptData.choices[0].message.content.trim();
+      const responseContent = carouselPromptResult.content.trim();
 
       try {
         // Try to parse JSON response
@@ -916,32 +848,14 @@ Responda em formato JSON:
             ? `Título: ${rssContent.title}. ${rssContent.description?.substring(0, 500) || ""}`
             : config.carousel_prompt || config.post_briefing;
 
-        const singlePromptResponse = await fetch(
-          "https://api.openai.com/v1/chat/completions",
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${openAIApiKey}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              model: "openai/gpt-4.1-mini-2025-04-14",
-              messages: [
-                {
-                  role: "system",
-                  content: `Você é um especialista em direção de arte para Instagram. Gere prompts em inglês.${antiHallucinationInstruction}`,
-                },
-                {
-                  role: "user",
-                  content: `Crie UM prompt para gerar uma imagem de post Instagram baseado neste conteúdo: ${fallbackBriefing}. Responda APENAS com o prompt em inglês.`,
-                },
-              ],
-              max_completion_tokens: 300,
-            }),
-          },
-        );
-        const singleData = await singlePromptResponse.json();
-        const basePrompt = singleData.choices[0].message.content.trim();
+        const singlePromptResult = await callAI({
+          functionName: "generate-instagram-auto-post",
+          companyId: config.company_id,
+          systemPrompt: `Você é um especialista em direção de arte para Instagram. Gere prompts em inglês.${antiHallucinationInstruction}`,
+          userPrompt: `Crie UM prompt para gerar uma imagem de post Instagram baseado neste conteúdo: ${fallbackBriefing}. Responda APENAS com o prompt em inglês.`,
+          maxTokens: 300,
+        });
+        const basePrompt = singlePromptResult.content.trim();
         imagePrompts = Array(numberOfImages).fill(basePrompt);
       }
 
@@ -987,20 +901,10 @@ ${selectedTheme.pain_point ? `Pontos a abordar: ${selectedTheme.pain_point}` : "
 ${knowledgeContext ? `\nBASE DE CONHECIMENTO (use como inspiração e fonte de dados):${knowledgeContext.substring(0, 3000)}` : ""}`;
       }
 
-      const imagePromptResponse = await fetch(
-        "https://api.openai.com/v1/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${openAIApiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "openai/gpt-4.1-mini-2025-04-14",
-            messages: [
-              {
-                role: "system",
-                content: `Você é um especialista em direção de arte para Instagram.
+      const imagePromptResult = await callAI({
+        functionName: "generate-instagram-auto-post",
+        companyId: config.company_id,
+        systemPrompt: `Você é um especialista em direção de arte para Instagram.
 ${antiHallucinationInstruction}
 
 Analise o briefing e determine o TIPO de imagem:
@@ -1017,10 +921,7 @@ REGRAS:
 - Gere o prompt em INGLÊS
 - Formato vertical 3:4 (1080x1350 pixels)
 - Data do post se necessário: ${scheduledDateFormatted}`,
-              },
-              {
-                role: "user",
-                content: `Crie UM prompt para gerar uma imagem de post Instagram:
+        userPrompt: `Crie UM prompt para gerar uma imagem de post Instagram:
 
 ${singleContentInstruction}
 
@@ -1029,19 +930,10 @@ PÚBLICO-ALVO: ${clientTargetAudience}
 DATA DO POST: ${scheduledDateFormatted}
 
 Responda APENAS com o prompt em inglês.`,
-              },
-            ],
-            max_completion_tokens: 400,
-          }),
-        },
-      );
+        maxTokens: 400,
+      });
 
-      if (!imagePromptResponse.ok) {
-        throw new Error("Failed to generate image prompt");
-      }
-
-      const imagePromptData = await imagePromptResponse.json();
-      imagePrompts = [imagePromptData.choices[0].message.content.trim()];
+      imagePrompts = [imagePromptResult.content.trim()];
     }
 
     console.log("Generated", imagePrompts.length, "image prompts");
@@ -1066,6 +958,8 @@ Responda APENAS com o prompt em inglês.`,
         postType === "carousel" ? i + 1 : undefined,
         postType === "carousel" ? imagePrompts.length : undefined,
         config.include_date_in_image || false,
+        3,
+        config.company_id,
       );
 
       const imageUrl = await uploadImageToStorage(
@@ -1198,35 +1092,16 @@ REQUISITOS:
 Responda APENAS com a legenda pronta.`;
     }
 
-    const captionResponse = await fetch(
-      "https://api.openai.com/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${openAIApiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "openai/gpt-4.1-mini-2025-04-14",
-          messages: [
-            {
-              role: "system",
-              content:
-                "Você é um especialista em marketing para Instagram. Crie legendas envolventes em português brasileiro.",
-            },
-            { role: "user", content: captionPrompt },
-          ],
-          max_completion_tokens: 400,
-        }),
-      },
-    );
+    const captionResult = await callAI({
+      functionName: "generate-instagram-auto-post",
+      companyId: config.company_id,
+      systemPrompt:
+        "Você é um especialista em marketing para Instagram. Crie legendas envolventes em português brasileiro.",
+      userPrompt: captionPrompt,
+      maxTokens: 400,
+    });
 
-    if (!captionResponse.ok) {
-      throw new Error("Failed to generate caption");
-    }
-
-    const captionData = await captionResponse.json();
-    const caption = captionData.choices[0].message.content.trim();
+    const caption = captionResult.content.trim();
     console.log("Caption generated:", caption.substring(0, 50) + "...");
 
     // Save to instagram_auto_posts

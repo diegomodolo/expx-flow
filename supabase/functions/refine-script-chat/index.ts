@@ -1,8 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI } from "../_shared/ai-gateway.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const openAIApiKey = Deno.env.get("OPENAI_API_KEY")!;
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -59,19 +59,8 @@ Deno.serve(async (req) => {
     });
 
     // Generate AI response
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${openAIApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "openai/gpt-4.1-mini-2025-04-14",
-        messages: [
-          {
-            role: "system",
-            content: `Você é um assistente especializado em roteiros de vídeo para YouTube. 
-            
+    const systemPromptContent = `Você é um assistente especializado em roteiros de vídeo para YouTube.
+
 Seu trabalho é ajudar a refinar e melhorar roteiros. Você tem acesso ao roteiro atual:
 
 ---
@@ -88,31 +77,28 @@ Quando solicitado, você pode:
 4. Ajustar tom e linguagem
 5. Otimizar para melhor retenção de audiência
 
-IMPORTANTE: 
+IMPORTANTE:
 - Quando reescrever algo, forneça o texto completo da seção modificada
 - Seja específico sobre onde as mudanças devem ser aplicadas
 - Mantenha a estrutura e formatação do roteiro
-- Use markdown para formatar suas respostas`,
-          },
-          ...chatHistory,
-          {
-            role: "user",
-            content: message,
-          },
-        ],
-        max_completion_tokens: 2000,
-        temperature: 0.7,
-      }),
+- Use markdown para formatar suas respostas`;
+
+    const fullMessages = [
+      { role: "system", content: systemPromptContent },
+      ...chatHistory,
+      { role: "user", content: message },
+    ];
+
+    const aiResult = await callAI({
+      functionName: "refine-script-chat",
+      systemPrompt: systemPromptContent,
+      userPrompt: message,
+      messages: fullMessages,
+      maxTokens: 2000,
+      temperature: 0.7,
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      console.error("OpenAI error:", error);
-      throw new Error("Failed to generate response");
-    }
-
-    const data = await response.json();
-    const assistantMessage = data.choices[0].message.content;
+    const assistantMessage = aiResult.content;
 
     // Save assistant message
     await supabase.from("youtube_script_messages").insert({

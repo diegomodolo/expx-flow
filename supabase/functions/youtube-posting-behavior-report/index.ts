@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { callAI } from "../_shared/ai-gateway.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin":
@@ -13,11 +14,10 @@ serve(async (req) => {
 
   try {
     const { summaryData } = await req.json();
-    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
-    if (!OPENROUTER_API_KEY)
-      throw new Error("OPENROUTER_API_KEY is not configured");
 
-    const systemPrompt = `Você é um analista especialista em YouTube e marketing de conteúdo.
+    const aiResult = await callAI({
+      functionName: "youtube-posting-behavior-report",
+      systemPrompt: `Você é um analista especialista em YouTube e marketing de conteúdo.
 Receba os dados de comportamento de postagem de canais do YouTube e gere um relatório objetivo em português brasileiro.
 
 O relatório deve conter:
@@ -28,60 +28,11 @@ O relatório deve conter:
 5. **Padrões por Canal**: Destacar diferenças notáveis entre os canais.
 6. **Recomendações Práticas**: Lista de 3-5 ações concretas baseadas nos dados.
 
-Seja direto, use dados numéricos e formate com Markdown.`;
+Seja direto, use dados numéricos e formate com Markdown.`,
+      userPrompt: `Aqui estão os dados de comportamento de postagem dos canais monitorados:\n\n${JSON.stringify(summaryData, null, 2)}`,
+    });
 
-    const response = await fetch(
-      "https://openrouter.ai/api/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
-          messages: [
-            { role: "system", content: systemPrompt },
-            {
-              role: "user",
-              content: `Aqui estão os dados de comportamento de postagem dos canais monitorados:\n\n${JSON.stringify(summaryData, null, 2)}`,
-            },
-          ],
-        }),
-      },
-    );
-
-    if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({
-            error: "Rate limit excedido. Tente novamente em alguns segundos.",
-          }),
-          {
-            status: 429,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          },
-        );
-      }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({
-            error: "Créditos insuficientes. Adicione créditos ao workspace.",
-          }),
-          {
-            status: 402,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          },
-        );
-      }
-      const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
-      throw new Error("AI gateway error");
-    }
-
-    const data = await response.json();
-    const report =
-      data.choices?.[0]?.message?.content || "Relatório não disponível.";
+    const report = aiResult.content || "Relatório não disponível.";
 
     return new Response(JSON.stringify({ report }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

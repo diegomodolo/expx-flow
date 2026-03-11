@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI } from "../_shared/ai-gateway.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin":
@@ -369,8 +370,6 @@ async function generateConceptCreative(
   client: ClientData,
   schedule: CreativeGenerationSchedule | null,
 ): Promise<unknown> {
-  const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
-
   // Get a random research theme
   const { data: themes } = await supabase
     .from("market_research_insights")
@@ -388,25 +387,12 @@ async function generateConceptCreative(
     : "";
 
   // Generate caption and hashtags using AI
-  const captionResponse = await fetch(
-    "https://openrouter.ai/api/v1/chat/completions",
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "system",
-            content: `Você é um especialista em social media e criação de conteúdo para Instagram e Facebook.
+  const captionResult = await callAI({
+    functionName: "daily-creative-generator",
+    companyId: schedule?.company_id,
+    systemPrompt: `Você é um especialista em social media e criação de conteúdo para Instagram e Facebook.
 Crie conteúdo envolvente e autêntico para posts orgânicos.`,
-          },
-          {
-            role: "user",
-            content: `Crie um post para Instagram/Facebook para a marca "${client.company}" (${client.sector}).
+    userPrompt: `Crie um post para Instagram/Facebook para a marca "${client.company}" (${client.sector}).
 
 ${themeContext}
 
@@ -421,20 +407,13 @@ Responda APENAS em JSON válido:
   "creative_type": "post_unico ou carrossel ou reels",
   "image_prompt": "Descrição detalhada para gerar a imagem do post"
 }`,
-          },
-        ],
-      }),
-    },
-  );
+    maxTokens: 1000,
+    temperature: 0.7,
+  });
 
-  if (!captionResponse.ok) {
-    throw new Error("Failed to generate caption");
-  }
-
-  const captionData = await captionResponse.json();
   let content;
   try {
-    const responseText = captionData.choices?.[0]?.message?.content || "{}";
+    const responseText = captionResult.content || "{}";
     const jsonMatch = responseText.match(/\{[\s\S]*\}/);
     content = JSON.parse(jsonMatch ? jsonMatch[0] : responseText);
   } catch {
@@ -469,8 +448,6 @@ async function generateIterationCreative(
   client: ClientData,
   schedule: CreativeGenerationSchedule | null,
 ): Promise<unknown> {
-  const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
-
   // Get a previous approved/published creative
   const { data: previousCreatives } = await supabase
     .from("creative_generation_queue")
@@ -493,24 +470,11 @@ TIPO: ${sourceCreative.creative_type}`
     : "";
 
   // Generate improved version
-  const captionResponse = await fetch(
-    "https://openrouter.ai/api/v1/chat/completions",
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "system",
-            content: `Você é um especialista em social media. Crie variações de posts de sucesso mantendo o que funciona.`,
-          },
-          {
-            role: "user",
-            content: `Crie uma NOVA VERSÃO de post para "${client.company}" (${client.sector}).
+  const captionResult = await callAI({
+    functionName: "daily-creative-generator",
+    companyId: schedule?.company_id,
+    systemPrompt: `Você é um especialista em social media. Crie variações de posts de sucesso mantendo o que funciona.`,
+    userPrompt: `Crie uma NOVA VERSÃO de post para "${client.company}" (${client.sector}).
 
 ${sourceContext}
 
@@ -526,20 +490,13 @@ Responda APENAS em JSON válido:
   "creative_type": "post_unico ou carrossel ou reels",
   "image_prompt": "Descrição para gerar imagem"
 }`,
-          },
-        ],
-      }),
-    },
-  );
+    maxTokens: 1000,
+    temperature: 0.7,
+  });
 
-  if (!captionResponse.ok) {
-    throw new Error("Failed to generate iteration");
-  }
-
-  const captionData = await captionResponse.json();
   let content;
   try {
-    const responseText = captionData.choices?.[0]?.message?.content || "{}";
+    const responseText = captionResult.content || "{}";
     const jsonMatch = responseText.match(/\{[\s\S]*\}/);
     content = JSON.parse(jsonMatch ? jsonMatch[0] : responseText);
   } catch {

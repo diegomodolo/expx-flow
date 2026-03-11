@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI } from "../_shared/ai-gateway.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin":
@@ -29,7 +30,6 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const openaiApiKey = Deno.env.get("OPENAI_API_KEY");
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -127,20 +127,22 @@ serve(async (req) => {
     let actionPlan = "";
     let campaignAnalyses: unknown[] = [];
 
-    // Generate AI analysis if OpenAI key is available
-    if (openaiApiKey) {
-      console.log("Generating AI analysis...");
+    // Generate AI analysis
+    console.log("Generating AI analysis...");
 
-      const campaignsSummary =
-        campaigns
-          ?.slice(0, 10)
-          .map(
-            (c) =>
-              `- ${c.name}: R$${(c.spend || 0).toFixed(2)} investido, ${c.conversions || 0} conversões, CTR ${(c.ctr || 0).toFixed(2)}%, CPA R$${(c.cpa || 0).toFixed(2)}`,
-          )
-          .join("\n") || "Nenhuma campanha encontrada";
+    const campaignsSummary =
+      campaigns
+        ?.slice(0, 10)
+        .map(
+          (c) =>
+            `- ${c.name}: R$${(c.spend || 0).toFixed(2)} investido, ${c.conversions || 0} conversões, CTR ${(c.ctr || 0).toFixed(2)}%, CPA R$${(c.cpa || 0).toFixed(2)}`,
+        )
+        .join("\n") || "Nenhuma campanha encontrada";
 
-      const prompt = `Você é um especialista em marketing digital analisando resultados de campanhas para um cliente.
+    const systemPrompt =
+      "Você é um analista de marketing digital positivo e estratégico. Sempre apresente resultados de forma otimista e profissional, destacando conquistas e oportunidades de crescimento.";
+
+    const userPrompt = `Você é um especialista em marketing digital analisando resultados de campanhas para um cliente.
 
 IMPORTANTE: Sua análise deve ser SEMPRE POSITIVA e CONSTRUTIVA. Nunca use linguagem negativa ou que possa ser usada contra a agência. Destaque os pontos fortes e apresente oportunidades de melhoria de forma otimista.
 
@@ -170,58 +172,24 @@ Gere uma resposta em JSON com exatamente este formato:
 
 Para cada campanha com conversões, inclua uma análise. Os highlights devem ser conquistas reais baseadas nos dados. As opportunities devem ser apresentadas de forma positiva como "oportunidades de potencializar" e nunca como "problemas" ou "falhas".`;
 
-      try {
-        const response = await fetch(
-          "https://api.openai.com/v1/chat/completions",
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${openaiApiKey}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              model: "openai/gpt-4o-mini",
-              messages: [
-                {
-                  role: "system",
-                  content:
-                    "Você é um analista de marketing digital positivo e estratégico. Sempre apresente resultados de forma otimista e profissional, destacando conquistas e oportunidades de crescimento.",
-                },
-                {
-                  role: "user",
-                  content: prompt,
-                },
-              ],
-              temperature: 0.7,
-              max_tokens: 2000,
-              response_format: { type: "json_object" },
-            }),
-          },
-        );
+    try {
+      const aiResult = await callAI({
+        functionName: "generate-campaign-presentation-analysis",
+        companyId,
+        systemPrompt,
+        userPrompt,
+        maxTokens: 2000,
+        temperature: 0.7,
+        responseFormat: { type: "json_object" },
+      });
 
-        if (response.ok) {
-          const data = await response.json();
-          const content = data.choices[0]?.message?.content;
-
-          if (content) {
-            try {
-              const parsed = JSON.parse(content);
-              executiveSummary = parsed.executive_summary || "";
-              actionPlan = parsed.action_plan || "";
-              campaignAnalyses = parsed.campaign_analyses || [];
-              console.log("AI analysis generated successfully");
-            } catch (parseError) {
-              console.error("Error parsing AI response:", parseError);
-            }
-          }
-        } else {
-          console.error("OpenAI API error:", await response.text());
-        }
-      } catch (aiError) {
-        console.error("Error calling OpenAI:", aiError);
-      }
-    } else {
-      console.log("OpenAI API key not configured, skipping AI analysis");
+      const parsed = JSON.parse(aiResult.content);
+      executiveSummary = parsed.executive_summary || "";
+      actionPlan = parsed.action_plan || "";
+      campaignAnalyses = parsed.campaign_analyses || [];
+      console.log("AI analysis generated successfully");
+    } catch (aiError) {
+      console.error("Error calling AI Gateway:", aiError);
 
       // Generate basic analysis without AI
       executiveSummary = `No período analisado, investimos R$${totalSpend.toFixed(2)} em campanhas de tráfego pago, alcançando ${totalConversions} conversões. O CTR médio ficou em ${avgCtr.toFixed(2)}%, demonstrando boa relevância dos anúncios para o público-alvo.`;
@@ -278,7 +246,7 @@ Para cada campanha com conversões, inclua uma análise. Os highlights devem ser
       JSON.stringify({
         success: true,
         message: "Analysis generated successfully",
-        hasAI: !!openaiApiKey,
+        hasAI: true,
       }),
       {
         status: 200,

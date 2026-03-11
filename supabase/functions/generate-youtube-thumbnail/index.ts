@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI } from "../_shared/ai-gateway.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin":
@@ -14,11 +15,6 @@ serve(async (req) => {
   }
 
   try {
-    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
-    if (!OPENROUTER_API_KEY) {
-      throw new Error("OPENROUTER_API_KEY is not configured");
-    }
-
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -104,68 +100,21 @@ Gere uma imagem realista, profissional e altamente clicável.`;
       messages[0].content[0].text += `\n\nAs thumbnails de referência anexadas mostram o estilo visual desejado. Inspire-se nelas para composição, cores e layout.`;
     }
 
-    console.log("Calling Gemini 3 Pro Image model...");
+    console.log("Calling AI Gateway for thumbnail generation...");
 
-    // Call the OpenRouter AI with Gemini 3 Pro Image
-    const response = await fetch(
-      "https://openrouter.ai/api/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-3-pro-image-preview",
-          messages,
-          modalities: ["image", "text"],
-        }),
-      },
-    );
+    const aiResult = await callAI({
+      functionName: "generate-youtube-thumbnail",
+      companyId: clientId,
+      systemPrompt: "",
+      userPrompt: prompt,
+      messages,
+    });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("AI Gateway error:", response.status, errorText);
-
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({
-            success: false,
-            error: "Rate limit exceeded. Please try again later.",
-          }),
-          {
-            status: 429,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          },
-        );
-      }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({
-            success: false,
-            error: "Payment required. Please add credits to continue.",
-          }),
-          {
-            status: 402,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          },
-        );
-      }
-
-      throw new Error(`AI Gateway error: ${response.status}`);
-    }
-
-    const data = await response.json();
     console.log("AI response received");
 
-    // Extract the generated image
-    const imageData = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    const imageData = aiResult.content;
 
     if (!imageData) {
-      console.error(
-        "No image in response:",
-        JSON.stringify(data).substring(0, 500),
-      );
       throw new Error("No image was generated");
     }
 

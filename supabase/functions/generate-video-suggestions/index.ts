@@ -1,8 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI } from "../_shared/ai-gateway.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const openAIApiKey = Deno.env.get("OPENAI_API_KEY")!;
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
       theme: v.ai_theme_analysis,
     }));
 
-    const prompt = `Analise os vídeos de maior sucesso e gere ${count} sugestões de vídeos para criar.
+    const userPrompt = `Analise os vídeos de maior sucesso e gere ${count} sugestões de vídeos para criar.
 
 VÍDEOS DE ALTO ENGAJAMENTO ANALISADOS:
 ${videoSummary.map((v) => `- "${v.title}" (${v.views?.toLocaleString()} views, ${v.engagement?.toFixed(2)}% engajamento)${v.theme ? ` - Tema: ${v.theme}` : ""}`).join("\n")}
@@ -85,39 +85,18 @@ Retorne em JSON:
   ]
 }`;
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${openAIApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "openai/gpt-4.1-mini-2025-04-14",
-        messages: [
-          {
-            role: "system",
-            content:
-              "Você é um estrategista de conteúdo especializado em YouTube. Analise padrões de sucesso e sugira vídeos com alto potencial de engajamento. Retorne apenas JSON válido.",
-          },
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
-        max_completion_tokens: 2000,
-        temperature: 0.8,
-        response_format: { type: "json_object" },
-      }),
+    const aiResult = await callAI({
+      functionName: "generate-video-suggestions",
+      companyId,
+      systemPrompt:
+        "Você é um estrategista de conteúdo especializado em YouTube. Analise padrões de sucesso e sugira vídeos com alto potencial de engajamento. Retorne apenas JSON válido.",
+      userPrompt,
+      maxTokens: 2000,
+      temperature: 0.8,
+      responseFormat: { type: "json_object" },
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      console.error("OpenAI error:", error);
-      throw new Error("Failed to generate suggestions");
-    }
-
-    const data = await response.json();
-    const result = JSON.parse(data.choices[0].message.content);
+    const result = JSON.parse(aiResult.content);
 
     console.log("Generated", result.suggestions?.length || 0, "suggestions");
 

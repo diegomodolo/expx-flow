@@ -2,8 +2,26 @@ import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Building, Bell, CreditCard, Facebook, Shield, RefreshCw, MessageCircle, Database, SlidersHorizontal, ChevronDown, Plug, Video } from "lucide-react";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
+  Building,
+  Bell,
+  CreditCard,
+  Facebook,
+  Shield,
+  RefreshCw,
+  MessageCircle,
+  Database,
+  SlidersHorizontal,
+  ChevronDown,
+  Plug,
+  Video,
+  Brain,
+} from "lucide-react";
 import { SiGoogle, SiDiscord } from "react-icons/si";
 
 interface SettingsLayoutProps {
@@ -54,6 +72,12 @@ const settingsNavItems: NavItem[] = [
     href: "/configuracoes/padroes-de-uso",
     icon: SlidersHorizontal,
     description: "Regras globais de comportamento do sistema",
+  },
+  {
+    title: "Inteligência Artificial",
+    href: "/configuracoes/ia",
+    icon: Brain,
+    description: "Configurar modelos de IA",
   },
 ];
 
@@ -115,7 +139,13 @@ const settingsNavGroups: NavGroup[] = [
   },
 ];
 
-const NavItemLink = ({ item, isActive }: { item: NavItem; isActive: boolean }) => {
+const NavItemLink = ({
+  item,
+  isActive,
+}: {
+  item: NavItem;
+  isActive: boolean;
+}) => {
   const Icon = item.icon;
   return (
     <NavLink
@@ -129,7 +159,9 @@ const NavItemLink = ({ item, isActive }: { item: NavItem; isActive: boolean }) =
       <Icon className="h-4 w-4 shrink-0" />
       <div className="flex-1 min-w-0">
         <div className="text-sm font-medium">{item.title}</div>
-        <div className={`text-xs truncate ${isActive ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
+        <div
+          className={`text-xs truncate ${isActive ? "text-primary-foreground/80" : "text-muted-foreground"}`}
+        >
           {item.description}
         </div>
       </div>
@@ -150,7 +182,9 @@ export const SettingsLayout = ({ children }: SettingsLayoutProps) => {
       <Card className="w-80 p-6">
         <div className="space-y-6">
           <div>
-            <h2 className="text-lg font-semibold text-foreground">Configurações</h2>
+            <h2 className="text-lg font-semibold text-foreground">
+              Configurações
+            </h2>
             <p className="text-sm text-muted-foreground">
               Gerencie suas preferências e configurações
             </p>
@@ -160,7 +194,11 @@ export const SettingsLayout = ({ children }: SettingsLayoutProps) => {
 
           <nav className="space-y-1">
             {settingsNavItems.map((item) => (
-              <NavItemLink key={item.href} item={item} isActive={currentPath === item.href} />
+              <NavItemLink
+                key={item.href}
+                item={item}
+                isActive={currentPath === item.href}
+              />
             ))}
 
             {settingsNavGroups.map((group) => {
@@ -172,15 +210,23 @@ export const SettingsLayout = ({ children }: SettingsLayoutProps) => {
                   <CollapsibleTrigger className="flex items-center gap-3 p-3 rounded-lg transition-colors hover:bg-muted text-muted-foreground hover:text-foreground w-full group">
                     <GroupIcon className="h-4 w-4 shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-left">{group.title}</div>
-                      <div className="text-xs truncate text-muted-foreground">{group.description}</div>
+                      <div className="text-sm font-medium text-left">
+                        {group.title}
+                      </div>
+                      <div className="text-xs truncate text-muted-foreground">
+                        {group.description}
+                      </div>
                     </div>
                     <ChevronDown className="h-4 w-4 shrink-0 transition-transform group-data-[state=open]:rotate-180" />
                   </CollapsibleTrigger>
                   <CollapsibleContent>
                     <div className="ml-4 border-l border-border pl-2 mt-1 space-y-1">
                       {group.items.map((item) => (
-                        <NavItemLink key={item.href} item={item} isActive={currentPath === item.href} />
+                        <NavItemLink
+                          key={item.href}
+                          item={item}
+                          isActive={currentPath === item.href}
+                        />
                       ))}
                     </div>
                   </CollapsibleContent>

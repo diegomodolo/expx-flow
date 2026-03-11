@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI } from "../_shared/ai-gateway.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin":
@@ -45,13 +45,10 @@ serve(async (req) => {
   }
 
   try {
-    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
-    if (!OPENROUTER_API_KEY) {
-      throw new Error("OPENROUTER_API_KEY is not configured");
-    }
-
     const body: RequestBody = await req.json();
     const {
+      clientId,
+      companyId,
       briefing,
       monthlyBudget, // This is the AVAILABLE budget now
       currentSpend = 0,
@@ -196,65 +193,16 @@ IMPORTANTE:
 - O imagePrompt deve descrever uma imagem de anúncio profissional que represente o produto/serviço${customImagePrompt ? " E seguir as instruções específicas do usuário" : ""}
 - GERE EXATAMENTE ${creativesCount} criativos diferentes no array "creatives", cada um com texto e título únicos`;
 
-    console.log("Calling OpenRouter AI for campaign generation...");
+    console.log("Calling AI Gateway for campaign generation...");
 
-    const aiResponse = await fetch(
-      "https://openrouter.ai/api/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userPrompt },
-          ],
-        }),
-      },
-    );
+    const aiResult = await callAI({
+      functionName: "generate-ai-campaign",
+      companyId: companyId,
+      systemPrompt,
+      userPrompt,
+    });
 
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error("AI API error:", aiResponse.status, errorText);
-
-      if (aiResponse.status === 429) {
-        return new Response(
-          JSON.stringify({
-            success: false,
-            error:
-              "Limite de requisições excedido. Tente novamente em alguns minutos.",
-          }),
-          {
-            status: 429,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          },
-        );
-      }
-      if (aiResponse.status === 402) {
-        return new Response(
-          JSON.stringify({
-            success: false,
-            error: "Créditos insuficientes. Adicione créditos ao workspace.",
-          }),
-          {
-            status: 402,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          },
-        );
-      }
-
-      throw new Error(`AI API error: ${aiResponse.status}`);
-    }
-
-    const aiData = await aiResponse.json();
-    const content = aiData.choices?.[0]?.message?.content;
-
-    if (!content) {
-      throw new Error("No content in AI response");
-    }
+    const content = aiResult.content;
 
     console.log("AI response received, parsing JSON...");
 

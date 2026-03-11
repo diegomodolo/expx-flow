@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI } from "../_shared/ai-gateway.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin":
@@ -34,11 +35,6 @@ serve(async (req) => {
     console.log(
       `[generate-presentation-slides] Generating slides for script: ${scriptId}`,
     );
-
-    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
-    if (!OPENROUTER_API_KEY) {
-      throw new Error("OPENROUTER_API_KEY is not configured");
-    }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -98,36 +94,13 @@ Crie a estrutura de ${numberOfSlides} slides para este roteiro.`;
       `[generate-presentation-slides] Calling AI to generate slide structure...`,
     );
 
-    const response = await fetch(
-      "https://openrouter.ai/api/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userPrompt },
-          ],
-        }),
-      },
-    );
+    const aiResult = await callAI({
+      functionName: "generate-presentation-slides",
+      systemPrompt,
+      userPrompt,
+    });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`[generate-presentation-slides] AI error:`, errorText);
-      throw new Error("Failed to generate slides structure");
-    }
-
-    const data = await response.json();
-    const aiContent = data.choices?.[0]?.message?.content;
-
-    if (!aiContent) {
-      throw new Error("No content from AI");
-    }
+    const aiContent = aiResult.content;
 
     console.log(
       `[generate-presentation-slides] AI response received, parsing...`,

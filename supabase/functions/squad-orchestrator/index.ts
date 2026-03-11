@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { callAI } from "../_shared/ai-gateway.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin":
@@ -611,23 +612,15 @@ ${isLeader ? "- LEMBRE-SE: Você DEVE terminar com [DELEGAR] ou [FINALIZAR]. Sem
     }
   }
 
-  // Exhausted iterations
-  const finalResponse = await fetch(
-    "https://openrouter.ai/api/v1/chat/completions",
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${Deno.env.get("OPENROUTER_API_KEY")}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: agent.model || "google/gemini-2.5-flash",
-        messages: currentMessages,
-      }),
-    },
-  );
-  const finalData = await finalResponse.json();
-  const rawOutput = finalData.choices[0].message.content || "";
+  // Exhausted iterations — final call without tools via AI Gateway
+  const finalResult = await callAI({
+    functionName: "squad-orchestrator",
+    companyId: agent.company_id,
+    systemPrompt: "",
+    userPrompt: "",
+    messages: currentMessages,
+  });
+  const rawOutput = finalResult.content;
   let should_delegate = true;
   if (isLeader) {
     should_delegate =

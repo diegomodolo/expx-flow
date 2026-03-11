@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { callAI } from "../_shared/ai-gateway.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin":
@@ -611,21 +612,16 @@ async function chatWithToolCalling(
     }
   }
 
-  // If we exhausted iterations, do one final call without tools
-  const finalResponse = await fetch(
-    "https://openrouter.ai/api/v1/chat/completions",
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${Deno.env.get("OPENROUTER_API_KEY")}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ model, messages: currentMessages }),
-    },
-  );
+  // If we exhausted iterations, do one final call without tools via AI Gateway
+  const finalResult = await callAI({
+    functionName: "ia-agent-chat",
+    companyId: agentContext.company_id,
+    systemPrompt: "",
+    userPrompt: "",
+    messages: currentMessages,
+  });
 
-  const finalData = await finalResponse.json();
-  return finalData.choices[0].message.content || "";
+  return finalResult.content;
 }
 
 Deno.serve(async (req) => {

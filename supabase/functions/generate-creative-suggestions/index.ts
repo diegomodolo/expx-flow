@@ -1,9 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI } from "../_shared/ai-gateway.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const openRouterApiKey = Deno.env.get("OPENROUTER_API_KEY")!;
-const openAIApiKey = Deno.env.get("OPENAI_API_KEY");
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -106,10 +105,10 @@ async function handleSimpleSuggestion(body: unknown) {
   const creativeTypesStr =
     creativeTypes?.join(", ") || "Post para redes sociais";
 
-  let prompt = "";
+  let userPrompt = "";
 
   if (type === "theme") {
-    prompt = `Você é um especialista em marketing digital e criação de conteúdo.
+    userPrompt = `Você é um especialista em marketing digital e criação de conteúdo.
 
 Com base no briefing do cliente abaixo, sugira UM tema criativo e envolvente para uma peça visual de marketing.
 
@@ -139,7 +138,7 @@ INSTRUÇÕES:
 
 Responda APENAS com o tema sugerido, em 1-2 frases. Nada mais.`;
   } else if (type === "copy") {
-    prompt = `Você é um copywriter especialista em anúncios visuais.
+    userPrompt = `Você é um copywriter especialista em anúncios visuais.
 
 Crie UM texto curto e impactante para aparecer DENTRO de uma peça visual de marketing.
 
@@ -165,7 +164,7 @@ Responda APENAS com o texto da imagem. Nada mais.`;
         )
         .join("\n") || "";
 
-    prompt = `Você é um copywriter especialista em carrosséis para redes sociais.
+    userPrompt = `Você é um copywriter especialista em carrosséis para redes sociais.
 
 Crie UMA headline curta e impactante para o SLIDE ${slideNumber} de um carrossel com ${totalSlides} slides.
 
@@ -196,7 +195,7 @@ Responda APENAS com a headline. Nada mais.`;
         )
         .join("\n") || "";
 
-    prompt = `Você é um copywriter especialista em carrosséis para redes sociais.
+    userPrompt = `Você é um copywriter especialista em carrosséis para redes sociais.
 
 Crie UMA descrição complementar para o SLIDE ${slideNumber} de um carrossel com ${totalSlides} slides.
 
@@ -219,30 +218,15 @@ Responda APENAS com a descrição. Nada mais.`;
     throw new Error("Invalid suggestion type");
   }
 
-  const response = await fetch(
-    "https://openrouter.ai/api/v1/chat/completions",
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${openRouterApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [{ role: "user", content: prompt }],
-        max_tokens: 200,
-      }),
-    },
-  );
+  const aiResult = await callAI({
+    functionName: "generate-creative-suggestions",
+    companyId,
+    systemPrompt: "",
+    userPrompt,
+    maxTokens: 200,
+  });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error("AI Gateway error:", errorText);
-    throw new Error("Failed to generate suggestion");
-  }
-
-  const data = await response.json();
-  const suggestion = data.choices?.[0]?.message?.content?.trim();
+  const suggestion = aiResult.content?.trim();
 
   if (!suggestion) {
     throw new Error("No suggestion generated");
@@ -269,6 +253,7 @@ Responda APENAS com a descrição. Nada mais.`;
 async function handleMultipleSuggestions(body: unknown) {
   const {
     clientId,
+    companyId,
     creativeType,
     clientBriefing,
     clientSector,
@@ -309,8 +294,8 @@ async function handleMultipleSuggestions(body: unknown) {
 
   const creativeTypeName = creativeTypeNames[creativeType] || creativeType;
 
-  const prompt = `
-Você é um especialista em marketing digital e criação de conteúdo visual. 
+  const userPrompt = `
+Você é um especialista em marketing digital e criação de conteúdo visual.
 
 Preciso de 3 sugestões criativas de TEMAS para um ${creativeTypeName}.
 
@@ -342,57 +327,16 @@ Retorne EXATAMENTE neste formato JSON:
 
 Garanta que o JSON seja válido e contenha exatamente 3 sugestões.`;
 
-  // Usar OpenAI se disponível, senão OpenRouter AI
-  let response;
+  const aiResult = await callAI({
+    functionName: "generate-creative-suggestions",
+    companyId,
+    systemPrompt:
+      "Você é um especialista em marketing digital e criação de conteúdo. Sempre responda em português brasileiro com JSON válido.",
+    userPrompt,
+    maxTokens: 1500,
+  });
 
-  if (openAIApiKey) {
-    response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${openAIApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "openai/gpt-4.1-mini-2025-04-14",
-        messages: [
-          {
-            role: "system",
-            content:
-              "Você é um especialista em marketing digital e criação de conteúdo. Sempre responda em português brasileiro com JSON válido.",
-          },
-          { role: "user", content: prompt },
-        ],
-        max_tokens: 1500,
-      }),
-    });
-  } else {
-    response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${openRouterApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "system",
-            content:
-              "Você é um especialista em marketing digital e criação de conteúdo. Sempre responda em português brasileiro com JSON válido.",
-          },
-          { role: "user", content: prompt },
-        ],
-        max_tokens: 1500,
-      }),
-    });
-  }
-
-  if (!response.ok) {
-    throw new Error(`AI API error: ${response.status}`);
-  }
-
-  const data = await response.json();
-  const content = data.choices[0].message.content;
+  const content = aiResult.content;
 
   // Parse the JSON response
   let suggestions;

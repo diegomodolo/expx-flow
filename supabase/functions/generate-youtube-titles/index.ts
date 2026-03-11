@@ -1,8 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI } from "../_shared/ai-gateway.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const openAIApiKey = Deno.env.get("OPENAI_API_KEY")!;
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
         "Use uma variedade de gatilhos: curiosidade, urgência, benefício e provocação",
     };
 
-    const prompt = `Gere 8 títulos altamente engajantes para um vídeo do YouTube.
+    const userPrompt = `Gere 8 títulos altamente engajantes para um vídeo do YouTube.
 
 TEMA/CONTEXTO:
 ${scriptTitle}
@@ -91,39 +91,17 @@ Retorne em formato JSON:
   ]
 }`;
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${openAIApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "openai/gpt-4.1-mini-2025-04-14",
-        messages: [
-          {
-            role: "system",
-            content:
-              "Você é especialista em títulos virais para YouTube. Retorne apenas JSON válido.",
-          },
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
-        max_completion_tokens: 1500,
-        temperature: 0.9,
-        response_format: { type: "json_object" },
-      }),
+    const aiResult = await callAI({
+      functionName: "generate-youtube-titles",
+      systemPrompt:
+        "Você é especialista em títulos virais para YouTube. Retorne apenas JSON válido.",
+      userPrompt,
+      maxTokens: 1500,
+      temperature: 0.9,
+      responseFormat: { type: "json_object" },
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      console.error("OpenAI error:", error);
-      throw new Error("Failed to generate titles");
-    }
-
-    const data = await response.json();
-    const result = JSON.parse(data.choices[0].message.content);
+    const result = JSON.parse(aiResult.content);
 
     // Update script with new titles if provided
     if (scriptId && result.titles) {

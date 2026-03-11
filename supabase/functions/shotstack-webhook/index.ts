@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI } from "../_shared/ai-gateway.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin":
@@ -177,29 +178,16 @@ async function handleIngestCallback(
   const timeStartSeconds = job?.time_start_seconds;
   const timeEndSeconds = job?.time_end_seconds;
   const contextDescription = job?.context_description;
+  const companyId = job?.company_id;
 
-  const openAIApiKey = Deno.env.get("OPENAI_API_KEY");
-  if (!openAIApiKey) {
-    await supabase
-      .from("clip_jobs")
-      .update({
-        status: "error",
-        error_message: "OPENAI_API_KEY não configurada",
-        progress: 0,
-        progress_message: "Erro de configuração",
-      })
-      .eq("id", jobId);
-    return;
-  }
-
-  const viralMoments = await analyzeTranscriptionWithOpenAI(
+  const viralMoments = await analyzeTranscriptionWithAI(
     vttContent,
     maxClips,
     maxDurationSeconds,
     timeStartSeconds,
     timeEndSeconds,
     contextDescription,
-    openAIApiKey,
+    companyId,
   );
 
   if (!viralMoments || viralMoments.length === 0) {
@@ -378,14 +366,14 @@ async function handleEditCallback(
   }
 }
 
-async function analyzeTranscriptionWithOpenAI(
+async function analyzeTranscriptionWithAI(
   vttContent: string,
   maxClips: number,
   maxDurationSeconds: number,
   timeStartSeconds: number | null,
   timeEndSeconds: number | null,
   contextDescription: string | null,
-  apiKey: string,
+  companyId: string | null,
 ): Promise<
   Array<{
     title: string;
@@ -408,7 +396,7 @@ async function analyzeTranscriptionWithOpenAI(
     contextConstraint = `\n- CONTEXTO DESEJADO PELO USUÁRIO: "${contextDescription}". Priorize trechos que se encaixem nesse critério.`;
   }
 
-  const prompt = `Você é um especialista em conteúdo viral para redes sociais. Analise a transcrição VTT abaixo e identifique os melhores momentos para clipes virais.
+  const userPrompt = `Você é um especialista em conteúdo viral para redes sociais. Analise a transcrição VTT abaixo e identifique os melhores momentos para clipes virais.
 
 INSTRUÇÕES:
 - Gere QUANTOS clipes forem necessários com base na qualidade do conteúdo (mínimo 1, máximo ${maxClips})
@@ -435,29 +423,17 @@ Retorne APENAS um JSON array, sem markdown, sem explicação adicional.
 TRANSCRIÇÃO VTT:
 ${vttContent}`;
 
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: "openai/gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content:
-            "Você é um especialista em conteúdo viral. Responda APENAS com JSON válido, sem markdown.",
-        },
-        { role: "user", content: prompt },
-      ],
-      temperature: 0.7,
-      max_tokens: 8000,
-    }),
+  const aiResult = await callAI({
+    functionName: "shotstack-webhook",
+    companyId: companyId || undefined,
+    systemPrompt:
+      "Você é um especialista em conteúdo viral. Responda APENAS com JSON válido, sem markdown.",
+    userPrompt,
+    maxTokens: 8000,
+    temperature: 0.7,
   });
 
-  const data = await response.json();
-  const content = data.choices?.[0]?.message?.content || "[]";
+  const content = aiResult.content;
 
   try {
     const cleaned = content
@@ -466,7 +442,7 @@ ${vttContent}`;
       .trim();
     return JSON.parse(cleaned);
   } catch (e) {
-    console.error("Failed to parse OpenAI response:", content);
+    console.error("Failed to parse AI response:", content);
     return [];
   }
 }

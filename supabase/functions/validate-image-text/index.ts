@@ -1,8 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI, callAIVision } from "../_shared/ai-gateway.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const openRouterApiKey = Deno.env.get("OPENROUTER_API_KEY")!;
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -13,78 +13,37 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-// Extract text from image using GPT-4 Vision
+// Extract text from image using AI Vision
 async function extractTextFromImage(imageUrl: string): Promise<string> {
   console.log("Extracting text from image:", imageUrl);
 
-  const response = await fetch(
-    "https://openrouter.ai/api/v1/chat/completions",
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${openRouterApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: `Extraia TODO o texto visível em português nesta imagem. 
+  const userPrompt = `Extraia TODO o texto visível em português nesta imagem.
                      Se não houver texto em português, responda "SEM_TEXTO".
                      Responda APENAS com o texto encontrado, sem explicações.
-                     Mantenha a formatação original (quebras de linha, etc).`,
-              },
-              {
-                type: "image_url",
-                image_url: { url: imageUrl },
-              },
-            ],
-          },
-        ],
-      }),
-    },
-  );
+                     Mantenha a formatação original (quebras de linha, etc).`;
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error("Error extracting text:", errorText);
-    throw new Error(`Failed to extract text: ${response.status}`);
-  }
+  const result = await callAIVision({
+    functionName: "validate-image-text",
+    systemPrompt: "",
+    userPrompt,
+    images: [imageUrl],
+  });
 
-  const data = await response.json();
-  const extractedText =
-    data.choices?.[0]?.message?.content?.trim() || "SEM_TEXTO";
+  const extractedText = result.content.trim() || "SEM_TEXTO";
   console.log("Extracted text:", extractedText.substring(0, 100) + "...");
 
   return extractedText;
 }
 
-// Validate text grammar using existing validate-text-grammar function
+// Validate text grammar using AI Gateway
 async function validateGrammar(
   text: string,
 ): Promise<{ hasErrors: boolean; correctedText: string; errors: string[] }> {
   console.log("Validating grammar for text:", text.substring(0, 100) + "...");
 
-  const response = await fetch(
-    "https://openrouter.ai/api/v1/chat/completions",
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${openRouterApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "system",
-            content: `Você é um revisor especializado em português brasileiro.
+  const systemPrompt = `Você é um revisor especializado em português brasileiro.
                     Analise o texto e identifique APENAS erros claros de ortografia e gramática.
-                    
+
                     IGNORAR:
                     - Estilo coloquial propositado
                     - Abreviações intencionais
@@ -92,38 +51,29 @@ async function validateGrammar(
                     - Uso criativo de linguagem em marketing
                     - Hashtags
                     - Emojis
-                    
+
                     REPORTAR:
                     - Erros de ortografia evidentes
                     - Concordância verbal/nominal incorreta
                     - Acentuação errada
                     - Palavras escritas incorretamente
-                    
+
                     Responda em JSON:
                     {
                       "hasErrors": boolean,
                       "correctedText": "texto corrigido ou original se não houver erros",
                       "errors": ["lista de erros encontrados com explicação breve"]
-                    }`,
-          },
-          {
-            role: "user",
-            content: `Verifique este texto:\n\n${text}`,
-          },
-        ],
-      }),
-    },
-  );
-
-  if (!response.ok) {
-    console.error("Grammar validation failed:", await response.text());
-    return { hasErrors: false, correctedText: text, errors: [] };
-  }
-
-  const data = await response.json();
-  const content = data.choices?.[0]?.message?.content || "";
+                    }`;
 
   try {
+    const result = await callAI({
+      functionName: "validate-image-text",
+      systemPrompt,
+      userPrompt: `Verifique este texto:\n\n${text}`,
+    });
+
+    const content = result.content;
+
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
@@ -134,7 +84,7 @@ async function validateGrammar(
       };
     }
   } catch (e) {
-    console.error("Failed to parse grammar validation response:", e);
+    console.error("Grammar validation failed:", e);
   }
 
   return { hasErrors: false, correctedText: text, errors: [] };

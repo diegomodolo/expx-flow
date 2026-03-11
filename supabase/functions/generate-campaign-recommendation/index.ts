@@ -1,6 +1,5 @@
 // Deno.serve is available natively in modern Deno
-
-const openAIApiKey = Deno.env.get("OPENAI_API_KEY");
+import { callAI } from "../_shared/ai-gateway.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin":
@@ -27,11 +26,6 @@ Deno.serve(async (req) => {
   }
 
   try {
-    if (!openAIApiKey) {
-      console.error("OpenAI API key not configured");
-      throw new Error("OpenAI API key not configured");
-    }
-
     const requestBody = await req.json();
     console.log("Received request body:", JSON.stringify(requestBody, null, 2));
 
@@ -149,31 +143,15 @@ Seja direto e prático. Exemplos: "Aumentar budget 20% por 3 dias", "Duplicar ca
 Responda APENAS com a recomendação, sem explicações adicionais.`;
     }
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${openAIApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "openai/gpt-4o-mini",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        max_tokens: 50,
-        temperature: 0.7,
-      }),
+    const aiResult = await callAI({
+      functionName: "generate-campaign-recommendation",
+      systemPrompt,
+      userPrompt,
+      maxTokens: 50,
+      temperature: 0.7,
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("OpenAI API error:", errorText);
-      throw new Error(`OpenAI API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const recommendation = data.choices[0].message.content.trim();
+    const recommendation = aiResult.content.trim();
 
     console.log("Generated recommendation:", recommendation);
 

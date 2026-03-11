@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { callAI } from "../_shared/ai-gateway.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin":
@@ -40,11 +41,6 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         },
       );
-    }
-
-    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
-    if (!OPENROUTER_API_KEY) {
-      throw new Error("OPENROUTER_API_KEY is not configured");
     }
 
     // Prepare content for validation
@@ -101,20 +97,9 @@ serve(async (req) => {
 
     console.log("Validating", contentToValidate.length, "text fields");
 
-    const response = await fetch(
-      "https://openrouter.ai/api/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages: [
-            {
-              role: "system",
-              content: `Você é um revisor de português profissional. Analise os textos fornecidos e identifique erros de ortografia, gramática ou concordância em português brasileiro.
+    const result = await callAI({
+      functionName: "validate-portuguese",
+      systemPrompt: `Você é um revisor de português profissional. Analise os textos fornecidos e identifique erros de ortografia, gramática ou concordância em português brasileiro.
 
 IMPORTANTE:
 - Analise CADA texto individualmente
@@ -134,47 +119,12 @@ Responda APENAS com um JSON válido no formato:
 }
 
 Se um texto não tem erros, coloque hasError: false e não inclua errorDetails.`,
-            },
-            {
-              role: "user",
-              content: `Analise os seguintes textos em português e identifique erros:\n\n${textsForPrompt}`,
-            },
-          ],
-          temperature: 0.1,
-        }),
-      },
-    );
+      userPrompt: `Analise os seguintes textos em português e identifique erros:\n\n${textsForPrompt}`,
+      temperature: 0.1,
+      responseFormat: { type: "json_object" },
+    });
 
-    if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({
-            error: "Rate limit exceeded. Please try again later.",
-          }),
-          {
-            status: 429,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          },
-        );
-      }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({
-            error: "Payment required. Please add funds to your workspace.",
-          }),
-          {
-            status: 402,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          },
-        );
-      }
-      const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
-      throw new Error("AI gateway error");
-    }
-
-    const aiResponse = await response.json();
-    const content = aiResponse.choices?.[0]?.message?.content || "";
+    const content = result.content;
 
     console.log("AI response:", content);
 

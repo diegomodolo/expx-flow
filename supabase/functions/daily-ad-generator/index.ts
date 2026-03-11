@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI } from "../_shared/ai-gateway.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin":
@@ -886,54 +887,34 @@ async function generateConceptAdsProgressive(
     .order("relevance_score", { ascending: false })
     .limit(count);
 
-  const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
-
   // STEP 1: Generate all text content in parallel
   const textPromises = Array.from({ length: count }, async (_, i) => {
     const insight = insights?.[i % (insights?.length || 1)];
     const conceptPrompt = buildConceptPrompt(client, insight);
 
     try {
-      const response = await fetch(
-        "https://openrouter.ai/api/v1/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
-            messages: [
-              {
-                role: "system",
-                content: `Você é um especialista em marketing digital e criação de anúncios para Facebook/Instagram. 
+      const result = await callAI({
+        functionName: "daily-ad-generator",
+        companyId: schedule?.company_id,
+        systemPrompt: `Você é um especialista em marketing digital e criação de anúncios para Facebook/Instagram.
 Gere anúncios criativos, persuasivos e que convertem.
 IMPORTANTE: O campo "call_to_action" DEVE ser um destes valores exatos: ${VALID_FACEBOOK_CTAS.join(", ")}
 Responda APENAS em JSON válido.`,
-              },
-              {
-                role: "user",
-                content: conceptPrompt,
-              },
-            ],
-          }),
-        },
-      );
+        userPrompt: conceptPrompt,
+        maxTokens: 1000,
+        temperature: 0.7,
+      });
 
-      if (response.ok) {
-        const data = await response.json();
-        const content = data.choices?.[0]?.message?.content;
-        const cleanJson = content.replace(/```json\n?|\n?```/g, "").trim();
-        const adContent = JSON.parse(cleanJson);
+      const content = result.content;
+      const cleanJson = content.replace(/```json\n?|\n?```/g, "").trim();
+      const adContent = JSON.parse(cleanJson);
 
-        adContent.call_to_action = normalizeCTA(adContent.call_to_action);
-        if (!adContent.body && adContent.primary_text) {
-          adContent.body = adContent.primary_text;
-        }
-
-        return { adContent, insight };
+      adContent.call_to_action = normalizeCTA(adContent.call_to_action);
+      if (!adContent.body && adContent.primary_text) {
+        adContent.body = adContent.primary_text;
       }
+
+      return { adContent, insight };
     } catch (error) {
       console.error(
         "[daily-ad-generator] Error generating concept text:",
@@ -1029,8 +1010,6 @@ async function generateIterationAdsProgressive(
     .order("ctr", { ascending: false })
     .limit(10);
 
-  const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
-
   if (!winnerAds || winnerAds.length === 0) {
     console.log(
       "[daily-ad-generator] No winner ads found, skipping iterations",
@@ -1044,46 +1023,28 @@ async function generateIterationAdsProgressive(
     const iterationPrompt = buildIterationPrompt(client, sourceAd);
 
     try {
-      const response = await fetch(
-        "https://openrouter.ai/api/v1/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
-            messages: [
-              {
-                role: "system",
-                content: `Você é um especialista em otimização de anúncios. 
+      const result = await callAI({
+        functionName: "daily-ad-generator",
+        companyId: schedule?.company_id,
+        systemPrompt: `Você é um especialista em otimização de anúncios.
 Crie variações de anúncios vencedores mantendo a essência mas testando novos ângulos.
 IMPORTANTE: O campo "call_to_action" DEVE ser um destes valores exatos: ${VALID_FACEBOOK_CTAS.join(", ")}
 Responda APENAS em JSON válido.`,
-              },
-              {
-                role: "user",
-                content: iterationPrompt,
-              },
-            ],
-          }),
-        },
-      );
+        userPrompt: iterationPrompt,
+        maxTokens: 1000,
+        temperature: 0.7,
+      });
 
-      if (response.ok) {
-        const data = await response.json();
-        const content = data.choices?.[0]?.message?.content;
-        const cleanJson = content.replace(/```json\n?|\n?```/g, "").trim();
-        const adContent = JSON.parse(cleanJson);
+      const content = result.content;
+      const cleanJson = content.replace(/```json\n?|\n?```/g, "").trim();
+      const adContent = JSON.parse(cleanJson);
 
-        adContent.call_to_action = normalizeCTA(adContent.call_to_action);
-        if (!adContent.body && adContent.primary_text) {
-          adContent.body = adContent.primary_text;
-        }
-
-        return { adContent, sourceAd };
+      adContent.call_to_action = normalizeCTA(adContent.call_to_action);
+      if (!adContent.body && adContent.primary_text) {
+        adContent.body = adContent.primary_text;
       }
+
+      return { adContent, sourceAd };
     } catch (error) {
       console.error(
         "[daily-ad-generator] Error generating iteration text:",
@@ -1160,8 +1121,6 @@ async function generateAICloneAdsProgressive(
   schedule: AdGenerationSchedule | null,
   onAdGenerated: (ad: unknown) => Promise<void>,
 ): Promise<number> {
-  const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
-
   console.log(
     "[daily-ad-generator] Generating",
     count,
@@ -1197,41 +1156,26 @@ Responda em JSON:
 }`;
 
     try {
-      const response = await fetch(
-        "https://openrouter.ai/api/v1/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
-            messages: [
-              {
-                role: "system",
-                content:
-                  "Você é um especialista em marketing. Responda APENAS em JSON válido.",
-              },
-              { role: "user", content: prompt },
-            ],
-          }),
-        },
-      );
+      const result = await callAI({
+        functionName: "daily-ad-generator",
+        companyId: schedule?.company_id,
+        systemPrompt:
+          "Você é um especialista em marketing. Responda APENAS em JSON válido.",
+        userPrompt: prompt,
+        maxTokens: 1000,
+        temperature: 0.7,
+      });
 
-      if (response.ok) {
-        const data = await response.json();
-        const content = data.choices?.[0]?.message?.content;
-        const cleanJson = content.replace(/```json\n?|\n?```/g, "").trim();
-        const adContent = JSON.parse(cleanJson);
+      const content = result.content;
+      const cleanJson = content.replace(/```json\n?|\n?```/g, "").trim();
+      const adContent = JSON.parse(cleanJson);
 
-        adContent.call_to_action = normalizeCTA(adContent.call_to_action);
-        if (!adContent.body && adContent.primary_text) {
-          adContent.body = adContent.primary_text;
-        }
-
-        return adContent;
+      adContent.call_to_action = normalizeCTA(adContent.call_to_action);
+      if (!adContent.body && adContent.primary_text) {
+        adContent.body = adContent.primary_text;
       }
+
+      return adContent;
     } catch (error) {
       console.error(
         "[daily-ad-generator] Error generating AI clone text:",
@@ -1395,7 +1339,6 @@ async function generateConceptAds(
     .limit(count);
 
   const ads: unknown[] = [];
-  const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
 
   for (let i = 0; i < count; i++) {
     const insight = insights?.[i % (insights?.length || 1)];
@@ -1403,82 +1346,57 @@ async function generateConceptAds(
     const conceptPrompt = buildConceptPrompt(client, insight);
 
     try {
-      const response = await fetch(
-        "https://openrouter.ai/api/v1/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
-            messages: [
-              {
-                role: "system",
-                content: `Você é um especialista em marketing digital e criação de anúncios para Facebook/Instagram. 
+      const result = await callAI({
+        functionName: "daily-ad-generator",
+        companyId: schedule?.company_id,
+        systemPrompt: `Você é um especialista em marketing digital e criação de anúncios para Facebook/Instagram.
 Gere anúncios criativos, persuasivos e que convertem.
 IMPORTANTE: O campo "call_to_action" DEVE ser um destes valores exatos: ${VALID_FACEBOOK_CTAS.join(", ")}
 Responda APENAS em JSON válido.`,
-              },
-              {
-                role: "user",
-                content: conceptPrompt,
-              },
-            ],
-          }),
-        },
-      );
+        userPrompt: conceptPrompt,
+        maxTokens: 1000,
+        temperature: 0.7,
+      });
 
-      if (response.ok) {
-        const data = await response.json();
-        const content = data.choices?.[0]?.message?.content;
+      const content = result.content;
 
-        try {
-          const cleanJson = content.replace(/```json\n?|\n?```/g, "").trim();
-          const adContent = JSON.parse(cleanJson);
+      try {
+        const cleanJson = content.replace(/```json\n?|\n?```/g, "").trim();
+        const adContent = JSON.parse(cleanJson);
 
-          // Normalize CTA
-          adContent.call_to_action = normalizeCTA(adContent.call_to_action);
+        // Normalize CTA
+        adContent.call_to_action = normalizeCTA(adContent.call_to_action);
 
-          // Ensure body content exists
-          if (!adContent.body && adContent.primary_text) {
-            adContent.body = adContent.primary_text;
-          }
-
-          // Generate creative image
-          const creativeImageUrl = await generateCreativeImage(
-            client,
-            adContent,
-            schedule,
-          );
-          if (creativeImageUrl) {
-            adContent.creative_image_url = creativeImageUrl;
-          }
-
-          ads.push({
-            type: "concept",
-            content: adContent,
-            concept_description:
-              adContent.concept_explanation ||
-              `Conceito baseado em pesquisa de mercado: ${insight?.topic || "análise geral"}`,
-            research_sources: insight ? [insight] : null,
-            quality_score: 80,
-          });
-        } catch (parseError) {
-          console.error(
-            "[daily-ad-generator] JSON parse error:",
-            parseError,
-            "Content:",
-            content,
-          );
+        // Ensure body content exists
+        if (!adContent.body && adContent.primary_text) {
+          adContent.body = adContent.primary_text;
         }
-      } else {
-        const errorText = await response.text();
+
+        // Generate creative image
+        const creativeImageUrl = await generateCreativeImage(
+          client,
+          adContent,
+          schedule,
+        );
+        if (creativeImageUrl) {
+          adContent.creative_image_url = creativeImageUrl;
+        }
+
+        ads.push({
+          type: "concept",
+          content: adContent,
+          concept_description:
+            adContent.concept_explanation ||
+            `Conceito baseado em pesquisa de mercado: ${insight?.topic || "análise geral"}`,
+          research_sources: insight ? [insight] : null,
+          quality_score: 80,
+        });
+      } catch (parseError) {
         console.error(
-          "[daily-ad-generator] AI response error:",
-          response.status,
-          errorText,
+          "[daily-ad-generator] JSON parse error:",
+          parseError,
+          "Content:",
+          content,
         );
       }
     } catch (error) {
@@ -1510,7 +1428,6 @@ async function generateIterationAds(
     .limit(10);
 
   const ads: unknown[] = [];
-  const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
 
   if (!winnerAds || winnerAds.length === 0) {
     console.log(
@@ -1525,69 +1442,51 @@ async function generateIterationAds(
     const iterationPrompt = buildIterationPrompt(client, sourceAd);
 
     try {
-      const response = await fetch(
-        "https://openrouter.ai/api/v1/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
-            messages: [
-              {
-                role: "system",
-                content: `Você é um especialista em otimização de anúncios. 
+      const result = await callAI({
+        functionName: "daily-ad-generator",
+        companyId: schedule?.company_id,
+        systemPrompt: `Você é um especialista em otimização de anúncios.
 Crie variações de anúncios vencedores mantendo a essência mas testando novos ângulos.
 IMPORTANTE: O campo "call_to_action" DEVE ser um destes valores exatos: ${VALID_FACEBOOK_CTAS.join(", ")}
 Responda APENAS em JSON válido.`,
-              },
-              {
-                role: "user",
-                content: iterationPrompt,
-              },
-            ],
-          }),
-        },
-      );
+        userPrompt: iterationPrompt,
+        maxTokens: 1000,
+        temperature: 0.7,
+      });
 
-      if (response.ok) {
-        const data = await response.json();
-        const content = data.choices?.[0]?.message?.content;
+      const content = result.content;
 
-        try {
-          const cleanJson = content.replace(/```json\n?|\n?```/g, "").trim();
-          const adContent = JSON.parse(cleanJson);
+      try {
+        const cleanJson = content.replace(/```json\n?|\n?```/g, "").trim();
+        const adContent = JSON.parse(cleanJson);
 
-          // Normalize CTA
-          adContent.call_to_action = normalizeCTA(adContent.call_to_action);
+        // Normalize CTA
+        adContent.call_to_action = normalizeCTA(adContent.call_to_action);
 
-          // Ensure body content exists
-          if (!adContent.body && adContent.primary_text) {
-            adContent.body = adContent.primary_text;
-          }
-
-          // Generate creative image
-          const creativeImageUrl = await generateCreativeImage(
-            client,
-            adContent,
-            schedule,
-          );
-          if (creativeImageUrl) {
-            adContent.creative_image_url = creativeImageUrl;
-          }
-
-          ads.push({
-            type: "iteration",
-            source_ad_id: sourceAd.ad_id,
-            content: adContent,
-            concept_description: `Iteração do anúncio vencedor: ${sourceAd.ad_name}. Variação: ${adContent.variation_type || "otimização"}`,
-            quality_score: 85,
-          });
-        } catch (parseError) {
-          console.error("[daily-ad-generator] JSON parse error:", parseError);
+        // Ensure body content exists
+        if (!adContent.body && adContent.primary_text) {
+          adContent.body = adContent.primary_text;
         }
+
+        // Generate creative image
+        const creativeImageUrl = await generateCreativeImage(
+          client,
+          adContent,
+          schedule,
+        );
+        if (creativeImageUrl) {
+          adContent.creative_image_url = creativeImageUrl;
+        }
+
+        ads.push({
+          type: "iteration",
+          source_ad_id: sourceAd.ad_id,
+          content: adContent,
+          concept_description: `Iteração do anúncio vencedor: ${sourceAd.ad_name}. Variação: ${adContent.variation_type || "otimização"}`,
+          quality_score: 85,
+        });
+      } catch (parseError) {
+        console.error("[daily-ad-generator] JSON parse error:", parseError);
       }
     } catch (error) {
       console.error("[daily-ad-generator] AI generation error:", error);
@@ -1603,8 +1502,6 @@ async function adaptCompetitorAd(
   client: ClientData,
   sourceAd: unknown,
 ): Promise<unknown> {
-  const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
-
   const prompt = `
 Adapte este anúncio do concorrente para o cliente:
 
@@ -1639,44 +1536,28 @@ Responda em JSON:
 }`;
 
   try {
-    const response = await fetch(
-      "https://openrouter.ai/api/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages: [
-            {
-              role: "system",
-              content:
-                "Você é um especialista em criação de anúncios. Responda APENAS em JSON válido.",
-            },
-            { role: "user", content: prompt },
-          ],
-        }),
-      },
-    );
+    const result = await callAI({
+      functionName: "daily-ad-generator",
+      systemPrompt:
+        "Você é um especialista em criação de anúncios. Responda APENAS em JSON válido.",
+      userPrompt: prompt,
+      maxTokens: 1000,
+      temperature: 0.7,
+    });
 
-    if (response.ok) {
-      const data = await response.json();
-      const content = data.choices?.[0]?.message?.content;
-      const cleanJson = content.replace(/```json\n?|\n?```/g, "").trim();
-      const adContent = JSON.parse(cleanJson);
+    const content = result.content;
+    const cleanJson = content.replace(/```json\n?|\n?```/g, "").trim();
+    const adContent = JSON.parse(cleanJson);
 
-      // Normalize CTA
-      adContent.call_to_action = normalizeCTA(adContent.call_to_action);
+    // Normalize CTA
+    adContent.call_to_action = normalizeCTA(adContent.call_to_action);
 
-      // Ensure body exists
-      if (!adContent.body && adContent.primary_text) {
-        adContent.body = adContent.primary_text;
-      }
-
-      return adContent;
+    // Ensure body exists
+    if (!adContent.body && adContent.primary_text) {
+      adContent.body = adContent.primary_text;
     }
+
+    return adContent;
   } catch (error) {
     console.error("[daily-ad-generator] Error adapting competitor ad:", error);
   }
@@ -1790,7 +1671,6 @@ async function generateAICloneAds(
   count: number,
   schedule: AdGenerationSchedule | null = null,
 ): Promise<unknown[]> {
-  const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
   const ads: unknown[] = [];
 
   for (let i = 0; i < count; i++) {
@@ -1821,59 +1701,44 @@ Responda em JSON:
 }`;
 
     try {
-      const response = await fetch(
-        "https://openrouter.ai/api/v1/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
-            messages: [
-              {
-                role: "system",
-                content:
-                  "Você é um especialista em marketing. Responda APENAS em JSON válido.",
-              },
-              { role: "user", content: prompt },
-            ],
-          }),
-        },
-      );
+      const result = await callAI({
+        functionName: "daily-ad-generator",
+        companyId: schedule?.company_id,
+        systemPrompt:
+          "Você é um especialista em marketing. Responda APENAS em JSON válido.",
+        userPrompt: prompt,
+        maxTokens: 1000,
+        temperature: 0.7,
+      });
 
-      if (response.ok) {
-        const data = await response.json();
-        const content = data.choices?.[0]?.message?.content;
-        const cleanJson = content.replace(/```json\n?|\n?```/g, "").trim();
-        const adContent = JSON.parse(cleanJson);
+      const content = result.content;
+      const cleanJson = content.replace(/```json\n?|\n?```/g, "").trim();
+      const adContent = JSON.parse(cleanJson);
 
-        // Normalize CTA
-        adContent.call_to_action = normalizeCTA(adContent.call_to_action);
+      // Normalize CTA
+      adContent.call_to_action = normalizeCTA(adContent.call_to_action);
 
-        // Ensure body exists
-        if (!adContent.body && adContent.primary_text) {
-          adContent.body = adContent.primary_text;
-        }
-
-        // Generate creative image
-        const creativeImageUrl = await generateCreativeImage(
-          client,
-          adContent,
-          schedule,
-        );
-        if (creativeImageUrl) {
-          adContent.creative_image_url = creativeImageUrl;
-        }
-
-        ads.push({
-          type: "clone",
-          content: adContent,
-          concept_description: `Clone baseado em estratégias de sucesso: ${adContent.inspired_by}`,
-          quality_score: 70,
-        });
+      // Ensure body exists
+      if (!adContent.body && adContent.primary_text) {
+        adContent.body = adContent.primary_text;
       }
+
+      // Generate creative image
+      const creativeImageUrl = await generateCreativeImage(
+        client,
+        adContent,
+        schedule,
+      );
+      if (creativeImageUrl) {
+        adContent.creative_image_url = creativeImageUrl;
+      }
+
+      ads.push({
+        type: "clone",
+        content: adContent,
+        concept_description: `Clone baseado em estratégias de sucesso: ${adContent.inspired_by}`,
+        quality_score: 70,
+      });
     } catch (error) {
       console.error("[daily-ad-generator] Error generating AI clone:", error);
     }
