@@ -1,8 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI } from "../_shared/ai-gateway.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const openAIApiKey = Deno.env.get("OPENAI_API_KEY")!;
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -18,10 +18,11 @@ async function generateScript(
   clientContext: string,
   referenceVideos: unknown[],
   durationTarget: number,
+  companyId: string,
 ): Promise<string> {
   const durationMinutes = Math.round(durationTarget / 60);
 
-  const prompt = `Crie um roteiro completo para vídeo do YouTube sobre "${topic}".
+  const userPrompt = `Crie um roteiro completo para vídeo do YouTube sobre "${topic}".
 
 CONTEXTO DO CLIENTE/CANAL:
 ${clientContext}
@@ -77,45 +78,25 @@ ESTRUTURA OBRIGATÓRIA DO ROTEIRO:
 
 Escreva o roteiro completo, detalhado e pronto para gravação. Use linguagem natural e envolvente.`;
 
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${openAIApiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "openai/gpt-4.1-mini-2025-04-14",
-      messages: [
-        {
-          role: "system",
-          content:
-            "Você é um roteirista profissional especializado em vídeos para YouTube. Crie roteiros envolventes, bem estruturados e otimizados para retenção de audiência. Use técnicas de storytelling e gatilhos de engajamento.",
-        },
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-      max_completion_tokens: 4000,
-      temperature: 0.7,
-    }),
+  const aiResult = await callAI({
+    functionName: "generate-video-script",
+    companyId,
+    systemPrompt:
+      "Você é um roteirista profissional especializado em vídeos para YouTube. Crie roteiros envolventes, bem estruturados e otimizados para retenção de audiência. Use técnicas de storytelling e gatilhos de engajamento.",
+    userPrompt,
+    maxTokens: 4000,
+    temperature: 0.7,
   });
 
-  if (!response.ok) {
-    const error = await response.json();
-    console.error("OpenAI error:", error);
-    throw new Error("Failed to generate script");
-  }
-
-  const data = await response.json();
-  return data.choices[0].message.content;
+  return aiResult.content;
 }
 
 async function generateTitles(
   topic: string,
   referenceVideos: unknown[],
+  companyId: string,
 ): Promise<string[]> {
-  const prompt = `Gere 5 títulos altamente engajantes para um vídeo do YouTube sobre: "${topic}"
+  const userPrompt = `Gere 5 títulos altamente engajantes para um vídeo do YouTube sobre: "${topic}"
 
 REFERÊNCIAS DE TÍTULOS DE SUCESSO:
 ${referenceVideos
@@ -138,38 +119,17 @@ IMPORTANTE:
 
 Retorne apenas os 5 títulos, um por linha, sem numeração.`;
 
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${openAIApiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "openai/gpt-4.1-mini-2025-04-14",
-      messages: [
-        {
-          role: "system",
-          content:
-            "Você é especialista em títulos virais para YouTube. Crie títulos que maximizam CTR e engajamento.",
-        },
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-      max_completion_tokens: 500,
-      temperature: 0.8,
-    }),
+  const aiResult = await callAI({
+    functionName: "generate-video-script",
+    companyId,
+    systemPrompt:
+      "Você é especialista em títulos virais para YouTube. Crie títulos que maximizam CTR e engajamento.",
+    userPrompt,
+    maxTokens: 500,
+    temperature: 0.8,
   });
 
-  if (!response.ok) {
-    const error = await response.json();
-    console.error("OpenAI error:", error);
-    throw new Error("Failed to generate titles");
-  }
-
-  const data = await response.json();
-  const titles = data.choices[0].message.content
+  const titles = aiResult.content
     .split("\n")
     .map((t: string) => t.trim())
     .filter((t: string) => t.length > 0);
@@ -227,18 +187,23 @@ Deno.serve(async (req) => {
 
     console.log("Using", referenceVideos.length, "reference videos");
 
-    // Generate script
+    // Generate script (first LLM call)
     const scriptContent = await generateScript(
       topic,
       clientContext || "Canal de conteúdo educativo e informativo",
       referenceVideos,
       durationTarget,
+      companyId,
     );
 
     console.log("Script generated, length:", scriptContent.length);
 
-    // Generate title suggestions
-    const suggestedTitles = await generateTitles(topic, referenceVideos);
+    // Generate title suggestions (second LLM call)
+    const suggestedTitles = await generateTitles(
+      topic,
+      referenceVideos,
+      companyId,
+    );
     console.log("Generated", suggestedTitles.length, "title suggestions");
 
     // Get reference thumbnails
