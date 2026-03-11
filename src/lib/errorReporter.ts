@@ -134,8 +134,34 @@ export function initErrorReporter() {
   // Intercept unhandled promise rejections
   window.addEventListener("unhandledrejection", (event) => {
     const error = event.reason;
-    const message = error instanceof Error ? error.message : String(error);
-    const stack = error instanceof Error ? error.stack || null : null;
+    let message: string;
+    let stack: string | null = null;
+
+    if (error instanceof Error) {
+      message = error.message;
+      stack = error.stack || null;
+    } else if (error !== null && typeof error === "object") {
+      // Handle non-Error objects like Supabase PostgrestError { message, code, details, hint }
+      const errObj = error as {
+        message?: string;
+        code?: string;
+        details?: string;
+      };
+      if (errObj.message) {
+        message = errObj.message;
+        if (errObj.code) message += ` (code: ${errObj.code})`;
+        if (errObj.details) message += ` — ${errObj.details}`;
+      } else {
+        try {
+          message = JSON.stringify(error);
+        } catch {
+          message = String(error);
+        }
+      }
+    } else {
+      message = String(error);
+    }
+
     queueError(message, stack);
   });
 
