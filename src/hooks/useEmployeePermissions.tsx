@@ -59,7 +59,8 @@ export type MenuItemType =
   | 'groupops'
   | 'youtube-content-lab'
   | 'squads-ia'
-  | 'parametros-performance';
+  | 'parametros-performance'
+  | 'reportes';
 
 export interface EmployeePermission {
   id: string;
@@ -178,7 +179,7 @@ export function useEmployeePermissions() {
           'cs-acoes', 'cs-clientes', 'cs-tv', 'agendamento', 'automatizadores', 'social-tv',
           'editor-imagens', 'planejador-conteudo', 'repositorio-criativos', 'alertas', 'tarefas-recorrentes',
           'workspace', 'automacoes', 'campanhas-unificadas', 'marketing-tv', 'keyword-planner', 'radar-tv',
-          'relatorios-marketing', 'skills-ia', 'editar-skills', 'roteiros', 'command-center'
+          'relatorios-marketing', 'skills-ia', 'editar-skills', 'roteiros', 'command-center', 'reportes'
         ];
         setCurrentUserPermissions(allPermissions);
         setPermissionsLoading(false);
