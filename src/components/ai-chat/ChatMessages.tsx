@@ -3,6 +3,7 @@ import { Bot, User, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import DOMPurify from "dompurify";
 
 interface Message {
   id: string;
@@ -115,7 +116,7 @@ export function ChatMessages({ messages, loading }: ChatMessagesProps) {
                   <div
                     className="prose prose-sm max-w-none text-current"
                     dangerouslySetInnerHTML={{
-                      __html: formatMessage(message.content)
+                      __html: DOMPurify.sanitize(formatMessage(message.content))
                     }}
                   />
                   <div className="text-xs opacity-70 mt-2">

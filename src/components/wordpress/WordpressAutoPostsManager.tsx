@@ -39,6 +39,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import DOMPurify from 'dompurify';
 import {
   useWordpressAutoPostConfigById,
   useWordpressAutoPostsByConfigId,
@@ -447,7 +448,7 @@ export function WordpressAutoPostsManager({ configId, companyId }: WordpressAuto
                     <ScrollArea className="h-32 border rounded-lg p-3">
                       <div
                         className="prose prose-sm max-w-none"
-                        dangerouslySetInnerHTML={{ __html: nextPost.content }}
+                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(nextPost.content) }}
                       />
                     </ScrollArea>
                     <div className="flex flex-wrap gap-2">
