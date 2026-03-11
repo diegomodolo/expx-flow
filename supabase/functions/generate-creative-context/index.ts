@@ -1,6 +1,5 @@
 // Deno.serve is available natively in modern Deno
-
-const openAIApiKey = Deno.env.get("OPENAI_API_KEY");
+import { callAI } from "../_shared/ai-gateway.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin":
@@ -95,33 +94,17 @@ Retorne EXATAMENTE neste formato JSON:
 
 Garanta que o JSON seja válido e todos os campos estejam preenchidos.`;
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${openAIApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "openai/gpt-4.1-mini-2025-04-14",
-        messages: [
-          {
-            role: "system",
-            content:
-              "Você é um especialista em marketing digital. Sempre responda em português brasileiro com JSON válido.",
-          },
-          { role: "user", content: prompt },
-        ],
-        temperature: 0.7,
-        max_tokens: 1500,
-      }),
+    const aiResult = await callAI({
+      functionName: "generate-creative-context",
+      systemPrompt:
+        "Você é um especialista em marketing digital. Sempre responda em português brasileiro com JSON válido.",
+      userPrompt: prompt,
+      temperature: 0.7,
+      maxTokens: 1500,
+      responseFormat: { type: "json_object" },
     });
 
-    if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const content = data.choices[0].message.content;
+    const content = aiResult.content;
 
     // Parse the JSON response - remove markdown code blocks if present
     let context;

@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { callAI } from "../_shared/ai-gateway.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin":
@@ -123,18 +124,6 @@ serve(async (req) => {
       );
     }
 
-    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
-    if (!OPENROUTER_API_KEY) {
-      console.error("OPENROUTER_API_KEY is not configured");
-      return new Response(
-        JSON.stringify({ error: "AI service not configured" }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
-      );
-    }
-
     // Handle analysis mode
     if (mode === "analyze") {
       console.log(
@@ -155,44 +144,21 @@ serve(async (req) => {
         })
         .join("\n");
 
-      const response = await fetch(
-        "https://openrouter.ai/api/v1/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "x-ai/grok-4.1-fast",
-            messages: [
-              { role: "system", content: systemPrompt },
-              {
-                role: "user",
-                content: `Analise esta conversa:\n\n${conversationText}`,
-              },
-            ],
-            stream: false,
-          }),
-        },
-      );
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(
-          "[whatsapp-ai-assistant] AI gateway error:",
-          response.status,
-          errorText,
-        );
-
+      let content: string;
+      try {
+        const analyzeResult = await callAI({
+          functionName: "whatsapp-ai-assistant",
+          systemPrompt,
+          userPrompt: `Analise esta conversa:\n\n${conversationText}`,
+        });
+        content = analyzeResult.content;
+      } catch (aiError) {
+        console.error("[whatsapp-ai-assistant] AI gateway error:", aiError);
         return new Response(JSON.stringify({ error: "AI service error" }), {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-
-      const data = await response.json();
-      const content = data.choices?.[0]?.message?.content || "";
 
       console.log("[whatsapp-ai-assistant] Analysis raw response:", content);
 
@@ -244,66 +210,18 @@ serve(async (req) => {
     }
 
     // Default chat mode
-    console.log("[whatsapp-ai-assistant] Sending request to OpenRouter AI");
+    console.log("[whatsapp-ai-assistant] Sending request to AI Gateway");
 
-    const response = await fetch(
-      "https://openrouter.ai/api/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "x-ai/grok-4.1-fast",
-          messages,
-          stream: false,
-        }),
-      },
-    );
+    const chatResult = await callAI({
+      functionName: "whatsapp-ai-assistant",
+      systemPrompt: "",
+      userPrompt: "",
+      messages,
+    });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(
-        "[whatsapp-ai-assistant] AI gateway error:",
-        response.status,
-        errorText,
-      );
-
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({
-            error: "Rate limit exceeded. Please try again later.",
-          }),
-          {
-            status: 429,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          },
-        );
-      }
-
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({
-            error: "AI credits exhausted. Please add credits to continue.",
-          }),
-          {
-            status: 402,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          },
-        );
-      }
-
-      return new Response(JSON.stringify({ error: "AI service error" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const data = await response.json();
     console.log("[whatsapp-ai-assistant] Response received successfully");
 
-    const content = data.choices?.[0]?.message?.content || "";
+    const content = chatResult.content;
 
     return new Response(JSON.stringify({ content }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

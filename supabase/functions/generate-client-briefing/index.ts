@@ -1,6 +1,7 @@
 // Deno.serve is available natively in modern Deno
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import FirecrawlApp from "https://esm.sh/@mendable/firecrawl-js@1.29.3";
+import { callAI } from "../_shared/ai-gateway.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin":
@@ -35,12 +36,11 @@ Deno.serve(async (req) => {
     );
 
     const firecrawlApiKey = Deno.env.get("FIRECRAWL_API_KEY");
-    const openaiApiKey = Deno.env.get("OPENAI_API_KEY");
 
-    if (!firecrawlApiKey || !openaiApiKey) {
+    if (!firecrawlApiKey) {
       return new Response(
         JSON.stringify({
-          error: "Chaves da API Firecrawl ou OpenAI não configuradas",
+          error: "Chave da API Firecrawl não configurada",
         }),
         {
           status: 500,
@@ -192,8 +192,8 @@ Deno.serve(async (req) => {
       "Website analisado com sucesso, iniciando geração do briefing...",
     );
 
-    // Step 2: Generate briefing with OpenAI
-    const prompt = `Você é um especialista em marketing digital e análise de negócios. Analise completamente o conteúdo do website fornecido e gere um briefing detalhado para criar campanhas de tráfego pago eficazes.
+    // Step 2: Generate briefing with AI
+    const prompt = `Analise completamente o conteúdo do website fornecido e gere um briefing detalhado para criar campanhas de tráfego pago eficazes.
 
 CONTEÚDO DO WEBSITE:
 ${websiteContent}
@@ -225,11 +225,11 @@ Gere um briefing completo seguindo esta estrutura exata em markdown:
 1. **Facebook/Instagram Ads**
    - Justificativa
    - Tipos de campanha recomendados
-   
+
 2. **Google Ads**
    - Justificativa
    - Tipos de campanha recomendados
-   
+
 3. **Outras plataformas** (se aplicável)
 
 ### Objetivos de Campanha
@@ -294,47 +294,16 @@ Gere um briefing completo seguindo esta estrutura exata em markdown:
 
 Seja específico, prático e focado em resultados. Use dados e insights do website para fundamentar suas recomendações.`;
 
-    const openaiResponse = await fetch(
-      "https://api.openai.com/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${openaiApiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "openai/gpt-4o",
-          messages: [
-            {
-              role: "system",
-              content:
-                "Você é um especialista em marketing digital com mais de 10 anos de experiência em tráfego pago. Seja preciso, estratégico e prático nas suas análises.",
-            },
-            {
-              role: "user",
-              content: prompt,
-            },
-          ],
-          temperature: 0.7,
-          max_tokens: 4000,
-        }),
-      },
-    );
+    const aiResult = await callAI({
+      functionName: "generate-client-briefing",
+      systemPrompt:
+        "Você é um especialista em marketing digital com mais de 10 anos de experiência em tráfego pago. Seja preciso, estratégico e prático nas suas análises.",
+      userPrompt: prompt,
+      temperature: 0.7,
+      maxTokens: 4000,
+    });
 
-    if (!openaiResponse.ok) {
-      const errorData = await openaiResponse.text();
-      console.error("Erro na OpenAI:", errorData);
-      return new Response(
-        JSON.stringify({ error: "Erro ao gerar briefing com IA" }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
-      );
-    }
-
-    const openaiData = await openaiResponse.json();
-    const briefing = openaiData.choices[0].message.content;
+    const briefing = aiResult.content;
 
     console.log("Briefing gerado com sucesso, salvando no banco...");
 

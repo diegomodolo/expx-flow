@@ -1,6 +1,5 @@
 // Deno.serve is available natively in modern Deno
-
-const openAIApiKey = Deno.env.get("OPENAI_API_KEY");
+import { callAI } from "../_shared/ai-gateway.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin":
@@ -109,32 +108,17 @@ Para cada variação, defina também:
 Seja específico e baseie-se apenas nos dados fornecidos. Se alguma informação não estiver disponível, mencione isso na análise.
 `;
 
-      const response = await fetch(
-        "https://api.openai.com/v1/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${openAIApiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "openai/gpt-4o",
-            messages: [
-              {
-                role: "system",
-                content:
-                  "Você é um especialista em análise competitiva. Retorne sempre um JSON válido com a estrutura solicitada.",
-              },
-              { role: "user", content: singleCompetitorPrompt },
-            ],
-            max_tokens: 3000,
-            temperature: 0.3,
-          }),
-        },
-      );
+      const aiResult = await callAI({
+        functionName: "analyze-competitor-insights",
+        systemPrompt:
+          "Você é um especialista em análise competitiva. Retorne sempre um JSON válido com a estrutura solicitada.",
+        userPrompt: singleCompetitorPrompt,
+        maxTokens: 3000,
+        temperature: 0.3,
+        responseFormat: { type: "json_object" },
+      });
 
-      const data = await response.json();
-      let analysisText = data.choices[0].message.content;
+      let analysisText = aiResult.content;
 
       // Clean markdown formatting if present
       if (analysisText.includes("```json")) {
@@ -320,29 +304,16 @@ Seja específico, tactical e baseie-se em dados. Use frameworks comprovados como
 Formate em markdown para melhor legibilidade.
 `;
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${openAIApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "openai/gpt-4o",
-        messages: [
-          {
-            role: "system",
-            content:
-              "Você é um especialista em análise competitiva de tráfego pago e inteligência de mercado digital. Seja específico, tático e baseado em dados reais observados.",
-          },
-          { role: "user", content: prompt },
-        ],
-        max_tokens: 4000,
-        temperature: 0.7,
-      }),
+    const multiResult = await callAI({
+      functionName: "analyze-competitor-insights",
+      systemPrompt:
+        "Você é um especialista em análise competitiva de tráfego pago e inteligência de mercado digital. Seja específico, tático e baseado em dados reais observados.",
+      userPrompt: prompt,
+      maxTokens: 4000,
+      temperature: 0.7,
     });
 
-    const data = await response.json();
-    const analysis = data.choices[0].message.content;
+    const analysis = multiResult.content;
 
     console.log("Generated competitive analysis successfully");
 

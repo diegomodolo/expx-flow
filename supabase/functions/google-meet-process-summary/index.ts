@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI } from "../_shared/ai-gateway.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin":
@@ -47,11 +48,10 @@ serve(async (req) => {
       meeting.raw_transcript.length,
     );
 
-    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
-    if (!OPENROUTER_API_KEY)
-      throw new Error("OPENROUTER_API_KEY not configured");
-
-    const systemPrompt = `Você é um assistente especializado em analisar transcrições de reuniões de negócios. 
+    // Call AI for summary
+    const summaryResult = await callAI({
+      functionName: "google-meet-process-summary",
+      systemPrompt: `Você é um assistente especializado em analisar transcrições de reuniões de negócios.
 Analise a transcrição fornecida e extraia as seguintes informações de forma estruturada:
 
 1. **Resumo Executivo**: Um resumo conciso dos principais pontos discutidos (máximo 300 palavras)
@@ -59,51 +59,21 @@ Analise a transcrição fornecida e extraia as seguintes informações de forma 
 3. **Próximos Passos**: Liste os próximos passos acordados, com responsáveis quando mencionados
 4. **Tarefas Sugeridas**: Liste tarefas específicas que podem ser criadas a partir da reunião
 
-Responda em português brasileiro. Seja objetivo e profissional.`;
+Responda em português brasileiro. Seja objetivo e profissional.`,
+      userPrompt: `Aqui está a transcrição da reunião "${meeting.title}":\n\n${meeting.raw_transcript}`,
+    });
 
-    const userPrompt = `Aqui está a transcrição da reunião "${meeting.title}":\n\n${meeting.raw_transcript}`;
-
-    // Call AI for summary
-    const aiResponse = await fetch(
-      "https://openrouter.ai/api/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userPrompt },
-          ],
-        }),
-      },
-    );
-
-    if (!aiResponse.ok) {
-      const errText = await aiResponse.text();
-      console.error("AI gateway error:", aiResponse.status, errText);
-      if (aiResponse.status === 429)
-        throw new Error("Rate limit exceeded. Try again later.");
-      if (aiResponse.status === 402)
-        throw new Error("AI credits exhausted. Please add credits.");
-      throw new Error("AI processing failed");
-    }
-
-    const aiData = await aiResponse.json();
-    const aiSummary = aiData.choices?.[0]?.message?.content || "";
+    const aiSummary = summaryResult.content;
 
     console.log("AI summary generated, length:", aiSummary.length);
 
-    // Extract action items using tool calling
+    // Extract action items using tool calling (kept as raw fetch — uses tools/tool_choice not supported by callAI)
     const actionItemsResponse = await fetch(
       "https://openrouter.ai/api/v1/chat/completions",
       {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+          Authorization: `Bearer ${Deno.env.get("OPENROUTER_API_KEY")}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
