@@ -1,14 +1,15 @@
-import React, { useRef, useState, useCallback, useEffect } from 'react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { EditorHeader } from './EditorHeader';
-import { EditorToolbar } from './EditorToolbar';
-import { EditorCanvas } from './EditorCanvas';
-import { EditorAIChat } from './EditorAIChat';
-import { useImageEditor } from './hooks/useImageEditor';
-import { exportAndUpload, downloadCanvas } from './utils/canvasExport';
-import { detectOrientationFromUrl } from './utils/detectOrientation';
-import { toast } from '@/hooks/use-toast';
-import { Orientation, ORIENTATIONS } from './OrientationSelector';
+import React, { useRef, useState, useCallback, useEffect } from "react";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import { EditorHeader } from "./EditorHeader";
+import { EditorToolbar } from "./EditorToolbar";
+import { EditorCanvas } from "./EditorCanvas";
+import { EditorAIChat } from "./EditorAIChat";
+import { useImageEditor } from "./hooks/useImageEditor";
+import { exportAndUpload, downloadCanvas } from "./utils/canvasExport";
+import { detectOrientationFromUrl } from "./utils/detectOrientation";
+import { toast } from "@/hooks/use-toast";
+import { Orientation, ORIENTATIONS } from "./OrientationSelector";
 
 interface ImageEditorModalProps {
   open: boolean;
@@ -60,18 +61,20 @@ export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
       // Só detecta se for uma imagem diferente da última detectada
       if (detectedOrientationRef.current !== imageUrl) {
         detectedOrientationRef.current = imageUrl;
-        
+
         detectOrientationFromUrl(imageUrl).then((detectedOrientation) => {
-          console.log('Detected orientation:', detectedOrientation.id, detectedOrientation.ratio);
           setOrientation(detectedOrientation.id);
         });
       }
     }
   }, [open, images, setOrientation]);
 
-  const handleOrientationChange = useCallback((orientation: Orientation) => {
-    setOrientation(orientation.id);
-  }, [setOrientation]);
+  const handleOrientationChange = useCallback(
+    (orientation: Orientation) => {
+      setOrientation(orientation.id);
+    },
+    [setOrientation],
+  );
 
   const handleExport = useCallback(async () => {
     if (!canvasRef.current) return;
@@ -80,15 +83,15 @@ export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
     try {
       await downloadCanvas(canvasRef.current, `creative-${Date.now()}.png`);
       toast({
-        title: 'Download concluído',
-        description: 'A imagem foi baixada com sucesso.',
+        title: "Download concluído",
+        description: "A imagem foi baixada com sucesso.",
       });
     } catch (error) {
-      console.error('Export error:', error);
+      console.error("Export error:", error);
       toast({
-        title: 'Erro no download',
-        description: 'Não foi possível baixar a imagem.',
-        variant: 'destructive',
+        title: "Erro no download",
+        description: "Não foi possível baixar a imagem.",
+        variant: "destructive",
       });
     } finally {
       setIsExporting(false);
@@ -120,45 +123,60 @@ export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
 
       onSave(exportedUrls);
       toast({
-        title: 'Imagem salva',
-        description: 'O criativo foi atualizado com sucesso.',
+        title: "Imagem salva",
+        description: "O criativo foi atualizado com sucesso.",
       });
       onOpenChange(false);
     } catch (error) {
-      console.error('Finalize error:', error);
+      console.error("Finalize error:", error);
       toast({
-        title: 'Erro ao salvar',
-        description: 'Não foi possível salvar a imagem.',
-        variant: 'destructive',
+        title: "Erro ao salvar",
+        description: "Não foi possível salvar a imagem.",
+        variant: "destructive",
       });
     } finally {
       setIsFinalizing(false);
     }
-  }, [state.images, state.elements, state.currentImageIndex, onSave, onOpenChange]);
+  }, [
+    state.images,
+    state.elements,
+    state.currentImageIndex,
+    onSave,
+    onOpenChange,
+  ]);
 
-  const handleSendMessage = useCallback((content: string, imageUrl?: string) => {
-    addAIMessage({
-      role: 'user',
-      content,
-      imageUrl,
-    });
-  }, [addAIMessage]);
+  const handleSendMessage = useCallback(
+    (content: string, imageUrl?: string) => {
+      addAIMessage({
+        role: "user",
+        content,
+        imageUrl,
+      });
+    },
+    [addAIMessage],
+  );
 
-  const handleImageGenerated = useCallback((newImageUrl: string) => {
-    updateImage(state.currentImageIndex, newImageUrl);
-    addAIMessage({
-      role: 'assistant',
-      content: 'Imagem atualizada!',
-      imageUrl: newImageUrl,
-    });
-  }, [state.currentImageIndex, updateImage, addAIMessage]);
+  const handleImageGenerated = useCallback(
+    (newImageUrl: string) => {
+      updateImage(state.currentImageIndex, newImageUrl);
+      addAIMessage({
+        role: "assistant",
+        content: "Imagem atualizada!",
+        imageUrl: newImageUrl,
+      });
+    },
+    [state.currentImageIndex, updateImage, addAIMessage],
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent 
+      <DialogContent
         className="max-w-[95vw] w-[95vw] max-h-[95vh] h-[95vh] p-0 gap-0 flex flex-col overflow-hidden"
         hideCloseButton
       >
+        <VisuallyHidden>
+          <DialogTitle>Editor de imagem</DialogTitle>
+        </VisuallyHidden>
         <EditorHeader
           onClose={() => onOpenChange(false)}
           onExport={handleExport}
@@ -174,7 +192,11 @@ export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
             onRedo={redo}
             canUndo={canUndo}
             canRedo={canRedo}
-            selectedElement={getCurrentElements().find(el => el.id === state.selectedElementId) || null}
+            selectedElement={
+              getCurrentElements().find(
+                (el) => el.id === state.selectedElementId,
+              ) || null
+            }
             onUpdateElement={updateElement}
             companyId={companyId}
             orientation={state.orientation}

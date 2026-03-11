@@ -1,7 +1,10 @@
 import { useState, useMemo } from "react";
 import { SearchableClientSelect } from "@/components/ui/searchable-client-select";
 import { useNavigate } from "react-router-dom";
-import { ContentPresentation, usePresentations } from "@/hooks/usePresentations";
+import {
+  ContentPresentation,
+  usePresentations,
+} from "@/hooks/usePresentations";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -13,13 +16,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { 
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -37,17 +40,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { 
-  Calendar, 
-  Eye, 
-  Link2, 
-  MoreVertical, 
-  Pencil, 
-  Trash2, 
+import {
+  Calendar,
+  Eye,
+  Link2,
+  MoreVertical,
+  Pencil,
+  Trash2,
   Upload,
   Loader2,
   Search,
-  Presentation
+  Presentation,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -64,8 +67,18 @@ interface PresentationListProps {
 }
 
 const MONTH_NAMES = [
-  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+  "Janeiro",
+  "Fevereiro",
+  "Março",
+  "Abril",
+  "Maio",
+  "Junho",
+  "Julho",
+  "Agosto",
+  "Setembro",
+  "Outubro",
+  "Novembro",
+  "Dezembro",
 ];
 
 const statusConfig = {
@@ -74,13 +87,17 @@ const statusConfig = {
   published: { label: "Publicado", variant: "default" as const },
 };
 
-export function PresentationList({ presentations, isLoading, onEdit }: PresentationListProps) {
+export function PresentationList({
+  presentations,
+  isLoading,
+  onEdit,
+}: PresentationListProps) {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { deletePresentation, publishPresentation } = usePresentations();
   const { teams } = useTeams();
   const { clients } = useClients();
-  
+
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -91,21 +108,24 @@ export function PresentationList({ presentations, isLoading, onEdit }: Presentat
   // Get unique clients that have presentations
   const clientsWithPresentations = useMemo(() => {
     if (!presentations || !clients) return [];
-    const clientIds = new Set(presentations.map(p => p.client_id));
-    return clients.filter(c => clientIds.has(c.id));
+    const clientIds = new Set(presentations.map((p) => p.client_id));
+    return clients.filter((c) => clientIds.has(c.id));
   }, [presentations, clients]);
 
   // Generate unique month/year options from presentations
   const dateOptions = useMemo(() => {
     if (!presentations) return [];
-    const uniqueDates = new Map<string, { month: number; year: number; label: string }>();
-    presentations.forEach(p => {
+    const uniqueDates = new Map<
+      string,
+      { month: number; year: number; label: string }
+    >();
+    presentations.forEach((p) => {
       const key = `${p.year}-${p.month}`;
       if (!uniqueDates.has(key)) {
         uniqueDates.set(key, {
           month: p.month,
           year: p.year,
-          label: `${MONTH_NAMES[p.month - 1]} ${p.year}`
+          label: `${MONTH_NAMES[p.month - 1]} ${p.year}`,
         });
       }
     });
@@ -117,32 +137,55 @@ export function PresentationList({ presentations, isLoading, onEdit }: Presentat
 
   const filteredPresentations = useMemo(() => {
     if (!presentations) return [];
-    
+
     return presentations.filter((presentation) => {
       const matchesSearch =
         presentation.name.toLowerCase().includes(search.toLowerCase()) ||
-        presentation.clients?.name?.toLowerCase().includes(search.toLowerCase()) ||
-        presentation.clients?.company?.toLowerCase().includes(search.toLowerCase());
+        presentation.clients?.name
+          ?.toLowerCase()
+          .includes(search.toLowerCase()) ||
+        presentation.clients?.company
+          ?.toLowerCase()
+          .includes(search.toLowerCase());
 
-      const matchesStatus = statusFilter === "all" || presentation.status === statusFilter;
-      
-      const matchesSquad = squadFilter === "all" || (() => {
-        if (squadFilter === "none") {
-          return !presentation.clients?.team_id;
-        }
-        return presentation.clients?.team_id === squadFilter;
-      })();
-      
-      const matchesClient = clientFilter === "all" || presentation.client_id === clientFilter;
-      
-      const matchesDate = dateFilter === "all" || (() => {
-        const [year, month] = dateFilter.split("-").map(Number);
-        return presentation.year === year && presentation.month === month;
-      })();
+      const matchesStatus =
+        statusFilter === "all" || presentation.status === statusFilter;
 
-      return matchesSearch && matchesStatus && matchesSquad && matchesClient && matchesDate;
+      const matchesSquad =
+        squadFilter === "all" ||
+        (() => {
+          if (squadFilter === "none") {
+            return !presentation.clients?.team_id;
+          }
+          return presentation.clients?.team_id === squadFilter;
+        })();
+
+      const matchesClient =
+        clientFilter === "all" || presentation.client_id === clientFilter;
+
+      const matchesDate =
+        dateFilter === "all" ||
+        (() => {
+          const [year, month] = dateFilter.split("-").map(Number);
+          return presentation.year === year && presentation.month === month;
+        })();
+
+      return (
+        matchesSearch &&
+        matchesStatus &&
+        matchesSquad &&
+        matchesClient &&
+        matchesDate
+      );
     });
-  }, [presentations, search, statusFilter, squadFilter, clientFilter, dateFilter]);
+  }, [
+    presentations,
+    search,
+    statusFilter,
+    squadFilter,
+    clientFilter,
+    dateFilter,
+  ]);
 
   const handleCopyLink = (token: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -150,7 +193,8 @@ export function PresentationList({ presentations, isLoading, onEdit }: Presentat
     navigator.clipboard.writeText(url);
     toast({
       title: "Link copiado!",
-      description: "O link da apresentação foi copiado para a área de transferência.",
+      description:
+        "O link da apresentação foi copiado para a área de transferência.",
     });
   };
 
@@ -200,7 +244,7 @@ export function PresentationList({ presentations, isLoading, onEdit }: Presentat
             className="pl-10"
           />
         </div>
-        
+
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-[160px]">
             <SelectValue placeholder="Status" />
@@ -229,7 +273,10 @@ export function PresentationList({ presentations, isLoading, onEdit }: Presentat
         </Select>
 
         <SearchableClientSelect
-          clients={clientsWithPresentations.map(c => ({ id: c.id, name: c.name }))}
+          clients={clientsWithPresentations.map((c) => ({
+            id: c.id,
+            name: c.name,
+          }))}
           value={clientFilter}
           onValueChange={setClientFilter}
           allLabel="Todos os clientes"
@@ -244,7 +291,10 @@ export function PresentationList({ presentations, isLoading, onEdit }: Presentat
           <SelectContent>
             <SelectItem value="all">Todas as datas</SelectItem>
             {dateOptions.map((option) => (
-              <SelectItem key={`${option.year}-${option.month}`} value={`${option.year}-${option.month}`}>
+              <SelectItem
+                key={`${option.year}-${option.month}`}
+                value={`${option.year}-${option.month}`}
+              >
                 {option.label}
               </SelectItem>
             ))}
@@ -273,14 +323,20 @@ export function PresentationList({ presentations, isLoading, onEdit }: Presentat
                 <TableRow
                   key={presentation.id}
                   className="cursor-pointer"
-                  onClick={() => navigate(`/geradores/apresentacoes/${presentation.id}`)}
+                  onClick={() =>
+                    navigate(`/geradores/apresentacoes/${presentation.id}`)
+                  }
                 >
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src={presentation.clients?.avatar || undefined} />
+                        <AvatarImage
+                          src={presentation.clients?.avatar || undefined}
+                        />
                         <AvatarFallback className="text-xs bg-primary/10 text-primary">
-                          {presentation.clients?.name?.substring(0, 2).toUpperCase() || "CL"}
+                          {presentation.clients?.name
+                            ?.substring(0, 2)
+                            .toUpperCase() || "CL"}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex flex-col">
@@ -335,45 +391,69 @@ export function PresentationList({ presentations, isLoading, onEdit }: Presentat
                   </TableCell>
                   <TableCell>
                     <span className="text-muted-foreground text-sm">
-                      {format(new Date(presentation.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                      {format(new Date(presentation.created_at), "dd/MM/yyyy", {
+                        locale: ptBR,
+                      })}
                     </span>
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
-                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <DropdownMenuTrigger
+                        asChild
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Button
+                          aria-label="Ação"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                        >
                           <MoreVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                        <DropdownMenuItem onClick={() => onEdit(presentation.id)}>
+                      <DropdownMenuContent
+                        align="end"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <DropdownMenuItem
+                          onClick={() => onEdit(presentation.id)}
+                        >
                           <Pencil className="h-4 w-4 mr-2" />
                           Editar
                         </DropdownMenuItem>
-                        {presentation.status !== 'published' && (
-                          <DropdownMenuItem onClick={(e) => handlePublish(presentation.id, e)}>
+                        {presentation.status !== "published" && (
+                          <DropdownMenuItem
+                            onClick={(e) => handlePublish(presentation.id, e)}
+                          >
                             <Upload className="h-4 w-4 mr-2" />
                             Publicar
                           </DropdownMenuItem>
                         )}
                         {presentation.public_token && (
-                          <DropdownMenuItem onClick={(e) => handleCopyLink(presentation.public_token!, e)}>
+                          <DropdownMenuItem
+                            onClick={(e) =>
+                              handleCopyLink(presentation.public_token!, e)
+                            }
+                          >
                             <Link2 className="h-4 w-4 mr-2" />
                             Copiar Link
                           </DropdownMenuItem>
                         )}
                         {presentation.public_token && (
-                          <DropdownMenuItem 
+                          <DropdownMenuItem
                             onClick={(e) => {
                               e.stopPropagation();
-                              window.open(`/apresentacao/${presentation.public_token}`, '_blank');
+                              window.open(
+                                `/apresentacao/${presentation.public_token}`,
+                                "_blank",
+                              );
                             }}
                           >
                             <Eye className="h-4 w-4 mr-2" />
                             Visualizar
                           </DropdownMenuItem>
                         )}
-                        <DropdownMenuItem 
+                        <DropdownMenuItem
                           className="text-destructive"
                           onClick={(e) => {
                             e.stopPropagation();
@@ -398,7 +478,9 @@ export function PresentationList({ presentations, isLoading, onEdit }: Presentat
               <Presentation className="w-8 h-8 text-muted-foreground" />
             </div>
             <h3 className="text-lg font-semibold mb-2">
-              {presentations.length === 0 ? "Nenhuma apresentação" : "Nenhum resultado encontrado"}
+              {presentations.length === 0
+                ? "Nenhuma apresentação"
+                : "Nenhum resultado encontrado"}
             </h3>
             <p className="text-muted-foreground mb-4 max-w-sm">
               {presentations.length === 0
@@ -414,12 +496,13 @@ export function PresentationList({ presentations, isLoading, onEdit }: Presentat
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir apresentação?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação não pode ser desfeita. Todos os criativos e mídias serão permanentemente excluídos.
+              Esta ação não pode ser desfeita. Todos os criativos e mídias serão
+              permanentemente excluídos.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={handleDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >

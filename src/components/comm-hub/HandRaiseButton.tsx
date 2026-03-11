@@ -1,12 +1,17 @@
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Hand } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Hand } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface HandRaiseButtonProps {
   channelId: string | null;
@@ -17,14 +22,14 @@ export function HandRaiseButton({ channelId }: HandRaiseButtonProps) {
   const queryClient = useQueryClient();
 
   const { data: raises = [] } = useQuery({
-    queryKey: ['hand-raises', channelId],
+    queryKey: ["hand-raises", channelId],
     queryFn: async () => {
       if (!channelId) return [];
       const { data, error } = await supabase
-        .from('channel_hand_raises' as unknown)
-        .select('*')
-        .eq('channel_id', channelId)
-        .is('dismissed_at', null);
+        .from("channel_hand_raises" as unknown)
+        .select("*")
+        .eq("channel_id", channelId)
+        .is("dismissed_at", null);
       if (error) throw error;
       return data as unknown[];
     },
@@ -40,33 +45,34 @@ export function HandRaiseButton({ channelId }: HandRaiseButtonProps) {
 
       if (myHandRaised) {
         await supabase
-          .from('channel_hand_raises' as unknown)
+          .from("channel_hand_raises" as unknown)
           .delete()
-          .eq('channel_id', channelId)
-          .eq('user_id', user.id);
+          .eq("channel_id", channelId)
+          .eq("user_id", user.id);
       } else {
         const profileRes = await supabase
-          .from('profiles')
-          .select('full_name')
-          .eq('user_id', user.id)
+          .from("profiles")
+          .select("full_name")
+          .eq("user_id", user.id)
           .single();
 
-        await supabase
-          .from('channel_hand_raises' as unknown)
-          .upsert({
+        await supabase.from("channel_hand_raises" as unknown).upsert(
+          {
             channel_id: channelId,
             user_id: user.id,
-            user_name: profileRes.data?.full_name || 'Usuário',
+            user_name: profileRes.data?.full_name || "Usuário",
             raised_at: new Date().toISOString(),
             dismissed_at: null,
-          }, { onConflict: 'channel_id,user_id' });
+          },
+          { onConflict: "channel_id,user_id" },
+        );
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['hand-raises', channelId] });
-      toast.success(myHandRaised ? 'Mão abaixada' : '✋ Mão levantada!');
+      queryClient.invalidateQueries({ queryKey: ["hand-raises", channelId] });
+      toast.success(myHandRaised ? "Mão abaixada" : "✋ Mão levantada!");
     },
-    onError: () => toast.error('Erro ao levantar mão'),
+    onError: () => toast.error("Erro ao levantar mão"),
   });
 
   const otherRaises = raises.filter((r: unknown) => r.user_id !== user?.id);
@@ -77,9 +83,13 @@ export function HandRaiseButton({ channelId }: HandRaiseButtonProps) {
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
-              variant={myHandRaised ? 'default' : 'ghost'}
+              aria-label="Fechar"
+              variant={myHandRaised ? "default" : "ghost"}
               size="icon"
-              className={cn('h-8 w-8 relative', myHandRaised && 'animate-pulse')}
+              className={cn(
+                "h-8 w-8 relative",
+                myHandRaised && "animate-pulse",
+              )}
               onClick={() => toggleHand.mutate()}
               disabled={!channelId}
             >
@@ -92,10 +102,11 @@ export function HandRaiseButton({ channelId }: HandRaiseButtonProps) {
             </Button>
           </TooltipTrigger>
           <TooltipContent>
-            {myHandRaised ? 'Abaixar mão' : 'Levantar mão'}
+            {myHandRaised ? "Abaixar mão" : "Levantar mão"}
             {otherRaises.length > 0 && (
               <div className="mt-1 text-xs">
-                {otherRaises.map((r: unknown) => r.user_name).join(', ')} levantou a mão
+                {otherRaises.map((r: unknown) => r.user_name).join(", ")}{" "}
+                levantou a mão
               </div>
             )}
           </TooltipContent>

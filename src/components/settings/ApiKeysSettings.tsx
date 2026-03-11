@@ -1,13 +1,44 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/CompanyContext";
@@ -37,25 +68,26 @@ export const ApiKeysSettings = () => {
   const companyId = activeCompany?.company_id;
 
   const { data: apiKeys, isLoading } = useQuery({
-    queryKey: ['api-keys', companyId],
+    queryKey: ["api-keys", companyId],
     queryFn: async () => {
       if (!companyId) return [];
-      
+
       const { data, error } = await supabase
-        .from('company_api_keys')
-        .select('*')
-        .eq('company_id', companyId)
-        .order('created_at', { ascending: false });
-      
+        .from("company_api_keys")
+        .select("*")
+        .eq("company_id", companyId)
+        .order("created_at", { ascending: false });
+
       if (error) throw error;
       return data as ApiKey[];
     },
-    enabled: !!companyId
+    enabled: !!companyId,
   });
 
   const generateApiKey = () => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let result = 'lih_'; // Lead Intelligence Hub prefix
+    const chars =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    let result = "lih_"; // Lead Intelligence Hub prefix
     for (let i = 0; i < 32; i++) {
       result += chars.charAt(Math.floor(Math.random() * chars.length));
     }
@@ -65,71 +97,69 @@ export const ApiKeysSettings = () => {
   const hashApiKey = async (key: string) => {
     const encoder = new TextEncoder();
     const data = encoder.encode(key);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
   };
 
   const createKeyMutation = useMutation({
     mutationFn: async (name: string) => {
       if (!companyId) throw new Error("Empresa não encontrada");
-      
+
       const apiKey = generateApiKey();
       const apiKeyHash = await hashApiKey(apiKey);
-      
-      const { error } = await supabase
-        .from('company_api_keys')
-        .insert({
-          company_id: companyId,
-          name,
-          api_key: apiKey,
-          api_key_hash: apiKeyHash,
-          is_active: true,
-          permissions: { capture: true, conversion: true }
-        });
-      
+
+      const { error } = await supabase.from("company_api_keys").insert({
+        company_id: companyId,
+        name,
+        api_key: apiKey,
+        api_key_hash: apiKeyHash,
+        is_active: true,
+        permissions: { capture: true, conversion: true },
+      });
+
       if (error) throw error;
       return apiKey;
     },
     onSuccess: (apiKey) => {
       setNewlyCreatedKey(apiKey);
-      queryClient.invalidateQueries({ queryKey: ['api-keys'] });
+      queryClient.invalidateQueries({ queryKey: ["api-keys"] });
       setNewKeyName("");
       toast.success("API Key criada com sucesso!");
     },
     onError: (error) => {
       toast.error("Erro ao criar API Key: " + error.message);
-    }
+    },
   });
 
   const toggleKeyMutation = useMutation({
     mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
       const { error } = await supabase
-        .from('company_api_keys')
+        .from("company_api_keys")
         .update({ is_active: isActive })
-        .eq('id', id);
-      
+        .eq("id", id);
+
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['api-keys'] });
+      queryClient.invalidateQueries({ queryKey: ["api-keys"] });
       toast.success("Status atualizado!");
-    }
+    },
   });
 
   const deleteKeyMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from('company_api_keys')
+        .from("company_api_keys")
         .delete()
-        .eq('id', id);
-      
+        .eq("id", id);
+
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['api-keys'] });
+      queryClient.invalidateQueries({ queryKey: ["api-keys"] });
       toast.success("API Key removida!");
-    }
+    },
   });
 
   const copyToClipboard = (text: string) => {
@@ -138,7 +168,11 @@ export const ApiKeysSettings = () => {
   };
 
   const maskApiKey = (key: string) => {
-    return key.substring(0, 8) + '••••••••••••••••••••' + key.substring(key.length - 4);
+    return (
+      key.substring(0, 8) +
+      "••••••••••••••••••••" +
+      key.substring(key.length - 4)
+    );
   };
 
   const handleCreateKey = () => {
@@ -160,10 +194,14 @@ export const ApiKeysSettings = () => {
                 API Keys
               </CardTitle>
               <CardDescription>
-                Gerencie as chaves de API para integração com o Lead Intelligence Hub
+                Gerencie as chaves de API para integração com o Lead
+                Intelligence Hub
               </CardDescription>
             </div>
-            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <Dialog
+              open={isCreateDialogOpen}
+              onOpenChange={setIsCreateDialogOpen}
+            >
               <DialogTrigger asChild>
                 <Button>
                   <Plus className="h-4 w-4 mr-2" />
@@ -174,7 +212,8 @@ export const ApiKeysSettings = () => {
                 <DialogHeader>
                   <DialogTitle>Criar Nova API Key</DialogTitle>
                   <DialogDescription>
-                    Crie uma chave para integrar sistemas externos com o Lead Intelligence Hub.
+                    Crie uma chave para integrar sistemas externos com o Lead
+                    Intelligence Hub.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
@@ -189,11 +228,19 @@ export const ApiKeysSettings = () => {
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsCreateDialogOpen(false)}
+                  >
                     Cancelar
                   </Button>
-                  <Button onClick={handleCreateKey} disabled={createKeyMutation.isPending}>
-                    {createKeyMutation.isPending ? "Criando..." : "Criar API Key"}
+                  <Button
+                    onClick={handleCreateKey}
+                    disabled={createKeyMutation.isPending}
+                  >
+                    {createKeyMutation.isPending
+                      ? "Criando..."
+                      : "Criar API Key"}
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -253,13 +300,21 @@ export const ApiKeysSettings = () => {
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
-                          {showKeys[key.id] ? key.api_key : maskApiKey(key.api_key)}
+                          {showKeys[key.id]
+                            ? key.api_key
+                            : maskApiKey(key.api_key)}
                         </code>
                         <Button
+                          aria-label="Visualizar"
                           size="icon"
                           variant="ghost"
                           className="h-6 w-6"
-                          onClick={() => setShowKeys(prev => ({ ...prev, [key.id]: !prev[key.id] }))}
+                          onClick={() =>
+                            setShowKeys((prev) => ({
+                              ...prev,
+                              [key.id]: !prev[key.id],
+                            }))
+                          }
                         >
                           {showKeys[key.id] ? (
                             <EyeOff className="h-3 w-3" />
@@ -268,6 +323,7 @@ export const ApiKeysSettings = () => {
                           )}
                         </Button>
                         <Button
+                          aria-label="Copiar"
                           size="icon"
                           variant="ghost"
                           className="h-6 w-6"
@@ -281,34 +337,53 @@ export const ApiKeysSettings = () => {
                       <Badge
                         variant={key.is_active ? "default" : "secondary"}
                         className="cursor-pointer"
-                        onClick={() => toggleKeyMutation.mutate({ id: key.id, isActive: !key.is_active })}
+                        onClick={() =>
+                          toggleKeyMutation.mutate({
+                            id: key.id,
+                            isActive: !key.is_active,
+                          })
+                        }
                       >
                         {key.is_active ? "Ativa" : "Inativa"}
                       </Badge>
                     </TableCell>
-                    <TableCell>{key.request_count?.toLocaleString() || 0}</TableCell>
                     <TableCell>
-                      {key.last_used_at 
-                        ? format(new Date(key.last_used_at), "dd/MM/yyyy HH:mm", { locale: ptBR })
-                        : "Nunca"
-                      }
+                      {key.request_count?.toLocaleString() || 0}
                     </TableCell>
                     <TableCell>
-                      {format(new Date(key.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                      {key.last_used_at
+                        ? format(
+                            new Date(key.last_used_at),
+                            "dd/MM/yyyy HH:mm",
+                            { locale: ptBR },
+                          )
+                        : "Nunca"}
+                    </TableCell>
+                    <TableCell>
+                      {format(new Date(key.created_at), "dd/MM/yyyy", {
+                        locale: ptBR,
+                      })}
                     </TableCell>
                     <TableCell className="text-right">
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive">
+                          <Button
+                            aria-label="Excluir"
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8 text-destructive"
+                          >
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Remover API Key?</AlertDialogTitle>
+                            <AlertDialogTitle>
+                              Remover API Key?
+                            </AlertDialogTitle>
                             <AlertDialogDescription>
-                              Todas as integrações que usam esta chave deixarão de funcionar.
-                              Esta ação não pode ser desfeita.
+                              Todas as integrações que usam esta chave deixarão
+                              de funcionar. Esta ação não pode ser desfeita.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
@@ -331,7 +406,9 @@ export const ApiKeysSettings = () => {
             <div className="text-center py-8 text-muted-foreground">
               <Key className="h-12 w-12 mx-auto mb-4 opacity-20" />
               <p>Nenhuma API Key cadastrada</p>
-              <p className="text-sm">Crie sua primeira chave para começar a integrar.</p>
+              <p className="text-sm">
+                Crie sua primeira chave para começar a integrar.
+              </p>
             </div>
           )}
         </CardContent>
@@ -348,7 +425,7 @@ export const ApiKeysSettings = () => {
           <div className="space-y-2">
             <h4 className="font-medium">Capturar Lead</h4>
             <pre className="p-4 bg-muted rounded-lg text-xs overflow-x-auto">
-{`POST https://ejwpfztkspbvmuwwiwmk.supabase.co/functions/v1/lead-capture-api
+              {`POST https://ejwpfztkspbvmuwwiwmk.supabase.co/functions/v1/lead-capture-api
 Headers:
   X-API-Key: lih_xxxxx...
   Content-Type: application/json`}
@@ -357,12 +434,14 @@ Headers:
 
           <div className="space-y-4">
             <h4 className="font-medium">Campos do Body (JSON)</h4>
-            
+
             {/* 1. Identificação do Lead */}
             <div className="space-y-2">
-              <h5 className="text-sm font-medium text-primary">1. Identificação do Lead</h5>
+              <h5 className="text-sm font-medium text-primary">
+                1. Identificação do Lead
+              </h5>
               <pre className="p-3 bg-muted rounded-lg text-xs overflow-x-auto">
-{`"full_name": "string",           // ✅ OBRIGATÓRIO - Nome completo
+                {`"full_name": "string",           // ✅ OBRIGATÓRIO - Nome completo
 "email": "string",               // ✅ OBRIGATÓRIO (email ou phone)
 "phone": "string",               // ✅ OBRIGATÓRIO (email ou phone)
 "lead_status": "string",         // Status: novo, qualificado, etc
@@ -375,9 +454,11 @@ Headers:
 
             {/* 2. Dados da Empresa */}
             <div className="space-y-2">
-              <h5 className="text-sm font-medium text-primary">2. Dados da Empresa</h5>
+              <h5 className="text-sm font-medium text-primary">
+                2. Dados da Empresa
+              </h5>
               <pre className="p-3 bg-muted rounded-lg text-xs overflow-x-auto">
-{`"company_name": "string",        // Nome da empresa
+                {`"company_name": "string",        // Nome da empresa
 "company_trade_name": "string",  // Nome fantasia
 "cnpj": "string",                // CNPJ
 "company_segment": "string",     // Segmento principal
@@ -396,9 +477,11 @@ Headers:
 
             {/* 3. Dados do Contato */}
             <div className="space-y-2">
-              <h5 className="text-sm font-medium text-primary">3. Dados do Contato (Pessoa)</h5>
+              <h5 className="text-sm font-medium text-primary">
+                3. Dados do Contato (Pessoa)
+              </h5>
               <pre className="p-3 bg-muted rounded-lg text-xs overflow-x-auto">
-{`"first_name": "string",          // Primeiro nome
+                {`"first_name": "string",          // Primeiro nome
 "last_name": "string",           // Sobrenome
 "job_title": "string",           // Cargo
 "job_level": "string",           // C-Level, Diretoria, Gestão, Operacional
@@ -419,9 +502,11 @@ Headers:
 
             {/* 4. Estrutura Organizacional */}
             <div className="space-y-2">
-              <h5 className="text-sm font-medium text-primary">4. Estrutura Organizacional / Decisão</h5>
+              <h5 className="text-sm font-medium text-primary">
+                4. Estrutura Organizacional / Decisão
+              </h5>
               <pre className="p-3 bg-muted rounded-lg text-xs overflow-x-auto">
-{`"buying_role": "string",         // Decisor, Influenciador, Usuário, Financeiro
+                {`"buying_role": "string",         // Decisor, Influenciador, Usuário, Financeiro
 "is_decision_maker": boolean,    // Participa da decisão de compra
 "influence_level": "string",     // baixa, média, alta
 "decision_makers_count": number  // Número de decisores envolvidos`}
@@ -430,9 +515,11 @@ Headers:
 
             {/* 5. Stack Atual */}
             <div className="space-y-2">
-              <h5 className="text-sm font-medium text-primary">5. Stack Atual / Contexto de Software</h5>
+              <h5 className="text-sm font-medium text-primary">
+                5. Stack Atual / Contexto de Software
+              </h5>
               <pre className="p-3 bg-muted rounded-lg text-xs overflow-x-auto">
-{`"uses_software": boolean,        // Usa software atualmente
+                {`"uses_software": boolean,        // Usa software atualmente
 "software_type": "string",       // Tipo de software utilizado
 "current_software": "string",    // Nome do software atual
 "current_vendor": "string",      // Fornecedor atual
@@ -445,9 +532,11 @@ Headers:
 
             {/* 6. Potencial de Compra */}
             <div className="space-y-2">
-              <h5 className="text-sm font-medium text-primary">6. Potencial de Compra</h5>
+              <h5 className="text-sm font-medium text-primary">
+                6. Potencial de Compra
+              </h5>
               <pre className="p-3 bg-muted rounded-lg text-xs overflow-x-auto">
-{`"estimated_users": number,       // Número estimado de usuários
+                {`"estimated_users": number,       // Número estimado de usuários
 "license_type": "string",        // por usuário, por módulo, flat
 "budget_range": "string",        // Orçamento estimado (faixa)
 "purchase_timeline": "string",   // Prazo estimado para compra
@@ -457,9 +546,11 @@ Headers:
 
             {/* 7. Comportamento e Engajamento */}
             <div className="space-y-2">
-              <h5 className="text-sm font-medium text-primary">7. Comportamento e Engajamento</h5>
+              <h5 className="text-sm font-medium text-primary">
+                7. Comportamento e Engajamento
+              </h5>
               <pre className="p-3 bg-muted rounded-lg text-xs overflow-x-auto">
-{`"first_interaction_at": "string",  // ISO timestamp da primeira interação
+                {`"first_interaction_at": "string",  // ISO timestamp da primeira interação
 "last_interaction_at": "string",   // ISO timestamp da última interação
 "content_consumed": ["string"],    // Array de conteúdos consumidos
 "content_type": "string",          // topo, meio, fundo
@@ -472,9 +563,11 @@ Headers:
 
             {/* 8. Origem de Marketing */}
             <div className="space-y-2">
-              <h5 className="text-sm font-medium text-primary">8. Origem de Marketing e Aquisição</h5>
+              <h5 className="text-sm font-medium text-primary">
+                8. Origem de Marketing e Aquisição
+              </h5>
               <pre className="p-3 bg-muted rounded-lg text-xs overflow-x-auto">
-{`"acquisition_channel": "string",  // orgânico, pago, evento, indicação
+                {`"acquisition_channel": "string",  // orgânico, pago, evento, indicação
 "specific_source": "string",      // Google, Meta, LinkedIn, YouTube
 "campaign": "string",             // Nome da campanha
 "ad_set": "string",               // Conjunto / público
@@ -489,9 +582,11 @@ Headers:
 
             {/* 9. Qualidade e Enriquecimento */}
             <div className="space-y-2">
-              <h5 className="text-sm font-medium text-primary">9. Qualidade e Enriquecimento</h5>
+              <h5 className="text-sm font-medium text-primary">
+                9. Qualidade e Enriquecimento
+              </h5>
               <pre className="p-3 bg-muted rounded-lg text-xs overflow-x-auto">
-{`"lead_validated": boolean,       // Lead validado
+                {`"lead_validated": boolean,       // Lead validado
 "company_validated": boolean,    // Empresa validada
 "email_verified": boolean,       // E-mail verificado
 "phone_verified": boolean,       // Telefone verificado
@@ -502,9 +597,11 @@ Headers:
 
             {/* 10. Consentimento e Compliance */}
             <div className="space-y-2">
-              <h5 className="text-sm font-medium text-primary">10. Consentimento e Compliance (LGPD)</h5>
+              <h5 className="text-sm font-medium text-primary">
+                10. Consentimento e Compliance (LGPD)
+              </h5>
               <pre className="p-3 bg-muted rounded-lg text-xs overflow-x-auto">
-{`"lgpd_consent": boolean,         // Consentimento LGPD
+                {`"lgpd_consent": boolean,         // Consentimento LGPD
 "consent_date": "string",        // Data do consentimento (ISO)
 "consent_source": "string",      // Fonte do consentimento
 "data_purpose": "string",        // Finalidade declarada do uso
@@ -514,9 +611,11 @@ Headers:
 
             {/* 11. Campos Técnicos */}
             <div className="space-y-2">
-              <h5 className="text-sm font-medium text-primary">11. Campos Técnicos / Operacionais</h5>
+              <h5 className="text-sm font-medium text-primary">
+                11. Campos Técnicos / Operacionais
+              </h5>
               <pre className="p-3 bg-muted rounded-lg text-xs overflow-x-auto">
-{`"internal_classification": "string", // Classificação interna
+                {`"internal_classification": "string", // Classificação interna
 "internal_notes": "string",          // Observações internas
 "tags": ["string"],                  // Array de tags
 "assigned_to": "uuid",               // UUID do responsável interno
@@ -531,7 +630,7 @@ Headers:
           <div className="space-y-2 pt-4 border-t">
             <h4 className="font-medium">Exemplo Completo</h4>
             <pre className="p-4 bg-muted rounded-lg text-xs overflow-x-auto max-h-96">
-{`{
+              {`{
   "full_name": "João Silva",
   "email": "joao@techsolutions.com.br",
   "phone": "+5511999998888",
@@ -574,7 +673,7 @@ Headers:
           <div className="space-y-2 pt-4 border-t">
             <h4 className="font-medium">Atualizar Conversão</h4>
             <pre className="p-4 bg-muted rounded-lg text-xs overflow-x-auto">
-{`PATCH https://ejwpfztkspbvmuwwiwmk.supabase.co/functions/v1/lead-conversion-api
+              {`PATCH https://ejwpfztkspbvmuwwiwmk.supabase.co/functions/v1/lead-conversion-api
 Headers:
   X-API-Key: lih_xxxxx...
   Content-Type: application/json

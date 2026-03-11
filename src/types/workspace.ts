@@ -18,6 +18,7 @@ export interface WorkspaceDocument {
   icon: string;
   cover_image: string | null;
   created_by: string;
+  creator_name?: string;
   is_favorite: boolean;
   created_at: string;
   updated_at: string;
@@ -25,10 +26,10 @@ export interface WorkspaceDocument {
 
 export interface WorkspaceShare {
   id: string;
-  resource_type: 'folder' | 'document';
+  resource_type: "folder" | "document";
   resource_id: string;
   shared_with_user_id: string;
-  permission: 'view' | 'edit' | 'admin';
+  permission: "view" | "edit" | "admin";
   shared_by: string;
   created_at: string;
 }

@@ -3,13 +3,36 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
-import { X, Send, Loader2, Sparkles, Copy, Check, MessageSquare, Trash2, Zap, Lightbulb, Target, MessageCircle, MessageSquareText, ChevronUp, AlertTriangle } from "lucide-react";
+import {
+  X,
+  Send,
+  Loader2,
+  Sparkles,
+  Copy,
+  Check,
+  MessageSquare,
+  Trash2,
+  Zap,
+  Lightbulb,
+  Target,
+  MessageCircle,
+  MessageSquareText,
+  ChevronUp,
+  AlertTriangle,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import ReactMarkdown from "react-markdown";
-import { useWhatsAppAIChatMessages, AIMessage, AnalysisMessageContent } from "@/hooks/useWhatsAppAIChatMessages";
-import { useWhatsAppRealtimeAnalysis, RealtimeAnalysis } from "@/hooks/useWhatsAppRealtimeAnalysis";
+import {
+  useWhatsAppAIChatMessages,
+  AIMessage,
+  AnalysisMessageContent,
+} from "@/hooks/useWhatsAppAIChatMessages";
+import {
+  useWhatsAppRealtimeAnalysis,
+  RealtimeAnalysis,
+} from "@/hooks/useWhatsAppRealtimeAnalysis";
 import { WhatsAppRealtimeAnalysisCard } from "./WhatsAppRealtimeAnalysisCard";
 
 interface WhatsAppAIAssistantProps {
@@ -43,17 +66,20 @@ const departmentLabels: Record<string, string> = {
 };
 
 // Component for displaying analysis as a chat message
-function AnalysisChatMessage({ 
-  analysisData, 
+function AnalysisChatMessage({
+  analysisData,
   timestamp,
-  onSendReadyMessage 
-}: { 
+  onSendReadyMessage,
+}: {
   analysisData: AnalysisMessageContent;
   timestamp: string;
   onSendReadyMessage?: (message: string) => void;
 }) {
-  const departmentLabel = departmentLabels[analysisData.departmentInsight?.type] || analysisData.departmentInsight?.type || "Geral";
-  
+  const departmentLabel =
+    departmentLabels[analysisData.departmentInsight?.type] ||
+    analysisData.departmentInsight?.type ||
+    "Geral";
+
   return (
     <div className="space-y-1.5">
       {/* Interpretation */}
@@ -61,8 +87,12 @@ function AnalysisChatMessage({
         <div className="flex items-start gap-1.5">
           <MessageCircle className="h-3 w-3 text-blue-500 mt-0.5 shrink-0" />
           <div>
-            <p className="text-[10px] font-medium text-blue-600 dark:text-blue-400 mb-0.5">Interpretação</p>
-            <p className="text-xs leading-relaxed">{analysisData.interpretation}</p>
+            <p className="text-[10px] font-medium text-blue-600 dark:text-blue-400 mb-0.5">
+              Interpretação
+            </p>
+            <p className="text-xs leading-relaxed">
+              {analysisData.interpretation}
+            </p>
           </div>
         </div>
       </div>
@@ -72,7 +102,9 @@ function AnalysisChatMessage({
         <div className="flex items-start gap-1.5">
           <Lightbulb className="h-3 w-3 text-primary mt-0.5 shrink-0" />
           <div>
-            <p className="text-[10px] font-medium text-primary mb-0.5">Sugestão</p>
+            <p className="text-[10px] font-medium text-primary mb-0.5">
+              Sugestão
+            </p>
             <p className="text-xs leading-relaxed">{analysisData.suggestion}</p>
           </div>
         </div>
@@ -87,15 +119,22 @@ function AnalysisChatMessage({
               <p className="text-[10px] font-medium text-violet-600 dark:text-violet-400 mb-0.5">
                 Insight ({departmentLabel})
               </p>
-              <p className="text-xs leading-relaxed mb-1">{analysisData.departmentInsight.insight}</p>
+              <p className="text-xs leading-relaxed mb-1">
+                {analysisData.departmentInsight.insight}
+              </p>
               {analysisData.departmentInsight.actionItems?.length > 0 && (
                 <ul className="space-y-0.5">
-                  {analysisData.departmentInsight.actionItems.map((item, index) => (
-                    <li key={index} className="text-[10px] text-muted-foreground flex items-center gap-1">
-                      <span className="h-1 w-1 rounded-full bg-violet-500 shrink-0" />
-                      {item}
-                    </li>
-                  ))}
+                  {analysisData.departmentInsight.actionItems.map(
+                    (item, index) => (
+                      <li
+                        key={index}
+                        className="text-[10px] text-muted-foreground flex items-center gap-1"
+                      >
+                        <span className="h-1 w-1 rounded-full bg-violet-500 shrink-0" />
+                        {item}
+                      </li>
+                    ),
+                  )}
                 </ul>
               )}
             </div>
@@ -105,27 +144,45 @@ function AnalysisChatMessage({
 
       {/* Issue Context - Responsibility */}
       {analysisData.issueContext && (
-        <div className={`rounded-lg px-2.5 py-1.5 mr-4 border ${
-          analysisData.issueContext.source === "externo" 
-            ? "bg-amber-500/10 border-amber-500/20" 
-            : analysisData.issueContext.source === "misto"
-            ? "bg-orange-500/10 border-orange-500/20"
-            : "bg-slate-500/10 border-slate-500/20"
-        }`}>
+        <div
+          className={`rounded-lg px-2.5 py-1.5 mr-4 border ${
+            analysisData.issueContext.source === "externo"
+              ? "bg-amber-500/10 border-amber-500/20"
+              : analysisData.issueContext.source === "misto"
+                ? "bg-orange-500/10 border-orange-500/20"
+                : "bg-slate-500/10 border-slate-500/20"
+          }`}
+        >
           <div className="flex items-start gap-1.5">
-            <AlertTriangle className={`h-3 w-3 mt-0.5 shrink-0 ${
-              analysisData.issueContext.source === "externo" ? "text-amber-500" : 
-              analysisData.issueContext.source === "misto" ? "text-orange-500" : "text-slate-500"
-            }`} />
+            <AlertTriangle
+              className={`h-3 w-3 mt-0.5 shrink-0 ${
+                analysisData.issueContext.source === "externo"
+                  ? "text-amber-500"
+                  : analysisData.issueContext.source === "misto"
+                    ? "text-orange-500"
+                    : "text-slate-500"
+              }`}
+            />
             <div>
-              <p className={`text-[10px] font-medium mb-0.5 ${
-                analysisData.issueContext.source === "externo" ? "text-amber-600 dark:text-amber-400" : 
-                analysisData.issueContext.source === "misto" ? "text-orange-600 dark:text-orange-400" : "text-slate-600 dark:text-slate-400"
-              }`}>
-                Contexto: {analysisData.issueContext.source === "externo" ? "Problema de Terceiros" : 
-                  analysisData.issueContext.source === "misto" ? "Problema Misto" : "Problema Interno"}
+              <p
+                className={`text-[10px] font-medium mb-0.5 ${
+                  analysisData.issueContext.source === "externo"
+                    ? "text-amber-600 dark:text-amber-400"
+                    : analysisData.issueContext.source === "misto"
+                      ? "text-orange-600 dark:text-orange-400"
+                      : "text-slate-600 dark:text-slate-400"
+                }`}
+              >
+                Contexto:{" "}
+                {analysisData.issueContext.source === "externo"
+                  ? "Problema de Terceiros"
+                  : analysisData.issueContext.source === "misto"
+                    ? "Problema Misto"
+                    : "Problema Interno"}
               </p>
-              <p className="text-xs leading-relaxed">{analysisData.issueContext.explanation}</p>
+              <p className="text-xs leading-relaxed">
+                {analysisData.issueContext.explanation}
+              </p>
             </div>
           </div>
         </div>
@@ -140,7 +197,9 @@ function AnalysisChatMessage({
               <p className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400 mb-0.5">
                 Mensagem Pronta
               </p>
-              <p className="text-xs leading-relaxed whitespace-pre-wrap">{analysisData.readyMessage}</p>
+              <p className="text-xs leading-relaxed whitespace-pre-wrap">
+                {analysisData.readyMessage}
+              </p>
               {onSendReadyMessage && (
                 <Button
                   size="sm"
@@ -158,7 +217,11 @@ function AnalysisChatMessage({
 
       {/* Timestamp */}
       <p className="text-[9px] text-muted-foreground ml-2">
-        Análise • {new Date(timestamp).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+        Análise •{" "}
+        {new Date(timestamp).toLocaleTimeString("pt-BR", {
+          hour: "2-digit",
+          minute: "2-digit",
+        })}
       </p>
     </div>
   );
@@ -177,20 +240,22 @@ export function WhatsAppAIAssistant({
   forceRealtimeAnalysis = false,
   isGroupConversation = false,
 }: WhatsAppAIAssistantProps) {
-  const { 
-    messages, 
-    isLoading: isLoadingHistory, 
+  const {
+    messages,
+    isLoading: isLoadingHistory,
     isLoadingMore,
     hasMore,
     loadMoreMessages,
-    addMessage, 
-    addAnalysisMessage, 
-    clearMessages 
+    addMessage,
+    addAnalysisMessage,
+    clearMessages,
   } = useWhatsAppAIChatMessages(conversationId, companyId);
   const [input, setInput] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [realtimeAnalysisEnabled, setRealtimeAnalysisEnabled] = useState(forceRealtimeAnalysis);
+  const [realtimeAnalysisEnabled, setRealtimeAnalysisEnabled] = useState(
+    forceRealtimeAnalysis,
+  );
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const hasGeneratedSuggestion = useRef(false);
@@ -200,7 +265,14 @@ export function WhatsAppAIAssistant({
   // If force is enabled, always keep analysis on
   const isAnalysisActive = forceRealtimeAnalysis || realtimeAnalysisEnabled;
 
-  const { analysis, isNewAnalysis, isAnalyzing, error: analysisError, triggerAnalysis, markAnalysisConsumed } = useWhatsAppRealtimeAnalysis({
+  const {
+    analysis,
+    isNewAnalysis,
+    isAnalyzing,
+    error: analysisError,
+    triggerAnalysis,
+    markAnalysisConsumed,
+  } = useWhatsAppRealtimeAnalysis({
     conversationId,
     companyId,
     instanceId,
@@ -215,15 +287,12 @@ export function WhatsAppAIAssistant({
     if (analysis && isNewAnalysis && analysis.timestamp) {
       // Check if we already saved this exact analysis (by timestamp)
       if (lastSavedAnalysisTimestamp.current === analysis.timestamp) {
-        console.log("[WhatsAppAIAssistant] Analysis already saved, skipping duplicate");
         return;
       }
 
-      console.log("[WhatsAppAIAssistant] Saving new analysis as chat message, timestamp:", analysis.timestamp);
-      
       // Mark as saving immediately to prevent race conditions
       lastSavedAnalysisTimestamp.current = analysis.timestamp;
-      
+
       // Save analysis as a chat message
       const analysisContent: AnalysisMessageContent = {
         temperature: analysis.temperature,
@@ -235,7 +304,7 @@ export function WhatsAppAIAssistant({
         issueContext: analysis.issueContext,
         readyMessage: analysis.readyMessage,
       };
-      
+
       addAnalysisMessage(analysisContent)
         .then(() => {
           markAnalysisConsumed(); // Mark as consumed after saving
@@ -285,7 +354,7 @@ export function WhatsAppAIAssistant({
   }, [isOpen]);
   const generateSuggestion = async (messageToRespond: string) => {
     setIsGenerating(true);
-    
+
     const systemPrompt = `Você é um assistente de atendimento ao cliente via WhatsApp. 
 O cliente "${contactName}" enviou a seguinte mensagem:
 
@@ -297,19 +366,27 @@ Não use saudações como "Olá" no início, pois a conversa já está em andame
 Responda diretamente ao que o cliente perguntou ou comentou.`;
 
     try {
-      const response = await supabase.functions.invoke("whatsapp-ai-assistant", {
-        body: {
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: "Gere uma sugestão de resposta para essa mensagem do cliente." }
-          ],
+      const response = await supabase.functions.invoke(
+        "whatsapp-ai-assistant",
+        {
+          body: {
+            messages: [
+              { role: "system", content: systemPrompt },
+              {
+                role: "user",
+                content:
+                  "Gere uma sugestão de resposta para essa mensagem do cliente.",
+              },
+            ],
+          },
         },
-      });
+      );
 
       if (response.error) throw response.error;
 
-      const content = response.data?.content || "Não foi possível gerar uma sugestão.";
-      
+      const content =
+        response.data?.content || "Não foi possível gerar uma sugestão.";
+
       // Save both the context message and the assistant response
       await addMessage({
         role: "user",
@@ -322,10 +399,11 @@ Responda diretamente ao que o cliente perguntou ou comentou.`;
     } catch (error) {
       console.error("Error generating suggestion:", error);
       toast.error("Erro ao gerar sugestão");
-      
+
       await addMessage({
         role: "assistant",
-        content: "Desculpe, não consegui gerar uma sugestão no momento. Por favor, tente novamente.",
+        content:
+          "Desculpe, não consegui gerar uma sugestão no momento. Por favor, tente novamente.",
       });
     } finally {
       setIsGenerating(false);
@@ -337,10 +415,10 @@ Responda diretamente ao que o cliente perguntou ou comentou.`;
 
     const userContent = input.trim();
     setInput("");
-    
+
     // Save user message
     await addMessage({ role: "user", content: userContent });
-    
+
     setIsGenerating(true);
 
     try {
@@ -351,7 +429,9 @@ Responda diretamente ao que o cliente perguntou ou comentou.`;
           // For analysis messages, create a summary for context
           if (m.role === "analysis") {
             try {
-              const analysisData = JSON.parse(m.content) as AnalysisMessageContent;
+              const analysisData = JSON.parse(
+                m.content,
+              ) as AnalysisMessageContent;
               return {
                 role: "assistant" as const,
                 content: `[Análise da conversa atual]
@@ -370,7 +450,10 @@ Responda diretamente ao que o cliente perguntou ou comentou.`;
             content: m.content,
           };
         })
-        .filter((m): m is { role: "user" | "assistant"; content: string } => m !== null);
+        .filter(
+          (m): m is { role: "user" | "assistant"; content: string } =>
+            m !== null,
+        );
 
       const systemPrompt = `Você é um assistente de atendimento ao cliente via WhatsApp.
 Contexto: Você está ajudando o atendente a formular respostas para o cliente "${contactName}".
@@ -380,19 +463,23 @@ IMPORTANTE: Leve em consideração as [Análise da conversa atual] que aparecem 
 Mantenha o tom conversacional adequado para WhatsApp.
 Siga as instruções do atendente para ajustar a resposta.`;
 
-      const response = await supabase.functions.invoke("whatsapp-ai-assistant", {
-        body: {
-          messages: [
-            { role: "system", content: systemPrompt },
-            ...recentMessages,
-            { role: "user", content: userContent },
-          ],
+      const response = await supabase.functions.invoke(
+        "whatsapp-ai-assistant",
+        {
+          body: {
+            messages: [
+              { role: "system", content: systemPrompt },
+              ...recentMessages,
+              { role: "user", content: userContent },
+            ],
+          },
         },
-      });
+      );
 
       if (response.error) throw response.error;
 
-      const content = response.data?.content || "Não foi possível processar sua solicitação.";
+      const content =
+        response.data?.content || "Não foi possível processar sua solicitação.";
       await addMessage({ role: "assistant", content });
     } catch (error) {
       console.error("Error sending message:", error);
@@ -442,7 +529,9 @@ Siga as instruções do atendente para ajustar a resposta.`;
   };
 
   // Helper to parse analysis content from message
-  const parseAnalysisContent = (content: string): AnalysisMessageContent | null => {
+  const parseAnalysisContent = (
+    content: string,
+  ): AnalysisMessageContent | null => {
     try {
       return JSON.parse(content);
     } catch {
@@ -470,9 +559,9 @@ Siga as instruções do atendente para ajustar a resposta.`;
         <div className="flex items-center gap-1">
           {/* Hide clear and close buttons when forced */}
           {!forceRealtimeAnalysis && messages.length > 0 && (
-            <Button 
-              variant="ghost" 
-              size="icon" 
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={handleClearHistory}
               title="Limpar histórico"
             >
@@ -480,7 +569,12 @@ Siga as instruções do atendente para ajustar a resposta.`;
             </Button>
           )}
           {!forceRealtimeAnalysis && (
-            <Button variant="ghost" size="icon" onClick={onClose}>
+            <Button
+              aria-label="Fechar"
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+            >
               <X className="h-4 w-4" />
             </Button>
           )}
@@ -491,10 +585,12 @@ Siga as instruções do atendente para ajustar a resposta.`;
       <div className="px-4 py-2 border-b bg-muted/30">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <Zap className={cn(
-              "h-4 w-4",
-              isAnalysisActive ? "text-amber-500" : "text-muted-foreground"
-            )} />
+            <Zap
+              className={cn(
+                "h-4 w-4",
+                isAnalysisActive ? "text-amber-500" : "text-muted-foreground",
+              )}
+            />
             <span className="text-sm font-medium">Análise em Tempo Real</span>
             {forceRealtimeAnalysis && (
               <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">
@@ -509,7 +605,7 @@ Siga as instruções do atendente para ajustar a resposta.`;
             />
           )}
         </div>
-        
+
         {/* Fixed Temperature + Alerts - only show metrics, not the full analysis */}
         {isAnalysisActive && (
           <WhatsAppRealtimeAnalysisCard
@@ -555,7 +651,9 @@ Siga as instruções do atendente para ajustar a resposta.`;
                     ) : (
                       <ChevronUp className="h-3 w-3" />
                     )}
-                    {isLoadingMore ? "Carregando..." : "Ver mensagens anteriores"}
+                    {isLoadingMore
+                      ? "Carregando..."
+                      : "Ver mensagens anteriores"}
                   </Button>
                 </div>
               )}
@@ -584,45 +682,50 @@ Siga as instruções do atendente para ajustar a resposta.`;
                         "rounded-lg px-3 py-2",
                         message.role === "user"
                           ? "bg-primary text-primary-foreground ml-8"
-                          : "bg-muted mr-4"
+                          : "bg-muted mr-4",
                       )}
                     >
-                    {message.role === "assistant" ? (
+                      {message.role === "assistant" ? (
                         <div className="prose prose-xs dark:prose-invert max-w-none text-xs [&>p]:text-xs [&>ul]:text-xs [&>ol]:text-xs [&>li]:text-xs [&>p]:leading-relaxed">
                           <ReactMarkdown>{message.content}</ReactMarkdown>
                         </div>
                       ) : (
-                        <p className="text-xs whitespace-pre-wrap leading-relaxed">{message.content}</p>
+                        <p className="text-xs whitespace-pre-wrap leading-relaxed">
+                          {message.content}
+                        </p>
                       )}
                     </div>
 
                     {/* Action buttons for assistant messages */}
-                    {message.role === "assistant" && !message.content.startsWith("Desculpe") && (
-                      <div className="flex items-center gap-2 ml-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 text-xs gap-1"
-                          onClick={() => handleCopy(message.content, message.id)}
-                        >
-                          {copiedId === message.id ? (
-                            <Check className="h-3 w-3" />
-                          ) : (
-                            <Copy className="h-3 w-3" />
-                          )}
-                          Copiar
-                        </Button>
-                        <Button
-                          variant="default"
-                          size="sm"
-                          className="h-7 text-xs gap-1"
-                          onClick={() => handleUseResponse(message.content)}
-                        >
-                          <MessageSquare className="h-3 w-3" />
-                          Usar resposta
-                        </Button>
-                      </div>
-                    )}
+                    {message.role === "assistant" &&
+                      !message.content.startsWith("Desculpe") && (
+                        <div className="flex items-center gap-2 ml-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-xs gap-1"
+                            onClick={() =>
+                              handleCopy(message.content, message.id)
+                            }
+                          >
+                            {copiedId === message.id ? (
+                              <Check className="h-3 w-3" />
+                            ) : (
+                              <Copy className="h-3 w-3" />
+                            )}
+                            Copiar
+                          </Button>
+                          <Button
+                            variant="default"
+                            size="sm"
+                            className="h-7 text-xs gap-1"
+                            onClick={() => handleUseResponse(message.content)}
+                          >
+                            <MessageSquare className="h-3 w-3" />
+                            Usar resposta
+                          </Button>
+                        </div>
+                      )}
                   </div>
                 );
               })}
@@ -660,6 +763,7 @@ Siga as instruções do atendente para ajustar a resposta.`;
             className="text-sm"
           />
           <Button
+            aria-label="Enviar"
             onClick={handleSend}
             disabled={!input.trim() || isGenerating}
             size="icon"

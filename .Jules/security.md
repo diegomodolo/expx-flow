@@ -14,3 +14,13 @@
 
 **Learning:** `SUPABASE_SERVICE_ROLE_KEY` bypasses RLS and should never be exposed to the frontend.
 **Prevention:** Only use service role key in Edge Functions. Frontend uses `SUPABASE_ANON_KEY` with user session tokens.
+
+## 2026-03-10 - DOMPurify for dangerouslySetInnerHTML
+
+**Vulnerability:** XSS through unsanitized strings rendered with `dangerouslySetInnerHTML`.
+**Prevention:** Always use `DOMPurify.sanitize()` (imported via `import DOMPurify from 'dompurify'`) when rendering external or user-generated HTML in React via `dangerouslySetInnerHTML`.
+
+## 2026-03-10 - Route protection
+
+**Vulnerability:** Unprotected routes expose administrative pages to unauthorized access.
+**Prevention:** Always wrap non-public routes (e.g., `/super-admin`) in `<ProtectedRoute>` or `<PermissionProtectedRoute>` inside `App.tsx`.

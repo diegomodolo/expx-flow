@@ -1,11 +1,11 @@
-import { useState, useMemo } from 'react';
-import { cn } from '@/lib/utils';
-import { TreeNode } from '@/hooks/useCampaignTree';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
-import { 
-  Target, 
-  Layers, 
+import { useState, useMemo } from "react";
+import { cn } from "@/lib/utils";
+import { TreeNode } from "@/hooks/useCampaignTree";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
+import {
+  Target,
+  Layers,
   ImageIcon,
   ChevronRight,
   MoreHorizontal,
@@ -13,15 +13,15 @@ import {
   RefreshCw,
   Loader2,
   Trash2,
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,10 +31,10 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { DuplicateEntityModal } from './DuplicateEntityModal';
-import { useTreeNodeActions } from '@/hooks/useTreeNodeActions';
-import { useSyncingItems } from '@/contexts/SyncingItemsContext';
+} from "@/components/ui/alert-dialog";
+import { DuplicateEntityModal } from "./DuplicateEntityModal";
+import { useTreeNodeActions } from "@/hooks/useTreeNodeActions";
+import { useSyncingItems } from "@/contexts/SyncingItemsContext";
 
 interface CampaignTreeNavProps {
   tree: TreeNode | null;
@@ -68,7 +68,14 @@ function TreeNodeItem({
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const { addSyncingItem, removeSyncingItem } = useSyncingItems();
-  const { duplicateEntity, isDuplicating, syncEntity, isSyncing, deleteEntity, isDeleting } = useTreeNodeActions({ 
+  const {
+    duplicateEntity,
+    isDuplicating,
+    syncEntity,
+    isSyncing,
+    deleteEntity,
+    isDeleting,
+  } = useTreeNodeActions({
     onSuccess: onRefresh,
     addSyncingItem,
     removeSyncingItem,
@@ -80,11 +87,11 @@ function TreeNodeItem({
 
   const getIcon = () => {
     switch (node.type) {
-      case 'campaign':
+      case "campaign":
         return <Target className="w-4 h-4 flex-shrink-0" />;
-      case 'adset':
+      case "adset":
         return <Layers className="w-4 h-4 flex-shrink-0" />;
-      case 'ad':
+      case "ad":
         return <ImageIcon className="w-4 h-4 flex-shrink-0" />;
       default:
         return null;
@@ -92,15 +99,21 @@ function TreeNodeItem({
   };
 
   const getStatusBadge = () => {
-    if (node.status === 'active') {
+    if (node.status === "active") {
       return (
-        <Badge variant="outline" className="h-5 px-1.5 text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/30 dark:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/40">
+        <Badge
+          variant="outline"
+          className="h-5 px-1.5 text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/30 dark:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/40"
+        >
           Ativo
         </Badge>
       );
     }
     return (
-      <Badge variant="outline" className="h-5 px-1.5 text-[10px] bg-muted text-muted-foreground">
+      <Badge
+        variant="outline"
+        className="h-5 px-1.5 text-[10px] bg-muted text-muted-foreground"
+      >
         Pausado
       </Badge>
     );
@@ -108,27 +121,27 @@ function TreeNodeItem({
 
   const getEntityLabel = () => {
     switch (node.type) {
-      case 'campaign':
-        return 'Campanha';
-      case 'adset':
-        return 'Conjunto';
-      case 'ad':
-        return 'Criativo';
+      case "campaign":
+        return "Campanha";
+      case "adset":
+        return "Conjunto";
+      case "ad":
+        return "Criativo";
       default:
-        return 'Item';
+        return "Item";
     }
   };
 
   const getDeleteWarningMessage = () => {
     switch (node.type) {
-      case 'campaign':
-        return 'Isso irá excluir a campanha, todos os conjuntos de anúncios e criativos associados, tanto do banco de dados local quanto do Meta. Esta ação não pode ser desfeita.';
-      case 'adset':
-        return 'Isso irá excluir o conjunto de anúncios e todos os criativos associados, tanto do banco de dados local quanto do Meta. Esta ação não pode ser desfeita.';
-      case 'ad':
-        return 'Isso irá excluir o criativo tanto do banco de dados local quanto do Meta. Esta ação não pode ser desfeita.';
+      case "campaign":
+        return "Isso irá excluir a campanha, todos os conjuntos de anúncios e criativos associados, tanto do banco de dados local quanto do Meta. Esta ação não pode ser desfeita.";
+      case "adset":
+        return "Isso irá excluir o conjunto de anúncios e todos os criativos associados, tanto do banco de dados local quanto do Meta. Esta ação não pode ser desfeita.";
+      case "ad":
+        return "Isso irá excluir o criativo tanto do banco de dados local quanto do Meta. Esta ação não pode ser desfeita.";
       default:
-        return 'Esta ação não pode ser desfeita.';
+        return "Esta ação não pode ser desfeita.";
     }
   };
 
@@ -163,7 +176,7 @@ function TreeNodeItem({
     setShowDeleteConfirm(false);
   };
 
-  const showActionsMenu = node.platform !== 'google';
+  const showActionsMenu = node.platform !== "google";
 
   return (
     <>
@@ -190,7 +203,7 @@ function TreeNodeItem({
               <ChevronRight
                 className={cn(
                   "w-4 h-4 transition-transform text-muted-foreground",
-                  isExpanded && "rotate-90"
+                  isExpanded && "rotate-90",
                 )}
               />
             </button>
@@ -199,9 +212,13 @@ function TreeNodeItem({
           )}
 
           {/* Icon */}
-          <span className={cn(
-            node.type === 'campaign' ? "text-primary" : "text-muted-foreground"
-          )}>
+          <span
+            className={cn(
+              node.type === "campaign"
+                ? "text-primary"
+                : "text-muted-foreground",
+            )}
+          >
             {getIcon()}
           </span>
 
@@ -209,9 +226,9 @@ function TreeNodeItem({
           <span
             className={cn(
               "flex-1 truncate text-xs",
-              node.type === 'campaign' && "font-medium text-foreground",
-              node.type === 'adset' && "font-normal text-foreground",
-              node.type === 'ad' && "font-normal text-foreground"
+              node.type === "campaign" && "font-medium text-foreground",
+              node.type === "adset" && "font-normal text-foreground",
+              node.type === "ad" && "font-normal text-foreground",
             )}
             title={node.name}
           >
@@ -226,6 +243,7 @@ function TreeNodeItem({
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
+                  aria-label="Ação"
                   variant="ghost"
                   size="icon"
                   className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
@@ -234,9 +252,13 @@ function TreeNodeItem({
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="z-50 bg-popover" onClick={(e) => e.stopPropagation()}>
+              <DropdownMenuContent
+                align="end"
+                className="z-50 bg-popover"
+                onClick={(e) => e.stopPropagation()}
+              >
                 {/* Sync option */}
-                <DropdownMenuItem 
+                <DropdownMenuItem
                   onClick={handleSync}
                   disabled={isSyncing}
                   className={node.needsSync ? "text-amber-600 font-medium" : ""}
@@ -252,7 +274,7 @@ function TreeNodeItem({
                 <DropdownMenuSeparator />
 
                 {/* Duplicate option */}
-                <DropdownMenuItem 
+                <DropdownMenuItem
                   onClick={() => setShowDuplicateModal(true)}
                   disabled={node.needsSync}
                 >
@@ -263,7 +285,7 @@ function TreeNodeItem({
                 <DropdownMenuSeparator />
 
                 {/* Delete option */}
-                <DropdownMenuItem 
+                <DropdownMenuItem
                   onClick={() => setShowDeleteConfirm(true)}
                   disabled={isDeleting || node.needsSync}
                   className="text-destructive focus:text-destructive"
@@ -326,7 +348,9 @@ function TreeNodeItem({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>
+              Cancelar
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               disabled={isDeleting}
@@ -360,13 +384,13 @@ export function CampaignTreeNav({
     const initial = new Set<string>();
     if (tree) {
       initial.add(tree.id);
-      tree.children?.forEach(child => initial.add(child.id));
+      tree.children?.forEach((child) => initial.add(child.id));
     }
     return initial;
   });
 
   const toggleExpand = (nodeId: string) => {
-    setExpandedNodes(prev => {
+    setExpandedNodes((prev) => {
       const next = new Set(prev);
       if (next.has(nodeId)) {
         next.delete(nodeId);
@@ -380,19 +404,19 @@ export function CampaignTreeNav({
   // Calculate totals for the summary
   const summary = useMemo(() => {
     if (!tree) return { adSets: 0, ads: 0, activeAds: 0 };
-    
+
     let adSets = 0;
     let ads = 0;
     let activeAds = 0;
-    
-    tree.children?.forEach(adSet => {
+
+    tree.children?.forEach((adSet) => {
       adSets++;
-      adSet.children?.forEach(ad => {
+      adSet.children?.forEach((ad) => {
         ads++;
-        if (ad.status === 'active') activeAds++;
+        if (ad.status === "active") activeAds++;
       });
     });
-    
+
     return { adSets, ads, activeAds };
   }, [tree]);
 

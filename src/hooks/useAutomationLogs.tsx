@@ -11,7 +11,7 @@ export interface AutomationLog {
   client_id: string | null;
   campaign_id: string | null;
   action_type: string;
-  action_result: 'success' | 'error' | 'skipped';
+  action_result: "success" | "error" | "skipped";
   error_message: string | null;
   old_name: string | null;
   new_name: string | null;
@@ -35,17 +35,19 @@ export const useAutomationLogs = (clientId?: string | null, limit?: number) => {
 
   const fetchLogs = async () => {
     if (!user || !activeCompany?.company_id) return;
-    
+
     setLoading(true);
-    
+
     let query = supabase
       .from("campaign_automation_logs")
-      .select(`
+      .select(
+        `
         *,
         rule:campaign_automation_rules(rule_name),
         client:clients(name),
         campaign:campaigns(name)
-      `)
+      `,
+      )
       .eq("company_id", activeCompany.company_id)
       .order("executed_at", { ascending: false });
 
@@ -69,7 +71,7 @@ export const useAutomationLogs = (clientId?: string | null, limit?: number) => {
     } else {
       setLogs(data || []);
     }
-    
+
     setLoading(false);
   };
 
@@ -80,10 +82,10 @@ export const useAutomationLogs = (clientId?: string | null, limit?: number) => {
   const rollbackAction = async (logId: string) => {
     try {
       const { data, error } = await supabase.functions.invoke(
-        'rollback-automation-action',
+        "rollback-automation-action",
         {
           body: { log_id: logId },
-        }
+        },
       );
 
       if (error) throw error;
@@ -106,10 +108,11 @@ export const useAutomationLogs = (clientId?: string | null, limit?: number) => {
   };
 
   const clearLogs = async () => {
-    console.log("clearLogs called", { clientId, companyId: activeCompany?.company_id });
-    
     if (!clientId || !activeCompany?.company_id) {
-      console.error("Missing clientId or companyId", { clientId, companyId: activeCompany?.company_id });
+      console.error("Missing clientId or companyId", {
+        clientId,
+        companyId: activeCompany?.company_id,
+      });
       toast({
         title: "Erro",
         description: "Cliente ou empresa não identificados.",
@@ -119,8 +122,6 @@ export const useAutomationLogs = (clientId?: string | null, limit?: number) => {
     }
 
     try {
-      console.log("Deleting logs for", { clientId, companyId: activeCompany.company_id });
-      
       const { data, error, count } = await supabase
         .from("campaign_automation_logs")
         .delete()
@@ -128,15 +129,13 @@ export const useAutomationLogs = (clientId?: string | null, limit?: number) => {
         .eq("company_id", activeCompany.company_id)
         .select();
 
-      console.log("Delete result", { data, error, count });
-
       if (error) {
         console.error("Delete error:", error);
         throw error;
       }
 
       const deletedCount = data?.length || 0;
-      
+
       toast({
         title: "Logs limpos",
         description: `${deletedCount} logs de automação foram removidos.`,

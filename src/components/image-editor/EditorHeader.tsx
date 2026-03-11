@@ -1,6 +1,6 @@
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft, Download, Check, Loader2 } from 'lucide-react';
+import React from "react";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, Download, Check, Loader2 } from "lucide-react";
 
 interface EditorHeaderProps {
   onClose: () => void;
@@ -20,10 +20,17 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
   return (
     <div className="h-14 bg-card border-b border-border flex items-center justify-between px-4">
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={onClose}>
+        <Button
+          aria-label="Fechar"
+          variant="ghost"
+          size="icon"
+          onClick={onClose}
+        >
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <h2 className="text-lg font-semibold text-foreground">Editor de Criativos</h2>
+        <h2 className="text-lg font-semibold text-foreground">
+          Editor de Criativos
+        </h2>
       </div>
 
       <div className="flex items-center gap-2">
@@ -39,10 +46,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
           )}
           Baixar
         </Button>
-        <Button
-          onClick={onFinalize}
-          disabled={isExporting || isFinalizing}
-        >
+        <Button onClick={onFinalize} disabled={isExporting || isFinalizing}>
           {isFinalizing ? (
             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
           ) : (

@@ -1,10 +1,24 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, CheckCircle2, XCircle, Wifi, Eye, EyeOff, Save } from "lucide-react";
+import {
+  Loader2,
+  CheckCircle2,
+  XCircle,
+  Wifi,
+  Eye,
+  EyeOff,
+  Save,
+} from "lucide-react";
 import { SiDiscord } from "react-icons/si";
 import { useDiscordConfig } from "@/hooks/useDiscordConfig";
 import { toast } from "sonner";
@@ -16,7 +30,9 @@ export const DiscordBotConfig = () => {
   const [showToken, setShowToken] = useState(false);
   const [testing, setTesting] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState<"idle" | "success" | "error">("idle");
+  const [connectionStatus, setConnectionStatus] = useState<
+    "idle" | "success" | "error"
+  >("idle");
   const [guildName, setGuildName] = useState("");
 
   useEffect(() => {
@@ -127,11 +143,31 @@ export const DiscordBotConfig = () => {
         <div className="p-3 rounded-lg bg-muted text-sm text-muted-foreground">
           <p className="font-medium mb-1">Como configurar:</p>
           <ol className="list-decimal list-inside space-y-1">
-            <li>Crie um Bot no <a href="https://discord.com/developers/applications" target="_blank" rel="noopener" className="text-primary underline">Discord Developer Portal</a></li>
-            <li>Copie o <strong>Bot Token</strong> e cole no campo abaixo</li>
-            <li>Ative os intents <strong>Server Members</strong> e <strong>Message Content</strong> no portal</li>
-            <li>Convide o bot para seu servidor com permissões de enviar mensagens</li>
-            <li>Cole o <strong>Guild ID</strong> (ID do servidor) e teste a conexão</li>
+            <li>
+              Crie um Bot no{" "}
+              <a
+                href="https://discord.com/developers/applications"
+                target="_blank"
+                rel="noopener"
+                className="text-primary underline"
+              >
+                Discord Developer Portal
+              </a>
+            </li>
+            <li>
+              Copie o <strong>Bot Token</strong> e cole no campo abaixo
+            </li>
+            <li>
+              Ative os intents <strong>Server Members</strong> e{" "}
+              <strong>Message Content</strong> no portal
+            </li>
+            <li>
+              Convide o bot para seu servidor com permissões de enviar mensagens
+            </li>
+            <li>
+              Cole o <strong>Guild ID</strong> (ID do servidor) e teste a
+              conexão
+            </li>
           </ol>
         </div>
 
@@ -148,13 +184,18 @@ export const DiscordBotConfig = () => {
             />
             <div className="absolute right-1 top-1/2 -translate-y-1/2 flex gap-1">
               <Button
+                aria-label="Visualizar"
                 type="button"
                 variant="ghost"
                 size="icon"
                 className="h-7 w-7"
                 onClick={() => setShowToken(!showToken)}
               >
-                {showToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                {showToken ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
               </Button>
             </div>
           </div>
@@ -181,18 +222,33 @@ export const DiscordBotConfig = () => {
         )}
 
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleSaveToken} disabled={saving || !botToken.trim()}>
+          <Button
+            variant="outline"
+            onClick={handleSaveToken}
+            disabled={saving || !botToken.trim()}
+          >
             {saving ? (
-              <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Salvando...</>
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Salvando...
+              </>
             ) : (
-              <><Save className="h-4 w-4 mr-2" /> Salvar Token</>
+              <>
+                <Save className="h-4 w-4 mr-2" /> Salvar Token
+              </>
             )}
           </Button>
-          <Button onClick={handleTest} disabled={testing || !guildId.trim() || !botToken.trim()}>
+          <Button
+            onClick={handleTest}
+            disabled={testing || !guildId.trim() || !botToken.trim()}
+          >
             {testing ? (
-              <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Testando...</>
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Testando...
+              </>
             ) : (
-              <><Wifi className="h-4 w-4 mr-2" /> Testar Conexão</>
+              <>
+                <Wifi className="h-4 w-4 mr-2" /> Testar Conexão
+              </>
             )}
           </Button>
         </div>

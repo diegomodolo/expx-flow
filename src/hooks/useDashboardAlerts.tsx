@@ -1,11 +1,11 @@
-import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useCompany } from '@/contexts/CompanyContext';
-import { useAuth } from '@/hooks/useAuth';
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useCompany } from "@/contexts/CompanyContext";
+import { useAuth } from "@/hooks/useAuth";
 
 export interface Alert {
   id: string;
-  type: 'danger' | 'opportunity';
+  type: "danger" | "opportunity";
   title: string;
   description: string;
   metric: string;
@@ -50,14 +50,20 @@ export const useDashboardAlerts = () => {
   const { user } = useAuth();
 
   // Função para gerar recomendação usando IA
-  const generateRecommendation = async (campaignData: unknown, issueType: string): Promise<string> => {
+  const generateRecommendation = async (
+    campaignData: unknown,
+    issueType: string,
+  ): Promise<string> => {
     try {
-      const { data, error } = await supabase.functions.invoke('generate-campaign-recommendation', {
-        body: {
-          campaign: campaignData,
-          issue_type: issueType
-        }
-      });
+      const { data, error } = await supabase.functions.invoke(
+        "generate-campaign-recommendation",
+        {
+          body: {
+            campaign: campaignData,
+            issue_type: issueType,
+          },
+        },
+      );
 
       if (error) {
         return getDefaultRecommendation(issueType);
@@ -72,16 +78,19 @@ export const useDashboardAlerts = () => {
   // Recomendações padrão
   const getDefaultRecommendation = (issueType: string): string => {
     const defaultRecommendations = {
-      'high_cpa': 'Revisar segmentação de público e otimizar palavras-chave',
-      'low_ctr': 'Testar novos criativos e headlines mais atrativas',
-      'scale_opportunity': 'Aumentar orçamento diário gradualmente',
-      'client_analysis': 'Analisar todas as campanhas do cliente'
+      high_cpa: "Revisar segmentação de público e otimizar palavras-chave",
+      low_ctr: "Testar novos criativos e headlines mais atrativas",
+      scale_opportunity: "Aumentar orçamento diário gradualmente",
+      client_analysis: "Analisar todas as campanhas do cliente",
     };
-    return defaultRecommendations[issueType] || 'Analisar métricas e otimizar';
+    return defaultRecommendations[issueType] || "Analisar métricas e otimizar";
   };
 
   // Função para gerar alertas básicos (sem IA)
-  const generateBasicAlerts = (campaigns: CampaignRanking[], activeTasks: unknown[] = []): Alert[] => {
+  const generateBasicAlerts = (
+    campaigns: CampaignRanking[],
+    activeTasks: unknown[] = [],
+  ): Alert[] => {
     const problemAlerts: Alert[] = [];
     const opportunityAlerts: Alert[] = [];
     const maxProblems = 5;
@@ -90,13 +99,15 @@ export const useDashboardAlerts = () => {
     // Extrair IDs de campanhas que já possuem tarefas ativas
     const campaignsWithActiveTasks = new Set(
       activeTasks
-        .filter(task => task.related_campaign_id)
-        .map(task => task.related_campaign_id)
+        .filter((task) => task.related_campaign_id)
+        .map((task) => task.related_campaign_id),
     );
 
     // Filtrar apenas campanhas ativas E que não tenham tarefas ativas
-    const availableCampaigns = campaigns.filter(campaign => 
-      campaign.status === 'active' && !campaignsWithActiveTasks.has(campaign.id)
+    const availableCampaigns = campaigns.filter(
+      (campaign) =>
+        campaign.status === "active" &&
+        !campaignsWithActiveTasks.has(campaign.id),
     );
 
     // PROCESSAR PROBLEMAS
@@ -106,28 +117,28 @@ export const useDashboardAlerts = () => {
       if (campaign.cpa > 50) {
         problemAlerts.push({
           id: `high-cpa-campaign-${campaign.id}`,
-          type: 'danger',
-          title: 'CPA Alto',
+          type: "danger",
+          title: "CPA Alto",
           description: `Campanha "${campaign.name}" com CPA de R$ ${campaign.cpa.toFixed(2)}`,
-          metric: 'CPA',
+          metric: "CPA",
           value: `R$ ${campaign.cpa.toFixed(2)}`,
-          recommendation: 'Carregando recomendação...',
+          recommendation: "Carregando recomendação...",
           client: campaign.client_name,
           campaign: campaign.name,
           campaign_id: campaign.id,
           client_id: campaign.client_id,
         });
       }
-      
+
       if (campaign.ctr < 1.0 && problemAlerts.length < maxProblems) {
         problemAlerts.push({
           id: `low-ctr-campaign-${campaign.id}`,
-          type: 'danger',
-          title: 'CTR Baixo',
+          type: "danger",
+          title: "CTR Baixo",
           description: `Campanha "${campaign.name}" com CTR de ${campaign.ctr.toFixed(2)}%`,
-          metric: 'CTR',
+          metric: "CTR",
           value: `${campaign.ctr.toFixed(2)}%`,
-          recommendation: 'Carregando recomendação...',
+          recommendation: "Carregando recomendação...",
           client: campaign.client_name,
           campaign: campaign.name,
           campaign_id: campaign.id,
@@ -139,21 +150,21 @@ export const useDashboardAlerts = () => {
     // PROCESSAR OPORTUNIDADES
     for (const campaign of availableCampaigns) {
       if (opportunityAlerts.length >= maxOpportunities) break;
-      
+
       const hasGoodCPA = campaign.cpa <= 60;
       const hasGoodCTR = campaign.ctr >= 1.0;
       const hasRoomToScale = campaign.spend < 1000;
       const hasConversions = campaign.conversions > 0;
-      
+
       if (hasGoodCPA && hasGoodCTR && hasRoomToScale && hasConversions) {
         opportunityAlerts.push({
           id: `scale-opportunity-${campaign.id}`,
-          type: 'opportunity',
-          title: 'Oportunidade de Escala',
+          type: "opportunity",
+          title: "Oportunidade de Escala",
           description: `Campanha "${campaign.name}" tem potencial para aumentar orçamento`,
-          metric: 'Performance',
+          metric: "Performance",
           value: `CPA: R$ ${campaign.cpa.toFixed(2)} | CTR: ${campaign.ctr.toFixed(2)}%`,
-          recommendation: 'Carregando recomendação...',
+          recommendation: "Carregando recomendação...",
           client: campaign.client_name,
           campaign: campaign.name,
           campaign_id: campaign.id,
@@ -168,39 +179,51 @@ export const useDashboardAlerts = () => {
   // Função para carregar recomendações assincronamente
   const loadRecommendationsAsync = async (basicAlerts: Alert[]) => {
     const updatedAlerts = [...basicAlerts];
-    
+
     for (let i = 0; i < updatedAlerts.length; i++) {
       const alert = updatedAlerts[i];
-      if (alert.recommendation === 'Carregando recomendação...') {
+      if (alert.recommendation === "Carregando recomendação...") {
         try {
-          let issueType = 'client_analysis';
-          if (alert.title === 'CPA Alto') issueType = 'high_cpa';
-          else if (alert.title === 'CTR Baixo') issueType = 'low_ctr';
-          else if (alert.title.includes('Oportunidade')) issueType = 'scale_opportunity';
+          let issueType = "client_analysis";
+          if (alert.title === "CPA Alto") issueType = "high_cpa";
+          else if (alert.title === "CTR Baixo") issueType = "low_ctr";
+          else if (alert.title.includes("Oportunidade"))
+            issueType = "scale_opportunity";
 
           // Encontrar dados completos da campanha nos dados processados
           const campaignData = await findCampaignData(alert.campaign_id);
-          
+
           if (!campaignData) {
             console.warn(`Campaign data not found for ${alert.campaign_id}`);
-            updatedAlerts[i] = { ...alert, recommendation: getDefaultRecommendation(issueType) };
+            updatedAlerts[i] = {
+              ...alert,
+              recommendation: getDefaultRecommendation(issueType),
+            };
             continue;
           }
 
-          console.log('Sending campaign data to AI:', campaignData, 'Issue type:', issueType);
-
-          const recommendation = await generateRecommendation(campaignData, issueType);
+          const recommendation = await generateRecommendation(
+            campaignData,
+            issueType,
+          );
           updatedAlerts[i] = { ...alert, recommendation };
-          
+
           // Atualizar estado a cada recomendação carregada
           setAlerts([...updatedAlerts]);
         } catch (error) {
-          console.error('Error generating recommendation for alert:', alert.id, error);
-          updatedAlerts[i] = { ...alert, recommendation: getDefaultRecommendation('client_analysis') };
+          console.error(
+            "Error generating recommendation for alert:",
+            alert.id,
+            error,
+          );
+          updatedAlerts[i] = {
+            ...alert,
+            recommendation: getDefaultRecommendation("client_analysis"),
+          };
         }
       }
     }
-    
+
     return updatedAlerts;
   };
 
@@ -210,17 +233,19 @@ export const useDashboardAlerts = () => {
 
     try {
       const { data: campaign, error } = await supabase
-        .from('campaigns')
-        .select(`
+        .from("campaigns")
+        .select(
+          `
           *,
           clients!inner(name, company)
-        `)
-        .eq('id', campaignId)
-        .eq('company_id', activeCompany.company_id)
+        `,
+        )
+        .eq("id", campaignId)
+        .eq("company_id", activeCompany.company_id)
         .single();
 
       if (error || !campaign) {
-        console.error('Error fetching campaign data:', error);
+        console.error("Error fetching campaign data:", error);
         return null;
       }
 
@@ -232,10 +257,10 @@ export const useDashboardAlerts = () => {
         conversions: campaign.conversions || 0,
         spend: campaign.spend || 0,
         impressions: campaign.impressions || 0,
-        clicks: campaign.clicks || 0
+        clicks: campaign.clicks || 0,
       };
     } catch (error) {
-      console.error('Error fetching campaign data:', error);
+      console.error("Error fetching campaign data:", error);
       return null;
     }
   };
@@ -268,71 +293,79 @@ export const useDashboardAlerts = () => {
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
       // Buscar campanhas
-      const { data: currentPeriodCampaigns, error: campaignsError } = await supabase
-        .from('campaigns')
-        .select(`
+      const { data: currentPeriodCampaigns, error: campaignsError } =
+        await supabase
+          .from("campaigns")
+          .select(
+            `
           *,
           clients!inner(name, company, status)
-        `)
-        .eq('company_id', activeCompany.company_id)
-        .gte('created_at', thirtyDaysAgo.toISOString());
+        `,
+          )
+          .eq("company_id", activeCompany.company_id)
+          .gte("created_at", thirtyDaysAgo.toISOString());
 
       if (campaignsError) {
-        console.error('Error fetching campaigns:', campaignsError);
+        console.error("Error fetching campaigns:", campaignsError);
         throw campaignsError;
       }
 
       // Buscar clientes
       const { data: clientsData, error: clientsError } = await supabase
-        .from('clients')
-        .select('*')
-        .eq('company_id', activeCompany.company_id);
+        .from("clients")
+        .select("*")
+        .eq("company_id", activeCompany.company_id);
 
       if (clientsError) {
-        console.error('Error fetching clients:', clientsError);
+        console.error("Error fetching clients:", clientsError);
         throw clientsError;
       }
 
       // Buscar tarefas ativas
       const { data: activeTasks, error: tasksError } = await supabase
-        .from('tasks')
-        .select('*')
-        .eq('company_id', activeCompany.company_id)
-        .neq('status', 'done');
+        .from("tasks")
+        .select("*")
+        .eq("company_id", activeCompany.company_id)
+        .neq("status", "done");
 
       if (tasksError) {
-        console.error('Error fetching tasks:', tasksError);
+        console.error("Error fetching tasks:", tasksError);
         throw tasksError;
       }
 
       // Processar dados
-      const processedClients = clientsData?.map(client => ({
-        id: client.id,
-        name: client.name,
-        company: client.company || '',
-        investment: 0,
-        leads: 0,
-        cpa: 0,
-        roi: 0,
-        status: client.status
-      })) || [];
+      const processedClients =
+        clientsData?.map((client) => ({
+          id: client.id,
+          name: client.name,
+          company: client.company || "",
+          investment: 0,
+          leads: 0,
+          cpa: 0,
+          roi: 0,
+          status: client.status,
+        })) || [];
 
-      const processedCampaigns = currentPeriodCampaigns?.map(campaign => ({
-        id: campaign.id,
-        name: campaign.name,
-        client_name: campaign.clients.name,
-        client_id: campaign.client_id,
-        cpa: campaign.cpa || 0,
-        spend: campaign.spend || 0,
-        conversions: campaign.conversions || 0,
-        status: campaign.status,
-        ctr: campaign.ctr || 0,
-        impressions: campaign.impressions || 0,
-        clicks: campaign.clicks || 0
-      })) || [];
+      const processedCampaigns =
+        currentPeriodCampaigns?.map((campaign) => ({
+          id: campaign.id,
+          name: campaign.name,
+          client_name: campaign.clients.name,
+          client_id: campaign.client_id,
+          cpa: campaign.cpa || 0,
+          spend: campaign.spend || 0,
+          conversions: campaign.conversions || 0,
+          status: campaign.status,
+          ctr: campaign.ctr || 0,
+          impressions: campaign.impressions || 0,
+          clicks: campaign.clicks || 0,
+        })) || [];
 
       // Gerar alertas básicos imediatamente
-      const basicAlerts = generateBasicAlerts(processedCampaigns, activeTasks || []);
+      const basicAlerts = generateBasicAlerts(
+        processedCampaigns,
+        activeTasks || [],
+      );
 
       // Exibir alertas básicos imediatamente
       setAlerts(basicAlerts);
@@ -342,12 +375,12 @@ export const useDashboardAlerts = () => {
       clearTimeout(timeoutId);
 
       // Carregar recomendações assincronamente em segundo plano
-      loadRecommendationsAsync(basicAlerts).catch(error => {
-        console.error('Error loading recommendations:', error);
+      loadRecommendationsAsync(basicAlerts).catch((error) => {
+        console.error("Error loading recommendations:", error);
       });
     } catch (err) {
-      console.error('Error fetching alerts:', err);
-      setError('Erro ao buscar alertas');
+      console.error("Error fetching alerts:", err);
+      setError("Erro ao buscar alertas");
     } finally {
       clearTimeout(timeoutId);
       setLoading(false);

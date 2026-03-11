@@ -7,7 +7,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { CheckCircle2, Loader2, XCircle } from "lucide-react";
 import { toast } from "sonner";
-import { CarouselType, PreGeneratedSlide, VisualVariations, useCarouselGenerationStream } from "@/hooks/useCarouselGenerationStream";
+import {
+  CarouselType,
+  PreGeneratedSlide,
+  VisualVariations,
+  useCarouselGenerationStream,
+} from "@/hooks/useCarouselGenerationStream";
 
 type SlideProgress = {
   slide_number: number;
@@ -74,7 +79,6 @@ export function CarouselGenerationProgressModal({
 
     // GUARD: Se já iniciou, não inicia novamente (previne re-execução por mudança de props)
     if (hasStartedRef.current) {
-      console.log("[CarouselGenerationProgressModal] Already started, skipping re-execution...");
       return;
     }
 
@@ -82,14 +86,6 @@ export function CarouselGenerationProgressModal({
     hasStartedRef.current = true;
 
     // Debug log to verify props being passed
-    console.log("[CarouselGenerationProgressModal] Starting with:", {
-      clientId,
-      companyId,
-      carouselType: carouselType || "NOT PROVIDED",
-      referenceCarouselImages: referenceCarouselImages?.length || 0,
-      preGeneratedSlides: preGeneratedSlides?.length || 0,
-      visualVariations: visualVariations || "NOT PROVIDED",
-    });
 
     // Start on open
     start({
@@ -110,7 +106,7 @@ export function CarouselGenerationProgressModal({
               slide_number: s.slide_number,
               headline: s.headline,
               status: "pending",
-            }))
+            })),
           );
           setActiveIndex(0);
           return;
@@ -118,7 +114,9 @@ export function CarouselGenerationProgressModal({
 
         if (ev.type === "slide_start") {
           setSlides((prev) =>
-            prev.map((s, idx) => (idx === ev.index - 1 ? { ...s, status: "generating" } : s))
+            prev.map((s, idx) =>
+              idx === ev.index - 1 ? { ...s, status: "generating" } : s,
+            ),
           );
           setActiveIndex(Math.max(0, ev.index - 1));
           return;
@@ -127,8 +125,10 @@ export function CarouselGenerationProgressModal({
         if (ev.type === "slide_done") {
           setSlides((prev) =>
             prev.map((s, idx) =>
-              idx === ev.index - 1 ? { ...s, status: "done", imageUrl: ev.image_url } : s
-            )
+              idx === ev.index - 1
+                ? { ...s, status: "done", imageUrl: ev.image_url }
+                : s,
+            ),
           );
           return;
         }
@@ -138,8 +138,8 @@ export function CarouselGenerationProgressModal({
             prev.map((s, idx) =>
               idx === ev.index - 1
                 ? { ...s, status: "error", errorMessage: ev.message }
-                : s
-            )
+                : s,
+            ),
           );
           return;
         }
@@ -163,13 +163,28 @@ export function CarouselGenerationProgressModal({
       toast.error(e?.message || "Erro ao gerar carrossel");
       setIsDone(true);
     });
-  }, [open, cancel, start, clientId, companyId, userId, carouselType, referenceCarouselImages, preGeneratedSlides, visualVariations, onFinished]);
+  }, [
+    open,
+    cancel,
+    start,
+    clientId,
+    companyId,
+    userId,
+    carouselType,
+    referenceCarouselImages,
+    preGeneratedSlides,
+    visualVariations,
+    onFinished,
+  ]);
 
   const activeSlide = slides[activeIndex];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden p-0" aria-describedby={undefined}>
+      <DialogContent
+        className="max-w-5xl max-h-[90vh] overflow-hidden p-0"
+        aria-describedby={undefined}
+      >
         <VisuallyHidden>
           <DialogTitle>Gerando carrossel</DialogTitle>
         </VisuallyHidden>
@@ -179,14 +194,18 @@ export function CarouselGenerationProgressModal({
             <p className="text-sm text-muted-foreground">
               {pickedType ? (
                 <>
-                  Tipo: <span className="font-medium text-foreground">{pickedType}</span>
+                  Tipo:{" "}
+                  <span className="font-medium text-foreground">
+                    {pickedType}
+                  </span>
                 </>
               ) : (
                 "Preparando…"
               )}
               {carouselId ? (
                 <>
-                  {" "}• ID: <span className="font-mono text-xs">{carouselId}</span>
+                  {" "}
+                  • ID: <span className="font-mono text-xs">{carouselId}</span>
                 </>
               ) : null}
             </p>
@@ -249,27 +268,33 @@ export function CarouselGenerationProgressModal({
                     onClick={() => setActiveIndex(idx)}
                     className={cn(
                       "w-full text-left rounded-lg border p-3 transition-colors",
-                      isActive ? "bg-accent" : "bg-background hover:bg-muted"
+                      isActive ? "bg-accent" : "bg-background hover:bg-muted",
                     )}
                   >
                     <div className="flex items-start gap-3">
                       <div className="mt-0.5">{icon}</div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-2">
-                          <p className="text-sm font-medium">Imagem {idx + 1}</p>
+                          <p className="text-sm font-medium">
+                            Imagem {idx + 1}
+                          </p>
                           <Badge variant="outline" className="text-xs">
                             {s.status === "done"
                               ? "Gerada"
                               : s.status === "generating"
-                              ? "Gerando"
-                              : s.status === "error"
-                              ? "Erro"
-                              : "Fila"}
+                                ? "Gerando"
+                                : s.status === "error"
+                                  ? "Erro"
+                                  : "Fila"}
                           </Badge>
                         </div>
-                        <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{s.headline}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
+                          {s.headline}
+                        </p>
                         {s.status === "error" && s.errorMessage && (
-                          <p className="text-xs text-destructive mt-1 line-clamp-2">{s.errorMessage}</p>
+                          <p className="text-xs text-destructive mt-1 line-clamp-2">
+                            {s.errorMessage}
+                          </p>
                         )}
                       </div>
                     </div>
@@ -305,7 +330,9 @@ export function CarouselGenerationProgressModal({
                 ) : (
                   <div className="w-full h-full flex items-center justify-center p-6">
                     <div className="text-center">
-                      <p className="text-sm font-medium">{activeSlide?.headline || "Aguardando…"}</p>
+                      <p className="text-sm font-medium">
+                        {activeSlide?.headline || "Aguardando…"}
+                      </p>
                       <p className="text-xs text-muted-foreground mt-2">
                         {activeSlide?.status === "error"
                           ? "Falha ao gerar esta imagem. Você pode continuar e trocar depois."

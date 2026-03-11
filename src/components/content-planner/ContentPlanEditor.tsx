@@ -1,6 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useContentPlans, ContentPlan, ContentPlanPost } from "@/hooks/useContentPlans";
+import {
+  useContentPlans,
+  ContentPlan,
+  ContentPlanPost,
+} from "@/hooks/useContentPlans";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,11 +21,32 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
-import { ContentPlanPostCard, ContentPlanPostCardRef } from "./ContentPlanPostCard";
+import {
+  ContentPlanPostCard,
+  ContentPlanPostCardRef,
+} from "./ContentPlanPostCard";
 import { ContentPlanAIChat } from "./ContentPlanAIChat";
 import { ImportCreativesModal } from "./ImportCreativesModal";
 import { SendPostsToPresentationDialog } from "./SendPostsToPresentationDialog";
-import { Loader2, Plus, Save, ArrowLeft, Sparkles, Send, Calendar, Download, Link2, Copy, Check, ExternalLink, SpellCheck, AlertTriangle, Presentation, ChevronsUpDown, ChevronsDownUp } from "lucide-react";
+import {
+  Loader2,
+  Plus,
+  Save,
+  ArrowLeft,
+  Sparkles,
+  Send,
+  Calendar,
+  Download,
+  Link2,
+  Copy,
+  Check,
+  ExternalLink,
+  SpellCheck,
+  AlertTriangle,
+  Presentation,
+  ChevronsUpDown,
+  ChevronsDownUp,
+} from "lucide-react";
 import { toast } from "sonner";
 
 export interface PortugueseValidationErrors {
@@ -42,27 +67,50 @@ const statusLabels = {
 };
 
 const monthNames = [
-  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+  "Janeiro",
+  "Fevereiro",
+  "Março",
+  "Abril",
+  "Maio",
+  "Junho",
+  "Julho",
+  "Agosto",
+  "Setembro",
+  "Outubro",
+  "Novembro",
+  "Dezembro",
 ];
 
 export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
   const queryClient = useQueryClient();
-  const { fetchPlanWithPosts, updatePlan, addPost, updatePost, deletePost, reorderPosts } = useContentPlans();
-  
+  const {
+    fetchPlanWithPosts,
+    updatePlan,
+    addPost,
+    updatePost,
+    deletePost,
+    reorderPosts,
+  } = useContentPlans();
+
   const [planName, setPlanName] = useState("");
-  const [planStatus, setPlanStatus] = useState<"rascunho" | "em_revisao" | "aprovado">("rascunho");
+  const [planStatus, setPlanStatus] = useState<
+    "rascunho" | "em_revisao" | "aprovado"
+  >("rascunho");
   const [hasUnsavedPlanChanges, setHasUnsavedPlanChanges] = useState(false);
-  const [postsWithChanges, setPostsWithChanges] = useState<Set<string>>(new Set());
+  const [postsWithChanges, setPostsWithChanges] = useState<Set<string>>(
+    new Set(),
+  );
   const [activePostId, setActivePostId] = useState<string | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [isValidatingPortuguese, setIsValidatingPortuguese] = useState(false);
-  const [validationErrors, setValidationErrors] = useState<PortugueseValidationErrors>({});
+  const [validationErrors, setValidationErrors] =
+    useState<PortugueseValidationErrors>({});
   const [totalValidationErrors, setTotalValidationErrors] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
-  const [showSendAllToPresentationDialog, setShowSendAllToPresentationDialog] = useState(false);
+  const [showSendAllToPresentationDialog, setShowSendAllToPresentationDialog] =
+    useState(false);
   const [allCollapsed, setAllCollapsed] = useState(false);
 
   // Refs for all post cards to collect pending changes
@@ -71,7 +119,11 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
   // Check if there are any unsaved changes (plan or posts)
   const hasUnsavedChanges = hasUnsavedPlanChanges || postsWithChanges.size > 0;
 
-  const { data: plan, isLoading, refetch } = useQuery({
+  const {
+    data: plan,
+    isLoading,
+    refetch,
+  } = useQuery({
     queryKey: ["content-plan-detail", planId],
     queryFn: () => fetchPlanWithPosts(planId),
     enabled: !!planId,
@@ -100,17 +152,20 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
   }, [plan]);
 
   // Track changes per post
-  const handlePostHasChangesChange = useCallback((postId: string, hasChanges: boolean) => {
-    setPostsWithChanges(prev => {
-      const newSet = new Set(prev);
-      if (hasChanges) {
-        newSet.add(postId);
-      } else {
-        newSet.delete(postId);
-      }
-      return newSet;
-    });
-  }, []);
+  const handlePostHasChangesChange = useCallback(
+    (postId: string, hasChanges: boolean) => {
+      setPostsWithChanges((prev) => {
+        const newSet = new Set(prev);
+        if (hasChanges) {
+          newSet.add(postId);
+        } else {
+          newSet.delete(postId);
+        }
+        return newSet;
+      });
+    },
+    [],
+  );
 
   const handleSavePlan = async () => {
     setIsSaving(true);
@@ -130,8 +185,12 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
         const pendingChanges = ref.getPendingChanges();
         if (pendingChanges) {
           savePromises.push(
-            updatePost.mutateAsync({ id: pendingChanges.postId, ...pendingChanges.data })
-              .then(() => ref.resetChanges())
+            updatePost
+              .mutateAsync({
+                id: pendingChanges.postId,
+                ...pendingChanges.data,
+              })
+              .then(() => ref.resetChanges()),
           );
         }
       });
@@ -152,32 +211,32 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
 
   const generatePublicLink = async () => {
     if (!plan) return;
-    
+
     setIsGeneratingLink(true);
     try {
       // Generate a token if it doesn't exist
       let token = (plan as unknown).public_token;
-      
+
       if (!token) {
-        token = crypto.randomUUID().replace(/-/g, '').slice(0, 24);
-        
+        token = crypto.randomUUID().replace(/-/g, "").slice(0, 24);
+
         const { error } = await supabase
           .from("content_plans")
-          .update({ 
+          .update({
             public_token: token,
-            public_shared_at: new Date().toISOString()
+            public_shared_at: new Date().toISOString(),
           })
           .eq("id", planId);
-        
+
         if (error) throw error;
         refetch();
       }
-      
+
       const publicUrl = `${window.location.origin}/content-review?token=${token}`;
       await navigator.clipboard.writeText(publicUrl);
       setLinkCopied(true);
       toast.success("Link copiado para a área de transferência!");
-      
+
       setTimeout(() => setLinkCopied(false), 3000);
     } catch (error) {
       console.error("Error generating link:", error);
@@ -190,7 +249,10 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
   const openPublicLink = () => {
     const token = (plan as unknown)?.public_token;
     if (token) {
-      window.open(`${window.location.origin}/content-review?token=${token}`, '_blank');
+      window.open(
+        `${window.location.origin}/content-review?token=${token}`,
+        "_blank",
+      );
     }
   };
 
@@ -205,7 +267,7 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
     setTotalValidationErrors(0);
 
     try {
-      const postsData = plan.posts.map(post => ({
+      const postsData = plan.posts.map((post) => ({
         postId: post.id,
         objective: post.objective,
         headline: post.headline,
@@ -222,7 +284,7 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
             Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           },
           body: JSON.stringify({ posts: postsData }),
-        }
+        },
       );
 
       if (!response.ok) {
@@ -231,7 +293,7 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
       }
 
       const data = await response.json();
-      
+
       // Transform results into error map
       const errorsMap: PortugueseValidationErrors = {};
       data.results?.forEach((result: unknown) => {
@@ -256,14 +318,17 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
       }
     } catch (error) {
       console.error("Error validating:", error);
-      toast.error(error instanceof Error ? error.message : "Erro ao validar português");
+      toast.error(
+        error instanceof Error ? error.message : "Erro ao validar português",
+      );
     } finally {
       setIsValidatingPortuguese(false);
     }
   };
 
   const handleAddPost = async () => {
-    const maxOrder = plan?.posts?.reduce((max, p) => Math.max(max, p.order_index), -1) ?? -1;
+    const maxOrder =
+      plan?.posts?.reduce((max, p) => Math.max(max, p.order_index), -1) ?? -1;
     await addPost.mutateAsync({
       content_plan_id: planId,
       order_index: maxOrder + 1,
@@ -271,9 +336,12 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
     refetch();
   };
 
-  const handleUpdatePost = useCallback(async (postId: string, data: Partial<ContentPlanPost>) => {
-    await updatePost.mutateAsync({ id: postId, ...data });
-  }, [updatePost]);
+  const handleUpdatePost = useCallback(
+    async (postId: string, data: Partial<ContentPlanPost>) => {
+      await updatePost.mutateAsync({ id: postId, ...data });
+    },
+    [updatePost],
+  );
 
   const handleDeletePost = async (postId: string) => {
     await deletePost.mutateAsync(postId);
@@ -299,15 +367,22 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
     }
   };
 
-  const handleImportCreatives = async (creatives: { image_url: string; caption: string }[]) => {
-    const maxOrder = plan?.posts?.reduce((max, p) => Math.max(max, p.order_index), -1) ?? -1;
-    
+  const handleImportCreatives = async (
+    creatives: { image_url: string; caption: string }[],
+  ) => {
+    const maxOrder =
+      plan?.posts?.reduce((max, p) => Math.max(max, p.order_index), -1) ?? -1;
+
     // First, analyze all captions with AI to generate metadata
-    let aiResults: { objective: string; headline: string; subheadline: string }[] = [];
-    
-    const captions = creatives.map(c => c.caption);
-    const hasAnyCaptions = captions.some(c => c && c.trim() !== "");
-    
+    let aiResults: {
+      objective: string;
+      headline: string;
+      subheadline: string;
+    }[] = [];
+
+    const captions = creatives.map((c) => c.caption);
+    const hasAnyCaptions = captions.some((c) => c && c.trim() !== "");
+
     if (hasAnyCaptions) {
       try {
         const response = await fetch(
@@ -319,9 +394,9 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
               Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
             },
             body: JSON.stringify({ captions }),
-          }
+          },
         );
-        
+
         if (response.ok) {
           const data = await response.json();
           aiResults = data.results || [];
@@ -330,7 +405,7 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
         console.error("Error analyzing captions:", error);
       }
     }
-    
+
     // Create posts
     for (let i = 0; i < creatives.length; i++) {
       await addPost.mutateAsync({
@@ -338,17 +413,21 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
         order_index: maxOrder + 1 + i,
       });
     }
-    
+
     // Refetch to get the new post IDs
     const updatedPlan = await refetch();
     const newPosts = updatedPlan.data?.posts?.slice(-creatives.length) || [];
-    
+
     // Update each post with the creative data and AI-generated metadata
     for (let i = 0; i < newPosts.length && i < creatives.length; i++) {
       const post = newPosts[i];
       const creative = creatives[i];
-      const aiData = aiResults[i] || { objective: "", headline: "", subheadline: "" };
-      
+      const aiData = aiResults[i] || {
+        objective: "",
+        headline: "",
+        subheadline: "",
+      };
+
       await updatePost.mutateAsync({
         id: post.id,
         image_url: creative.image_url,
@@ -358,7 +437,7 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
         subheadline: aiData.subheadline,
       });
     }
-    
+
     refetch();
     toast.success(`${creatives.length} criativo(s) importado(s) com sucesso!`);
   };
@@ -386,7 +465,10 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
 
   return (
     <div className="h-full">
-      <ResizablePanelGroup direction="horizontal" className="h-full rounded-lg border">
+      <ResizablePanelGroup
+        direction="horizontal"
+        className="h-full rounded-lg border"
+      >
         {/* Left Panel - Editor */}
         <ResizablePanel defaultSize={65} minSize={50}>
           <div className="h-full flex flex-col overflow-hidden">
@@ -394,7 +476,12 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
             <div className="flex-shrink-0 p-4 border-b bg-muted/30">
               <div className="flex items-center justify-between gap-4 mb-4">
                 <div className="flex items-center gap-3">
-                  <Button variant="ghost" size="icon" onClick={onBack}>
+                  <Button
+                    aria-label="Voltar"
+                    variant="ghost"
+                    size="icon"
+                    onClick={onBack}
+                  >
                     <ArrowLeft className="w-4 h-4" />
                   </Button>
                   <div>
@@ -447,7 +534,10 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
                     )}
                     Salvar
                     {postsWithChanges.size > 0 && (
-                      <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+                      <Badge
+                        variant="secondary"
+                        className="ml-1 h-5 px-1.5 text-xs"
+                      >
                         {postsWithChanges.size}
                       </Badge>
                     )}
@@ -461,7 +551,7 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
                   <Plus className="w-4 h-4" />
                   Adicionar Post
                 </Button>
-                
+
                 {/* Collapse/Expand All Toggle */}
                 {plan.posts && plan.posts.length > 0 && (
                   <Button
@@ -483,16 +573,16 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
                     )}
                   </Button>
                 )}
-                <Button 
-                  onClick={() => setShowImportModal(true)} 
-                  size="sm" 
+                <Button
+                  onClick={() => setShowImportModal(true)}
+                  size="sm"
                   variant="outline"
                   className="gap-2"
                 >
                   <Download className="w-4 h-4" />
                   Importar da Fábrica
                 </Button>
-                
+
                 {/* Validate Portuguese Button */}
                 <Button
                   onClick={handleValidatePortuguese}
@@ -510,7 +600,7 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
                 </Button>
 
                 {/* Send All Approved to Presentation */}
-                {plan.posts?.some(p => p.review_status === "approved") && (
+                {plan.posts?.some((p) => p.review_status === "approved") && (
                   <Button
                     onClick={() => setShowSendAllToPresentationDialog(true)}
                     size="sm"
@@ -562,11 +652,12 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
                   </div>
                 )}
 
-                {plan.status !== "em_revisao" && totalValidationErrors === 0 && (
-                  <Badge variant="outline" className="ml-auto">
-                    {plan.posts?.length || 0} posts
-                  </Badge>
-                )}
+                {plan.status !== "em_revisao" &&
+                  totalValidationErrors === 0 && (
+                    <Badge variant="outline" className="ml-auto">
+                      {plan.posts?.length || 0} posts
+                    </Badge>
+                  )}
               </div>
             </div>
 
@@ -642,16 +733,20 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
         open={showSendAllToPresentationDialog}
         onOpenChange={setShowSendAllToPresentationDialog}
         clientId={plan.client_id}
-        posts={plan.posts?.filter(p => p.review_status === "approved").map(p => ({
-          id: p.id,
-          image_url: p.image_url,
-          headline: p.headline,
-          subheadline: p.subheadline,
-          caption: p.caption,
-          post_type: p.post_type,
-          slides: p.slides,
-          reels_uploaded_video_url: p.reels_uploaded_video_url,
-        })) || []}
+        posts={
+          plan.posts
+            ?.filter((p) => p.review_status === "approved")
+            .map((p) => ({
+              id: p.id,
+              image_url: p.image_url,
+              headline: p.headline,
+              subheadline: p.subheadline,
+              caption: p.caption,
+              post_type: p.post_type,
+              slides: p.slides,
+              reels_uploaded_video_url: p.reels_uploaded_video_url,
+            })) || []
+        }
       />
     </div>
   );

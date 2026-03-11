@@ -1,7 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
@@ -726,7 +727,10 @@ ${client.ai_briefing ? `\n[BRIEFING DETALHADO]\n${client.ai_briefing}\n` : ""}`;
       conversationMessages =
         (existingConv.messages as Array<{ role: string; content: string }>) ||
         [];
-      resolvedClientId = (existingConv as Record<string, unknown>).resolved_client_id as string | null || null;
+      resolvedClientId =
+        ((existingConv as Record<string, unknown>).resolved_client_id as
+          | string
+          | null) || null;
     }
     conversationMessages.push({ role: "user", content: userText });
     if (conversationMessages.length > 20) {

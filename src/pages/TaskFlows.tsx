@@ -49,13 +49,17 @@ import { ptBR } from "date-fns/locale";
 
 export default function TaskFlows() {
   const navigate = useNavigate();
-  const { flows, isLoading, createFlow, deleteFlow, isCreating } = useTaskFlows();
+  const { flows, isLoading, createFlow, deleteFlow, isCreating } =
+    useTaskFlows();
   const [search, setSearch] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const filteredFlows = useMemo(() => {
-    return flows.filter((f) =>
-      !search || f.name.toLowerCase().includes(search.toLowerCase()) || f.description?.toLowerCase().includes(search.toLowerCase())
+    return flows.filter(
+      (f) =>
+        !search ||
+        f.name.toLowerCase().includes(search.toLowerCase()) ||
+        f.description?.toLowerCase().includes(search.toLowerCase()),
     );
   }, [flows, search]);
 
@@ -87,12 +91,21 @@ export default function TaskFlows() {
               <GitBranch className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h1 className="text-2xl font-semibold text-foreground">Fluxos de Tarefas</h1>
-              <p className="text-sm text-muted-foreground">Crie fluxos visuais conectando quadros e definindo ações automáticas</p>
+              <h1 className="text-2xl font-semibold text-foreground">
+                Fluxos de Tarefas
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                Crie fluxos visuais conectando quadros e definindo ações
+                automáticas
+              </p>
             </div>
           </div>
           <Button onClick={handleCreate} disabled={isCreating}>
-            {isCreating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
+            {isCreating ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Plus className="w-4 h-4 mr-2" />
+            )}
             Novo Fluxo
           </Button>
         </div>
@@ -114,13 +127,24 @@ export default function TaskFlows() {
 
           {/* Content */}
           {isLoading ? (
-            <div className="text-center py-12 text-muted-foreground">Carregando...</div>
+            <div className="text-center py-12 text-muted-foreground">
+              Carregando...
+            </div>
           ) : filteredFlows.length === 0 ? (
             <div className="text-center py-16">
               <GitBranch className="w-12 h-12 mx-auto mb-3 text-muted-foreground/30" />
-              <h3 className="text-lg font-medium text-foreground">Nenhum fluxo encontrado</h3>
-              <p className="text-sm text-muted-foreground mt-1">Crie seu primeiro fluxo de tarefas para conectar quadros e automatizar movimentações.</p>
-              <Button className="mt-4" onClick={handleCreate} disabled={isCreating}>
+              <h3 className="text-lg font-medium text-foreground">
+                Nenhum fluxo encontrado
+              </h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Crie seu primeiro fluxo de tarefas para conectar quadros e
+                automatizar movimentações.
+              </p>
+              <Button
+                className="mt-4"
+                onClick={handleCreate}
+                disabled={isCreating}
+              >
                 <Plus className="w-4 h-4 mr-2" /> Criar Fluxo
               </Button>
             </div>
@@ -147,19 +171,33 @@ export default function TaskFlows() {
                           <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
                             <GitBranch className="w-4 h-4 text-primary" />
                           </div>
-                          <span className="font-medium text-foreground">{flow.name}</span>
+                          <span className="font-medium text-foreground">
+                            {flow.name}
+                          </span>
                         </div>
                       </TableCell>
                       <TableCell className="text-muted-foreground text-sm max-w-[400px] truncate">
                         {flow.description || "—"}
                       </TableCell>
                       <TableCell className="text-muted-foreground text-sm">
-                        {format(new Date(flow.updated_at), "dd 'de' MMM, yyyy", { locale: ptBR })}
+                        {format(
+                          new Date(flow.updated_at),
+                          "dd 'de' MMM, yyyy",
+                          { locale: ptBR },
+                        )}
                       </TableCell>
                       <TableCell>
                         <DropdownMenu>
-                          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <DropdownMenuTrigger
+                            asChild
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Button
+                              aria-label="Ação"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                            >
                               <MoreVertical className="w-4 h-4" />
                             </Button>
                           </DropdownMenuTrigger>
@@ -191,14 +229,20 @@ export default function TaskFlows() {
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir fluxo?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação não pode ser desfeita. O fluxo será permanentemente removido.
+              Esta ação não pode ser desfeita. O fluxo será permanentemente
+              removido.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive hover:bg-destructive/90"
-              onClick={() => { if (deleteId) { deleteFlow(deleteId); setDeleteId(null); } }}
+              onClick={() => {
+                if (deleteId) {
+                  deleteFlow(deleteId);
+                  setDeleteId(null);
+                }
+              }}
             >
               Excluir
             </AlertDialogAction>

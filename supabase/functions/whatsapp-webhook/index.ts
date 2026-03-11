@@ -2,8 +2,10 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 serve(async (req) => {
@@ -18,7 +20,10 @@ serve(async (req) => {
 
   try {
     const payload = await req.json();
-    console.log("[whatsapp-webhook] Received webhook:", JSON.stringify(payload));
+    console.log(
+      "[whatsapp-webhook] Received webhook:",
+      JSON.stringify(payload),
+    );
 
     // Determine provider based on payload structure
     // UazapiGO format: { EventType, instanceName, token, message, chat }
@@ -36,7 +41,10 @@ serve(async (req) => {
     // UazapiGO sends edited messages with EventType: "messages" but includes an "edited" field
     // containing the original message ID
     if (isUazapi && payload.message?.edited) {
-      console.log("[whatsapp-webhook] Processing message edit event - edited field:", payload.message.edited);
+      console.log(
+        "[whatsapp-webhook] Processing message edit event - edited field:",
+        payload.message.edited,
+      );
       return await handleMessageEditEvent(supabase, payload);
     }
 
@@ -56,40 +64,48 @@ serve(async (req) => {
       // The instance is identified by instanceName or token
       session = payload.instanceName || null;
       instanceToken = payload.token || null;
-      
-      console.log("[whatsapp-webhook] UazapiGO detected - instanceName:", session, "token:", instanceToken?.substring(0, 8) + "...");
+
+      console.log(
+        "[whatsapp-webhook] UazapiGO detected - instanceName:",
+        session,
+        "token:",
+        instanceToken?.substring(0, 8) + "...",
+      );
 
       // Check if this is a message event
       if (payload.EventType === "messages" || payload.message) {
         const message = payload.message || {};
         const chat = payload.chat || {};
-        
+
         // Get phone from message.chatid or chat.phone
         // Format: 5511999999999@s.whatsapp.net or +55 11 99999-9999
         const chatId = message.chatid || message.sender_pn || "";
         const chatPhone = chat.phone || "";
-        
+
         // Extract phone number
         if (chatId) {
-          phone = chatId.replace("@s.whatsapp.net", "").replace("@c.us", "").replace(/\D/g, "");
+          phone = chatId
+            .replace("@s.whatsapp.net", "")
+            .replace("@c.us", "")
+            .replace(/\D/g, "");
         } else if (chatPhone) {
           phone = chatPhone.replace(/\D/g, "");
         }
-        
+
         // Check if this is a group message
         const isGroup = chatId.includes("@g.us") || chat.wa_isGroup;
-        
+
         if (isGroup) {
           // Look up instance config to check if groups should be received
           let receiveGroups = false;
-          
+
           if (instanceToken) {
             const { data: instanceConfig } = await supabase
               .from("whatsapp_instances")
               .select("receive_group_messages, id, company_id")
               .eq("uazapi_token", instanceToken)
               .maybeSingle();
-            
+
             receiveGroups = instanceConfig?.receive_group_messages ?? false;
 
             // === GroupOps Integration ===
@@ -105,20 +121,37 @@ serve(async (req) => {
                 .maybeSingle();
 
               if (gopsGroup) {
-                console.log("[whatsapp-webhook] GroupOps managed group detected:", gopsGroup.id);
-                const senderJid = message.sender_pn || message.participant || "";
-                const senderPhone = senderJid.replace("@s.whatsapp.net", "").replace("@c.us", "").replace(/\D/g, "");
-                const senderName = message.senderName || message.pushName || null;
+                console.log(
+                  "[whatsapp-webhook] GroupOps managed group detected:",
+                  gopsGroup.id,
+                );
+                const senderJid =
+                  message.sender_pn || message.participant || "";
+                const senderPhone = senderJid
+                  .replace("@s.whatsapp.net", "")
+                  .replace("@c.us", "")
+                  .replace(/\D/g, "");
+                const senderName =
+                  message.senderName || message.pushName || null;
                 const msgContent = (() => {
                   if (message.content) {
-                    if (typeof message.content === "string") return message.content;
+                    if (typeof message.content === "string")
+                      return message.content;
                     if (message.content.text) return message.content.text;
                     if (message.content.caption) return message.content.caption;
                   }
                   return message.text || "[Mídia]";
                 })();
-                const msgType = (message.messageType || message.mediaType || "text").toLowerCase();
-                const msgMediaUrl = message.content?.URL || message.content?.url || message.fileURL || null;
+                const msgType = (
+                  message.messageType ||
+                  message.mediaType ||
+                  "text"
+                ).toLowerCase();
+                const msgMediaUrl =
+                  message.content?.URL ||
+                  message.content?.url ||
+                  message.fileURL ||
+                  null;
                 const msgId = message.id || message.messageid || null;
                 const msgFromMe = message.fromMe || false;
 
@@ -135,12 +168,15 @@ serve(async (req) => {
                   if (existingMember) {
                     memberId = existingMember.id;
                     // Update last activity
-                    await supabase.from("groupops_members").update({
-                      last_message_at: new Date().toISOString(),
-                      last_participation_at: new Date().toISOString(),
-                      silent_days: 0,
-                      display_name: senderName || undefined,
-                    }).eq("id", memberId);
+                    await supabase
+                      .from("groupops_members")
+                      .update({
+                        last_message_at: new Date().toISOString(),
+                        last_participation_at: new Date().toISOString(),
+                        silent_days: 0,
+                        display_name: senderName || undefined,
+                      })
+                      .eq("id", memberId);
                   } else {
                     // Auto-create member
                     const { data: newMember } = await supabase
@@ -165,82 +201,129 @@ serve(async (req) => {
                 }
 
                 // Insert into groupops_messages
-                await supabase.from("groupops_messages").insert({
-                  company_id: instanceConfig.company_id,
-                  group_id: gopsGroup.id,
-                  author_member_id: memberId,
-                  text: msgContent,
-                  media_type: msgType !== "text" ? msgType : null,
-                  media_url: msgMediaUrl,
-                  provider_message_id: msgId,
-                  timestamp: new Date().toISOString(),
-                }).then(({ error: msgErr }) => {
-                  if (msgErr) console.error("[whatsapp-webhook] GroupOps message insert error:", msgErr);
-                });
+                await supabase
+                  .from("groupops_messages")
+                  .insert({
+                    company_id: instanceConfig.company_id,
+                    group_id: gopsGroup.id,
+                    author_member_id: memberId,
+                    text: msgContent,
+                    media_type: msgType !== "text" ? msgType : null,
+                    media_url: msgMediaUrl,
+                    provider_message_id: msgId,
+                    timestamp: new Date().toISOString(),
+                  })
+                  .then(({ error: msgErr }) => {
+                    if (msgErr)
+                      console.error(
+                        "[whatsapp-webhook] GroupOps message insert error:",
+                        msgErr,
+                      );
+                  });
 
                 // Insert MESSAGE event
-                await supabase.from("groupops_events").insert({
-                  company_id: instanceConfig.company_id,
-                  group_id: gopsGroup.id,
-                  member_id: memberId,
-                  type: "MESSAGE",
-                  payload_json: { text: msgContent?.substring(0, 200), media_type: msgType, from_me: msgFromMe },
-                  timestamp: new Date().toISOString(),
-                }).then(({ error: evtErr }) => {
-                  if (evtErr) console.error("[whatsapp-webhook] GroupOps event insert error:", evtErr);
-                });
+                await supabase
+                  .from("groupops_events")
+                  .insert({
+                    company_id: instanceConfig.company_id,
+                    group_id: gopsGroup.id,
+                    member_id: memberId,
+                    type: "MESSAGE",
+                    payload_json: {
+                      text: msgContent?.substring(0, 200),
+                      media_type: msgType,
+                      from_me: msgFromMe,
+                    },
+                    timestamp: new Date().toISOString(),
+                  })
+                  .then(({ error: evtErr }) => {
+                    if (evtErr)
+                      console.error(
+                        "[whatsapp-webhook] GroupOps event insert error:",
+                        evtErr,
+                      );
+                  });
 
-                console.log("[whatsapp-webhook] GroupOps message+event saved for group:", gopsGroup.id);
+                console.log(
+                  "[whatsapp-webhook] GroupOps message+event saved for group:",
+                  gopsGroup.id,
+                );
               }
             }
           }
-          
+
           if (!receiveGroups) {
-            console.log("[whatsapp-webhook] Ignoring group message for main inbox (config: receive_group_messages=false)");
+            console.log(
+              "[whatsapp-webhook] Ignoring group message for main inbox (config: receive_group_messages=false)",
+            );
             return new Response(
-              JSON.stringify({ success: true, message: "Group message processed by GroupOps only" }),
-              { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+              JSON.stringify({
+                success: true,
+                message: "Group message processed by GroupOps only",
+              }),
+              {
+                status: 200,
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+              },
             );
           }
-          
-          console.log("[whatsapp-webhook] Processing group message (receive_group_messages=true)");
+
+          console.log(
+            "[whatsapp-webhook] Processing group message (receive_group_messages=true)",
+          );
         }
-        
+
         direction = message.fromMe ? "outgoing" : "incoming";
         externalId = message.id || message.messageid || null;
-        
+
         // Extract contact name from chat object (not message.senderName which is the sender, not the contact)
         // For outgoing messages, message.senderName would be OUR name, not the contact's name
         // So we should only use chat.name or chat.wa_contactName for the contact name
-        contactName = chat.name || chat.wa_contactName || chat.pushName || chat.notify || null;
-        
+        contactName =
+          chat.name ||
+          chat.wa_contactName ||
+          chat.pushName ||
+          chat.notify ||
+          null;
+
         // If still no contact name and this is an incoming message, we can use senderName as fallback
         if (!contactName && !message.fromMe) {
           contactName = message.senderName || message.pushName || null;
         }
-        
+
         // Extract profile picture URL from chat object
         profilePicUrl = chat.imagePreview || chat.image || null;
-        
+
         // Determine message type from messageType/mediaType
-        const rawMsgType = (message.messageType || message.mediaType || "").toLowerCase();
-        
+        const rawMsgType = (
+          message.messageType ||
+          message.mediaType ||
+          ""
+        ).toLowerCase();
+
         if (rawMsgType.includes("sticker")) {
           messageType = "sticker";
         } else if (rawMsgType.includes("gif")) {
           messageType = "gif";
         } else if (rawMsgType.includes("image")) {
           messageType = "image";
-        } else if (rawMsgType.includes("audio") || rawMsgType.includes("ptt") || rawMsgType.includes("voice")) {
+        } else if (
+          rawMsgType.includes("audio") ||
+          rawMsgType.includes("ptt") ||
+          rawMsgType.includes("voice")
+        ) {
           messageType = "audio";
         } else if (rawMsgType.includes("video")) {
           messageType = "video";
-        } else if (rawMsgType.includes("document") || rawMsgType.includes("file")) {
+        } else if (
+          rawMsgType.includes("document") ||
+          rawMsgType.includes("file")
+        ) {
           messageType = "document";
         } else {
           messageType = "text";
         }
-        
+
         // Extract media URL from content object or fileURL
         if (message.content && typeof message.content === "object") {
           mediaUrl = message.content.URL || message.content.url || null;
@@ -248,7 +331,7 @@ serve(async (req) => {
         if (!mediaUrl && message.fileURL) {
           mediaUrl = message.fileURL;
         }
-        
+
         // Get message content - prioritize actual text content
         if (message.content) {
           if (typeof message.content === "string") {
@@ -262,12 +345,12 @@ serve(async (req) => {
             content = message.content.fileName;
           }
         }
-        
+
         // Fallback to text field or body
         if (!content && message.text) {
           content = message.text;
         }
-        
+
         // If still no content, create placeholder based on message type
         if (!content) {
           switch (messageType) {
@@ -296,8 +379,12 @@ serve(async (req) => {
               content = "[Mensagem]";
           }
         }
-        
-        console.log("[whatsapp-webhook] Media info:", { messageType, mediaUrl: mediaUrl?.substring(0, 50), content: content?.substring(0, 50) });
+
+        console.log("[whatsapp-webhook] Media info:", {
+          messageType,
+          mediaUrl: mediaUrl?.substring(0, 50),
+          content: content?.substring(0, 50),
+        });
       }
     } else if (isZapi) {
       // Z-API webhook format
@@ -307,7 +394,7 @@ serve(async (req) => {
       externalId = payload.messageId || payload.zapiMessageId;
       direction = payload.fromMe ? "outgoing" : "incoming";
       profilePicUrl = payload.profilePicUrl || payload.photo || null;
-      
+
       if (payload.image) {
         messageType = "image";
         mediaUrl = payload.image.imageUrl || payload.image.url;
@@ -326,17 +413,35 @@ serve(async (req) => {
       }
     }
 
-    console.log("[whatsapp-webhook] Extracted data:", { phone, content: content?.substring(0, 50), direction, contactName, messageType, mediaUrl: mediaUrl?.substring(0, 50) });
+    console.log("[whatsapp-webhook] Extracted data:", {
+      phone,
+      content: content?.substring(0, 50),
+      direction,
+      contactName,
+      messageType,
+      mediaUrl: mediaUrl?.substring(0, 50),
+    });
 
     if (!phone || !content) {
       console.log("[whatsapp-webhook] Ignoring webhook - no phone or content");
       return new Response(
-        JSON.stringify({ success: true, message: "Ignored - no message content" }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          success: true,
+          message: "Ignored - no message content",
+        }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
-    console.log("[whatsapp-webhook] Processing message:", { phone, direction, messageType, contactName });
+    console.log("[whatsapp-webhook] Processing message:", {
+      phone,
+      direction,
+      messageType,
+      contactName,
+    });
 
     // Find company and instance
     let companyId: string | null = null;
@@ -351,23 +456,25 @@ serve(async (req) => {
           .eq("uazapi_token", instanceToken)
           .eq("is_active", true)
           .maybeSingle();
-        
+
         if (instance) {
           companyId = instance.company_id;
           instanceId = instance.id;
           console.log("[whatsapp-webhook] Found instance by token");
         }
       }
-      
+
       // Try by instance name/session if not found
       if (!companyId && session) {
         const { data: instance } = await supabase
           .from("whatsapp_instances")
           .select("id, company_id")
-          .or(`instance_name.ilike.${session},uazapi_instance_id.eq.${session},session_id.eq.${session}`)
+          .or(
+            `instance_name.ilike.${session},uazapi_instance_id.eq.${session},session_id.eq.${session}`,
+          )
           .eq("is_active", true)
           .maybeSingle();
-        
+
         if (instance) {
           companyId = instance.company_id;
           instanceId = instance.id;
@@ -383,7 +490,7 @@ serve(async (req) => {
           .eq("uazapi_session", session)
           .eq("provider", "uazapi")
           .maybeSingle();
-        
+
         companyId = config?.company_id || null;
         console.log("[whatsapp-webhook] Found company by legacy config");
       }
@@ -394,23 +501,33 @@ serve(async (req) => {
         .eq("instance_id", payload.instanceId)
         .eq("provider", "zapi")
         .maybeSingle();
-      
+
       companyId = config?.company_id || null;
     }
 
     if (!companyId) {
-      console.log("[whatsapp-webhook] Company not found for this session/instance");
+      console.log(
+        "[whatsapp-webhook] Company not found for this session/instance",
+      );
       return new Response(
         JSON.stringify({ success: false, error: "Company not found" }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
-    console.log("[whatsapp-webhook] Found company:", companyId, "instance:", instanceId);
+    console.log(
+      "[whatsapp-webhook] Found company:",
+      companyId,
+      "instance:",
+      instanceId,
+    );
 
     // Find or create conversation (considering instance_id)
     let existingConversation;
-    
+
     if (instanceId) {
       // Look for conversation with this specific instance
       const { data } = await supabase
@@ -422,7 +539,7 @@ serve(async (req) => {
         .maybeSingle();
       existingConversation = data;
     }
-    
+
     // If not found by instance, try by phone only (for backward compatibility)
     if (!existingConversation) {
       const { data } = await supabase
@@ -439,19 +556,22 @@ serve(async (req) => {
 
     if (existingConversation) {
       conversationId = existingConversation.id;
-      
+
       // Update conversation
       const updateData: Record<string, unknown> = {
         last_message_at: new Date().toISOString(),
         last_message_preview: content.substring(0, 100),
       };
-      
+
       if (contactName && contactName !== phone) {
         updateData.contact_name = contactName;
       }
 
       // Update profile picture if available and different
-      if (profilePicUrl && profilePicUrl !== existingConversation.profile_pic_url) {
+      if (
+        profilePicUrl &&
+        profilePicUrl !== existingConversation.profile_pic_url
+      ) {
         updateData.profile_pic_url = profilePicUrl;
       }
 
@@ -459,11 +579,11 @@ serve(async (req) => {
       if (instanceId && !existingConversation.instance_id) {
         updateData.instance_id = instanceId;
       }
-      
+
       if (direction === "incoming") {
         updateData.unread_count = (existingConversation.unread_count || 0) + 1;
       }
-      
+
       await supabase
         .from("whatsapp_conversations")
         .update(updateData)
@@ -486,10 +606,13 @@ serve(async (req) => {
         .single();
 
       if (convError) {
-        console.error("[whatsapp-webhook] Error creating conversation:", convError);
+        console.error(
+          "[whatsapp-webhook] Error creating conversation:",
+          convError,
+        );
         throw convError;
       }
-      
+
       conversationId = newConversation.id;
     }
 
@@ -513,42 +636,67 @@ serve(async (req) => {
       throw messageError;
     }
 
-    console.log("[whatsapp-webhook] Message saved successfully for conversation:", conversationId, "type:", messageType, "hasMedia:", !!mediaUrl);
-
-    return new Response(
-      JSON.stringify({ success: true }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    console.log(
+      "[whatsapp-webhook] Message saved successfully for conversation:",
+      conversationId,
+      "type:",
+      messageType,
+      "hasMedia:",
+      !!mediaUrl,
     );
 
+    return new Response(JSON.stringify({ success: true }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (error) {
     console.error("[whatsapp-webhook] Error:", error);
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 });
 
 // Handle reaction events from UazapiGO
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function handleReactionEvent(supabase: ReturnType<typeof createClient>, payload: any): Promise<Response> {
+async function handleReactionEvent(
+  supabase: ReturnType<typeof createClient>,
+  payload: any,
+): Promise<Response> {
   try {
     const reaction = payload.reaction || payload.message?.reaction || {};
     const instanceToken = payload.token || null;
-    
+
     // Extract reaction data
     // UazapiGO reaction format: { key: { id, remoteJid, fromMe }, emoji }
-    const reactedMessageId = reaction.key?.id || reaction.messageId || reaction.id;
+    const reactedMessageId =
+      reaction.key?.id || reaction.messageId || reaction.id;
     const emoji = reaction.emoji || reaction.text || "";
     const fromMe = reaction.key?.fromMe ?? reaction.fromMe ?? false;
-    
-    console.log("[whatsapp-webhook] Reaction data:", { reactedMessageId, emoji, fromMe });
+
+    console.log("[whatsapp-webhook] Reaction data:", {
+      reactedMessageId,
+      emoji,
+      fromMe,
+    });
 
     if (!reactedMessageId) {
       console.log("[whatsapp-webhook] No message ID in reaction event");
       return new Response(
         JSON.stringify({ success: true, message: "No message ID in reaction" }),
-        { status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
+        {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin":
+              Deno.env.get("FRONTEND_URL") ??
+              "https://controledetrafego.com.br",
+          },
+        },
       );
     }
 
@@ -565,10 +713,21 @@ async function handleReactionEvent(supabase: ReturnType<typeof createClient>, pa
     }
 
     if (!message) {
-      console.log("[whatsapp-webhook] Message not found for reaction:", reactedMessageId);
+      console.log(
+        "[whatsapp-webhook] Message not found for reaction:",
+        reactedMessageId,
+      );
       return new Response(
         JSON.stringify({ success: true, message: "Message not found" }),
-        { status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
+        {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin":
+              Deno.env.get("FRONTEND_URL") ??
+              "https://controledetrafego.com.br",
+          },
+        },
       );
     }
 
@@ -583,17 +742,34 @@ async function handleReactionEvent(supabase: ReturnType<typeof createClient>, pa
       throw updateError;
     }
 
-    console.log("[whatsapp-webhook] Reaction updated successfully:", { messageId: message.id, emoji });
+    console.log("[whatsapp-webhook] Reaction updated successfully:", {
+      messageId: message.id,
+      emoji,
+    });
 
     return new Response(
       JSON.stringify({ success: true, message: "Reaction updated" }),
-      { status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin":
+            Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+        },
+      },
     );
   } catch (error) {
     console.error("[whatsapp-webhook] Error handling reaction:", error);
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
-      { status: 500, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
+      {
+        status: 500,
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin":
+            Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+        },
+      },
     );
   }
 }
@@ -601,48 +777,64 @@ async function handleReactionEvent(supabase: ReturnType<typeof createClient>, pa
 // Handle message edit events from UazapiGO
 // UazapiGO sends: message.edited = "ORIGINAL_MESSAGE_ID" and message.content = "new text"
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function handleMessageEditEvent(supabase: ReturnType<typeof createClient>, payload: any): Promise<Response> {
+async function handleMessageEditEvent(
+  supabase: ReturnType<typeof createClient>,
+  payload: any,
+): Promise<Response> {
   try {
     const message = payload.message || {};
     const instanceToken = payload.token || null;
-    
+
     // UazapiGO format: message.edited contains the ORIGINAL message ID
     // message.id is the NEW message ID (which we should ignore)
     // message.content or message.text contains the new content
     const originalMessageId = message.edited;
     const newContent = message.content || message.text || "";
-    
+
     // Build the full external_id format used in the database
     // UazapiGO stores external_id as "owner:messageId", e.g., "5521996087371:A570C5FBC84B..."
     const owner = message.owner || payload.owner || "";
-    const fullOriginalExternalId = owner ? `${owner}:${originalMessageId}` : originalMessageId;
-    
-    console.log("[whatsapp-webhook] Edit data:", { 
-      originalMessageId, 
+    const fullOriginalExternalId = owner
+      ? `${owner}:${originalMessageId}`
+      : originalMessageId;
+
+    console.log("[whatsapp-webhook] Edit data:", {
+      originalMessageId,
       fullOriginalExternalId,
       newContent: newContent?.substring(0, 50),
-      newMessageId: message.id || message.messageid
+      newMessageId: message.id || message.messageid,
     });
 
     if (!originalMessageId) {
       console.log("[whatsapp-webhook] No original message ID in edit event");
       return new Response(
-        JSON.stringify({ success: true, message: "No message ID in edit event" }),
-        { status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
+        JSON.stringify({
+          success: true,
+          message: "No message ID in edit event",
+        }),
+        {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin":
+              Deno.env.get("FRONTEND_URL") ??
+              "https://controledetrafego.com.br",
+          },
+        },
       );
     }
 
     // Find the original message by external_id (try full format first, then just the ID)
     let existingMessage = null;
     let findError = null;
-    
+
     // Try with full external_id format first (owner:messageId)
     const { data: msg1, error: err1 } = await supabase
       .from("whatsapp_messages")
       .select("id, conversation_id, company_id, content")
       .eq("external_id", fullOriginalExternalId)
       .maybeSingle();
-    
+
     if (msg1) {
       existingMessage = msg1;
     } else {
@@ -652,58 +844,96 @@ async function handleMessageEditEvent(supabase: ReturnType<typeof createClient>,
         .select("id, conversation_id, company_id, content")
         .ilike("external_id", `%${originalMessageId}`)
         .maybeSingle();
-      
+
       existingMessage = msg2;
       findError = err2;
     }
 
     if (findError) {
-      console.error("[whatsapp-webhook] Error finding message for edit:", findError);
+      console.error(
+        "[whatsapp-webhook] Error finding message for edit:",
+        findError,
+      );
       throw findError;
     }
 
     if (!existingMessage) {
-      console.log("[whatsapp-webhook] Original message not found for edit:", fullOriginalExternalId, "or", originalMessageId);
+      console.log(
+        "[whatsapp-webhook] Original message not found for edit:",
+        fullOriginalExternalId,
+        "or",
+        originalMessageId,
+      );
       return new Response(
-        JSON.stringify({ success: true, message: "Original message not found" }),
-        { status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
+        JSON.stringify({
+          success: true,
+          message: "Original message not found",
+        }),
+        {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin":
+              Deno.env.get("FRONTEND_URL") ??
+              "https://controledetrafego.com.br",
+          },
+        },
       );
     }
 
     // Update the original message with new content and mark as edited
     const { error: updateError } = await supabase
       .from("whatsapp_messages")
-      .update({ 
+      .update({
         content: newContent,
         is_edited: true,
-        edited_at: new Date().toISOString()
+        edited_at: new Date().toISOString(),
       })
       .eq("id", existingMessage.id);
 
     if (updateError) {
-      console.error("[whatsapp-webhook] Error updating edited message:", updateError);
+      console.error(
+        "[whatsapp-webhook] Error updating edited message:",
+        updateError,
+      );
       throw updateError;
     }
 
     // Update conversation preview if this is the last message
     await supabase
       .from("whatsapp_conversations")
-      .update({ 
-        last_message_preview: newContent.substring(0, 100) 
+      .update({
+        last_message_preview: newContent.substring(0, 100),
       })
       .eq("id", existingMessage.conversation_id);
 
-    console.log("[whatsapp-webhook] Message edited successfully:", { messageId: existingMessage.id });
+    console.log("[whatsapp-webhook] Message edited successfully:", {
+      messageId: existingMessage.id,
+    });
 
     return new Response(
       JSON.stringify({ success: true, message: "Message edited" }),
-      { status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin":
+            Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+        },
+      },
     );
   } catch (error) {
     console.error("[whatsapp-webhook] Error handling message edit:", error);
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
-      { status: 500, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
+      {
+        status: 500,
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin":
+            Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+        },
+      },
     );
   }
 }

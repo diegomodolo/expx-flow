@@ -4,10 +4,27 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { YouTubeScript } from "@/hooks/useYouTubeScripts";
-import { FileText, Plus, Trash2, Loader2, Clock, Eye, ThumbsUp, MessageCircle, TrendingUp, Youtube, CheckCircle2 } from "lucide-react";
+import {
+  FileText,
+  Plus,
+  Trash2,
+  Loader2,
+  Clock,
+  Eye,
+  ThumbsUp,
+  MessageCircle,
+  TrendingUp,
+  Youtube,
+  CheckCircle2,
+} from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,7 +44,7 @@ interface YouTubeScriptsListProps {
   onOpenScript: (scriptId: string) => void;
   onDeleteScript: (scriptId: string) => void;
   onCreateNew: () => void;
-  onUpdateStatus?: (scriptId: string, status: YouTubeScript['status']) => void;
+  onUpdateStatus?: (scriptId: string, status: YouTubeScript["status"]) => void;
 }
 
 export function YouTubeScriptsList({
@@ -39,12 +56,28 @@ export function YouTubeScriptsList({
   onCreateNew,
   onUpdateStatus,
 }: YouTubeScriptsListProps) {
-  const [statusFilter, setStatusFilter] = useState<'active' | 'produced'>('active');
+  const [statusFilter, setStatusFilter] = useState<"active" | "produced">(
+    "active",
+  );
   const statusLabels: Record<string, { label: string; color: string }> = {
-    draft: { label: "Rascunho", color: "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400" },
-    review: { label: "Em Revisão", color: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400" },
-    approved: { label: "Aprovado", color: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" },
-    produced: { label: "Produzido", color: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400" },
+    draft: {
+      label: "Rascunho",
+      color: "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400",
+    },
+    review: {
+      label: "Em Revisão",
+      color:
+        "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
+    },
+    approved: {
+      label: "Aprovado",
+      color:
+        "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+    },
+    produced: {
+      label: "Produzido",
+      color: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+    },
   };
 
   if (loading) {
@@ -57,9 +90,10 @@ export function YouTubeScriptsList({
     );
   }
 
-  const activeScripts = scripts.filter(s => s.status !== 'produced');
-  const producedScripts = scripts.filter(s => s.status === 'produced');
-  const displayedScripts = statusFilter === 'active' ? activeScripts : producedScripts;
+  const activeScripts = scripts.filter((s) => s.status !== "produced");
+  const producedScripts = scripts.filter((s) => s.status === "produced");
+  const displayedScripts =
+    statusFilter === "active" ? activeScripts : producedScripts;
 
   return (
     <div className="space-y-6">
@@ -82,7 +116,11 @@ export function YouTubeScriptsList({
               )}
             </Button>
           </div>
-          <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as 'active' | 'produced')} className="mt-3">
+          <Tabs
+            value={statusFilter}
+            onValueChange={(v) => setStatusFilter(v as "active" | "produced")}
+            className="mt-3"
+          >
             <TabsList>
               <TabsTrigger value="active">
                 Em andamento ({activeScripts.length})
@@ -101,12 +139,14 @@ export function YouTubeScriptsList({
           <CardContent className="flex flex-col items-center justify-center h-40 text-center">
             <FileText className="h-10 w-10 text-muted-foreground mb-3" />
             <p className="font-medium">
-              {statusFilter === 'active' ? 'Nenhum roteiro em andamento' : 'Nenhum roteiro gravado'}
+              {statusFilter === "active"
+                ? "Nenhum roteiro em andamento"
+                : "Nenhum roteiro gravado"}
             </p>
             <p className="text-sm text-muted-foreground">
-              {statusFilter === 'active'
-                ? 'Crie roteiros a partir de sugestões ou do zero'
-                : 'Marque roteiros como gravados para movê-los aqui'}
+              {statusFilter === "active"
+                ? "Crie roteiros a partir de sugestões ou do zero"
+                : "Marque roteiros como gravados para movê-los aqui"}
             </p>
           </CardContent>
         </Card>
@@ -137,7 +177,10 @@ export function YouTubeScriptsList({
                         {script.video_duration_target && (
                           <>
                             <span className="text-muted-foreground/50">•</span>
-                            <span>{Math.round(script.video_duration_target / 60)} min</span>
+                            <span>
+                              {Math.round(script.video_duration_target / 60)}{" "}
+                              min
+                            </span>
                           </>
                         )}
                       </div>
@@ -156,53 +199,60 @@ export function YouTubeScriptsList({
                       </div>
 
                       {/* Source Video Info */}
-                      {script.source_videos && script.source_videos.length > 0 && (
-                        <div className="mt-3 space-y-1.5">
-                          {script.source_videos.map((video, idx) => (
-                            <div
-                              key={idx}
-                              className="flex items-center gap-2 rounded-md bg-muted/50 px-2.5 py-1.5 text-xs"
-                            >
-                              <Youtube className="h-3.5 w-3.5 text-destructive shrink-0" />
-                              <span className="truncate font-medium flex-1 min-w-0" title={video.title}>
-                                {video.title}
-                              </span>
-                              <span className="text-muted-foreground shrink-0">
-                                {video.channel_name}
-                              </span>
-                              <TooltipProvider delayDuration={200}>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <span className="flex items-center gap-0.5 text-muted-foreground shrink-0">
-                                      <Eye className="h-3 w-3" />
-                                      {video.view_count >= 1000
-                                        ? `${(video.view_count / 1000).toFixed(1)}k`
-                                        : video.view_count}
-                                    </span>
-                                  </TooltipTrigger>
-                                  <TooltipContent>{video.view_count.toLocaleString('pt-BR')} views</TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                              <span className="flex items-center gap-0.5 text-muted-foreground shrink-0">
-                                <ThumbsUp className="h-3 w-3" />
-                                {video.like_count >= 1000
-                                  ? `${(video.like_count / 1000).toFixed(1)}k`
-                                  : video.like_count}
-                              </span>
-                              <span className="flex items-center gap-0.5 text-muted-foreground shrink-0">
-                                <MessageCircle className="h-3 w-3" />
-                                {video.comment_count}
-                              </span>
-                              {video.engagement_rate != null && (
-                                <span className="flex items-center gap-0.5 text-green-600 dark:text-green-400 font-medium shrink-0">
-                                  <TrendingUp className="h-3 w-3" />
-                                  {video.engagement_rate.toFixed(1)}%
+                      {script.source_videos &&
+                        script.source_videos.length > 0 && (
+                          <div className="mt-3 space-y-1.5">
+                            {script.source_videos.map((video, idx) => (
+                              <div
+                                key={idx}
+                                className="flex items-center gap-2 rounded-md bg-muted/50 px-2.5 py-1.5 text-xs"
+                              >
+                                <Youtube className="h-3.5 w-3.5 text-destructive shrink-0" />
+                                <span
+                                  className="truncate font-medium flex-1 min-w-0"
+                                  title={video.title}
+                                >
+                                  {video.title}
                                 </span>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                                <span className="text-muted-foreground shrink-0">
+                                  {video.channel_name}
+                                </span>
+                                <TooltipProvider delayDuration={200}>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="flex items-center gap-0.5 text-muted-foreground shrink-0">
+                                        <Eye className="h-3 w-3" />
+                                        {video.view_count >= 1000
+                                          ? `${(video.view_count / 1000).toFixed(1)}k`
+                                          : video.view_count}
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      {video.view_count.toLocaleString("pt-BR")}{" "}
+                                      views
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                                <span className="flex items-center gap-0.5 text-muted-foreground shrink-0">
+                                  <ThumbsUp className="h-3 w-3" />
+                                  {video.like_count >= 1000
+                                    ? `${(video.like_count / 1000).toFixed(1)}k`
+                                    : video.like_count}
+                                </span>
+                                <span className="flex items-center gap-0.5 text-muted-foreground shrink-0">
+                                  <MessageCircle className="h-3 w-3" />
+                                  {video.comment_count}
+                                </span>
+                                {video.engagement_rate != null && (
+                                  <span className="flex items-center gap-0.5 text-green-600 dark:text-green-400 font-medium shrink-0">
+                                    <TrendingUp className="h-3 w-3" />
+                                    {video.engagement_rate.toFixed(1)}%
+                                  </span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                     </div>
                   </div>
 
@@ -212,18 +262,21 @@ export function YouTubeScriptsList({
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button
+                              aria-label="Confirmar"
                               size="icon"
                               variant="ghost"
                               className={`h-8 w-8 opacity-0 group-hover:opacity-100 ${
-                                script.status === 'produced'
-                                  ? 'text-muted-foreground'
-                                  : 'text-green-600 dark:text-green-400'
+                                script.status === "produced"
+                                  ? "text-muted-foreground"
+                                  : "text-green-600 dark:text-green-400"
                               }`}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 onUpdateStatus(
                                   script.id,
-                                  script.status === 'produced' ? 'draft' : 'produced'
+                                  script.status === "produced"
+                                    ? "draft"
+                                    : "produced",
                                 );
                               }}
                             >
@@ -231,7 +284,9 @@ export function YouTubeScriptsList({
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>
-                            {script.status === 'produced' ? 'Reabrir roteiro' : 'Marcar como gravado'}
+                            {script.status === "produced"
+                              ? "Reabrir roteiro"
+                              : "Marcar como gravado"}
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
@@ -239,6 +294,7 @@ export function YouTubeScriptsList({
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button
+                          aria-label="Excluir"
                           size="icon"
                           variant="ghost"
                           className="h-8 w-8 opacity-0 group-hover:opacity-100 text-destructive"
@@ -251,8 +307,8 @@ export function YouTubeScriptsList({
                         <AlertDialogHeader>
                           <AlertDialogTitle>Excluir roteiro?</AlertDialogTitle>
                           <AlertDialogDescription>
-                            Esta ação não pode ser desfeita. O roteiro e todo o histórico de chat serão
-                            permanentemente excluídos.
+                            Esta ação não pode ser desfeita. O roteiro e todo o
+                            histórico de chat serão permanentemente excluídos.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>

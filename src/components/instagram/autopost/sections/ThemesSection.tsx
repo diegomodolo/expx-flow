@@ -1,14 +1,14 @@
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Lightbulb, Plus, Trash2, RefreshCw, Loader2 } from 'lucide-react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import { useCompany } from '@/contexts/CompanyContext';
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Lightbulb, Plus, Trash2, RefreshCw, Loader2 } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useCompany } from "@/contexts/CompanyContext";
 
 interface ThemesSectionProps {
   configId: string;
@@ -27,96 +27,110 @@ interface MarketResearchInsight {
 export function ThemesSection({ configId, clientId }: ThemesSectionProps) {
   const { activeCompany } = useCompany();
   const queryClient = useQueryClient();
-  const [newTopic, setNewTopic] = useState('');
-  const [newPainPoint, setNewPainPoint] = useState('');
+  const [newTopic, setNewTopic] = useState("");
+  const [newPainPoint, setNewPainPoint] = useState("");
   const [isAdding, setIsAdding] = useState(false);
 
   // Fetch themes for this client
-  const { data: themes, isLoading, refetch } = useQuery({
-    queryKey: ['instagram-autopost-themes', clientId],
+  const {
+    data: themes,
+    isLoading,
+    refetch,
+  } = useQuery({
+    queryKey: ["instagram-autopost-themes", clientId],
     queryFn: async () => {
       if (!clientId) return [];
-      
+
       const { data, error } = await supabase
-        .from('market_research_insights')
-        .select('id, topic, pain_point, sentiment, source_type, relevance_score')
-        .eq('client_id', clientId)
-        .order('created_at', { ascending: false });
+        .from("market_research_insights")
+        .select(
+          "id, topic, pain_point, sentiment, source_type, relevance_score",
+        )
+        .eq("client_id", clientId)
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
       return (data || []) as MarketResearchInsight[];
     },
-    enabled: !!clientId
+    enabled: !!clientId,
   });
 
   // Add new theme
   const addThemeMutation = useMutation({
     mutationFn: async () => {
       if (!clientId || !activeCompany?.company_id) {
-        throw new Error('Cliente ou empresa não encontrados');
+        throw new Error("Cliente ou empresa não encontrados");
       }
 
       const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) throw new Error('Usuário não autenticado');
+      if (!userData.user) throw new Error("Usuário não autenticado");
 
-      const { error } = await supabase
-        .from('market_research_insights')
-        .insert({
-          client_id: clientId,
-          company_id: activeCompany.company_id,
-          user_id: userData.user.id,
-          topic: newTopic,
-          pain_point: newPainPoint || null,
-          source_type: 'manual',
-          sentiment: 'neutral'
-        });
+      const { error } = await supabase.from("market_research_insights").insert({
+        client_id: clientId,
+        company_id: activeCompany.company_id,
+        user_id: userData.user.id,
+        topic: newTopic,
+        pain_point: newPainPoint || null,
+        source_type: "manual",
+        sentiment: "neutral",
+      });
 
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success('Tema adicionado com sucesso');
-      setNewTopic('');
-      setNewPainPoint('');
+      toast.success("Tema adicionado com sucesso");
+      setNewTopic("");
+      setNewPainPoint("");
       setIsAdding(false);
-      queryClient.invalidateQueries({ queryKey: ['instagram-autopost-themes', clientId] });
+      queryClient.invalidateQueries({
+        queryKey: ["instagram-autopost-themes", clientId],
+      });
     },
     onError: (error) => {
-      toast.error('Erro ao adicionar tema: ' + error.message);
-    }
+      toast.error("Erro ao adicionar tema: " + error.message);
+    },
   });
 
   // Delete theme
   const deleteThemeMutation = useMutation({
     mutationFn: async (themeId: string) => {
       const { error } = await supabase
-        .from('market_research_insights')
+        .from("market_research_insights")
         .delete()
-        .eq('id', themeId);
+        .eq("id", themeId);
 
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success('Tema removido');
-      queryClient.invalidateQueries({ queryKey: ['instagram-autopost-themes', clientId] });
+      toast.success("Tema removido");
+      queryClient.invalidateQueries({
+        queryKey: ["instagram-autopost-themes", clientId],
+      });
     },
     onError: (error) => {
-      toast.error('Erro ao remover tema: ' + error.message);
-    }
+      toast.error("Erro ao remover tema: " + error.message);
+    },
   });
 
   const getSentimentColor = (sentiment: string | null) => {
     switch (sentiment) {
-      case 'positive': return 'bg-green-500/10 text-green-500';
-      case 'negative': return 'bg-red-500/10 text-red-500';
-      default: return 'bg-muted text-muted-foreground';
+      case "positive":
+        return "bg-green-500/10 text-green-500";
+      case "negative":
+        return "bg-red-500/10 text-red-500";
+      default:
+        return "bg-muted text-muted-foreground";
     }
   };
 
   const getSentimentLabel = (sentiment: string | null) => {
     switch (sentiment) {
-      case 'positive': return 'Positivo';
-      case 'negative': return 'Negativo';
-      default: return 'Neutro';
+      case "positive":
+        return "Positivo";
+      case "negative":
+        return "Negativo";
+      default:
+        return "Neutro";
     }
   };
 
@@ -129,7 +143,8 @@ export function ThemesSection({ configId, clientId }: ThemesSectionProps) {
             Nenhum cliente vinculado a esta automação.
           </p>
           <p className="text-sm text-muted-foreground">
-            Vá em <strong>Configuração</strong> e vincule um cliente para poder gerenciar os temas de conteúdo.
+            Vá em <strong>Configuração</strong> e vincule um cliente para poder
+            gerenciar os temas de conteúdo.
           </p>
         </CardContent>
       </Card>
@@ -156,10 +171,19 @@ export function ThemesSection({ configId, clientId }: ThemesSectionProps) {
               Temas de Pesquisa
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="icon" onClick={() => refetch()}>
+              <Button
+                aria-label="Atualizar"
+                variant="outline"
+                size="icon"
+                onClick={() => refetch()}
+              >
                 <RefreshCw className="h-4 w-4" />
               </Button>
-              <Button size="sm" onClick={() => setIsAdding(true)} disabled={isAdding}>
+              <Button
+                size="sm"
+                onClick={() => setIsAdding(true)}
+                disabled={isAdding}
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 Novo Tema
               </Button>
@@ -168,8 +192,9 @@ export function ThemesSection({ configId, clientId }: ThemesSectionProps) {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Os temas abaixo serão utilizados como inspiração para gerar os criativos automaticamente. 
-            A IA escolherá um tema aleatório de cada vez para criar conteúdo variado.
+            Os temas abaixo serão utilizados como inspiração para gerar os
+            criativos automaticamente. A IA escolherá um tema aleatório de cada
+            vez para criar conteúdo variado.
           </p>
 
           {isAdding && (
@@ -191,21 +216,23 @@ export function ThemesSection({ configId, clientId }: ThemesSectionProps) {
                   />
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     onClick={() => addThemeMutation.mutate()}
                     disabled={!newTopic.trim() || addThemeMutation.isPending}
                   >
-                    {addThemeMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                    {addThemeMutation.isPending && (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    )}
                     Adicionar
                   </Button>
-                  <Button 
-                    size="sm" 
-                    variant="ghost" 
+                  <Button
+                    size="sm"
+                    variant="ghost"
                     onClick={() => {
                       setIsAdding(false);
-                      setNewTopic('');
-                      setNewPainPoint('');
+                      setNewTopic("");
+                      setNewPainPoint("");
                     }}
                   >
                     Cancelar
@@ -218,7 +245,9 @@ export function ThemesSection({ configId, clientId }: ThemesSectionProps) {
           {themes && themes.length === 0 ? (
             <div className="text-center py-8">
               <Lightbulb className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground mb-2">Nenhum tema configurado</p>
+              <p className="text-muted-foreground mb-2">
+                Nenhum tema configurado
+              </p>
               <p className="text-sm text-muted-foreground">
                 Adicione temas para que a IA possa gerar criativos variados
               </p>
@@ -226,7 +255,10 @@ export function ThemesSection({ configId, clientId }: ThemesSectionProps) {
           ) : (
             <div className="grid gap-3">
               {themes?.map((theme) => (
-                <Card key={theme.id} className="hover:shadow-sm transition-shadow">
+                <Card
+                  key={theme.id}
+                  className="hover:shadow-sm transition-shadow"
+                >
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
@@ -237,7 +269,10 @@ export function ThemesSection({ configId, clientId }: ThemesSectionProps) {
                           </p>
                         )}
                         <div className="flex items-center gap-2 mt-2">
-                          <Badge variant="outline" className={getSentimentColor(theme.sentiment)}>
+                          <Badge
+                            variant="outline"
+                            className={getSentimentColor(theme.sentiment)}
+                          >
                             {getSentimentLabel(theme.sentiment)}
                           </Badge>
                           {theme.relevance_score && (
@@ -248,6 +283,7 @@ export function ThemesSection({ configId, clientId }: ThemesSectionProps) {
                         </div>
                       </div>
                       <Button
+                        aria-label="Excluir"
                         variant="ghost"
                         size="icon"
                         className="shrink-0 text-destructive hover:text-destructive"

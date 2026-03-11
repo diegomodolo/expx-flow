@@ -1357,6 +1357,7 @@ export function TaskDialog({
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
+                          aria-label="Diminuir zoom"
                           variant="ghost"
                           size="icon"
                           className="h-7 w-7 shrink-0"
@@ -1371,6 +1372,7 @@ export function TaskDialog({
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
+                          aria-label="Aumentar zoom"
                           variant="ghost"
                           size="icon"
                           className="h-7 w-7 shrink-0"
@@ -1386,6 +1388,7 @@ export function TaskDialog({
                       <TooltipContent>Aumentar</TooltipContent>
                     </Tooltip>
                     <Button
+                      aria-label="Fechar"
                       variant="ghost"
                       size="icon"
                       className="h-7 w-7 shrink-0"
@@ -2404,6 +2407,7 @@ export function TaskDialog({
                               {item.text}
                             </span>
                             <Button
+                              aria-label="Excluir"
                               variant="ghost"
                               size="icon"
                               className="h-7 w-7 text-destructive hover:text-destructive"
@@ -2425,6 +2429,7 @@ export function TaskDialog({
                           }
                         />
                         <Button
+                          aria-label="Adicionar"
                           variant="outline"
                           size="icon"
                           onClick={addChecklistItem}

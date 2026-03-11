@@ -1,5 +1,18 @@
 import React, { useState } from "react";
-import { Plus, Bot, Search, Filter, X, Check, Edit, Copy, Trash2, User, MoreVertical, UserCheck } from "lucide-react";
+import {
+  Plus,
+  Bot,
+  Search,
+  Filter,
+  X,
+  Check,
+  Edit,
+  Copy,
+  Trash2,
+  User,
+  MoreVertical,
+  UserCheck,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,7 +47,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   Select,
   SelectContent,
@@ -56,8 +73,10 @@ export default function AgentesIA() {
       const searchLower = searchTerm.toLowerCase();
       const matchesSearch =
         agent.agent_name.toLowerCase().includes(searchLower) ||
-        (agent.description && agent.description.toLowerCase().includes(searchLower)) ||
-        (agent.client?.name && agent.client.name.toLowerCase().includes(searchLower));
+        (agent.description &&
+          agent.description.toLowerCase().includes(searchLower)) ||
+        (agent.client?.name &&
+          agent.client.name.toLowerCase().includes(searchLower));
 
       const matchesClient =
         clientFilter === "all" ||
@@ -78,12 +97,16 @@ export default function AgentesIA() {
               <Bot className="text-primary text-2xl" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-foreground">Agentes de Inteligência Artificial</h1>
-              <p className="text-muted-foreground">Crie e gerencie seus assistentes de IA personalizados</p>
+              <h1 className="text-2xl font-bold text-foreground">
+                Agentes de Inteligência Artificial
+              </h1>
+              <p className="text-muted-foreground">
+                Crie e gerencie seus assistentes de IA personalizados
+              </p>
             </div>
           </div>
-          {hasPermission('editar-agentes') && (
-            <Button onClick={() => navigate('/ia/agents/new')}>
+          {hasPermission("editar-agentes") && (
+            <Button onClick={() => navigate("/ia/agents/new")}>
               <Plus className="w-4 h-4 mr-2" />
               Criar Novo Agente
             </Button>
@@ -131,7 +154,8 @@ export default function AgentesIA() {
             </Button>
           )}
           <span className="text-sm text-muted-foreground">
-            {filteredAgents.length} agente{filteredAgents.length !== 1 ? 's' : ''}
+            {filteredAgents.length} agente
+            {filteredAgents.length !== 1 ? "s" : ""}
           </span>
         </div>
 
@@ -140,9 +164,11 @@ export default function AgentesIA() {
           <div className="text-center py-12">
             <Bot className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
             <h3 className="text-lg font-medium mb-2">Nenhum agente criado</h3>
-            <p className="text-muted-foreground mb-4">Crie seu primeiro agente de IA para começar</p>
-            {hasPermission('editar-agentes') && (
-              <Button onClick={() => navigate('/ia/agents/new')}>
+            <p className="text-muted-foreground mb-4">
+              Crie seu primeiro agente de IA para começar
+            </p>
+            {hasPermission("editar-agentes") && (
+              <Button onClick={() => navigate("/ia/agents/new")}>
                 <Plus className="w-4 h-4 mr-2" />
                 Criar Primeiro Agente
               </Button>
@@ -163,7 +189,10 @@ export default function AgentesIA() {
               <TableBody>
                 {filteredAgents.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
+                    <TableCell
+                      colSpan={5}
+                      className="text-center py-12 text-muted-foreground"
+                    >
                       Nenhum agente encontrado
                     </TableCell>
                   </TableRow>
@@ -180,9 +209,13 @@ export default function AgentesIA() {
                             <Bot className="w-4 h-4 text-primary" />
                           </div>
                           <div className="min-w-0">
-                            <div className="font-medium text-foreground text-sm truncate">{agent.agent_name}</div>
+                            <div className="font-medium text-foreground text-sm truncate">
+                              {agent.agent_name}
+                            </div>
                             {agent.description && (
-                              <div className="text-xs text-muted-foreground truncate max-w-[300px]">{agent.description}</div>
+                              <div className="text-xs text-muted-foreground truncate max-w-[300px]">
+                                {agent.description}
+                              </div>
                             )}
                           </div>
                         </div>
@@ -194,7 +227,9 @@ export default function AgentesIA() {
                             {agent.client.name}
                           </Badge>
                         ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
+                          <span className="text-xs text-muted-foreground">
+                            —
+                          </span>
                         )}
                       </TableCell>
                       <TableCell className="text-center">
@@ -204,25 +239,34 @@ export default function AgentesIA() {
                             Sim
                           </Badge>
                         ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
+                          <span className="text-xs text-muted-foreground">
+                            —
+                          </span>
                         )}
                       </TableCell>
                       <TableCell>
                         <span className="text-xs text-muted-foreground">
-                          {(agent as unknown).model?.split('/').pop() || 'gemini-2.5-flash'}
+                          {(agent as unknown).model?.split("/").pop() ||
+                            "gemini-2.5-flash"}
                         </span>
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                          {hasPermission('editar-agentes') && (
+                        <div
+                          className="flex items-center justify-end gap-1"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {hasPermission("editar-agentes") && (
                             <>
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <Button
+                                    aria-label="Editar"
                                     variant="ghost"
                                     size="icon"
                                     className="h-8 w-8"
-                                    onClick={() => navigate(`/ia/agents/${agent.id}/edit`)}
+                                    onClick={() =>
+                                      navigate(`/ia/agents/${agent.id}/edit`)
+                                    }
                                   >
                                     <Edit className="h-4 w-4 text-muted-foreground" />
                                   </Button>
@@ -232,6 +276,7 @@ export default function AgentesIA() {
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <Button
+                                    aria-label="Fechar"
                                     variant="ghost"
                                     size="icon"
                                     className="h-8 w-8"
@@ -245,6 +290,7 @@ export default function AgentesIA() {
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                   <Button
+                                    aria-label="Excluir"
                                     variant="ghost"
                                     size="icon"
                                     className="h-8 w-8 text-destructive hover:text-destructive"
@@ -254,13 +300,19 @@ export default function AgentesIA() {
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
                                   <AlertDialogHeader>
-                                    <AlertDialogTitle>Excluir agente?</AlertDialogTitle>
+                                    <AlertDialogTitle>
+                                      Excluir agente?
+                                    </AlertDialogTitle>
                                     <AlertDialogDescription>
-                                      Esta ação não pode ser desfeita. Todas as conversas associadas também serão excluídas.
+                                      Esta ação não pode ser desfeita. Todas as
+                                      conversas associadas também serão
+                                      excluídas.
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogCancel>
+                                      Cancelar
+                                    </AlertDialogCancel>
                                     <AlertDialogAction
                                       onClick={() => deleteAgent(agent.id)}
                                       className="bg-destructive text-destructive-foreground hover:bg-destructive/90"

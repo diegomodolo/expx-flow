@@ -19,7 +19,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, Phone, Mail, Users, Loader2 } from "lucide-react";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Phone,
+  Mail,
+  Users,
+  Loader2,
+} from "lucide-react";
 import { useClientContacts, ClientContact } from "@/hooks/useClientContacts";
 import { useCompany } from "@/contexts/CompanyContext";
 
@@ -28,28 +36,33 @@ interface ClientContactsTabProps {
   readOnly?: boolean;
 }
 
-export function ClientContactsTab({ clientId, readOnly = false }: ClientContactsTabProps) {
+export function ClientContactsTab({
+  clientId,
+  readOnly = false,
+}: ClientContactsTabProps) {
   const { activeCompany } = useCompany();
-  const { 
-    contacts, 
-    isLoading, 
-    createContact, 
+  const {
+    contacts,
+    isLoading,
+    createContact,
     isCreating,
     updateContact,
     isUpdating,
-    deleteContact 
+    deleteContact,
   } = useClientContacts(activeCompany?.company_id, clientId);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingContact, setEditingContact] = useState<ClientContact | null>(null);
+  const [editingContact, setEditingContact] = useState<ClientContact | null>(
+    null,
+  );
   const [deleteContactId, setDeleteContactId] = useState<string | null>(null);
-  
+
   const [contactName, setContactName] = useState("");
   const [contactPhone, setContactPhone] = useState("");
   const [contactEmail, setContactEmail] = useState("");
 
   const formatPhone = (phone: string) => {
-    const cleaned = phone.replace(/\D/g, '');
+    const cleaned = phone.replace(/\D/g, "");
     if (cleaned.length === 13) {
       return `+${cleaned.slice(0, 2)} (${cleaned.slice(2, 4)}) ${cleaned.slice(4, 9)}-${cleaned.slice(9)}`;
     } else if (cleaned.length === 11) {
@@ -88,14 +101,14 @@ export function ClientContactsTab({ clientId, readOnly = false }: ClientContacts
       updateContact({
         id: editingContact.id,
         contactName,
-        phone: contactPhone.replace(/\D/g, ''),
+        phone: contactPhone.replace(/\D/g, ""),
         email: contactEmail || undefined,
       });
     } else {
       createContact({
         clientId,
         contactName,
-        phone: contactPhone.replace(/\D/g, ''),
+        phone: contactPhone.replace(/\D/g, ""),
         email: contactEmail || undefined,
       });
     }
@@ -113,7 +126,9 @@ export function ClientContactsTab({ clientId, readOnly = false }: ClientContacts
     return (
       <div className="text-center py-8">
         <Users className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-        <p className="text-muted-foreground">Salve o cliente primeiro para adicionar contatos</p>
+        <p className="text-muted-foreground">
+          Salve o cliente primeiro para adicionar contatos
+        </p>
       </div>
     );
   }
@@ -146,9 +161,15 @@ export function ClientContactsTab({ clientId, readOnly = false }: ClientContacts
       {contacts.length === 0 ? (
         <div className="text-center py-8 border border-dashed rounded-lg">
           <Users className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-          <p className="text-muted-foreground mb-2">Nenhum contato cadastrado</p>
+          <p className="text-muted-foreground mb-2">
+            Nenhum contato cadastrado
+          </p>
           {!readOnly && (
-            <Button onClick={() => handleOpenModal()} variant="outline" size="sm">
+            <Button
+              onClick={() => handleOpenModal()}
+              variant="outline"
+              size="sm"
+            >
               <Plus className="h-4 w-4 mr-2" />
               Adicionar Primeiro Contato
             </Button>
@@ -179,6 +200,7 @@ export function ClientContactsTab({ clientId, readOnly = false }: ClientContacts
               {!readOnly && (
                 <div className="flex items-center gap-1">
                   <Button
+                    aria-label="Editar"
                     variant="ghost"
                     size="icon"
                     onClick={() => handleOpenModal(contact)}
@@ -186,6 +208,7 @@ export function ClientContactsTab({ clientId, readOnly = false }: ClientContacts
                     <Pencil className="h-4 w-4" />
                   </Button>
                   <Button
+                    aria-label="Excluir"
                     variant="ghost"
                     size="icon"
                     onClick={() => setDeleteContactId(contact.id)}
@@ -205,7 +228,7 @@ export function ClientContactsTab({ clientId, readOnly = false }: ClientContacts
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {editingContact ? 'Editar Contato' : 'Novo Contato'}
+              {editingContact ? "Editar Contato" : "Novo Contato"}
             </DialogTitle>
           </DialogHeader>
 
@@ -248,27 +271,38 @@ export function ClientContactsTab({ clientId, readOnly = false }: ClientContacts
             </Button>
             <Button
               onClick={handleSave}
-              disabled={isCreating || isUpdating || !contactName || !contactPhone}
+              disabled={
+                isCreating || isUpdating || !contactName || !contactPhone
+              }
             >
-              {(isCreating || isUpdating) && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {editingContact ? 'Salvar' : 'Adicionar'}
+              {(isCreating || isUpdating) && (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              )}
+              {editingContact ? "Salvar" : "Adicionar"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Delete Confirmation */}
-      <AlertDialog open={!!deleteContactId} onOpenChange={() => setDeleteContactId(null)}>
+      <AlertDialog
+        open={!!deleteContactId}
+        onOpenChange={() => setDeleteContactId(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir Contato</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir este contato? Esta ação não pode ser desfeita.
+              Tem certeza que deseja excluir este contato? Esta ação não pode
+              ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground"
+            >
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>

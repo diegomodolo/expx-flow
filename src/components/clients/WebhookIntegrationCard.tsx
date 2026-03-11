@@ -1,7 +1,29 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Copy, ExternalLink, RefreshCw, TestTube, Link2, Code, CheckCircle, XCircle, Calendar, FileText, DollarSign, UserPlus, UserX, Zap, Settings } from "lucide-react";
+import {
+  Copy,
+  ExternalLink,
+  RefreshCw,
+  TestTube,
+  Link2,
+  Code,
+  CheckCircle,
+  XCircle,
+  Calendar,
+  FileText,
+  DollarSign,
+  UserPlus,
+  UserX,
+  Zap,
+  Settings,
+} from "lucide-react";
 import { useWebhookTokens } from "@/hooks/useWebhookTokens";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
@@ -19,10 +41,13 @@ interface WebhookIntegrationCardProps {
   clientId: string;
 }
 
-export const WebhookIntegrationCard = ({ clientId }: WebhookIntegrationCardProps) => {
+export const WebhookIntegrationCard = ({
+  clientId,
+}: WebhookIntegrationCardProps) => {
   const { toast } = useToast();
   const [showDocs, setShowDocs] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState<EventPresetKey>("LEAD_QUALIFIED");
+  const [selectedEvent, setSelectedEvent] =
+    useState<EventPresetKey>("LEAD_QUALIFIED");
   const {
     token,
     isLoading,
@@ -67,7 +92,7 @@ export const WebhookIntegrationCard = ({ clientId }: WebhookIntegrationCardProps
   const getExamplePayload = (eventKey: EventPresetKey) => {
     const timestamp = Math.floor(Date.now() / 1000);
     const preset = EVENT_PRESETS[eventKey];
-    
+
     const basePayload = {
       leadId: "lead_12345",
       eventName: preset.name,
@@ -152,7 +177,7 @@ export const WebhookIntegrationCard = ({ clientId }: WebhookIntegrationCardProps
   };
 
   const getCurlExample = (eventKey: EventPresetKey) => {
-    if (!webhookUrl) return '';
+    if (!webhookUrl) return "";
     const payload = getExamplePayload(eventKey);
     return `curl -X POST '${webhookUrl}' \\
   -H 'Content-Type: application/json' \\
@@ -160,7 +185,7 @@ export const WebhookIntegrationCard = ({ clientId }: WebhookIntegrationCardProps
   };
 
   const getJsExample = (eventKey: EventPresetKey) => {
-    if (!webhookUrl) return '';
+    if (!webhookUrl) return "";
     const preset = EVENT_PRESETS[eventKey];
     return `// Integração JavaScript/Node.js
 const webhookUrl = '${webhookUrl}';
@@ -172,9 +197,13 @@ async function send${preset.name}(leadData) {
     body: JSON.stringify({
       leadId: leadData.id,
       eventName: '${preset.name}',
-      actionSource: '${preset.actionSource}',${eventKey === "PURCHASE" ? `
+      actionSource: '${preset.actionSource}',${
+        eventKey === "PURCHASE"
+          ? `
       value: leadData.value,
-      currency: 'BRL',` : ''}
+      currency: 'BRL',`
+          : ""
+      }
       userData: {
         email: leadData.email,
         phone: leadData.phone,
@@ -183,8 +212,12 @@ async function send${preset.name}(leadData) {
       },
       customData: {
         lead_id: leadData.id,
-        pipeline_stage: '${eventKey === "LEAD_QUALIFIED" ? "MQL" : eventKey === "MEETING_SCHEDULED" ? "SQL" : eventKey === "PURCHASE" ? "Closed Won" : eventKey === "LEAD_DISQUALIFIED" ? "Discarded" : "New"}',${eventKey === "LEAD_DISQUALIFIED" ? `
-        disqualification_reason: leadData.reason,` : ''}
+        pipeline_stage: '${eventKey === "LEAD_QUALIFIED" ? "MQL" : eventKey === "MEETING_SCHEDULED" ? "SQL" : eventKey === "PURCHASE" ? "Closed Won" : eventKey === "LEAD_DISQUALIFIED" ? "Discarded" : "New"}',${
+          eventKey === "LEAD_DISQUALIFIED"
+            ? `
+        disqualification_reason: leadData.reason,`
+            : ""
+        }
         crm_source: 'Pipedrive'
       }
     })
@@ -195,7 +228,7 @@ async function send${preset.name}(leadData) {
   };
 
   const getPythonExample = (eventKey: EventPresetKey) => {
-    if (!webhookUrl) return '';
+    if (!webhookUrl) return "";
     const preset = EVENT_PRESETS[eventKey];
     return `# Integração Python
 import requests
@@ -207,9 +240,13 @@ def send_${preset.name.toLowerCase()}(lead_data):
     payload = {
         "leadId": lead_data["id"],
         "eventName": "${preset.name}",
-        "actionSource": "${preset.actionSource}",${eventKey === "PURCHASE" ? `
+        "actionSource": "${preset.actionSource}",${
+          eventKey === "PURCHASE"
+            ? `
         "value": lead_data["value"],
-        "currency": "BRL",` : ''}
+        "currency": "BRL",`
+            : ""
+        }
         "userData": {
             "email": lead_data["email"],
             "phone": lead_data["phone"],
@@ -218,8 +255,12 @@ def send_${preset.name.toLowerCase()}(lead_data):
         },
         "customData": {
             "lead_id": lead_data["id"],
-            "pipeline_stage": "${eventKey === "LEAD_QUALIFIED" ? "MQL" : eventKey === "MEETING_SCHEDULED" ? "SQL" : eventKey === "PURCHASE" ? "Closed Won" : eventKey === "LEAD_DISQUALIFIED" ? "Discarded" : "New"}",${eventKey === "LEAD_DISQUALIFIED" ? `
-            "disqualification_reason": lead_data.get("reason"),` : ''}
+            "pipeline_stage": "${eventKey === "LEAD_QUALIFIED" ? "MQL" : eventKey === "MEETING_SCHEDULED" ? "SQL" : eventKey === "PURCHASE" ? "Closed Won" : eventKey === "LEAD_DISQUALIFIED" ? "Discarded" : "New"}",${
+              eventKey === "LEAD_DISQUALIFIED"
+                ? `
+            "disqualification_reason": lead_data.get("reason"),`
+                : ""
+            }
             "crm_source": "Pipedrive"
         }
     }
@@ -229,7 +270,7 @@ def send_${preset.name.toLowerCase()}(lead_data):
   };
 
   const getPhpExample = (eventKey: EventPresetKey) => {
-    if (!webhookUrl) return '';
+    if (!webhookUrl) return "";
     const preset = EVENT_PRESETS[eventKey];
     return `<?php
 // Integração PHP
@@ -239,9 +280,13 @@ function send${preset.name}($leadData) {
     $payload = [
         "leadId" => $leadData["id"],
         "eventName" => "${preset.name}",
-        "actionSource" => "${preset.actionSource}",${eventKey === "PURCHASE" ? `
+        "actionSource" => "${preset.actionSource}",${
+          eventKey === "PURCHASE"
+            ? `
         "value" => $leadData["value"],
-        "currency" => "BRL",` : ''}
+        "currency" => "BRL",`
+            : ""
+        }
         "userData" => [
             "email" => $leadData["email"],
             "phone" => $leadData["phone"],
@@ -250,8 +295,12 @@ function send${preset.name}($leadData) {
         ],
         "customData" => [
             "lead_id" => $leadData["id"],
-            "pipeline_stage" => "${eventKey === "LEAD_QUALIFIED" ? "MQL" : eventKey === "MEETING_SCHEDULED" ? "SQL" : eventKey === "PURCHASE" ? "Closed Won" : eventKey === "LEAD_DISQUALIFIED" ? "Discarded" : "New"}",${eventKey === "LEAD_DISQUALIFIED" ? `
-            "disqualification_reason" => $leadData["reason"] ?? null,` : ''}
+            "pipeline_stage" => "${eventKey === "LEAD_QUALIFIED" ? "MQL" : eventKey === "MEETING_SCHEDULED" ? "SQL" : eventKey === "PURCHASE" ? "Closed Won" : eventKey === "LEAD_DISQUALIFIED" ? "Discarded" : "New"}",${
+              eventKey === "LEAD_DISQUALIFIED"
+                ? `
+            "disqualification_reason" => $leadData["reason"] ?? null,`
+                : ""
+            }
             "crm_source" => "Pipedrive"
         ]
     ];
@@ -294,19 +343,18 @@ function send${preset.name}($leadData) {
           Integração Webhook - Conversões Offline
         </CardTitle>
         <CardDescription>
-          Configure a integração automática do seu CRM para enviar conversões offline ao Meta
+          Configure a integração automática do seu CRM para enviar conversões
+          offline ao Meta
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {!token ? (
           <div className="text-center py-6 space-y-4">
             <p className="text-sm text-muted-foreground">
-              Gere uma URL de webhook para permitir que seu CRM envie conversões automaticamente
+              Gere uma URL de webhook para permitir que seu CRM envie conversões
+              automaticamente
             </p>
-            <Button
-              onClick={() => generateToken()}
-              disabled={isGenerating}
-            >
+            <Button onClick={() => generateToken()} disabled={isGenerating}>
               {isGenerating ? "Gerando..." : "Gerar URL do Webhook"}
             </Button>
           </div>
@@ -316,23 +364,28 @@ function send${preset.name}($leadData) {
               <div className="flex items-center justify-between">
                 <label className="text-sm font-medium">URL do Webhook</label>
                 <Badge variant="outline" className="text-xs">
-                  {token.last_used_at 
+                  {token.last_used_at
                     ? `Usado em ${new Date(token.last_used_at).toLocaleDateString()}`
-                    : "Nunca usado"
-                  }
+                    : "Nunca usado"}
                 </Badge>
               </div>
               <div className="flex gap-2">
                 <input
                   type="text"
-                  value={webhookUrl || ''}
+                  value={webhookUrl || ""}
                   readOnly
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono"
                 />
                 <Button
+                  aria-label="Copiar"
                   variant="outline"
                   size="icon"
-                  onClick={() => copyToClipboard(webhookUrl || '', 'URL copiada para a área de transferência')}
+                  onClick={() =>
+                    copyToClipboard(
+                      webhookUrl || "",
+                      "URL copiada para a área de transferência",
+                    )
+                  }
                 >
                   <Copy className="h-4 w-4" />
                 </Button>
@@ -376,20 +429,30 @@ function send${preset.name}($leadData) {
                   <AlertDescription className="text-sm">
                     <strong>📌 Sistema de Timeline de Eventos</strong>
                     <p className="mt-2">
-                      Rastreie a jornada completa do lead desde a entrada no CRM até o fechamento da venda, 
-                      enviando múltiplos eventos com o mesmo <code className="bg-muted px-1 py-0.5 rounded">leadId</code>:
+                      Rastreie a jornada completa do lead desde a entrada no CRM
+                      até o fechamento da venda, enviando múltiplos eventos com
+                      o mesmo{" "}
+                      <code className="bg-muted px-1 py-0.5 rounded">
+                        leadId
+                      </code>
+                      :
                     </p>
                     <p className="mt-2 font-mono text-xs">
-                      Lead → LeadQualified → MeetingScheduled → ProposalSent → Purchase
+                      Lead → LeadQualified → MeetingScheduled → ProposalSent →
+                      Purchase
                     </p>
-                    <p className="mt-2">Ou identifique leads de baixa qualidade:</p>
+                    <p className="mt-2">
+                      Ou identifique leads de baixa qualidade:
+                    </p>
                     <p className="font-mono text-xs">Lead → LeadDisqualified</p>
                   </AlertDescription>
                 </Alert>
 
                 {/* Tabela de Eventos */}
                 <div className="space-y-2">
-                  <h4 className="text-sm font-semibold">📊 Eventos Disponíveis</h4>
+                  <h4 className="text-sm font-semibold">
+                    📊 Eventos Disponíveis
+                  </h4>
                   <div className="border rounded-lg overflow-hidden">
                     <table className="w-full text-xs">
                       <thead className="bg-muted">
@@ -401,30 +464,53 @@ function send${preset.name}($leadData) {
                         </tr>
                       </thead>
                       <tbody>
-                        {Object.entries(EVENT_PRESETS).slice(0, -1).map(([key, preset]) => {
-                          const Icon = getEventIcon(key as EventPresetKey);
-                          return (
-                            <tr key={key} className="border-t">
-                              <td className="p-2">
-                                <div className="flex items-center gap-2">
-                                  <Icon className="h-3 w-3" style={{ color: `hsl(var(--${preset.color}))` }} />
-                                  {preset.displayName}
-                                </div>
-                              </td>
-                              <td className="p-2 font-mono">{preset.name}</td>
-                              <td className="p-2 text-muted-foreground">{preset.description}</td>
-                              <td className="p-2 text-center">
-                                {'metaOptimizable' in preset && preset.metaOptimizable ? (
-                                  <Badge variant="default" className="text-xs">✅ Sim</Badge>
-                                ) : 'isNegativeSignal' in preset && preset.isNegativeSignal ? (
-                                  <Badge variant="destructive" className="text-xs">❌ Negativo</Badge>
-                                ) : (
-                                  <span className="text-muted-foreground">—</span>
-                                )}
-                              </td>
-                            </tr>
-                          );
-                        })}
+                        {Object.entries(EVENT_PRESETS)
+                          .slice(0, -1)
+                          .map(([key, preset]) => {
+                            const Icon = getEventIcon(key as EventPresetKey);
+                            return (
+                              <tr key={key} className="border-t">
+                                <td className="p-2">
+                                  <div className="flex items-center gap-2">
+                                    <Icon
+                                      className="h-3 w-3"
+                                      style={{
+                                        color: `hsl(var(--${preset.color}))`,
+                                      }}
+                                    />
+                                    {preset.displayName}
+                                  </div>
+                                </td>
+                                <td className="p-2 font-mono">{preset.name}</td>
+                                <td className="p-2 text-muted-foreground">
+                                  {preset.description}
+                                </td>
+                                <td className="p-2 text-center">
+                                  {"metaOptimizable" in preset &&
+                                  preset.metaOptimizable ? (
+                                    <Badge
+                                      variant="default"
+                                      className="text-xs"
+                                    >
+                                      ✅ Sim
+                                    </Badge>
+                                  ) : "isNegativeSignal" in preset &&
+                                    preset.isNegativeSignal ? (
+                                    <Badge
+                                      variant="destructive"
+                                      className="text-xs"
+                                    >
+                                      ❌ Negativo
+                                    </Badge>
+                                  ) : (
+                                    <span className="text-muted-foreground">
+                                      —
+                                    </span>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
                       </tbody>
                     </table>
                   </div>
@@ -432,10 +518,12 @@ function send${preset.name}($leadData) {
 
                 {/* Estrutura Base */}
                 <div className="space-y-2">
-                  <h4 className="text-sm font-semibold">🔧 Estrutura Base do Payload</h4>
+                  <h4 className="text-sm font-semibold">
+                    🔧 Estrutura Base do Payload
+                  </h4>
                   <div className="relative">
                     <pre className="p-3 bg-muted rounded-md text-xs font-mono overflow-x-auto max-h-96">
-{`{
+                      {`{
   // === IDENTIFICAÇÃO DO LEAD ===
   "leadId": "12345",  // ⚠️ RECOMENDADO: ID único (rastreia timeline)
   
@@ -478,8 +566,13 @@ function send${preset.name}($leadData) {
 
                 {/* Exemplos por Evento */}
                 <div className="space-y-2">
-                  <h4 className="text-sm font-semibold">📝 Exemplos por Tipo de Evento</h4>
-                  <Tabs value={selectedEvent} onValueChange={(v) => setSelectedEvent(v as EventPresetKey)}>
+                  <h4 className="text-sm font-semibold">
+                    📝 Exemplos por Tipo de Evento
+                  </h4>
+                  <Tabs
+                    value={selectedEvent}
+                    onValueChange={(v) => setSelectedEvent(v as EventPresetKey)}
+                  >
                     <TabsList className="grid grid-cols-6 w-full">
                       <TabsTrigger value="LEAD_CREATED" className="text-xs">
                         <UserPlus className="h-3 w-3 mr-1" />
@@ -489,7 +582,10 @@ function send${preset.name}($leadData) {
                         <CheckCircle className="h-3 w-3 mr-1" />
                         Qualificado
                       </TabsTrigger>
-                      <TabsTrigger value="MEETING_SCHEDULED" className="text-xs">
+                      <TabsTrigger
+                        value="MEETING_SCHEDULED"
+                        className="text-xs"
+                      >
                         <Calendar className="h-3 w-3 mr-1" />
                         Reunião
                       </TabsTrigger>
@@ -501,24 +597,48 @@ function send${preset.name}($leadData) {
                         <DollarSign className="h-3 w-3 mr-1" />
                         Compra
                       </TabsTrigger>
-                      <TabsTrigger value="LEAD_DISQUALIFIED" className="text-xs">
+                      <TabsTrigger
+                        value="LEAD_DISQUALIFIED"
+                        className="text-xs"
+                      >
                         <UserX className="h-3 w-3 mr-1" />
                         Desqual.
                       </TabsTrigger>
                     </TabsList>
 
-                    {(Object.keys(EVENT_PRESETS).slice(0, -1) as EventPresetKey[]).map((eventKey) => (
-                      <TabsContent key={eventKey} value={eventKey} className="space-y-4">
+                    {(
+                      Object.keys(EVENT_PRESETS).slice(
+                        0,
+                        -1,
+                      ) as EventPresetKey[]
+                    ).map((eventKey) => (
+                      <TabsContent
+                        key={eventKey}
+                        value={eventKey}
+                        className="space-y-4"
+                      >
                         <Alert>
                           <AlertDescription className="text-xs">
-                            <strong>{EVENT_PRESETS[eventKey].displayName}</strong>
-                            <p className="mt-1">{EVENT_PRESETS[eventKey].description}</p>
-                            {'metaOptimizable' in EVENT_PRESETS[eventKey] && EVENT_PRESETS[eventKey].metaOptimizable && (
-                              <p className="mt-2 text-green-600">⭐ Este evento pode ser usado para otimizar campanhas no Meta!</p>
-                            )}
-                            {'isNegativeSignal' in EVENT_PRESETS[eventKey] && EVENT_PRESETS[eventKey].isNegativeSignal && (
-                              <p className="mt-2 text-red-600">⚠️ Usado para criar públicos de exclusão no Meta</p>
-                            )}
+                            <strong>
+                              {EVENT_PRESETS[eventKey].displayName}
+                            </strong>
+                            <p className="mt-1">
+                              {EVENT_PRESETS[eventKey].description}
+                            </p>
+                            {"metaOptimizable" in EVENT_PRESETS[eventKey] &&
+                              EVENT_PRESETS[eventKey].metaOptimizable && (
+                                <p className="mt-2 text-green-600">
+                                  ⭐ Este evento pode ser usado para otimizar
+                                  campanhas no Meta!
+                                </p>
+                              )}
+                            {"isNegativeSignal" in EVENT_PRESETS[eventKey] &&
+                              EVENT_PRESETS[eventKey].isNegativeSignal && (
+                                <p className="mt-2 text-red-600">
+                                  ⚠️ Usado para criar públicos de exclusão no
+                                  Meta
+                                </p>
+                              )}
                           </AlertDescription>
                         </Alert>
 
@@ -529,7 +649,12 @@ function send${preset.name}($leadData) {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => copyToClipboard(getCurlExample(eventKey), 'Exemplo cURL copiado')}
+                              onClick={() =>
+                                copyToClipboard(
+                                  getCurlExample(eventKey),
+                                  "Exemplo cURL copiado",
+                                )
+                              }
                             >
                               <Copy className="h-3 w-3 mr-1" />
                               Copiar
@@ -543,11 +668,18 @@ function send${preset.name}($leadData) {
                         {/* JavaScript */}
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
-                            <h5 className="text-xs font-semibold">JavaScript / Node.js</h5>
+                            <h5 className="text-xs font-semibold">
+                              JavaScript / Node.js
+                            </h5>
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => copyToClipboard(getJsExample(eventKey), 'Exemplo JavaScript copiado')}
+                              onClick={() =>
+                                copyToClipboard(
+                                  getJsExample(eventKey),
+                                  "Exemplo JavaScript copiado",
+                                )
+                              }
                             >
                               <Copy className="h-3 w-3 mr-1" />
                               Copiar
@@ -565,7 +697,12 @@ function send${preset.name}($leadData) {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => copyToClipboard(getPythonExample(eventKey), 'Exemplo Python copiado')}
+                              onClick={() =>
+                                copyToClipboard(
+                                  getPythonExample(eventKey),
+                                  "Exemplo Python copiado",
+                                )
+                              }
                             >
                               <Copy className="h-3 w-3 mr-1" />
                               Copiar
@@ -583,7 +720,12 @@ function send${preset.name}($leadData) {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => copyToClipboard(getPhpExample(eventKey), 'Exemplo PHP copiado')}
+                              onClick={() =>
+                                copyToClipboard(
+                                  getPhpExample(eventKey),
+                                  "Exemplo PHP copiado",
+                                )
+                              }
                             >
                               <Copy className="h-3 w-3 mr-1" />
                               Copiar
@@ -603,25 +745,30 @@ function send${preset.name}($leadData) {
                   <h4 className="text-sm font-semibold">⚙️ Campos Especiais</h4>
                   <div className="space-y-3 text-xs">
                     <div className="border-l-2 border-primary pl-3">
-                      <strong className="font-mono">leadId</strong> (Recomendado)
+                      <strong className="font-mono">leadId</strong>{" "}
+                      (Recomendado)
                       <p className="text-muted-foreground mt-1">
-                        ID único do lead (ex: "lead_12345", "PIPE-2024-001"). Use o mesmo ID em todos os eventos 
-                        para rastrear a timeline completa do lead.
+                        ID único do lead (ex: "lead_12345", "PIPE-2024-001").
+                        Use o mesmo ID em todos os eventos para rastrear a
+                        timeline completa do lead.
                       </p>
                     </div>
                     <div className="border-l-2 border-primary pl-3">
                       <strong className="font-mono">actionSource</strong>
                       <p className="text-muted-foreground mt-1">
-                        Origem do evento: "crm" (padrão), "system_generated", "website", "app", "phone_call"
+                        Origem do evento: "crm" (padrão), "system_generated",
+                        "website", "app", "phone_call"
                       </p>
                     </div>
                     <div className="border-l-2 border-primary pl-3">
-                      <strong className="font-mono">fbc / fbp</strong> (Cookies do Facebook)
+                      <strong className="font-mono">fbc / fbp</strong> (Cookies
+                      do Facebook)
                       <p className="text-muted-foreground mt-1">
-                        ⚠️ Aumentam significativamente o match rate no Meta. Capture com JavaScript:
+                        ⚠️ Aumentam significativamente o match rate no Meta.
+                        Capture com JavaScript:
                       </p>
                       <pre className="mt-2 p-2 bg-muted rounded text-xs font-mono overflow-x-auto">
-{`function getCookie(name) {
+                        {`function getCookie(name) {
   const value = \`; \${document.cookie}\`;
   const parts = value.split(\`; \${name}=\`);
   if (parts.length === 2) return parts.pop().split(';').shift();
@@ -636,7 +783,9 @@ const fbp = getCookie('_fbp');`}
 
                 {/* Integrações Comuns */}
                 <div className="space-y-2">
-                  <h4 className="text-sm font-semibold">🔗 Integrações Comuns</h4>
+                  <h4 className="text-sm font-semibold">
+                    🔗 Integrações Comuns
+                  </h4>
                   <Tabs defaultValue="zapier" className="w-full">
                     <TabsList className="grid grid-cols-3 w-full">
                       <TabsTrigger value="zapier">
@@ -649,11 +798,13 @@ const fbp = getCookie('_fbp');`}
 
                     <TabsContent value="zapier" className="space-y-2">
                       <p className="text-xs text-muted-foreground">
-                        <strong>Trigger:</strong> "Novo Lead no Pipedrive" / "Deal mudou de etapa"<br />
+                        <strong>Trigger:</strong> "Novo Lead no Pipedrive" /
+                        "Deal mudou de etapa"
+                        <br />
                         <strong>Action:</strong> "Webhooks by Zapier" → POST
                       </p>
                       <pre className="p-3 bg-muted rounded-md text-xs font-mono overflow-x-auto">
-{`{
+                        {`{
   "leadId": "{{deal_id}}",
   "eventName": "LeadQualified",
   "actionSource": "crm",
@@ -673,11 +824,13 @@ const fbp = getCookie('_fbp');`}
 
                     <TabsContent value="make" className="space-y-2">
                       <p className="text-xs text-muted-foreground">
-                        <strong>Módulo:</strong> HTTP &gt; Make a Request<br />
-                        <strong>Method:</strong> POST | <strong>Content type:</strong> JSON
+                        <strong>Módulo:</strong> HTTP &gt; Make a Request
+                        <br />
+                        <strong>Method:</strong> POST |{" "}
+                        <strong>Content type:</strong> JSON
                       </p>
                       <pre className="p-3 bg-muted rounded-md text-xs font-mono overflow-x-auto">
-{`{
+                        {`{
   "leadId": "{{lead.id}}",
   "eventName": "Purchase",
   "value": {{deal.value}},
@@ -693,11 +846,12 @@ const fbp = getCookie('_fbp');`}
 
                     <TabsContent value="n8n" className="space-y-2">
                       <p className="text-xs text-muted-foreground">
-                        <strong>Node:</strong> HTTP Request<br />
+                        <strong>Node:</strong> HTTP Request
+                        <br />
                         <strong>Method:</strong> POST
                       </p>
                       <pre className="p-3 bg-muted rounded-md text-xs font-mono overflow-x-auto">
-{`{
+                        {`{
   leadId: $json["deal"]["id"],
   eventName: "LeadQualified",
   actionSource: "crm",
@@ -720,31 +874,60 @@ const fbp = getCookie('_fbp');`}
                   <div className="grid gap-2 text-xs">
                     <div className="flex gap-2">
                       <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" />
-                      <span>Sempre envie o <code className="bg-muted px-1 py-0.5 rounded">leadId</code> para rastrear a timeline completa</span>
+                      <span>
+                        Sempre envie o{" "}
+                        <code className="bg-muted px-1 py-0.5 rounded">
+                          leadId
+                        </code>{" "}
+                        para rastrear a timeline completa
+                      </span>
                     </div>
                     <div className="flex gap-2">
                       <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" />
-                      <span>Inclua o máximo de dados do usuário (email, phone, nome, cidade) para aumentar match rate</span>
+                      <span>
+                        Inclua o máximo de dados do usuário (email, phone, nome,
+                        cidade) para aumentar match rate
+                      </span>
                     </div>
                     <div className="flex gap-2">
                       <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" />
-                      <span>Envie eventos em ordem cronológica: Lead → LeadQualified → Meeting → Purchase</span>
+                      <span>
+                        Envie eventos em ordem cronológica: Lead → LeadQualified
+                        → Meeting → Purchase
+                      </span>
                     </div>
                     <div className="flex gap-2">
                       <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" />
-                      <span>Use <code className="bg-muted px-1 py-0.5 rounded">disqualification_reason</code> detalhado para análises futuras</span>
+                      <span>
+                        Use{" "}
+                        <code className="bg-muted px-1 py-0.5 rounded">
+                          disqualification_reason
+                        </code>{" "}
+                        detalhado para análises futuras
+                      </span>
                     </div>
                     <div className="flex gap-2">
                       <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" />
-                      <span>Configure retry/fallback no CRM caso o webhook falhe</span>
+                      <span>
+                        Configure retry/fallback no CRM caso o webhook falhe
+                      </span>
                     </div>
                     <div className="flex gap-2">
                       <XCircle className="h-4 w-4 text-red-600 flex-shrink-0 mt-0.5" />
-                      <span>Nunca envie o mesmo evento duas vezes para o mesmo lead (gera duplicatas)</span>
+                      <span>
+                        Nunca envie o mesmo evento duas vezes para o mesmo lead
+                        (gera duplicatas)
+                      </span>
                     </div>
                     <div className="flex gap-2">
                       <XCircle className="h-4 w-4 text-red-600 flex-shrink-0 mt-0.5" />
-                      <span>Não omita o <code className="bg-muted px-1 py-0.5 rounded">value</code> no evento Purchase</span>
+                      <span>
+                        Não omita o{" "}
+                        <code className="bg-muted px-1 py-0.5 rounded">
+                          value
+                        </code>{" "}
+                        no evento Purchase
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -760,7 +943,7 @@ const fbp = getCookie('_fbp');`}
 
                     <TabsContent value="success">
                       <pre className="p-3 bg-muted rounded-md text-xs font-mono overflow-x-auto">
-{`{
+                        {`{
   "success": true,
   "message": "Conversion sent successfully to Meta",
   "conversionId": "uuid-da-conversao",
@@ -776,27 +959,33 @@ const fbp = getCookie('_fbp');`}
 
                     <TabsContent value="error" className="space-y-3">
                       <div>
-                        <p className="text-xs font-medium mb-1">Cliente não configurado:</p>
+                        <p className="text-xs font-medium mb-1">
+                          Cliente não configurado:
+                        </p>
                         <pre className="p-2 bg-muted rounded-md text-xs font-mono overflow-x-auto">
-{`{
+                          {`{
   "success": false,
   "error": "Offline Event Set ID not configured"
 }`}
                         </pre>
                       </div>
                       <div>
-                        <p className="text-xs font-medium mb-1">Token inválido:</p>
+                        <p className="text-xs font-medium mb-1">
+                          Token inválido:
+                        </p>
                         <pre className="p-2 bg-muted rounded-md text-xs font-mono overflow-x-auto">
-{`{
+                          {`{
   "success": false,
   "error": "Invalid webhook token"
 }`}
                         </pre>
                       </div>
                       <div>
-                        <p className="text-xs font-medium mb-1">Dados incompletos:</p>
+                        <p className="text-xs font-medium mb-1">
+                          Dados incompletos:
+                        </p>
                         <pre className="p-2 bg-muted rounded-md text-xs font-mono overflow-x-auto">
-{`{
+                          {`{
   "success": false,
   "error": "Email or phone is required in userData"
 }`}

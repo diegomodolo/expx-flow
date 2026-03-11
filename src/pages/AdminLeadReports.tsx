@@ -5,13 +5,30 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { 
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   CalendarIcon,
   Download,
   FileText,
@@ -19,7 +36,7 @@ import {
   RefreshCw,
   Search,
   AlertCircle,
-  Eye
+  Eye,
 } from "lucide-react";
 import { useLeadDisqualificationReports } from "@/hooks/useLeadDisqualificationReports";
 import { useClients } from "@/hooks/useClients";
@@ -40,15 +57,17 @@ export default function AdminLeadReports() {
     startDate: "",
     endDate: "",
     search: "",
-    viewedStatus: "all"
+    viewedStatus: "all",
   });
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
   const [evidenceModalUrl, setEvidenceModalUrl] = useState<string | null>(null);
-  const [evidenceFileName, setEvidenceFileName] = useState<string>('evidencia.jpg');
+  const [evidenceFileName, setEvidenceFileName] =
+    useState<string>("evidencia.jpg");
   const [selectedReportData, setSelectedReportData] = useState<unknown>(null);
 
-  const { reports, loading, getReasonLabel, exportReports } = useLeadDisqualificationReports(filters);
+  const { reports, loading, getReasonLabel, exportReports } =
+    useLeadDisqualificationReports(filters);
   const { clients } = useClients();
   const { markAllAsViewed } = useLeadDisqualificationNotifications();
   const { activeCompany } = useCompany();
@@ -58,64 +77,55 @@ export default function AdminLeadReports() {
   // Função local para marcar como visualizado
   const markAsViewedLocal = async () => {
     if (!activeCompany?.company_id || !user?.id) {
-      console.log('markAsViewedLocal: Dados insuficientes', {
-        companyId: activeCompany?.company_id,
-        userId: user?.id
-      });
       return false;
     }
 
     try {
-      console.log('markAsViewedLocal: Executando para company:', activeCompany.company_id);
-      
       // Primeiro vamos ver o que existe na tabela
       const { data: allReports, error: fetchError } = await supabase
-        .from('lead_disqualification_reports')
-        .select('id, reporter_name, created_at, viewed_at, viewed_by')
-        .eq('company_id', activeCompany.company_id)
-        .order('created_at', { ascending: false });
-
-      console.log('markAsViewedLocal: Todos os reports da company:', allReports);
+        .from("lead_disqualification_reports")
+        .select("id, reporter_name, created_at, viewed_at, viewed_by")
+        .eq("company_id", activeCompany.company_id)
+        .order("created_at", { ascending: false });
 
       // Agora vamos ver especificamente os não visualizados
       const { data: unviewedReports, error: unviewedError } = await supabase
-        .from('lead_disqualification_reports')
-        .select('id, reporter_name, created_at, viewed_at')
-        .eq('company_id', activeCompany.company_id)
-        .is('viewed_at', null);
-
-      console.log('markAsViewedLocal: Reports não visualizados:', unviewedReports);
+        .from("lead_disqualification_reports")
+        .select("id, reporter_name, created_at, viewed_at")
+        .eq("company_id", activeCompany.company_id)
+        .is("viewed_at", null);
 
       if (fetchError || unviewedError) {
-        console.error('markAsViewedLocal: Erro ao buscar dados:', fetchError || unviewedError);
+        console.error(
+          "markAsViewedLocal: Erro ao buscar dados:",
+          fetchError || unviewedError,
+        );
         return false;
       }
 
       if (!unviewedReports || unviewedReports.length === 0) {
-        console.log('markAsViewedLocal: Nenhum report não visualizado encontrado');
         return true; // Não há nada para marcar
       }
 
       // Agora executar o update
       const { data: updateResult, error } = await supabase
-        .from('lead_disqualification_reports')
+        .from("lead_disqualification_reports")
         .update({
           viewed_at: new Date().toISOString(),
-          viewed_by: user.id
+          viewed_by: user.id,
         })
-        .eq('company_id', activeCompany.company_id)
-        .is('viewed_at', null)
-        .select('id');
+        .eq("company_id", activeCompany.company_id)
+        .is("viewed_at", null)
+        .select("id");
 
       if (error) {
-        console.error('markAsViewedLocal: Erro ao atualizar:', error);
+        console.error("markAsViewedLocal: Erro ao atualizar:", error);
         return false;
       }
 
-      console.log('markAsViewedLocal: Sucesso!', updateResult?.length || 0, 'reports marcados');
       return true;
     } catch (err) {
-      console.error('markAsViewedLocal: Erro:', err);
+      console.error("markAsViewedLocal: Erro:", err);
       return false;
     }
   };
@@ -123,32 +133,23 @@ export default function AdminLeadReports() {
   // Auto-mark as viewed when component mounts
   React.useEffect(() => {
     const markAsViewed = async () => {
-      console.log('AdminLeadReports: activeCompany disponível?', activeCompany?.company_id);
-      
       if (activeCompany?.company_id && user?.id) {
-        console.log('Página AdminLeadReports carregada, tentando marcar como visualizados');
-        
         // Tentar primeiro a função local
         const localSuccess = await markAsViewedLocal();
-        
+
         if (!localSuccess && markAllAsViewed) {
-          console.log('Tentativa local falhou, usando markAllAsViewed');
           await markAllAsViewed();
         }
-        
+
         // Forçar update do contador no header
         setTimeout(() => {
-          console.log('Forçando refresh do contador após 2 segundos');
-          window.dispatchEvent(new CustomEvent('refreshNotificationCount'));
+          window.dispatchEvent(new CustomEvent("refreshNotificationCount"));
         }, 2000);
       } else {
-        console.log('AdminLeadReports: Aguardando dados...', {
-          companyId: activeCompany?.company_id,
-          userId: user?.id
-        });
+        // intentionally empty
       }
     };
-    
+
     // Delay para garantir que a página carregou completamente
     const timer = setTimeout(markAsViewed, 1500);
     return () => clearTimeout(timer);
@@ -160,62 +161,77 @@ export default function AdminLeadReports() {
     { value: "informacoes_incorretas", label: "Informações incorretas" },
     { value: "contato_errado", label: "Contato errado" },
     { value: "ligacao_sem_resposta", label: "Ligação sem resposta" },
-    { value: "outro", label: "Outro" }
+    { value: "outro", label: "Outro" },
   ];
 
   const viewedStatusOptions = [
     { value: "all", label: "Todos os status" },
     { value: "viewed", label: "Visualizados" },
-    { value: "unviewed", label: "Não visualizados" }
+    { value: "unviewed", label: "Não visualizados" },
   ];
 
   const handleFilterChange = (key: string, value: string) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
+    setFilters((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handleDateChange = (type: 'start' | 'end', date: Date | undefined) => {
-    if (type === 'start') {
+  const handleDateChange = (type: "start" | "end", date: Date | undefined) => {
+    if (type === "start") {
       setStartDate(date);
-      setFilters(prev => ({ ...prev, startDate: date ? format(date, 'yyyy-MM-dd') : "" }));
+      setFilters((prev) => ({
+        ...prev,
+        startDate: date ? format(date, "yyyy-MM-dd") : "",
+      }));
     } else {
       setEndDate(date);
-      setFilters(prev => ({ ...prev, endDate: date ? format(date, 'yyyy-MM-dd') : "" }));
+      setFilters((prev) => ({
+        ...prev,
+        endDate: date ? format(date, "yyyy-MM-dd") : "",
+      }));
     }
   };
 
   const clearFilters = () => {
-    setFilters({ clientId: "all", reason: "all", startDate: "", endDate: "", search: "", viewedStatus: "all" });
+    setFilters({
+      clientId: "all",
+      reason: "all",
+      startDate: "",
+      endDate: "",
+      search: "",
+      viewedStatus: "all",
+    });
     setStartDate(undefined);
     setEndDate(undefined);
   };
 
   const getReasonBadgeColor = (reason: string) => {
     const colors: Record<string, string> = {
-      'fora_perfil': 'bg-red-100 text-red-800',
-      'informacoes_incorretas': 'bg-yellow-100 text-yellow-800',
-      'contato_errado': 'bg-blue-100 text-blue-800',
-      'ligacao_sem_resposta': 'bg-gray-100 text-gray-800',
-      'outro': 'bg-purple-100 text-purple-800'
+      fora_perfil: "bg-red-100 text-red-800",
+      informacoes_incorretas: "bg-yellow-100 text-yellow-800",
+      contato_errado: "bg-blue-100 text-blue-800",
+      ligacao_sem_resposta: "bg-gray-100 text-gray-800",
+      outro: "bg-purple-100 text-purple-800",
     };
-    return colors[reason] || 'bg-gray-100 text-gray-800';
+    return colors[reason] || "bg-gray-100 text-gray-800";
   };
 
-  const filteredReports = reports.filter(report => {
+  const filteredReports = reports.filter((report) => {
     // Filter by search text
     if (filters.search) {
       const searchLower = filters.search.toLowerCase();
-      const matchesSearch = (
+      const matchesSearch =
         report.reporter_name.toLowerCase().includes(searchLower) ||
-        getReasonLabel(report.disqualification_reason).toLowerCase().includes(searchLower) ||
-        (report.additional_notes && report.additional_notes.toLowerCase().includes(searchLower))
-      );
+        getReasonLabel(report.disqualification_reason)
+          .toLowerCase()
+          .includes(searchLower) ||
+        (report.additional_notes &&
+          report.additional_notes.toLowerCase().includes(searchLower));
       if (!matchesSearch) return false;
     }
 
     // Filter by viewed status
-    if (filters.viewedStatus && filters.viewedStatus !== 'all') {
-      if (filters.viewedStatus === 'viewed' && !report.viewed_at) return false;
-      if (filters.viewedStatus === 'unviewed' && report.viewed_at) return false;
+    if (filters.viewedStatus && filters.viewedStatus !== "all") {
+      if (filters.viewedStatus === "viewed" && !report.viewed_at) return false;
+      if (filters.viewedStatus === "unviewed" && report.viewed_at) return false;
     }
 
     return true;
@@ -224,7 +240,9 @@ export default function AdminLeadReports() {
   const handleViewEvidence = async (evidenceUrl: string, report: unknown) => {
     try {
       // Verificar se o usuário está autenticado
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) {
         toast({
           title: "Erro de Autenticação",
@@ -234,15 +252,13 @@ export default function AdminLeadReports() {
         return;
       }
 
-      console.log('Tentando acessar evidência:', evidenceUrl);
-      
       // Criar signed URL para acessar o arquivo
       const { data, error } = await supabase.storage
-        .from('lead-evidence')
+        .from("lead-evidence")
         .createSignedUrl(evidenceUrl, 60 * 60); // URL válida por 1 hora
 
       if (error) {
-        console.error('Error creating signed URL:', error);
+        console.error("Error creating signed URL:", error);
         toast({
           title: "Erro ao Acessar Evidência",
           description: `Erro: ${error.message}`,
@@ -252,29 +268,29 @@ export default function AdminLeadReports() {
       }
 
       if (data?.signedUrl) {
-        console.log('Signed URL criada com sucesso:', data.signedUrl);
-        
         // Verificar se é imagem para visualizar
-        const fileExtension = evidenceUrl.split('.').pop()?.toLowerCase();
-        const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExtension || '');
-        
+        const fileExtension = evidenceUrl.split(".").pop()?.toLowerCase();
+        const isImage = ["jpg", "jpeg", "png", "gif", "webp"].includes(
+          fileExtension || "",
+        );
+
         if (isImage) {
           // Abrir modal para visualizar imagem com signed URL
-          const fileName = evidenceUrl.split('/').pop() || 'evidencia.jpg';
-          const client = clients.find(c => c.id === report.client_id);
-          
+          const fileName = evidenceUrl.split("/").pop() || "evidencia.jpg";
+          const client = clients.find((c) => c.id === report.client_id);
+
           setEvidenceFileName(fileName);
           setSelectedReportData({
             ...report,
             client_name: client?.name,
-            client_email: client?.email
+            client_email: client?.email,
           });
           setEvidenceModalUrl(data.signedUrl);
         } else {
           // Fazer download do arquivo
-          const link = document.createElement('a');
+          const link = document.createElement("a");
           link.href = data.signedUrl;
-          link.download = evidenceUrl.split('/').pop() || 'evidencia';
+          link.download = evidenceUrl.split("/").pop() || "evidencia";
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
@@ -287,7 +303,7 @@ export default function AdminLeadReports() {
         });
       }
     } catch (err) {
-      console.error('Error viewing evidence:', err);
+      console.error("Error viewing evidence:", err);
       toast({
         title: "Erro",
         description: "Erro ao tentar acessar a evidência",
@@ -310,7 +326,7 @@ export default function AdminLeadReports() {
           <div className="flex gap-2">
             <Button
               variant="outline"
-              onClick={() => exportReports('csv')}
+              onClick={() => exportReports("csv")}
               className="flex items-center gap-2"
             >
               <Download className="h-4 w-4" />
@@ -318,7 +334,7 @@ export default function AdminLeadReports() {
             </Button>
             <Button
               variant="outline"
-              onClick={() => exportReports('pdf')}
+              onClick={() => exportReports("pdf")}
               className="flex items-center gap-2"
             >
               <FileText className="h-4 w-4" />
@@ -345,7 +361,9 @@ export default function AdminLeadReports() {
                   <Input
                     id="search"
                     value={filters.search}
-                    onChange={(e) => handleFilterChange('search', e.target.value)}
+                    onChange={(e) =>
+                      handleFilterChange("search", e.target.value)
+                    }
                     placeholder="Nome, motivo, observações..."
                     className="pl-10"
                   />
@@ -356,9 +374,11 @@ export default function AdminLeadReports() {
               <div className="space-y-2">
                 <Label>Cliente</Label>
                 <SearchableClientSelect
-                  clients={clients.map(c => ({ id: c.id, name: c.name }))}
+                  clients={clients.map((c) => ({ id: c.id, name: c.name }))}
                   value={filters.clientId}
-                  onValueChange={(value) => handleFilterChange('clientId', value)}
+                  onValueChange={(value) =>
+                    handleFilterChange("clientId", value)
+                  }
                   allLabel="Todos os clientes"
                   placeholder="Todos os clientes"
                 />
@@ -369,13 +389,13 @@ export default function AdminLeadReports() {
                 <Label>Motivo</Label>
                 <Select
                   value={filters.reason}
-                  onValueChange={(value) => handleFilterChange('reason', value)}
+                  onValueChange={(value) => handleFilterChange("reason", value)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Todos os motivos" />
                   </SelectTrigger>
                   <SelectContent>
-                    {reasonOptions.map(option => (
+                    {reasonOptions.map((option) => (
                       <SelectItem key={option.value} value={option.value}>
                         {option.label}
                       </SelectItem>
@@ -393,18 +413,20 @@ export default function AdminLeadReports() {
                       variant="outline"
                       className={cn(
                         "w-full justify-start text-left font-normal",
-                        !startDate && "text-muted-foreground"
+                        !startDate && "text-muted-foreground",
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {startDate ? format(startDate, "PPP", { locale: ptBR }) : "Selecionar"}
+                      {startDate
+                        ? format(startDate, "PPP", { locale: ptBR })
+                        : "Selecionar"}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
                       mode="single"
                       selected={startDate}
-                      onSelect={(date) => handleDateChange('start', date)}
+                      onSelect={(date) => handleDateChange("start", date)}
                       initialFocus
                       className="p-3 pointer-events-auto"
                     />
@@ -417,13 +439,15 @@ export default function AdminLeadReports() {
                 <Label>Status</Label>
                 <Select
                   value={filters.viewedStatus}
-                  onValueChange={(value) => handleFilterChange('viewedStatus', value)}
+                  onValueChange={(value) =>
+                    handleFilterChange("viewedStatus", value)
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Todos os status" />
                   </SelectTrigger>
                   <SelectContent>
-                    {viewedStatusOptions.map(option => (
+                    {viewedStatusOptions.map((option) => (
                       <SelectItem key={option.value} value={option.value}>
                         {option.label}
                       </SelectItem>
@@ -452,7 +476,9 @@ export default function AdminLeadReports() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total de Reports</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Total de Reports
+                  </p>
                   <p className="text-2xl font-bold">{filteredReports.length}</p>
                 </div>
                 <AlertCircle className="h-8 w-8 text-muted-foreground" />
@@ -464,9 +490,15 @@ export default function AdminLeadReports() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Fora do Perfil</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Fora do Perfil
+                  </p>
                   <p className="text-2xl font-bold">
-                    {filteredReports.filter(r => r.disqualification_reason === 'fora_perfil').length}
+                    {
+                      filteredReports.filter(
+                        (r) => r.disqualification_reason === "fora_perfil",
+                      ).length
+                    }
                   </p>
                 </div>
                 <div className="h-8 w-8 bg-red-100 rounded-full flex items-center justify-center">
@@ -480,9 +512,17 @@ export default function AdminLeadReports() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Info Incorretas</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Info Incorretas
+                  </p>
                   <p className="text-2xl font-bold">
-                    {filteredReports.filter(r => r.disqualification_reason === 'informacoes_incorretas').length}
+                    {
+                      filteredReports.filter(
+                        (r) =>
+                          r.disqualification_reason ===
+                          "informacoes_incorretas",
+                      ).length
+                    }
                   </p>
                 </div>
                 <div className="h-8 w-8 bg-yellow-100 rounded-full flex items-center justify-center">
@@ -496,9 +536,16 @@ export default function AdminLeadReports() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Sem Resposta</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Sem Resposta
+                  </p>
                   <p className="text-2xl font-bold">
-                    {filteredReports.filter(r => r.disqualification_reason === 'ligacao_sem_resposta').length}
+                    {
+                      filteredReports.filter(
+                        (r) =>
+                          r.disqualification_reason === "ligacao_sem_resposta",
+                      ).length
+                    }
                   </p>
                 </div>
                 <div className="h-8 w-8 bg-gray-100 rounded-full flex items-center justify-center">
@@ -524,7 +571,9 @@ export default function AdminLeadReports() {
               <div className="text-center py-8 text-muted-foreground">
                 <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
                 <p>Nenhum report encontrado</p>
-                <p className="text-sm">Tente ajustar os filtros ou aguarde novos reports</p>
+                <p className="text-sm">
+                  Tente ajustar os filtros ou aguarde novos reports
+                </p>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -542,69 +591,105 @@ export default function AdminLeadReports() {
                   </TableHeader>
                   <TableBody>
                     {filteredReports.map((report) => {
-                      const client = clients.find(c => c.id === report.client_id);
+                      const client = clients.find(
+                        (c) => c.id === report.client_id,
+                      );
                       return (
                         <TableRow key={report.id}>
                           <TableCell className="font-medium">
-                            {format(new Date(report.created_at), "PPP 'às' HH:mm", { locale: ptBR })}
+                            {format(
+                              new Date(report.created_at),
+                              "PPP 'às' HH:mm",
+                              { locale: ptBR },
+                            )}
                           </TableCell>
                           <TableCell>
                             <div>
-                              <p className="font-medium">{client?.name || 'Cliente não encontrado'}</p>
-                              <p className="text-xs text-muted-foreground">{client?.email}</p>
+                              <p className="font-medium">
+                                {client?.name || "Cliente não encontrado"}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {client?.email}
+                              </p>
                             </div>
                           </TableCell>
                           <TableCell>{report.reporter_name}</TableCell>
                           <TableCell>
-                            {format(new Date(report.lead_received_date), "PPP", { locale: ptBR })}
+                            {format(
+                              new Date(report.lead_received_date),
+                              "PPP",
+                              { locale: ptBR },
+                            )}
                           </TableCell>
                           <TableCell>
-                            <Badge className={getReasonBadgeColor(report.disqualification_reason)}>
+                            <Badge
+                              className={getReasonBadgeColor(
+                                report.disqualification_reason,
+                              )}
+                            >
                               {getReasonLabel(report.disqualification_reason)}
                             </Badge>
                           </TableCell>
                           <TableCell>
                             <div className="max-w-xs">
                               {report.additional_notes ? (
-                                <p className="text-sm truncate" title={report.additional_notes}>
+                                <p
+                                  className="text-sm truncate"
+                                  title={report.additional_notes}
+                                >
                                   {report.additional_notes}
                                 </p>
                               ) : (
-                                <span className="text-muted-foreground text-sm">Sem observações</span>
+                                <span className="text-muted-foreground text-sm">
+                                  Sem observações
+                                </span>
                               )}
                             </div>
                           </TableCell>
-                           <TableCell className="text-center">
-                             <div className="flex items-center justify-center gap-1">
-                               {!report.viewed_at && (
-                                 <Badge variant="destructive" className="text-xs">
-                                   Novo
-                                 </Badge>
-                               )}
-                               {report.evidence_file_url && (
-                                 <Button 
-                                   variant="ghost" 
-                                   size="sm" 
-                                   className="h-8 w-8 p-0"
-                                    onClick={() => handleViewEvidence(report.evidence_file_url!, report)}
-                                    title="Ver evidência"
-                                 >
-                                   <Eye className="h-4 w-4" />
-                                 </Button>
-                               )}
-                               {report.conversation_link && (
-                                 <Button 
-                                   variant="ghost" 
-                                   size="sm" 
-                                   className="h-8 w-8 p-0"
-                                   onClick={() => window.open(report.conversation_link, '_blank')}
-                                   title="Ver conversa"
-                                 >
-                                   <Download className="h-4 w-4" />
-                                 </Button>
-                               )}
-                             </div>
-                           </TableCell>
+                          <TableCell className="text-center">
+                            <div className="flex items-center justify-center gap-1">
+                              {!report.viewed_at && (
+                                <Badge
+                                  variant="destructive"
+                                  className="text-xs"
+                                >
+                                  Novo
+                                </Badge>
+                              )}
+                              {report.evidence_file_url && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0"
+                                  onClick={() =>
+                                    handleViewEvidence(
+                                      report.evidence_file_url!,
+                                      report,
+                                    )
+                                  }
+                                  title="Ver evidência"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                              )}
+                              {report.conversation_link && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0"
+                                  onClick={() =>
+                                    window.open(
+                                      report.conversation_link,
+                                      "_blank",
+                                    )
+                                  }
+                                  title="Ver conversa"
+                                >
+                                  <Download className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
                         </TableRow>
                       );
                     })}
@@ -622,7 +707,7 @@ export default function AdminLeadReports() {
           isOpen={!!evidenceModalUrl}
           onClose={() => {
             setEvidenceModalUrl(null);
-            setEvidenceFileName('evidencia.jpg');
+            setEvidenceFileName("evidencia.jpg");
             setSelectedReportData(null);
           }}
           imageUrl={evidenceModalUrl}

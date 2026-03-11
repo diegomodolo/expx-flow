@@ -1,28 +1,68 @@
-import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
+import React, {
+  useState,
+  useMemo,
+  useRef,
+  useCallback,
+  useEffect,
+} from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
-  MoreHorizontal, CheckCircle2, ChevronRight, Plus,
-  Clock, ListChecks, GitBranch,
-  Briefcase, Palette, BookOpen, Handshake, Users as UsersIcon, ClipboardList, Ticket, Archive,
-  AlertTriangle, CheckCircle, CalendarClock, Timer, XCircle
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  MoreHorizontal,
+  CheckCircle2,
+  ChevronRight,
+  Plus,
+  Clock,
+  ListChecks,
+  GitBranch,
+  Briefcase,
+  Palette,
+  BookOpen,
+  Handshake,
+  Users as UsersIcon,
+  ClipboardList,
+  Ticket,
+  Archive,
+  AlertTriangle,
+  CheckCircle,
+  CalendarClock,
+  Timer,
+  XCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { format, differenceInDays, differenceInHours, isPast, isToday } from "date-fns";
+import {
+  format,
+  differenceInDays,
+  differenceInHours,
+  isPast,
+  isToday,
+} from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useTaskBoardColumns, TaskBoardColumn } from "@/hooks/useTaskBoardColumns";
+import {
+  useTaskBoardColumns,
+  TaskBoardColumn,
+} from "@/hooks/useTaskBoardColumns";
 import { ColumnSettingsDialog } from "./ColumnSettingsDialog";
 import { TemplateSelector } from "./TemplateSelector";
 import { KanbanTemplate } from "@/data/kanbanTemplates";
@@ -31,7 +71,15 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/CompanyContext";
 
-type TaskStatus = 'todo' | 'progress' | 'review' | 'done' | 'waiting_approval' | 'cancelled' | 'blocked' | 'paused';
+type TaskStatus =
+  | "todo"
+  | "progress"
+  | "review"
+  | "done"
+  | "waiting_approval"
+  | "cancelled"
+  | "blocked"
+  | "paused";
 
 interface ChecklistItem {
   id: string;
@@ -45,14 +93,14 @@ interface Task {
   title: string;
   description: string;
   status: TaskStatus;
-  priority: 'low' | 'medium' | 'high';
+  priority: "low" | "medium" | "high";
   responsible_name: string;
   responsible_avatar?: string;
   due_date?: string;
   deadline?: string;
   completed_at?: string;
   progress: number;
-  origin: 'manual' | 'automation' | 'dashboard' | 'flow' | 'ghost';
+  origin: "manual" | "automation" | "dashboard" | "flow" | "ghost";
   related_campaign_id?: string;
   related_client_id?: string;
   quadro_column_id?: string | null;
@@ -75,7 +123,12 @@ interface Task {
 interface TaskKanbanProps {
   tasks: Task[];
   onEditTask: (task: Task) => void;
-  onUpdateTaskStatus: (taskId: string, status: string, columnId?: string, columnName?: string) => void;
+  onUpdateTaskStatus: (
+    taskId: string,
+    status: string,
+    columnId?: string,
+    columnName?: string,
+  ) => void;
   onDeleteTask: (taskId: string) => void;
   isCompactMode?: boolean;
   selectedBoardUserId?: string | null;
@@ -83,23 +136,35 @@ interface TaskKanbanProps {
 
 // Task type icons
 const TASK_TYPE_ICONS: Record<string, React.ReactNode> = {
-  'Tarefa': <ClipboardList className="w-3.5 h-3.5" />,
-  'Criativo': <Palette className="w-3.5 h-3.5" />,
-  'Reunião': <UsersIcon className="w-3.5 h-3.5" />,
-  'História': <BookOpen className="w-3.5 h-3.5" />,
-  'Negócio': <Handshake className="w-3.5 h-3.5" />,
-  'Ticket': <Ticket className="w-3.5 h-3.5" />,
-  'Backlog': <Archive className="w-3.5 h-3.5" />,
+  Tarefa: <ClipboardList className="w-3.5 h-3.5" />,
+  Criativo: <Palette className="w-3.5 h-3.5" />,
+  Reunião: <UsersIcon className="w-3.5 h-3.5" />,
+  História: <BookOpen className="w-3.5 h-3.5" />,
+  Negócio: <Handshake className="w-3.5 h-3.5" />,
+  Ticket: <Ticket className="w-3.5 h-3.5" />,
+  Backlog: <Archive className="w-3.5 h-3.5" />,
 };
 
 const PRIORITY_CONFIG = {
-  high: { label: 'Alta', color: 'hsl(var(--destructive))', bg: 'bg-destructive/10 text-destructive border-destructive/30' },
-  medium: { label: 'Normal', color: 'hsl(var(--primary))', bg: 'bg-primary/10 text-primary border-primary/30' },
-  low: { label: 'Baixa', color: 'hsl(142 76% 36%)', bg: 'bg-green-500/10 text-green-600 border-green-500/30' },
+  high: {
+    label: "Alta",
+    color: "hsl(var(--destructive))",
+    bg: "bg-destructive/10 text-destructive border-destructive/30",
+  },
+  medium: {
+    label: "Normal",
+    color: "hsl(var(--primary))",
+    bg: "bg-primary/10 text-primary border-primary/30",
+  },
+  low: {
+    label: "Baixa",
+    color: "hsl(142 76% 36%)",
+    bg: "bg-green-500/10 text-green-600 border-green-500/30",
+  },
 };
 
 function formatDuration(minutes: number): string {
-  if (minutes < 0.017) return '0s';
+  if (minutes < 0.017) return "0s";
   if (minutes < 10) {
     const totalSeconds = Math.round(minutes * 60);
     const m = Math.floor(totalSeconds / 60);
@@ -110,13 +175,13 @@ function formatDuration(minutes: number): string {
   const h = Math.floor(minutes / 60);
   const m = Math.round(minutes % 60);
   if (h === 0) return `${m}min`;
-  return `${h}h${m > 0 ? ` ${m}min` : ''}`;
+  return `${h}h${m > 0 ? ` ${m}min` : ""}`;
 }
 
 function parseChecklist(raw: unknown): ChecklistItem[] {
   if (!raw) return [];
   try {
-    const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
     return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
@@ -129,48 +194,52 @@ function getDeadlineInfo(task: Task) {
 
   const dueDate = new Date(dateStr);
   const now = new Date();
-  const isDone = task.status === 'done';
+  const isDone = task.status === "done";
   const completedDate = task.completed_at ? new Date(task.completed_at) : null;
 
   if (isDone) {
     const onTime = completedDate ? completedDate <= dueDate : true;
     return {
-      label: onTime ? 'No prazo' : 'Fora do prazo',
-      icon: onTime ? <CheckCircle className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />,
-      className: onTime ? 'text-green-600' : 'text-destructive',
+      label: onTime ? "No prazo" : "Fora do prazo",
+      icon: onTime ? (
+        <CheckCircle className="w-3 h-3" />
+      ) : (
+        <AlertTriangle className="w-3 h-3" />
+      ),
+      className: onTime ? "text-green-600" : "text-destructive",
     };
   }
 
   if (isToday(dueDate)) {
     return {
-      label: 'Vence hoje',
+      label: "Vence hoje",
       icon: <CalendarClock className="w-3 h-3" />,
-      className: 'text-amber-600',
+      className: "text-amber-600",
     };
   }
 
   if (isPast(dueDate)) {
     const daysLate = differenceInDays(now, dueDate);
     return {
-      label: daysLate === 1 ? '1 dia atrasada' : `${daysLate} dias atrasada`,
+      label: daysLate === 1 ? "1 dia atrasada" : `${daysLate} dias atrasada`,
       icon: <AlertTriangle className="w-3 h-3" />,
-      className: 'text-destructive',
+      className: "text-destructive",
     };
   }
 
   const daysLeft = differenceInDays(dueDate, now);
   if (daysLeft <= 2) {
     return {
-      label: daysLeft === 1 ? 'Amanhã' : `${daysLeft} dias restantes`,
+      label: daysLeft === 1 ? "Amanhã" : `${daysLeft} dias restantes`,
       icon: <CalendarClock className="w-3 h-3" />,
-      className: 'text-amber-600',
+      className: "text-amber-600",
     };
   }
 
   return {
     label: format(dueDate, "dd/MM", { locale: ptBR }),
     icon: <CalendarClock className="w-3 h-3" />,
-    className: 'text-muted-foreground',
+    className: "text-muted-foreground",
   };
 }
 
@@ -186,33 +255,88 @@ function KanbanLiveTimer({ startedAt }: { startedAt: string }) {
     return () => clearInterval(interval);
   }, [startedAt]);
 
-  return <span className="font-mono font-bold text-primary">{formatDuration(elapsed)}</span>;
+  return (
+    <span className="font-mono font-bold text-primary">
+      {formatDuration(elapsed)}
+    </span>
+  );
 }
 
 // Default columns as fallback
 const DEFAULT_COLUMNS: TaskBoardColumn[] = [
-  { id: 'default-todo', name: 'Pendente', status: 'todo', color: '#6B7280', order_index: 0, user_id: '', company_id: '', created_at: '', updated_at: '' },
-  { id: 'default-progress', name: 'Em Andamento', status: 'progress', color: '#3B82F6', order_index: 1, user_id: '', company_id: '', created_at: '', updated_at: '' },
-  { id: 'default-review', name: 'Em Revisão', status: 'review', color: '#8B5CF6', order_index: 2, user_id: '', company_id: '', created_at: '', updated_at: '' },
-  { id: 'default-done', name: 'Concluída', status: 'done', color: '#22C55E', order_index: 3, user_id: '', company_id: '', created_at: '', updated_at: '' },
+  {
+    id: "default-todo",
+    name: "Pendente",
+    status: "todo",
+    color: "#6B7280",
+    order_index: 0,
+    user_id: "",
+    company_id: "",
+    created_at: "",
+    updated_at: "",
+  },
+  {
+    id: "default-progress",
+    name: "Em Andamento",
+    status: "progress",
+    color: "#3B82F6",
+    order_index: 1,
+    user_id: "",
+    company_id: "",
+    created_at: "",
+    updated_at: "",
+  },
+  {
+    id: "default-review",
+    name: "Em Revisão",
+    status: "review",
+    color: "#8B5CF6",
+    order_index: 2,
+    user_id: "",
+    company_id: "",
+    created_at: "",
+    updated_at: "",
+  },
+  {
+    id: "default-done",
+    name: "Concluída",
+    status: "done",
+    color: "#22C55E",
+    order_index: 3,
+    user_id: "",
+    company_id: "",
+    created_at: "",
+    updated_at: "",
+  },
 ];
 
-export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask, isCompactMode = false, selectedBoardUserId }: TaskKanbanProps) {
+export function TaskKanban({
+  tasks,
+  onEditTask,
+  onUpdateTaskStatus,
+  onDeleteTask,
+  isCompactMode = false,
+  selectedBoardUserId,
+}: TaskKanbanProps) {
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
   const [completedTasksModalOpen, setCompletedTasksModalOpen] = useState(false);
   const [columnDialogOpen, setColumnDialogOpen] = useState(false);
-  const [selectedColumn, setSelectedColumn] = useState<TaskBoardColumn | null>(null);
+  const [selectedColumn, setSelectedColumn] = useState<TaskBoardColumn | null>(
+    null,
+  );
   const [templateSelectorOpen, setTemplateSelectorOpen] = useState(false);
-  const [draggedColumn, setDraggedColumn] = useState<TaskBoardColumn | null>(null);
+  const [draggedColumn, setDraggedColumn] = useState<TaskBoardColumn | null>(
+    null,
+  );
   const [dragOverColumnId, setDragOverColumnId] = useState<string | null>(null);
   const { activeCompany } = useCompany();
 
   // Click vs drag: track if a drag actually started
   const didDragRef = useRef(false);
 
-  const { 
-    columns: userColumns, 
+  const {
+    columns: userColumns,
     isLoading: columnsLoading,
     createColumn,
     updateColumn,
@@ -224,38 +348,50 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
 
   const columns = userColumns.length > 0 ? userColumns : DEFAULT_COLUMNS;
   const isUsingDefaults = userColumns.length === 0;
-  const completedTasks = tasks.filter(task => task.status === 'done');
+  const completedTasks = tasks.filter((task) => task.status === "done");
 
   // Bulk fetch task members for all visible tasks
-  const taskIds = useMemo(() => tasks.map(t => t.id), [tasks]);
+  const taskIds = useMemo(() => tasks.map((t) => t.id), [tasks]);
 
   const { data: allTaskMembers = {} } = useQuery({
-    queryKey: ['kanban-task-members', taskIds.join(',')],
+    queryKey: ["kanban-task-members", taskIds.join(",")],
     queryFn: async () => {
       if (taskIds.length === 0) return {};
       const { data } = await supabase
-        .from('task_members' as unknown)
-        .select('task_id, role, employees:employee_id(name, avatar, user_id)')
-        .in('task_id', taskIds);
+        .from("task_members" as unknown)
+        .select("task_id, role, employees:employee_id(name, avatar, user_id)")
+        .in("task_id", taskIds);
 
       // Also fetch profiles for avatars
-      const employeeUserIds = [...new Set((data || []).map((m: unknown) => m.employees?.user_id).filter(Boolean))];
+      const employeeUserIds = [
+        ...new Set(
+          (data || [])
+            .map((m: unknown) => m.employees?.user_id)
+            .filter(Boolean),
+        ),
+      ];
       let profileMap = new Map<string, string>();
       if (employeeUserIds.length > 0) {
         const { data: profiles } = await supabase
-          .from('profiles')
-          .select('user_id, avatar_url')
-          .in('user_id', employeeUserIds);
-        profileMap = new Map((profiles || []).map((p: unknown) => [p.user_id, p.avatar_url]));
+          .from("profiles")
+          .select("user_id, avatar_url")
+          .in("user_id", employeeUserIds);
+        profileMap = new Map(
+          (profiles || []).map((p: unknown) => [p.user_id, p.avatar_url]),
+        );
       }
 
-      const map: Record<string, Array<{ name: string; avatar: string | null; role: string }>> = {};
+      const map: Record<
+        string,
+        Array<{ name: string; avatar: string | null; role: string }>
+      > = {};
       for (const m of (data || []) as unknown[]) {
         if (!m.employees) continue;
         if (!map[m.task_id]) map[m.task_id] = [];
         map[m.task_id].push({
           name: m.employees.name,
-          avatar: profileMap.get(m.employees.user_id) || m.employees.avatar || null,
+          avatar:
+            profileMap.get(m.employees.user_id) || m.employees.avatar || null,
           role: m.role,
         });
       }
@@ -267,20 +403,22 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
 
   // Bulk fetch time tracking totals
   const { data: allTimeTracking = {} } = useQuery({
-    queryKey: ['kanban-time-tracking', taskIds.join(',')],
+    queryKey: ["kanban-time-tracking", taskIds.join(",")],
     queryFn: async () => {
       if (taskIds.length === 0) return {};
       const { data } = await supabase
-        .from('task_time_tracking')
-        .select('task_id, duration_minutes, started_at, ended_at')
-        .in('task_id', taskIds);
+        .from("task_time_tracking")
+        .select("task_id, duration_minutes, started_at, ended_at")
+        .in("task_id", taskIds);
 
       const map: Record<string, number> = {};
-      for (const s of (data || [])) {
+      for (const s of data || []) {
         const mins = s.duration_minutes
           ? Number(s.duration_minutes)
           : s.ended_at
-            ? (new Date(s.ended_at).getTime() - new Date(s.started_at).getTime()) / 60000
+            ? (new Date(s.ended_at).getTime() -
+                new Date(s.started_at).getTime()) /
+              60000
             : (Date.now() - new Date(s.started_at).getTime()) / 60000;
         map[s.task_id] = (map[s.task_id] || 0) + mins;
       }
@@ -292,17 +430,17 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
 
   // Bulk fetch active time tracking sessions (running timers)
   const { data: activeTimeSessions = {} } = useQuery({
-    queryKey: ['kanban-active-sessions', taskIds.join(',')],
+    queryKey: ["kanban-active-sessions", taskIds.join(",")],
     queryFn: async () => {
       if (taskIds.length === 0) return {};
       const { data } = await supabase
-        .from('task_time_tracking')
-        .select('task_id, started_at')
-        .in('task_id', taskIds)
-        .is('ended_at', null);
+        .from("task_time_tracking")
+        .select("task_id, started_at")
+        .in("task_id", taskIds)
+        .is("ended_at", null);
 
       const map: Record<string, string> = {};
-      for (const s of (data || [])) {
+      for (const s of data || []) {
         map[s.task_id] = s.started_at;
       }
       return map;
@@ -314,21 +452,21 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
 
   // Bulk fetch subtask counts
   const { data: allSubtaskCounts = {} } = useQuery({
-    queryKey: ['kanban-subtask-counts', taskIds.join(',')],
+    queryKey: ["kanban-subtask-counts", taskIds.join(",")],
     queryFn: async () => {
       if (taskIds.length === 0) return {};
       const { data } = await supabase
-        .from('tasks')
-        .select('parent_task_id, status, origin')
-        .in('parent_task_id', taskIds)
-        .neq('origin', 'ghost');
+        .from("tasks")
+        .select("parent_task_id, status, origin")
+        .in("parent_task_id", taskIds)
+        .neq("origin", "ghost");
 
       const map: Record<string, { total: number; done: number }> = {};
-      for (const s of (data || [])) {
+      for (const s of data || []) {
         const pid = s.parent_task_id!;
         if (!map[pid]) map[pid] = { total: 0, done: 0 };
         map[pid].total++;
-        if (s.status === 'done') map[pid].done++;
+        if (s.status === "done") map[pid].done++;
       }
       return map;
     },
@@ -339,28 +477,59 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
   // ===== Drag handlers =====
   const handleDragStart = (e: React.DragEvent, task: Task) => {
     setDraggedTask(task);
-    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.effectAllowed = "move";
     // Use task id as payload — avoids the browser snapshotting page text/HTML
-    e.dataTransfer.setData('text/plain', task.id);
+    e.dataTransfer.setData("text/plain", task.id);
     // Set a custom drag image (the card element itself) so only the card moves visually
     const el = e.currentTarget as HTMLElement;
     e.dataTransfer.setDragImage(el, el.offsetWidth / 2, el.offsetHeight / 2);
   };
-  const handleDragEnd = () => { setDraggedTask(null); setDragOverColumn(null); };
-  const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; };
-  const handleDragEnter = (columnId: string) => { setDragOverColumn(columnId); };
-  const handleDragLeave = (e: React.DragEvent) => { if (e.currentTarget.contains(e.relatedTarget as Node)) return; setDragOverColumn(null); };
-  const handleDrop = (e: React.DragEvent, targetStatus: string, columnId?: string, columnName?: string) => {
+  const handleDragEnd = () => {
+    setDraggedTask(null);
+    setDragOverColumn(null);
+  };
+  const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
-    if (draggedTask && (draggedTask.status !== targetStatus || draggedTask.quadro_column_id !== columnId)) {
+    e.dataTransfer.dropEffect = "move";
+  };
+  const handleDragEnter = (columnId: string) => {
+    setDragOverColumn(columnId);
+  };
+  const handleDragLeave = (e: React.DragEvent) => {
+    if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+    setDragOverColumn(null);
+  };
+  const handleDrop = (
+    e: React.DragEvent,
+    targetStatus: string,
+    columnId?: string,
+    columnName?: string,
+  ) => {
+    e.preventDefault();
+    if (
+      draggedTask &&
+      (draggedTask.status !== targetStatus ||
+        draggedTask.quadro_column_id !== columnId)
+    ) {
       onUpdateTaskStatus(draggedTask.id, targetStatus, columnId, columnName);
     }
     setDraggedTask(null);
     setDragOverColumn(null);
   };
-  const handleOpenColumnDialog = (column?: TaskBoardColumn) => { setSelectedColumn(column || null); setColumnDialogOpen(true); };
-  const handleSaveColumn = (data: { name: string; status: TaskStatus; color: string }) => {
-    if (selectedColumn && selectedColumn.id && !selectedColumn.id.startsWith('default-')) {
+  const handleOpenColumnDialog = (column?: TaskBoardColumn) => {
+    setSelectedColumn(column || null);
+    setColumnDialogOpen(true);
+  };
+  const handleSaveColumn = (data: {
+    name: string;
+    status: TaskStatus;
+    color: string;
+  }) => {
+    if (
+      selectedColumn &&
+      selectedColumn.id &&
+      !selectedColumn.id.startsWith("default-")
+    ) {
       updateColumn({ columnId: selectedColumn.id, updates: data });
     } else {
       createColumn(data);
@@ -369,37 +538,73 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
     setSelectedColumn(null);
   };
   const handleDeleteColumn = () => {
-    if (selectedColumn && selectedColumn.id && !selectedColumn.id.startsWith('default-')) {
+    if (
+      selectedColumn &&
+      selectedColumn.id &&
+      !selectedColumn.id.startsWith("default-")
+    ) {
       deleteColumn(selectedColumn.id);
     }
     setColumnDialogOpen(false);
     setSelectedColumn(null);
   };
-  const handleColumnDragStart = (e: React.DragEvent, column: TaskBoardColumn) => {
+  const handleColumnDragStart = (
+    e: React.DragEvent,
+    column: TaskBoardColumn,
+  ) => {
     if (isUsingDefaults) return;
     setDraggedColumn(column);
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', 'column');
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", "column");
   };
-  const handleColumnDragEnd = () => { setDraggedColumn(null); setDragOverColumnId(null); };
-  const handleColumnDragOver = (e: React.DragEvent) => { if (!draggedColumn) return; e.preventDefault(); e.dataTransfer.dropEffect = 'move'; };
-  const handleColumnDragEnter = (columnId: string) => { if (!draggedColumn) return; setDragOverColumnId(columnId); };
-  const handleColumnDragLeave = (e: React.DragEvent) => { if (!draggedColumn) return; if (e.currentTarget.contains(e.relatedTarget as Node)) return; setDragOverColumnId(null); };
-  const handleColumnDrop = (e: React.DragEvent, targetColumn: TaskBoardColumn) => {
-    e.preventDefault();
-    if (!draggedColumn || draggedColumn.id === targetColumn.id || isUsingDefaults) {
-      setDraggedColumn(null); setDragOverColumnId(null); return;
-    }
-    const currentColumns = [...columns];
-    const draggedIndex = currentColumns.findIndex(c => c.id === draggedColumn.id);
-    const targetIndex = currentColumns.findIndex(c => c.id === targetColumn.id);
-    const [removed] = currentColumns.splice(draggedIndex, 1);
-    currentColumns.splice(targetIndex, 0, removed);
-    reorderColumns(currentColumns.map(c => c.id));
+  const handleColumnDragEnd = () => {
     setDraggedColumn(null);
     setDragOverColumnId(null);
   };
-  const handleApplyTemplate = (template: KanbanTemplate) => { applyTemplate(template); };
+  const handleColumnDragOver = (e: React.DragEvent) => {
+    if (!draggedColumn) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+  };
+  const handleColumnDragEnter = (columnId: string) => {
+    if (!draggedColumn) return;
+    setDragOverColumnId(columnId);
+  };
+  const handleColumnDragLeave = (e: React.DragEvent) => {
+    if (!draggedColumn) return;
+    if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+    setDragOverColumnId(null);
+  };
+  const handleColumnDrop = (
+    e: React.DragEvent,
+    targetColumn: TaskBoardColumn,
+  ) => {
+    e.preventDefault();
+    if (
+      !draggedColumn ||
+      draggedColumn.id === targetColumn.id ||
+      isUsingDefaults
+    ) {
+      setDraggedColumn(null);
+      setDragOverColumnId(null);
+      return;
+    }
+    const currentColumns = [...columns];
+    const draggedIndex = currentColumns.findIndex(
+      (c) => c.id === draggedColumn.id,
+    );
+    const targetIndex = currentColumns.findIndex(
+      (c) => c.id === targetColumn.id,
+    );
+    const [removed] = currentColumns.splice(draggedIndex, 1);
+    currentColumns.splice(targetIndex, 0, removed);
+    reorderColumns(currentColumns.map((c) => c.id));
+    setDraggedColumn(null);
+    setDragOverColumnId(null);
+  };
+  const handleApplyTemplate = (template: KanbanTemplate) => {
+    applyTemplate(template);
+  };
 
   // ===== Render enhanced task card =====
   const renderTaskCard = (task: Task, columnColor: string, inModal = false) => {
@@ -407,28 +612,31 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
     const timeMinutes = allTimeTracking[task.id] || 0;
     const subtasks = allSubtaskCounts[task.id] || null;
     const checklist = parseChecklist(task.checklist);
-    const checkDone = checklist.filter(c => c.completed).length;
+    const checkDone = checklist.filter((c) => c.completed).length;
     const deadlineInfo = getDeadlineInfo(task);
-    const taskType = task.task_type || 'Tarefa';
-    const typeIcon = TASK_TYPE_ICONS[taskType] || <ClipboardList className="w-3.5 h-3.5" />;
-    const priorityConf = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.medium;
+    const taskType = task.task_type || "Tarefa";
+    const typeIcon = TASK_TYPE_ICONS[taskType] || (
+      <ClipboardList className="w-3.5 h-3.5" />
+    );
+    const priorityConf =
+      PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.medium;
 
     // Gather all people to show (responsible + members)
     const people: Array<{ name: string; avatar: string | null }> = [];
     // Add responsible first
     people.push({
-      name: task.responsible_name || 'Sem responsável',
+      name: task.responsible_name || "Sem responsável",
       avatar: task.responsible_avatar || task.user_profile?.avatar_url || null,
     });
     // Add unique members
     for (const m of members) {
-      if (!people.find(p => p.name === m.name)) {
+      if (!people.find((p) => p.name === m.name)) {
         people.push({ name: m.name, avatar: m.avatar });
       }
     }
 
     const isRejected = !!task.last_rejected_at;
-    const isGhost = task.origin === 'ghost';
+    const isGhost = task.origin === "ghost";
 
     return (
       <Card
@@ -438,20 +646,49 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
           isGhost
             ? "opacity-40 cursor-default pointer-events-none"
             : "hover:shadow-md cursor-pointer group",
-          !inModal && !isGhost && draggedTask?.id === task.id && 'opacity-50 rotate-2 scale-105',
+          !inModal &&
+            !isGhost &&
+            draggedTask?.id === task.id &&
+            "opacity-50 rotate-2 scale-105",
           isCompactMode ? "p-2" : "p-3",
-          isRejected && !isGhost && "ring-1 ring-destructive/40"
+          isRejected && !isGhost && "ring-1 ring-destructive/40",
         )}
-        style={{ borderLeftColor: isRejected && !isGhost ? 'hsl(var(--destructive))' : priorityConf.color }}
-        draggable={!inModal && !isGhost}
-        onDragStart={!inModal && !isGhost ? (e) => { didDragRef.current = true; handleDragStart(e, task); } : undefined}
-        onDragEnd={!inModal && !isGhost ? () => { handleDragEnd(); didDragRef.current = false; } : undefined}
-        onClick={isGhost ? undefined : (e) => {
-          if (didDragRef.current) { didDragRef.current = false; return; }
-          const target = e.target as HTMLElement;
-          if (target.closest('button, [role="menuitem"]')) return;
-          onEditTask(task);
+        style={{
+          borderLeftColor:
+            isRejected && !isGhost
+              ? "hsl(var(--destructive))"
+              : priorityConf.color,
         }}
+        draggable={!inModal && !isGhost}
+        onDragStart={
+          !inModal && !isGhost
+            ? (e) => {
+                didDragRef.current = true;
+                handleDragStart(e, task);
+              }
+            : undefined
+        }
+        onDragEnd={
+          !inModal && !isGhost
+            ? () => {
+                handleDragEnd();
+                didDragRef.current = false;
+              }
+            : undefined
+        }
+        onClick={
+          isGhost
+            ? undefined
+            : (e) => {
+                if (didDragRef.current) {
+                  didDragRef.current = false;
+                  return;
+                }
+                const target = e.target as HTMLElement;
+                if (target.closest('button, [role="menuitem"]')) return;
+                onEditTask(task);
+              }
+        }
       >
         <CardContent className="p-0 space-y-2.5">
           {/* Row 1: Type icon + Client + Priority + Menu */}
@@ -459,9 +696,13 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
             <div className="flex items-center gap-1.5 min-w-0 flex-1">
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <span className="text-muted-foreground shrink-0">{typeIcon}</span>
+                  <span className="text-muted-foreground shrink-0">
+                    {typeIcon}
+                  </span>
                 </TooltipTrigger>
-                <TooltipContent side="top" className="text-xs">{taskType}</TooltipContent>
+                <TooltipContent side="top" className="text-xs">
+                  {taskType}
+                </TooltipContent>
               </Tooltip>
               {task.client?.name && (
                 <span className="text-[11px] text-muted-foreground truncate">
@@ -470,7 +711,13 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
               )}
             </div>
             <div className="flex items-center gap-1 shrink-0">
-              <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0 h-5 border", priorityConf.bg)}>
+              <Badge
+                variant="outline"
+                className={cn(
+                  "text-[10px] px-1.5 py-0 h-5 border",
+                  priorityConf.bg,
+                )}
+              >
                 {priorityConf.label}
               </Badge>
               <DropdownMenu>
@@ -486,11 +733,33 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEditTask(task); }}>Editar</DropdownMenuItem>
-                  {task.status !== 'done' && (
-                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onUpdateTaskStatus(task.id, 'done'); }}>Concluir</DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEditTask(task);
+                    }}
+                  >
+                    Editar
+                  </DropdownMenuItem>
+                  {task.status !== "done" && (
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onUpdateTaskStatus(task.id, "done");
+                      }}
+                    >
+                      Concluir
+                    </DropdownMenuItem>
                   )}
-                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDeleteTask(task.id); }} className="text-destructive">Excluir</DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteTask(task.id);
+                    }}
+                    className="text-destructive"
+                  >
+                    Excluir
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -502,32 +771,50 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
               {people.slice(0, 4).map((p, i) => (
                 <Tooltip key={i}>
                   <TooltipTrigger asChild>
-                    <Avatar className={cn("border-2 border-card", isCompactMode ? "h-6 w-6" : "h-7 w-7")}>
-                      {p.avatar && <AvatarImage src={p.avatar} className="object-cover" />}
+                    <Avatar
+                      className={cn(
+                        "border-2 border-card",
+                        isCompactMode ? "h-6 w-6" : "h-7 w-7",
+                      )}
+                    >
+                      {p.avatar && (
+                        <AvatarImage src={p.avatar} className="object-cover" />
+                      )}
                       <AvatarFallback className="text-[9px] bg-muted text-muted-foreground">
                         {p.name.charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                   </TooltipTrigger>
-                  <TooltipContent side="top" className="text-xs">{p.name}</TooltipContent>
+                  <TooltipContent side="top" className="text-xs">
+                    {p.name}
+                  </TooltipContent>
                 </Tooltip>
               ))}
               {people.length > 4 && (
-                <div className={cn("rounded-full border-2 border-card bg-muted flex items-center justify-center text-[9px] text-muted-foreground font-medium", isCompactMode ? "h-6 w-6" : "h-7 w-7")}>
+                <div
+                  className={cn(
+                    "rounded-full border-2 border-card bg-muted flex items-center justify-center text-[9px] text-muted-foreground font-medium",
+                    isCompactMode ? "h-6 w-6" : "h-7 w-7",
+                  )}
+                >
                   +{people.length - 4}
                 </div>
               )}
             </div>
             {!isCompactMode && people.length > 0 && (
-              <span className="text-xs text-muted-foreground truncate">{people[0].name}</span>
+              <span className="text-xs text-muted-foreground truncate">
+                {people[0].name}
+              </span>
             )}
           </div>
 
           {/* Row 3: Title */}
-          <h4 className={cn(
-            "font-semibold text-foreground leading-snug line-clamp-2",
-            isCompactMode ? "text-xs" : "text-sm"
-          )}>
+          <h4
+            className={cn(
+              "font-semibold text-foreground leading-snug line-clamp-2",
+              isCompactMode ? "text-xs" : "text-sm",
+            )}
+          >
             {task.title}
           </h4>
 
@@ -535,7 +822,13 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
           {isRejected && (
             <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-destructive/10 border border-destructive/25 text-destructive text-[11px] font-medium">
               <XCircle className="w-3 h-3 shrink-0" />
-              <span>Rejeitada{(task.rejection_count ?? 0) > 1 ? ` (${task.rejection_count}x)` : ''} — retornou para Pendente</span>
+              <span>
+                Rejeitada
+                {(task.rejection_count ?? 0) > 1
+                  ? ` (${task.rejection_count}x)`
+                  : ""}{" "}
+                — retornou para Pendente
+              </span>
             </div>
           )}
 
@@ -558,7 +851,12 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
           {/* Row 5: Deadline + Subtasks/Checklist */}
           <div className="flex items-center justify-between gap-2 flex-wrap">
             {deadlineInfo && (
-              <div className={cn("flex items-center gap-1 text-[11px] font-medium", deadlineInfo.className)}>
+              <div
+                className={cn(
+                  "flex items-center gap-1 text-[11px] font-medium",
+                  deadlineInfo.className,
+                )}
+              >
                 {deadlineInfo.icon}
                 <span>{deadlineInfo.label}</span>
               </div>
@@ -569,10 +867,14 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
                   <TooltipTrigger asChild>
                     <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
                       <GitBranch className="w-3 h-3" />
-                      <span>{subtasks.done}/{subtasks.total}</span>
+                      <span>
+                        {subtasks.done}/{subtasks.total}
+                      </span>
                     </div>
                   </TooltipTrigger>
-                  <TooltipContent side="top" className="text-xs">Subtarefas: {subtasks.done} de {subtasks.total} concluídas</TooltipContent>
+                  <TooltipContent side="top" className="text-xs">
+                    Subtarefas: {subtasks.done} de {subtasks.total} concluídas
+                  </TooltipContent>
                 </Tooltip>
               )}
               {checklist.length > 0 && (
@@ -580,10 +882,14 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
                   <TooltipTrigger asChild>
                     <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
                       <ListChecks className="w-3 h-3" />
-                      <span>{checkDone}/{checklist.length}</span>
+                      <span>
+                        {checkDone}/{checklist.length}
+                      </span>
                     </div>
                   </TooltipTrigger>
-                  <TooltipContent side="top" className="text-xs">Checklist: {checkDone} de {checklist.length} completos</TooltipContent>
+                  <TooltipContent side="top" className="text-xs">
+                    Checklist: {checkDone} de {checklist.length} completos
+                  </TooltipContent>
                 </Tooltip>
               )}
             </div>
@@ -593,7 +899,9 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
           {task.progress > 0 && (
             <div className="flex items-center gap-2">
               <Progress value={task.progress} className="h-1.5 flex-1" />
-              <span className="text-[10px] text-muted-foreground font-medium w-8 text-right">{task.progress}%</span>
+              <span className="text-[10px] text-muted-foreground font-medium w-8 text-right">
+                {task.progress}%
+              </span>
             </div>
           )}
         </CardContent>
@@ -603,15 +911,19 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
 
   return (
     <>
-      <div className={cn(
-        "flex overflow-x-auto overflow-y-hidden",
-        isCompactMode ? "gap-3 pb-2 h-[calc(100vh-200px)]" : "gap-6 pb-4 h-[calc(100vh-420px)]"
-      )}>
+      <div
+        className={cn(
+          "flex overflow-x-auto overflow-y-hidden",
+          isCompactMode
+            ? "gap-3 pb-2 h-[calc(100vh-200px)]"
+            : "gap-6 pb-4 h-[calc(100vh-420px)]",
+        )}
+      >
         {(() => {
           const assignedTaskIds = new Set<string>();
-          
+
           return columns.map((column, columnIndex) => {
-            const columnTasks = tasks.filter(task => {
+            const columnTasks = tasks.filter((task) => {
               if (assignedTaskIds.has(task.id)) return false;
               // If the task has a specific quadro_column_id, match by column ID only (ignore status mismatch)
               if (task.quadro_column_id) {
@@ -621,36 +933,52 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
               if (task.status !== column.status) return false;
               return true;
             });
-            
+
             // For tasks WITHOUT quadro_column_id, assign to first column of that status
-            const isFirstColumnOfStatus = columns.findIndex(c => c.status === column.status) === columnIndex;
-            columnTasks.forEach(task => {
-              if (task.quadro_column_id === column.id || (!task.quadro_column_id && isFirstColumnOfStatus)) {
+            const isFirstColumnOfStatus =
+              columns.findIndex((c) => c.status === column.status) ===
+              columnIndex;
+            columnTasks.forEach((task) => {
+              if (
+                task.quadro_column_id === column.id ||
+                (!task.quadro_column_id && isFirstColumnOfStatus)
+              ) {
                 assignedTaskIds.add(task.id);
               }
             });
             // Remove tasks that weren't actually assigned to this column
-            const finalTasks = columnTasks.filter(task => assignedTaskIds.has(task.id));
+            const finalTasks = columnTasks.filter((task) =>
+              assignedTaskIds.has(task.id),
+            );
             const isDropTarget = dragOverColumn === column.id;
-            const canDrop = draggedTask && (draggedTask.status !== column.status || draggedTask.quadro_column_id !== column.id);
-            const isDoneColumn = column.status === 'done';
-            const isColumnDragTarget = dragOverColumnId === column.id && draggedColumn?.id !== column.id;
+            const canDrop =
+              draggedTask &&
+              (draggedTask.status !== column.status ||
+                draggedTask.quadro_column_id !== column.id);
+            const isDoneColumn = column.status === "done";
+            const isColumnDragTarget =
+              dragOverColumnId === column.id && draggedColumn?.id !== column.id;
             const isBeingDragged = draggedColumn?.id === column.id;
             const isEmpty = finalTasks.length === 0;
             const isExpandedEmpty = isEmpty && isDropTarget && canDrop;
-            
+
             return (
-              <div 
-                key={column.id} 
+              <div
+                key={column.id}
                 className={cn(
                   "flex flex-col transition-all duration-200 flex-none",
                   isEmpty && !isExpandedEmpty
                     ? "w-16"
                     : isDoneColumn
-                      ? (isCompactMode ? "w-[180px]" : "w-[200px]")
-                      : (isCompactMode ? "w-[240px]" : "w-[300px]"),
-                  isBeingDragged && 'opacity-50 scale-95',
-                  isColumnDragTarget && 'ring-2 ring-primary ring-offset-2 rounded-lg'
+                      ? isCompactMode
+                        ? "w-[180px]"
+                        : "w-[200px]"
+                      : isCompactMode
+                        ? "w-[240px]"
+                        : "w-[300px]",
+                  isBeingDragged && "opacity-50 scale-95",
+                  isColumnDragTarget &&
+                    "ring-2 ring-primary ring-offset-2 rounded-lg",
                 )}
                 onDragOver={handleColumnDragOver}
                 onDragEnter={() => handleColumnDragEnter(column.id)}
@@ -659,12 +987,18 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
                   if (draggedColumn) handleColumnDrop(e, column);
                 }}
               >
-                <div 
+                <div
                   className={cn(
                     "rounded-t-lg border-b border-border",
-                    isEmpty && !isExpandedEmpty ? "flex flex-col items-center py-3 px-1" : "flex items-center justify-between",
-                    !isUsingDefaults && 'cursor-grab active:cursor-grabbing',
-                    isCompactMode ? "p-2" : isEmpty && !isExpandedEmpty ? "" : "p-4"
+                    isEmpty && !isExpandedEmpty
+                      ? "flex flex-col items-center py-3 px-1"
+                      : "flex items-center justify-between",
+                    !isUsingDefaults && "cursor-grab active:cursor-grabbing",
+                    isCompactMode
+                      ? "p-2"
+                      : isEmpty && !isExpandedEmpty
+                        ? ""
+                        : "p-4",
                   )}
                   style={{ backgroundColor: `${column.color}20` }}
                   draggable={!isUsingDefaults}
@@ -674,65 +1008,124 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
                   {isEmpty && !isExpandedEmpty ? (
                     <span
                       className="font-semibold text-xs whitespace-nowrap"
-                      style={{ color: column.color, writingMode: 'vertical-lr', transform: 'rotate(180deg)' }}
+                      style={{
+                        color: column.color,
+                        writingMode: "vertical-lr",
+                        transform: "rotate(180deg)",
+                      }}
                     >
                       {column.name}
                     </span>
                   ) : (
                     <>
-                      <h3 className={cn(
-                        "font-semibold flex items-center gap-2",
-                        isCompactMode && "text-sm"
-                      )} style={{ color: column.color }}>
-                        {!isUsingDefaults && <span className="opacity-40 mr-1">⋮⋮</span>}
+                      <h3
+                        className={cn(
+                          "font-semibold flex items-center gap-2",
+                          isCompactMode && "text-sm",
+                        )}
+                        style={{ color: column.color }}
+                      >
+                        {!isUsingDefaults && (
+                          <span className="opacity-40 mr-1">⋮⋮</span>
+                        )}
                         {column.name}
-                        <Badge variant="secondary" className={cn("bg-background/80", isCompactMode && "text-xs px-1.5 py-0")}>{finalTasks.length}</Badge>
+                        <Badge
+                          variant="secondary"
+                          className={cn(
+                            "bg-background/80",
+                            isCompactMode && "text-xs px-1.5 py-0",
+                          )}
+                        >
+                          {finalTasks.length}
+                        </Badge>
                       </h3>
                       <Button
+                        aria-label="Ação"
                         variant="ghost"
                         size="icon"
-                        className={cn("opacity-60 hover:opacity-100", isCompactMode ? "h-5 w-5" : "h-6 w-6")}
+                        className={cn(
+                          "opacity-60 hover:opacity-100",
+                          isCompactMode ? "h-5 w-5" : "h-6 w-6",
+                        )}
                         onClick={() => handleOpenColumnDialog(column)}
                         title="Configurações da coluna"
                       >
-                        <MoreHorizontal className={cn(isCompactMode ? "h-3 w-3" : "h-3.5 w-3.5")} />
+                        <MoreHorizontal
+                          className={cn(
+                            isCompactMode ? "h-3 w-3" : "h-3.5 w-3.5",
+                          )}
+                        />
                       </Button>
                     </>
                   )}
                 </div>
-                
-                <div 
+
+                <div
                   className={cn(
                     "flex-1 bg-muted/30 rounded-b-lg border border-t-0 border-border transition-colors overflow-y-auto",
-                    isEmpty && !isExpandedEmpty ? "p-0" : isCompactMode ? "p-2 space-y-2" : "p-3 space-y-2.5",
-                    isDropTarget && canDrop && 'bg-primary/10 border-2 border-primary border-dashed'
+                    isEmpty && !isExpandedEmpty
+                      ? "p-0"
+                      : isCompactMode
+                        ? "p-2 space-y-2"
+                        : "p-3 space-y-2.5",
+                    isDropTarget &&
+                      canDrop &&
+                      "bg-primary/10 border-2 border-primary border-dashed",
                   )}
                   onDragOver={handleDragOver}
                   onDragEnter={() => handleDragEnter(column.id)}
                   onDragLeave={handleDragLeave}
-                  onDrop={(e) => handleDrop(e, column.status, column.id.startsWith('default-') ? undefined : column.id, column.name)}
+                  onDrop={(e) =>
+                    handleDrop(
+                      e,
+                      column.status,
+                      column.id.startsWith("default-") ? undefined : column.id,
+                      column.name,
+                    )
+                  }
                 >
                   {isDoneColumn ? (
                     <>
                       {finalTasks.length > 0 ? (
-                        <Card 
+                        <Card
                           className="p-6 border cursor-pointer hover:shadow-md transition-all group"
-                          style={{ 
+                          style={{
                             background: `linear-gradient(135deg, ${column.color}10, ${column.color}20)`,
-                            borderColor: `${column.color}40`
+                            borderColor: `${column.color}40`,
                           }}
                           onClick={() => setCompletedTasksModalOpen(true)}
                         >
                           <CardContent className="p-0 text-center">
                             <div className="flex flex-col items-center gap-3">
-                              <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ backgroundColor: `${column.color}30` }}>
-                                <CheckCircle2 className="w-8 h-8" style={{ color: column.color }} />
+                              <div
+                                className="w-16 h-16 rounded-full flex items-center justify-center"
+                                style={{ backgroundColor: `${column.color}30` }}
+                              >
+                                <CheckCircle2
+                                  className="w-8 h-8"
+                                  style={{ color: column.color }}
+                                />
                               </div>
                               <div>
-                                <p className="text-3xl font-bold" style={{ color: column.color }}>{finalTasks.length}</p>
-                                <p className="text-sm" style={{ color: column.color }}>{finalTasks.length === 1 ? 'tarefa concluída' : 'tarefas concluídas'}</p>
+                                <p
+                                  className="text-3xl font-bold"
+                                  style={{ color: column.color }}
+                                >
+                                  {finalTasks.length}
+                                </p>
+                                <p
+                                  className="text-sm"
+                                  style={{ color: column.color }}
+                                >
+                                  {finalTasks.length === 1
+                                    ? "tarefa concluída"
+                                    : "tarefas concluídas"}
+                                </p>
                               </div>
-                              <div className="flex items-center gap-1 text-xs group-hover:translate-x-1 transition-transform" style={{ color: column.color }}>
+                              <div
+                                className="flex items-center gap-1 text-xs group-hover:translate-x-1 transition-transform"
+                                style={{ color: column.color }}
+                              >
                                 <span>Ver tarefas</span>
                                 <ChevronRight className="w-4 h-4" />
                               </div>
@@ -746,13 +1139,17 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
                       )}
                       {finalTasks.length > 0 && isDropTarget && canDrop && (
                         <div className="border-2 border-dashed border-primary bg-primary/10 rounded-lg p-4 text-center">
-                          <p className="text-sm font-medium text-primary">Solte aqui para mover</p>
+                          <p className="text-sm font-medium text-primary">
+                            Solte aqui para mover
+                          </p>
                         </div>
                       )}
                     </>
                   ) : (
                     <>
-                      {finalTasks.map((task) => renderTaskCard(task, column.color))}
+                      {finalTasks.map((task) =>
+                        renderTaskCard(task, column.color),
+                      )}
                       {finalTasks.length === 0 && (
                         <div className="flex items-center justify-center py-6">
                           <ClipboardList className="w-8 h-8 text-muted-foreground/20" />
@@ -760,7 +1157,9 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
                       )}
                       {finalTasks.length > 0 && isDropTarget && canDrop && (
                         <div className="border-2 border-dashed border-primary bg-primary/10 rounded-lg p-4 text-center">
-                          <p className="text-sm font-medium text-primary">Solte aqui para mover</p>
+                          <p className="text-sm font-medium text-primary">
+                            Solte aqui para mover
+                          </p>
                         </div>
                       )}
                     </>
@@ -770,7 +1169,7 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
             );
           });
         })()}
-          
+
         <div className="flex flex-col min-w-[200px]">
           <Button
             variant="outline"
@@ -798,7 +1197,9 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
         column={selectedColumn}
         onSave={handleSaveColumn}
         onDelete={handleDeleteColumn}
-        isEditing={!!selectedColumn && !selectedColumn.id.startsWith('default-')}
+        isEditing={
+          !!selectedColumn && !selectedColumn.id.startsWith("default-")
+        }
       />
 
       <TemplateSelector

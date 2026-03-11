@@ -1,12 +1,30 @@
-import { useState } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Loader2, CheckCircle, XCircle, ExternalLink, Globe, Pencil, Trash2, Plus, ArrowLeft, RefreshCw } from 'lucide-react';
-import { useWordpressSites, WordpressSite } from '@/hooks/useWordpressSites';
+import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Loader2,
+  CheckCircle,
+  XCircle,
+  ExternalLink,
+  Globe,
+  Pencil,
+  Trash2,
+  Plus,
+  ArrowLeft,
+  RefreshCw,
+} from "lucide-react";
+import { useWordpressSites, WordpressSite } from "@/hooks/useWordpressSites";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,45 +42,63 @@ interface ManageWordpressSitesDialogProps {
   companyId: string;
 }
 
-type ViewMode = 'list' | 'add' | 'edit';
+type ViewMode = "list" | "add" | "edit";
 
-export function ManageWordpressSitesDialog({ open, onOpenChange, companyId }: ManageWordpressSitesDialogProps) {
-  const { sites, isLoading, addSite, updateSite, deleteSite, testConnection, isAdding, isUpdating, isDeleting, isTesting } = useWordpressSites(companyId);
-  
-  const [viewMode, setViewMode] = useState<ViewMode>('list');
+export function ManageWordpressSitesDialog({
+  open,
+  onOpenChange,
+  companyId,
+}: ManageWordpressSitesDialogProps) {
+  const {
+    sites,
+    isLoading,
+    addSite,
+    updateSite,
+    deleteSite,
+    testConnection,
+    isAdding,
+    isUpdating,
+    isDeleting,
+    isTesting,
+  } = useWordpressSites(companyId);
+
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [editingSite, setEditingSite] = useState<WordpressSite | null>(null);
-  const [deleteConfirmSite, setDeleteConfirmSite] = useState<WordpressSite | null>(null);
+  const [deleteConfirmSite, setDeleteConfirmSite] =
+    useState<WordpressSite | null>(null);
   const [testingSiteId, setTestingSiteId] = useState<string | null>(null);
-  
+
   // Form state
-  const [name, setName] = useState('');
-  const [siteUrl, setSiteUrl] = useState('');
-  const [username, setUsername] = useState('');
-  const [appPassword, setAppPassword] = useState('');
-  const [connectionStatus, setConnectionStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
-  const [connectionError, setConnectionError] = useState('');
+  const [name, setName] = useState("");
+  const [siteUrl, setSiteUrl] = useState("");
+  const [username, setUsername] = useState("");
+  const [appPassword, setAppPassword] = useState("");
+  const [connectionStatus, setConnectionStatus] = useState<
+    "idle" | "testing" | "success" | "error"
+  >("idle");
+  const [connectionError, setConnectionError] = useState("");
 
   const resetForm = () => {
-    setName('');
-    setSiteUrl('');
-    setUsername('');
-    setAppPassword('');
-    setConnectionStatus('idle');
-    setConnectionError('');
+    setName("");
+    setSiteUrl("");
+    setUsername("");
+    setAppPassword("");
+    setConnectionStatus("idle");
+    setConnectionError("");
     setEditingSite(null);
   };
 
   const handleOpenChange = (isOpen: boolean) => {
     if (!isOpen) {
       resetForm();
-      setViewMode('list');
+      setViewMode("list");
     }
     onOpenChange(isOpen);
   };
 
   const handleAddNew = () => {
     resetForm();
-    setViewMode('add');
+    setViewMode("add");
   };
 
   const handleEdit = (site: WordpressSite) => {
@@ -71,14 +107,14 @@ export function ManageWordpressSitesDialog({ open, onOpenChange, companyId }: Ma
     setSiteUrl(site.site_url);
     setUsername(site.username);
     setAppPassword(site.app_password);
-    setConnectionStatus('idle');
-    setConnectionError('');
-    setViewMode('edit');
+    setConnectionStatus("idle");
+    setConnectionError("");
+    setViewMode("edit");
   };
 
   const handleBack = () => {
     resetForm();
-    setViewMode('list');
+    setViewMode("list");
   };
 
   const handleTestConnection = async (site?: WordpressSite) => {
@@ -91,17 +127,21 @@ export function ManageWordpressSitesDialog({ open, onOpenChange, companyId }: Ma
     if (site) {
       setTestingSiteId(site.id);
     } else {
-      setConnectionStatus('testing');
+      setConnectionStatus("testing");
     }
-    setConnectionError('');
+    setConnectionError("");
 
     try {
-      await testConnection({ siteUrl: urlToTest, username: userToTest, appPassword: passToTest });
-      if (!site) setConnectionStatus('success');
+      await testConnection({
+        siteUrl: urlToTest,
+        username: userToTest,
+        appPassword: passToTest,
+      });
+      if (!site) setConnectionStatus("success");
     } catch (error: unknown) {
       if (!site) {
-        setConnectionStatus('error');
-        setConnectionError(error.message || 'Falha na conexão');
+        setConnectionStatus("error");
+        setConnectionError(error.message || "Falha na conexão");
       }
     } finally {
       setTestingSiteId(null);
@@ -121,12 +161,17 @@ export function ManageWordpressSitesDialog({ open, onOpenChange, companyId }: Ma
           app_password: appPassword,
         });
       } else {
-        await addSite({ name, site_url: siteUrl, username, app_password: appPassword });
+        await addSite({
+          name,
+          site_url: siteUrl,
+          username,
+          app_password: appPassword,
+        });
       }
       resetForm();
-      setViewMode('list');
+      setViewMode("list");
     } catch (error) {
-      console.error('Error saving site:', error);
+      console.error("Error saving site:", error);
     }
   };
 
@@ -136,7 +181,7 @@ export function ManageWordpressSitesDialog({ open, onOpenChange, companyId }: Ma
       await deleteSite(deleteConfirmSite.id);
       setDeleteConfirmSite(null);
     } catch (error) {
-      console.error('Error deleting site:', error);
+      console.error("Error deleting site:", error);
     }
   };
 
@@ -182,10 +227,11 @@ export function ManageWordpressSitesDialog({ open, onOpenChange, companyId }: Ma
           onChange={(e) => setAppPassword(e.target.value)}
         />
         <p className="text-xs text-muted-foreground">
-          Crie em: WordPress {'>'} Usuários {'>'} Seu Perfil {'>'} Application Passwords
-          <a 
-            href="https://make.wordpress.org/core/2020/11/05/application-passwords-integration-guide/" 
-            target="_blank" 
+          Crie em: WordPress {">"} Usuários {">"} Seu Perfil {">"} Application
+          Passwords
+          <a
+            href="https://make.wordpress.org/core/2020/11/05/application-passwords-integration-guide/"
+            target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center ml-1 text-primary hover:underline"
           >
@@ -194,19 +240,28 @@ export function ManageWordpressSitesDialog({ open, onOpenChange, companyId }: Ma
         </p>
       </div>
 
-      {connectionStatus !== 'idle' && (
-        <div className={`flex items-center gap-2 p-3 rounded-lg ${
-          connectionStatus === 'success' ? 'bg-green-500/10 text-green-600' :
-          connectionStatus === 'error' ? 'bg-red-500/10 text-red-600' :
-          'bg-muted'
-        }`}>
-          {connectionStatus === 'testing' && <Loader2 className="w-4 h-4 animate-spin" />}
-          {connectionStatus === 'success' && <CheckCircle className="w-4 h-4" />}
-          {connectionStatus === 'error' && <XCircle className="w-4 h-4" />}
+      {connectionStatus !== "idle" && (
+        <div
+          className={`flex items-center gap-2 p-3 rounded-lg ${
+            connectionStatus === "success"
+              ? "bg-green-500/10 text-green-600"
+              : connectionStatus === "error"
+                ? "bg-red-500/10 text-red-600"
+                : "bg-muted"
+          }`}
+        >
+          {connectionStatus === "testing" && (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          )}
+          {connectionStatus === "success" && (
+            <CheckCircle className="w-4 h-4" />
+          )}
+          {connectionStatus === "error" && <XCircle className="w-4 h-4" />}
           <span className="text-sm">
-            {connectionStatus === 'testing' && 'Testando conexão...'}
-            {connectionStatus === 'success' && 'Conexão estabelecida!'}
-            {connectionStatus === 'error' && (connectionError || 'Falha na conexão')}
+            {connectionStatus === "testing" && "Testando conexão..."}
+            {connectionStatus === "success" && "Conexão estabelecida!"}
+            {connectionStatus === "error" &&
+              (connectionError || "Falha na conexão")}
           </span>
         </div>
       )}
@@ -218,7 +273,7 @@ export function ManageWordpressSitesDialog({ open, onOpenChange, companyId }: Ma
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            {viewMode === 'list' && (
+            {viewMode === "list" && (
               <>
                 <DialogTitle>Gerenciar Sites WordPress</DialogTitle>
                 <DialogDescription>
@@ -226,10 +281,16 @@ export function ManageWordpressSitesDialog({ open, onOpenChange, companyId }: Ma
                 </DialogDescription>
               </>
             )}
-            {viewMode === 'add' && (
+            {viewMode === "add" && (
               <>
                 <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="icon" onClick={handleBack} className="h-8 w-8">
+                  <Button
+                    aria-label="Voltar"
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleBack}
+                    className="h-8 w-8"
+                  >
                     <ArrowLeft className="w-4 h-4" />
                   </Button>
                   <DialogTitle>Adicionar Site WordPress</DialogTitle>
@@ -239,10 +300,16 @@ export function ManageWordpressSitesDialog({ open, onOpenChange, companyId }: Ma
                 </DialogDescription>
               </>
             )}
-            {viewMode === 'edit' && (
+            {viewMode === "edit" && (
               <>
                 <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="icon" onClick={handleBack} className="h-8 w-8">
+                  <Button
+                    aria-label="Voltar"
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleBack}
+                    className="h-8 w-8"
+                  >
                     <ArrowLeft className="w-4 h-4" />
                   </Button>
                   <DialogTitle>Editar Site WordPress</DialogTitle>
@@ -254,7 +321,7 @@ export function ManageWordpressSitesDialog({ open, onOpenChange, companyId }: Ma
             )}
           </DialogHeader>
 
-          {viewMode === 'list' && (
+          {viewMode === "list" && (
             <div className="space-y-3 py-4">
               {isLoading ? (
                 <div className="flex items-center justify-center py-8">
@@ -263,7 +330,9 @@ export function ManageWordpressSitesDialog({ open, onOpenChange, companyId }: Ma
               ) : sites.length === 0 ? (
                 <div className="text-center py-8">
                   <Globe className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
-                  <p className="text-muted-foreground mb-4">Nenhum site cadastrado</p>
+                  <p className="text-muted-foreground mb-4">
+                    Nenhum site cadastrado
+                  </p>
                   <Button onClick={handleAddNew}>
                     <Plus className="w-4 h-4 mr-2" />
                     Adicionar Site
@@ -278,9 +347,16 @@ export function ManageWordpressSitesDialog({ open, onOpenChange, companyId }: Ma
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
                               <Globe className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                              <span className="font-medium truncate">{site.name}</span>
-                              <Badge variant={site.is_active ? 'default' : 'secondary'} className="flex-shrink-0">
-                                {site.is_active ? 'Ativo' : 'Inativo'}
+                              <span className="font-medium truncate">
+                                {site.name}
+                              </span>
+                              <Badge
+                                variant={
+                                  site.is_active ? "default" : "secondary"
+                                }
+                                className="flex-shrink-0"
+                              >
+                                {site.is_active ? "Ativo" : "Inativo"}
                               </Badge>
                             </div>
                             <p className="text-sm text-muted-foreground mt-1 truncate">
@@ -292,6 +368,7 @@ export function ManageWordpressSitesDialog({ open, onOpenChange, companyId }: Ma
                           </div>
                           <div className="flex items-center gap-1 flex-shrink-0">
                             <Button
+                              aria-label="Atualizar"
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8"
@@ -305,6 +382,7 @@ export function ManageWordpressSitesDialog({ open, onOpenChange, companyId }: Ma
                               )}
                             </Button>
                             <Button
+                              aria-label="Editar"
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8"
@@ -313,6 +391,7 @@ export function ManageWordpressSitesDialog({ open, onOpenChange, companyId }: Ma
                               <Pencil className="w-4 h-4" />
                             </Button>
                             <Button
+                              aria-label="Excluir"
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8 text-destructive hover:text-destructive"
@@ -325,7 +404,11 @@ export function ManageWordpressSitesDialog({ open, onOpenChange, companyId }: Ma
                       </CardContent>
                     </Card>
                   ))}
-                  <Button onClick={handleAddNew} variant="outline" className="w-full mt-4">
+                  <Button
+                    onClick={handleAddNew}
+                    variant="outline"
+                    className="w-full mt-4"
+                  >
                     <Plus className="w-4 h-4 mr-2" />
                     Adicionar Novo Site
                   </Button>
@@ -334,24 +417,40 @@ export function ManageWordpressSitesDialog({ open, onOpenChange, companyId }: Ma
             </div>
           )}
 
-          {(viewMode === 'add' || viewMode === 'edit') && (
+          {(viewMode === "add" || viewMode === "edit") && (
             <>
               {renderForm()}
               <DialogFooter className="gap-2">
                 <Button
                   variant="outline"
                   onClick={() => handleTestConnection()}
-                  disabled={!siteUrl || !username || !appPassword || connectionStatus === 'testing'}
+                  disabled={
+                    !siteUrl ||
+                    !username ||
+                    !appPassword ||
+                    connectionStatus === "testing"
+                  }
                 >
-                  {connectionStatus === 'testing' ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                  {connectionStatus === "testing" ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : null}
                   Testar Conexão
                 </Button>
                 <Button
                   onClick={handleSave}
-                  disabled={!name || !siteUrl || !username || !appPassword || isAdding || isUpdating}
+                  disabled={
+                    !name ||
+                    !siteUrl ||
+                    !username ||
+                    !appPassword ||
+                    isAdding ||
+                    isUpdating
+                  }
                 >
-                  {(isAdding || isUpdating) ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                  {viewMode === 'edit' ? 'Salvar Alterações' : 'Adicionar Site'}
+                  {isAdding || isUpdating ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : null}
+                  {viewMode === "edit" ? "Salvar Alterações" : "Adicionar Site"}
                 </Button>
               </DialogFooter>
             </>
@@ -359,13 +458,17 @@ export function ManageWordpressSitesDialog({ open, onOpenChange, companyId }: Ma
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={!!deleteConfirmSite} onOpenChange={(open) => !open && setDeleteConfirmSite(null)}>
+      <AlertDialog
+        open={!!deleteConfirmSite}
+        onOpenChange={(open) => !open && setDeleteConfirmSite(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Remover site WordPress?</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja remover o site "{deleteConfirmSite?.name}"? 
-              Esta ação não pode ser desfeita e as automações vinculadas a este site deixarão de funcionar.
+              Tem certeza que deseja remover o site "{deleteConfirmSite?.name}"?
+              Esta ação não pode ser desfeita e as automações vinculadas a este
+              site deixarão de funcionar.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -375,7 +478,9 @@ export function ManageWordpressSitesDialog({ open, onOpenChange, companyId }: Ma
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               disabled={isDeleting}
             >
-              {isDeleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              {isDeleting ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : null}
               Remover
             </AlertDialogAction>
           </AlertDialogFooter>
