@@ -30,6 +30,18 @@ interface GitHubPR {
   };
 }
 
+interface ReleaseEntry {
+  title: string;
+  friendly_title: string | null;
+  category: string;
+  description: string | null;
+  source_type: string;
+  source_ref: string;
+  source_url: string;
+  author_name: string;
+  published_at: string;
+}
+
 function categorize(message: string): { category: string; cleanTitle: string } {
   const lower = message.toLowerCase().trim();
 
@@ -47,6 +59,86 @@ function categorize(message: string): { category: string; cleanTitle: string } {
   }
 
   return { category: "other", cleanTitle: message };
+}
+
+const CATEGORY_LABELS: Record<string, string> = {
+  feature: "Nova funcionalidade",
+  fix: "Correção de problema",
+  improvement: "Melhoria no sistema",
+  other: "Atualização",
+};
+
+async function generateFriendlyTitles(
+  entries: Array<{ title: string; description: string | null; category: string }>
+): Promise<string[]> {
+  const openaiKey = Deno.env.get("OPENAI_API_KEY");
+  if (!openaiKey) {
+    console.warn("OPENAI_API_KEY não encontrada, usando títulos originais");
+    return entries.map((e) => e.title);
+  }
+
+  const itemsList = entries
+    .map((e, i) => {
+      const catLabel = CATEGORY_LABELS[e.category] || "Atualização";
+      const desc = e.description ? ` | Descrição: ${e.description.substring(0, 200)}` : "";
+      return `${i + 1}. [${catLabel}] "${e.title}"${desc}`;
+    })
+    .join("\n");
+
+  try {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${openaiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        temperature: 0.3,
+        messages: [
+          {
+            role: "system",
+            content: `Você é um redator de release notes para um sistema SaaS de marketing e gestão de tráfego.
+Sua tarefa é reescrever títulos técnicos de commits/PRs em frases curtas e amigáveis para usuários leigos.
+
+Regras:
+- Escreva em Português (PT-BR)
+- Máximo 80 caracteres por título
+- Foque no benefício para o usuário, não no detalhe técnico
+- Não use termos como: commit, PR, merge, branch, deploy, refactor, hook, component, migration, ESLint, CI, build
+- Se for um merge ou atualização interna sem impacto visível ao usuário, escreva "Manutenção interna do sistema"
+- Comece com verbo no passado ou substantivo (ex: "Melhorada a...", "Nova opção de...", "Corrigido problema em...")
+- Responda APENAS com as frases numeradas, uma por linha, no formato: 1. Frase aqui`,
+          },
+          {
+            role: "user",
+            content: `Reescreva cada item abaixo em uma frase amigável:\n\n${itemsList}`,
+          },
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      console.error("OpenAI API error:", await response.text());
+      return entries.map((e) => e.title);
+    }
+
+    const data = await response.json();
+    const content: string = data.choices?.[0]?.message?.content || "";
+
+    // Parse numbered lines
+    const lines = content.split("\n").filter((l: string) => /^\d+\.\s/.test(l.trim()));
+    return entries.map((e, i) => {
+      const line = lines[i];
+      if (line) {
+        return line.replace(/^\d+\.\s*/, "").trim();
+      }
+      return e.title;
+    });
+  } catch (err) {
+    console.error("Erro ao gerar títulos amigáveis:", err);
+    return entries.map((e) => e.title);
+  }
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -122,21 +214,13 @@ const handler = async (req: Request): Promise<Response> => {
     );
 
     // Process PRs
-    const entries: Array<{
-      title: string;
-      category: string;
-      description: string | null;
-      source_type: string;
-      source_ref: string;
-      source_url: string;
-      author_name: string;
-      published_at: string;
-    }> = [];
+    const entries: ReleaseEntry[] = [];
 
     for (const pr of mergedPrs) {
       const { category, cleanTitle } = categorize(pr.title);
       entries.push({
         title: cleanTitle,
+        friendly_title: null,
         category,
         description: pr.body ? pr.body.substring(0, 1000) : null,
         source_type: "pr",
@@ -156,6 +240,7 @@ const handler = async (req: Request): Promise<Response> => {
 
       entries.push({
         title: cleanTitle,
+        friendly_title: null,
         category,
         description: null,
         source_type: "commit",
@@ -171,6 +256,12 @@ const handler = async (req: Request): Promise<Response> => {
         JSON.stringify({ success: true, synced_count: 0 }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // Generate friendly titles using AI
+    const friendlyTitles = await generateFriendlyTitles(entries);
+    for (let i = 0; i < entries.length; i++) {
+      entries[i].friendly_title = friendlyTitles[i];
     }
 
     // Upsert by source_ref

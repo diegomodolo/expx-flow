@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { RefreshCw, ExternalLink, Megaphone, Loader2, Sparkles, Bug, Wrench, Package } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 
 const CATEGORY_CONFIG: Record<
   string,
@@ -73,9 +73,7 @@ function KpiCard({ icon: Icon, label, value, color, bgColor }: KpiCardProps) {
 }
 
 function NoteCard({ note }: { note: ReleaseNote }) {
-  const [expanded, setExpanded] = useState(false);
   const config = CATEGORY_CONFIG[note.category] || CATEGORY_CONFIG.other;
-  const hasLongDescription = note.description && note.description.length > 200;
 
   return (
     <div className="bg-white dark:bg-card border rounded-lg p-4 hover:shadow-sm transition-shadow">
@@ -90,25 +88,8 @@ function NoteCard({ note }: { note: ReleaseNote }) {
             )}
           </div>
           <h3 className="text-sm font-medium text-foreground leading-snug">
-            {note.title}
+            {note.friendly_title || note.title}
           </h3>
-          {note.description && (
-            <div className="mt-2">
-              <p className="text-xs text-muted-foreground whitespace-pre-line">
-                {hasLongDescription && !expanded
-                  ? note.description.substring(0, 200) + "..."
-                  : note.description}
-              </p>
-              {hasLongDescription && (
-                <button
-                  onClick={() => setExpanded(!expanded)}
-                  className="text-xs text-primary hover:underline mt-1"
-                >
-                  {expanded ? "Ver menos" : "Ver mais"}
-                </button>
-              )}
-            </div>
-          )}
           <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
             <span>
               {formatDistanceToNow(new Date(note.published_at), {
@@ -238,13 +219,13 @@ export default function ReleaseNotes() {
               </Button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="space-y-6">
               {Object.entries(grouped).map(([month, monthNotes]) => (
-                <section key={month} className="space-y-3">
-                  <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider capitalize">
+                <section key={month}>
+                  <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider capitalize mb-3">
                     {month}
                   </h2>
-                  <div className="space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                     {monthNotes.map((note) => (
                       <NoteCard key={note.id} note={note} />
                     ))}
@@ -253,7 +234,7 @@ export default function ReleaseNotes() {
               ))}
 
               {hasMore && (
-                <div className="text-center pt-4 lg:col-span-2">
+                <div className="text-center pt-4">
                   <Button variant="outline" onClick={loadMore}>
                     Carregar mais
                   </Button>

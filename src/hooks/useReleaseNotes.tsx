@@ -5,6 +5,7 @@ import { useState } from "react";
 export interface ReleaseNote {
   id: string;
   title: string;
+  friendly_title: string | null;
   category: "feature" | "fix" | "improvement" | "other";
   description: string | null;
   source_type: "commit" | "pr";
